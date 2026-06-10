@@ -785,6 +785,7 @@ class Referrer(StrEnum):
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERRORS = "reports.key_errors"
+    REPORTS_KEY_ERRORS_BATCHED = "reports.key_errors.batched"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
     REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"

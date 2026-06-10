@@ -234,6 +234,141 @@ def _project_key_errors_snuba(
     return query_result["data"]
 
 
+_KEY_ERRORS_CHUNK_SIZE = 100
+
+
+def _org_key_errors_snuba(
+    ctx: OrganizationReportContext,
+    project_ids: list[int],
+    referrer: str,
+    per_project_limit: int = 3,
+) -> dict[int, list[dict[str, Any]]]:
+    if not project_ids:
+        return {}
+
+    results: dict[int, list[dict[str, Any]]] = {}
+    for i in range(0, len(project_ids), _KEY_ERRORS_CHUNK_SIZE):
+        chunk = project_ids[i : i + _KEY_ERRORS_CHUNK_SIZE]
+        chunk_results = _org_key_errors_snuba_chunk(ctx, chunk, referrer, per_project_limit)
+        results.update(chunk_results)
+
+    return results
+
+
+def _org_key_errors_snuba_chunk(
+    ctx: OrganizationReportContext,
+    project_ids: list[int],
+    referrer: str,
+    per_project_limit: int,
+) -> dict[int, list[dict[str, Any]]]:
+    events_entity = Entity("events", alias="events")
+    group_attributes_entity = Entity("group_attributes", alias="group_attributes")
+    query = Query(
+        match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
+        select=[
+            Column("project_id", entity=events_entity),
+            Column("group_id", entity=events_entity),
+            Function("count", []),
+        ],
+        where=[
+            Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
+            Condition(
+                Column("timestamp", entity=events_entity),
+                Op.LT,
+                ctx.end + timedelta(days=1),
+            ),
+            Condition(
+                Column("project_id", entity=events_entity),
+                Op.IN,
+                project_ids,
+            ),
+            Condition(
+                Column("project_id", entity=group_attributes_entity),
+                Op.IN,
+                project_ids,
+            ),
+            Condition(
+                Column("group_status", entity=group_attributes_entity),
+                Op.EQ,
+                GroupStatus.UNRESOLVED,
+            ),
+            Condition(Column("level", entity=events_entity), Op.EQ, "error"),
+        ],
+        groupby=[
+            Column("project_id", entity=events_entity),
+            Column("group_id", entity=events_entity),
+        ],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(min(len(project_ids) * 10, 10000)),
+    )
+
+    request = Request(
+        dataset=Dataset.Events.value,
+        app_id="reports",
+        query=query,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+
+    results: dict[int, list[dict[str, Any]]] = {}
+    for row in rows:
+        pid = row["events.project_id"]
+        if pid not in results:
+            results[pid] = []
+        if len(results[pid]) < per_project_limit:
+            results[pid].append(
+                {"events.group_id": row["events.group_id"], "count()": row["count()"]}
+            )
+
+    return results
+
+
+def org_key_errors(
+    ctx: OrganizationReportContext,
+    referrer: str,
+) -> dict[int, list[dict[str, Any]]]:
+    op = "weekly_reports.org_key_errors"
+    with sentry_sdk.start_span(op=op):
+        project_ids = [
+            pid for pid, pctx in ctx.projects_context_map.items() if pctx.project.first_event
+        ]
+        if not project_ids:
+            return {}
+
+        snuba_results = _org_key_errors_snuba(ctx=ctx, project_ids=project_ids, referrer=referrer)
+
+        callsite = "tasks.summaries.project_key_errors"
+        if EAPOccurrencesComparator.should_check_experiment(callsite):
+            for pid in list(snuba_results.keys()):
+                project = ctx.projects_context_map[pid].project
+                snuba_rows = snuba_results[pid]
+                eap_rows = _project_key_errors_eap(
+                    ctx=ctx,
+                    project=project,
+                    referrer=referrer,
+                )
+                chosen = EAPOccurrencesComparator.check_and_choose(
+                    snuba_rows,
+                    eap_rows,
+                    callsite,
+                    is_experimental_data_nullish=len(eap_rows) == 0,
+                    reasonable_match_comparator=lambda snuba, eap: keyed_counts_subset_match(
+                        snuba,
+                        eap,
+                        key_fn=lambda row: int(row["events.group_id"]),
+                    ),
+                    debug_context={
+                        "organization_id": ctx.organization.id,
+                        "project_id": pid,
+                        "start": ctx.start.isoformat(),
+                        "end": (ctx.end + timedelta(days=1)).isoformat(),
+                    },
+                )
+                snuba_results[pid] = chosen
+
+        return snuba_results
+
+
 def _project_key_errors_eap(
     ctx: OrganizationReportContext,
     project: Project,
