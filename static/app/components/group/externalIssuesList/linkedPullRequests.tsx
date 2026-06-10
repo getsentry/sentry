@@ -129,11 +129,11 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
   );
 }
 
-export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
+export function useLinkedPullRequests({group}: {group: Group}) {
   const organization = useOrganization();
   const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
 
-  const {data, isError} = useQuery(
+  return useQuery(
     apiOptions.as<LinkedPullRequestsResponse>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
@@ -144,6 +144,12 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
       }
     )
   );
+}
+
+export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
+  const organization = useOrganization();
+  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
+  const {data, isError} = useLinkedPullRequests({group});
 
   if (!hasFeature || isError) {
     return null;

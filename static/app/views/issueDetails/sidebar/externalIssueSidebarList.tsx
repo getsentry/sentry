@@ -5,7 +5,10 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ExternalIssueListContent} from 'sentry/components/group/externalIssuesList';
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import {IssueTrackerActionDropdown} from 'sentry/components/group/externalIssuesList/issueTrackerActions';
-import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {
+  LinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -26,6 +29,15 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
     'issue-details-linked-pull-requests'
   );
   const externalIssueData = useGroupExternalIssues({group, event, project});
+  const {data: linkedPullRequestsData, isPending: isLinkedPullRequestsLoading} =
+    useLinkedPullRequests({group});
+  const showEmptyIssueTrackerAction =
+    hasLinkedPullRequestsFeature &&
+    !externalIssueData.isLoading &&
+    !isLinkedPullRequestsLoading &&
+    externalIssueData.integrations.length > 0 &&
+    externalIssueData.linkedIssues.length === 0 &&
+    linkedPullRequestsData?.pullRequests.length === 0;
 
   return (
     <SidebarFoldSection
@@ -36,7 +48,7 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
         </Heading>
       }
       actions={
-        hasLinkedPullRequestsFeature ? (
+        hasLinkedPullRequestsFeature && !showEmptyIssueTrackerAction ? (
           <IssueTrackerActionDropdown
             integrations={externalIssueData.integrations}
             isLoading={externalIssueData.isLoading}
@@ -56,12 +68,20 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
             group={group}
             showEmptyState={
               hasLinkedPullRequestsFeature &&
+              !showEmptyIssueTrackerAction &&
               !externalIssueData.isLoading &&
               externalIssueData.integrations.length > 0 &&
               externalIssueData.linkedIssues.length === 0
             }
           />
         </ErrorBoundary>
+        {showEmptyIssueTrackerAction && (
+          <IssueTrackerActionDropdown
+            fullWidth
+            integrations={externalIssueData.integrations}
+            isLoading={externalIssueData.isLoading}
+          />
+        )}
       </Flex>
     </SidebarFoldSection>
   );

@@ -331,10 +331,10 @@ describe('ExternalIssueSidebarList', () => {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
+    expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
     expect(
-      await screen.findByText('No linked issues or pull requests')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Link issue'})).toBeInTheDocument();
+      screen.queryByText('No linked issues or pull requests')
+    ).not.toBeInTheDocument();
   });
 
   it('should render empty state when no integrations', async () => {

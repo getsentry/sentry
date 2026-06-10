@@ -13,6 +13,7 @@ import type {
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Theme} from 'sentry/utils/theme';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ISSUE_TRACKER_MENU_MAX_HEIGHT = 300;
@@ -23,6 +24,7 @@ interface InlineIssueTrackerActionsProps {
 
 interface IssueTrackerActionDropdownProps {
   integrations: ExternalIssueIntegration[];
+  fullWidth?: boolean;
   isLoading?: boolean;
 }
 
@@ -198,6 +200,7 @@ export function InlineIssueTrackerActions({
 }
 
 export function IssueTrackerActionDropdown({
+  fullWidth,
   integrations,
   isLoading,
 }: IssueTrackerActionDropdownProps) {
@@ -262,8 +265,10 @@ export function IssueTrackerActionDropdown({
     const {action, isDisabled, onAction, tooltipTitle} = issueTrackerActions[0]!;
 
     if (action.href) {
+      const LinkButtonComponent = fullWidth ? FullWidthLinkButton : LinkButton;
+
       return (
-        <LinkButton
+        <LinkButtonComponent
           disabled={isDisabled}
           external
           href={action.href}
@@ -274,12 +279,14 @@ export function IssueTrackerActionDropdown({
           variant="transparent"
         >
           {issueTrackerActionLabel}
-        </LinkButton>
+        </LinkButtonComponent>
       );
     }
 
+    const ButtonComponent = fullWidth ? FullWidthButton : Button;
+
     return (
-      <Button
+      <ButtonComponent
         disabled={isDisabled}
         icon={<HeaderIssueTrackerIcon />}
         onClick={onAction}
@@ -288,25 +295,31 @@ export function IssueTrackerActionDropdown({
         variant="transparent"
       >
         {issueTrackerActionLabel}
-      </Button>
+      </ButtonComponent>
     );
   }
 
   return (
     <DropdownMenu
       maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
-      trigger={(triggerProps, isOpen) => (
-        <DropdownButton
-          {...triggerProps}
-          isOpen={isOpen}
-          icon={<HeaderIssueTrackerIcon />}
-          showChevron={false}
-          size="zero"
-          variant="transparent"
-        >
-          {issueTrackerActionLabel}
-        </DropdownButton>
-      )}
+      trigger={(triggerProps, isOpen) => {
+        const DropdownButtonComponent = fullWidth
+          ? FullWidthDropdownButton
+          : DropdownButton;
+
+        return (
+          <DropdownButtonComponent
+            {...triggerProps}
+            isOpen={isOpen}
+            icon={<HeaderIssueTrackerIcon />}
+            showChevron={false}
+            size="zero"
+            variant="transparent"
+          >
+            {issueTrackerActionLabel}
+          </DropdownButtonComponent>
+        );
+      }}
       items={issueTrackerActionGroups.map<MenuItemProps>(({integration, actions}) => ({
         key: integration.key,
         children: actions.map(
@@ -370,6 +383,26 @@ const IssueActionDropdownMenu = styled(DropdownButton)`
 
 const HeaderIssueTrackerIcon = styled(IconAdd)`
   transform: translateY(0);
+`;
+
+const fullWidthButtonStyles = (p: {theme: Theme}) => `
+  width: 100%;
+  min-height: 34px;
+  border: 1px dashed ${p.theme.tokens.border.primary};
+  border-radius: ${p.theme.radius.md};
+  font-size: ${p.theme.font.size.md};
+`;
+
+const FullWidthButton = styled(Button)`
+  ${fullWidthButtonStyles}
+`;
+
+const FullWidthLinkButton = styled(LinkButton)`
+  ${fullWidthButtonStyles}
+`;
+
+const FullWidthDropdownButton = styled(DropdownButton)`
+  ${fullWidthButtonStyles}
 `;
 
 const IssueTrackerIcon = styled('span')`
