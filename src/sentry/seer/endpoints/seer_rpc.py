@@ -53,6 +53,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
@@ -965,6 +966,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # Issue Detection
     "create_issue_occurrence": create_issue_occurrence,
+    #
+    # PR metrics (judge path)
+    "update_pr_metrics": update_pr_metrics,
 }
 
 

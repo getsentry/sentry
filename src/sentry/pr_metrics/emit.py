@@ -125,6 +125,7 @@ def build_pr_metrics_row(
         review_comments_count=metrics.review_comments_count,
         is_assigned=metrics.is_assigned,
         attributions=json.dumps(attributions),
+        verdict=metrics.verdict,
     )
 
 
