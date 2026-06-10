@@ -323,6 +323,15 @@ class ProjectDebugFile(Model):
                 self._get_objectstore_session().delete(self.storage_path)
             except Project.DoesNotExist:
                 logger.info("Project already deleted, object will be cleaned up by TTI")
+            except (RequestError, HTTPError):
+                logger.exception(
+                    "debugfile.objectstore_delete_failed",
+                    extra={
+                        "project_debug_file_id": self.id,
+                        "project_id": self.project_id,
+                        "storage_path": self.storage_path,
+                    },
+                )
         elif self.file is not None:
             # If another debug file row still references this File, keep the File.
             # Concurrent last-reference deletes can still leave an unreferenced File

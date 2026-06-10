@@ -4,7 +4,9 @@ import os
 import tempfile
 import time
 import zipfile
+from datetime import timedelta
 from io import BytesIO
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -19,6 +21,7 @@ from urllib3.exceptions import ProtocolError
 
 import sentry.models.debugfile as debugfile_model
 from sentry.api.endpoints.debug_files import _clone_proguard_debug_file_for_reupload
+from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.models.debugfile import (
     BadDif,
     DifMeta,
@@ -269,8 +272,10 @@ class DebugFileObjectstoreTest(TestCase):
         defaults.update(kwargs)
         return ProjectDebugFile.objects.create(**defaults)
 
-    def _create_non_objectstore_dif(self, **kwargs):
-        return self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75", **kwargs)
+    def _create_non_objectstore_dif(
+        self, debug_id: str = "dfb8e43a-f242-3d73-a453-aeb6a777ef75", **kwargs: Any
+    ):
+        return self.create_dif_file(debug_id=debug_id, **kwargs)
 
     @requires_objectstore
     def test_metadata_reads_from_new_columns_when_storage_path_set(self):
@@ -312,6 +317,28 @@ class DebugFileObjectstoreTest(TestCase):
             with open(path, "rb") as f:
                 assert f.read() == b"objectstore-content"
 
+    def test_save_to_closes_objectstore_payload(self):
+        dif = ProjectDebugFile.objects.create(
+            debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75",
+            project_id=self.project.id,
+            object_name="test.dSYM",
+            cpu_name="x86_64",
+            checksum="a" * 40,
+            storage_path="debug-files/key",
+            content_type="application/x-mach-binary",
+            file_size=len(b"objectstore-content"),
+            date_created=timezone.now(),
+        )
+        payload = BytesIO(b"objectstore-content")
+        session = MagicMock()
+        session.get.return_value = SimpleNamespace(payload=payload)
+
+        with patch.object(dif, "_get_objectstore_session", return_value=session):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                dif.save_to(os.path.join(tmpdir, "output"))
+
+        assert payload.closed
+
     @requires_objectstore
     def test_delete(self):
         dif = self._create_objectstore_dif()
@@ -323,6 +350,91 @@ class DebugFileObjectstoreTest(TestCase):
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
         with pytest.raises(RequestError):
             self._get_session().get(storage_path)
+
+    def test_delete_logs_objectstore_delete_failure(self):
+        dif = ProjectDebugFile.objects.create(
+            debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75",
+            project_id=self.project.id,
+            object_name="test.dSYM",
+            cpu_name="x86_64",
+            checksum="a" * 40,
+            storage_path="debug-files/key",
+            content_type="application/x-mach-binary",
+            file_size=len(b"objectstore-content"),
+            date_created=timezone.now(),
+        )
+        session = MagicMock()
+        session.delete.side_effect = RequestError("down", status=500, response="")
+
+        with (
+            patch.object(dif, "_get_objectstore_session", return_value=session),
+            self.assertLogs("sentry.models.debugfile", level="ERROR") as logs,
+        ):
+            dif.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
+        assert "debugfile.objectstore_delete_failed" in logs.output[0]
+
+    def test_maybe_renew_debug_files_skips_objectstore_rows_when_tti_bump_fails(self):
+        old_date = timezone.now() - timedelta(days=999)
+        renewed_dif = ProjectDebugFile.objects.create(
+            debug_id="00000000-0000-0000-0000-000000000000",
+            project_id=self.project.id,
+            object_name="test.dSYM",
+            cpu_name="x86_64",
+            checksum="a" * 40,
+            date_accessed=old_date,
+            storage_path="renewed",
+            content_type="application/x-mach-binary",
+            file_size=len(b"objectstore-content"),
+            date_created=timezone.now(),
+        )
+        failed_dif = ProjectDebugFile.objects.create(
+            debug_id="11111111-1111-1111-1111-111111111111",
+            project_id=self.project.id,
+            object_name="test.dSYM",
+            cpu_name="x86_64",
+            checksum="b" * 40,
+            date_accessed=old_date,
+            storage_path="failed",
+            content_type="application/x-mach-binary",
+            file_size=len(b"objectstore-content"),
+            date_created=timezone.now(),
+        )
+        file_backed_dif = self._create_non_objectstore_dif(
+            debug_id="22222222-2222-2222-2222-222222222222",
+            date_accessed=old_date,
+        )
+        renewed_session = MagicMock()
+        failed_session = MagicMock()
+        failed_session.head.side_effect = RequestError("down", status=500, response="")
+        sessions = {
+            renewed_dif.id: renewed_session,
+            failed_dif.id: failed_session,
+        }
+
+        with (
+            patch("sentry.debug_files.debug_files.options.get", return_value=30),
+            patch.object(
+                ProjectDebugFile,
+                "_get_objectstore_session",
+                autospec=True,
+                side_effect=lambda dif: sessions[dif.id],
+            ),
+            self.assertLogs("sentry.debug_files.debug_files", level="ERROR") as logs,
+        ):
+            maybe_renew_debug_files([renewed_dif, failed_dif, file_backed_dif])
+
+        renewed_dif.refresh_from_db()
+        failed_dif.refresh_from_db()
+        file_backed_dif.refresh_from_db()
+
+        assert renewed_dif.date_accessed > old_date
+        assert file_backed_dif.date_accessed > old_date
+        assert failed_dif.date_accessed == old_date
+        renewed_session.head.assert_called_once_with("renewed")
+        failed_session.head.assert_called_once_with("failed")
+        assert "debugfile.objectstore_tti_renewal_failed" in logs.output[0]
 
     def test_debug_files_usecase_disables_default_compression(self):
         assert _DEBUG_FILES_USECASE._compression == "none"
