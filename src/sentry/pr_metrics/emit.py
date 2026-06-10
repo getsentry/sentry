@@ -114,7 +114,7 @@ def build_pr_metrics_row(
     attributions: list[dict[str, Any]],
     group_ids: list[int],
 ) -> PrCloseMetricsEvent:
-    """Assemble the provisional close/merge row.
+    """Assemble the close/merge analytics row.
 
     Every fact is read from the stored ``PullRequest`` / ``PullRequestMetrics``
     rows, so the judge path (Seer RPC callback, which has no webhook payload) can
