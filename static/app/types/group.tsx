@@ -676,6 +676,7 @@ export interface ResolvedStatusDetails {
   inRelease?: string;
   repository?: string;
 }
+
 export interface UserParticipant extends User {
   type: 'user';
 }

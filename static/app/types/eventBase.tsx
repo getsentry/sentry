@@ -1,6 +1,7 @@
 import type {IssueType} from 'sentry/types/groupBase';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
+
 /**
  * Grouping Configuration.
  */
@@ -22,6 +23,7 @@ type VariantEvidence = {
   parent_span_hashes?: string[];
   parent_span_ids?: string[];
 };
+
 export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
@@ -30,6 +32,7 @@ export const enum EventGroupVariantType {
   SALTED_COMPONENT = 'salted_component',
   PERFORMANCE_PROBLEM = 'performance_problem',
 }
+
 interface BaseVariant {
   contributes: boolean;
   description: string | null;
@@ -39,31 +42,39 @@ interface BaseVariant {
   key: string;
   type: string;
 }
+
 interface FallbackVariant extends BaseVariant {
   type: EventGroupVariantType.FALLBACK;
 }
+
 interface ChecksumVariant extends BaseVariant {
   type: EventGroupVariantType.CHECKSUM;
 }
+
 interface HasComponentGrouping {
   client_values?: string[];
   component?: EventGroupComponent;
   matched_rule?: string;
   values?: string[];
 }
+
 interface ComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.COMPONENT;
 }
+
 interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
 }
+
 interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
+
 interface PerformanceProblemVariant extends BaseVariant {
   evidence: VariantEvidence;
   type: EventGroupVariantType.PERFORMANCE_PROBLEM;
 }
+
 export type EventGroupVariant =
   | FallbackVariant
   | ChecksumVariant
@@ -71,6 +82,7 @@ export type EventGroupVariant =
   | SaltedComponentVariant
   | CustomFingerprintVariant
   | PerformanceProblemVariant;
+
 export type Lock = {
   type: LockType;
   address?: string | null;
@@ -78,12 +90,14 @@ export type Lock = {
   package_name?: string | null;
   thread_id?: number | null;
 };
+
 export enum LockType {
   LOCKED = 1,
   WAITING = 2,
   SLEEPING = 4,
   BLOCKED = 8,
 }
+
 // This type is incomplete
 export type EventMetadata = {
   current_level?: number;
@@ -98,6 +112,7 @@ export type EventMetadata = {
   uri?: string;
   value?: string;
 };
+
 export enum EventOrGroupType {
   ERROR = 'error',
   CSP = 'csp',
@@ -110,6 +125,7 @@ export enum EventOrGroupType {
   AGGREGATE_TRANSACTION = 'aggregateTransaction',
   GENERIC = 'generic',
 }
+
 /**
  * Event interface types.
  */
@@ -131,6 +147,7 @@ export enum EntryType {
   SPANS = 'spans',
   RESOURCES = 'resources',
 }
+
 export type EntryMessage = {
   data: {
     formatted: string;
@@ -138,6 +155,7 @@ export type EntryMessage = {
   };
   type: EntryType.MESSAGE;
 };
+
 interface EntryRequestDataDefault {
   apiTarget: null;
   method: string | null;
@@ -154,6 +172,7 @@ interface EntryRequestDataDefault {
     | 'multipart/form-data';
   query?: Array<[key: string, value: string] | null> | string;
 }
+
 export interface EntryRequestDataGraphQl extends Omit<
   EntryRequestDataDefault,
   'apiTarget' | 'data'
@@ -165,25 +184,31 @@ export interface EntryRequestDataGraphQl extends Omit<
     operationName?: string;
   };
 }
+
 export type EntryRequest = {
   data: EntryRequestDataDefault | EntryRequestDataGraphQl;
   type: EntryType.REQUEST;
 };
+
 export type EntryCsp = {
   data: Record<string, any>;
   type: EntryType.CSP;
 };
+
 export type EntryGeneric = {
   data: Record<string, any>;
   type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
 };
+
 export type EntryResources = {
   data: any; // Data is unused here
   type: EntryType.RESOURCES;
 };
+
 interface BaseContext {
   type: string;
 }
+
 export enum DeviceContextKey {
   ARCH = 'arch',
   BATTERY_LEVEL = 'battery_level',
@@ -232,6 +257,7 @@ export enum DeviceContextKey {
   LOW_POWER_MODE = 'low_power_mode',
   THERMAL_STATE = 'thermal_state',
 }
+
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
 export interface DeviceContext
   extends Partial<Record<DeviceContextKey, unknown>>, BaseContext {
@@ -286,12 +312,14 @@ export interface DeviceContext
   // This field is deprecated in favour of locale field in culture context
   language?: string;
 }
+
 enum RuntimeContextKey {
   BUILD = 'build',
   NAME = 'name',
   RAW_DESCRIPTION = 'raw_description',
   VERSION = 'version',
 }
+
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
 export interface RuntimeContext
   extends Partial<Record<RuntimeContextKey, unknown>>, BaseContext {
@@ -301,6 +329,7 @@ export interface RuntimeContext
   [RuntimeContextKey.RAW_DESCRIPTION]?: string;
   [RuntimeContextKey.VERSION]?: number;
 }
+
 export type OSContext = {
   build: string;
   kernel_version: string;
@@ -308,10 +337,12 @@ export type OSContext = {
   type: string;
   version: string;
 };
+
 enum OtelContextKey {
   ATTRIBUTES = 'attributes',
   RESOURCE = 'resource',
 }
+
 // OpenTelemetry Context
 // https://develop.sentry.dev/sdk/performance/opentelemetry/#opentelemetry-context
 export interface OtelContext
@@ -320,6 +351,7 @@ export interface OtelContext
   [OtelContextKey.ATTRIBUTES]?: Record<string, unknown>;
   [OtelContextKey.RESOURCE]?: Record<string, unknown>;
 }
+
 export enum UnityContextKey {
   ACTIVE_SCENE_NAME = 'active_scene_name',
   COPY_TEXTURE_SUPPORT = 'copy_texture_support',
@@ -329,6 +361,7 @@ export enum UnityContextKey {
   RENDERING_THREADING_MODE = 'rendering_threading_mode',
   TARGET_FRAME_RATE = 'target_frame_rate',
 }
+
 export interface UnityContext {
   [UnityContextKey.ACTIVE_SCENE_NAME]: string;
   [UnityContextKey.COPY_TEXTURE_SUPPORT]: string;
@@ -339,6 +372,7 @@ export interface UnityContext {
   [UnityContextKey.TARGET_FRAME_RATE]: string;
   type: 'unity';
 }
+
 export enum MemoryInfoContextKey {
   ALLOCATED_BYTES = 'allocated_bytes',
   TOTAL_ALLOCATED_BYTES = 'total_allocated_bytes',
@@ -357,6 +391,7 @@ export enum MemoryInfoContextKey {
   CONCURRENT = 'concurrent',
   PAUSE_DURATIONS = 'pause_durations',
 }
+
 export interface MemoryInfoContext {
   type: 'Memory Info' | 'memory_info';
   [MemoryInfoContextKey.FINALIZATION_PENDING_COUNT]: number;
@@ -376,6 +411,7 @@ export interface MemoryInfoContext {
   [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
   [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
 }
+
 export enum ThreadPoolInfoContextKey {
   MIN_WORKER_THREADS = 'min_worker_threads',
   MIN_COMPLETION_PORT_THREADS = 'min_completion_port_threads',
@@ -384,6 +420,7 @@ export enum ThreadPoolInfoContextKey {
   AVAILABLE_WORKER_THREADS = 'available_worker_threads',
   AVAILABLE_COMPLETION_PORT_THREADS = 'available_completion_port_threads',
 }
+
 export interface ThreadPoolInfoContext {
   type: 'ThreadPool Info' | 'threadpool_info';
   [ThreadPoolInfoContextKey.MIN_WORKER_THREADS]: number;
@@ -393,20 +430,25 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_WORKER_THREADS]: number;
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
+
 export type MetricAlertContextType = {
   alert_rule_id?: string;
 };
+
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
   PROFILER_ID = 'profiler_id',
 }
+
 export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
   [ProfileContextKey.PROFILER_ID]?: string;
 }
+
 export enum ReplayContextKey {
   REPLAY_ID = 'replay_id',
 }
+
 export interface ReplayContext {
   [ReplayContextKey.REPLAY_ID]: string;
   type: string;
@@ -415,16 +457,21 @@ export interface BrowserContext {
   name: string;
   version: string;
 }
+
 export interface ResponseContext {
   data: unknown;
   type: 'response';
 }
+
 // event.contexts.flags can be overriden by the user so the type is not strict
 export type FeatureFlag = {flag?: string; result?: boolean};
 export type Flags = {values?: Array<FeatureFlag | null>};
+
 export type Measurement = {value: number; type?: string; unit?: string};
+
 export type EventTag = {key: string; value: string};
 export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
+
 export type EventUser = {
   data?: string | null;
   email?: string;
@@ -439,17 +486,20 @@ export type EventUser = {
   name?: string | null;
   username?: string | null;
 };
+
 export type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
   issueType?: IssueType;
 };
+
 export type EventEvidenceDisplay = {
   important: boolean;
   name: string;
   value: string;
 };
+
 export type EventOccurrence = {
   detectionTime: string;
   eventId: string;

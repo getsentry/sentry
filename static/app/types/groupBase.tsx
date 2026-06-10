@@ -5,6 +5,7 @@ import type {EventMetadata, EventOrGroupType, Level} from 'sentry/types/eventBas
 import type {AvatarUser} from 'sentry/types/userBase';
 
 export type EntryData = Record<string, any | any[]>;
+
 /**
  * Saved issues searches
  */
@@ -16,6 +17,7 @@ export type RecentSearch = {
   query: string;
   type: SavedSearchType;
 };
+
 // XXX: Deprecated Sentry 9 attributes are not included here.
 export type SavedSearch = {
   dateCreated: string;
@@ -28,11 +30,13 @@ export type SavedSearch = {
   type: SavedSearchType;
   visibility: SavedSearchVisibility;
 };
+
 export enum SavedSearchVisibility {
   ORGANIZATION = 'organization',
   OWNER = 'owner',
   OWNER_PINNED = 'owner_pinned',
 }
+
 export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
@@ -47,6 +51,7 @@ export enum SavedSearchType {
   PREPROD_APP_SIZE = 10,
   // This and src/sentry/models/search_common.py must be updated together.
 }
+
 export enum IssueCategory {
   ERROR = 'error',
   FEEDBACK = 'feedback',
@@ -91,6 +96,7 @@ export enum IssueCategory {
 
   CONFIGURATION = 'configuration',
 }
+
 export enum IssueType {
   // Error
   ERROR = 'error',
@@ -154,6 +160,7 @@ export enum IssueType {
   SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
   LOW_VALUE_SPAN_CONFIGURATION = 'low_value_span_configuration',
 }
+
 export enum IssueTitle {
   ERROR = 'Error',
 
@@ -214,6 +221,7 @@ export enum IssueTitle {
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
   LOW_VALUE_SPAN_CONFIGURATION = 'AI Detected Low-Value Span',
 }
+
 // endpoint: /api/0/organizations/:orgSlug/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
@@ -226,8 +234,10 @@ export type IssueAttachment = {
   size: number;
   type: string;
 };
+
 // endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
 export type EventAttachment = IssueAttachment;
+
 export type TagValue = {
   count: number;
   firstSeen: string;
@@ -241,6 +251,7 @@ export type TagValue = {
   query?: string;
   username?: string;
 } & AvatarUser;
+
 type Topvalue = {
   count: number;
   firstSeen: string;
@@ -252,6 +263,7 @@ type Topvalue = {
   query?: string;
   readable?: string;
 };
+
 export type TagWithTopValues = {
   key: string;
   name: string;
@@ -260,6 +272,7 @@ export type TagWithTopValues = {
   uniqueValues: number;
   canDelete?: boolean;
 };
+
 /**
  * Inbox, issue owners and Activity
  */
@@ -267,6 +280,7 @@ export type Annotation = {
   displayName: string;
   url: string;
 };
+
 type InboxReasonDetails = {
   count?: number | null;
   until?: string | null;
@@ -274,6 +288,7 @@ type InboxReasonDetails = {
   user_window?: number | null;
   window?: number | null;
 };
+
 const enum GroupInboxReason {
   NEW = 0,
   UNIGNORED = 1,
@@ -283,23 +298,27 @@ const enum GroupInboxReason {
   ESCALATING = 5,
   ONGOING = 6,
 }
+
 export type InboxDetails = {
   date_added?: string;
   reason?: GroupInboxReason;
   reason_details?: InboxReasonDetails | null;
 };
+
 export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
   | 'projectOwnership'
   // TODO: codeowners may no longer exist
   | 'codeowners';
+
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
 };
+
 export enum GroupActivityType {
   NOTE = 'note',
   SET_RESOLVED = 'set_resolved',
@@ -334,6 +353,7 @@ export enum GroupActivityType {
   SEER_CODING_COMPLETED = 'seer_coding_completed',
   SEER_PR_CREATED = 'seer_pr_created',
 }
+
 interface GroupFiltered {
   count: string;
   firstSeen: string;
@@ -341,6 +361,7 @@ interface GroupFiltered {
   stats: Record<string, TimeseriesValue[]>;
   userCount: number;
 }
+
 export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
@@ -350,6 +371,7 @@ export interface GroupStats extends GroupFiltered {
   lifetime?: GroupFiltered;
   sessionCount?: string | null;
 }
+
 export interface IgnoredStatusDetails {
   actor?: AvatarUser;
   ignoreCount?: number;
@@ -368,18 +390,21 @@ export interface ReprocessingStatusDetails {
   } | null;
   pendingEvents: number;
 }
+
 /**
  * The payload sent when marking reviewed
  */
 export interface MarkReviewed {
   inbox: false;
 }
+
 export const enum GroupStatus {
   RESOLVED = 'resolved',
   UNRESOLVED = 'unresolved',
   IGNORED = 'ignored',
   REPROCESSING = 'reprocessing',
 }
+
 export const enum GroupSubstatus {
   ARCHIVED_UNTIL_ESCALATING = 'archived_until_escalating',
   ARCHIVED_UNTIL_CONDITION_MET = 'archived_until_condition_met',
@@ -389,11 +414,13 @@ export const enum GroupSubstatus {
   REGRESSED = 'regressed',
   NEW = 'new',
 }
+
 export const enum PriorityLevel {
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
 }
+
 export const enum FixabilityScoreThresholds {
   SUPER_HIGH = 'super_high',
   HIGH = 'high',
@@ -401,6 +428,7 @@ export const enum FixabilityScoreThresholds {
   LOW = 'low',
   SUPER_LOW = 'super_low',
 }
+
 export interface GroupOpenPeriodActivity {
   dateCreated: string;
   eventId: string | null;
@@ -408,6 +436,7 @@ export interface GroupOpenPeriodActivity {
   type: 'opened' | 'status_change' | 'closed';
   value: 'high' | 'medium' | null;
 }
+
 export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
@@ -417,6 +446,7 @@ export interface GroupOpenPeriod {
   lastChecked: string;
   start: string;
 }
+
 export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
@@ -432,6 +462,7 @@ export interface GroupTombstone {
 export interface GroupTombstoneHelper extends GroupTombstone {
   isTombstone: true;
 }
+
 /**
  * Datascrubbing
  */
@@ -441,14 +472,17 @@ export type Meta = {
   len: number;
   rem: MetaRemark[];
 };
+
 export type MetaError = string | [string, any];
 type MetaRemark = Array<string | number>;
+
 export type ChunkType = {
   rule_id: string | number;
   text: string;
   type: string;
   remark?: string | number;
 };
+
 export type KeyValueListDataItem = {
   key: string;
   subject: string;
@@ -468,4 +502,5 @@ export type KeyValueListDataItem = {
   subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
 };
+
 export type KeyValueListData = KeyValueListDataItem[];

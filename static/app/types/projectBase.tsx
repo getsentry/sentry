@@ -7,7 +7,9 @@ export type SeerNightshiftTweaks = {
   max_candidates?: number;
   reasoning_effort?: 'low' | 'medium' | 'high';
 };
+
 export type ProjectStats = TimeseriesValue[];
+
 // Response from project_keys endpoints.
 export type ProjectKey = {
   browserSdk: {
@@ -49,6 +51,7 @@ export type ProjectKey = {
   secret: string;
   useCase?: string;
 };
+
 export type Environment = {
   displayName: string;
   id: string;

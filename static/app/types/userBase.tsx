@@ -1,4 +1,5 @@
 import type {Avatar} from 'sentry/types/coreBase';
+
 /**
  * Avatars are a more primitive version of User.
  */
@@ -18,11 +19,13 @@ export type AvatarUser = {
     avatarType: Avatar['avatarType'];
   };
 };
+
 export enum StacktraceOrder {
   DEFAULT = -1, // Equivalent to `MOST_RECENT_FIRST`
   MOST_RECENT_LAST = 1,
   MOST_RECENT_FIRST = 2,
 }
+
 // XXX(epurkhiser): we should understand how this is diff from User['emails]
 // above
 export type UserEmail = {
@@ -30,6 +33,7 @@ export type UserEmail = {
   isPrimary: boolean;
   isVerified: boolean;
 };
+
 export type ApiApplication = {
   allowedOrigins: string[];
   clientID: string;
@@ -49,6 +53,7 @@ export type ApiApplication = {
   // Remove the optional marker after June 1, 2026 once the backend field is deployed everywhere.
   dateCreated?: string;
 };
+
 export type OrgAuthToken = {
   dateCreated: Date;
   id: string;
@@ -58,6 +63,7 @@ export type OrgAuthToken = {
   projectLastUsedId?: string;
   tokenLastCharacters?: string;
 };
+
 // Used in user session history.
 export type InternetProtocol = {
   countryCode: string | null;
