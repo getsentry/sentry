@@ -1182,7 +1182,7 @@ def _apply_cache_and_build_results(
     use_cache: bool | None = False,
 ) -> ResultSet:
     parent_api: str = "<missing>"
-    span = sentry_sdk.traces._get_current_streamed_span()
+    span = sentry_sdk.traces.get_current_span()
     if span is not None:
         parent_api = span._segment.name
 

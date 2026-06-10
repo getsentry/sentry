@@ -147,7 +147,7 @@ class SearchResolver:
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
-        span = sentry_sdk.traces._get_current_streamed_span()
+        span = sentry_sdk.traces.get_current_span()
         if span:
             span.set_attribute("SearchResolver.params", str(self.params))
 
@@ -187,7 +187,7 @@ class SearchResolver:
         also append the environment before returning the final TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
         where, having, contexts = self.__resolve_query(querystring)
-        span = sentry_sdk.traces._get_current_streamed_span()
+        span = sentry_sdk.traces.get_current_span()
         if span:
             span.set_attributes(
                 {
@@ -971,7 +971,7 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
-        span = sentry_sdk.traces._get_current_streamed_span()
+        span = sentry_sdk.traces.get_current_span()
         resolved_columns = []
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]

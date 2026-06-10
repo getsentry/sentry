@@ -46,7 +46,7 @@ class BaseCache(local):
         if not self.is_default_cache:
             return
 
-        span = sentry_sdk.traces._get_current_streamed_span()
+        span = sentry_sdk.traces.get_current_span()
         if span is not None:
             sentry_sdk.set_tag(f"{op}_default_cache", "true")
             sentry_sdk.set_tag("used_default_cache", "true")

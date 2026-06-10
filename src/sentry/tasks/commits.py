@@ -300,7 +300,7 @@ def fetch_commits_for_ref_with_lifecycle(
             except IntegrationResourceNotFoundError:
                 repo_commits = None
             except Exception as e:
-                span = sentry_sdk.traces._get_current_streamed_span()
+                span = sentry_sdk.traces.get_current_span()
                 if span:
                     span.status = "error"
 

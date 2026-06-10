@@ -29,7 +29,7 @@ def events_meta_from_rpc_request_meta(meta: ResponseMeta) -> EventsMeta:
         sum(info.stats.progress_bytes for info in meta.query_info) if meta.query_info else None
     )
 
-    span = sentry_sdk.traces._get_current_streamed_span()
+    span = sentry_sdk.traces.get_current_span()
     if span:
         span.set_attributes(
             {
