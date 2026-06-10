@@ -68,7 +68,8 @@ class ProjectRepoEndpoint(ProjectEndpoint):
     permission_classes = (ProjectPermission,)
 
     @extend_schema(
-        operation_id="Link a Repository to a Project",
+        operation_id="linkProjectRepository",
+        summary="Link a Repository to a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

@@ -107,7 +107,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve Statuses of Release Thresholds (Alpha)",
+        operation_id="listOrganizationReleaseThresholdStatuses",
+        summary="Retrieve Statuses of Release Thresholds (Alpha)",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseThresholdStatusIndexSerializer],
         request=None,
         responses={

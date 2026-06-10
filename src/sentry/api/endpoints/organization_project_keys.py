@@ -41,7 +41,8 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
     )
 
     @extend_schema(
-        operation_id="List an Organization's Client Keys",
+        operation_id="listOrganizationProjectKeys",
+        summary="List an Organization's Client Keys",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             CursorQueryParam,

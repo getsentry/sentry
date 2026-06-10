@@ -130,7 +130,8 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DASHBOARDS
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Events Count by Project",
+        operation_id="getOrganizationStatsSummary",
+        summary="Retrieve an Organization's Events Count by Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsSummaryQueryParamsSerializer],
         request=None,
         responses={

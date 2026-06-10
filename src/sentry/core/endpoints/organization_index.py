@@ -125,7 +125,8 @@ class OrganizationIndexEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
     @extend_schema(
-        operation_id="List Your Organizations",
+        operation_id="listOrganizations",
+        summary="List Your Organizations",
         parameters=[
             OrganizationParams.OWNER,
             CursorQueryParam,

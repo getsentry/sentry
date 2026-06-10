@@ -356,7 +356,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     }
 
     @extend_schema(
-        operation_id="List Trace Item Attributes",
+        operation_id="listOrganizationTraceItemAttributes",
+        summary="List Trace Item Attributes",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.STATS_PERIOD,

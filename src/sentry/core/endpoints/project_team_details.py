@@ -66,7 +66,8 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         return (args, kwargs)
 
     @extend_schema(
-        operation_id="Add a Team to a Project",
+        operation_id="addProjectTeam",
+        summary="Add a Team to a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -100,7 +101,8 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         return Response(body, status=201)
 
     @extend_schema(
-        operation_id="Delete a Team from a Project",
+        operation_id="deleteProjectTeam",
+        summary="Delete a Team from a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
