@@ -18,6 +18,7 @@ from sentry.testutils.cases import (
     PerformanceIssueTestCase,
     ReplaysSnubaTestCase,
     SnubaTestCase,
+    SpanTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -26,7 +27,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationReplayCountEndpointTest(
-    APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
+    APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase, SpanTestCase
 ):
     def setUp(self) -> None:
         super().setUp()
@@ -730,3 +731,77 @@ class OrganizationReplayCountEndpointTest(
         # The restricted user must not receive data for project_b's group.
         assert response.status_code == 200, response.content
         assert response.data == {}
+
+    def test_eap_spans_transaction(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        nonexistent_replay_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay2_id,
+            )
+        )
+
+        ten_mins_ago = before_now(minutes=10)
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": replay1_id,
+                            "transaction": "/api/foo/",
+                        },
+                    },
+                    start_ts=ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": replay2_id,
+                            "transaction": "/api/foo/",
+                        },
+                    },
+                    start_ts=ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": nonexistent_replay_id,
+                            "transaction": "/api/foo/",
+                        },
+                    },
+                    start_ts=ten_mins_ago,
+                ),
+            ],
+        )
+
+        query = {
+            "query": 'transaction:["/api/foo/"]',
+            "data_source": "spans",
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {"/api/foo/": 2}
+
+    def test_eap_spans_multiple_values_rejected(self) -> None:
+        query = {
+            "query": 'transaction:["/api/foo/","/api/bar/"]',
+            "data_source": "spans",
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "The spans data source only supports a single value"

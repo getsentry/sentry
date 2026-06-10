@@ -410,6 +410,17 @@ class DataConditionHandler(Generic[T]):
     def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         return cls.label_template.format(**condition_data)
 
+    @classmethod
+    def validate_comparison(
+        cls, comparison: dict[str, Any], organization: Organization
+    ) -> dict[str, Any]:
+        """
+        Validate a comparison value beyond what `comparison_json_schema` can express.
+        Runs at save time after schema validation.
+        Raise `rest_framework.serializers.ValidationError` to reject.
+        """
+        return comparison
+
 
 class DataConditionType(TypedDict):
     id: int | None
@@ -440,4 +451,4 @@ class DetectorSettings:
     filter: Q | None = None
 
 
-WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity"], None]
+WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

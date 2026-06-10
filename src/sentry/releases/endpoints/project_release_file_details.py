@@ -1,4 +1,5 @@
 import posixpath
+from collections.abc import Callable
 from zipfile import ZipFile
 
 from django.http.response import FileResponse
@@ -27,6 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
@@ -151,7 +153,13 @@ class ReleaseFileDetailsMixin:
             return index_op(release, dist, url)
 
     @classmethod
-    def get_releasefile(cls, request, release, file_id, check_permission_fn):
+    def get_releasefile(
+        cls,
+        request: Request,
+        release: Release,
+        file_id: str,
+        check_permission_fn: Callable[[], bool],
+    ) -> Response[ReleaseFileSerializerResponse] | FileResponse | Response[None]:
         download_requested = request.GET.get("download") is not None
         getter = _entry_from_index if download_requested else _get_from_index
         releasefile = cls._get_releasefile(release, file_id, getter)
@@ -164,10 +172,13 @@ class ReleaseFileDetailsMixin:
         elif download_requested:
             return Response(status=403)
 
-        return Response(serialize(releasefile, request.user))
+        body: ReleaseFileSerializerResponse = serialize(releasefile, request.user)
+        return Response(body)
 
     @staticmethod
-    def update_releasefile(request, release, file_id):
+    def update_releasefile(
+        request: Request, release: Release, file_id: str
+    ) -> Response[ReleaseFileSerializerResponse] | Response[ValidationErrorResponse]:
         try:
             int(file_id)
         except ValueError:
@@ -181,13 +192,14 @@ class ReleaseFileDetailsMixin:
         serializer = ReleaseFileSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
 
         releasefile.update(name=result["name"])
 
-        return Response(serialize(releasefile, request.user))
+        body: ReleaseFileSerializerResponse = serialize(releasefile, request.user)
+        return Response(body)
 
     @classmethod
     def delete_releasefile(cls, release, file_id):
@@ -252,7 +264,9 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, version, file_id) -> Response:
+    def get(
+        self, request: Request, project, version, file_id
+    ) -> Response[ReleaseFileSerializerResponse] | FileResponse | Response[None]:
         """
         Return metadata for an individual file within a release. Does not return the file
         contents unless `download` is set.
@@ -290,7 +304,9 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, project, version, file_id) -> Response:
+    def put(
+        self, request: Request, project, version, file_id
+    ) -> Response[ReleaseFileSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update metadata of an existing release file. Currently only the name of the file
         can be changed.

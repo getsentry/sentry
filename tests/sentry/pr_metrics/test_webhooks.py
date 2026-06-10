@@ -14,12 +14,14 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestMetrics,
 )
 from sentry.pr_metrics.webhooks import (
     handle_activity,
     handle_attribution,
     handle_comment,
     handle_emission,
+    handle_metrics,
     handle_review,
     handle_review_comment,
     handle_review_thread,
@@ -315,7 +317,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
-CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)  # past year avoids S015
+OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)  # past year avoids S015
+CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
 @with_feature("organizations:pr-metrics-emit")
@@ -333,29 +336,31 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             source=PullRequestAttributionSource.SEER_DATA,
             is_valid=True,
         )
+        # The metrics processor persists the counters before emission runs.
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, additions=1, deletions=2, is_assigned=True
+        )
 
-    def _payload(self, *, merged: bool = True) -> dict[str, Any]:
-        # Lifecycle is read from the stored PR row; the payload supplies only the
-        # PR number, the merged flag, and the open time.
-        return {
-            "number": 42,
-            "merged": merged,
-            "created_at": "2026-06-04T09:00:00Z",
-        }
+    def _payload(self) -> dict[str, Any]:
+        # Emission reads every fact off the stored PR row; the payload is only
+        # used to resolve the PR by number.
+        return {"number": 42}
 
     def _call(self, *, action: str = "closed", merged: bool = True) -> None:
         if action == "closed":
-            # PullRequestEventWebhook._handle persists lifecycle on the PR row
-            # before the emission processor runs; emit reads it from there.
+            # PullRequestEventWebhook._handle persists every lifecycle fact on the
+            # PR row before the emission processor runs; emit reads it there.
             self.pull_request.update(
                 head_commit_sha=HEAD_SHA,
+                opened_at=OPENED_AT,
                 closed_at=CLOSED_AT,
                 merged_at=CLOSED_AT if merged else None,
                 merge_commit_sha=MERGE_SHA if merged else None,
+                draft=False,
             )
         handle_emission(
             github_event=GithubWebhookType.PULL_REQUEST,
-            event={"action": action, "pull_request": self._payload(merged=merged)},
+            event={"action": action, "pull_request": self._payload()},
             organization=self.organization,
             repo=self.repo,
         )
@@ -425,6 +430,90 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             extra={"repository_id": self.repo.id, "pr_number": 9999},
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+
+@with_feature("organizations:pr-metrics-emit")
+@cell_silo_test
+class HandleWebhookForPrMetricsCountersTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+
+    def _call(self, *, action: str = "opened", **counters: Any) -> None:
+        payload: dict[str, Any] = {"number": 42, **counters}
+        handle_metrics(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": action, "pull_request": payload},
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+    def test_creates_metrics_row_from_payload(self) -> None:
+        self._call(
+            additions=10,
+            deletions=4,
+            changed_files=2,
+            commits=3,
+            comments=1,
+            review_comments=5,
+            assignees=[{"login": "octocat"}],
+        )
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.additions == 10
+        assert metrics.deletions == 4
+        assert metrics.files_changed == 2
+        assert metrics.commits_count == 3
+        assert metrics.comments_count == 1
+        assert metrics.review_comments_count == 5
+        assert metrics.is_assigned is True
+
+    def test_absent_counts_default_to_zero(self) -> None:
+        self._call()
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.additions == 0
+        assert metrics.review_comments_count == 0
+        assert metrics.is_assigned is False
+
+    def test_refreshes_existing_row_without_forking(self) -> None:
+        self._call(action="opened", additions=1)
+        self._call(action="synchronize", additions=20, deletions=7)
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.additions == 20
+        assert metrics.deletions == 7
+        assert PullRequestMetrics.objects.filter(pull_request=self.pull_request).count() == 1
+
+    def test_preserves_seer_only_columns_on_update(self) -> None:
+        # The webhook owns the activity counters; the judge path owns verdict /
+        # reviews_count / participants_count. An update must not stomp them.
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, reviews_count=3, participants_count=2
+        )
+        self._call(additions=9)
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.additions == 9
+        assert metrics.reviews_count == 3
+        assert metrics.participants_count == 2
+
+    def test_does_nothing_when_flag_off(self) -> None:
+        with self.feature({"organizations:pr-metrics-emit": False}):
+            self._call(additions=5)
+        assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_missing_pr_writes_nothing(self) -> None:
+        handle_metrics(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "opened", "pull_request": {"number": 9999, "additions": 1}},
+            organization=self.organization,
+            repo=self.repo,
+        )
+        assert PullRequestMetrics.objects.count() == 0
 
 
 @with_feature("organizations:pr-metrics-activity")

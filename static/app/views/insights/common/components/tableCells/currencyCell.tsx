@@ -1,38 +1,10 @@
-import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {ExternalLink} from 'sentry/components/links/externalLink';
-import {IconWarning} from 'sentry/icons';
-import {tct} from 'sentry/locale';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatDollars} from 'sentry/utils/formatters';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 
 type Props = {
   value: number | null;
 };
-
-const NEGATIVE_COST_DOCS_URL =
-  'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
-
-export function NegativeCostWarning({children}: {children: React.ReactNode}) {
-  return (
-    <Tooltip
-      title={tct(
-        'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
-        {
-          link: <ExternalLink href={NEGATIVE_COST_DOCS_URL} />,
-        }
-      )}
-      skipWrapper
-      isHoverable
-    >
-      <Flex as="span" display="inline-flex" align="center" gap="xs">
-        <IconWarning legacySize="1em" variant="warning" />
-        {children}
-      </Flex>
-    </Tooltip>
-  );
-}
 
 export function CurrencyCell({value}: Props) {
   if (value === null || value === undefined) {
@@ -42,7 +14,7 @@ export function CurrencyCell({value}: Props) {
   if (value < 0) {
     return (
       <NumberContainer>
-        <NegativeCostWarning>{formatDollars(value)}</NegativeCostWarning>
+        <NegativeCostInfo cost={value} />
       </NumberContainer>
     );
   }

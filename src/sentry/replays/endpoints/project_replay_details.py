@@ -79,7 +79,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
         },
         examples=None,
     )
-    def delete(self, request: Request, project: Project, replay_id: str) -> Response:
+    def delete(self, request: Request, project: Project, replay_id: str) -> Response[None]:
         """
         Delete a replay.
         """

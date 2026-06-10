@@ -484,7 +484,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
         search_query = data.pop("query")
 
-        accessible_projects = self.get_projects(request, organization)
+        accessible_projects = self.get_projects(request, organization, include_all_accessible=True)
         queryset = _annotate_queryset(
             Project.objects.filter(id__in={p.id for p in accessible_projects})
         )
