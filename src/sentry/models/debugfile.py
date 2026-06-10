@@ -163,6 +163,7 @@ class ProjectDebugFile(Model):
             assert self.checksum is not None
             return self.checksum
         if self.file is not None:
+            assert self.file.checksum is not None
             return self.file.checksum
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
