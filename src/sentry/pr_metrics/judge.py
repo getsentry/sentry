@@ -63,7 +63,8 @@ def upsert_pr_metrics_summary(
 
     The PR is located by its Sentry id but constrained to the reported
     ``organization_id``/``repository_id``, so a mismatched id can't reach another
-    tenant's PR. Returns ``{"success": bool}`` for the Seer caller.
+    tenant's PR. A missing or unrecognized ``verdict`` is rejected as invalid
+    input. Returns ``{"success": bool}`` for the Seer caller.
     """
     log_extra = {
         "pull_request_id": pull_request_id,
@@ -71,7 +72,9 @@ def upsert_pr_metrics_summary(
         "repository_id": repository_id,
     }
 
-    if verdict is not None and verdict not in PullRequestVerdict.values:
+    # The verdict is the judge result this callback exists to deliver, so a
+    # missing one is malformed input — reject it rather than upserting a null.
+    if verdict is None or verdict not in PullRequestVerdict.values:
         logger.warning("pr_metrics.upsert.invalid_verdict", extra={**log_extra, "verdict": verdict})
         metrics.incr("pr_metrics.upsert.skipped", tags={"reason": "invalid_verdict"})
         return {"success": False, "error": "invalid_verdict"}
@@ -96,15 +99,12 @@ def upsert_pr_metrics_summary(
         metrics.incr("pr_metrics.upsert.skipped", tags={"reason": "pr_not_found"})
         return {"success": False, "error": "pull_request_not_found"}
 
-    # Only write the verdict, and only when reported: a None verdict means "not
-    # provided", so it must not clear a verdict already stored by an earlier call.
-    # The webhook keeps the activity counters current, so this partial upsert must
-    # not clobber them either.
-    defaults = {"verdict": verdict} if verdict is not None else {}
+    # Only the verdict is written here; the webhook keeps the activity counters
+    # current, so this partial upsert must not clobber them.
     with transaction.atomic(using=router.db_for_write(PullRequestMetrics)):
         PullRequestMetrics.objects.update_or_create(
             pull_request=pull_request,
-            defaults=defaults,
+            defaults={"verdict": verdict},
         )
         for signal_type, source, signal_details in parsed_attributions:
             record_attribution_signal(
