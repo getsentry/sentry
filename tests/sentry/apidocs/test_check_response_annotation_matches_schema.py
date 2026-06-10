@@ -716,6 +716,41 @@ class FooEndpoint:
     assert diags[0].reason == "bare-Response"
 
 
+def test_public_bare_response_in_optional_fires() -> None:
+    """`Optional[Response]` is `Union[Response, None]` — the bare `Response`
+    arm is still detected."""
+    source = """
+from typing import Optional
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Optional[Response]:
+        return Response()
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].reason == "bare-Response"
+
+
+def test_public_optional_of_typed_response_passes() -> None:
+    """`Optional[Response[T]]` is accepted — the `Response[T]` arm is typed
+    and the implicit `None` arm doesn't introduce a bare `Response`."""
+    source = """
+from typing import TypedDict, Optional
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Optional[Response[FooResponse]]:
+        return Response({"x": 1})
+"""
+    assert _run_public(source) == []
+
+
 def test_public_typing_union_of_typed_response_passes() -> None:
     """`Union[Response[A], Response[B]]` is equivalent to the `|` form and
     is accepted."""

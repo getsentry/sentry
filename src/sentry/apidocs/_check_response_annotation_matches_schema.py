@@ -296,16 +296,22 @@ def _publish_status(cls: ast.ClassDef) -> dict[str, str]:
     return {}
 
 
+_UNION_NAMES = frozenset({"Union", "Optional"})
+
+
 def _is_union_subscript(node: ast.expr) -> ast.expr | None:
-    """If `node` is `Union[a, b, ...]` or `typing.Union[a, b, ...]`, return the
-    slice expression (a `Tuple` of arms, or a single arm for the degenerate
-    `Union[X]`). Otherwise return None."""
+    """If `node` is `Union[a, b, ...]`, `Optional[a]`, or the `typing.`-prefixed
+    forms, return the slice expression (a `Tuple` of arms for `Union`, or a
+    single arm for `Optional`/`Union[X]`). Otherwise return None.
+
+    `Optional[X]` is `Union[X, None]` semantically — the `None` arm has no
+    way to encode a bare `Response`, so unwrapping just the `X` is enough."""
     if not isinstance(node, ast.Subscript):
         return None
     val = node.value
-    if (isinstance(val, ast.Name) and val.id == "Union") or (
-        isinstance(val, ast.Attribute) and val.attr == "Union"
-    ):
+    if isinstance(val, ast.Name) and val.id in _UNION_NAMES:
+        return node.slice
+    if isinstance(val, ast.Attribute) and val.attr in _UNION_NAMES:
         return node.slice
     return None
 
