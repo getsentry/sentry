@@ -1155,7 +1155,7 @@ class _EventTroubleshootingContext(TypedDict):
 def _get_event_troubleshooting_context(
     event: Event | GroupEvent,
 ) -> _EventTroubleshootingContext:
-    group = getattr(event, "group", None)
+    group = event.group
     if group is None:
         return {"detectionContext": None, "troubleshootingHint": None}
 
