@@ -269,6 +269,14 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
     @patch("sentry.analytics.record")
+    def test_skips_emit_when_metrics_row_missing(self, mock_record: MagicMock) -> None:
+        # A missing metrics row (handle_metrics failed) is deferred to a judge, not
+        # silently dropped as a redelivery — for a merge as much as a close.
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+    @patch("sentry.analytics.record")
     def test_ignores_non_terminal_actions(self, mock_record: MagicMock) -> None:
         self._call(action="opened")
         self._call(action="edited")

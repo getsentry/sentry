@@ -43,9 +43,9 @@ def _iso(value: datetime | None) -> str | None:
 def select_verdict(pull_request: PullRequest) -> PullRequestVerdict | None:
     """The terminal verdict Sentry can decide on its own, or ``None`` for a judge.
 
-    A judge is needed exactly when the outcome can't be settled deterministically
-    from data Sentry already holds — so ``None`` is the "needs a judge" signal, and
-    the caller forwards to Seer (the judge path) rather than emitting:
+    A judge is needed whenever the outcome can't be settled deterministically from
+    data Sentry already holds — so ``None`` is the "needs a judge" signal, and the
+    caller forwards to Seer (the judge path) rather than emitting:
 
     - Merged with no commits after it opened → ``merged_unchanged``: the merge head
       is the opened head, so nothing changed, by anyone. A merge with later commits
@@ -55,22 +55,14 @@ def select_verdict(pull_request: PullRequest) -> PullRequestVerdict | None:
       ``closed_unmerged``: an abandoned PR with nothing to analyze. A close with any
       engagement needs the comment judge to decide why it was closed.
 
-    The commits-after-open signal is the presence of a ``SYNCHRONIZED`` activity
-    row; the webhook logs one per push to the PR branch after it opened.
+    The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
+    to the PR branch after it opened. A missing ``PullRequestMetrics`` row is an
+    error state — ``handle_metrics`` persists it before emission under the same
+    flag, so its absence means it failed — and we defer to a judge for both
+    outcomes rather than emit zeroed counters (merge) or guess abandoned (close).
     """
-    has_commits_after_open = PullRequestActivity.objects.filter(
-        pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
-    ).exists()
-
-    if pull_request.merged_at is not None:
-        return PullRequestVerdict.MERGED_UNCHANGED if not has_commits_after_open else None
-
     metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
     if metrics_row is None:
-        # The metrics row holds the comment counters. handle_metrics persists it
-        # before emission under the same flag, so a miss is an error state — it
-        # failed for this PR. Warn, and defer to a judge (we can't confirm "no
-        # engagement") rather than silently guess abandoned.
         logger.warning(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
@@ -80,6 +72,14 @@ def select_verdict(pull_request: PullRequest) -> PullRequestVerdict | None:
         )
         metrics.incr("pr_metrics.select_verdict.metrics_row_missing")
         return None
+
+    has_commits_after_open = PullRequestActivity.objects.filter(
+        pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
+    ).exists()
+
+    if pull_request.merged_at is not None:
+        return PullRequestVerdict.MERGED_UNCHANGED if not has_commits_after_open else None
+
     has_discussion = bool(metrics_row.comments_count or metrics_row.review_comments_count)
     if has_commits_after_open or has_discussion:
         return None

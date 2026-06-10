@@ -198,6 +198,10 @@ def handle_emission(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
 
+    # Claim before emit so build_pr_metrics_row reads the verdict back onto the row.
+    # analytics.record is best-effort, async-batched telemetry; if it raises the
+    # claim still stands and the row is forgone — an acceptable loss for telemetry,
+    # not worth a rollback that would reopen the redelivery race.
     emit_pr_metrics_row(pull_request=pr)
 
 

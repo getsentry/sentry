@@ -131,6 +131,20 @@ class PrMetricsEmissionTest(TestCase):
         self.pull_request.merged_at = None
         assert select_verdict(self.pull_request) is None
 
+    def test_select_verdict_merged_without_metrics_row_needs_judge(self) -> None:
+        # A missing row is an error state for a merge too: defer rather than emit a
+        # row with zeroed counters.
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
+        with patch("sentry.pr_metrics.emit.logger") as mock_logger:
+            assert select_verdict(self.pull_request) is None
+        mock_logger.warning.assert_called_once_with(
+            "pr_metrics.select_verdict.metrics_row_missing",
+            extra={
+                "organization_id": self.organization.id,
+                "pull_request_id": self.pull_request.id,
+            },
+        )
+
     def test_select_verdict_closed_without_metrics_row_needs_judge(self) -> None:
         # A missing row is an error state (handle_metrics failed): warn, and defer
         # to a judge rather than guess "abandoned".
