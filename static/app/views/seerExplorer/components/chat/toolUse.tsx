@@ -171,7 +171,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 
         return (
           <ToolCallRow
-            key={toolCall.id}
+            key={toolCall.id ?? `${toolCall.function}-${idx}`}
             toolString={toolsUsed[idx] ?? ''}
             blockStatus={idx === 0 ? blockStatus : undefined}
             isLoading={isLoading}
