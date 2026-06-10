@@ -151,7 +151,9 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
 
   if (data?.pullRequests.length === 0) {
     return showEmptyState ? (
-      <EmptyLinksText variant="muted">{t('No external links yet')}</EmptyLinksText>
+      <EmptyLinksText variant="muted">
+        {t('No linked issues or pull requests')}
+      </EmptyLinksText>
     ) : null;
   }
 

@@ -314,7 +314,9 @@ describe('ExternalIssueSidebarList', () => {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
-    expect(await screen.findByText('No external links yet')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No linked issues or pull requests')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Issue Tracker'})).toBeInTheDocument();
   });
 

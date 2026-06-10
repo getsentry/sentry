@@ -15,6 +15,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+const ISSUE_TRACKER_MENU_MAX_HEIGHT = 300;
+
 interface InlineIssueTrackerActionsProps {
   integrations: ExternalIssueIntegration[];
 }
@@ -136,6 +138,7 @@ export function InlineIssueTrackerActions({
         return (
           <ErrorBoundary key={integration.key} mini>
             <DropdownMenu
+              maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
               trigger={triggerProps => (
                 <IssueActionDropdownMenu
                   {...sharedButtonProps}
@@ -266,6 +269,7 @@ export function IssueTrackerActionDropdown({
 
   return (
     <DropdownMenu
+      maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
       trigger={(triggerProps, isOpen) => (
         <DropdownButton
           {...triggerProps}
