@@ -5318,6 +5318,54 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('bar');
       expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
     });
+
+    it('re-keys to explicit tag syntax for undocumented number attributes', async () => {
+      // A plain (non-explicit) user-created number attribute. Re-keying an
+      // existing number filter to this attribute preserves the value type, so
+      // it takes the "swap key, keep value" path which must still emit explicit
+      // tag syntax rather than the ambiguous plain key.
+      const filterKeys: TagCollection = {
+        ...defaultProps.filterKeys,
+        'eap.custom_number': {
+          key: 'eap.custom_number',
+          name: 'eap.custom_number',
+          kind: FieldKind.MEASUREMENT,
+        },
+      };
+      const mockOnChange = jest.fn();
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={filterKeys}
+          fieldDefinitionGetter={(key: string) =>
+            getFieldDefinition(key, {type: 'span', kind: filterKeys[key]?.kind})
+          }
+          initialQuery="tags[bar,number]:>100"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
+      await userEvent.keyboard('eap.custom_number');
+      await userEvent.click(screen.getByRole('option', {name: 'eap.custom_number'}));
+
+      // The key is wrapped in explicit tag syntax and the existing value is kept.
+      expect(
+        screen.getByRole('button', {
+          name: 'Edit key for filter: tags[eap.custom_number,number]',
+        })
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'tags[eap.custom_number,number]:>100',
+          expect.anything()
+        );
+      });
+    });
   });
 
   describe('autocomplete using suggestions', () => {

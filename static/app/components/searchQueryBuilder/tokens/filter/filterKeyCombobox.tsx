@@ -18,7 +18,10 @@ import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/t
 import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {SearchKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
-import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  getInitialFilterText,
+  maybeWrapKeyWithExplicitType,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   ParseResultToken,
   Token,
@@ -106,7 +109,10 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         dispatch({
           type: 'UPDATE_FILTER_KEY',
           token,
-          key: keyName,
+          // Preserve the existing value, but ensure undocumented number/boolean
+          // attributes are written in explicit tag syntax so the re-keyed query
+          // stays unambiguously typed (matching the filter-creation path).
+          key: maybeWrapKeyWithExplicitType(keyName, newFieldDef, kind),
         });
         onCommit();
         return;

@@ -98,6 +98,32 @@ function isExplicitlyTypedTagKey(key: string) {
   return prettifyTagKey(key) !== key;
 }
 
+// User-created number/boolean attributes (e.g. EAP span/log attributes) are
+// not in the documented field definitions, so we can't infer their type from
+// the key alone. Emit explicit tag syntax (`tags[key,number]`) so the query
+// is unambiguously typed. Documented fields always carry a `desc`, so we use
+// its absence to detect undocumented attributes.
+//
+// Returns the key unchanged when it doesn't need (or already has) explicit
+// typing. Shared between filter creation and key re-keying so both paths stay
+// consistent.
+export function maybeWrapKeyWithExplicitType(
+  key: string,
+  fieldDefinition: FieldDefinition | null,
+  kind?: FieldKind
+) {
+  if (
+    !fieldDefinition?.desc &&
+    !isExplicitlyTypedTagKey(key) &&
+    (kind === FieldKind.MEASUREMENT || kind === FieldKind.BOOLEAN)
+  ) {
+    const explicitType = kind === FieldKind.MEASUREMENT ? 'number' : 'boolean';
+    return `tags[${key},${explicitType}]`;
+  }
+
+  return key;
+}
+
 function getInitialFilterKeyText(
   key: string,
   fieldDefinition: FieldDefinition | null,
@@ -116,21 +142,7 @@ function getInitialFilterKeyText(
     return `${key}()`;
   }
 
-  // User-created number/boolean attributes (e.g. EAP span/log attributes) are
-  // not in the documented field definitions, so we can't infer their type from
-  // the key alone. Emit explicit tag syntax (`tags[key,number]`) so the query
-  // is unambiguously typed. Documented fields always carry a `desc`, so we use
-  // its absence to detect undocumented attributes.
-  if (
-    !fieldDefinition?.desc &&
-    !isExplicitlyTypedTagKey(key) &&
-    (kind === FieldKind.MEASUREMENT || kind === FieldKind.BOOLEAN)
-  ) {
-    const explicitType = kind === FieldKind.MEASUREMENT ? 'number' : 'boolean';
-    return `tags[${key},${explicitType}]`;
-  }
-
-  return key;
+  return maybeWrapKeyWithExplicitType(key, fieldDefinition, kind);
 }
 
 function getInitialValueType(fieldDefinition: FieldDefinition | null) {
