@@ -211,7 +211,17 @@ class DatadogIdentityProvider(OAuth2Provider):
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
 
-    oauth_scopes: tuple[str, ...] = ()
+    oauth_scopes: tuple[str, ...] = (
+        "apm_read",
+        "error_tracking_read",
+        "events_read",
+        "hosts_read",
+        "incident_read",
+        "logs_read_data",
+        "metrics_read",
+        "monitors_read",
+        "user_self_profile_read",
+    )
 
     def _get_mcp_base_url(self) -> str:
         return f"https://mcp.{self._get_oauth_parameter('site')}"
