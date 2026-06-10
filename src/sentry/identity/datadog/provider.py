@@ -228,7 +228,7 @@ class DatadogIdentityProvider(OAuth2Provider):
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
-            DatadogDCRView(
+            DatadogOAuth2DCRView(
                 register_url=self._get_mcp_base_url() + MCP_REGISTER_PATH,
             ),
             DatadogOAuth2LoginView(
