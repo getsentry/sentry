@@ -1147,7 +1147,7 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 
 
 class _EventTroubleshootingContext(TypedDict):
-    # These fields are added to the serialized event, which uses camelCase API keys.
+    # These fields are added to the serialized event, which uses camelCase keys.
     detectionContext: str | None
     troubleshootingHint: str | None
 
