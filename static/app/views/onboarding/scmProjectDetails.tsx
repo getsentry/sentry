@@ -9,7 +9,10 @@ import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
-import {useScmProjectDetails} from 'sentry/views/onboarding/components/useScmProjectDetails';
+import {
+  type ScmProjectDetailsCompletion,
+  useScmProjectDetails,
+} from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import {ScmStepHeader} from './components/scmStepHeader';
@@ -44,10 +47,18 @@ export function ScmProjectDetails({
     selectedRepository,
     createdProjectSlug,
     projectDetailsForm,
-    onProjectCreated,
-    onProjectDetailsFormChange,
-    onComplete: () =>
-      onComplete(undefined, selectedFeatures ? {product: selectedFeatures} : undefined),
+    onComplete: ({
+      project,
+      projectDetailsForm: submittedForm,
+    }: ScmProjectDetailsCompletion) => {
+      // Store the slug separately so onboarding.tsx can find the project via
+      // useRecentCreatedProject without corrupting selectedPlatform.key (which
+      // the platform features step needs), and persist the form so navigating
+      // back from setup-docs restores it. Both land before the step advances.
+      onProjectCreated(project.slug);
+      onProjectDetailsFormChange(submittedForm);
+      onComplete(undefined, selectedFeatures ? {product: selectedFeatures} : undefined);
+    },
   });
 
   return (

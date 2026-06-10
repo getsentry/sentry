@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -52,12 +53,22 @@ const CREATE_FAILED_EVENT = {
   'project-creation': 'project_creation.scm_project_details_create_failed',
 } as const;
 
+export interface ScmProjectDetailsCompletion {
+  /** The created project, or the reused one on the unchanged back-nav path. */
+  project: Project;
+  /** The form state the project was created with. */
+  projectDetailsForm: ProjectDetailsFormState;
+}
+
 interface UseScmProjectDetailsOptions {
   analyticsFlow: ScmAnalyticsFlow;
-  /** Called after a project is created (or an unchanged one reused). */
-  onComplete: () => void;
-  onProjectCreated: (slug: string | undefined) => void;
-  onProjectDetailsFormChange: (form: ProjectDetailsFormState) => void;
+  /**
+   * Called once the step is done: a project was created (or an unchanged one
+   * reused on the back-nav path) and the repo link attempted. Receives the
+   * project and the submitted form state together so the host can persist
+   * both and advance in one place.
+   */
+  onComplete: (completion: ScmProjectDetailsCompletion) => void;
   selectedPlatform: OnboardingSelectedSDK | undefined;
   selectedRepository: Repository | undefined;
   /**
@@ -106,8 +117,6 @@ interface ScmProjectDetailsForm {
 export function useScmProjectDetails({
   analyticsFlow,
   onComplete,
-  onProjectCreated,
-  onProjectDetailsFormChange,
   selectedPlatform,
   selectedRepository,
   createdProjectSlug,
@@ -216,6 +225,12 @@ export function useScmProjectDetails({
 
     trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
 
+    const submittedForm = {
+      projectName: projectNameResolved,
+      teamSlug: teamSlugResolved,
+      alertRuleConfig,
+    };
+
     // User navigated back and clicked Create without changing anything; skip
     // to completion without creating a duplicate. Any actual change abandons
     // the previous project and creates a new one, matching legacy onboarding.
@@ -224,7 +239,7 @@ export function useScmProjectDetails({
         organization,
         project_slug: existingProject.slug,
       });
-      onComplete();
+      onComplete({project: existingProject, projectDetailsForm: submittedForm});
       return;
     }
 
@@ -236,10 +251,6 @@ export function useScmProjectDetails({
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
         createNotificationAction: () => {},
       });
-
-      // Store the project slug separately so the host can find the project
-      // without corrupting selectedPlatform.key.
-      onProjectCreated(project.slug);
 
       if (selectedRepository?.id) {
         try {
@@ -253,18 +264,12 @@ export function useScmProjectDetails({
         }
       }
 
-      onProjectDetailsFormChange({
-        projectName: projectNameResolved,
-        teamSlug: teamSlugResolved,
-        alertRuleConfig,
-      });
-
       trackAnalytics(CREATE_SUCCEEDED_EVENT[analyticsFlow], {
         organization,
         project_slug: project.slug,
       });
 
-      onComplete();
+      onComplete({project, projectDetailsForm: submittedForm});
     } catch (error) {
       trackAnalytics(CREATE_FAILED_EVENT[analyticsFlow], {organization});
       addErrorMessage(t('Failed to create project'));
@@ -279,8 +284,6 @@ export function useScmProjectDetails({
     isOrgMemberWithNoAccess,
     nothingChanged,
     onComplete,
-    onProjectCreated,
-    onProjectDetailsFormChange,
     organization,
     projectNameResolved,
     selectedPlatform,
