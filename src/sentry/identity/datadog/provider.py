@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import logging
 import secrets
 from typing import Any
 
@@ -29,8 +28,6 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
-
-logger = logging.getLogger(__name__)
 
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
