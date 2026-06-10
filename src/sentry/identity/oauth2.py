@@ -391,7 +391,7 @@ class OAuth2LoginView:
     def get_authorize_url(self):
         return self.authorize_url
 
-    def get_authorize_params(self, state, redirect_uri, pipeline):
+    def get_authorize_params(self, state, redirect_uri):
         return {
             "client_id": self.client_id,
             "response_type": "code",
@@ -410,7 +410,7 @@ class OAuth2LoginView:
             state = secrets.token_hex()
 
             params = self.get_authorize_params(
-                state=state, redirect_uri=absolute_uri(_redirect_url(pipeline)), pipeline=pipeline
+                state=state, redirect_uri=absolute_uri(_redirect_url(pipeline))
             )
             redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
