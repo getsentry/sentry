@@ -42,11 +42,7 @@ def _basic_auth_header(client_id: str, client_secret: str) -> str:
 
 
 def get_user_info(access_token: str, site: str) -> dict[str, Any]:
-    """Fetch the current Datadog user via ``GET /api/v2/current_user``.
-
-    Returns the ``data`` object containing ``id`` (user UUID) and
-    ``attributes`` (name, email, handle, etc.).
-    """
+    """Fetch the current Datadog user via ``GET /api/v2/current_user``."""
     url = f"https://api.{site}/api/v2/current_user"
     resp = safe_urlopen(url, method="GET", headers={"Authorization": f"Bearer {access_token}"})
     resp.raise_for_status()
