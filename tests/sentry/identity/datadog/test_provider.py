@@ -6,6 +6,7 @@ from functools import cached_property
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
+import orjson
 import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
@@ -54,6 +55,13 @@ class DatadogOAuth2DCRViewTest(TestCase):
         )
 
         self.view.dispatch(self.request, self.pipeline)
+
+        assert len(responses.calls) == 1
+        body = orjson.loads(responses.calls[0].request.body)
+        assert body["client_name"] == "sentry"
+        assert body["grant_types"] == ["authorization_code", "refresh_token"]
+        assert body["token_endpoint_auth_method"] == "client_secret_basic"
+        assert len(body["redirect_uris"]) == 1
 
         self.pipeline.bind_state.assert_any_call("dcr_client_id", "new-client-id")
         self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-client-secret")
