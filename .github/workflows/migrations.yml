@@ -75,3 +75,34 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           migration: ${{ steps.file.outputs.added }}
+
+  upgrade-test:
+    name: Upgrade Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs: did-migration-change
+    if: ${{ needs.did-migration-change.outputs.modified == 'true' || needs.did-migration-change.outputs.added == 'true' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Get latest release tag
+        id: latest_release
+        run: echo "tag=$(gh release list --json tagName,isLatest --jq '.[] | select(.isLatest)|.tagName')" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ steps.latest_release.outputs.tag }}
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        with:
+          mode: migrations
+      - name: Apply migrations
+        run: |
+          sentry upgrade --noinput
+      # Checkout the current ref
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          clean: false
+      - name: Apply migrations again to test upgrade path
+        run: |
+          sentry upgrade --noinput

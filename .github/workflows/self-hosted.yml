@@ -91,6 +91,7 @@ jobs:
           ghcr: true
           tag_nightly: false
           tag_latest: false
+          publish_on_pr: ${{ github.event.pull_request.author_association == 'OWNER' || github.event.pull_request.author_association == 'MEMBER' }}
 
   assemble:
     needs: [self-hosted]
