@@ -7,17 +7,20 @@ import pytest
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
+    PullRequestActivity,
+    PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestMetrics,
+    PullRequestVerdict,
 )
 from sentry.pr_metrics.emit import (
     _active_attributions,
     _resolved_group_ids,
     build_pr_metrics_row,
     emit_pr_metrics_row,
-    needs_judge,
+    select_verdict,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -99,8 +102,42 @@ class PrMetricsEmissionTest(TestCase):
         )
         return group.id
 
-    def test_needs_judge_is_false_in_m1(self) -> None:
-        assert needs_judge(self.pull_request) is False
+    def _add_synchronize(self) -> None:
+        # A push to the PR branch after it opened — the commits-after-open signal.
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="sync-1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={},
+        )
+
+    def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
+        # Merged with no SYNCHRONIZED activity: merge head == opened head.
+        assert select_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED
+
+    def test_select_verdict_merged_with_later_commits_needs_judge(self) -> None:
+        self._add_synchronize()
+        assert select_verdict(self.pull_request) is None
+
+    def test_select_verdict_closed_without_engagement_is_unmerged(self) -> None:
+        self.pull_request.merged_at = None
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).update(
+            comments_count=0, review_comments_count=0
+        )
+        assert select_verdict(self.pull_request) == PullRequestVerdict.CLOSED_UNMERGED
+
+    def test_select_verdict_closed_with_comments_needs_judge(self) -> None:
+        # setUp's metrics row carries comments_count=5, i.e. engagement to analyze.
+        self.pull_request.merged_at = None
+        assert select_verdict(self.pull_request) is None
+
+    def test_select_verdict_closed_with_later_commits_needs_judge(self) -> None:
+        self.pull_request.merged_at = None
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).update(
+            comments_count=0, review_comments_count=0
+        )
+        self._add_synchronize()
+        assert select_verdict(self.pull_request) is None
 
     def test_build_row_for_merge(self) -> None:
         row = build_pr_metrics_row(

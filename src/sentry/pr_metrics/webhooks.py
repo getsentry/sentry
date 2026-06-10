@@ -59,7 +59,7 @@ from sentry.pr_metrics.activity_types import (
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
-    needs_judge,
+    select_verdict,
 )
 from sentry.utils import metrics
 
@@ -134,27 +134,22 @@ def handle_attribution(
     _write_author_attribution(pr, github_user)
 
 
-def _claim_terminal_event(pr: PullRequest) -> bool:
-    """Atomically claim a PR's terminal (close/merge) event for processing.
+def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
+    """Atomically claim a PR's terminal (close/merge) event for emission.
 
-    GitHub redelivers webhooks, and ``PullRequestEventWebhook._handle`` stamps
-    ``closed_at``/``state`` from every payload, so the PR row can't tell whether
-    the terminal event was already processed. The pipeline-owned
-    ``PullRequestMetrics.verdict`` can: it stays null until then, so a
-    compare-and-set on ``verdict IS NULL`` lets exactly one delivery claim the
-    event, even under concurrent redeliveries.
+    The redelivery guard. GitHub redelivers webhooks, and
+    ``PullRequestEventWebhook._handle`` stamps ``closed_at``/``state`` from every
+    payload, so the PR row can't tell whether the terminal event was already
+    processed. The pipeline-owned ``PullRequestMetrics.verdict`` can: it stays
+    null until we settle one, so a compare-and-set on ``verdict IS NULL`` lets
+    exactly one delivery claim the event and write ``verdict``, even under
+    concurrent redeliveries. Returns True if this call won the claim.
 
-    The claim writes the lifecycle-derived verdict (``merged_unchanged`` for a
-    merge, ``closed_unmerged`` for a plain close). Returns True if this call
-    won the claim.
+    Only called once a deterministic ``verdict`` is in hand; PRs that need a judge
+    write no verdict here, so they aren't guarded this way (Seer dedupes them).
     """
-    provisional = (
-        PullRequestVerdict.MERGED_UNCHANGED
-        if pr.merged_at is not None
-        else PullRequestVerdict.CLOSED_UNMERGED
-    )
     claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
-        verdict=provisional
+        verdict=verdict
     )
     return bool(claimed)
 
@@ -174,8 +169,11 @@ def handle_emission(
     derives which from the stored row, so this handler only filters for ``closed``
     and delegates. All non-terminal actions are ignored.
 
-    The redelivery guard runs before the ``needs_judge`` fork so a redelivered
-    terminal event is dropped before any expensive work.
+    ``select_verdict`` decides the outcome: a deterministic verdict is claimed
+    (the redelivery guard) and emitted; a PR that needs a judge gets no verdict and
+    isn't emitted here. The forward to Seer isn't wired yet, so a judge-needed PR
+    is skipped for now — nothing is persisted, so a later delivery re-evaluates
+    cleanly once the judge path lands.
     """
     if event.get("action") != "closed":
         return
@@ -187,18 +185,18 @@ def handle_emission(
     if pr is None:
         return
 
-    if not _claim_terminal_event(pr):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
-        return
-
-    if needs_judge(pr):
-        # The judge path (forward to Seer, emit on the judge result) isn't wired
-        # yet, so fall through to immediate emit — a judge-eligible PR still
-        # produces a row rather than none.
+    verdict = select_verdict(pr)
+    if verdict is None:
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
         logger.info(
-            "pr_metrics.emit.judge_path_not_implemented",
+            "pr_metrics.emit.needs_judge",
             extra={"organization_id": organization.id, "pull_request_id": pr.id},
         )
+        return
+
+    if not _claim_terminal_event(pr, verdict):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        return
 
     emit_pr_metrics_row(pull_request=pr)
 

@@ -14,7 +14,14 @@ from typing import Any, Final, Literal
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest, PullRequestAttribution, PullRequestMetrics
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestActivityType,
+    PullRequestAttribution,
+    PullRequestMetrics,
+    PullRequestVerdict,
+)
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.utils import json, metrics
 
@@ -33,14 +40,38 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
-def needs_judge(pull_request: PullRequest) -> bool:
-    """Whether this PR's terminal event must round-trip to Seer for a judge.
+def select_verdict(pull_request: PullRequest) -> PullRequestVerdict | None:
+    """The terminal verdict Sentry can decide on its own, or ``None`` for a judge.
 
-    Currently always ``False``: the judge path isn't wired yet, so every tracked
-    close/merge is emitted immediately. Once judges exist this gates the
-    forward-to-Seer path that emits a judge-enriched row on the result.
+    A judge is needed exactly when the outcome can't be settled deterministically
+    from data Sentry already holds — so ``None`` is the "needs a judge" signal, and
+    the caller forwards to Seer (the judge path) rather than emitting:
+
+    - Merged with no commits after it opened → ``merged_unchanged``: the merge head
+      is the opened head, so nothing changed, by anyone. A merge with later commits
+      is ambiguous (Seer's own iteration vs. external changes) and needs the
+      diff-similarity judge.
+    - Closed with no engagement — no later commits, comments, or review comments →
+      ``closed_unmerged``: an abandoned PR with nothing to analyze. A close with any
+      engagement needs the comment judge to decide why it was closed.
+
+    The commits-after-open signal is the presence of a ``SYNCHRONIZED`` activity
+    row; the webhook logs one per push to the PR branch after it opened.
     """
-    return False
+    has_commits_after_open = PullRequestActivity.objects.filter(
+        pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
+    ).exists()
+
+    if pull_request.merged_at is not None:
+        return PullRequestVerdict.MERGED_UNCHANGED if not has_commits_after_open else None
+
+    metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
+    has_discussion = bool(
+        metrics_row and (metrics_row.comments_count or metrics_row.review_comments_count)
+    )
+    if has_commits_after_open or has_discussion:
+        return None
+    return PullRequestVerdict.CLOSED_UNMERGED
 
 
 def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:

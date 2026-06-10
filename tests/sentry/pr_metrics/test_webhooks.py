@@ -244,20 +244,29 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert row.close_action == "closed"
         assert row.verdict == "closed_unmerged"
 
-    def test_claims_provisional_verdict_on_metrics_row(self) -> None:
+    def _add_synchronize(self) -> None:
+        # A push to the PR branch after it opened — makes a merge non-deterministic.
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="sync-1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={},
+        )
+
+    def test_claims_verdict_on_metrics_row(self) -> None:
         with patch("sentry.analytics.record"):
             self._call(merged=True)
         metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
         assert metrics.verdict == "merged_unchanged"
 
-    @patch(f"{MODULE}.needs_judge", return_value=True)
     @patch("sentry.analytics.record")
-    def test_falls_back_to_immediate_emit_when_judge_needed(
-        self, mock_record: MagicMock, _needs_judge: MagicMock
-    ) -> None:
-        # Until the judge path is wired, a judge-needed PR still emits immediately.
+    def test_skips_emit_when_judge_needed(self, mock_record: MagicMock) -> None:
+        # A merge with later commits can't be settled deterministically — it needs
+        # a judge. The forward isn't wired, so it's skipped and no verdict is set.
+        self._add_synchronize()
         self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
     @patch("sentry.analytics.record")
     def test_ignores_non_terminal_actions(self, mock_record: MagicMock) -> None:
@@ -284,14 +293,14 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
-    @patch(f"{MODULE}.needs_judge", return_value=True)
     @patch("sentry.analytics.record")
-    def test_redelivery_dropped_before_judge_fork(
-        self, mock_record: MagicMock, _needs_judge: MagicMock
-    ) -> None:
+    def test_judge_needed_pr_never_emits_on_redelivery(self, mock_record: MagicMock) -> None:
+        # A judge-needed PR writes no verdict, so every redelivery re-evaluates to
+        # "needs judge" and skips — it never emits a row from this path.
+        self._add_synchronize()
         self._call(merged=True)
         self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch(f"{MODULE}.logger")
     @patch("sentry.analytics.record")
