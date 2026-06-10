@@ -16,13 +16,8 @@ set -euo pipefail
 # (scope=scoped) or must run everything (scope=full). We only need the scope here;
 # --findRelatedTests reads the changed files from FRONTEND_ALL_FILES.
 eval "$(./.github/workflows/scripts/frontend-changed-scope.sh)"
-if [ "$scope" == "scoped" ]; then
-  STRATEGY="changedSince"
-else
-  STRATEGY="full"
-fi
 
-if [ "$STRATEGY" == "changedSince" ]; then
+if [ "$scope" == "scoped" ]; then
   # shellcheck disable=SC2086
   JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
 
