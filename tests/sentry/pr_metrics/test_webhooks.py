@@ -57,16 +57,10 @@ class HandleWebhookForPrMetricsTest(TestCase):
         self,
         action: str = "opened",
         user_id: int = 999,
-        title: str | None = None,
-        body: str | None = None,
         changes: dict[str, Any] | None = None,
     ) -> None:
         payload = dict(self.base_pr_payload)
         payload["user"] = {"id": user_id, "login": "testbot"}
-        if title is not None:
-            payload["title"] = title
-        if body is not None:
-            payload["body"] = body
         event: dict[str, Any] = {"action": action, "pull_request": payload}
         if changes is not None:
             event["changes"] = changes
@@ -119,7 +113,15 @@ class HandleWebhookForPrMetricsTest(TestCase):
     # --- Action gate ---
 
     def test_irrelevant_actions_skipped(self) -> None:
-        for action in ("synchronize", "closed", "merged", "labeled", "assigned"):
+        for action in (
+            "synchronize",
+            "closed",
+            "merged",
+            "labeled",
+            "assigned",
+            "reopened",
+            "edited",
+        ):
             self._call(action=action, user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
@@ -132,23 +134,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         assert PullRequestAttribution.objects.filter(pull_request=self.pr).count() == 1
 
-    def test_redelivery_with_new_group_updates_signal_details(self) -> None:
-        group1 = self.create_group(project=self.project)
-        url1 = f"http://testserver/issues/{group1.id}"
-        self._call(body=f"Fixes {url1}")
-
-        group2 = self.create_group(project=self.project)
-        url2 = f"http://testserver/issues/{group2.id}"
-        self._call(body=f"Fixes {url1} and also Fixes {url2}")
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group1.id, group2.id}
-        assert attr.is_valid is True
-
     def test_redelivery_revives_invalidated_signal(self) -> None:
         self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
         PullRequestAttribution.objects.filter(pull_request=self.pr).update(is_valid=False)
@@ -157,128 +142,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
-
-    # --- Referenced issue attribution ---
-
-    def test_referenced_issue_via_url(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-
-        self._call(body=f"Fixes {url}")
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
-        assert attr.signal_details == {"group_ids": [group.id]}
-
-    def test_referenced_issue_group_ids_are_sorted(self) -> None:
-        group1 = self.create_group(project=self.project)
-        group2 = self.create_group(project=self.project)
-        url1 = f"http://testserver/issues/{group1.id}"
-        url2 = f"http://testserver/issues/{group2.id}"
-
-        self._call(body=f"Fixes {url1} and also Fixes {url2}")
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.signal_details is not None
-        stored_ids = attr.signal_details["group_ids"]
-        assert stored_ids == sorted(stored_ids)
-        assert set(stored_ids) == {group1.id, group2.id}
-
-    def test_no_issue_reference_no_referenced_issue_attribution(self) -> None:
-        self._call(title="Refactor internals", body="No issues here.")
-
-        assert not PullRequestAttribution.objects.filter(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        ).exists()
-
-    def test_seer_app_and_referenced_issue_both_written(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-
-        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID, body=f"Fixes {url}")
-
-        signal_types = set(
-            PullRequestAttribution.objects.filter(pull_request=self.pr).values_list(
-                "signal_type", flat=True
-            )
-        )
-        assert signal_types == {
-            PullRequestAttributionSignalType.SENTRY_APP,
-            PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        }
-
-    # --- reopened / edited refresh ---
-
-    def test_reopened_refreshes_referenced_issue_attribution(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-        self._call(body=f"Fixes {url}")
-
-        group2 = self.create_group(project=self.project)
-        url2 = f"http://testserver/issues/{group2.id}"
-        self._call(action="reopened", body=f"Fixes {url} and Fixes {url2}")
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group.id, group2.id}
-        assert attr.is_valid is True
-
-    def test_edited_with_body_change_refreshes_referenced_issue_attribution(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-        self._call(body=f"Fixes {url}")
-
-        group2 = self.create_group(project=self.project)
-        url2 = f"http://testserver/issues/{group2.id}"
-        self._call(
-            action="edited",
-            body=f"Fixes {url} and Fixes {url2}",
-            changes={"body": {"from": f"Fixes {url}"}},
-        )
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group.id, group2.id}
-
-    def test_edited_without_description_change_skips_refresh(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-        self._call(body=f"Fixes {url}")
-
-        # edited but only labels changed — no body/title in changes
-        self._call(action="edited", changes={"label": {"name": "bug"}})
-
-        assert PullRequestAttribution.objects.filter(pull_request=self.pr).count() == 1
-
-    def test_edited_removes_issue_reference_invalidates_attribution(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-        self._call(body=f"Fixes {url}")
-
-        self._call(
-            action="edited",
-            body="No issue reference anymore.",
-            changes={"body": {"from": f"Fixes {url}"}},
-        )
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.is_valid is False
 
     # --- Feature flag ---
 

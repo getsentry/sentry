@@ -31,7 +31,6 @@ from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
     PullRequestActivityType,
-    PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestMetrics,
@@ -64,18 +63,12 @@ from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     needs_judge,
 )
-from sentry.pr_metrics.types import ReferencedIssueSignalDetails
-from sentry.utils.groupreference import find_referenced_groups
 
 logger = logging.getLogger("sentry.webhooks")
 
 # Actions that set attribution for who authored the PR. The PR author is fixed
 # at creation time and never changes, so app attribution is a one-shot write.
 _AUTHOR_ATTRIBUTION_ACTIONS = frozenset({"opened"})
-
-# Actions that can affect what Sentry issues the PR references. "edited" covers
-# body/title changes; "reopened" may follow a period of changes on the branch.
-_REFERENCED_ISSUE_ATTRIBUTION_ACTIONS = frozenset({"opened", "reopened", "edited"})
 
 _ACTIVITY_ACTIONS = frozenset(
     {
@@ -122,14 +115,14 @@ def handle_attribution(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record PR attribution signals (GH-App author + referenced issues) from the payload."""
+    """Record GH-App author attribution signals from the pull_request webhook payload."""
     pull_request = event.get("pull_request")
     action = event.get("action")
     github_user = (pull_request or {}).get("user")
     if not (action and github_user):
         return
 
-    if action not in (_AUTHOR_ATTRIBUTION_ACTIONS | _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS):
+    if action not in _AUTHOR_ATTRIBUTION_ACTIONS:
         return
 
     if not features.has("organizations:pr-metrics-attribution", organization):
@@ -139,14 +132,7 @@ def handle_attribution(
     if pr is None:
         return
 
-    if action in _AUTHOR_ATTRIBUTION_ACTIONS:
-        _write_author_attribution(pr, github_user)
-
-    if action in _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS:
-        if action == "edited" and not _description_changed(event):
-            return
-        # pr is set, so the payload is present and non-null (subscript narrows it).
-        _refresh_referenced_issue_attribution(pr, event["pull_request"], organization)
+    _write_author_attribution(pr, github_user)
 
 
 def handle_emission(
@@ -490,11 +476,6 @@ def _metrics_counters(pull_request: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _description_changed(event: Mapping[str, Any]) -> bool:
-    changes = event.get("changes") or {}
-    return "body" in changes or "title" in changes
-
-
 def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType | None:
     seer_id = getattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID", None)
     sentry_id = getattr(settings, "SENTRY_GITHUB_APP_USER_ID", None)
@@ -514,35 +495,6 @@ def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> N
         pull_request=pr,
         signal_type=signal_type,
         source=PullRequestAttributionSource.WEBHOOK_DATA,
-    )
-
-
-def _refresh_referenced_issue_attribution(
-    pr: PullRequest,
-    pull_request: dict[str, Any],
-    organization: Organization,
-) -> None:
-    title = pull_request.get("title") or ""
-    body = pull_request.get("body") or ""
-    text = f"{title} {body}".strip()
-
-    groups = find_referenced_groups(text, organization.id)
-
-    if not groups:
-        # Issue references were removed from the description — invalidate.
-        PullRequestAttribution.objects.filter(
-            pull_request=pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-            source=PullRequestAttributionSource.WEBHOOK_DATA,
-        ).update(is_valid=False)
-        return
-
-    details = ReferencedIssueSignalDetails(group_ids=sorted(g.id for g in groups))
-    record_attribution_signal(
-        pull_request=pr,
-        signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        source=PullRequestAttributionSource.WEBHOOK_DATA,
-        signal_details=details.dict(),
     )
 
 
