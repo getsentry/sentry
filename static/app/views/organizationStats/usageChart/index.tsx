@@ -374,7 +374,6 @@ function UsageChartBody({
     BarSeries({
       name: SeriesTypes.ACCEPTED,
       data: chartData.accepted,
-      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
@@ -383,7 +382,6 @@ function UsageChartBody({
           BarSeries({
             name: SeriesTypes.ACCEPTED,
             data: chartData.accepted_stored,
-            barMinHeight: 1,
             barGap: '-100%',
             z: 3,
             silent: true,
@@ -403,14 +401,12 @@ function UsageChartBody({
     BarSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,
-      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
     BarSeries({
       name: SeriesTypes.RATE_LIMITED,
       data: chartData.rateLimited,
-      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
@@ -429,7 +425,6 @@ function UsageChartBody({
     BarSeries({
       name: SeriesTypes.PROJECTED,
       data: chartData.projected,
-      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),

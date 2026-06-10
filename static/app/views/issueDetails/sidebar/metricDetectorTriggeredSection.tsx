@@ -381,7 +381,9 @@ function TriggeredConditionDetails({
 
   const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(detectorDataset);
-  const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
+  const showContributingIssues =
+    detectorDataset === DetectorDataset.ERRORS ||
+    detectorDataset === DetectorDataset.RELEASES;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
   const formattedEvaluatedValue = getFormattedEvaluatedValue({
     value: defined(value) && typeof value === 'object' ? value.value : value,
@@ -496,7 +498,7 @@ function TriggeredConditionDetails({
           isOpenPeriodLoading={isOpenPeriodLoading}
         />
       )}
-      {isErrorsDataset &&
+      {showContributingIssues &&
         (isOpenPeriodLoading ? (
           <FoldSection title={t('Contributing Issues')} sectionKey="contributing_issues">
             <Placeholder height="200px" />

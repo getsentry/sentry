@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Callable
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
@@ -35,9 +35,9 @@ from sentry.seer.autofix.prompts import (
     root_cause_prompt,
     solution_prompt,
 )
+from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_autofix_state,
     read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
@@ -198,6 +198,7 @@ def get_autofix_agent_client(
     return SeerAgentClient(
         organization=group.organization,
         project=group.project,
+        group=group,
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),
@@ -322,7 +323,7 @@ def trigger_autofix_agent(
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"group_id": group.id, "referrer": referrer.value}
+        metadata = {"referrer": referrer.value}
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
@@ -331,7 +332,7 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
-        )
+        ).seer_run_state_id
 
         # Make sure to log billing event for seer autofix whenever a new run is started
         quotas.backend.record_seer_run(
@@ -536,7 +537,7 @@ def trigger_coding_agent_handoff(
     provider: str | None = None,
     user_id: int | None = None,
     auto_create_pr: bool | None = None,
-) -> dict[str, list]:
+) -> AutofixHandoffResponse:
     """
     Trigger a coding agent handoff for an existing agent-based autofix run.
 
@@ -577,27 +578,6 @@ def trigger_coding_agent_handoff(
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
-    # If branch_name is unset in preferences, resolve it from the autofix run state
-    if not repo.branch_name:
-        try:
-            autofix_state = get_autofix_state(run_id=run_id, organization_id=group.organization.id)
-            if autofix_state:
-                state_repo = next(
-                    (
-                        r
-                        for r in autofix_state.request.repos
-                        if r.owner == repo.owner and r.name == repo.name
-                    ),
-                    None,
-                )
-                if state_repo and state_repo.branch_name:
-                    repo = repo.copy(update={"branch_name": state_repo.branch_name})
-        except Exception:
-            logger.exception(
-                "autofix.coding_agent_handoff.get_branch_name_error",
-                extra={"owner": repo.owner, "repo": repo.name, "run_id": run_id},
-            )
-
     short_id = group.qualified_short_id
 
     prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
@@ -635,7 +615,10 @@ def trigger_coding_agent_handoff(
         },
     )
 
-    return coding_agents
+    # cast() sanctioned: `client.launch_coding_agents` returns loose
+    # dict[str, list]; the runtime shape is the `{successes, failures}`
+    # envelope captured by AutofixHandoffResponse.
+    return cast(AutofixHandoffResponse, coding_agents)
 
 
 def trigger_push_changes(

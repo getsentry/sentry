@@ -28,6 +28,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -124,7 +125,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         },
         examples=ReleaseExamples.CREATE_RELEASE,
     )
-    def post(self, request: Request, project) -> Response:
+    def post(
+        self, request: Request, project
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new release and/or associate a project with a release. Releases are used by
         Sentry to improve error reporting by correlating first-seen events with the release
@@ -228,9 +231,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
             # Disable snuba here as it often causes 429s when overloaded and
             # a freshly created release won't have health data anyways.
-            return Response(
-                serialize(release, request.user, no_snuba_for_release_creation=True),
-                status=status,
+            data: ReleaseSerializerResponse = serialize(
+                release, request.user, no_snuba_for_release_creation=True
             )
+            return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
-        return Response(serializer.errors, status=400)
+        return Response(as_validation_errors(serializer), status=400)

@@ -85,9 +85,15 @@ class ProjectBalancingCalculationsTest(TestCase):
             project_with_volume.id: 0.2,
             project_without_volume.id: 0.96,
         }
+        project_volumes = [
+            ProjectVolume(project_id=project_with_volume.id, total=200, keep=100, drop=100),
+            ProjectVolume(project_id=project_without_volume.id, total=0, keep=0, drop=0),
+        ]
 
         with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
-            compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
+            compare_rebalanced_projects_with_cache(
+                config, rebalanced_projects, cached_sample_rates, project_volumes
+            )
 
         assert [call.args for call in logger_info.call_args_list] == [
             ("dynamic_sampling.per_org.project_balancing_comparison",),
@@ -101,6 +107,8 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "eap_sample_rate": 0.25,
                 "relative_deviation": pytest.approx(0.2),
                 "is_equal": False,
+                "total_volume_eap": 100,
+                "total_volume_eap_without_extrapolation": 100,
             },
             {
                 "org_id": org.id,
@@ -109,6 +117,8 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "eap_sample_rate": 1.0,
                 "relative_deviation": pytest.approx(0.04),
                 "is_equal": True,
+                "total_volume_eap": 0,
+                "total_volume_eap_without_extrapolation": 0,
             },
         ]
 

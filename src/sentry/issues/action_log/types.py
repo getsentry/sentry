@@ -61,6 +61,9 @@ class GroupActionType(IntEnum):
     UNSUBSCRIBE = 15
     MARK_REVIEWED = 16
     TRIGGER_AUTOFIX = 17
+    CREATE_EXTERNAL_ISSUE = 18
+    LINK_EXTERNAL_ISSUE = 19
+    UNLINK_EXTERNAL_ISSUE = 20
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -195,3 +198,30 @@ class TriggerAutofixAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.TRIGGER_AUTOFIX
+
+
+class CreateExternalIssueAction(GroupAction):
+    provider: str
+    external_issue_key: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.CREATE_EXTERNAL_ISSUE
+
+
+class LinkExternalIssueAction(GroupAction):
+    provider: str
+    external_issue_key: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.LINK_EXTERNAL_ISSUE
+
+
+class UnlinkExternalIssueAction(GroupAction):
+    provider: str
+    external_issue_key: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNLINK_EXTERNAL_ISSUE

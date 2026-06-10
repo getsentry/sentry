@@ -221,3 +221,20 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         fetch_buffered_group_stats(new_group)
         assert new_group.times_seen_pending == 3
         assert new_group.times_seen_with_pending == 168
+
+    @mock_redis_buffer()
+    def test_merge_original_group_id(self) -> None:
+        project = self.create_project()
+        old_group = self.create_group(project)
+        new_group = self.create_group(project)
+
+        gale = self.create_group_action_log_entry(group=old_group)
+
+        with self.tasks():
+            merge_groups([old_group.id], new_group.id)
+
+        assert Group.objects.filter(id=old_group.id).exists() is False
+
+        gale.refresh_from_db()
+        assert gale.group_id == new_group.id
+        assert gale.original_group_id == old_group.id

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import APIException
@@ -65,7 +65,7 @@ class SeerModelsEndpoint(Endpoint):
             200: inline_sentry_response_serializer("SeerModelsResponse", SeerModelsResponse),
         },
     )
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> Response[SeerModelsResponse]:
         """
         Get list of actively used LLM model names from Seer.
 
@@ -75,7 +75,9 @@ class SeerModelsEndpoint(Endpoint):
         Requests to this endpoint should use the region-specific domain
         eg. `us.sentry.io` or `de.sentry.io`
         """
-        cached_data = cache.get(SEER_MODELS_CACHE_KEY)
+        # cache lookup + external API have no source type to lift; the
+        # opaque-body cohort of tighten-response-annotations permits cast here.
+        cached_data: SeerModelsResponse | None = cache.get(SEER_MODELS_CACHE_KEY)
         if cached_data is not None:
             return Response(cached_data, status=200)
 
@@ -84,7 +86,7 @@ class SeerModelsEndpoint(Endpoint):
             if response.status >= 400:
                 raise SeerApiError("Seer request failed", response.status)
 
-            data = response.json()
+            data = cast(SeerModelsResponse, response.json())
             cache.set(SEER_MODELS_CACHE_KEY, data, SEER_MODELS_CACHE_TIMEOUT)
             return Response(data, status=200)
 

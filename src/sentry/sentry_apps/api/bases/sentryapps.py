@@ -27,6 +27,7 @@ from sentry.sentry_apps.services.cell.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
     SentryAppIntegratorError,
+    SentryAppPublicErrorBody,
     SentryAppSentryError,
 )
 from sentry.users.models.user import User
@@ -117,7 +118,9 @@ def _check_sentry_app_disabled(
 class IntegrationPlatformEndpoint(Endpoint):
     allow_disabled_sentry_app_for_methods: set[str] = set()
 
-    def respond_rpc_sentry_app_error(self, rpc_error: RpcSentryAppError) -> Response:
+    def respond_rpc_sentry_app_error(
+        self, rpc_error: RpcSentryAppError
+    ) -> Response[SentryAppPublicErrorBody]:
         """
         Surfaces errors from the cell-side Sentry App RPC to the client.
         """

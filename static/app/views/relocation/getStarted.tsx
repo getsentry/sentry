@@ -8,7 +8,7 @@ import {Select} from '@sentry/scraps/select';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {getRegionUrlOptions} from 'sentry/utils/regions';
+import {getLocalityUrlOptions} from 'sentry/utils/regions';
 import {useApi} from 'sentry/utils/useApi';
 import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
@@ -28,7 +28,7 @@ export function GetStarted({
   const {orgSlugs, regionUrl, promoCode} = relocationState;
   const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
   const selectableRegions = ConfigStore.get('relocationConfig')?.selectableRegions || [];
-  const regionOptions = getRegionUrlOptions([], selectableRegions);
+  const localityOptions = getLocalityUrlOptions([], selectableRegions);
 
   const handleContinue = async (event: any) => {
     event.preventDefault();
@@ -80,7 +80,7 @@ export function GetStarted({
             name="region"
             aria-label={t('region')}
             placeholder="Select Location"
-            options={regionOptions}
+            options={localityOptions}
             onChange={(opt: any) => {
               onUpdateRelocationState({regionUrl: opt.value});
             }}

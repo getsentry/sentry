@@ -17,10 +17,11 @@ describe('LowValueSpanIssues ProblemSection', () => {
   it('renders low-value span evidence from the occurrence', () => {
     render(<ProblemSection evidenceData={evidenceData} />);
 
-    expect(screen.getByText('Problem')).toBeInTheDocument();
+    expect(screen.getByText(/frequently created span/)).toBeInTheDocument();
+    expect(screen.getByText('Affected span')).toBeInTheDocument();
     expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
     expect(screen.getByText('Span count')).toBeInTheDocument();
-    expect(screen.getByText('60,000')).toBeInTheDocument();
+    expect(screen.getByText('60K')).toBeInTheDocument();
     expect(screen.getAllByLabelText('More information')).toHaveLength(2);
     expect(screen.getByText('Estimated cost')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
@@ -37,7 +38,7 @@ describe('LowValueSpanIssues ProblemSection', () => {
       />
     );
 
-    expect(screen.getByText('1,234')).toBeInTheDocument();
+    expect(screen.getByText('1.2K')).toBeInTheDocument();
     expect(screen.getAllByLabelText('More information')).toHaveLength(1);
   });
 
@@ -65,5 +66,57 @@ describe('LowValueSpanIssues ProblemSection', () => {
     );
 
     expect(screen.queryByText('Estimated cost')).not.toBeInTheDocument();
+  });
+
+  it('links to explore filtering for missing description when description is null', () => {
+    render(
+      <ProblemSection
+        evidenceData={{
+          ...evidenceData,
+          description: null,
+        }}
+      />
+    );
+
+    const exploreLink = screen.getByRole('link', {name: 'function'});
+    expect(exploreLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('%21has%3Aspan.description')
+    );
+    expect(exploreLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('span.op%3Afunction')
+    );
+  });
+
+  it('links to explore filtering for missing op when op is null', () => {
+    render(
+      <ProblemSection
+        evidenceData={{
+          ...evidenceData,
+          op: null,
+        }}
+      />
+    );
+
+    const exploreLink = screen.getByRole('link', {name: 'compute_checksum'});
+    expect(exploreLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('%21has%3Aspan.op')
+    );
+  });
+
+  it('does not link to explore when both op and description are null', () => {
+    render(
+      <ProblemSection
+        evidenceData={{
+          ...evidenceData,
+          op: null,
+          description: null,
+        }}
+      />
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

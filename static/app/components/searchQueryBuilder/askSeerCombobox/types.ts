@@ -1,5 +1,28 @@
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
+export interface SeerRawResponseItem {
+  end: string | null;
+  group_by: string[];
+  mode: string;
+  query: string;
+  sort: string;
+  start: string | null;
+  stats_period: string;
+  visualization?: Array<{
+    chart_type?: number;
+    interval?: string | null;
+    y_axes?: string[];
+  }>;
+}
+
+export interface SeerRawResponse {
+  responses: SeerRawResponseItem[];
+  unsupported_reason: string | null;
+  // Projects Seer actually scoped the query to — a superset of the projects we
+  // sent when it broadens scope. `null`/absent when there's no expansion.
+  project_ids?: number[] | null;
+}
+
 export interface NoneOfTheseItem {
   key: 'none-of-these';
   label: string;
@@ -13,12 +36,21 @@ export type AskSeerSearchItems<T> = (AskSeerSearchItem<string> & T) | NoneOfThes
 
 export interface QueryTokensProps {
   end?: string | null;
+  /**
+   * Projects the agent broadened the query to, when it expanded scope beyond
+   * the user's selection. Set only when there is an actual expansion; drives
+   * the "Projects" chip and the projects applied when the suggestion is chosen.
+   */
+  expandedProjectIds?: number[];
   groupBys?: string[];
+  // Seer returns the interval nested per-visualization, but the chart uses a
+  // single shared interval, so we hoist it to a chart-level field.
+  interval?: string | null;
   query?: string;
   sort?: string;
   start?: string | null;
   statsPeriod?: string;
-  visualizations?: Array<{chartType: ChartType; yAxes: string[]}>;
+  visualizations?: Array<{yAxes: string[]; chartType?: ChartType}>;
 }
 
 export interface AskSeerSearchQuery extends QueryTokensProps {
@@ -29,7 +61,7 @@ export interface AskSeerSearchQuery extends QueryTokensProps {
   sort: string;
   start: string | null;
   statsPeriod: string;
-  visualizations: Array<{chartType: ChartType; yAxes: string[]}>;
+  visualizations: Array<{yAxes: string[]; chartType?: ChartType}>;
 }
 
 /**
@@ -43,7 +75,8 @@ export interface AskSeerStep {
  * Response from the /search-agent/start/ endpoint.
  */
 export interface AskSeerStartResponse {
-  run_id: number;
+  run_id: number | null;
+  sentry_run_id?: string;
 }
 
 /**

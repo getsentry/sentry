@@ -37,6 +37,7 @@ from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
@@ -217,6 +218,20 @@ def prepare_organization_report(
         if not report_is_available:
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
             return
+
+    if not dry_run:
+        try:
+            project_metrics: dict[int, dict[str, int]] = {}
+            for project_id, project_ctx in ctx.projects_context_map.items():
+                if not project_ctx.check_if_project_is_empty():
+                    project_metrics[project_id] = {
+                        "e": project_ctx.accepted_error_count,
+                        "t": project_ctx.accepted_transaction_count,
+                    }
+            if project_metrics:
+                cache_project_metrics(organization_id, project_metrics)
+        except Exception:
+            sentry_sdk.capture_exception()
 
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
@@ -767,6 +782,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
+        "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
     }
 
 

@@ -49,6 +49,10 @@ class ReleaseAssembleResponse(TypedDict):
     missingChunks: list[str]
 
 
+class _AssembleErrorResponse(TypedDict):
+    error: str
+
+
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
@@ -71,7 +75,9 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, organization, version) -> Response:
+    def post(
+        self, request: Request, organization, version
+    ) -> Response[ReleaseAssembleResponse] | Response[_AssembleErrorResponse]:
         """
         Assemble an artifact bundle from previously uploaded chunks and merge it into the
         release. Returns the current assembly state.

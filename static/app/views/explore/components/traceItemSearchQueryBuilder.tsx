@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilder,
@@ -12,7 +11,6 @@ import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
-import {useAttributeValidation} from 'sentry/views/explore/hooks/useAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -116,18 +114,6 @@ export function useTraceItemSearchQueryBuilderProps({
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
 
-  const {selection} = usePageFilters();
-  const effectiveProjects = projects ?? selection.projects;
-  const validationSelection = useMemo(
-    () => ({datetime: selection.datetime, projects: effectiveProjects}),
-    [selection.datetime, effectiveProjects]
-  );
-
-  const {invalidFilterKeys} = useAttributeValidation(
-    itemType,
-    initialQuery ?? '',
-    validationSelection
-  );
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
   const filterTags = useFilterTags({
@@ -197,7 +183,6 @@ export function useTraceItemSearchQueryBuilderProps({
       caseInsensitive,
       disabled,
       onCaseInsensitiveClick,
-      invalidFilterKeys,
     }),
     [
       booleanSecondaryAliases,
@@ -213,7 +198,6 @@ export function useTraceItemSearchQueryBuilderProps({
       getTagKeys,
       getTraceItemAttributeValues,
       initialQuery,
-      invalidFilterKeys,
       itemType,
       matchKeySuggestions,
       namespace,

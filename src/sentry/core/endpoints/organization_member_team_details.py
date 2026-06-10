@@ -15,7 +15,11 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.serializers.models.team import BaseTeamSerializer, TeamSerializer
+from sentry.api.serializers.models.team import (
+    BaseTeamSerializer,
+    TeamSerializer,
+    TeamSerializerResponse,
+)
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -25,6 +29,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.access import Access
 from sentry.auth.superuser import superuser_has_permission
 from sentry.core.endpoints.organization_member_utils import can_admin_team, can_set_team_role
@@ -254,7 +259,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         organization: Organization,
         member: OrganizationMember,
         team: Team,
-    ) -> Response:
+    ) -> Response[TeamSerializerResponse] | Response[None] | Response[DetailResponse]:
         # NOTE: Required to use HTML for table b/c this markdown version doesn't support colspan.
         r"""
         This request can return various success codes depending on the context of the team:
@@ -359,7 +364,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             data=omt.get_audit_log_data(),
         )
 
-        return Response(serialize(team, request.user, TeamSerializer()), status=201)
+        body: TeamSerializerResponse = serialize(team, request.user, TeamSerializer())
+        return Response(body, status=201)
 
     @extend_schema(
         operation_id="Update an Organization Member's Team Role",
@@ -382,7 +388,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         organization: Organization,
         member: OrganizationMember,
         team: Team,
-    ) -> Response:
+    ) -> (
+        Response[OrganizationMemberTeamSerializerResponse]
+        | Response[None]
+        | Response[DetailResponse]
+    ):
         """
         The relevant organization member must already be a part of the team.
 
@@ -436,9 +446,10 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                 },
             )
 
-        return Response(
-            serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200
+        put_body: OrganizationMemberTeamSerializerResponse = serialize(
+            omt, request.user, OrganizationMemberTeamDetailsSerializer()
         )
+        return Response(put_body, status=200)
 
     @staticmethod
     def _change_team_member_role(
@@ -486,7 +497,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         organization: Organization,
         member: OrganizationMember,
         team: Team,
-    ) -> Response:
+    ) -> Response[TeamSerializerResponse] | Response[DetailResponse]:
         r"""
         Delete an organization member from a team.
 
@@ -553,7 +564,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         self._unsubscribe_issues(team, member)
 
-        return Response(serialize(team, request.user, TeamSerializer()), status=200)
+        delete_body: TeamSerializerResponse = serialize(team, request.user, TeamSerializer())
+        return Response(delete_body, status=200)
 
     @staticmethod
     def _unsubscribe_issues(team: Team, member: OrganizationMember) -> None:

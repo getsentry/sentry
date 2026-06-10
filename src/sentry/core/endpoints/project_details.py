@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import NotRequired
 from uuid import uuid4
 
 import orjson
@@ -21,12 +22,17 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import DetailedProjectSerializer
+from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
@@ -512,6 +518,13 @@ class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermi
     pass
 
 
+class _ProjectDetailsResponse(DetailedProjectResponse):
+    """`DetailedProjectResponse` plus the endpoint-level extra the handler
+    appends post-serialize via `?expand=hasAlertIntegration`."""
+
+    hasAlertIntegrationInstalled: NotRequired[bool]
+
+
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
@@ -544,12 +557,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[_ProjectDetailsResponse] | Response[ValidationErrorResponse]:
         """
         Return details on an individual project.
         """
         collapse = request.GET.getlist("collapse", [])
-        data = serialize(project, request.user, DetailedProjectSerializer(collapse=collapse))
+        data: _ProjectDetailsResponse = serialize(
+            project, request.user, DetailedProjectSerializer(collapse=collapse)
+        )
 
         # TODO: should switch to expand and move logic into the serializer
         include = set(filter(bool, request.GET.get("include", "").split(",")))
@@ -567,8 +584,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 many=True,
             )
             if not ds_bias_serializer.is_valid():
-                return Response(ds_bias_serializer.errors, status=400)
-            data["dynamicSamplingBiases"] = ds_bias_serializer.data
+                return Response(as_validation_errors(ds_bias_serializer), status=400)
+            biases: list[dict[str, str | bool]] = list(ds_bias_serializer.data)
+            data["dynamicSamplingBiases"] = biases
         else:
             data["dynamicSamplingBiases"] = None
 
@@ -591,7 +609,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )
-    def put(self, request: Request, project) -> Response:
+    def put(
+        self, request: Request, project
+    ) -> (
+        Response[_ProjectDetailsResponse]
+        | Response[None]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update various attributes and configurable settings for the given project.
 
@@ -630,7 +655,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 status=403,
             )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         if not has_elevated_scopes:
             for key in ProjectAdminSerializer().fields.keys():
@@ -1134,8 +1159,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result.get("dynamicSamplingBiases"),
                 )
                 if len(changed_proj_settings) == 1:
-                    data = serialize(project, request.user, DetailedProjectSerializer())
-                    return Response(data)
+                    body_partial: _ProjectDetailsResponse = serialize(
+                        project, request.user, DetailedProjectSerializer()
+                    )
+                    return Response(body_partial)
 
             if "sentry:uptime_autodetection" in options:
                 project.update_option(
@@ -1150,13 +1177,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data={**changed_proj_settings, **project.get_audit_log_data()},
         )
 
-        data = serialize(project, request.user, DetailedProjectSerializer())
+        body: _ProjectDetailsResponse = serialize(
+            project, request.user, DetailedProjectSerializer()
+        )
         if not has_dynamic_sampling(project.organization):
-            data["dynamicSamplingBiases"] = None
+            body["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually
 
-        return Response(data)
+        return Response(body)
 
     @extend_schema(
         operation_id="Delete a Project",
@@ -1167,7 +1196,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project: Project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response[None] | Response[str]:
         """
         Schedules a project for deletion.
 

@@ -5,8 +5,10 @@ import pytest
 
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
+import sentry.issues.endpoints.group_integration_details
 import sentry.issues.priority
 import sentry.issues.status_change
+import sentry.models.group
 import sentry.models.groupassignee
 import sentry.models.groupinbox
 from sentry.issues.action_log import (
@@ -23,20 +25,24 @@ from sentry.issues.action_log.base import ActionSource
 from sentry.issues.action_log.types import (
     ArchiveAction,
     AssignAction,
+    CreateExternalIssueAction,
     GroupActionType,
     GroupActorType,
+    LinkExternalIssueAction,
     MarkReviewedAction,
     MergeFromOtherAction,
     MergeIntoOtherAction,
     ResolveAction,
     SetPriorityAction,
     UnassignAction,
+    UnlinkExternalIssueAction,
     ViewAction,
 )
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
@@ -77,7 +83,7 @@ class TestResolveActionSource(TestCase):
         )
         with self.assertLogs("sentry.issues.action_log", level="WARNING") as logs:
             assert resolve_action_source(request) == "mcp"
-        assert any(r.__dict__.get("client_family") == "some-new-editor" for r in logs.records)
+        assert any(getattr(r, "client_family", None) == "some-new-editor" for r in logs.records)
 
     def test_mcp_catchall_family_is_not_logged(self) -> None:
         request = _make_request(
@@ -174,11 +180,10 @@ class TestPublishAction(TestCase):
             )
         assert len(logs.records) == 1
         record = logs.records[0]
-        extra = record.__dict__
-        assert record.message == "issue.action_log"
-        assert extra["action"] == "resolve"
-        assert extra["source"] == "mcp:claude-code"
-        assert extra["actor_id"] == 4
+        assert record.message == "group.action_log"
+        assert getattr(record, "action") == "resolve"
+        assert getattr(record, "source") == "mcp:claude-code"
+        assert getattr(record, "actor_id") == "4"
 
     def test_actor_type_derived_from_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
@@ -190,7 +195,7 @@ class TestPublishAction(TestCase):
                 project_id=3,
                 actor=GroupActionActor.user(99),
             )
-        assert logs.records[0].__dict__["actor_type"] == "user"
+        assert getattr(logs.records[0], "actor_type") == "user"
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
@@ -200,7 +205,7 @@ class TestPublishAction(TestCase):
                 organization_id=2,
                 project_id=3,
             )
-        assert logs.records[0].__dict__["actor_type"] == "system"
+        assert getattr(logs.records[0], "actor_type") == "system"
 
 
 class TestPublishActionFromContext(TestCase):
@@ -216,8 +221,8 @@ class TestPublishActionFromContext(TestCase):
             )
         error_records = [r for r in logs.records if r.levelname == "ERROR"]
         assert any("without ActionContext" in r.message for r in error_records)
-        info_record = [r for r in logs.records if r.message == "issue.action_log"][0]
-        assert info_record.__dict__["source"] == "unknown"
+        info_record = [r for r in logs.records if r.message == "group.action_log"][0]
+        assert getattr(info_record, "source") == "unknown"
 
 
 class TestActionLogIntegration(APITestCase, SnubaTestCase):
@@ -371,6 +376,147 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         ]
         assert len(merge_from) == 1
         assert len(merge_into) == 1
+
+
+class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
+    def test_resolve_emits_action_with_context_source(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(
+                source=ActionSource.SLACK, actor=GroupActionActor.user(self.user.id)
+            ):
+                Group.objects.update_group_status(
+                    groups=[group],
+                    status=GroupStatus.RESOLVED,
+                    substatus=None,
+                    activity_type=ActivityType.SET_RESOLVED,
+                )
+        records = [r for r in logs.records if r.message == "group.action_log"]
+        assert len(records) == 1
+        assert getattr(records[0], "action") == "resolve"
+        assert getattr(records[0], "source") == ActionSource.SLACK
+        assert getattr(records[0], "group_id") == str(group.id)
+        assert getattr(records[0], "actor_id") == str(self.user.id)
+
+    def test_ignore_emits_archive_action(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                Group.objects.update_group_status(
+                    groups=[group],
+                    status=GroupStatus.IGNORED,
+                    substatus=GroupSubStatus.UNTIL_ESCALATING,
+                    activity_type=ActivityType.SET_IGNORED,
+                )
+        records = [r for r in logs.records if r.message == "group.action_log"]
+        assert len(records) == 1
+        assert getattr(records[0], "action") == "archive"
+        assert getattr(records[0], "source") == ActionSource.SYSTEM
+
+    @patch.object(sentry.models.group, "publish_action_from_context", autospec=True)
+    def test_substatus_only_transition_emits_no_action(self, mock_publish: MagicMock) -> None:
+        # AUTO_SET_ONGOING moves a group NEW -> ONGOING but it stays UNRESOLVED; that
+        # substatus-only change must not be logged as an unresolve.
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=[group],
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+                activity_type=ActivityType.AUTO_SET_ONGOING,
+                from_substatus=GroupSubStatus.NEW,
+            )
+        assert mock_publish.call_count == 0
+
+
+class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.group = self.create_group(
+            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING
+        )
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+        self.base_url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{self.integration.id}/"
+
+    @patch.object(
+        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
+    )
+    def test_create_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.post(
+                self.base_url, data={"assignee": "foo@sentry.io"}, format="json"
+            )
+        assert response.status_code == 201
+        mock_publish.assert_called_once()
+        assert isinstance(mock_publish.call_args.args[0], CreateExternalIssueAction)
+        assert mock_publish.call_args.kwargs["group_id"] == self.group.id
+        assert mock_publish.call_args.args[0].provider == "example"
+
+    @patch.object(
+        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
+    )
+    def test_link_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.put(
+                self.base_url, data={"externalIssue": "APP-123"}, format="json"
+            )
+        assert response.status_code == 201
+        mock_publish.assert_called_once()
+        assert isinstance(mock_publish.call_args.args[0], LinkExternalIssueAction)
+        assert mock_publish.call_args.kwargs["group_id"] == self.group.id
+
+    @patch.object(
+        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
+    )
+    def test_unlink_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
+        from sentry.integrations.models.external_issue import ExternalIssue
+        from sentry.models.grouplink import GroupLink
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="APP-123",
+        )
+        GroupLink.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(
+                f"{self.base_url}?externalIssue={external_issue.id}", format="json"
+            )
+        assert response.status_code == 204
+        mock_publish.assert_called_once()
+        assert isinstance(mock_publish.call_args.args[0], UnlinkExternalIssueAction)
+
+    @patch.object(
+        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
+    )
+    def test_unlink_unlinked_external_issue_skips_action(self, mock_publish: MagicMock) -> None:
+        from sentry.integrations.models.external_issue import ExternalIssue
+
+        # The external issue exists but is not linked to this group, so nothing is
+        # removed. The endpoint still returns 204, but no action should be recorded.
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="APP-123",
+        )
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(
+                f"{self.base_url}?externalIssue={external_issue.id}", format="json"
+            )
+        assert response.status_code == 204
+        mock_publish.assert_not_called()
 
 
 class TestPublishActionWrite(TestCase):

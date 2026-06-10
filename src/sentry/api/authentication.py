@@ -111,7 +111,7 @@ def is_internal_relay(request, public_key):
         )
         return True
 
-    if is_internal_ip(request):
+    if is_internal_ip(request) and options.get("relay.allow_internal_ip_auth"):
         metrics.incr(
             "relay.is_internal_relay",
             tags={"reason": "internal_ip"},
@@ -131,7 +131,16 @@ def is_static_relay(request):
     relay_id = get_header_relay_id(request)
     static_relays = options.get("relay.static_auth")
     relay_info = static_relays.get(relay_id)
-    return relay_info is not None
+
+    if relay_info is not None:
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "static_relay"},
+            sample_rate=1.0,
+        )
+        return True
+
+    return False
 
 
 def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:

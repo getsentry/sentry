@@ -3,21 +3,21 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import type {Region} from 'sentry/types/system';
+import type {Cell, Locality} from 'sentry/types/system';
 
-const RegionDisplayName: Record<string, string> = {
+const LocalityDisplayName: Record<string, string> = {
   US: t('United States of America (US)'),
   US2: t('United States of America (US2)'),
   DE: t('European Union (EU)'),
 };
 
-const RegionFlagIndicator: Record<string, string> = {
+const LocalityFlagIndicator: Record<string, string> = {
   US: '🇺🇸',
   US2: '🇺🇸',
   DE: '🇪🇺',
 };
 
-interface RegionData {
+interface LocalityData {
   displayName: string;
   label: string;
   name: string;
@@ -25,70 +25,80 @@ interface RegionData {
   flag?: string;
 }
 
-function getRegionDisplayName(region: Region): string {
-  return RegionDisplayName[region.name.toUpperCase()] ?? region.name;
+function getLocalityDisplayName(locality: Locality): string {
+  return LocalityDisplayName[locality.name.toUpperCase()] ?? locality.name;
 }
 
-function getRegionFlagIndicator(region: Region): string {
-  const regionName = region.name.toUpperCase();
-  return RegionFlagIndicator[regionName] ?? '';
+function getLocalityFlagIndicator(locality: Locality): string {
+  const localityName = locality.name.toUpperCase();
+  return LocalityFlagIndicator[localityName] ?? '';
 }
 
-export function getRegionDataFromOrganization(
+export function getLocalityDataFromOrganization(
   organization: Organization
-): RegionData | undefined {
+): LocalityData | undefined {
   const {regionUrl} = organization.links;
 
-  const regions = getRegions();
-  const region = regions.find(value => {
+  const localities = getLocalities();
+  const locality = localities.find(value => {
     return value.url === regionUrl;
   });
 
-  if (!region) {
+  if (!locality) {
     return undefined;
   }
-  const flag = getRegionFlagIndicator(region);
-  const displayName = getRegionDisplayName(region);
+  const flag = getLocalityFlagIndicator(locality);
+  const displayName = getLocalityDisplayName(locality);
 
   return {
     flag,
     displayName,
     label: `${flag} ${displayName}`,
-    name: region.name,
-    url: region.url,
+    name: locality.name,
+    url: locality.url,
   };
 }
 
-export function getRegions(): Region[] {
-  return ConfigStore.get('regions') ?? [];
+/**
+ * Get the customer facing list of localities that are available
+ */
+export function getLocalities(): Locality[] {
+  return ConfigStore.get('localities') ?? [];
 }
 
 /**
- * Get a list of choice tuples with (url, display name)
+ * Get the list of all cells available with a staff session.
  */
-export function getRegionUrlOptions(
-  exclude: RegionData[] = [],
+export function getCells(): Cell[] {
+  return ConfigStore.get('cells') ?? [];
+}
+
+/**
+ * Get a list of option objects {label: displayName, value: url}
+ */
+export function getLocalityUrlOptions(
+  exclude: LocalityData[] = [],
   only: string[] = []
 ): Array<SelectValue<string>> {
-  const regions = getRegions();
+  const localities = getLocalities();
   const excludedRegionNames = exclude.map(region => region.name);
 
-  return regions
-    .filter(region => {
+  return localities
+    .filter(locality => {
       if (
-        excludedRegionNames.includes(region.name) ||
-        (only.length > 0 && !only.includes(region.name)) ||
-        CUSTOMER_HIDDEN_REGIONS.has(region.name)
+        excludedRegionNames.includes(locality.name) ||
+        (only.length > 0 && !only.includes(locality.name)) ||
+        CUSTOMER_HIDDEN_REGIONS.has(locality.name)
       ) {
         return false;
       }
       return true;
     })
-    .map(region => {
-      const {url} = region;
+    .map(locality => {
+      const {url} = locality;
       return {
         value: url,
-        label: `${getRegionFlagIndicator(region)} ${getRegionDisplayName(region)}`,
+        label: `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`,
       };
     });
 }
@@ -97,21 +107,21 @@ export function getRegionUrlOptions(
 const CUSTOMER_HIDDEN_REGIONS = new Set(['us2']);
 
 /**
- * Create a list of Choice tuples with (name, display name)
+ * Create a list of option objects with {label: displayName, value: name}
  */
-export function getRegionNameOptions(): Array<SelectValue<string>> {
-  const regions = getRegions();
+export function getLocalityNameOptions(): Array<SelectValue<string>> {
+  const localities = getLocalities();
 
-  return regions
-    .filter(region => !CUSTOMER_HIDDEN_REGIONS.has(region.name))
-    .map(region => {
+  return localities
+    .filter(locality => !CUSTOMER_HIDDEN_REGIONS.has(locality.name))
+    .map(locality => {
       return {
-        value: region.name,
-        label: `${getRegionFlagIndicator(region)} ${getRegionDisplayName(region)}`,
+        value: locality.name,
+        label: `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`,
       };
     });
 }
 
-export function shouldDisplayRegions(): boolean {
-  return getRegions().length > 1;
+export function shouldDisplayLocalities(): boolean {
+  return getLocalities().length > 1;
 }

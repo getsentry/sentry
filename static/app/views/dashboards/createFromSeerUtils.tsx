@@ -133,6 +133,28 @@ export function statusIsTerminal(status?: string | null) {
   return status === 'completed' || status === 'error' || status === 'awaiting_user_input';
 }
 
+/**
+ * The dashboard generation endpoint prepends a block of system instructions to
+ * the user's prompt before sending it to Seer, terminated by this marker (see
+ * `DASHBOARD_INSTRUCTIONS` in `organization_dashboard_generate.py`). Splitting on
+ * it lets the chat UI show only what the user actually typed and tuck the
+ * instructions behind a collapsible disclosure instead of leaking them inline.
+ */
+const DASHBOARD_INSTRUCTIONS_MARKER = 'User Query:\n';
+
+export function splitDashboardPrompt(content: string): {
+  instructions: string | null;
+  query: string;
+} {
+  const markerIndex = content.indexOf(DASHBOARD_INSTRUCTIONS_MARKER);
+  if (markerIndex === -1) {
+    return {instructions: null, query: content};
+  }
+  const instructions = content.slice(0, markerIndex).trim();
+  const query = content.slice(markerIndex + DASHBOARD_INSTRUCTIONS_MARKER.length).trim();
+  return {instructions: instructions || null, query};
+}
+
 export async function validateDashboardAndRecordMetrics({
   organization,
   dashboard,
