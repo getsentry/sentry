@@ -101,7 +101,9 @@ export function InlineIssueTrackerActions({
       {integrations.map(integration => {
         const sharedButtonProps: ButtonProps = {
           size: 'zero',
-          icon: integration.displayIcon,
+          icon: integration.displayIcon ? (
+            <IssueTrackerIcon>{integration.displayIcon}</IssueTrackerIcon>
+          ) : undefined,
           variant: 'transparent',
           children: <IssueActionName>{integration.displayName}</IssueActionName>,
         };
@@ -126,7 +128,11 @@ export function InlineIssueTrackerActions({
                 // Exclusively used for group.pluginActions
                 <IssueActionLinkButton
                   size="zero"
-                  icon={integration.displayIcon}
+                  icon={
+                    integration.displayIcon ? (
+                      <IssueTrackerIcon>{integration.displayIcon}</IssueTrackerIcon>
+                    ) : undefined
+                  }
                   disabled={isDisabled}
                   tooltipProps={{title: tooltipTitle}}
                   onClick={onAction}
@@ -310,7 +316,9 @@ export function IssueTrackerActionDropdown({
             textValue,
             details: isDisabled ? tooltipTitle : details,
             leadingItems: (
-              <IssueTrackerMenuIcon>{integration.displayIcon}</IssueTrackerMenuIcon>
+              <IssueTrackerIcon style={{transform: 'translateY(3px)'}}>
+                {integration.displayIcon}
+              </IssueTrackerIcon>
             ),
             externalHref: action.href,
             disabled: isDisabled,
@@ -364,10 +372,13 @@ const HeaderIssueTrackerIcon = styled(IconAdd)`
   transform: translateY(0);
 `;
 
-const IssueTrackerMenuIcon = styled('span')`
+const IssueTrackerIcon = styled('span')`
   display: inline-flex;
   align-items: center;
-  transform: translateY(3px);
+  justify-content: center;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
 `;
 
 const IssueActionName = styled('div')`

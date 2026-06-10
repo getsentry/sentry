@@ -48,9 +48,10 @@ export function ExternalIssueListContent({
   const hasLinkedPullRequestsFeature = organization.features.includes(
     'issue-details-linked-pull-requests'
   );
+  const loadingPlaceholderHeight = hasLinkedPullRequestsFeature ? '34px' : '25px';
 
   if (isLoading) {
-    return <Placeholder height="25px" testId="issue-tracking-loading" />;
+    return <Placeholder height={loadingPlaceholderHeight} />;
   }
 
   const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;

@@ -68,16 +68,13 @@ function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
           padding={hasSubtitle ? 'sm' : 'xs sm'}
           width="100%"
         >
-          <Flex
-            as="span"
+          <LinkedIssueRowIcon
             aria-hidden
-            align={hasSubtitle ? 'start' : 'center'}
-            display="inline-flex"
-            paddingTop={hasSubtitle ? '2xs' : undefined}
+            hasSubtitle={hasSubtitle}
             style={hasSubtitle ? undefined : {transform: 'translateY(-1px)'}}
           >
             {linkedIssue.displayIcon}
-          </Flex>
+          </LinkedIssueRowIcon>
           <Flex as="span" direction="column" gap={hasSubtitle ? '2xs' : '0'} minWidth={0}>
             <LinkedIssueRowTitle title={title}>{title}</LinkedIssueRowTitle>
             {subtitle && (
@@ -98,7 +95,7 @@ function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
         <Tooltip title={t('Unlink issue')} skipWrapper>
           <Button
             aria-label={t('Unlink %s', title)}
-            icon={<IconClose />}
+            icon={<IconClose variant="muted" />}
             onClick={linkedIssue.onUnlink}
             size="zero"
             variant="transparent"
@@ -125,6 +122,22 @@ const LinkedIssueRowLink = styled(ExternalLink)`
   min-width: 0;
   width: 100%;
   color: ${p => p.theme.tokens.content.primary};
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+  }
+`;
+
+const LinkedIssueRowIcon = styled('span', {
+  shouldForwardProp: prop => prop !== 'hasSubtitle',
+})<{hasSubtitle: boolean}>`
+  display: inline-flex;
+  align-items: ${p => (p.hasSubtitle ? 'flex-start' : 'center')};
+  justify-content: center;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  padding-top: ${p => (p.hasSubtitle ? p.theme.space['2xs'] : 0)};
 `;
 
 const LinkedIssueRowTitle = styled('span')`
