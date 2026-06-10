@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.testutils.cases import (
@@ -142,6 +144,35 @@ class OrganizationTraceItemsStatsEndpointTest(
 
         assert "browser.name" in attribute_distribution
         assert "device" not in attribute_distribution
+
+    def test_hidden_api_attributes_filtered(self) -> None:
+        for tag in [
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "firefox", "device": "mobile"},
+        ]:
+            self._store_span(tags=tag)
+
+        def can_expose_attribute_to_api(attribute, item_type, include_internal=False):
+            return attribute not in {"device", "sentry.device"}
+
+        with mock.patch(
+            "sentry.api.endpoints.organization_trace_item_stats.can_expose_attribute_to_api",
+            can_expose_attribute_to_api,
+        ):
+            response = self.do_request(
+                query={
+                    "statsType": ["attributeDistributions"],
+                    "itemType": "spans",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+
+        assert "browser" in attribute_distribution
+        assert "device" not in attribute_distribution
+        assert "sentry.device" not in attribute_distribution
 
     def test_substring_match_returns_known_public_aliases(self) -> None:
         # Store spans with known sentry attributes (op, description)

@@ -1,10 +1,13 @@
 import hashlib
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.urls import reverse
 
+from sentry.integrations.perforce.client import InvalidP4Port, validate_p4port_transport
 from sentry.integrations.perforce.integration import (
+    PerforceInstallationSerializer,
     PerforceIntegration,
     PerforceIntegrationProvider,
 )
@@ -302,6 +305,90 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_integration_provider(self) -> None:
         """Test integration has correct provider"""
         assert self.installation.model.provider == "perforce"
+
+
+class PerforceP4PortValidationTest(IntegrationTestCase):
+    provider = PerforceIntegrationProvider
+
+    def _base_payload(self) -> dict[str, str]:
+        return {
+            "p4port": "ssl:perforce.example.com:1666",
+            "user": "testuser",
+            "password": "testpass",
+            "auth_type": "password",
+            "ssl_fingerprint": "AB:CD",
+        }
+
+    def test_validate_p4port_transport_rejects_invalid(self) -> None:
+        for value in (
+            "abc:host:1666",
+            "1666",
+            ":1666",
+            "tcp:123.123.123.123",
+            "ssl:perforce.example.com",
+            "2001:db8::1:1666",
+            "ssl:[2001:db8::1]:1666",
+        ):
+            with pytest.raises(InvalidP4Port):
+                validate_p4port_transport(value)
+
+    def test_validate_p4port_transport_allows_host_port(self) -> None:
+        for value in (
+            "perforce.example.com:1666",
+            "test-host.example.com:1666",
+            "123.123.123.123:1666",
+            "tcp:123.123.123.123:1666",
+            "SSL:perforce.example.com:1666",
+        ):
+            validate_p4port_transport(value)
+
+    def test_validate_p4port_transport_allows_every_transport(self) -> None:
+        for transport in (
+            "tcp",
+            "tcp4",
+            "tcp6",
+            "tcp46",
+            "tcp64",
+            "ssl",
+            "ssl4",
+            "ssl6",
+            "ssl46",
+            "ssl64",
+        ):
+            validate_p4port_transport(f"{transport}:perforce.example.com:1666")
+
+    def test_validate_p4port_transport_rejects_disallowed_transport(self) -> None:
+        for transport in (
+            "http",
+            "https",
+            "file",
+            "udp",
+            "tcp5",
+            "sslx",
+            "abc",
+        ):
+            with pytest.raises(InvalidP4Port):
+                validate_p4port_transport(f"{transport}:perforce.example.com:1666")
+
+    def test_serializer_accepts_valid_p4port(self) -> None:
+        serializer = PerforceInstallationSerializer(data=self._base_payload())
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["p4port"] == "ssl:perforce.example.com:1666"
+
+    def test_client_connect_rejects_invalid_p4port_metadata(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="perforce",
+                name="Perforce",
+                external_id="perforce-test",
+                metadata={"p4port": "abc:1234", "user": "u", "password": "p"},
+            )
+        installation = integration.get_installation(self.organization.id)
+        client = installation.get_client()
+        with pytest.raises(ApiError):
+            with client._connect():
+                pass
 
 
 class PerforceIntegrationCodeMappingTest(IntegrationTestCase):

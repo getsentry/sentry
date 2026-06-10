@@ -7,12 +7,12 @@ interface AiQueryContextValue {
    * If the runId has not changed since the last call to this function, return null.
    * Else return the new runId.
    */
-  getRunIdForAnalytics: () => number | null;
+  getRunIdForAnalytics: () => number | string | null;
 
   /**
    * Use to update the runId used for analytics (e.g. when an AI query is applied by AskSeerPollingComboBox).
    */
-  setRunId: (id: number | null) => void;
+  setRunId: (id: number | string | null) => void;
 }
 
 const AiQueryContext = createContext<AiQueryContextValue>({
@@ -21,10 +21,10 @@ const AiQueryContext = createContext<AiQueryContextValue>({
 });
 
 export function AiQueryProvider({children}: {children: ReactNode}) {
-  const [runId, setRunId] = useState<number | null>(null);
-  const lastTrackedRunId = useRef<number | null>(null);
+  const [runId, setRunId] = useState<number | string | null>(null);
+  const lastTrackedRunId = useRef<number | string | null>(null);
 
-  const getRunIdForAnalyticsBox = useRef<() => number | null>(() => null);
+  const getRunIdForAnalyticsBox = useRef<() => number | string | null>(() => null);
   getRunIdForAnalyticsBox.current = () => {
     if (runId === lastTrackedRunId.current) {
       return null;

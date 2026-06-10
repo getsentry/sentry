@@ -43,9 +43,10 @@ T = TypeVar("T")
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 
-GroupId: TypeAlias = int
-DataConditionGroupId: TypeAlias = int
 ActionId: TypeAlias = int
+DataConditionGroupId: TypeAlias = int
+DetectorId: TypeAlias = int
+GroupId: TypeAlias = int
 WorkflowId: TypeAlias = int
 
 
@@ -406,8 +407,19 @@ class DataConditionHandler(Generic[T]):
         raise NotImplementedError
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         return cls.label_template.format(**condition_data)
+
+    @classmethod
+    def validate_comparison(
+        cls, comparison: dict[str, Any], organization: Organization
+    ) -> dict[str, Any]:
+        """
+        Validate a comparison value beyond what `comparison_json_schema` can express.
+        Runs at save time after schema validation.
+        Raise `rest_framework.serializers.ValidationError` to reject.
+        """
+        return comparison
 
 
 class DataConditionType(TypedDict):
@@ -439,4 +451,4 @@ class DetectorSettings:
     filter: Q | None = None
 
 
-WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity"], None]
+WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

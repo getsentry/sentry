@@ -29,6 +29,7 @@ from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import (
     DashboardDetailsModelSerializer,
+    DashboardDetailsResponse,
     DashboardListResponse,
     DashboardListSerializer,
 )
@@ -41,6 +42,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
@@ -552,7 +554,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         },
         examples=DashboardExamples.DASHBOARD_POST_RESPONSE,
     )
-    def post(self, request: Request, organization: Organization, retry: int = 0) -> Response:
+    def post(
+        self, request: Request, organization: Organization, retry: int = 0
+    ) -> (
+        Response[DashboardDetailsResponse]
+        | Response[None]
+        | Response[ValidationErrorResponse]
+        | Response[str]
+    ):
         """
         Create a new dashboard for the given Organization
         """
@@ -573,7 +582,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         if request.GET.get("validateOnly"):
             return Response(status=200)
@@ -603,7 +612,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
                 dashboard = serializer.save()
 
-            return Response(serialize(dashboard, request.user), status=201)
+            body: DashboardDetailsResponse = serialize(dashboard, request.user)
+            return Response(body, status=201)
         except IntegrityError:
             if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)

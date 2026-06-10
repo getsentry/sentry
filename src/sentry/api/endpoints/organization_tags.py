@@ -24,7 +24,7 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
-from sentry.tagstore.types import TagKeySerializerResponse
+from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_span_attribute
 
@@ -81,14 +81,17 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         },
         examples=[TagsExamples.ORGANIZATION_TAGS],
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[TagKeySerializerResponse]]:
         """
         Return a list of tag keys for the given organization.
         """
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:
-            return Response([])
+            empty: list[TagKeySerializerResponse] = []
+            return Response(empty)
 
         if request.GET.get("dataset"):
             try:
@@ -152,4 +155,4 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                 sentry_sdk.set_tag("dataset_queried", dataset.value)
                 set_span_attribute("custom_tags.count", len(final_results))
 
-        return Response(serialize(final_results, request.user))
+        return Response(serialize(final_results, request.user, TagKeySerializer()))

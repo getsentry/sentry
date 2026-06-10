@@ -227,6 +227,7 @@ class StaffTestCase(TestCase):
 
         middleware = StaffMiddleware(placeholder_get_response)
         middleware.process_request(request)
+        assert request.staff
         assert request.staff.is_active
         assert is_active_staff(request)
 

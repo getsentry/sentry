@@ -70,8 +70,8 @@ class MissingPipelineStateError(Exception):
     pass
 
 
-class DatadogDCRView:
-    """Dynamic Client Registration (RFC 7591) for Datadog MCP.
+class DatadogOAuth2DCRView:
+    """Dynamic Client Registration for Datadog MCP.
 
     Registers a new OAuth client with the MCP server and stores the resulting
     client_id and client_secret in pipeline state.
@@ -129,25 +129,24 @@ class DatadogDCRView:
 
 
 class DatadogOAuth2LoginView(OAuth2LoginView):
-    """OAuth2 login with PKCE (RFC 7636) for Datadog MCP.
+    """OAuth2 login with PKCE for Datadog MCP.
 
     Reads client_id from pipeline state and adds code_challenge,
     code_challenge_method, and resource to the authorize URL.
     """
 
-    _code_verifier: str | None = None
-
     def __init__(self, authorize_url: str, scope: str, resource: str) -> None:
         super().__init__(authorize_url=authorize_url, scope=scope)
         self.resource = resource
+        self._code_verifier: str | None = None
 
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         self.client_id = pipeline.fetch_state("dcr_client_id")
 
-        # PKCE: Ensure a code verifier exists and is bound to the pipeline.
-        if existing_code_verifier := pipeline.fetch_state("pkce_code_verifier"):
-            self._code_verifier = existing_code_verifier
-        else:
+        # dispatch is called twice: once for the initial redirect and again
+        # on the OAuth callback (code/error/state in GET). Only generate
+        # a new verifier on the first pass.
+        if not any(p in request.GET for p in ("code", "error", "state")):
             self._code_verifier = generate_pkce_code_verifier()
             pipeline.bind_state("pkce_code_verifier", self._code_verifier)
 
@@ -158,7 +157,6 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
 
         params["resource"] = self.resource
 
-        # PKCE: Use the code verifier to generate the code challenge.
         assert self._code_verifier is not None
         params["code_challenge"] = generate_pkce_code_challenge(self._code_verifier)
         params["code_challenge_method"] = "S256"
@@ -196,13 +194,11 @@ class DatadogOAuth2CallbackView(OAuth2CallbackView):
     def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
         data = self.get_token_params(code=code, redirect_uri=absolute_uri(_redirect_url(pipeline)))
 
-        # PKCE: Add code verifier to the token params.
         code_verifier = pipeline.fetch_state("pkce_code_verifier")
         if not code_verifier:
             raise MissingPipelineStateError("PKCE code_verifier missing from pipeline state")
         data["code_verifier"] = code_verifier
 
-        # DCR: Include client id and secret in header.
         client_id = pipeline.fetch_state("dcr_client_id")
         client_secret = pipeline.fetch_state("dcr_client_secret")
         if not client_id or not client_secret:

@@ -11,10 +11,12 @@ from django import forms
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext as _
+from rest_framework import serializers
 from rest_framework.fields import CharField
 from rest_framework.serializers import Serializer
 
 from sentry import features, http, options
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2ApiStep
@@ -450,6 +452,28 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
             return None
 
 
+class VstsInitialDataSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    """Optional initial pipeline data for Azure DevOps Marketplace installs.
+
+    The Marketplace redirects to the configure link with `targetId`
+    identifying the Azure DevOps organization the install was started from. We
+    bind it as a pre-selected account so the account-selection step can
+    auto-advance -- but it is still verified against the user's actual Azure
+    DevOps memberships before it's accepted (see VstsAccountSelectionApiStep),
+    so it is only a hint, not a trusted value. In-app installs send no initial
+    data and fall through to the normal picker.
+    """
+
+    target_id = serializers.CharField(required=False)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        target_id = attrs.get("target_id")
+        if not target_id:
+            return {}
+
+        return {"preselected_account_id": target_id}
+
+
 class VstsAccountSelectionSerializer(Serializer):
     account = CharField(required=True)
 
@@ -469,9 +493,7 @@ class VstsAccountSelectionApiStep:
     def get_serializer_cls(self) -> type:
         return VstsAccountSelectionSerializer
 
-    def get_step_data(
-        self, pipeline: IntegrationPipeline, request: HttpRequest
-    ) -> VstsAccountSelectionStepData:
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.ACCOUNT_CONFIG,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -495,12 +517,23 @@ class VstsAccountSelectionApiStep:
 
             accounts_list = accounts["value"]
             pipeline.bind_state("accounts", accounts_list)
-            return {
+            step_data: dict[str, Any] = {
                 "accounts": [
                     {"accountId": account["accountId"], "accountName": account["accountName"]}
                     for account in accounts_list
                 ]
             }
+
+            # Marketplace installs pre-select an account via initialData. When
+            # the user is actually a member of it, surface it as the chosen
+            # account so the frontend can advance without prompting; otherwise
+            # fall through to the normal picker. The selection is still verified
+            # in handle_post, so this is purely a UX shortcut.
+            preselected_id = pipeline.fetch_state("preselected_account_id")
+            if preselected_id and get_account_from_id(preselected_id, accounts_list) is not None:
+                step_data["account"] = preselected_id
+
+            return step_data
 
     def handle_post(
         self,
@@ -521,6 +554,9 @@ class VstsAccountSelectionApiStep:
 class VstsIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
+    # Installs can also be initiated from the Azure DevOps Marketplace, which
+    # drives this same pipeline with the account supplied as initial data.
+    can_add_externally = True
     metadata = metadata
     api_version = "4.1"
     oauth_redirect_url = "/extensions/vsts/setup/"
@@ -595,6 +631,9 @@ class VstsIntegrationProvider(IntegrationProvider):
             self._make_oauth_api_step(),
             VstsAccountSelectionApiStep(),
         ]
+
+    def get_initial_data_serializer_cls(self) -> type[VstsInitialDataSerializer]:
+        return VstsInitialDataSerializer
 
     def _make_oauth_api_step(self) -> OAuth2ApiStep:
         provider = VSTSNewIdentityProvider(

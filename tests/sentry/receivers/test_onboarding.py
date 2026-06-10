@@ -809,6 +809,33 @@ class OrganizationOnboardingTaskTest(TestCase):
             ),
         )
 
+    @patch("sentry.analytics.record", wraps=record)
+    def test_perforce_source_code_management_added(self, record_analytics: MagicMock) -> None:
+        integration_id = self._create_integration("perforce", 123).id
+        integration_added.send(
+            integration_id=integration_id,
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            sender=None,
+        )
+        task = OrganizationOnboardingTask.objects.get(
+            organization=self.organization,
+            task=OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None
+
+        assert_last_analytics_event(
+            record_analytics,
+            IntegrationAddedEvent(
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="perforce",
+            ),
+        )
+
     def test_second_platform_complete(self) -> None:
         now = timezone.now()
         project = self.create_project(first_event=now)

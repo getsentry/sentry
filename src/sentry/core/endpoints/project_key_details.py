@@ -8,7 +8,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project_key import ProjectKeyEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project_key import ProjectKeySerializer
+from sentry.api.serializers.models.project_key import (
+    ProjectKeySerializer,
+    ProjectKeySerializerResponse,
+)
 from sentry.api.serializers.rest_framework import ProjectKeyPutSerializer
 from sentry.api.serializers.rest_framework.project_key import (
     DynamicSdkLoaderOptionSerializer,
@@ -22,6 +25,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
@@ -51,11 +55,14 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         },
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
-    def get(self, request: Request, project_key: ProjectKey, **kwargs) -> Response:
+    def get(
+        self, request: Request, project_key: ProjectKey, **kwargs
+    ) -> Response[ProjectKeySerializerResponse]:
         """
         Return a client key bound to a project.
         """
-        return Response(serialize(project_key, request.user, request=request), status=200)
+        body: ProjectKeySerializerResponse = serialize(project_key, request.user, request=request)
+        return Response(body, status=200)
 
     @extend_schema(
         operation_id="Update a Client Key",
@@ -99,7 +106,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
     )
     def put(
         self, request: Request, project_key: ProjectKey, project: Project, **kwargs
-    ) -> Response:
+    ) -> Response[ProjectKeySerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update various settings for a client key.
         """
@@ -107,7 +114,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         default_version = get_default_sdk_version_for_project(project)
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
         result = serializer.validated_data
 
         if result.get("name"):
@@ -163,7 +170,8 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
             data=data,
         )
 
-        return Response(serialize(project_key, request.user, request=request), status=200)
+        body: ProjectKeySerializerResponse = serialize(project_key, request.user, request=request)
+        return Response(body, status=200)
 
     @extend_schema(
         operation_id="Delete a Client Key",
@@ -181,7 +189,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
     )
     def delete(
         self, request: Request, project_key: ProjectKey, project: Project, **kwargs
-    ) -> Response:
+    ) -> Response[None]:
         """
         Delete a client key for a given project.
         """

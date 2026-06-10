@@ -6,6 +6,7 @@ from functools import cached_property
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
+import orjson
 import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
@@ -15,8 +16,8 @@ from requests.exceptions import SSLError
 
 import sentry.identity
 from sentry.identity.datadog.provider import (
-    DatadogDCRView,
     DatadogOAuth2CallbackView,
+    DatadogOAuth2DCRView,
     DatadogOAuth2LoginView,
     MissingPipelineStateError,
 )
@@ -35,7 +36,7 @@ RESOURCE = "https://mcp.datadoghq.com"
 
 @control_silo_test
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-class DatadogDCRViewTest(TestCase):
+class DatadogOAuth2DCRViewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.request = RequestFactory().get("/")
@@ -43,7 +44,7 @@ class DatadogDCRViewTest(TestCase):
         self.pipeline.config = {}
         self.pipeline.provider.key = "datadog"
         self.pipeline.fetch_state.return_value = None
-        self.view = DatadogDCRView(register_url=REGISTER_URL)
+        self.view = DatadogOAuth2DCRView(register_url=REGISTER_URL)
 
     @responses.activate
     def test_binds_client_credentials(self, mock_record: MagicMock) -> None:
@@ -54,6 +55,13 @@ class DatadogDCRViewTest(TestCase):
         )
 
         self.view.dispatch(self.request, self.pipeline)
+
+        assert len(responses.calls) == 1
+        body = orjson.loads(responses.calls[0].request.body)
+        assert body["client_name"] == "sentry"
+        assert body["grant_types"] == ["authorization_code", "refresh_token"]
+        assert body["token_endpoint_auth_method"] == "client_secret_basic"
+        assert len(body["redirect_uris"]) == 1
 
         self.pipeline.bind_state.assert_any_call("dcr_client_id", "new-client-id")
         self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-client-secret")
@@ -173,13 +181,23 @@ class DatadogOAuth2LoginViewTest(TestCase):
         assert verifier is not None
         assert len(verifier) > 0
 
-    def test_preserves_existing_code_verifier(self) -> None:
+    def test_does_not_overwrite_code_verifier_on_callback(self) -> None:
         pipeline = self._make_pipeline()
-        pipeline.bind_state("pkce_code_verifier", "existing-verifier")
 
+        # First pass: generates verifier and redirects.
         self.view.dispatch(self.request, pipeline)
+        original_verifier = pipeline.fetch_state("pkce_code_verifier")
+        assert original_verifier is not None
 
-        assert pipeline.fetch_state("pkce_code_verifier") == "existing-verifier"
+        # Second pass: callback with code in GET params.
+        callback_request = RequestFactory().get("/", data={"code": "auth-code", "state": "s"})
+        callback_request.session = Client().session
+        callback_request.user = self.user
+        callback_request.subdomain = None
+        with patch.object(pipeline, "next_step"):
+            self.view.dispatch(callback_request, pipeline)
+
+        assert pipeline.fetch_state("pkce_code_verifier") == original_verifier
 
     def test_preserves_standard_oauth_params(self) -> None:
         pipeline = self._make_pipeline()
@@ -273,7 +291,7 @@ class DatadogTestProvider(DummyProvider):
 
     def get_pipeline_views(self):
         return [
-            DatadogDCRView(register_url=REGISTER_URL),
+            DatadogOAuth2DCRView(register_url=REGISTER_URL),
             DatadogOAuth2LoginView(authorize_url=AUTHORIZE_URL, scope="read", resource=RESOURCE),
             DatadogOAuth2CallbackView(access_token_url=TOKEN_URL),
         ]
