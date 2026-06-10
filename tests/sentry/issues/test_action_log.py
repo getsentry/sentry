@@ -175,6 +175,14 @@ class TestResolveActionActor(TestCase):
         request = self._request(auth=auth, user=sentry_app.proxy_user)
         assert resolve_action_actor(request) == GroupActionActor.sentry_app(sentry_app.id)
 
+    def test_user_oauth_token_with_application_id_is_user(self) -> None:
+        # An OAuth client acting on behalf of a user (e.g. the MCP) has an application_id but
+        # authenticates as the real user (is_sentry_app=False), so it must resolve to USER and
+        # not trigger a SentryApp lookup.
+        auth = AuthenticatedToken(kind="api_token", user_id=self.user.id, application_id=987654)
+        request = self._request(auth=auth, user=self.user)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
     def test_unauthenticated_is_system(self) -> None:
         assert resolve_action_actor(self._request()) == SYSTEM_ACTOR
 

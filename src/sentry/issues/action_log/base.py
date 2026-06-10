@@ -125,10 +125,11 @@ def resolve_action_actor(request: Request) -> GroupActionActor:
         if organization_id is not None:
             return GroupActionActor.org(organization_id)
     elif kind == "api_token":
-        # A token bound to an ApiApplication belongs to an integration; resolve the owning
-        # SentryApp (control silo) so the actor is the app, not its proxy user.
+        user = getattr(request, "user", None)
         application_id = getattr(auth, "application_id", None)
-        if application_id is not None:
+        # Gate on is_sentry_app (the app's proxy user), not application_id: an OAuth client
+        # acting for a user (e.g. the MCP) also has an application_id but stays USER.
+        if getattr(user, "is_sentry_app", False) and application_id is not None:
             from sentry.sentry_apps.services.app import app_service
 
             sentry_app = app_service.get_by_application_id(application_id=application_id)
