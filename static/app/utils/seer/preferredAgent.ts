@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
 import {queryOptions} from '@tanstack/react-query';
 import invariant from 'invariant';
 
@@ -11,13 +9,13 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {
   AutofixAgentSelectOption,
   AgentIntegration,
   PreferredAgentProvider,
 } from 'sentry/utils/seer/types';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function coalesePreferredAgent(
   agent: 'seer' | CodingAgentProvider,
@@ -32,6 +30,8 @@ export function coalesePreferredAgent(
 export function isPreferredAgentProvider(
   provider: string | undefined
 ): provider is PreferredAgentProvider {
+  // These are the providers where requires_identity is false. But sometimes we
+  // need to check by type, not integration object. So it's a hard-coded list.
   return [
     'seer',
     CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
@@ -53,6 +53,27 @@ export function parseAgentOption(
   return {agent: provider, integrationId} as const;
 }
 
+function selectAgentIntegrations(
+  data: ApiResponse<{integrations: CodingAgentIntegration[]}>
+): AgentIntegration[] {
+  const mapProvider = {
+    cursor: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+    claude_code: CodingAgentProvider.CLAUDE_CODE_AGENT,
+    github_copilot: CodingAgentProvider.GITHUB_COPILOT_AGENT,
+  } as const;
+
+  return [
+    ...(data.json.integrations ?? [])
+      .filter(integration => integration.id)
+      .map(integration => {
+        return {
+          ...integration,
+          provider: mapProvider[integration.provider],
+        };
+      }),
+  ];
+}
+
 /**
  * Fetch the list of existing coding agent integrations.
  */
@@ -61,12 +82,6 @@ export function knownAgentIntegrationsQueryOptions({
 }: {
   organization: Organization;
 }) {
-  const mapProvider = {
-    cursor: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-    claude_code: CodingAgentProvider.CLAUDE_CODE_AGENT,
-    github_copilot: CodingAgentProvider.GITHUB_COPILOT_AGENT,
-  } as const;
-
   return queryOptions({
     ...apiOptions.as<{
       integrations: CodingAgentIntegration[];
@@ -74,61 +89,86 @@ export function knownAgentIntegrationsQueryOptions({
       path: {organizationIdOrSlug: organization.slug},
       staleTime: 5 * 60 * 1000,
     }),
-    select: (data): AgentIntegration[] => [
-      ...(data.json.integrations ?? [])
-        .filter(integration => integration.id)
-        .map(integration => {
-          return {
-            ...integration,
-            provider: mapProvider[integration.provider],
-          };
-        }),
+    select: selectAgentIntegrations,
+  });
+}
+
+/**
+ * Query options for a list of Agent Provider names. Formatted for use in a select component.
+ *
+ * Builds on `knownAgentIntegrationsQueryOptions` and overrides `select` to
+ * produce `{value, label}` tuples filtered to preferred-agent integration ids.
+ */
+export function seerAgentProviderSelectQueryOptions({
+  organization,
+}: {
+  organization: Organization;
+}) {
+  const labels = {
+    [CodingAgentProvider.CURSOR_BACKGROUND_AGENT]: t('Cursor Cloud Agent'),
+    [CodingAgentProvider.CLAUDE_CODE_AGENT]: t('Claude Code Agent'),
+
+    // included for completeness & typechecks, but it's filtered out.
+    [CodingAgentProvider.GITHUB_COPILOT_AGENT]: t('GitHub Copilot Agent'),
+  };
+  return queryOptions({
+    ...knownAgentIntegrationsQueryOptions({organization}),
+    select: data => [
+      {value: 'seer' as const, label: t('Seer')},
+      ...selectAgentIntegrations(data)
+        .filter(i => isPreferredAgentProvider(i.provider)) // filter out copilot, it cannot be saved.
+        .map(i => ({
+          value: i.provider,
+          label: labels[i.provider],
+        })),
     ],
   });
 }
 
 /**
- * Convert the list of known agents to a list of options for a select component.
+ * Query options for a list of Agent Integrations. Formatted for use in a select component.
  *
- * This returns a hard-coding list of agents that don't have requires_identity
- * set to true; those are the ones that we Seer can use in the background.
+ * Builds on `knownAgentIntegrationsQueryOptions` and overrides `select` to
+ * produce `{value, label}` tuples filtered to preferred-agent integration ids.
  */
-export function useSeerAgentSelectOptions() {
-  const organization = useOrganization();
-  const {data: knownAgents} = useQuery(
-    knownAgentIntegrationsQueryOptions({organization})
-  );
-
-  return useMemo(() => {
-    return [
+export function seerAgentIntegrationsSelectQueryOptions({
+  organization,
+}: {
+  organization: Organization;
+}) {
+  return queryOptions({
+    ...knownAgentIntegrationsQueryOptions({organization}),
+    select: data => [
       {value: 'seer' as const, label: t('Seer')},
-      ...(knownAgents ?? [])
-        .filter(i => isPreferredAgentProvider(i.provider))
+      ...selectAgentIntegrations(data)
+        .filter(i => isPreferredAgentProvider(i.provider)) // filter out copilot, it cannot be saved.
         .map(i => ({
-          value: `${i.provider}::${i.id}` as AutofixAgentSelectOption,
+          value: `${i.provider}::${i.id}` as const,
           label: i.name,
         })),
-    ];
-  }, [knownAgents]);
+    ],
+  });
 }
 
-export function useOrgDefaultAgentOption() {
-  const organization = useOrganization();
-  const {data: knownAgents} = useQuery(
-    knownAgentIntegrationsQueryOptions({organization})
-  );
-
-  return useMemo((): AutofixAgentSelectOption => {
-    if (organization.defaultCodingAgentIntegrationId) {
-      const match = knownAgents?.find(
-        i => i.id === String(organization.defaultCodingAgentIntegrationId)
-      );
-      if (match) {
-        return `${match.provider}::${match.id}`;
+export function orgDefaultAgentQueryOptions({
+  organization,
+}: {
+  organization: Organization;
+}) {
+  return queryOptions({
+    ...knownAgentIntegrationsQueryOptions({organization}),
+    select: (data): AutofixAgentSelectOption => {
+      if (organization.defaultCodingAgentIntegrationId) {
+        const match = selectAgentIntegrations(data).find(
+          i => i.id === String(organization.defaultCodingAgentIntegrationId)
+        );
+        if (match) {
+          return `${match.provider}::${match.id}` as const;
+        }
       }
-    }
-    return 'seer';
-  }, [organization.defaultCodingAgentIntegrationId, knownAgents]);
+      return 'seer';
+    },
+  });
 }
 
 /**

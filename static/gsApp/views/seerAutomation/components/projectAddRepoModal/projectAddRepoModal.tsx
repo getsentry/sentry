@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -28,8 +28,8 @@ import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
 import {
-  useOrgDefaultAgentOption,
-  useSeerAgentSelectOptions,
+  orgDefaultAgentQueryOptions,
+  seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
@@ -63,7 +63,9 @@ export function ProjectAddRepoModal({
   const unconfiguredProjects = useUnconfiguredProjects();
   const projectOptions = useCompactSelectProjectOptions({projects: unconfiguredProjects});
   const repositoryOptions = useCompactSelectRepositoryOptions();
-  const agentOptions = useSeerAgentSelectOptions();
+  const {data: agentOptions = []} = useQuery(
+    seerAgentIntegrationsSelectQueryOptions({organization})
+  );
   const stoppingPointOptions = PROJECT_STOPPING_POINT_OPTIONS;
 
   const repoEntrySchema = z.object({
@@ -96,7 +98,7 @@ export function ProjectAddRepoModal({
     defaultValues: {
       project: defaultProject?.id ?? '',
       repoEntries: [] as Array<{branch: string; repoId: string}>,
-      agentOption: useOrgDefaultAgentOption(),
+      agentOption: useQuery(orgDefaultAgentQueryOptions({organization})).data ?? 'seer',
       stoppingPoint: useOrgDefaultStoppingPoint(),
     },
     validators: {
