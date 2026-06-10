@@ -14,6 +14,7 @@ from sentry.testutils.cases import (
     TraceAttachmentTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
 class ProjectTraceItemDetailsEndpointTest(
@@ -736,3 +737,17 @@ class ProjectTraceItemDetailsEndpointTest(
             trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
 
             assert trace_details_response.status_code == 400, trace_details_response.content
+
+    @mock.patch("sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc")
+    def test_snuba_rate_limit_error_makes_429(self, mock_trace_item_details_rpc):
+        mock_trace_item_details_rpc.side_effect = SnubaRPCRateLimitExceeded("too much traffic")
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id)
+        assert response.status_code == 429
+        assert b"Rate limit exceeded" in response.content

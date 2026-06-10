@@ -116,6 +116,7 @@ from sentry.core.endpoints.scim.members import (
 )
 from sentry.core.endpoints.scim.schemas import OrganizationSCIMSchemaIndex
 from sentry.core.endpoints.scim.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.core.endpoints.team_avatar import TeamAvatarEndpoint
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.core.endpoints.team_members import TeamMembersEndpoint
 from sentry.core.endpoints.team_projects import TeamProjectsEndpoint
@@ -277,6 +278,9 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 )
 from sentry.integrations.api.endpoints.organization_repository_platforms import (
     OrganizationRepositoryPlatformsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_repository_platforms_test import (
+    OrganizationRepositoryPlatformsTestEndpoint,
 )
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
@@ -2182,6 +2186,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-repository-platforms",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms-test/$",
+        OrganizationRepositoryPlatformsTestEndpoint.as_view(),
+        name="sentry-api-0-organization-repository-platforms-test",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/$",
         OrganizationPluginsEndpoint.as_view(),
         name="sentry-api-0-organization-plugins",
@@ -3377,6 +3386,11 @@ TEAM_URLS = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/stats/$",
         TeamStatsEndpoint.as_view(),
         name="sentry-api-0-team-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/avatar/$",
+        TeamAvatarEndpoint.as_view(),
+        name="sentry-api-0-team-avatar",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/external-teams/$",

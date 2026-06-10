@@ -18,10 +18,18 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.organization_detector_index import get_detector_validator
-from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
+    DetectorSerializer,
+    DetectorSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 
 
@@ -56,7 +64,13 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
         },
         examples=WorkflowEngineExamples.CREATE_DETECTOR,
     )
-    def post(self, request: Request, project: Project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> (
+        Response[DetectorSerializerResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Create a Monitor for a project
         """
@@ -73,14 +87,15 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
             "organizations:incidents", organization, actor=request.user
         ):
             return Response(
-                serialize({"detail": "Unable to process request, confirm payment options."}),
+                {"detail": "Unable to process request, confirm payment options."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         validator = get_detector_validator(request, project, detector_type)
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
 
         detector = validator.save()
 
-        return Response(serialize(detector, request.user), status=status.HTTP_201_CREATED)
+        body: DetectorSerializerResponse = serialize(detector, request.user, DetectorSerializer())
+        return Response(body, status=status.HTTP_201_CREATED)
