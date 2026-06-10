@@ -262,7 +262,7 @@ export function SeerProjectTable() {
                           />
                         </Link>
                       </InfiniteTable.RowCell>
-                      <InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell justify="end">
                         <Text tabular>{item.reposCount}</Text>
                       </InfiniteTable.RowCell>
                       <InfiniteTable.RowCell overflow="visible">
