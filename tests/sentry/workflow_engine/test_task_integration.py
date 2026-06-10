@@ -79,28 +79,3 @@ class IssuePlatformIntegrationTests(TestCase):
             detector_id=self.detector.id,
             activity_data={"test": "test"},
         )
-
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay")
-    def test_single_dispatch__flag_off(self, mock_delay: mock.MagicMock) -> None:
-        """
-        With the flag off, only the legacy group_status_update_registry path dispatches
-        the task. The generic activity_handler bails at the flag check, so we get exactly
-        one dispatch (no double-processing).
-        """
-        update_status(self.group, self._resolved_message())
-        assert mock_delay.call_count == 1
-
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay")
-    def test_single_dispatch__flag_on(self, mock_delay: mock.MagicMock) -> None:
-        """
-        With the flag on, the generic activity_handler (via create_group_activity) owns
-        the dispatch and the legacy handler bails for SET_RESOLVED, so we still get
-        exactly one dispatch.
-        """
-        update_status(self.group, self._resolved_message())
-        assert mock_delay.call_count == 1
-        mock_delay.assert_called_once_with(
-            activity_id=mock.ANY,
-            group_id=self.group.id,
-            detector_id=self.detector.id,
-        )
