@@ -22,6 +22,7 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.endpoints.utils import resolve_seer_run_state_id
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerRun
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -194,7 +195,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         Returns:
         - run_id: The numeric Seer run id.
-        - sentry_run_id: The run's UUID (new runs only).
+        - sentry_run_id: The run's UUID (when a mirror row exists).
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
@@ -276,7 +277,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     request=request,
                 )
-                return Response({"run_id": result_run_id})
+                response_data: dict[str, str | int] = {"run_id": result_run_id}
+                run = SeerRun.objects.filter(
+                    seer_run_state_id=result_run_id, organization=organization
+                ).first()
+                if run is not None:
+                    response_data["sentry_run_id"] = str(run.uuid)
+                return Response(response_data)
 
             # Start new conversation
             run = client.start_run(

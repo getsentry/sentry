@@ -250,7 +250,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.post(f"{self.url}{run.uuid}/", {"query": "More"}, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 555}
+        assert response.data == {"run_id": 555, "sentry_run_id": str(run.uuid)}
         assert mock_client.continue_run.call_args.kwargs["run_id"] == 555
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
