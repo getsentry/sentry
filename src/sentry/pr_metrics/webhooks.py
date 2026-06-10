@@ -145,8 +145,9 @@ def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
     exactly one delivery claim the event and write ``verdict``, even under
     concurrent redeliveries. Returns True if this call won the claim.
 
-    Only called once a deterministic ``verdict`` is in hand; PRs that need a judge
-    write no verdict here, so they aren't guarded this way (Seer dedupes them).
+    Only called once a deterministic ``verdict`` is in hand. A PR that needs a
+    judge is guarded the same way once the forward path lands — it claims the
+    event with a sentinel verdict before forwarding — but that isn't wired yet.
     """
     claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
         verdict=verdict
@@ -170,10 +171,9 @@ def handle_emission(
     and delegates. All non-terminal actions are ignored.
 
     ``select_verdict`` decides the outcome: a deterministic verdict is claimed
-    (the redelivery guard) and emitted; a PR that needs a judge gets no verdict and
-    isn't emitted here. The forward to Seer isn't wired yet, so a judge-needed PR
-    is skipped for now — nothing is persisted, so a later delivery re-evaluates
-    cleanly once the judge path lands.
+    (the redelivery guard) and emitted. A PR that needs a judge is forwarded to
+    Seer instead; that path — including its own redelivery guard — isn't wired
+    yet, so for now a judge-needed PR is skipped here.
     """
     if event.get("action") != "closed":
         return
