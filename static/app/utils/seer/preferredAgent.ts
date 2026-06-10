@@ -96,10 +96,18 @@ export function knownAgentIntegrationsQueryOptions({
 /**
  * Query options for a list of Agent Provider names. Formatted for use in a select component.
  *
+ * This returns options like:
+ * ```[
+ *   {value: 'cursor_background_agent', label: 'Cursor Cloud Agent'},
+ *   {value: 'claude_code_agent', label: 'Claude Code Agent'}
+ * ]
+ * ```
+ * See Also: `seerAgentIntegrationsSelectQueryOptions()`
+ *
  * Builds on `knownAgentIntegrationsQueryOptions` and overrides `select` to
  * produce `{value, label}` tuples filtered to preferred-agent integration ids.
  */
-export function seerAgentProviderSelectQueryOptions({
+export function seerAgentProviderNameSelectQueryOptions({
   organization,
 }: {
   organization: Organization;
@@ -127,6 +135,14 @@ export function seerAgentProviderSelectQueryOptions({
 
 /**
  * Query options for a list of Agent Integrations. Formatted for use in a select component.
+ *
+ * This returns options like:
+ * ```[
+ *   {value: 'cursor_background_agent::123', label: 'Cursor Cloud Agent - <email_idenfitier>'},
+ *   {value: 'claude_code_agent::456', label: 'Claude Code Agent'}
+ * ]
+ * ```
+ * See Also: `seerAgentProviderSelectQueryOptions()`
  *
  * Builds on `knownAgentIntegrationsQueryOptions` and overrides `select` to
  * produce `{value, label}` tuples filtered to preferred-agent integration ids.

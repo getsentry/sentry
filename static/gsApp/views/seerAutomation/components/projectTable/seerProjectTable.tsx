@@ -39,7 +39,7 @@ import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
-  seerAgentProviderSelectQueryOptions,
+  seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
@@ -86,7 +86,7 @@ export function SeerProjectTable() {
   // Supporting fetch calls
   const projectsById = useProjectsById();
   const {data: knownAgentProviders = []} = useQuery(
-    seerAgentProviderSelectQueryOptions({organization})
+    seerAgentProviderNameSelectQueryOptions({organization})
   );
   const {data: knownAgents} = useQuery(
     knownAgentIntegrationsQueryOptions({organization})
