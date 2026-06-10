@@ -248,8 +248,12 @@ class ProjectDebugFile(Model):
 
     def getfile(self) -> IO[bytes]:
         if self.storage_path is not None:
-            response = self._get_objectstore_session().get(self.storage_path)
-            return response.payload
+            try:
+                response = self._get_objectstore_session().get(self.storage_path)
+                return response.payload
+            except Exception as e:
+                logger.exception("Failed to read debug file from Objectstore")
+                raise e
         if self.file is not None:
             return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
