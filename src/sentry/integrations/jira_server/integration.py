@@ -8,15 +8,9 @@ from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
-from django import forms
-from django.core.validators import URLValidator
-from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.urls import reverse
-from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework import serializers
 from rest_framework.fields import BooleanField, CharField, URLField
 
@@ -63,7 +57,6 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from .client import JiraServerClient, JiraServerSetupClient
 
@@ -168,155 +161,6 @@ class _Config(TypedDict):
     formatMessageValue: NotRequired[bool]
     disabled: NotRequired[bool]
     disabledReason: NotRequired[str]
-
-
-class InstallationForm(forms.Form):
-    url = forms.CharField(
-        label=_("Jira URL"),
-        help_text=_("The base URL for your Jira Server instance, including the host and protocol."),
-        widget=forms.TextInput(attrs={"placeholder": "https://jira.example.com"}),
-        validators=[URLValidator()],
-    )
-    verify_ssl = forms.BooleanField(
-        label=_("Verify SSL"),
-        help_text=_(
-            "By default, we verify SSL certificates when making requests to your Jira instance."
-        ),
-        widget=forms.CheckboxInput(),
-        required=False,
-        initial=True,
-    )
-    consumer_key = forms.CharField(
-        label=_("Jira Consumer Key"),
-        widget=forms.TextInput(attrs={"placeholder": "sentry-consumer-key"}),
-    )
-    private_key = forms.CharField(
-        label=_("Jira Consumer Private Key"),
-        widget=forms.Textarea(
-            attrs={
-                "placeholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
-            }
-        ),
-    )
-
-    def clean_url(self):
-        """Strip off trailing / as they cause invalid URLs downstream"""
-        return self.cleaned_data["url"].rstrip("/")
-
-    def clean_private_key(self):
-        data = self.cleaned_data["private_key"]
-
-        try:
-            load_pem_private_key(data.encode("utf-8"), None, default_backend())
-        except Exception:
-            raise forms.ValidationError(
-                "Private key must be a valid SSH private key encoded in a PEM format."
-            )
-        return data
-
-    def clean_consumer_key(self):
-        data = self.cleaned_data["consumer_key"]
-        if len(data) > 200:
-            raise forms.ValidationError("Consumer key is limited to 200 characters.")
-        return data
-
-
-class InstallationConfigView:
-    """
-    Collect the OAuth client credentials from the user.
-    """
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if request.method == "POST":
-            form = InstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
-
-                pipeline.bind_state("installation_data", form_data)
-                return pipeline.next_step()
-        else:
-            form = InstallationForm()
-
-        return render_to_response(
-            template="sentry/integrations/jira-server-config.html",
-            context={"form": form},
-            request=request,
-        )
-
-
-class OAuthLoginView:
-    """
-    Start the OAuth dance by creating a request token
-    and redirecting the user to approve it.
-    """
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if "oauth_token" in request.GET:
-            return pipeline.next_step()
-
-        config = pipeline.fetch_state("installation_data")
-        if config is None:
-            return pipeline.error("Missing installation_data")
-
-        client = JiraServerSetupClient(
-            config.get("url"),
-            config.get("consumer_key"),
-            config.get("private_key"),
-            config.get("verify_ssl"),
-        )
-        try:
-            request_token = client.get_request_token()
-        except ApiError as error:
-            logger.info(
-                "identity.jira-server.request-token",
-                extra={"url": config.get("url"), "error": error},
-            )
-            return pipeline.error(f"Could not fetch a request token from Jira. {error}")
-
-        pipeline.bind_state("request_token", request_token)
-        if not request_token.get("oauth_token"):
-            data_keys = list(request_token.keys())
-            logger.info(
-                "identity.jira-server.oauth-token",
-                extra={"url": config.get("url"), "data_keys": data_keys},
-            )
-            return pipeline.error("Missing oauth_token")
-
-        authorize_url = client.get_authorize_url(request_token)
-
-        return HttpResponseRedirect(authorize_url)
-
-
-class OAuthCallbackView:
-    """
-    Complete the OAuth dance by exchanging our request token
-    into an access token.
-    """
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        config = pipeline.fetch_state("installation_data")
-        if config is None:
-            return pipeline.error("Missing installation_data")
-
-        client = JiraServerSetupClient(
-            config.get("url"),
-            config.get("consumer_key"),
-            config.get("private_key"),
-            config.get("verify_ssl"),
-        )
-
-        try:
-            access_token = client.get_access_token(
-                pipeline.fetch_state("request_token"), request.GET["oauth_token"]
-            )
-            pipeline.bind_state("access_token", access_token)
-
-            return pipeline.next_step()
-        except ApiError as error:
-            logger.info("identity.jira-server.access-token", extra={"error": error})
-            return pipeline.error("Could not fetch an access token from Jira")
 
 
 class InstallationConfigData(TypedDict):
@@ -1555,7 +1399,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [InstallationConfigApiStep(), OAuthApiStep()]
