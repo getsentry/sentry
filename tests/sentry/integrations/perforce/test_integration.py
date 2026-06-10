@@ -603,7 +603,9 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
                 external_id=external_id,
                 metadata={"p4port": "ssl:perforce.example.com:1666", "user": "u", "password": "p"},
             )
-        return integration.get_installation(self.organization.id)
+        installation = integration.get_installation(self.organization.id)
+        assert isinstance(installation, PerforceIntegration)
+        return installation
 
     def test_update_organization_config_rejects_disallowed_transport(self) -> None:
         installation = self._installation_for_update("perforce-update-invalid")
