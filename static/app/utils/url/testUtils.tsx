@@ -1,14 +1,17 @@
 /**
  * A debounce function that has the same API as lodash debounce, but can be advanced via Jest timer mocks.
  */
-export function testableDebounce(callback: () => void, delay?: number) {
+export function testableDebounce<T extends (...args: any[]) => any>(
+  callback: T,
+  delay?: number
+) {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-  const debounced = () => {
+  const debounced = (...args: Parameters<T>) => {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    timeoutId = setTimeout(() => callback(), delay);
+    timeoutId = setTimeout(() => callback(...args), delay);
   };
 
   const cancel = () => {

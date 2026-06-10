@@ -2214,15 +2214,8 @@ describe('useWidgetBuilderState', () => {
 
       jest.runAllTimers();
 
-      // Sort should NOT change since it was already on an aggregate
-      expect(mockNavigate).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: expect.anything(),
-          }),
-        }),
-        expect.anything()
-      );
+      // Sort should be preserved since it was already on an aggregate
+      expect(result.current.state.sort).toEqual([{kind: 'desc', field: 'count()'}]);
     });
 
     it('preserves equation as aggregate when switching to categorical bar', () => {
@@ -2312,15 +2305,10 @@ describe('useWidgetBuilderState', () => {
         expect.anything()
       );
 
-      // Sort should NOT be reset since equation[0] is still valid
-      expect(mockNavigate).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: expect.anything(),
-          }),
-        }),
-        expect.anything()
-      );
+      // Sort should be preserved since equation[0] is still valid
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'equation[0]'},
+      ]);
     });
 
     it('resets sort when X-axis changes and sort was on a stale equation alias', () => {
