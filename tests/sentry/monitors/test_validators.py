@@ -19,7 +19,7 @@ from sentry.monitors.models import (
     is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
-from sentry.monitors.utils import get_detector_for_monitor
+from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
@@ -383,6 +383,27 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.name == "Updated Monitor Name"
         assert updated_monitor.slug == "test-monitor"  # Slug unchanged
+
+    def test_update_name_syncs_detector(self) -> None:
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+        assert detector.name == "Test Monitor"
+
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"name": "Updated Monitor Name"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+        validator.save()
+
+        detector.refresh_from_db()
+        assert detector.name == "Updated Monitor Name"
 
     def test_update_slug(self) -> None:
         """Test updating monitor slug."""
