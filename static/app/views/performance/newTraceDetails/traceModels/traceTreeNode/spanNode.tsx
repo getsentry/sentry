@@ -10,6 +10,7 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
+import {HTTP_ERROR_STATUSES} from './constants';
 
 export class SpanNode extends BaseNode<TraceTree.Span> {
   id: string;
@@ -79,6 +80,19 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     }
 
     return this.findClosestParentTransaction()?.profilerId;
+  }
+
+  get hasHttpError(): boolean {
+    if (this.value.status && HTTP_ERROR_STATUSES.has(this.value.status)) {
+      return true;
+    }
+
+    const statusCode = this.value.data?.['http.response.status_code'];
+    if (typeof statusCode === 'number' && statusCode >= 400) {
+      return true;
+    }
+
+    return false;
   }
 
   get transactionId(): string | undefined {
