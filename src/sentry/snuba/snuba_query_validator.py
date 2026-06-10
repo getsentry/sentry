@@ -259,6 +259,12 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     def _validate_aggregate(self, data: dict[str, Any]) -> None:
         dataset = data.setdefault("dataset", Dataset.Events)
+        # On partial updates (e.g. a PUT that only modifies triggers) the aggregate
+        # field may be omitted. The field is required on creation, but for partial
+        # updates an absent aggregate means "leave unchanged", so there's nothing
+        # to validate here.
+        if "aggregate" not in data:
+            return
         aggregate = data["aggregate"]
         event_types = data.get("event_types", [])
         allow_mri = features.has(
@@ -296,7 +302,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     def _validate_query(self, data: dict[str, Any]) -> None:
         dataset = data.setdefault("dataset", Dataset.Events)
 
-        if features.has(
+        if "aggregate" in data and features.has(
             "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
@@ -326,6 +332,13 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 "Invalid dataset for this query type. Valid datasets are %s"
                 % sorted(dataset.name.lower() for dataset in valid_datasets)
             )
+
+        # On partial updates the aggregate and/or time_window may be omitted. Both
+        # are required to build and validate the subscription query, so if either
+        # is absent (i.e. the caller isn't changing them) there's nothing further
+        # to validate here.
+        if "aggregate" not in data or "time_window" not in data:
+            return
 
         projects = data.get("projects")
         if not projects:
