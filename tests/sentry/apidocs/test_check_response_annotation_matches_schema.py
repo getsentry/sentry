@@ -680,6 +680,26 @@ class SomeMixin:
     assert _run_public(source) == []
 
 
+def test_public_bare_response_under_future_annotations_fires() -> None:
+    """`from __future__ import annotations` (PEP 563) defers annotation
+    evaluation *at runtime* — `__annotations__` stores strings instead of
+    resolved types — but `ast.parse()` still produces full expression nodes
+    for them. The bare-`Response` check walks the AST, not runtime
+    `__annotations__`, so the future import is a no-op for this linter."""
+    source = """
+from __future__ import annotations
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response:
+        return Response()
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].reason == "bare-Response"
+
+
 def test_main_emits_both_diagnostics(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """The unified `main` runs both checks and exit-codes non-zero on either."""
     src = """
