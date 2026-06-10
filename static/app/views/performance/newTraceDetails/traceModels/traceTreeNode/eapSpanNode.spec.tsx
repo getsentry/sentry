@@ -1023,4 +1023,60 @@ describe('EapSpanNode', () => {
       expect(node.resolveValueFromSearchKey('transaction.duration')).toBeNull();
     });
   });
+
+  describe('hasHttpError', () => {
+    it('should return false when additional_attributes is undefined', () => {
+      const value = makeEAPSpan({event_id: 'test'});
+      const node = new EapSpanNode(null, value, createMockExtra());
+      expect(node.hasHttpError).toBe(false);
+    });
+
+    it('should return true when span.status is an error string', () => {
+      const value = makeEAPSpan({
+        event_id: 'test',
+        additional_attributes: {'span.status': 'internal_error'},
+      });
+      const node = new EapSpanNode(null, value, createMockExtra());
+      expect(node.hasHttpError).toBe(true);
+    });
+
+    it('should return false when span.status is a non-error string', () => {
+      const value = makeEAPSpan({
+        event_id: 'test',
+        additional_attributes: {'span.status': 'ok'},
+      });
+      const node = new EapSpanNode(null, value, createMockExtra());
+      expect(node.hasHttpError).toBe(false);
+    });
+
+    it('should return true when http.response.status_code >= 400', () => {
+      const value = makeEAPSpan({
+        event_id: 'test',
+        additional_attributes: {'http.response.status_code': 503},
+      });
+      const node = new EapSpanNode(null, value, createMockExtra());
+      expect(node.hasHttpError).toBe(true);
+    });
+
+    it('should return false when http.response.status_code is 0 and no span.status', () => {
+      const value = makeEAPSpan({
+        event_id: 'test',
+        additional_attributes: {'http.response.status_code': 0},
+      });
+      const node = new EapSpanNode(null, value, createMockExtra());
+      expect(node.hasHttpError).toBe(false);
+    });
+
+    it('should return true when http.response.status_code is 0 but span.status is an error', () => {
+      const value = makeEAPSpan({
+        event_id: 'test',
+        additional_attributes: {
+          'http.response.status_code': 0,
+          'span.status': 'internal_error',
+        },
+      });
+      const node = new EapSpanNode(null, value, createMockExtra());
+      expect(node.hasHttpError).toBe(true);
+    });
+  });
 });

@@ -387,4 +387,40 @@ describe('SpanNode', () => {
       expect(node.resolveValueFromSearchKey('transaction.duration')).toBeNull();
     });
   });
+
+  describe('hasHttpError', () => {
+    it('should return false with no status and no status code', () => {
+      const span = makeSpan({});
+      const node = new SpanNode(null, span, createMockExtra());
+      expect(node.hasHttpError).toBe(false);
+    });
+
+    it('should return true for error status strings', () => {
+      for (const status of ['internal_error', 'not_found', 'permission_denied']) {
+        const span = makeSpan({status});
+        const node = new SpanNode(null, span, createMockExtra());
+        expect(node.hasHttpError).toBe(true);
+      }
+    });
+
+    it('should return false for non-error status strings', () => {
+      for (const status of ['ok', 'unknown', 'cancelled']) {
+        const span = makeSpan({status});
+        const node = new SpanNode(null, span, createMockExtra());
+        expect(node.hasHttpError).toBe(false);
+      }
+    });
+
+    it('should return true when http.response.status_code >= 400', () => {
+      const span = makeSpan({data: {'http.response.status_code': 500}});
+      const node = new SpanNode(null, span, createMockExtra());
+      expect(node.hasHttpError).toBe(true);
+    });
+
+    it('should return false when http.response.status_code < 400', () => {
+      const span = makeSpan({data: {'http.response.status_code': 200}});
+      const node = new SpanNode(null, span, createMockExtra());
+      expect(node.hasHttpError).toBe(false);
+    });
+  });
 });
