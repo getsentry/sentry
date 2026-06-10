@@ -80,7 +80,7 @@ async function initIntercom(orgSlug: string): Promise<void> {
       const intercomSettings: IntercomSettings = {
         app_id: intercomAppId,
         user_id: jwtData.userData.userId,
-        user_hash: jwtData.jwt,
+        intercom_user_jwt: jwtData.jwt,
         email: jwtData.userData.email,
         name: jwtData.userData.name,
         created_at: jwtData.userData.createdAt,
