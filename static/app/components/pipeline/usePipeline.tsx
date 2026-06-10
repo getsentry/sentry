@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -75,6 +76,13 @@ interface UsePipelineOptions<
    * Called when the piepline has finished
    */
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  /**
+   * The organization the pipeline runs against. Defaults to the organization
+   * from context, but flows such as the integration org-link page (where the
+   * user explicitly picks an organization that may differ from context) must
+   * pass it so the pipeline initializes against the chosen organization.
+   */
+  organization?: Organization;
 }
 
 /**
@@ -128,7 +136,8 @@ export function usePipeline<
   provider: P,
   options: UsePipelineOptions<T, P> = {}
 ): ApiPipeline<CompletionDataFor<T, P>> {
-  const organization = useOrganization();
+  const contextOrganization = useOrganization();
+  const organization = options.organization ?? contextOrganization;
   const [state, setState] = useState<PipelineState<T, P>>({status: 'idle'});
   const initializedRef = useRef(false);
   const onCompleteRef = useRef(options.onComplete);

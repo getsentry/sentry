@@ -69,6 +69,10 @@ export function useAddIntegration() {
       type: 'integration',
       provider: provider.key as ProvidersByType['integration'],
       initialData: urlParams,
+      // Pass the explicit organization so the pipeline runs against the org the
+      // caller resolved (e.g. the org-link page's selected org), rather than
+      // defaulting to the org from React context.
+      organization,
       onComplete: data => {
         trackIntegrationAnalytics('integrations.installation_complete', {
           integration: provider.key,

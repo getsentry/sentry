@@ -2,13 +2,21 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {usePipeline} from './usePipeline';
 
 const organization = OrganizationFixture();
 const API_URL = `/organizations/${organization.slug}/pipeline/integration_pipeline/`;
 
-function TestHarness({onComplete}: {onComplete?: (data: any) => void} = {}) {
-  const pipeline = usePipeline('integration', 'dummy', {onComplete});
+function TestHarness({
+  onComplete,
+  organization: organizationOption,
+}: {onComplete?: (data: any) => void; organization?: Organization} = {}) {
+  const pipeline = usePipeline('integration', 'dummy', {
+    onComplete,
+    organization: organizationOption,
+  });
 
   return (
     <div>
@@ -52,6 +60,36 @@ describe('usePipeline', () => {
     expect(screen.getByTestId('step-index')).toHaveTextContent('0');
     expect(screen.getByTestId('total-steps')).toHaveTextContent('2');
     expect(screen.getByTestId('is-complete')).toHaveTextContent('false');
+  });
+
+  it('runs against the explicitly passed organization, not the context org', async () => {
+    const selectedOrg = OrganizationFixture({slug: 'selected-org', id: '99'});
+    const selectedUrl = `/organizations/${selectedOrg.slug}/pipeline/integration_pipeline/`;
+
+    const selectedRequest = MockApiClient.addMockResponse({
+      url: selectedUrl,
+      method: 'POST',
+      body: {
+        step: 'step_one',
+        stepIndex: 0,
+        totalSteps: 2,
+        provider: 'dummy',
+        data: {message: 'Hello!'},
+      },
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+    const contextRequest = MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {},
+    });
+
+    // Context org is `organization`, but the caller selected a different org.
+    render(<TestHarness organization={selectedOrg} />, {organization});
+
+    expect(await screen.findByText('Hello!')).toBeInTheDocument();
+    expect(selectedRequest).toHaveBeenCalledTimes(1);
+    expect(contextRequest).not.toHaveBeenCalled();
   });
 
   it('advances through steps and completes the pipeline', async () => {

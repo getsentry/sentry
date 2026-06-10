@@ -12,6 +12,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 
 import type {
   CompletionDataFor,
@@ -28,6 +29,7 @@ interface PipelineModalProps<
   type: T;
   initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  organization?: Organization;
 }
 
 function PipelineModal<
@@ -41,6 +43,7 @@ function PipelineModal<
   provider,
   initialData,
   onComplete,
+  organization,
 }: PipelineModalProps<T, P>) {
   const handleComplete = (data: CompletionDataFor<T, P>) => {
     onComplete?.(data);
@@ -50,6 +53,7 @@ function PipelineModal<
   const pipeline = usePipeline(type, provider, {
     onComplete: handleComplete,
     initialData,
+    organization,
   });
   const {stepDefinition} = pipeline;
 
@@ -145,12 +149,20 @@ interface OpenPipelineModalOptions<
   initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  organization?: Organization;
 }
 
 export function openPipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
->({type, provider, initialData, onComplete, onClose}: OpenPipelineModalOptions<T, P>) {
+>({
+  type,
+  provider,
+  initialData,
+  onComplete,
+  onClose,
+  organization,
+}: OpenPipelineModalOptions<T, P>) {
   openModal(
     deps => (
       <PipelineModal
@@ -159,6 +171,7 @@ export function openPipelineModal<
         provider={provider}
         initialData={initialData}
         onComplete={onComplete}
+        organization={organization}
       />
     ),
     {onClose, closeEvents: 'none'}

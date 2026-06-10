@@ -35,6 +35,7 @@ describe('useAddIntegration', () => {
       type: 'integration',
       provider: 'github',
       initialData: undefined,
+      organization: OrganizationFixture(),
       onComplete: expect.any(Function),
     });
   });
