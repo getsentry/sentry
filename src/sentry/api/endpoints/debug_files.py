@@ -11,6 +11,7 @@ from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from objectstore_client import RequestError
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -281,7 +282,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
             return response
-        except OSError:
+        except (OSError, RequestError):
             raise Http404
 
     @extend_schema(
