@@ -174,10 +174,14 @@ export function mapSeerResponseItem(
 }
 
 // Seer returns the interval nested per-visualization, but the chart uses a
-// single shared interval. Hoist the first interval Seer provided.
+// single shared interval. Hoist the interval from the first plotted
+// visualization (one with y-axes, matching what `mapSeerResponseItem` keeps) so
+// we don't pick up an interval from a dropped, axis-less entry.
 export function getRawSeerInterval(item: SeerRawResponseItem): string | undefined {
   return (
-    item.visualization?.find(({interval}) => Boolean(interval))?.interval ?? undefined
+    item.visualization?.find(
+      ({interval, y_axes}) => Boolean(interval) && (y_axes?.length ?? 0) > 0
+    )?.interval ?? undefined
   );
 }
 

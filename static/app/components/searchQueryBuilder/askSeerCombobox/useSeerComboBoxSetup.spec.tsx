@@ -223,6 +223,35 @@ describe('mapSeerResponseItem', () => {
     });
   });
 
+  it('hoists the interval from a plotted visualization, ignoring axis-less entries', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'aggregates',
+        visualization: [
+          // Dropped because it has no y-axes; its interval must not be used.
+          {y_axes: [], interval: '5m'},
+          {chart_type: ChartType.BAR, y_axes: ['count()'], interval: '1h'},
+        ],
+      })
+    ).toEqual({
+      query: 'span.op:db',
+      sort: '',
+      groupBys: [],
+      statsPeriod: '24h',
+      start: null,
+      end: null,
+      mode: 'aggregates',
+      visualizations: [{chartType: ChartType.BAR, yAxes: ['count()']}],
+      interval: '1h',
+    });
+  });
+
   it('leaves missing or invalid chart types undefined', () => {
     expect(
       mapSeerResponseItem(
