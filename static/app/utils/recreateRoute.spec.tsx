@@ -166,7 +166,7 @@ describe('recreateRoute with matches', () => {
   });
 
   it('has correct path with match object with many roots (starts with "/")', () => {
-    const m: UIMatch[] = [
+    const multiRootMatches: UIMatch[] = [
       makeMatch('0', '/', {}, {path: '/'}),
       makeMatch('0-0', '/', {}, undefined),
       makeMatch('0-0-0', '/foo', {}, {path: '/foo/'}),
@@ -194,7 +194,9 @@ describe('recreateRoute with matches', () => {
       ),
     ];
 
-    expect(recreateRoute(m[4]!, {matches: m, params})).toBe('/foo/bar/');
+    expect(recreateRoute(multiRootMatches[4]!, {matches: multiRootMatches, params})).toBe(
+      '/foo/bar/'
+    );
   });
 
   it('returns correct path to a string (at the end of the matches)', () => {
