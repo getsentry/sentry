@@ -8,6 +8,8 @@ import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSe
 import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   buildSeerDateTimeSelection,
+  buildSeerMutationResult,
+  getRawSeerInterval,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
@@ -36,6 +38,8 @@ interface AskSeerSearchQuery {
   sort: string;
   start: string | null;
   statsPeriod: string;
+  expandedProjectIds?: number[];
+  interval?: string | null;
 }
 
 export function LogsTabSeerComboBox() {
@@ -68,24 +72,21 @@ export function LogsTabSeerComboBox() {
         },
       });
 
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-          mode: r?.mode ?? 'samples',
-        })),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, r => ({
+        query: r?.query ?? '',
+        sort: r?.sort ?? '',
+        groupBys: r?.group_by ?? [],
+        statsPeriod: r?.stats_period ?? '',
+        start: r?.start ?? null,
+        end: r?.end ?? null,
+        mode: r?.mode ?? 'samples',
+        interval: getRawSeerInterval(r),
+      }));
     },
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number | string) => {
       if (!result) {
         return;
       }
@@ -95,6 +96,7 @@ export function LogsTabSeerComboBox() {
         statsPeriod,
         start: resultStart,
         end: resultEnd,
+        expandedProjectIds,
       } = result;
 
       const dt = buildSeerDateTimeSelection(
@@ -159,6 +161,7 @@ export function LogsTabSeerComboBox() {
 
       const newQuery = {
         ...location.query,
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         [LOGS_QUERY_KEY]: queryToUse,
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
@@ -166,6 +169,9 @@ export function LogsTabSeerComboBox() {
         end: selection.datetime.end,
         statsPeriod: selection.datetime.period,
         utc: selection.datetime.utc,
+        // Only override the interval when Seer suggested one, otherwise leave
+        // the user's current interval untouched.
+        ...(result.interval ? {interval: result.interval} : {}),
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -173,6 +179,7 @@ export function LogsTabSeerComboBox() {
         query: queryToUse,
         groupBys,
         mode,
+        interval: result.interval,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -202,16 +209,21 @@ export function LogsTabSeerComboBox() {
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, r => ({
-        query: r?.query ?? '',
-        sort: r?.sort ?? '',
-        groupBys: r?.group_by ?? [],
-        statsPeriod: r?.stats_period ?? '',
-        start: r?.start ?? null,
-        end: r?.end ?? null,
-        mode: r?.mode ?? 'samples',
-      })),
-    []
+      transformSeerResponse(
+        response,
+        r => ({
+          query: r?.query ?? '',
+          sort: r?.sort ?? '',
+          groupBys: r?.group_by ?? [],
+          statsPeriod: r?.stats_period ?? '',
+          start: r?.start ?? null,
+          end: r?.end ?? null,
+          mode: r?.mode ?? 'samples',
+          interval: getRawSeerInterval(r),
+        }),
+        selectedProjectIds
+      ),
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {

@@ -46,6 +46,7 @@ export type ProjectCreationEventParameters = {
   'project_creation.scm_select_framework_modal_rendered': {
     platform: string;
   };
+  'project_creation.scm_skip_detection_clicked': Record<string, unknown>;
   'project_creation.select_framework_modal_close_button_clicked': {
     platform: string;
   };
@@ -115,6 +116,8 @@ export const projectCreationEventMap: Record<
     'Project Creation: SCM Project Details Team Selected',
   'project_creation.scm_select_framework_modal_rendered':
     'Project Creation: SCM Framework Modal Rendered',
+  'project_creation.scm_skip_detection_clicked':
+    'Project Creation: SCM Skip Detection Clicked',
   'project_creation.source_maps_wizard_button_copy_clicked':
     'Project Creation: Source Maps Wizard Button Copy Clicked',
   'project_creation.source_maps_wizard_selected_and_copied':

@@ -38,7 +38,6 @@ from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
     SeerAutomationHandoffConfiguration,
-    SeerPermissionError,
     SeerProjectPreference,
     SeerRepoDefinition,
 )
@@ -211,34 +210,9 @@ autofix_connection_pool = connection_from_url(
 )
 
 
-class GetAutofixStateRequest(TypedDict):
-    group_id: int | None
-    run_id: int | None
-    check_repo_access: bool
-    is_user_fetching: bool
-
-
-class GetAutofixStatePrRequest(TypedDict):
-    provider: str
-    pr_id: int
-
-
 class StoreCodingAgentStatesRequest(TypedDict):
     run_id: int
     coding_agent_states: list[dict[str, Any]]
-
-
-def make_get_autofix_state_request(
-    body: GetAutofixStateRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
 
 
 def make_update_coding_agent_state_request(
@@ -881,45 +855,6 @@ def get_autofix_repos_from_project_code_mappings(
     return list(repos.values())
 
 
-def get_autofix_state(
-    *,
-    group_id: int | None = None,
-    run_id: int | None = None,
-    check_repo_access: bool = False,
-    is_user_fetching: bool = False,
-    organization_id: int,
-) -> AutofixState | None:
-    body = GetAutofixStateRequest(
-        group_id=group_id,
-        run_id=run_id,
-        check_repo_access=check_repo_access,
-        is_user_fetching=is_user_fetching,
-    )
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_get_autofix_state_request(body, viewer_context=viewer_context)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-
-    result = response.json()
-
-    if result:
-        if (
-            group_id is not None
-            and result["group_id"] == group_id
-            or run_id is not None
-            and result["run_id"] == run_id
-        ):
-            state = AutofixState.validate(result["state"])
-
-            if state.request.organization_id != organization_id:
-                raise SeerPermissionError("Different organization ID found in autofix state")
-
-            return state
-
-    return None
-
-
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
     """
     Check if Seer Scanner automation is rate limited for a given project and organization.
@@ -1094,9 +1029,10 @@ def update_coding_agent_state(
     status: CodingAgentStatus,
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
-) -> None:
+) -> bool:
     """Send coding agent state update to Seer.
 
+    Returns True if Seer accepted the update (2xx), False otherwise.
     Errors are logged and swallowed so that callers iterating over
     multiple agents are never interrupted by a single failed update.
     """
@@ -1118,7 +1054,7 @@ def update_coding_agent_state(
             "coding_agent.state_update_error",
             extra={"agent_id": agent_id},
         )
-        return
+        return False
 
     if response.status >= 400:
         logger.error(
@@ -1129,3 +1065,6 @@ def update_coding_agent_state(
                 "response": response.data.decode("utf-8"),
             },
         )
+        return False
+
+    return True

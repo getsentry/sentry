@@ -566,7 +566,9 @@ class OrganizationReleaseDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, version) -> Response:
+    def delete(
+        self, request: Request, organization, version
+    ) -> Response[None] | Response[DetailResponse]:
         """
 
         Permanently remove a release and all of its files.

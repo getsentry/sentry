@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {cloneElement, Component, isValidElement} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -26,6 +26,23 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {ResultTable} from 'admin/components/resultTable';
 
 type Option = [key: string, label: string];
+
+function extractColumnLabel(col: React.ReactNode): string {
+  if (!isValidElement(col)) {
+    return '';
+  }
+  const {children} = col.props as {children?: React.ReactNode};
+  if (typeof children === 'string') {
+    return children.trim();
+  }
+  if (Array.isArray(children)) {
+    return children
+      .filter((c: unknown): c is string => typeof c === 'string')
+      .join(' ')
+      .trim();
+  }
+  return '';
+}
 
 type FilterProps = {
   name: string;
@@ -425,11 +442,40 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   }
 
   renderResults() {
-    return this.state.rows.map((row, i) => (
-      <tr key={this.props.keyForRow?.(row) ?? i}>
-        {this.props.columnsForRow?.(row, this.state.rows, this.state)}
-      </tr>
-    ));
+    const columnLabels = this.props.columns.map(extractColumnLabel);
+    const firstPrimaryIndex = columnLabels.findIndex(label => (label ?? '') !== '');
+
+    // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
+    // via inheritance, which works even when cells are rendered inside wrapper components
+    // (where cloneElement can't reach the inner <td> elements).
+    const labelVars = Object.fromEntries(
+      columnLabels.map((label, j) => [
+        `--cl-${j + 1}`,
+        `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
+      ])
+    );
+
+    return this.state.rows.map((row, i) => {
+      const cells = this.props.columnsForRow?.(row, this.state.rows, this.state) ?? [];
+      const labeledCells = cells.map((cell, j) => {
+        if (!isValidElement(cell)) {
+          return cell;
+        }
+        const extraProps: Record<string, unknown> = {'data-label': columnLabels[j] ?? ''};
+        if (j === firstPrimaryIndex) {
+          extraProps['data-mobile-primary'] = 'true';
+        }
+        return cloneElement(
+          cell as React.ReactElement<Record<string, unknown>>,
+          extraProps
+        );
+      });
+      return (
+        <tr key={this.props.keyForRow?.(row) ?? i} style={labelVars}>
+          {labeledCells}
+        </tr>
+      );
+    });
   }
 
   render() {
@@ -449,20 +495,22 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const ensuredFilters = filters ?? {};
 
     const resultTable = (
-      <ResultTable>
-        <thead>
-          <tr>{columns}</tr>
-        </thead>
-        <tbody>
-          {this.state.loading
-            ? this.renderLoading()
-            : this.state.error
-              ? this.renderError()
-              : this.state.rows.length === 0
-                ? this.renderNoResults()
-                : this.renderResults()}
-        </tbody>
-      </ResultTable>
+      <TableScrollWrapper>
+        <ResultTable>
+          <thead>
+            <tr>{columns}</tr>
+          </thead>
+          <tbody>
+            {this.state.loading
+              ? this.renderLoading()
+              : this.state.error
+                ? this.renderError()
+                : this.state.rows.length === 0
+                  ? this.renderNoResults()
+                  : this.renderResults()}
+          </tbody>
+        </ResultTable>
+      </TableScrollWrapper>
     );
 
     const CustomPanel = inPanel;
@@ -570,8 +618,17 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   }
 }
 
+const TableScrollWrapper = styled(Container)`
+  overflow-x: auto;
+
+  @media (max-width: 768px) {
+    overflow-x: visible;
+  }
+`;
+
 const SortSearchForm = styled('form')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${p => p.theme.space.lg};
 
   &:not(:empty) {
