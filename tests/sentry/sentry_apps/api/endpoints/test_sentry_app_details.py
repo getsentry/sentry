@@ -747,13 +747,17 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     def test_set_webhook_headers(self) -> None:
-        self.get_success_response(
+        response = self.get_success_response(
             self.published_app.slug,
             webhookHeaders=["X-Example: value", "Another-Header: thing"],
             status_code=200,
         )
         self.published_app.refresh_from_db()
         assert self.published_app.webhook_headers == ["X-Example: value", "Another-Header: thing"]
+        assert response.data["webhookHeaders"] == [
+            f"X-Example: {MASKED_VALUE}",
+            f"Another-Header: {MASKED_VALUE}",
+        ]
 
     @override_options({"staff.ga-rollout": True})
     def test_webhook_headers_invalid_format(self) -> None:
@@ -805,6 +809,28 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert self.published_app.webhook_headers == [
             "Authorization: Bearer secret-token",
             "X-New: fresh-value",
+        ]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_masked_values_preserved_when_reordered(self) -> None:
+        self.published_app.webhook_headers = [
+            "Authorization: Bearer secret-token",
+            "X-Token: stored-token",
+        ]
+        self.published_app.save()
+
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[
+                f"X-Token: {MASKED_VALUE}",
+                f"Authorization: {MASKED_VALUE}",
+            ],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == [
+            "X-Token: stored-token",
+            "Authorization: Bearer secret-token",
         ]
 
     @override_options({"staff.ga-rollout": True})
