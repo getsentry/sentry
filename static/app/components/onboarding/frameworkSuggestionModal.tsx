@@ -29,6 +29,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 export enum SupportedLanguages {
@@ -39,6 +40,17 @@ export enum SupportedLanguages {
   JAVA = 'java',
   GO = 'go',
 }
+
+// SCM onboarding fires its modal-rendered and platform-selected events routed by
+// the active flow (new-org onboarding vs SCM-first project creation).
+const SCM_FRAMEWORK_MODAL_RENDERED_EVENT = {
+  onboarding: 'onboarding.scm_select_framework_modal_rendered',
+  'project-creation': 'project_creation.scm_select_framework_modal_rendered',
+} as const;
+const SCM_PLATFORM_SELECTED_EVENT = {
+  onboarding: 'onboarding.scm_platform_selected',
+  'project-creation': 'project_creation.scm_platform_selected',
+} as const;
 
 const topGoFrameworks: PlatformKey[] = [
   'go-echo',
@@ -125,6 +137,11 @@ interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
+  /**
+   * Which SCM flow opened the modal. Routes the `hasScmOnboarding` analytics
+   * events between onboarding and project creation. Defaults to onboarding.
+   */
+  analyticsFlow?: ScmAnalyticsFlow;
   hasScmOnboarding?: boolean;
   newOrg?: boolean;
 }
@@ -140,6 +157,7 @@ export function FrameworkSuggestionModal({
   organization,
   newOrg,
   hasScmOnboarding,
+  analyticsFlow = 'onboarding',
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
   const createProjectAndRulesError = useCreateProjectAndRulesError();
@@ -197,7 +215,7 @@ export function FrameworkSuggestionModal({
   useEffect(() => {
     trackAnalytics(
       hasScmOnboarding
-        ? 'onboarding.scm_select_framework_modal_rendered'
+        ? SCM_FRAMEWORK_MODAL_RENDERED_EVENT[analyticsFlow]
         : newOrg
           ? 'onboarding.select_framework_modal_rendered'
           : 'project_creation.select_framework_modal_rendered',
@@ -206,7 +224,7 @@ export function FrameworkSuggestionModal({
         organization,
       }
     );
-  }, [selectedPlatform.key, organization, newOrg, hasScmOnboarding]);
+  }, [selectedPlatform.key, organization, newOrg, hasScmOnboarding, analyticsFlow]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
@@ -214,7 +232,7 @@ export function FrameworkSuggestionModal({
     }
 
     if (hasScmOnboarding) {
-      trackAnalytics('onboarding.scm_platform_selected', {
+      trackAnalytics(SCM_PLATFORM_SELECTED_EVENT[analyticsFlow], {
         organization,
         platform: selectedFramework.key,
         source: 'manual',
@@ -240,11 +258,12 @@ export function FrameworkSuggestionModal({
     onConfigure,
     newOrg,
     hasScmOnboarding,
+    analyticsFlow,
   ]);
 
   const handleSkip = useCallback(() => {
     if (hasScmOnboarding) {
-      trackAnalytics('onboarding.scm_platform_selected', {
+      trackAnalytics(SCM_PLATFORM_SELECTED_EVENT[analyticsFlow], {
         organization,
         platform: selectedPlatform.key,
         source: 'manual',
@@ -261,7 +280,7 @@ export function FrameworkSuggestionModal({
       );
     }
     onSkip();
-  }, [selectedPlatform, organization, onSkip, newOrg, hasScmOnboarding]);
+  }, [selectedPlatform, organization, onSkip, newOrg, hasScmOnboarding, analyticsFlow]);
 
   const handleClick = useCallback(() => {
     if (selectedFramework?.key === selectedPlatform.key) {

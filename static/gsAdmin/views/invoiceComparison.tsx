@@ -18,7 +18,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getRegions} from 'sentry/utils/regions';
+import {getCells} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -157,11 +157,10 @@ function utcIsoToDatetimeLocalValue(iso: string): string {
 }
 
 export function InvoiceComparison() {
-  // TODO(cells) This needs to be a list of cells
-  const regions = getRegions();
+  const cells = getCells();
   const location = useLocation();
   const navigate = useNavigate();
-  const [region, setRegion] = useState(regions[0] ?? null);
+  const [cell, setCell] = useState(cells[0] ?? null);
 
   // URL is the source of truth for everything that affects the query and
   // the displayed paginator state, so refresh / share-link reproduces the
@@ -193,11 +192,11 @@ export function InvoiceComparison() {
     }
   }, [queryStart, queryEnd]);
 
-  const enabled = Boolean(queryStart && queryEnd && region);
+  const enabled = Boolean(queryStart && queryEnd && cell);
   const {data, isPending, isError, error, isPlaceholderData} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
-      path: enabled && region ? {region: region.name} : skipToken,
-      host: region?.url,
+      path: enabled && cell ? {region: cell.name} : skipToken,
+      host: cell?.locality_url,
       query: enabled
         ? {
             start: queryStart,
@@ -340,10 +339,10 @@ export function InvoiceComparison() {
                 trigger={triggerProps => (
                   <OverlayTrigger.Button {...triggerProps} prefix="Region" />
                 )}
-                value={region?.url ?? ''}
-                options={regions.map((r: any) => ({label: r.name, value: r.url}))}
+                value={cell?.locality_url ?? ''}
+                options={cells.map(c => ({label: c.name, value: c.locality_url}))}
                 onChange={opt => {
-                  setRegion(regions.find((r: any) => r.url === opt.value) ?? null);
+                  setCell(cells.find(c => c.locality_url === opt.value) ?? null);
                 }}
               />
             </Flex>
@@ -379,7 +378,7 @@ export function InvoiceComparison() {
                 onChange={opt => setPageSize(Number(opt.value))}
               />
             </Flex>
-            <Button variant="primary" onClick={onSubmit} disabled={!region}>
+            <Button variant="primary" onClick={onSubmit} disabled={!cell}>
               Run comparison
             </Button>
           </Flex>

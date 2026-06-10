@@ -490,11 +490,17 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
-    def can_update(self, key: str, value, channel: UpdateChannel) -> NotWritableReason | None:
+    def can_update(
+        self, key: str, value, channel: UpdateChannel, include_drift: bool = True
+    ) -> NotWritableReason | None:
         """
         Return the reason the provided channel cannot update the option
         to the provided value or None if there is no reason and the update
         is allowed.
+
+        Drift detection requires reading the current value from the option
+        store. Pass ``include_drift=False`` to skip it and rely only on
+        the option's registration and flags.
         """
 
         required_flag = WRITE_REQUIRED_FLAGS.get(channel)
@@ -509,6 +515,9 @@ class OptionsManager:
 
         if required_flag and not opt.has_any_flag({required_flag}):
             return NotWritableReason.CHANNEL_NOT_ALLOWED
+
+        if not include_drift:
+            return None
 
         if not self.isset(key):
             # If the option is not readonly and it is not stored in the
