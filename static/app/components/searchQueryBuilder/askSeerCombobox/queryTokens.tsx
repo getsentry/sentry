@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 
 export function QueryTokens({
   groupBys,
+  interval,
   query,
   sort,
   statsPeriod,
@@ -56,9 +57,6 @@ export function QueryTokens({
     );
   }
 
-  // The chart uses a single interval shared across all y-axes, so display the
-  // first interval Seer provided.
-  const interval = visualizations?.find(({interval: i}) => Boolean(i))?.interval;
   if (interval) {
     tokens.push(
       <Flex

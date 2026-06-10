@@ -47,26 +47,19 @@ describe('getSeerExploreQuery', () => {
     });
   });
 
-  it('extracts the interval from the first visualization that provides one', () => {
+  it('passes through the interval', () => {
     const result = getSeerExploreQuery({
       pageDatetime,
-      result: seerResult({
-        visualizations: [
-          {yAxes: ['count()']},
-          {yAxes: ['p75(span.duration)'], interval: '1h'},
-        ],
-      }),
+      result: seerResult({interval: '1h'}),
     });
 
     expect(result.interval).toBe('1h');
   });
 
-  it('leaves interval undefined when no visualization provides one', () => {
+  it('leaves interval undefined when none is provided', () => {
     const result = getSeerExploreQuery({
       pageDatetime,
-      result: seerResult({
-        visualizations: [{yAxes: ['count()']}],
-      }),
+      result: seerResult({}),
     });
 
     expect(result.interval).toBeUndefined();

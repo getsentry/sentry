@@ -8,6 +8,7 @@ import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSe
 import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   buildSeerDateTimeSelection,
+  getRawSeerInterval,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
@@ -36,6 +37,7 @@ interface AskSeerSearchQuery {
   sort: string;
   start: string | null;
   statsPeriod: string;
+  interval?: string | null;
 }
 
 export function LogsTabSeerComboBox() {
@@ -79,6 +81,7 @@ export function LogsTabSeerComboBox() {
           start: r?.start ?? null,
           end: r?.end ?? null,
           mode: r?.mode ?? 'samples',
+          interval: getRawSeerInterval(r),
         })),
       };
     },
@@ -166,6 +169,9 @@ export function LogsTabSeerComboBox() {
         end: selection.datetime.end,
         statsPeriod: selection.datetime.period,
         utc: selection.datetime.utc,
+        // Only override the interval when Seer suggested one, otherwise leave
+        // the user's current interval untouched.
+        ...(result.interval ? {interval: result.interval} : {}),
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -173,6 +179,7 @@ export function LogsTabSeerComboBox() {
         query: queryToUse,
         groupBys,
         mode,
+        interval: result.interval,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -210,6 +217,7 @@ export function LogsTabSeerComboBox() {
         start: r?.start ?? null,
         end: r?.end ?? null,
         mode: r?.mode ?? 'samples',
+        interval: getRawSeerInterval(r),
       })),
     []
   );

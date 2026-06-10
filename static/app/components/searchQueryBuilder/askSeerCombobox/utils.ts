@@ -200,6 +200,10 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     }
   }
 
+  if (args?.interval) {
+    parts.push(`interval is '${args.interval}'`);
+  }
+
   if (args?.groupBys && args.groupBys.length > 0) {
     const groupByText =
       args.groupBys.length === 1 ? args.groupBys[0] : args.groupBys.join(', ');
