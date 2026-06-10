@@ -168,7 +168,7 @@ export default function TeamSettings() {
         supportedTypes={['upload', 'letter_avatar']}
         endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
         model={team}
-        onSave={resp => updateTeamSuccess(team.slug, resp as Team)}
+        onSave={resp => updateTeamSuccess(team.slug, resp)}
         disabled={isDisabled}
       />
 
