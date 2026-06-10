@@ -189,8 +189,7 @@ class DatadogOAuth2LoginViewTest(TestCase):
         original_verifier = pipeline.fetch_state("pkce_code_verifier")
         assert original_verifier is not None
 
-        # Second pass: callback with code in GET params. Mock next_step to
-        # prevent the pipeline from advancing into the callback view.
+        # Second pass: callback with code in GET params.
         callback_request = RequestFactory().get("/", data={"code": "auth-code", "state": "s"})
         callback_request.session = Client().session
         callback_request.user = self.user
