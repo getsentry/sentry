@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -16,7 +16,6 @@ import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,7 +26,10 @@ import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmInteg
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
 import {useScmPlatformDetection} from 'sentry/views/onboarding/components/useScmPlatformDetection';
-import {useScmProjectDetails} from 'sentry/views/onboarding/components/useScmProjectDetails';
+import {
+  type ScmProjectDetailsCompletion,
+  useScmProjectDetails,
+} from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {useScmProviders} from 'sentry/views/onboarding/components/useScmProviders';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -71,7 +73,7 @@ export function ScmCreateProject() {
   const projectId = decodeScalar(location.query.project);
 
   // Snapshot of the last completed wizard session, written when a project is
-  // created (see the navigation effect below). Restored when this mount is a
+  // created (see handleComplete in the wizard). Restored when this mount is a
   // return from that project's getting-started page, whose back nav tags the
   // URL with referrer + project id (mirrors createProject's autofill
   // condition). Computed reactively rather than once at mount because the tag
@@ -120,12 +122,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   useScmProviders();
 
   useScmPlatformDetection(selectedRepository);
-
-  // Slug of the project to land on. Seeded from a restored session (reuse path)
-  // and updated when a new project is created. Held in a ref so the deferred
-  // navigation reads the latest value without a stale closure.
-  const createdProjectSlugRef = useRef(createdProjectSlug);
-  const [pendingNavigation, setPendingNavigation] = useState(false);
 
   const completeRepoStep = () => {
     setState(s => ({...s, repoStepCompleted: true}));
@@ -184,47 +180,28 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     setState(s => ({...s, projectDetailsForm: undefined}));
   }, [setState]);
 
-  const handleProjectDetailsFormChange = useCallback(
-    (projectDetailsFormState: ProjectDetailsFormState | undefined) => {
-      setState(s => ({...s, projectDetailsForm: projectDetailsFormState}));
-    },
-    [setState]
-  );
-
-  const handleProjectCreated = useCallback(
-    (project: Project) => {
-      createdProjectSlugRef.current = project.slug;
-      // Persist id + slug so a return from getting-started is recognized (id)
-      // and the reuse check has the slug. Committed before navigation runs
-      // (see the deferred-navigation effect below).
-      setState(s => ({
-        ...s,
+  // Snapshot the completed session (the created project's id validates the
+  // return from getting-started, the slug feeds the reuse check, and the form
+  // seeds the fields) so it can be restored later (see ScmCreateProject), then
+  // leave for the project's getting-started page. Live wizard state never
+  // holds the created project, so there is nothing to commit before unmount.
+  const handleComplete = useCallback(
+    ({project, projectDetailsForm: submittedForm}: ScmProjectDetailsCompletion) => {
+      writeStorageValue(WIZARD_STORAGE_KEY, {
+        ...wizardState,
         createdProjectId: project.id,
         createdProjectSlug: project.slug,
-      }));
-    },
-    [setState]
-  );
-
-  // Defer the getting-started navigation to an effect so the create-time state
-  // writes above commit before the session is snapshotted here.
-  const handleComplete = useCallback(() => {
-    setPendingNavigation(true);
-  }, []);
-
-  useEffect(() => {
-    if (pendingNavigation && createdProjectSlugRef.current) {
-      // Snapshot the completed session so a return from getting-started can
-      // restore it (see ScmCreateProject).
-      writeStorageValue(WIZARD_STORAGE_KEY, wizardState);
+        projectDetailsForm: submittedForm,
+      });
       navigate(
         makeProjectsPathname({
-          path: `/${createdProjectSlugRef.current}/getting-started/`,
+          path: `/${project.slug}/getting-started/`,
           organization,
         })
       );
-    }
-  }, [pendingNavigation, wizardState, navigate, organization]);
+    },
+    [wizardState, navigate, organization]
+  );
 
   const form = useScmProjectDetails({
     analyticsFlow: 'project-creation',
@@ -233,8 +210,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     selectedRepository,
     createdProjectSlug,
     projectDetailsForm,
-    onProjectCreated: handleProjectCreated,
-    onProjectDetailsFormChange: handleProjectDetailsFormChange,
     onComplete: handleComplete,
   });
 
