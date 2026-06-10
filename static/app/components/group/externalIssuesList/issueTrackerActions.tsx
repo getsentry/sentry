@@ -4,7 +4,7 @@ import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {
   ExternalIssueAction,
@@ -27,7 +27,7 @@ interface IssueTrackerActionDropdownProps {
 }
 
 interface IssueTrackerActionMenuLabel {
-  label: string;
+  label: React.ReactNode;
   textValue: string;
   details?: React.ReactNode;
 }
@@ -42,7 +42,11 @@ function getIssueTrackerActionMenuLabel({
   // If there's no subtext or subtext matches name, just show name
   if (!action.nameSubText || action.nameSubText === action.name) {
     return {
-      label: action.name,
+      label: (
+        <Text as="span" bold>
+          {action.name}
+        </Text>
+      ),
       textValue: action.name,
     };
   }
@@ -50,14 +54,22 @@ function getIssueTrackerActionMenuLabel({
   // If action name matches integration name, just show subtext
   if (action.name === integrationDisplayName) {
     return {
-      label: action.nameSubText,
+      label: (
+        <Text as="span" bold>
+          {action.nameSubText}
+        </Text>
+      ),
       textValue: `${action.name} ${action.nameSubText}`,
     };
   }
 
   // Otherwise show both name and subtext
   return {
-    label: action.name,
+    label: (
+      <Text as="span" bold>
+        {action.name}
+      </Text>
+    ),
     details: (
       <Text as="span" variant="muted">
         {action.nameSubText}
@@ -190,12 +202,17 @@ export function IssueTrackerActionDropdown({
     return null;
   }
 
-  const issueTrackerActions = integrations.flatMap(integration =>
-    integration.actions.map(action => {
+  const issueTrackerActionGroups = integrations.map(integration => ({
+    integration,
+    actions: integration.actions.map(action => {
       const {details, label, textValue} =
         integration.actions.length === 1
           ? {
-              label: integration.displayName,
+              label: (
+                <Text as="span" bold>
+                  {integration.displayName}
+                </Text>
+              ),
               textValue: integration.displayName,
             }
           : getIssueTrackerActionMenuLabel({
@@ -231,8 +248,9 @@ export function IssueTrackerActionDropdown({
         textValue,
         tooltipTitle,
       };
-    })
-  );
+    }),
+  }));
+  const issueTrackerActions = issueTrackerActionGroups.flatMap(group => group.actions);
 
   if (issueTrackerActions.length === 1) {
     const {action, isDisabled, onAction, tooltipTitle} = issueTrackerActions[0]!;
@@ -283,29 +301,23 @@ export function IssueTrackerActionDropdown({
           {issueTrackerActionLabel}
         </DropdownButton>
       )}
-      items={issueTrackerActions.map(
-        ({
-          action,
-          details,
-          integration,
-          isDisabled,
-          label,
-          onAction,
-          textValue,
-          tooltipTitle,
-        }) => ({
-          key: `${integration.key}-${action.id}`,
-          label,
-          textValue,
-          details: isDisabled ? tooltipTitle : details,
-          leadingItems: (
-            <IssueTrackerMenuIcon>{integration.displayIcon}</IssueTrackerMenuIcon>
-          ),
-          externalHref: action.href,
-          disabled: isDisabled,
-          onAction,
-        })
-      )}
+      items={issueTrackerActionGroups.map<MenuItemProps>(({integration, actions}) => ({
+        key: integration.key,
+        children: actions.map(
+          ({action, details, isDisabled, label, onAction, textValue, tooltipTitle}) => ({
+            key: `${integration.key}-${action.id}`,
+            label,
+            textValue,
+            details: isDisabled ? tooltipTitle : details,
+            leadingItems: (
+              <IssueTrackerMenuIcon>{integration.displayIcon}</IssueTrackerMenuIcon>
+            ),
+            externalHref: action.href,
+            disabled: isDisabled,
+            onAction,
+          })
+        ),
+      }))}
     />
   );
 }

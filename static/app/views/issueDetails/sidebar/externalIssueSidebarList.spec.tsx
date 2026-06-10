@@ -203,6 +203,19 @@ describe('ExternalIssueSidebarList', () => {
   });
 
   it('should render issue tracker actions in the section header', async () => {
+    const asanaComponent = SentryAppComponentFixture({
+      sentryApp: {
+        ...SentryAppComponentFixture().sentryApp,
+        slug: 'asana',
+        name: 'Asana',
+      },
+    });
+    SentryAppComponentsStore.loadComponents([asanaComponent]);
+    SentryAppInstallationStore.load([
+      SentryAppInstallationFixture({
+        app: asanaComponent.sentryApp,
+      }),
+    ]);
     mockLinkedPullRequestsFeatureRequests([
       GitHubIntegrationFixture({
         status: 'active',
@@ -230,10 +243,16 @@ describe('ExternalIssueSidebarList', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Link issue'}));
 
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getAllByRole('separator')).toHaveLength(2);
+    expect(await screen.findByRole('menuitemradio', {name: 'Asana'})).toBeInTheDocument();
     expect(
       await screen.findByRole('menuitemradio', {name: 'GitHub'})
     ).toBeInTheDocument();
     expect(await screen.findByRole('menuitemradio', {name: 'Jira'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Create Issue'})
+    ).not.toBeInTheDocument();
   });
 
   it('should open the integration modal directly when there is one issue tracker action', async () => {
