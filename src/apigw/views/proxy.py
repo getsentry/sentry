@@ -16,6 +16,21 @@ proxy = app.module(__name__, "proxy")
 proxy.pipeline = [ProxyLatencyPipe()]
 
 
+# NOTE: this is defined as first route to catch first paths that should
+#       reach control, but due to wider routing rules would instead reach
+#       cells through below route `proxy_cell_from_org`
+@proxy.route(
+    [
+        "/api/0/organizations/<str:org>/integrations(/<any:subp>)?",
+        "/api/0/organizations/<str:org>/sentry-apps(/<any:subp>)?",
+        "/api/0/organizations/<str:org>/sentry-app-installations(/<any:subp>)?",
+    ],
+    methods=["get", "post", "put", "patch", "delete", "head", "options"],
+)
+async def proxy_control_from_org(org: str, subp: str | None = None) -> Any:
+    return await proxy_control_request(request)
+
+
 @proxy.route(
     [
         "/api/0/_admin/customers/<str:org>(/<any:subp>)?",
