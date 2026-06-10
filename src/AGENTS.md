@@ -125,6 +125,12 @@ class DetailedSerializer(MySerializer):
 
 - OpenAPI spec generation: `make build-api-docs`
 - API ownership tracked in `src/sentry/apidocs/api_ownership_allowlist_dont_modify.py`
+- `@extend_schema(operation_id=...)`: use a short camelCase REST token, NOT a sentence.
+  Form is `<verb><Resource>` — verb is `list` (GET collection), `get` (GET one), `create`
+  (POST), `update` (PUT/PATCH), `delete` (DELETE); Resource comes from the path's nouns.
+  e.g. `listOrganizationIssues`, `getOrganizationIssue`, `createProjectKey`. Put the
+  human-readable title in `summary=` — that's what the API reference renders. Non-CRUD
+  actions use the real verb: `add`, `start`, `enable`, `upload`, `link`, `resolve`, etc.
 
 ### API Design Rules
 
