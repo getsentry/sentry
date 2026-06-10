@@ -81,7 +81,7 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
   return (
     <PullRequestRow
       aria-label={t(
-        '%s, pull request #%s, %s, repository %s',
+        '%s, pull request #%s, %s in %s',
         title,
         pullRequest.id,
         statusLabel,
@@ -98,9 +98,7 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
           />
         </Flex>
         <Flex direction="column" gap="2xs" minWidth={0}>
-          <Text as="span" bold ellipsis>
-            {title}
-          </Text>
+          <PullRequestTitle>{title}</PullRequestTitle>
           <Flex align="center" gap="sm">
             <Flex as="span" align="center" gap="xs" minWidth={0}>
               {getStatusIcon(pullRequest.status)}
@@ -183,4 +181,15 @@ const PullRequestRow = styled(ExternalLink)`
 
 const RepositoryIcon = styled(IconRepository)`
   transform: translateY(1px);
+`;
+
+const PullRequestTitle = styled('span')`
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-variant-ligatures: no-common-ligatures;
+  font-feature-settings: 'liga' 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;

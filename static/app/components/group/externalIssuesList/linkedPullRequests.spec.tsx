@@ -64,7 +64,7 @@ describe('LinkedPullRequests', () => {
       'https://github.com/example/widget-app/pull/123'
     );
     expect(linkedPullRequest).toHaveAccessibleName(
-      `Fix widget crash on startup, pull request #123, Merged, repository ${REPOSITORY_NAME}`
+      `Fix widget crash on startup, pull request #123, Merged in ${REPOSITORY_NAME}`
     );
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).getByText('#123')).toBeInTheDocument();
