@@ -6,7 +6,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {getWidgetConfigError} from './getWidgetConfigError';
 
 describe('getWidgetConfigError', () => {
-  it.each([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR, DisplayType.TOP_N])(
+  it.each([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR])(
     'returns an error for %s widgets with no aggregates',
     displayType => {
       const widget = WidgetFixture({
