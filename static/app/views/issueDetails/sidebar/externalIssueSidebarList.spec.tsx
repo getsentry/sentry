@@ -8,18 +8,40 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
 import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
+import type {GroupIntegration} from 'sentry/types/integrations';
 
 import {ExternalIssueSidebarList} from './externalIssueSidebarList';
 
 describe('ExternalIssueSidebarList', () => {
   const organization = OrganizationFixture();
+  const organizationWithLinkedPullRequestsFeature = OrganizationFixture({
+    features: ['issue-details-linked-pull-requests'],
+  });
   const event = EventFixture();
   const group = GroupFixture();
   const project = ProjectFixture();
+
+  function mockLinkedPullRequestsFeatureRequests(integrations: GroupIntegration[]) {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: integrations,
+    });
+  }
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -177,6 +199,105 @@ describe('ExternalIssueSidebarList', () => {
     ).toBeInTheDocument();
     expect(
       await screen.findByRole('menuitemradio', {name: /GitHub codecov/})
+    ).toBeInTheDocument();
+  });
+
+  it('should render issue tracker actions in the section header', async () => {
+    mockLinkedPullRequestsFeatureRequests([
+      GitHubIntegrationFixture({
+        status: 'active',
+        externalIssues: [],
+        name: 'GitHub sentry',
+      }),
+      JiraIntegrationFixture({
+        id: '2',
+        status: 'active',
+        externalIssues: [],
+        name: 'Jira Integration',
+        domainName: 'example.com',
+      }),
+    ]);
+
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+      organization: organizationWithLinkedPullRequestsFeature,
+    });
+
+    expect(await screen.findByText('External Links')).toBeInTheDocument();
+    expect(screen.queryByText('Issue Tracking')).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Issue Tracker'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'GitHub'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Jira'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Issue Tracker'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'GitHub'})
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('menuitemradio', {name: 'Jira'})).toBeInTheDocument();
+  });
+
+  it('should open the integration modal directly when there is one issue tracker action', async () => {
+    mockLinkedPullRequestsFeatureRequests([
+      GitHubIntegrationFixture({
+        id: '1',
+        status: 'active',
+        externalIssues: [],
+        name: 'GitHub sentry',
+      }),
+    ]);
+    const configMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/1/`,
+      match: [MockApiClient.matchQuery({action: 'create'})],
+      body: {createIssueConfig: [], linkIssueConfig: []},
+    });
+
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+      organization: organizationWithLinkedPullRequestsFeature,
+    });
+    renderGlobalModal({organization: organizationWithLinkedPullRequestsFeature});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Issue Tracker'}));
+
+    expect(screen.queryByRole('menuitemradio', {name: 'GitHub'})).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(configMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should render linked issues as full-width rows', async () => {
+    const issueKey = 'DE#1275';
+    const issueTitle = 'Linear: DE#1275';
+    mockLinkedPullRequestsFeatureRequests([
+      GitHubIntegrationFixture({
+        status: 'active',
+        externalIssues: [
+          {
+            id: '321',
+            key: issueKey,
+            url: 'https://linear.app/example/issue/DE-1275',
+            title: issueTitle,
+            description: 'something else, sorry',
+            displayName: '',
+          },
+        ],
+      }),
+    ]);
+
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+      organization: organizationWithLinkedPullRequestsFeature,
+    });
+
+    const linkedIssues = await screen.findByRole('list', {name: 'Linked issues'});
+    expect(within(linkedIssues).getByRole('link', {name: issueTitle})).toHaveAttribute(
+      'href',
+      'https://linear.app/example/issue/DE-1275'
+    );
+    expect(within(linkedIssues).queryByText(issueKey)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: issueKey})).not.toBeInTheDocument();
+    expect(
+      within(linkedIssues).getByRole('button', {name: `Unlink ${issueTitle}`})
     ).toBeInTheDocument();
   });
 

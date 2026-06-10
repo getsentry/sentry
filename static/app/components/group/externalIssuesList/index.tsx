@@ -2,56 +2,20 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AlertLink} from '@sentry/scraps/alert';
-import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
+import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
+import {InlineIssueTrackerActions} from 'sentry/components/group/externalIssuesList/issueTrackerActions';
+import {LinkedIssueRows} from 'sentry/components/group/externalIssuesList/linkedIssueRows';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-function getActionLabelAndTextValue({
-  action,
-  integrationDisplayName,
-}: {
-  action: ExternalIssueAction;
-  integrationDisplayName: string;
-}): {label: string | React.JSX.Element; textValue: string} {
-  // If there's no subtext or subtext matches name, just show name
-  if (!action.nameSubText || action.nameSubText === action.name) {
-    return {
-      label: action.name,
-      textValue: action.name,
-    };
-  }
-
-  // If action name matches integration name, just show subtext
-  if (action.name === integrationDisplayName) {
-    return {
-      label: action.nameSubText,
-      textValue: `${action.name} ${action.nameSubText}`,
-    };
-  }
-
-  // Otherwise show both name and subtext
-  return {
-    label: (
-      <div>
-        <strong>{action.name}</strong>
-        <div>{action.nameSubText}</div>
-      </div>
-    ),
-    textValue: `${action.name} ${action.nameSubText}`,
-  };
-}
 
 interface ExternalIssueListProps {
   event: Event;
@@ -60,12 +24,30 @@ interface ExternalIssueListProps {
 }
 
 export function ExternalIssueList({group, event, project}: ExternalIssueListProps) {
-  const organization = useOrganization();
-  const {isLoading, integrations, linkedIssues} = useGroupExternalIssues({
+  const externalIssueData = useGroupExternalIssues({
     group,
     event,
     project,
   });
+
+  return (
+    <ExternalIssueListContent
+      integrations={externalIssueData.integrations}
+      isLoading={externalIssueData.isLoading}
+      linkedIssues={externalIssueData.linkedIssues}
+    />
+  );
+}
+
+export function ExternalIssueListContent({
+  integrations,
+  isLoading,
+  linkedIssues,
+}: GroupIntegrationIssueResult) {
+  const organization = useOrganization();
+  const hasLinkedPullRequestsFeature = organization.features.includes(
+    'issue-details-linked-pull-requests'
+  );
 
   if (isLoading) {
     return <Placeholder height="25px" testId="issue-tracking-loading" />;
@@ -83,128 +65,59 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
     );
   }
 
+  const showIssueTrackerActions =
+    !hasLinkedPullRequestsFeature && integrations.length > 0;
+
   return (
     <Fragment>
-      {linkedIssues.length > 0 && (
-        <IssueActionWrapper>
-          {linkedIssues.map(linkedIssue => (
-            <ErrorBoundary key={linkedIssue.key} mini>
-              <Tooltip
-                overlayStyle={{maxWidth: '400px'}}
-                position="bottom"
-                title={
-                  <LinkedIssueTooltipWrapper>
-                    <LinkedIssueName>{linkedIssue.title}</LinkedIssueName>
-                    <HorizontalSeparator />
-                    <UnlinkButton
-                      variant="link"
-                      size="zero"
-                      onClick={linkedIssue.onUnlink}
-                    >
-                      {t('Unlink issue')}
-                    </UnlinkButton>
-                  </LinkedIssueTooltipWrapper>
-                }
-                isHoverable
-              >
-                <LinkedIssue
-                  href={linkedIssue.url}
-                  external
-                  size="zero"
-                  icon={linkedIssue.displayIcon}
-                >
-                  <IssueActionName>{linkedIssue.displayName}</IssueActionName>
-                </LinkedIssue>
-              </Tooltip>
-            </ErrorBoundary>
-          ))}
-        </IssueActionWrapper>
-      )}
-      {integrations.length > 0 && (
-        <IssueActionWrapper>
-          {integrations.map(integration => {
-            const sharedButtonProps: ButtonProps = {
-              size: 'zero',
-              icon: integration.displayIcon,
-              variant: 'transparent',
-              children: <IssueActionName>{integration.displayName}</IssueActionName>,
-            };
-
-            if (integration.actions.length === 1) {
-              const action = integration.actions[0]!;
-              return (
-                <ErrorBoundary key={integration.key} mini>
-                  {action.href ? (
-                    // Exclusively used for group.pluginActions
-                    <IssueActionLinkButton
-                      size="zero"
-                      icon={integration.displayIcon}
-                      disabled={integration.disabled}
-                      tooltipProps={{
-                        title: integration.disabled
-                          ? integration.disabledText
-                          : undefined,
-                      }}
-                      onClick={() => {
-                        action.onClick();
-                        trackAnalytics('feedback.details-integration-issue-clicked', {
-                          organization,
-                          integration_key: integration.key,
-                        });
-                      }}
-                      href={action.href}
-                      external
-                    >
-                      <IssueActionName>{integration.displayName}</IssueActionName>
-                    </IssueActionLinkButton>
-                  ) : (
-                    <IssueActionButton
-                      {...sharedButtonProps}
-                      disabled={integration.disabled}
-                      tooltipProps={{
-                        title: integration.disabled
-                          ? integration.disabledText
-                          : undefined,
-                      }}
-                      onClick={() => {
-                        action.onClick();
-                        trackAnalytics('feedback.details-integration-issue-clicked', {
-                          organization,
-                          integration_key: integration.key,
-                        });
-                      }}
-                    />
-                  )}
-                </ErrorBoundary>
-              );
-            }
-
-            return (
-              <ErrorBoundary key={integration.key} mini>
-                <DropdownMenu
-                  trigger={triggerProps => (
-                    <IssueActionDropdownMenu
-                      {...sharedButtonProps}
-                      {...triggerProps}
-                      showChevron={false}
-                    />
-                  )}
-                  items={integration.actions.map(action => ({
-                    key: action.id,
-                    ...getActionLabelAndTextValue({
-                      action,
-                      integrationDisplayName: integration.displayName,
-                    }),
-                    onAction: action.onClick,
-                    disabled: integration.disabled,
-                  }))}
-                />
-              </ErrorBoundary>
-            );
-          })}
-        </IssueActionWrapper>
+      {linkedIssues.length > 0 &&
+        (hasLinkedPullRequestsFeature ? (
+          <LinkedIssueRows linkedIssues={linkedIssues} />
+        ) : (
+          <LinkedIssuesList linkedIssues={linkedIssues} />
+        ))}
+      {showIssueTrackerActions && (
+        <InlineIssueTrackerActions integrations={integrations} />
       )}
     </Fragment>
+  );
+}
+
+function LinkedIssuesList({
+  linkedIssues,
+}: {
+  linkedIssues: GroupIntegrationIssueResult['linkedIssues'];
+}) {
+  return (
+    <IssueActionWrapper>
+      {linkedIssues.map(linkedIssue => (
+        <ErrorBoundary key={linkedIssue.key} mini>
+          <Tooltip
+            overlayStyle={{maxWidth: '400px'}}
+            position="bottom"
+            title={
+              <LinkedIssueTooltipWrapper>
+                <LinkedIssueName>{linkedIssue.title}</LinkedIssueName>
+                <HorizontalSeparator />
+                <UnlinkButton variant="link" size="zero" onClick={linkedIssue.onUnlink}>
+                  {t('Unlink issue')}
+                </UnlinkButton>
+              </LinkedIssueTooltipWrapper>
+            }
+            isHoverable
+          >
+            <LinkedIssue
+              href={linkedIssue.url}
+              external
+              size="zero"
+              icon={linkedIssue.displayIcon}
+            >
+              <IssueActionName>{linkedIssue.displayName}</IssueActionName>
+            </LinkedIssue>
+          </Tooltip>
+        </ErrorBoundary>
+      ))}
+    </IssueActionWrapper>
   );
 }
 
@@ -222,37 +135,6 @@ const LinkedIssue = styled(LinkButton)`
   border: none;
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
-`;
-
-const IssueActionButton = styled(Button)`
-  display: flex;
-  align-items: center;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  border: 1px dashed ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  font-weight: normal;
-`;
-
-const IssueActionLinkButton = styled(LinkButton)`
-  display: flex;
-  align-items: center;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  border: 1px dashed ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  font-weight: normal;
-`;
-
-const IssueActionDropdownMenu = styled(DropdownButton)`
-  display: flex;
-  align-items: center;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  border: 1px dashed ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  font-weight: normal;
-
-  &[aria-expanded='true'] {
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-  }
 `;
 
 const IssueActionName = styled('div')`
