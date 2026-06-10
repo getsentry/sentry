@@ -66,6 +66,20 @@ def _process_batch(
     """
     Process up to `batch_size` entries for a group. Updates derived in place.
     Returns True if there are more entries to process.
+
+    Concurrency: multiple callers may process the same group simultaneously.
+    Safety relies on two properties:
+
+    1. The action log is append-only and the pipeline is deterministic, so
+       any caller processing the same entries produces the same result.
+    2. The UPDATE uses a cursor guard (_cursor_lte) that only succeeds if no
+       other caller has already advanced the cursor past our batch. If it
+       fails (updated == 0), a concurrent caller already wrote a superset
+       of our work, so we refresh and check if more remains.
+
+    This is an optimistic concurrency scheme — no locks are held, and the
+    last-writer-wins semantics are safe because all writers compute the
+    same deterministic result for overlapping entry ranges.
     """
     entries = _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, batch_size)
 
