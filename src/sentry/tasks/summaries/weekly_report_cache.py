@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import Any
 
 from django.conf import settings
@@ -8,7 +7,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import json, metrics, redis
 
-CACHE_TTL = timedelta(days=10)
+CACHE_TTL_SEC = 10 * 24 * 60 * 60  # 10 days
 KEY_PREFIX = "wr:proj_metrics"
 
 
@@ -26,11 +25,10 @@ def cache_project_metrics(
 ) -> None:
     client = _get_redis_client()
     pipeline = client.pipeline()
-    ttl_seconds = int(CACHE_TTL.total_seconds())
 
     for project_id, values in project_metrics.items():
         key = _make_cache_key(org_id, project_id)
-        pipeline.set(key, json.dumps(values), ex=ttl_seconds)
+        pipeline.set(key, json.dumps(values), ex=CACHE_TTL_SEC)
 
     pipeline.execute()
 
