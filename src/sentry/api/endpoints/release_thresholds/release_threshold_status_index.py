@@ -29,7 +29,11 @@ from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
     get_new_issue_counts,
 )
-from sentry.api.helpers.projects import ProjectIdOrSlug, ProjectIdOrSlugField
+from sentry.api.helpers.projects import (
+    ProjectIdOrSlug,
+    ProjectIdOrSlugField,
+    parse_id_or_slug_params,
+)
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.release_threshold_examples import ReleaseThresholdExamples
@@ -142,9 +146,18 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # NOTE: start/end parameters determine window to query for releases
         # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
-        serializer = ReleaseThresholdStatusIndexSerializer(
-            data=request.query_params,
-        )
+        query_params = request.query_params.copy()
+        project_slug_params = [slug for slug in query_params.getlist("projectSlug") if slug]
+        if "projectSlug" in query_params:
+            query_params.setlist("projectSlug", project_slug_params)
+        if project_slug_params:
+            query_params.pop("project", None)
+        elif "project" in query_params:
+            query_params.setlist(
+                "project", [project for project in query_params.getlist("project") if project]
+            )
+
+        serializer = ReleaseThresholdStatusIndexSerializer(data=query_params)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -154,10 +167,15 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         project_slug_list = [
             slug for slug in serializer.validated_data.get("projectSlug", []) if slug
         ] or None
+        requested_project = parse_id_or_slug_params(serializer.validated_data.get("project", []))
         releases_list = serializer.validated_data.get("release")  # list of release versions
         try:
             filter_params = self.get_filter_params(
-                request, organization, date_filter_optional=True, project_slugs=project_slug_list
+                request,
+                organization,
+                date_filter_optional=True,
+                project_ids=requested_project.ids or None,
+                project_slugs=project_slug_list or requested_project.slugs or None,
             )
         except NoProjects:
             raise NoProjects("No projects available")

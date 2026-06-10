@@ -37,8 +37,13 @@ class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
     }
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
+        query_params = request.query_params.copy()
+        if "project" in query_params:
+            query_params.setlist(
+                "project", [project for project in query_params.getlist("project") if project]
+            )
         validator = ReleaseThresholdIndexGETValidator(
-            data=request.query_params,
+            data=query_params,
         )
         if not validator.is_valid():
             return Response(validator.errors, status=400)

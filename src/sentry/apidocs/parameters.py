@@ -255,7 +255,7 @@ class ReleaseParams:
         description="Case-insensitive substring match against the release version.",
     )
     PROJECT_ID = OpenApiParameter(
-        name="project_id",
+        name="project",
         location="query",
         required=False,
         type=str,

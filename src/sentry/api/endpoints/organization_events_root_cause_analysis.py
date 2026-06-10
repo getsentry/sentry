@@ -36,7 +36,7 @@ RESPONSE_KEYS = [
 
 class RootCauseAnalysisQuerySerializer(serializers.Serializer):
     transaction = serializers.CharField(max_length=200)
-    project = ProjectField(scope="project:read")
+    project = ProjectField(scope="project:read", id_allowed=True)
     breakpoint = serializers.CharField()
     per_page = serializers.IntegerField(min_value=1, max_value=MAX_LIMIT, default=DEFAULT_LIMIT)
     span_score_threshold = serializers.IntegerField(

@@ -363,7 +363,7 @@ class OrganizationReleaseDetailsEndpoint(
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        # Validate project access when project_id is provided
+        # Validate project access when a project identifier is provided.
         project = None
         if project_id:
             try:

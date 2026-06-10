@@ -13,12 +13,14 @@ ValidationError = serializers.ValidationError
 @extend_schema_field(field=OpenApiTypes.STR)
 class ProjectField(serializers.Field):
     def __init__(
-        self, scope: str | Collection[str] = "project:write", id_allowed: bool = True, **kwags
+        self, scope: str | Collection[str] = "project:write", id_allowed: bool = False, **kwags
     ):
         """
         The scope parameter specifies which permissions are required to access the project field.
         If multiple scopes are provided, the project can be accessed when the user is authenticated with
         any of the scopes.
+
+        If id_allowed is true, the field accepts a project ID or slug. Otherwise, it accepts slugs only.
         """
         self.scope = scope
         self.id_allowed = id_allowed

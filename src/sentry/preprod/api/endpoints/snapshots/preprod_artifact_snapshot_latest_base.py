@@ -158,6 +158,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         project_id = None
         project_slug = None
         if project_slug_param := request.GET.get("projectSlug"):
+            if parse_id_or_slug_params([project_slug_param]).has_all_projects_sentinel:
+                return Response({"detail": "Invalid project parameter"}, status=400)
             project_slug = project_slug_param
         elif project_param := request.GET.get("project"):
             try:

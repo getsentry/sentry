@@ -926,6 +926,26 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid project parameter"
 
+    def test_get_latest_base_snapshot_rejects_project_slug_all_sentinel(self):
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "projectSlug": "$all"},
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project parameter"
+
+    def test_get_latest_base_snapshot_rejects_project_slug_id_sentinel(self):
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "projectSlug": "-1"},
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project parameter"
+
 
 class ProjectPreprodSnapshotDeleteTest(APITestCase):
     def setUp(self) -> None:
