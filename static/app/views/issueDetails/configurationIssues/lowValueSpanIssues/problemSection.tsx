@@ -11,7 +11,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -26,13 +26,15 @@ interface ProblemSectionProps {
 const LOW_VALUE_SPAN_EXPLORE_REFERRER = 'low-value-span-configuration-issue';
 
 function getAffectedSpanQuery(evidenceData: LowValueSpanEvidenceData): string | null {
-  if (!evidenceData.op && !evidenceData.description) {
+  const {op, description} = evidenceData;
+
+  if (op === null && description === null) {
     return null;
   }
 
   return MutableSearch.fromQueryObject({
-    'span.op': evidenceData.op ?? undefined,
-    'span.description': evidenceData.description ?? undefined,
+    'span.op': op ?? EMPTY_OPTION_VALUE,
+    'span.description': description ?? EMPTY_OPTION_VALUE,
   }).formatString();
 }
 
