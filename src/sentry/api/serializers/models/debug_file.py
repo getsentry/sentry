@@ -34,7 +34,7 @@ class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
             "symbolType": obj.file_format,
             "headers": obj.get_headers(),
             "size": obj.get_file_size(),
-            "sha1": obj.checksum,
+            "sha1": obj.get_checksum(),
             "dateCreated": obj.get_date_created(),
             "data": obj.data or {},
             "storage_path": obj.storage_path,

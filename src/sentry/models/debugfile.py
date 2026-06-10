@@ -158,6 +158,14 @@ class ProjectDebugFile(Model):
 
     __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
+    def get_checksum(self) -> str:
+        if self.storage_path is not None:
+            assert self.checksum is not None
+            return self.checksum
+        if self.file is not None:
+            return self.file.checksum
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
     def get_content_type(self) -> str:
         if self.storage_path is not None:
             assert self.content_type is not None
@@ -251,9 +259,9 @@ class ProjectDebugFile(Model):
             try:
                 response = self._get_objectstore_session().get(self.storage_path)
                 return response.payload
-            except Exception as e:
+            except Exception:
                 logger.exception("Failed to read debug file from Objectstore")
-                raise e
+                raise
         if self.file is not None:
             return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
