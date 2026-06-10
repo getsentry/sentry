@@ -28,28 +28,36 @@ def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]) -> None:
     if not needs_bump:
         return
 
-    ids = []
-    # For Objectstore-backed files, issue a HEAD request to bump the TTI.
+    ids_to_renew = []
     for dif in debug_files:
-        bump_db = True
-        if dif.storage_path is not None and dif.date_accessed <= threshold_date:
+        if dif.date_accessed > threshold_date:
+            continue
+
+        # For Objectstore-backed files, issue a HEAD request to bump the TTI.
+        if dif.storage_path is not None:
             try:
                 dif._get_objectstore_session().head(dif.storage_path)
             except Exception:
-                logger.exception("Failed to bump TTI for Debug File")
-                # Don't bump in the DB, so that we try bumping again on next access
-                bump_db = False
-        if bump_db:
-            ids.append(dif.id)
+                logger.exception(
+                    "debugfile.objectstore_tti_renewal_failed",
+                    extra={
+                        "project_debug_file_id": dif.id,
+                        "project_id": dif.project_id,
+                        "storage_path": dif.storage_path,
+                    },
+                )
+                continue
 
-    if not ids:
+        ids_to_renew.append(dif.id)
+
+    if not ids_to_renew:
         return
 
     # Update `date_accessed` in the db.
     with metrics.timer("debug_files_renewal"):
         with atomic_transaction(using=(router.db_for_write(ProjectDebugFile),)):
             updated_rows_count = ProjectDebugFile.objects.filter(
-                id__in=ids, date_accessed__lte=threshold_date
+                id__in=ids_to_renew, date_accessed__lte=threshold_date
             ).update(date_accessed=now)
             if updated_rows_count > 0:
                 metrics.incr("debug_files_renewal.were_renewed", updated_rows_count)
