@@ -120,7 +120,8 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="Retrieve an Event for a Project",
+        operation_id="getProjectEvent",
+        summary="Retrieve an Event for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

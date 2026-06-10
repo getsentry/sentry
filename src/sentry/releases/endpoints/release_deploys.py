@@ -147,7 +147,8 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
     }
 
     @extend_schema(
-        operation_id="List a Release's Deploys",
+        operation_id="listOrganizationReleaseDeploys",
+        summary="List a Release's Deploys",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, CursorQueryParam],
         responses={200: DeployResponseSerializer(many=True)},
     )
@@ -188,7 +189,8 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Deploy",
+        operation_id="createOrganizationReleaseDeploy",
+        summary="Create a Deploy",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
         request=DeploySerializer,
         responses={201: DeployResponseSerializer, 400: RESPONSE_BAD_REQUEST},

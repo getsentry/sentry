@@ -54,7 +54,8 @@ class GroupHashesEndpoint(GroupEndpoint):
     }
 
     @extend_schema(
-        operation_id="List an Issue's Hashes",
+        operation_id="listOrganizationIssueHashes",
+        summary="List an Issue's Hashes",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,

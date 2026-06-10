@@ -49,7 +49,8 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     permission_classes = (OrganizationProjectDetectorPermission,)
 
     @extend_schema(
-        operation_id="Create a Monitor for a Project",
+        operation_id="createOrganizationProjectDetector",
+        summary="Create a Monitor for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

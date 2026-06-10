@@ -42,7 +42,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     owner = ApiOwner.ALERTS_MONITORS
 
     @extend_schema(
-        operation_id="Fetch an Alert",
+        operation_id="getOrganizationWorkflow",
+        summary="Fetch an Alert",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,
@@ -70,7 +71,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         return Response(serialized_workflow)
 
     @extend_schema(
-        operation_id="Update an Alert by ID",
+        operation_id="updateOrganizationWorkflow",
+        summary="Update an Alert by ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,
@@ -119,7 +121,8 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         )
 
     @extend_schema(
-        operation_id="Delete an Alert",
+        operation_id="deleteOrganizationWorkflow",
+        summary="Delete an Alert",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.WORKFLOW_ID,

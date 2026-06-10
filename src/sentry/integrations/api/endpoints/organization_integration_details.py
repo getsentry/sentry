@@ -53,7 +53,8 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
     }
 
     @extend_schema(
-        operation_id="Retrieve an Integration for an Organization",
+        operation_id="getOrganizationIntegration",
+        summary="Retrieve an Integration for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.INTEGRATION_ID,
@@ -85,7 +86,8 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         )
 
     @extend_schema(
-        operation_id="Delete an Integration for an Organization",
+        operation_id="deleteOrganizationIntegration",
+        summary="Delete an Integration for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.INTEGRATION_ID],
         responses={
             204: RESPONSE_NO_CONTENT,

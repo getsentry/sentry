@@ -40,7 +40,8 @@ class OrganizationReleaseFileDetailsEndpoint(
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization Release's File",
+        operation_id="getOrganizationReleaseFile",
+        summary="Retrieve an Organization Release's File",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -118,7 +119,8 @@ class OrganizationReleaseFileDetailsEndpoint(
         return self.update_releasefile(request, release, file_id)
 
     @extend_schema(
-        operation_id="Delete an Organization Release's File",
+        operation_id="deleteOrganizationReleaseFile",
+        summary="Delete an Organization Release's File",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, ReleaseParams.FILE_ID],
         responses={
             204: RESPONSE_NO_CONTENT,

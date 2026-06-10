@@ -66,7 +66,8 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Available Integrations",
+        operation_id="listOrganizationIntegrations",
+        summary="List an Organization's Available Integrations",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IntegrationParams.PROVIDER_KEY,

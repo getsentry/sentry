@@ -252,7 +252,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         return queryset
 
     @extend_schema(
-        operation_id="Fetch an Organization's Monitors",
+        operation_id="listOrganizationDetectors",
+        summary="Fetch an Organization's Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -319,7 +320,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Mutate an Organization's Monitors",
+        operation_id="updateOrganizationDetectors",
+        summary="Mutate an Organization's Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -407,7 +409,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Bulk Delete Monitors",
+        operation_id="deleteOrganizationDetectors",
+        summary="Bulk Delete Monitors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,

@@ -272,7 +272,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                     rule_owner["name"] = rule_owner.pop("identifier")
 
     @extend_schema(
-        operation_id="Retrieve Ownership Configuration for a Project",
+        operation_id="getProjectOwnership",
+        summary="Retrieve Ownership Configuration for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -295,7 +296,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         return Response(body)
 
     @extend_schema(
-        operation_id="Update Ownership Configuration for a Project",
+        operation_id="updateProjectOwnership",
+        summary="Update Ownership Configuration for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

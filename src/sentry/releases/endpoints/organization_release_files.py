@@ -104,7 +104,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         return self.get_releasefiles(request, release, organization.id)
 
     @extend_schema(
-        operation_id="Upload a New Organization Release File",
+        operation_id="uploadOrganizationReleaseFile",
+        summary="Upload a New Organization Release File",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
         request={"multipart/form-data": ReleaseFileUploadSerializer},
         responses={

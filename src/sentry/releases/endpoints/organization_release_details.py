@@ -310,7 +310,8 @@ class OrganizationReleaseDetailsEndpoint(
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Release",
+        operation_id="getOrganizationRelease",
+        summary="Retrieve an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -430,7 +431,8 @@ class OrganizationReleaseDetailsEndpoint(
         return Response(data)
 
     @extend_schema(
-        operation_id="Update an Organization's Release",
+        operation_id="updateOrganizationRelease",
+        summary="Update an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -554,7 +556,8 @@ class OrganizationReleaseDetailsEndpoint(
         return Response(data)
 
     @extend_schema(
-        operation_id="Delete an Organization's Release",
+        operation_id="deleteOrganizationRelease",
+        summary="Delete an Organization's Release",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,

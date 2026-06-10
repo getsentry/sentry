@@ -47,7 +47,8 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
     )
 
     @extend_schema(
-        operation_id="Retrieve Tag Details",
+        operation_id="getOrganizationIssueTag",
+        summary="Retrieve Tag Details",
         description="Return a list of values associated with this key for an issue. When paginated can return at most 1000 values.",
         parameters=[
             IssueParams.ISSUE_ID,

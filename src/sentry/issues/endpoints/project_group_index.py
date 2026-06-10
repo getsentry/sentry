@@ -69,7 +69,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Project's Issues",
+        operation_id="listProjectIssues",
+        summary="List a Project's Issues",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
