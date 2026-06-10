@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {getRegionNameOptions, shouldDisplayRegions} from 'sentry/utils/regions';
+import {getLocalityNameOptions, shouldDisplayLocalities} from 'sentry/utils/regions';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -34,7 +34,7 @@ function OrganizationCreate() {
   const privacyUrl = ConfigStore.get('privacyUrl');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const relocationUrl = normalizeUrl('/relocation/');
-  const regionOptions = getRegionNameOptions();
+  const localityOptions = getLocalityNameOptions();
   const client = useApi();
 
   const hasDataConsent =
@@ -111,7 +111,7 @@ function OrganizationCreate() {
             stacked
             required
           />
-          {shouldDisplayRegions() && (
+          {shouldDisplayLocalities() && (
             <SelectField
               name="dataStorageLocation"
               label={t('Data Storage Location')}
@@ -119,7 +119,7 @@ function OrganizationCreate() {
                 "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created. [learnMore:Learn More]",
                 {learnMore: <a href={DATA_STORAGE_DOCS_LINK} />}
               )}
-              options={regionOptions}
+              options={localityOptions}
               inline={false}
               stacked
               required
