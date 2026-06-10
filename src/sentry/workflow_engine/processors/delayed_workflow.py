@@ -10,6 +10,7 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
+from sentry_sdk import start_span
 from taskbroker_client.retry import retry_task
 from taskbroker_client.state import current_task
 
@@ -897,7 +898,7 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
 
 def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
     """Process workflows for a project - evaluate conditions and fire actions."""
-    with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
+    with start_span(op="delayed_workflow.prepare_data"):
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):

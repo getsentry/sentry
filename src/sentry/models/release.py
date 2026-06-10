@@ -16,6 +16,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
+from sentry_sdk import start_span
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
@@ -625,7 +626,7 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user_id, fetch=False):
-        with sentry_sdk.start_span(op="set_refs"):
+        with start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
             from sentry.models.repository import Repository
@@ -747,7 +748,7 @@ class Release(Model):
         """
         Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
         """
-        with sentry_sdk.start_span(op="clear_commits"):
+        with start_span(op="clear_commits"):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 

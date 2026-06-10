@@ -1,6 +1,6 @@
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -34,7 +34,7 @@ class OrganizationUsersEndpoint(OrganizationEndpoint):
         """
         projects = self.get_projects(request, organization)
 
-        with sentry_sdk.start_span(op="OrganizationUsersEndpoint.get_members") as span:
+        with start_span(op="OrganizationUsersEndpoint.get_members") as span:
             qs = OrganizationMember.objects.filter(
                 user_id__isnull=False,
                 user_is_active=True,

@@ -8,13 +8,13 @@ from collections.abc import Generator, Iterable, Mapping
 from typing import Any, Self
 
 import psycopg2.errors
-import sentry_sdk
 from django import db
 from django.db import DatabaseError, OperationalError, connections, models, router, transaction
 from django.db.models import Count, Max, Min
 from django.db.models.functions import Now
 from django.db.transaction import Atomic
 from django.utils import timezone
+from sentry_sdk import start_span
 from sentry_sdk.tracing import Span
 
 from sentry import options
@@ -306,7 +306,7 @@ class OutboxBase(Model):
                             "synchronous": int(is_synchronous_flush),
                         },
                     ),
-                    sentry_sdk.start_span(op="outbox.process") as span,
+                    start_span(op="outbox.process") as span,
                 ):
                     self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:

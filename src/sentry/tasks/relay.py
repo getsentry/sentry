@@ -3,6 +3,7 @@ import time
 
 import sentry_sdk
 from django.db import connections, router, transaction
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.constants import DataCategory
@@ -338,7 +339,7 @@ def schedule_invalidate_project_config(
             countdown=countdown,
         )
 
-    with sentry_sdk.start_span(
+    with start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
         span.set_tag("transaction_db", transaction_db)

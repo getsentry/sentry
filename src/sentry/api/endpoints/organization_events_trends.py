@@ -2,10 +2,10 @@ from datetime import timedelta
 from re import Match
 from typing import TypedDict
 
-import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.function import Function
@@ -311,7 +311,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="trend_dates"):
+        with start_span(op="discover.endpoint", name="trend_dates"):
             middle_date = request.GET.get("middle")
             if middle_date:
                 try:

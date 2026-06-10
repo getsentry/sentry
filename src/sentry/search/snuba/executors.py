@@ -13,8 +13,8 @@ from hashlib import md5
 from math import floor
 from typing import Any, TypedDict, cast
 
-import sentry_sdk
 from django.utils import timezone
+from sentry_sdk import start_span
 from snuba_sdk.query import Query
 
 from sentry import features, options
@@ -1222,7 +1222,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # clause.
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
 
-        with sentry_sdk.start_span(op="snuba_group_query") as span:
+        with start_span(op="snuba_group_query") as span:
             group_ids = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )

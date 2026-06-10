@@ -5,10 +5,10 @@ from datetime import timedelta
 from typing import Any
 
 import orjson
-import sentry_sdk
 from django.utils import timezone
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
+from sentry_sdk import start_span
 from snuba_sdk import Request
 from taskbroker_client.retry import Retry
 
@@ -224,7 +224,7 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
-    with sentry_sdk.start_span(op="snuba.tasks", name="create_in_snuba") as span:
+    with start_span(op="snuba.tasks", name="create_in_snuba") as span:
         span.set_tag("dataset", subscription.snuba_query.dataset)
 
         snuba_query = subscription.snuba_query
@@ -349,7 +349,7 @@ def subscription_checker(**kwargs: Any) -> None:
         ),
         date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
     ):
-        with sentry_sdk.start_span(op="repair_subscription") as span:
+        with start_span(op="repair_subscription") as span:
             span.set_data("subscription_id", subscription.id)
             span.set_data("status", subscription.status)
             count += 1

@@ -7,6 +7,7 @@ from typing import Any
 
 import orjson
 import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
@@ -36,7 +37,7 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
     Fetches and returns the dart symbols mapping for the first available debug_id.
     There should only be one mapping file per Flutter build, so we return the first mapping found.
     """
-    with sentry_sdk.start_span(op="dartsymbolmap.generate_dart_symbols_map") as span:
+    with start_span(op="dartsymbolmap.generate_dart_symbols_map") as span:
         dif_paths = ProjectDebugFile.difcache.fetch_difs(project, debug_ids, features=["mapping"])
         if not dif_paths:
             return None
@@ -83,7 +84,7 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
     if not exceptions:
         return None
 
-    with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
+    with start_span(op="dartsymbolmap.deobfuscate_exception_type"):
         symbol_map = generate_dart_symbols_map(list(debug_ids), project)
         if symbol_map is None:
             return None

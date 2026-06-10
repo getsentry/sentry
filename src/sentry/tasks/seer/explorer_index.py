@@ -4,8 +4,8 @@ import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
 
-import sentry_sdk
 from django.utils import timezone as django_timezone
+from sentry_sdk import start_span
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
@@ -68,7 +68,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             continue
 
         is_eligible = False
-        with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
+        with start_span(op="seer_explorer_index.has_feature"):
             batch_result = features.batch_has(FEATURE_NAMES, organization=project.organization)
 
             if batch_result:

@@ -5,6 +5,7 @@ from collections.abc import Callable, Sequence
 from typing import Any, override
 
 import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry import analytics
 from sentry.analytics.events.alert_sent import AlertSentEvent
@@ -50,7 +51,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
         **kwargs: Any,
     ) -> CallbackFuture:
         def wrapped_callback(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            with sentry_sdk.start_span(
+            with start_span(
                 op="IntegrationEventAction.future",
                 name=type(self).__name__,
             ):

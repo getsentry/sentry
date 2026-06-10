@@ -7,6 +7,7 @@ from typing import NoReturn
 
 import click
 import sentry_sdk
+from sentry_sdk import start_transaction
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
@@ -170,7 +171,7 @@ def devserver(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,
     )
-    with sentry_sdk.start_transaction(op="command", name="sentry.devserver"):
+    with start_transaction(op="command", name="sentry.devserver"):
         passed_options = {
             p.name: ctx.params[p.name]
             for p in ctx.command.params

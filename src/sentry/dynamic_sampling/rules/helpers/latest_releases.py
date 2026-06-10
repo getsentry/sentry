@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 import sentry_sdk.tracing
+from sentry_sdk import start_span
 
 from sentry import features
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
@@ -384,6 +385,6 @@ def record_latest_release(project: Project, release: Release, environment: str |
             trigger="dynamic_sampling:boost_release",
         )
 
-    with sentry_sdk.start_span(op="event_manager.dynamic_sampling_observe_latest_release") as span:
+    with start_span(op="event_manager.dynamic_sampling_observe_latest_release") as span:
         params = LatestReleaseParams(release=release, project=project, environment=environment)
         LatestReleaseBias(params).observe_release(on_release_boosted)

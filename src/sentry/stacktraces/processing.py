@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
 
 import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -354,7 +355,7 @@ def normalize_stacktraces_for_grouping(
     # the trimming produces a different function than the function we have
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
-    with sentry_sdk.start_span(op=op, name="iterate_frames"):
+    with start_span(op=op, name="iterate_frames"):
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
@@ -439,7 +440,7 @@ def normalize_stacktraces_for_grouping(
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
-        with sentry_sdk.start_span(op=op, name="apply_modifications_to_frame"):
+        with start_span(op=op, name="apply_modifications_to_frame"):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_category_and_updated_in_app_to_frames(
@@ -697,7 +698,7 @@ def process_stacktraces(
     try:
         # Preprocess step
         for processor in processing_task.iter_processors():
-            with sentry_sdk.start_span(
+            with start_span(
                 op="stacktraces.processing.process_stacktraces.preprocess_step"
             ) as span:
                 span.set_data("processor", processor.__class__.__name__)
@@ -710,7 +711,7 @@ def process_stacktraces(
             # Let the stacktrace processors touch the exception
             if stacktrace_info.is_exception and stacktrace_info.container:
                 for processor in processing_task.iter_processors():
-                    with sentry_sdk.start_span(
+                    with start_span(
                         op="stacktraces.processing.process_stacktraces.process_exception"
                     ) as span:
                         span.set_data("processor", processor.__class__.__name__)
@@ -721,7 +722,7 @@ def process_stacktraces(
             # If the stacktrace is empty we skip it for processing
             if not stacktrace_info.stacktrace:
                 continue
-            with sentry_sdk.start_span(
+            with start_span(
                 op="stacktraces.processing.process_stacktraces.process_single_stacktrace"
             ) as span:
                 new_frames, new_raw_frames, errors = process_single_stacktrace(

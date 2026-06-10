@@ -16,7 +16,7 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
+from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope, start_span
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
@@ -694,7 +694,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", name="bind_organization_context"):
+    with start_span(op="other", name="bind_organization_context"):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 

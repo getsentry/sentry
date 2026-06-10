@@ -6,8 +6,8 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Literal, cast
 
-import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_sdk import start_span
 from snuba_sdk import Column, Condition
 
 from sentry.api.endpoints.timeseries import GroupBy
@@ -315,7 +315,7 @@ def timeseries_query(
         Dataset.Transactions,
     ], "A dataset is required to query discover"
 
-    with sentry_sdk.start_span(op="discover.discover", name="timeseries.filter_transform"):
+    with start_span(op="discover.discover", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = TimeseriesQueryBuilder(
             dataset,
@@ -355,7 +355,7 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with sentry_sdk.start_span(op="discover.discover", name="timeseries.transform_results"):
+    with start_span(op="discover.discover", name="timeseries.transform_results"):
         results = []
         for snql_query, snuba_result in zip(query_list, query_results):
             results.append(
@@ -497,7 +497,7 @@ def top_events_timeseries(
     ], "A dataset is required to query discover"
 
     if top_events is None:
-        with sentry_sdk.start_span(op="discover.discover", name="top_events.fetch_events"):
+        with start_span(op="discover.discover", name="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -569,7 +569,7 @@ def top_events_timeseries(
             snuba_params.end_date,
             rollup,
         )
-    with sentry_sdk.start_span(op="discover.discover", name="top_events.transform_results") as span:
+    with start_span(op="discover.discover", name="top_events.transform_results") as span:
         span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 
@@ -663,7 +663,7 @@ def get_facets(
     sample = len(snuba_params.project_ids) > 2
     fetch_projects = len(snuba_params.project_ids) > 1
 
-    with sentry_sdk.start_span(op="discover.discover", name="facets.frequent_tags"):
+    with start_span(op="discover.discover", name="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
             dataset,
             params={},
@@ -709,7 +709,7 @@ def get_facets(
     project_results = []
     # Inject project data on the first page if multiple projects are selected
     if fetch_projects and cursor == 0:
-        with sentry_sdk.start_span(op="discover.discover", name="facets.projects"):
+        with start_span(op="discover.discover", name="facets.projects"):
             project_value_builder = DiscoverQueryBuilder(
                 dataset,
                 params={},
@@ -743,7 +743,7 @@ def get_facets(
         else:
             individual_tags.append(tag)
 
-    with sentry_sdk.start_span(op="discover.discover", name="facets.individual_tags") as span:
+    with start_span(op="discover.discover", name="facets.individual_tags") as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
             tag = f"tags[{tag_name}]"
@@ -768,7 +768,7 @@ def get_facets(
             )
 
     if aggregate_tags:
-        with sentry_sdk.start_span(op="discover.discover", name="facets.aggregate_tags"):
+        with start_span(op="discover.discover", name="facets.aggregate_tags"):
             aggregate_value_builder = DiscoverQueryBuilder(
                 dataset,
                 params={},

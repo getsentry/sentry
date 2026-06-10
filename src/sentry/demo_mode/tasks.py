@@ -6,6 +6,7 @@ from django.db import router
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.utils import timezone
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.demo_mode.utils import get_demo_org, is_demo_mode_enabled
@@ -77,7 +78,7 @@ def _sync_project_debug_files(
     if not source_org or not target_org:
         return
 
-    with sentry_sdk.start_span(name="sync-project-debug-files-get-project-ids") as span:
+    with start_span(name="sync-project-debug-files-get-project-ids") as span:
         source_project_ids = list(
             Project.objects.filter(
                 organization_id=source_org.id,
@@ -110,7 +111,7 @@ def _sync_project_debug_files(
     )
 
     for source_project_debug_file in different_project_debug_files:
-        with sentry_sdk.start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
+        with start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
             span.set_data("source_project_debug_file_id", source_project_debug_file.id)
             _sync_project_debug_file(source_project_debug_file, target_org)
 

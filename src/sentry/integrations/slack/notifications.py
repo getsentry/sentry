@@ -4,7 +4,7 @@ import logging
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
 from sentry.integrations.slack.service import SlackService
@@ -29,14 +29,14 @@ def _send_slack_notification(
     Sending Slack notifications to a channel is in integrations/slack/actions/notification.py"""
 
     service = SlackService.default()
-    with sentry_sdk.start_span(op="notification.send_slack", name="gen_channel_integration_map"):
+    with start_span(op="notification.send_slack", name="gen_channel_integration_map"):
         data = get_integrations_by_channel_by_recipient(
             notification.organization, recipients, provider
         )
 
     for recipient, integrations_by_channel in data.items():
-        with sentry_sdk.start_span(op="notification.send_slack", name="send_one"):
-            with sentry_sdk.start_span(op="notification.send_slack", name="gen_attachments"):
+        with start_span(op="notification.send_slack", name="send_one"):
+            with start_span(op="notification.send_slack", name="gen_attachments"):
                 attachments = service.get_attachments(
                     notification,
                     recipient,

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry import analytics
 from sentry.db.models import Model
@@ -178,7 +179,7 @@ class BaseNotification(abc.ABC):
         from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
         from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 
-        with sentry_sdk.start_span(op="notification.send", name="record_notification_sent"):
+        with start_span(op="notification.send", name="record_notification_sent"):
             project: Project | None = getattr(self, "project", None)
             group: Group | None = getattr(self, "group", None)
 
@@ -313,14 +314,14 @@ class BaseNotification(abc.ABC):
         """The default way to send notifications that respects Notification Settings."""
         from sentry.notifications.notify import notify
 
-        with sentry_sdk.start_span(op="notification.send", name="get_participants"):
+        with start_span(op="notification.send", name="get_participants"):
             participants_by_provider = self.get_participants()
             if not participants_by_provider:
                 return
 
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
-            with sentry_sdk.start_span(op="notification.send", name=f"send_for_{provider}"):
+            with start_span(op="notification.send", name=f"send_for_{provider}"):
                 safe_execute(notify, provider, self, recipients, context)
 
 

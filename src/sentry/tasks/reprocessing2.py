@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
+from sentry_sdk import start_span
 from taskbroker_client.retry import Retry
 
 from sentry import eventstream, nodestore
@@ -94,7 +95,7 @@ def reprocess_group(
 
     for event in events:
         if max_events is None or max_events > 0:
-            with sentry_sdk.start_span(op="reprocess_event"):
+            with start_span(op="reprocess_event"):
                 try:
                     reprocess_event(
                         project_id=project_id,

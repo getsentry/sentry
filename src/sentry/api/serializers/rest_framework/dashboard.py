@@ -9,6 +9,7 @@ import sentry_sdk
 from django.db.models import Max
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
+from sentry_sdk import start_span
 
 from sentry import features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -929,7 +930,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return instance
 
     def update_widgets(self, instance, widget_data):
-        with sentry_sdk.start_span(op="function", name="dashboard.update_widgets"):
+        with start_span(op="function", name="dashboard.update_widgets"):
             widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
 
             existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
@@ -1072,9 +1073,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         organization = self.context["organization"]
         linked_dashboards = linked_dashboards or []
 
-        with sentry_sdk.start_span(
-            op="function", name="dashboard.update_or_create_field_links"
-        ) as span:
+        with start_span(op="function", name="dashboard.update_or_create_field_links") as span:
             # Get the set of fields that should exist
             new_fields = set()
             field_links_to_create = []
@@ -1163,7 +1162,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 field__in=new_fields
             ).delete()
 
-            with sentry_sdk.start_span(
+            with start_span(
                 op="db.bulk_create", name="dashboard.update_or_create_field_links.bulk_create"
             ) as span:
                 span.set_data("new_fields", list(new_fields))

@@ -2,8 +2,8 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-import sentry_sdk
 from django.db.models import Count
+from sentry_sdk import start_span
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -142,7 +142,7 @@ def project_key_errors(
     # Take the 3 most frequently occuring events
     op = "weekly_reports.project_key_errors"
 
-    with sentry_sdk.start_span(op=op):
+    with start_span(op=op):
         snuba_rows = _project_key_errors_snuba(ctx=ctx, project=project, referrer=referrer)
         query_result = snuba_rows
 
@@ -312,7 +312,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
 
     op = "weekly_reports.project_key_performance_issues"
 
-    with sentry_sdk.start_span(op=op):
+    with start_span(op=op):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
         # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
         # We do this to limit the number of group_ids snuba has to join with.
@@ -465,7 +465,7 @@ def _project_key_performance_issues_eap(
 def project_key_transactions_this_week(ctx, project):
     if not project.flags.has_transactions:
         return
-    with sentry_sdk.start_span(op="weekly_reports.project_key_transactions"):
+    with start_span(op="weekly_reports.project_key_transactions"):
         # Take the 3 most frequently occuring transactions this week
         query = Query(
             match=Entity("transactions"),

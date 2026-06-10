@@ -4,7 +4,7 @@ import logging
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
@@ -103,7 +103,7 @@ def send_notification_as_msteams(
         )
         return
 
-    with sentry_sdk.start_span(op="notification.send_msteams", name="gen_channel_integration_map"):
+    with start_span(op="notification.send_msteams", name="gen_channel_integration_map"):
         data = get_integrations_by_channel_by_recipient(
             organization=notification.organization,
             recipients=recipients,
@@ -111,11 +111,11 @@ def send_notification_as_msteams(
         )
 
         for recipient, integrations_by_channel in data.items():
-            with sentry_sdk.start_span(op="notification.send_msteams", name="send_one"):
+            with start_span(op="notification.send_msteams", name="send_one"):
                 extra_context = (extra_context_by_actor or {}).get(recipient, {})
                 context = get_context(notification, recipient, shared_context, extra_context)
 
-                with sentry_sdk.start_span(op="notification.send_msteams", name="gen_attachments"):
+                with start_span(op="notification.send_msteams", name="gen_attachments"):
                     if isinstance(notification, GroupActivityNotification) or isinstance(
                         notification, AlertRuleNotification
                     ):
@@ -128,9 +128,7 @@ def send_notification_as_msteams(
 
                     client = MsTeamsClient(integration)
                     try:
-                        with sentry_sdk.start_span(
-                            op="notification.send_msteams", name="notify_recipient"
-                        ):
+                        with start_span(op="notification.send_msteams", name="notify_recipient"):
                             client.send_card(conversation_id, card)
 
                         notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)

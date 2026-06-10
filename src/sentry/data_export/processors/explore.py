@@ -1,13 +1,13 @@
 import logging
 from typing import Any, cast
 
-import sentry_sdk
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
     ExportTraceItemsResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_sdk import start_span
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.data_export.base import ExportError
@@ -219,7 +219,7 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             token = PageToken()
             token.ParseFromString(self.page_token)
             request.page_token.CopyFrom(token)
-        with sentry_sdk.start_span(op="snuba.rpc", name="ExportTraceItems") as span:
+        with start_span(op="snuba.rpc", name="ExportTraceItems") as span:
             span.set_data("dataset", self.explore_query["dataset"])
             span.set_data("limit", limit)
             span.set_data("has_page_token", self.page_token is not None)

@@ -15,7 +15,7 @@ from django.conf import settings
 from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
-from sentry_sdk import set_tag
+from sentry_sdk import set_tag, start_span
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
@@ -210,7 +210,7 @@ def prepare_organization_report(
             timestamp=timestamp, duration=duration, organization=organization
         ).create_context()
 
-        with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
+        with start_span(op="weekly_reports.check_if_ctx_is_empty"):
             report_is_available = not ctx.is_empty()
         set_tag("report.available", report_is_available)
 
@@ -220,7 +220,7 @@ def prepare_organization_report(
 
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-    with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
+    with start_span(op="weekly_reports.deliver_reports"):
         logger.info(
             "weekly_reports.deliver_reports",
             extra={"batch_id": str(batch_id), "organization": organization_id},

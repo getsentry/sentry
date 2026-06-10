@@ -6,11 +6,11 @@ from datetime import timedelta
 from itertools import chain
 from typing import Any, Never, TypedDict
 
-import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function, Identifier, Lambda
 from snuba_sdk.orderby import Direction, OrderBy
@@ -346,7 +346,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
             zerofill_results: bool,
             comparison_delta: timedelta | None = None,
         ) -> SnubaTSResult:
-            with sentry_sdk.start_span(op="discover.discover", name="timeseries.filter_transform"):
+            with start_span(op="discover.discover", name="timeseries.filter_transform"):
                 builder = TimeseriesQueryBuilder(
                     Dataset.Discover,
                     {},
@@ -383,7 +383,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     snql_query, "api.organization-events-spans-performance-stats"
                 )
 
-            with sentry_sdk.start_span(op="discover.discover", name="timeseries.transform_results"):
+            with start_span(op="discover.discover", name="timeseries.transform_results"):
                 result = discover.zerofill(
                     results["data"],
                     snuba_params.start_date,

@@ -48,6 +48,7 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
 )
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
+from sentry_sdk import start_span
 from urllib3.response import BaseHTTPResponse
 
 from sentry.utils import json, metrics
@@ -394,7 +395,7 @@ def _make_rpc_request(
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
+            with start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
                 if referrer:
                     span.set_tag("snuba.referrer", referrer)
                     span.set_data("snuba.query", req)

@@ -8,6 +8,7 @@ from typing import Any, Literal, Self, overload
 
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_sdk import start_span
 from snuba_sdk import Condition
 
 from sentry import nodestore
@@ -341,7 +342,7 @@ class EventStorage(Service):
         """
         sentry_sdk.set_tag("eventstore.backend", "nodestore")
 
-        with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
+        with start_span(op="eventstore.base.bind_nodes"):
             object_node_list = [(i, i.data) for i in object_list if i.data.id]
 
             # Remove duplicates from the list of nodes to be fetched

@@ -6,6 +6,7 @@ from typing import Any, TypedDict
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -285,13 +286,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         ]
 
         # Execute all queries in a single bulk RPC call
-        with sentry_sdk.start_span(
-            op="ai_conversations.bulk_rpc", name="Execute bulk table queries"
-        ):
+        with start_span(op="ai_conversations.bulk_rpc", name="Execute bulk table queries"):
             results = Spans.run_bulk_table_queries(queries)
 
         # Process results
-        with sentry_sdk.start_span(op="ai_conversations.process", name="Process query results"):
+        with start_span(op="ai_conversations.process", name="Process query results"):
             conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
             self._apply_enrichment(conversations_map, results["enrichment"])
             self._apply_first_last_io(conversations_map, results["first_last_io"])
@@ -378,7 +377,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
     ) -> dict[str, dict[str, Any]]:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.build_from_aggregations",
             name="Build conversations from aggregations",
         ):
@@ -419,7 +418,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_enrichment(
         self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_enrichment",
             name="Apply enrichment data",
         ) as span:
@@ -478,7 +477,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_first_last_io",
             name="Apply first/last IO data",
         ) as span:

@@ -5,7 +5,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
-import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry.logging.handlers import (
     GKEStructLogHandler,
@@ -122,7 +122,7 @@ def test_emit(record, out, handler, logger) -> None:
     ),
 )
 def test_emit_with_trace_id(record, out, handler, logger) -> None:
-    with sentry_sdk.start_span(name="test_emit_with_trace_id"):
+    with start_span(name="test_emit_with_trace_id"):
         record = make_logrecord(**record)
         handler.emit(record, logger=logger)
         expected = {

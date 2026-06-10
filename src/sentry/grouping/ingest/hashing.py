@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.core.cache import cache
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.exceptions import HashDiscarded
@@ -69,7 +70,7 @@ def _calculate_event_grouping(
             )
 
         with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+            with start_span(op="event_manager.normalize_stacktraces_for_grouping"):
                 event.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
@@ -109,7 +110,7 @@ def _calculate_secondary_hashes(
     """
     secondary_hashes: list[str] = []
     try:
-        with sentry_sdk.start_span(
+        with start_span(
             op="event_manager",
             name="event_manager.save.secondary_calculate_event_grouping",
         ):
@@ -136,7 +137,7 @@ def run_primary_grouping(
         job["data"]["grouping_config"] = grouping_config
 
     with (
-        sentry_sdk.start_span(
+        start_span(
             op="event_manager",
             name="event_manager.save.calculate_event_grouping",
         ),

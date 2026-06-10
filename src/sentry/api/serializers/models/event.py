@@ -10,6 +10,7 @@ import sentry_sdk
 import sqlparse
 from django.contrib.auth.models import AnonymousUser
 from sentry_relay.processing import meta_with_chunks
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
@@ -516,7 +517,7 @@ class SqlFormatEventSerializer(EventSerializer):
         include_full_release_data = kwargs.pop("include_full_release_data", False)
         result = super().serialize(obj, attrs, user, **kwargs)
 
-        with sentry_sdk.start_span(op="serialize", name="Format SQL"):
+        with start_span(op="serialize", name="Format SQL"):
             result = self._format_breadcrumb_messages(result, obj, user)
             result = self._format_db_spans(result, obj, user)
             release_info = self._get_release_info(user, obj, include_full_release_data)

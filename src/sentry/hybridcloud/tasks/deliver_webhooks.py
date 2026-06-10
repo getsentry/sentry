@@ -10,6 +10,7 @@ from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
 from rest_framework import status
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
@@ -370,9 +371,7 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
     Remove payloads in this mailbox that are older than MAX_DELIVERY_AGE.
     Once payloads are this old they are low value, and we're better off prioritizing new work.
     """
-    with sentry_sdk.start_span(
-        op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads"
-    ) as span:
+    with start_span(op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads") as span:
         span.set_tag("mailbox_name", payload.mailbox_name)
         max_age = timezone.now() - MAX_DELIVERY_AGE
         if payload.date_added >= max_age:

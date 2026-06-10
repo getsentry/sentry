@@ -2,7 +2,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.profile_functions import (
@@ -158,7 +158,7 @@ def top_events_timeseries(
     assert not include_other, "Other is not supported"  # TODO: support other
 
     if top_events is None:
-        with sentry_sdk.start_span(op="discover.discover", name="top_events.fetch_events"):
+        with start_span(op="discover.discover", name="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -234,7 +234,7 @@ def format_top_events_timeseries_results(
             rollup,
         )
 
-    with sentry_sdk.start_span(op="discover.discover", name="top_events.transform_results") as span:
+    with start_span(op="discover.discover", name="top_events.transform_results") as span:
         result = query_builder.strip_alias_prefix(result)
 
         span.set_data("result_count", len(result.get("data", [])))

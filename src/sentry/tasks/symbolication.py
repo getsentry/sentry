@@ -3,8 +3,8 @@ from collections.abc import Callable, Mapping
 from time import time
 from typing import Any
 
-import sentry_sdk
 from django.conf import settings
+from sentry_sdk import start_span
 
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
@@ -151,7 +151,7 @@ def _do_symbolicate_event(
     project = Project.objects.get_from_cache(id=project_id)
     # needed for efficient featureflag checks in getsentry
     # NOTE: The `organization` is used for constructing the symbol sources.
-    with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+    with start_span(op="lang.native.symbolicator.organization.get_from_cache"):
         project.set_cached_field_value(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
@@ -178,9 +178,7 @@ def _do_symbolicate_event(
             "tasks.store.symbolicate_event.symbolication",
             tags={"symbolication_function": symbolication_function_name},
         ),
-        sentry_sdk.start_span(
-            op=f"tasks.store.symbolicate_event.{symbolication_function_name}"
-        ) as span,
+        start_span(op=f"tasks.store.symbolicate_event.{symbolication_function_name}") as span,
     ):
         try:
             symbolicated_data = symbolication_function(symbolicator, data)

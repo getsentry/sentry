@@ -9,6 +9,7 @@ import sentry_sdk
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
+from sentry_sdk import start_span
 from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
 from sentry.data_export.base import (
@@ -168,7 +169,7 @@ def export_chunk_to_stored_blobs(
     batch_size: int = SNUBA_MAX_RESULTS,
 ) -> AssembleChunkResult:
     """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
-    with sentry_sdk.start_span(op="export.chunk", name=f"offset={offset}"):
+    with start_span(op="export.chunk", name=f"offset={offset}"):
         output_mode = OutputMode.from_value(data_export.export_format)
         processor = get_processor(
             data_export,
@@ -336,7 +337,7 @@ def assemble_download(
         "requested_rows": export_limit,
         "offset_in": offset,
     }
-    with sentry_sdk.start_span(op="assemble", name="Async Export Data"):
+    with start_span(op="assemble", name="Async Export Data"):
         first_page = offset == 0
         data_export = _fetch_exported_data_req_obj(data_export_id, first_page, extra)
         if data_export is None:
@@ -477,7 +478,7 @@ def export_data_to_stored_blobs_sync(
     sentry_sdk.set_tag("download_type", "sync")
     sentry_sdk.set_context("data_export", extra)
     _set_data_on_scope(data_export)
-    with sentry_sdk.start_span(op="assemble", name="Sync Export Data"):
+    with start_span(op="assemble", name="Sync Export Data"):
         logger.info("dataexport.start", extra=extra)
         metrics.incr(
             "dataexport.start",
@@ -724,7 +725,7 @@ def merge_export_blobs(
         "requested_rows": export_limit,
         "actual_rows": actual_rows,
     }
-    with sentry_sdk.start_span(op="merge"):
+    with start_span(op="merge"):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
         except ExportedData.DoesNotExist:

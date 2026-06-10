@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from itertools import islice
 from typing import Any
 
-import sentry_sdk
+from sentry_sdk import start_span
 from taskbroker_client.retry import Retry
 
 from sentry.models.project import Project
@@ -47,7 +47,7 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
 )
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
-    with sentry_sdk.start_span(op="txcluster_spawn"):
+    with start_span(op="txcluster_spawn"):
         project_count = 0
         project_iter = redis.get_active_project_ids(ClustererNamespace.TRANSACTIONS)
         while batch := list(islice(project_iter, PROJECTS_PER_TASK)):
@@ -69,7 +69,7 @@ def cluster_projects(project_ids: Sequence[int]) -> None:
     num_clustered = 0
     try:
         for project in projects:
-            with sentry_sdk.start_span(op="txcluster_project") as span:
+            with start_span(op="txcluster_project") as span:
                 span.set_data("project_id", project.id)
                 tx_names = list(redis.get_transaction_names(project))
                 new_rules = []

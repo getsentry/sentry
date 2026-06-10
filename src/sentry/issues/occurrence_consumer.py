@@ -17,6 +17,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import serializers
+from sentry_sdk import start_transaction
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry import nodestore, options
@@ -401,7 +402,7 @@ def _process_message(
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
     """
-    with sentry_sdk.start_transaction(
+    with start_transaction(
         op="_process_message",
         name="issues.occurrence_consumer",
     ) as txn:
@@ -470,7 +471,7 @@ def process_occurrence_batch(
     # Number of groups we've collected to be processed in parallel
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
     # Submit occurrences & status changes for processing
-    with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
+    with start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
         futures = [
             worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
         ]

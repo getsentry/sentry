@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
 
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import JSONField
 from django.db.models.functions import Cast
@@ -13,6 +12,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
+from sentry_sdk import start_span
 
 from sentry import features, onboarding_tasks, options, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -473,7 +473,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         ]
         feature_set = set()
 
-        with sentry_sdk.start_span(op="features.check", name="check batch features"):
+        with start_span(op="features.check", name="check batch features"):
             # Evaluate flags purely to populate the response — the user has not
             # actually encountered any experiments yet, so suppress the auto
             # exposure events the entity handler would otherwise log.
@@ -493,7 +493,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with sentry_sdk.start_span(op="features.check", name="check individual features"):
+        with start_span(op="features.check", name="check individual features"):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):

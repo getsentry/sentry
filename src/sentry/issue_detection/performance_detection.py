@@ -10,6 +10,7 @@ from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
+from sentry_sdk import start_span
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.models.options.project_option import ProjectOption
@@ -196,7 +197,7 @@ def detect_performance_problems(
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
             with (
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
-                sentry_sdk.start_span(op="py.detect_performance_issue", name="none") as sdk_span,
+                start_span(op="py.detect_performance_issue", name="none") as sdk_span,
             ):
                 return _detect_performance_problems(data, sdk_span, project, standalone=standalone)
     except Exception:
@@ -743,7 +744,7 @@ def _detect_performance_problems(
     event_id = data.get("event_id", None)
     organization = project.organization
 
-    with sentry_sdk.start_span(op="function", name="get_detection_settings"):
+    with start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
@@ -751,11 +752,11 @@ def _detect_performance_problems(
     # So we build a tree and flatten it depth first.
     # TODO: See if we can update the detectors to work without this assumption so we can
     # just pass it a list of spans.
-    with sentry_sdk.start_span(op="performance_detection", name="sort_spans"):
+    with start_span(op="performance_detection", name="sort_spans"):
         tree, segment_id = build_tree(data.get("spans", []))
         data = {**data, "spans": flatten_tree(tree, segment_id)}
 
-    with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
+    with start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings[detector_class.settings_key], data)
             for detector_class in DETECTOR_CLASSES
@@ -763,12 +764,10 @@ def _detect_performance_problems(
         ]
 
     for detector in detectors:
-        with sentry_sdk.start_span(
-            op="function", name=f"run_detector_on_data.{detector.type.value}"
-        ):
+        with start_span(op="function", name=f"run_detector_on_data.{detector.type.value}"):
             run_detector_on_data(detector, data)
 
-    with sentry_sdk.start_span(op="function", name="report_metrics_for_detectors"):
+    with start_span(op="function", name="report_metrics_for_detectors"):
         # Metrics reporting only for detection, not created issues.
         report_metrics_for_detectors(
             data,
@@ -781,7 +780,7 @@ def _detect_performance_problems(
         )
 
     problems: list[PerformanceProblem] = []
-    with sentry_sdk.start_span(op="performance_detection", name="is_creation_allowed"):
+    with start_span(op="performance_detection", name="is_creation_allowed"):
         for detector in detectors:
             if detector.is_creation_allowed():
                 problems.extend(detector.stored_problems.values())

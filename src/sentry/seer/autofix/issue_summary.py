@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from sentry_sdk import start_span
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 
@@ -160,7 +161,7 @@ def _trigger_autofix_task(
             sentry_sdk.capture_exception(e)
             return
 
-    with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+    with start_span(op="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
@@ -331,7 +332,7 @@ def get_and_update_group_fixability_score(
             extra={"group_id": group.id},
         )
 
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+    with start_span(op="ai_summary.generate_fixability_score"):
         issue_summary = _generate_fixability_score(group, summary=summary)
 
     if not issue_summary.scores:

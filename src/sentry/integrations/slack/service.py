@@ -6,7 +6,7 @@ from logging import Logger, getLogger
 from typing import Any
 
 import orjson
-import sentry_sdk
+from sentry_sdk import start_span
 from slack_sdk.errors import SlackApiError
 
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
@@ -412,7 +412,7 @@ class SlackService:
 
         """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
         This is used in the send_notification_as_slack function."""
-        with sentry_sdk.start_span(op="notification.send_slack", name="notify_recipient"):
+        with start_span(op="notification.send_slack", name="notify_recipient"):
             # Make a local copy to which we can append.
             local_attachments = copy(attachments)
 

@@ -10,11 +10,11 @@ from hashlib import md5
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 
 import orjson
-import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
 from django.utils.functional import cached_property
+from sentry_sdk import start_span
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
@@ -439,12 +439,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
             loaded_grouping_config = load_grouping_config(grouping_config)
 
         if normalize_stacktraces:
-            with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
+            with start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
                 span.set_tag("project", self.project_id)
                 span.set_tag("event_id", self.event_id)
                 self.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
-        with sentry_sdk.start_span(op="grouping.get_grouping_variants") as span:
+        with start_span(op="grouping.get_grouping_variants") as span:
             span.set_tag("project", self.project_id)
             span.set_tag("event_id", self.event_id)
 

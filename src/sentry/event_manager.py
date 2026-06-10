@@ -19,6 +19,7 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
+from sentry_sdk import start_span
 from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import BaseHTTPResponse
@@ -1531,7 +1532,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
     check_for_group_creation_load_shed(project, event)
 
     with (
-        sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+        start_span(op="event_manager.create_group_transaction") as span,
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
@@ -2243,7 +2244,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 
     logger_data["payload"] = payload
 
-    with sentry_sdk.start_span(op=op):
+    with start_span(op=op):
         try:
             with metrics.timer(op):
                 timeout = options.get(
@@ -2666,7 +2667,7 @@ def _record_transaction_info(
             event = job["event"]
 
             project = event.project
-            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+            with start_span(op="event_manager.record_transaction_name_for_clustering"):
                 record_transaction_name_for_clustering(project, event.data)
 
             record_event_processed(project, event)

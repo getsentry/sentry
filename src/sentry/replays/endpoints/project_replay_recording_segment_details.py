@@ -1,11 +1,11 @@
 from io import BytesIO
 from typing import TypedDict
 
-import sentry_sdk
 from django.http import StreamingHttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -83,7 +83,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectReplayEndpoint):
             return self.respond(body)
 
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
-        with sentry_sdk.start_span(
+        with start_span(
             op="download_segment",
             name="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
         ) as child_span:

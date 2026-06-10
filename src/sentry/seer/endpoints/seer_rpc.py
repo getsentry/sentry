@@ -34,6 +34,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_sdk import start_span
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -330,7 +331,7 @@ def get_organization_features(*, org_id: int, user_id: int | None = None) -> dic
 
     feature_set: set[str] = set()
 
-    with sentry_sdk.start_span(op="features.check", name="check batch features"):
+    with start_span(op="features.check", name="check batch features"):
         batch = features.batch_has(
             list(features_to_check),
             actor=actor,
@@ -344,7 +345,7 @@ def get_organization_features(*, org_id: int, user_id: int | None = None) -> dic
                     feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
                 features_to_check.discard(name)
 
-    with sentry_sdk.start_span(op="features.check", name="check individual features"):
+    with start_span(op="features.check", name="check individual features"):
         for name in features_to_check:
             if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])

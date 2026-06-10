@@ -9,7 +9,6 @@ from collections.abc import Iterable, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, Never, Protocol, TypedDict
 
-import sentry_sdk
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
@@ -24,6 +23,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_sdk import start_span
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
 from sentry import features, options
@@ -625,7 +625,7 @@ class SnubaTagStorage(TagStorage):
             end = snuba.quantize_time(end, key_hash)
             cache_key += f":{duration}@{end.isoformat()}"
 
-            with sentry_sdk.start_span(
+            with start_span(
                 op="cache.get", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
             ) as span:
                 result = cache.get(cache_key, None)
@@ -655,7 +655,7 @@ class SnubaTagStorage(TagStorage):
                 **kwargs,
             )
             if should_cache:
-                with sentry_sdk.start_span(
+                with start_span(
                     op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
                 ) as span:
                     cache.set(cache_key, result, 300)

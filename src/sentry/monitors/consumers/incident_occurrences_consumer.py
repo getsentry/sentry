@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import TypeGuard
 
-import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -15,6 +14,7 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from cachetools.func import ttl_cache
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
+from sentry_sdk import start_transaction
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import options
@@ -126,7 +126,7 @@ def _process_incident_occurrence(
 
 
 def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]) -> None:
-    with sentry_sdk.start_transaction(
+    with start_transaction(
         op="_process_incident_occurrence",
         name="monitors.incident_occurrence_consumer",
     ) as txn:

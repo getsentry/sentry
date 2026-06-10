@@ -1,6 +1,6 @@
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -67,7 +67,7 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint):
 
         environments = get_environments(request, group.project.organization)
 
-        with sentry_sdk.start_span(op="CurrentReleaseEndpoint.get.current_release") as span:
+        with start_span(op="CurrentReleaseEndpoint.get.current_release") as span:
             span.set_data("Environment Count", len(environments))
             span.set_data(
                 "Raw Parameters",

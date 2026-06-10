@@ -8,6 +8,7 @@ from typing import Any
 import sentry_sdk
 from django.core.cache import BaseCache, InvalidCacheBackendError, caches
 from django.utils.functional import cached_property
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.utils import json, metrics
@@ -136,7 +137,7 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1')
         {"message": "hello world"}
         """
-        with sentry_sdk.start_span(op="nodestore.get") as span:
+        with start_span(op="nodestore.get") as span:
             span.set_tag("node_id", id)
             if subkey is None:
                 item_from_cache = self._get_cache_item(id)
@@ -179,7 +180,7 @@ class NodeStorage(local, Service):
             "key2": {"message": "hello world"}
         }
         """
-        with sentry_sdk.start_span(op="nodestore.get_multi") as span:
+        with start_span(op="nodestore.get_multi") as span:
             # Deduplicate ids, preserving order
             id_list = list(dict.fromkeys(id_list))
             span.set_tag("subkey", str(subkey))
@@ -200,7 +201,7 @@ class NodeStorage(local, Service):
             else:
                 uncached_ids = id_list
 
-            with sentry_sdk.start_span(op="nodestore._get_bytes_multi_and_decode") as span:
+            with start_span(op="nodestore._get_bytes_multi_and_decode") as span:
                 items = {
                     id: self._decode(value, subkey=subkey)
                     for id, value in self._get_bytes_multi(uncached_ids).items()

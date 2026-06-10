@@ -2,7 +2,6 @@ import logging
 from collections.abc import Mapping
 from functools import partial
 
-import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
@@ -12,6 +11,7 @@ from arroyo.processing.strategies import (
 )
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
+from sentry_sdk import start_transaction
 from taskbroker_client.registry import TaskNamespace
 
 from sentry import options
@@ -88,7 +88,7 @@ def process_message(
     from sentry.utils import metrics
 
     with (
-        sentry_sdk.start_transaction(
+        start_transaction(
             op="handle_message",
             name="query_subscription_consumer_process_message",
             custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
@@ -132,7 +132,7 @@ def _process_subscription_message(message_bytes: bytes, dataset: Dataset) -> Non
     topic = get_topic_definition(Topic(logical_topic))["real_topic_name"]
 
     with (
-        sentry_sdk.start_transaction(
+        start_transaction(
             op="handle_message",
             name="query_subscription_consumer_process_message",
             custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},

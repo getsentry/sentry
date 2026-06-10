@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
+from sentry_sdk import start_transaction
 
 from sentry import options
 from sentry.constants import DataCategory
@@ -55,7 +56,7 @@ def process_segment(
         settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
         * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
     )
-    with sentry_sdk.start_transaction(
+    with start_transaction(
         name="spans.consumers.process_segments.process_segment",
         custom_sampling_context={
             "sample_rate": sample_rate,

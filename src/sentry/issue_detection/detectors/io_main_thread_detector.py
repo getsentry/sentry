@@ -4,7 +4,7 @@ import hashlib
 from collections import defaultdict
 from typing import Any
 
-import sentry_sdk
+from sentry_sdk import start_span
 from symbolic.proguard import ProguardMapper
 
 from sentry.issues.grouptype import (
@@ -137,7 +137,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
             for image in images:
                 if image.get("type") == "proguard":
-                    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
+                    with start_span(op="proguard.fetch_debug_files"):
                         uuid = image.get("uuid")
                         dif_paths = ProjectDebugFile.difcache.fetch_difs(
                             project, [uuid], features=["mapping"]

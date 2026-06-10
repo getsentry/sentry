@@ -7,10 +7,10 @@ from math import ceil
 from typing import Any, cast
 
 import orjson
-import sentry_sdk
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
+from sentry_sdk import start_span
 
 from sentry.api.base import apply_cors_headers
 from sentry.ratelimits import (
@@ -55,7 +55,7 @@ class RatelimitMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         # process_view is automatically called by Django
-        with sentry_sdk.start_span(op="ratelimit.__call__"):
+        with start_span(op="ratelimit.__call__"):
             response = self.get_response(request)
             self.process_response(request, response)
             return response

@@ -5,10 +5,10 @@ from typing import Any, Self
 from urllib.parse import urlencode, urlparse
 
 import brotli
-import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
+from sentry_sdk import start_span
 from urllib3.connectionpool import ConnectionPool
 from urllib3.response import HTTPResponse as VroomResponse
 
@@ -111,7 +111,7 @@ def get_from_profiling_service(
                 "Content-Type": "application/json",
             }
         )
-        with sentry_sdk.start_span(op="json.dumps"):
+        with start_span(op="json.dumps"):
             data = json.dumps(json_data).encode("utf-8")
         set_span_attribute("payload.size", len(data))
         if metric:

@@ -13,6 +13,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from sentry_sdk import start_transaction
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -326,7 +327,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
         # Create a new transaction for each webhook event to ensure separate traces
         transaction_name = f"github_enterprise.webhook.{github_event}"
-        with sentry_sdk.start_transaction(
+        with start_transaction(
             op="webhook",
             name=transaction_name,
             source="component",

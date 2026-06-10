@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.services.nodestore.base import NodeStorage
@@ -93,7 +94,7 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        with sentry_sdk.start_span(op="nodestore.bigtable.delete"):
+        with start_span(op="nodestore.bigtable.delete"):
             try:
                 with measure_storage_operation("delete", "nodestore"):
                     self.store.delete(id)
@@ -104,7 +105,7 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        with sentry_sdk.start_span(op="nodestore.bigtable.delete_multi") as span:
+        with start_span(op="nodestore.bigtable.delete_multi") as span:
             span.set_tag("num_ids", len(id_list))
 
             if len(id_list) == 1:

@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
+from sentry_sdk import start_span, start_transaction
 from usageaccountant import UsageUnit
 
 from sentry import features
@@ -62,7 +63,7 @@ def trace_func(**span_kwargs):
                 "custom_sampling_context",
                 {"sample_rate": sample_rate},
             )
-            with sentry_sdk.start_transaction(**span_kwargs):
+            with start_transaction(**span_kwargs):
                 return f(*args, **kwargs)
 
         return inner
@@ -105,7 +106,7 @@ def process_event(
     # This code has been ripped from the old python store endpoint. We're
     # keeping it around because it does provide some protection against
     # reprocessing good events if a single consumer is in a restart loop.
-    with sentry_sdk.start_span(op="deduplication_check"):
+    with start_span(op="deduplication_check"):
         deduplication_key = f"ev:{project_id}:{event_id}"
 
         try:
@@ -121,9 +122,7 @@ def process_event(
             )
             return  # message already processed do not reprocess
 
-    with sentry_sdk.start_span(
-        op="killswitch_matches_context", name="store.load-shed-pipeline-projects"
-    ):
+    with start_span(op="killswitch_matches_context", name="store.load-shed-pipeline-projects"):
         if killswitch_matches_context(
             "store.load-shed-pipeline-projects",
             {
@@ -139,7 +138,7 @@ def process_event(
     # Parse the JSON payload. This is required to compute the cache key and
     # call process_event. The payload will be put into Kafka raw, to avoid
     # serializing it again.
-    with sentry_sdk.start_span(op="orjson.loads"):
+    with start_span(op="orjson.loads"):
         data = orjson.loads(payload)
 
     # We also need to check "type" as transactions are also sent to ingest-attachments
@@ -151,7 +150,7 @@ def process_event(
 
     sentry_sdk.set_extra("event_type", data.get("type"))
 
-    with sentry_sdk.start_span(
+    with start_span(
         op="killswitch_matches_context", name="store.load-shed-parsed-pipeline-projects"
     ):
         if killswitch_matches_context(
@@ -173,7 +172,7 @@ def process_event(
         # `processing_store`. We only continue here if the event *is* present, as that will eventually
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
         if reprocess_only_stuck_events:
-            with sentry_sdk.start_span(op="event_processing_store.exists"):
+            with start_span(op="event_processing_store.exists"):
                 if not processing_store.exists(data):
                     return
 
@@ -251,7 +250,7 @@ def process_event(
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the
             # cache.
-            with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+            with start_span(op="ingest_consumer.process_event.preprocess_event"):
                 preprocess_event(
                     cache_key=cache_key or "",
                     data=data,
@@ -262,11 +261,11 @@ def process_event(
                 )
 
         # remember for an 1 hour that we saved this event (deduplication protection)
-        with sentry_sdk.start_span(op="cache.set"):
+        with start_span(op="cache.set"):
             cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
         # emit event_accepted once everything is done
-        with sentry_sdk.start_span(op="event_accepted.send_robust"):
+        with start_span(op="event_accepted.send_robust"):
             event_accepted.send_robust(
                 ip=remote_addr, data=data, project=project, sender=process_event
             )

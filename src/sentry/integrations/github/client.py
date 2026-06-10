@@ -13,6 +13,7 @@ import orjson
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Response
+from sentry_sdk import start_span
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -771,7 +772,7 @@ class GitHubBaseClient(
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with sentry_sdk.start_span(
+        with start_span(
             op=f"{self.integration_type}.http.pagination",
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):

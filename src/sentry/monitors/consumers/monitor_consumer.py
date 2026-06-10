@@ -10,7 +10,6 @@ from datetime import UTC, datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
-import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
@@ -21,6 +20,7 @@ from django.db import router, transaction
 from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
+from sentry_sdk import start_transaction
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import options, quotas, ratelimits
@@ -1024,7 +1024,7 @@ def process_checkin(item: CheckinItem) -> None:
     Process an individual check-in
     """
     try:
-        with sentry_sdk.start_transaction(
+        with start_transaction(
             op="_process_checkin",
             name="monitors.monitor_consumer",
         ) as txn:
@@ -1094,7 +1094,7 @@ def process_batch(
     metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
-    with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
+    with start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
             executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]

@@ -6,6 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from requests import Response
 from requests.exceptions import ConnectionError, Timeout
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.locks import locks
@@ -437,7 +438,7 @@ def fetch_latest_id_from_tempest(
 
     timeout = options.get("tempest.latest-id-timeout")
 
-    with sentry_sdk.start_span(op="http.client", name="POST /latest-id") as span:
+    with start_span(op="http.client", name="POST /latest-id") as span:
         span.set_data("tempest.org_id", org_id)
         span.set_data("tempest.project_id", project_id)
         span.set_data("tempest.timeout", timeout)
@@ -481,7 +482,7 @@ def fetch_items_from_tempest(
 
     timeout = options.get("tempest.crashes-timeout")
 
-    with sentry_sdk.start_span(op="http.client", name="POST /crashes") as span:
+    with start_span(op="http.client", name="POST /crashes") as span:
         span.set_data("tempest.org_id", org_id)
         span.set_data("tempest.project_id", project_id)
         span.set_data("tempest.offset", offset)

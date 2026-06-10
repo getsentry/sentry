@@ -4,9 +4,9 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-import sentry_sdk
 from django.core.cache import cache
 from django.db.models import Q, QuerySet
+from sentry_sdk import start_span
 
 from sentry.models.environment import Environment
 from sentry.models.groupredirect import GroupRedirect
@@ -63,7 +63,7 @@ def _try_get_from_cache(
 def get_all_merged_group_ids(
     group_ids: Iterable[str | int], threshold=SIZE_THRESHOLD_FOR_CLICKHOUSE
 ) -> set[str | int]:
-    with sentry_sdk.start_span(op="get_all_merged_group_ids") as span:
+    with start_span(op="get_all_merged_group_ids") as span:
         # Initialize all IDs with a future time to ensure they aren't filtered out.
         running_data = {
             (group_id, datetime.now(UTC) + timedelta(minutes=1)) for group_id in group_ids

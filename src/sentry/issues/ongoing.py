@@ -1,8 +1,8 @@
 from collections.abc import Mapping
 from typing import Any
 
-import sentry_sdk
 from django.db.models.signals import post_save
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -21,7 +21,7 @@ def bulk_transition_group_to_ongoing(
     group_ids: list[int],
     activity_data: Mapping[str, Any] | None = None,
 ) -> None:
-    with sentry_sdk.start_span(name="groups_to_transition") as span:
+    with start_span(name="groups_to_transition") as span:
         # make sure we don't update the Group when its already updated by conditionally updating the Group
         groups_to_transition = Group.objects.filter(
             id__in=group_ids, status=from_status, substatus=from_substatus
@@ -30,7 +30,7 @@ def bulk_transition_group_to_ongoing(
         span.set_tag("groups_to_transition count", len(groups_to_transition))
 
     with (
-        sentry_sdk.start_span(name="update_group_status"),
+        start_span(name="update_group_status"),
         action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR),
     ):
         Group.objects.update_group_status(
@@ -55,10 +55,10 @@ def bulk_transition_group_to_ongoing(
                 sender=bulk_transition_group_to_ongoing,
             )
 
-    with sentry_sdk.start_span(name="bulk_remove_groups_from_inbox"):
+    with start_span(name="bulk_remove_groups_from_inbox"):
         bulk_remove_groups_from_inbox(groups_to_transition)
 
-    with sentry_sdk.start_span(name="post_save_send_robust"):
+    with start_span(name="post_save_send_robust"):
         if not options.get("groups.enable-post-update-signal"):
             for group in groups_to_transition:
                 post_save.send_robust(

@@ -1,9 +1,9 @@
 from collections import defaultdict
 from typing import TypedDict
 
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -46,7 +46,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         dataset = self.get_dataset(request, organization)
 
         def data_fn(offset, limit):
-            with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
+            with start_span(op="discover.endpoint", name="discover_query"):
                 with handle_query_errors():
                     facets = dataset.get_facets(
                         query=request.GET.get("query"),
@@ -56,7 +56,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                         cursor=offset,
                     )
 
-            with sentry_sdk.start_span(op="discover.endpoint", name="populate_results") as span:
+            with start_span(op="discover.endpoint", name="populate_results") as span:
                 span.set_data("facet_count", len(facets or []))
                 resp: dict[str, _KeyTopValues]
                 resp = defaultdict(lambda: {"key": "", "topValues": []})

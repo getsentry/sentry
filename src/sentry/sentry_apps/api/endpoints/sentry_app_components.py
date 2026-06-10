@@ -3,6 +3,7 @@ import logging
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span, start_transaction
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -61,14 +62,14 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         components = []
         errors = {}
 
-        with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
-            with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
+        with start_transaction(name="sentry.api.sentry_app_components.get"):
+            with start_span(op="sentry-app-components.get_installs"):
                 installs = SentryAppInstallation.objects.get_installed_for_organization(
                     organization.id
                 ).order_by("pk")
 
             for install in installs:
-                with sentry_sdk.start_span(op="sentry-app-components.filter_components"):
+                with start_span(op="sentry-app-components.filter_components"):
                     _components = SentryAppComponent.objects.filter(
                         sentry_app_id=install.sentry_app_id
                     ).order_by("pk")
@@ -77,7 +78,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                         _components = _components.filter(type=request.GET["filter"])
 
                 for component in _components:
-                    with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
+                    with start_span(op="sentry-app-components.prepare_components"):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
 

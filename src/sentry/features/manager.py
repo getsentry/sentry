@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.conf import settings
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.options.rollout import in_random_rollout
@@ -110,7 +111,7 @@ class RegisteredFeatureManager:
                 if not remaining:
                     break
 
-                with sentry_sdk.start_span(
+                with start_span(
                     op="feature.has_for_batch.handler",
                     name=f"{type(handler).__name__} ({name})",
                 ) as span:

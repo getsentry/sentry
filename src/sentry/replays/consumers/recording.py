@@ -12,7 +12,7 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
-from sentry_sdk import set_tag
+from sentry_sdk import set_tag, start_transaction
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -90,7 +90,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 def process_and_commit_message(message: Message[KafkaPayload], context: ProcessorContext) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
+        with start_transaction(
             name="replays.consumer.recording.process_and_commit_message",
             op="replays.consumer.recording.process_and_commit_message",
             custom_sampling_context={

@@ -11,6 +11,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
+from sentry_sdk import start_span
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -300,7 +301,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if organization_context is None:
             raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with start_span(op="check_object_permissions_on_organization"):
             self.check_object_permissions(request, organization_context)
 
         bind_organization_context(organization_context.organization)
@@ -416,7 +417,7 @@ class OrganizationEndpoint(Endpoint):
                 qs = qs.filter(id__in=ids)
             # No project ids === `all projects I am a member of`
 
-        with sentry_sdk.start_span(op="fetch_organization_projects") as span:
+        with start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
             span.set_data("Project Count", len(projects))
 
@@ -443,7 +444,7 @@ class OrganizationEndpoint(Endpoint):
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
-        with sentry_sdk.start_span(op="apply_project_permissions") as span:
+        with start_span(op="apply_project_permissions") as span:
             span.set_data("Project Count", len(projects))
             if force_global_perms:
                 span.set_tag("mode", "force_global_perms")
@@ -633,7 +634,7 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with start_span(op="check_object_permissions_on_organization"):
             self.check_object_permissions(request, organization)
 
         bind_organization_context(organization)

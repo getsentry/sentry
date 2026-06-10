@@ -5,9 +5,9 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, TypedDict
 
-import sentry_sdk
 from django.db import models
 from django.utils import timezone
+from sentry_sdk import start_span
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
@@ -120,7 +120,7 @@ def bulk_remove_groups_from_inbox(
     action: GroupInboxRemoveAction | None = None,
     user: User | RpcUser | Team | None = None,
 ) -> None:
-    with sentry_sdk.start_span(name="bulk_remove_groups_from_inbox"):
+    with start_span(name="bulk_remove_groups_from_inbox"):
         try:
             group_inbox = GroupInbox.objects.filter(group__in=groups)
             group_inbox.delete()

@@ -1,7 +1,7 @@
-import sentry_sdk
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -62,7 +62,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({})
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="histogram"):
+        with start_span(op="discover.endpoint", name="histogram"):
             serializer = HistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data

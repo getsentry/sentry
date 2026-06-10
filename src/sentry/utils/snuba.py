@@ -21,6 +21,7 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
+from sentry_sdk import start_span
 from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
@@ -527,7 +528,7 @@ class RetrySkipTimeout(urllib3.Retry):
         Just rely on the parent class unless we have a read timeout. In that case
         immediately give up
         """
-        with sentry_sdk.start_span(op="snuba_pool.retry.increment") as span:
+        with start_span(op="snuba_pool.retry.increment") as span:
             # This next block is all debugging to try to track down a bug where we're seeing duplicate snuba requests
             # Wrapping the entire thing in a try/except to be safe cause none of it actually needs to run
             try:
@@ -1239,7 +1240,7 @@ def _is_rejected_query(body: Any) -> bool:
 def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
     snuba_requests_list = list(snuba_requests)
 
-    with sentry_sdk.start_span(op="snuba_query") as span:
+    with start_span(op="snuba_query") as span:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
@@ -1460,11 +1461,11 @@ def _raw_delete_query(
     # Enter hub such that http spans are properly nested
     with metrics.timer("snuba.client.delete_query"):
         referrer = headers.get("referer", "unknown")
-        with sentry_sdk.start_span(op="snuba_delete.validation", name=referrer) as span:
+        with start_span(op="snuba_delete.validation", name=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = request.serialize()
 
-        with sentry_sdk.start_span(op="snuba_delete.run", name=body) as span:
+        with start_span(op="snuba_delete.run", name=body) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "DELETE", f"/{query.storage_name}", body=body, headers=headers
@@ -1478,11 +1479,11 @@ def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.resp
 
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
         serialized_req = request.serialize()
-        with sentry_sdk.start_span(op="snuba_mql.validation", name=referrer) as span:
+        with start_span(op="snuba_mql.validation", name=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
 
-        with sentry_sdk.start_span(op="snuba_mql.run", name=serialized_req) as span:
+        with start_span(op="snuba_mql.run", name=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/mql", body=body, headers=headers
@@ -1495,11 +1496,11 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
         referrer = headers.get("referer", "<unknown>")
 
         serialized_req = request.serialize()
-        with sentry_sdk.start_span(op="snuba_snql.validation", name=referrer) as span:
+        with start_span(op="snuba_snql.validation", name=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
 
-        with sentry_sdk.start_span(op="snuba_snql.run", name=serialized_req) as span:
+        with start_span(op="snuba_snql.run", name=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/snql", body=body, headers=headers
@@ -1741,7 +1742,7 @@ def aliased_query(**kwargs):
     This method should be used sparingly. Instead prefer to use sentry.eventstore
     sentry.tagstore, or sentry.snuba.discover instead when reading data.
     """
-    with sentry_sdk.start_span(op="sentry.snuba.aliased_query"):
+    with start_span(op="sentry.snuba.aliased_query"):
         return _aliased_query_impl(**kwargs)
 
 

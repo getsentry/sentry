@@ -6,6 +6,7 @@ from typing import Union
 
 import sentry_sdk
 from django.conf import settings
+from sentry_sdk import start_transaction
 
 from sentry import options
 from sentry.processing.backpressure.health import UnhealthyReasons, record_consumer_health
@@ -110,7 +111,7 @@ def start_service_monitoring() -> None:
             time.sleep(options.get("backpressure.monitoring.interval"))
             continue
 
-        with sentry_sdk.start_transaction(name="backpressure.monitoring", sampled=True):
+        with start_transaction(name="backpressure.monitoring", sampled=True):
             # first, check each base service and record its health
             unhealthy_services = check_service_health(services)
 

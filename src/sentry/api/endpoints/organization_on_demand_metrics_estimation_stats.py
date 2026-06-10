@@ -4,10 +4,10 @@ from enum import Enum
 from types import ModuleType
 from typing import TypedDict, Union, cast
 
-import sentry_sdk
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -66,7 +66,7 @@ class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsEndpo
         if measurement is None:
             return Response({"detail": "missing required parameter yAxis"}, status=400)
 
-        with sentry_sdk.start_span(op="discover.metrics.endpoint", name="get_full_metrics") as span:
+        with start_span(op="discover.metrics.endpoint", name="get_full_metrics") as span:
             span.set_data("organization", organization)
 
             try:

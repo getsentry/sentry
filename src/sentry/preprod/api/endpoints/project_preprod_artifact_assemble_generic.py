@@ -6,9 +6,9 @@ from typing import Any
 
 import jsonschema
 import orjson
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
@@ -109,7 +109,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
             )
         )
 
-        with sentry_sdk.start_span(op="preprod_artifact.assemble_generic"):
+        with start_span(op="preprod_artifact.assemble_generic"):
             data, error_message = validate_preprod_artifact_generic_schema(request.body)
             if error_message:
                 return Response({"error": error_message}, status=400)

@@ -3,7 +3,7 @@ from collections.abc import Callable, MutableMapping
 from datetime import datetime, timedelta, timezone
 from typing import Any, Concatenate, ParamSpec, Protocol, TypeVar
 
-import sentry_sdk
+from sentry_sdk import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ def build_safe_config(
     """
     timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
-    with sentry_sdk.start_span(op=f"project_config.build_safe_config.{key}"):
+    with start_span(op=f"project_config.build_safe_config.{key}"):
         try:
             return function(timeout, *args, **kwargs)
         except TimeoutException as e:

@@ -7,6 +7,7 @@ from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from sentry_sdk import start_span
 
 from sentry.models.options.project_option import ProjectOption
 from sentry.replays.lib.eap.write import write_trace_items
@@ -427,7 +428,7 @@ def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
         total_attr_count += c
         total_attr_size_bytes += s
 
-    with sentry_sdk.start_span(op="process", name="write_trace_items") as span:
+    with start_span(op="process", name="write_trace_items") as span:
         span.set_data("attribute_count_total", total_attr_count)
         span.set_data("attribute_size_total_bytes", total_attr_size_bytes)
 

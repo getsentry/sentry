@@ -14,6 +14,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_sdk import start_span
 from snuba_sdk import Column, Function
 
 from sentry import constants, features, options
@@ -230,7 +231,7 @@ class TraceEvent:
     @property
     def nodestore_event(self) -> Event | GroupEvent | None:
         if self._nodestore_event is None and not self.fetched_nodestore:
-            with sentry_sdk.start_span(op="nodestore", name="get_event_by_id"):
+            with start_span(op="nodestore", name="get_event_by_id"):
                 self.fetched_nodestore = True
                 self._nodestore_event = eventstore.backend.get_event_by_id(
                     self.event["project.id"], self.event["id"]
@@ -963,7 +964,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
     def record_analytics(
         transactions: Sequence[SnubaTransaction], trace_id: str, user_id: int, org_id: int
     ) -> None:
-        with sentry_sdk.start_span(op="recording.analytics"):
+        with start_span(op="recording.analytics"):
             len_transactions = len(transactions)
 
             sentry_sdk.set_tag("trace_view.trace", trace_id)
@@ -1148,7 +1149,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             to_check.append(root)
 
         iteration = 0
-        with sentry_sdk.start_span(op="building.trace", name="full trace"):
+        with start_span(op="building.trace", name="full trace"):
             has_orphans = False
 
             while parent_map or to_check:
@@ -1323,7 +1324,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if detailed:
             raise ParseError("Cannot return a detailed response using Spans")
 
-        with sentry_sdk.start_span(op="serialize", name="create parent map"):
+        with start_span(op="serialize", name="create parent map"):
             parent_to_children_event_map = defaultdict(list)
             serialized_transactions: list[TraceEvent] = []
             for transaction in transactions:
@@ -1352,7 +1353,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             else:
                 orphan_errors.append(error)
 
-        with sentry_sdk.start_span(op="serialize", name="associate children"):
+        with start_span(op="serialize", name="associate children"):
             for trace_event in serialized_transactions:
                 event_id = trace_event.event["id"]
                 if event_id in parent_to_children_event_map:
@@ -1363,7 +1364,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_error_map.pop(event_id), key=lambda k: k["timestamp"]
                     )
 
-        with sentry_sdk.start_span(op="serialize", name="more orphans"):
+        with start_span(op="serialize", name="more orphans"):
             visited_transactions_ids: set[str] = {
                 root_trace.event["id"] for root_trace in root_traces
             }
@@ -1376,7 +1377,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     for child in serialized_transaction.children:
                         visited_transactions_ids.add(child.event["id"])
 
-        with sentry_sdk.start_span(op="serialize", name="sort"):
+        with start_span(op="serialize", name="sort"):
             # Sort the results so they're consistent
             orphan_errors.sort(key=lambda k: k["timestamp"])
             root_traces.sort(key=child_sort_key)
@@ -1398,7 +1399,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             if serialized_orphan is not None:
                 result_transactions.append(serialized_orphan)
 
-        with sentry_sdk.start_span(op="serialize", name="to dict"):
+        with start_span(op="serialize", name="to dict"):
             return {
                 "transactions": result_transactions,
                 "orphan_errors": [self.serialize_error(error) for error in orphan_errors],

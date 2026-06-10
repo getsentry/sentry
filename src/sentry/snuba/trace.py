@@ -24,6 +24,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     ComparisonFilter,
     TraceItemFilter,
 )
+from sentry_sdk import start_span
 from snuba_sdk import Column as SnubaColumn
 from snuba_sdk import Function
 
@@ -762,14 +763,14 @@ def query_trace_data(
     for event in errors_data:
         id_to_error.setdefault(event["trace.span"], []).append(event)
     id_to_occurrence = defaultdict(list)
-    with sentry_sdk.start_span(op="process.occurrence_data") as sdk_span:
+    with start_span(op="process.occurrence_data") as sdk_span:
         for event in occurrence_data:
             offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
             if len(offender_span_ids) == 0:
                 sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
-    with sentry_sdk.start_span(op="process.trace_data"):
+    with start_span(op="process.trace_data"):
         # calculate min & max start as a metric then log as a metric to see if we need to adjust
         # performance.traces.transaction_query_timebuffer_days
         span_min_ts = None
@@ -838,11 +839,11 @@ def query_trace_data(
             for attr in metric_only_attributes:
                 span.pop(attr, None)
 
-    with sentry_sdk.start_span(op="process.errors_data"):
+    with start_span(op="process.errors_data"):
         for errors in id_to_error.values():
             result.extend(errors)
     group_cache: dict[int, Group] = {}
-    with sentry_sdk.start_span(op="serializing_data"):
+    with start_span(op="serializing_data"):
         return [
             event
             for event in [

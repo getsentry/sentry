@@ -1,11 +1,11 @@
 import math
 from typing import Any, NamedTuple, NotRequired, TypedDict
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -103,7 +103,7 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             "organizations:data-browsing-heat-map-widget", organization, actor=request.user
         ):
             return Response(status=404)
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
+        with start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
             dataset = self.get_dataset(request, organization)

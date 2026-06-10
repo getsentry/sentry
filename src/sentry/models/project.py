@@ -6,7 +6,6 @@ from collections.abc import Callable, Collection, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
-import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Q, QuerySet, Subquery
@@ -14,6 +13,7 @@ from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
+from sentry_sdk import start_span
 
 from bitfield import TypedClassBitField
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
@@ -381,7 +381,7 @@ class Project(Model):
         from sentry.models.counter import Counter
 
         with (
-            sentry_sdk.start_span(op="project.next_short_id") as span,
+            start_span(op="project.next_short_id") as span,
             metrics.timer("project.next_short_id"),
         ):
             span.set_data("project_id", self.id)

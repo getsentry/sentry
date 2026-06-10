@@ -1,22 +1,22 @@
 from collections.abc import Set
 from datetime import timedelta
 
-import sentry_sdk
 from django.utils import timezone
+from sentry_sdk import start_span
 
 from sentry.models.files import FileBlob
 
 
 def find_missing_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
     """Returns a list of chunks which are missing for an org."""
-    with sentry_sdk.start_span(op="find_missing_chunks") as span:
+    with start_span(op="find_missing_chunks") as span:
         span.set_tag("organization_id", organization_id)
         span.set_data("chunks_size", len(chunks))
 
         if not chunks:
             return []
 
-        with sentry_sdk.start_span(op="find_missing_chunks.fetch_owned_file_blobs"):
+        with start_span(op="find_missing_chunks.fetch_owned_file_blobs"):
             owned_file_blobs = FileBlob.objects.filter(
                 checksum__in=chunks, fileblobowner__organization_id=organization_id
             ).values_list(
@@ -30,7 +30,7 @@ def find_missing_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
         owned_file_chunks = {checksum for _, checksum, _ in owned_file_blobs}
         unowned_file_chunks = chunks - owned_file_chunks
 
-        with sentry_sdk.start_span(op="find_missing_chunks.fetch_unowned_file_blobs"):
+        with start_span(op="find_missing_chunks.fetch_unowned_file_blobs"):
             unowned_file_blobs = FileBlob.objects.filter(
                 checksum__in=unowned_file_chunks,
             ).values_list(
@@ -50,7 +50,7 @@ def find_missing_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
                 file_blobs_to_renew.add(id)
 
         if file_blobs_to_renew:
-            with sentry_sdk.start_span(op="find_missing_chunks_new.update_timestamp"):
+            with start_span(op="find_missing_chunks_new.update_timestamp"):
                 # We update the timestamp of the file blobs that need renewal.
                 FileBlob.objects.filter(id__in=file_blobs_to_renew).update(timestamp=now)
 

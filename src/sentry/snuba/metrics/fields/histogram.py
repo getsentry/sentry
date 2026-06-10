@@ -1,6 +1,6 @@
 import math
 
-import sentry_sdk
+from sentry_sdk import start_span
 from snuba_sdk import Column, Function
 
 from sentry.exceptions import InvalidParams
@@ -49,9 +49,7 @@ def rebucket_histogram(
 
     rv = {bucket: 0.0 for bucket in buckets}
 
-    with sentry_sdk.start_span(
-        op="sentry.snuba.metrics.fields.histogram.rebucket_histogram"
-    ) as span:
+    with start_span(op="sentry.snuba.metrics.fields.histogram.rebucket_histogram") as span:
         span.set_data("len_data", len(data))
         span.set_data("len_rv", len(rv))
 

@@ -2,10 +2,10 @@ import logging
 from datetime import datetime
 
 import orjson
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_transaction
 
 from sentry import features, options
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -158,7 +158,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
 
-        with sentry_sdk.start_transaction(
+        with start_transaction(
             name="replays.endpoints.project_replay_summary.get",
             op="replays.endpoints.project_replay_summary.get",
             custom_sampling_context=(
@@ -193,7 +193,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
 
-        with sentry_sdk.start_transaction(
+        with start_transaction(
             name="replays.endpoints.project_replay_summary.post",
             op="replays.endpoints.project_replay_summary.post",
             custom_sampling_context=(

@@ -50,7 +50,7 @@ from collections import UserDict, defaultdict
 from collections.abc import Iterable
 from typing import TypeAlias, Union
 
-import sentry_sdk
+from sentry_sdk import start_span
 
 from .base import Clusterer, ReplacementRule
 from .rule_validator import RuleValidator
@@ -100,7 +100,7 @@ class TreeClusterer(Clusterer):
 
     def _extract_rules(self) -> None:
         """Merge high-cardinality nodes in the graph and extract rules"""
-        with sentry_sdk.start_span(op="cluster_merge"):
+        with start_span(op="cluster_merge"):
             self._tree.merge(self._merge_threshold)
 
         # Generate exactly 1 rule for every merge

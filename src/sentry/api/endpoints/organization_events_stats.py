@@ -7,6 +7,7 @@ import sentry_sdk
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -123,7 +124,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             },
         )
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
+        with start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
             top_events = 0

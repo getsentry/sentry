@@ -6,6 +6,7 @@ from time import time
 import rb
 import sentry_sdk
 from rediscluster import RedisCluster
+from sentry_sdk import start_span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
@@ -73,7 +74,7 @@ class RedisQuota(Quota):
 
         results = [*self.get_abuse_quotas(project.organization)]
 
-        with sentry_sdk.start_span(op="redis.get_quotas.get_monitor_quota") as span:
+        with start_span(op="redis.get_quotas.get_monitor_quota") as span:
             span.set_tag("project.id", project.id)
             mrlquota = self.get_monitor_quota(project)
             if mrlquota[0] is not None:
@@ -95,7 +96,7 @@ class RedisQuota(Quota):
             keys = []
 
         for key in keys:
-            with sentry_sdk.start_span(op="redis.get_quotas.get_key_quota") as span:
+            with start_span(op="redis.get_quotas.get_key_quota") as span:
                 span.set_tag("key.id", key.id)
                 kquota = self.get_key_quota(key)
                 if kquota[0] is not None:

@@ -9,7 +9,6 @@ from concurrent.futures import wait
 from functools import partial
 from typing import Generic, Literal, TypeVar
 
-import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import BatchStep
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -17,6 +16,7 @@ from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
+from sentry_sdk import start_transaction
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.locks import locks
@@ -51,7 +51,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
             try:
                 # TODO: Handle subscription not existing - we should remove the subscription from
                 # the remote system in that case.
-                with sentry_sdk.start_transaction(
+                with start_transaction(
                     name=f"monitors.{identifier}.result_consumer.ResultProcessor",
                     op="result_processor.handle_result",
                 ):
@@ -286,7 +286,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         partitioned_values = self.partition_message_batch(message)
 
         # Submit groups for processing
-        with sentry_sdk.start_transaction(
+        with start_transaction(
             op="process_batch", name=f"monitors.{self.identifier}.result_consumer"
         ):
             futures = [

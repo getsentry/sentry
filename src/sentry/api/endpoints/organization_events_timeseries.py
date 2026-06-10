@@ -6,6 +6,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import analytics, features
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
@@ -165,7 +166,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
         on the parameters passed
         """
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
+        with start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
             top_events = self.get_top_events(request)

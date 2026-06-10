@@ -1,10 +1,10 @@
 from contextlib import contextmanager
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import release_health
 from sentry.api.api_owners import ApiOwner
@@ -81,7 +81,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int) -> SessionsQueryResult:
             with self.handle_query_errors():
-                with sentry_sdk.start_span(op="sessions.endpoint", name="build_sessions_query"):
+                with start_span(op="sessions.endpoint", name="build_sessions_query"):
                     request_limit = None
                     if request.GET.get("per_page") is not None:
                         request_limit = limit

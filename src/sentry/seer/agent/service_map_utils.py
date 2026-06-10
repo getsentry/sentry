@@ -15,7 +15,7 @@ from collections import defaultdict
 from typing import Any, cast
 
 import orjson
-import sentry_sdk
+from sentry_sdk import start_span
 
 from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
@@ -79,7 +79,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
 
     # Broad scan: Org-wide — only segments WITH a parent (cross-project candidates).
     page_limit = min(_SNUBA_MAX_ROWS, max_segments)
-    with sentry_sdk.start_span(op="explorer.service_map.broad_scan") as span:
+    with start_span(op="explorer.service_map.broad_scan") as span:
         span.set_data("limit", page_limit)
         result = Spans.run_table_query(
             params=snuba_params,
@@ -106,7 +106,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         )
         uncovered_params = dataclasses.replace(snuba_params, projects=uncovered)
         page_limit = min(_SNUBA_MAX_ROWS, max_segments)
-        with sentry_sdk.start_span(op="explorer.service_map.fallback_scan") as span:
+        with start_span(op="explorer.service_map.fallback_scan") as span:
             span.set_data("uncovered_projects", len(uncovered))
             span.set_data("limit", page_limit)
             result = Spans.run_table_query(
@@ -139,7 +139,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     edges_by_pair: dict[tuple[int, str, int, str], int] = defaultdict(int)
     batch_size = options.get("explorer.service_map.parent_span_batch_size")
 
-    with sentry_sdk.start_span(op="explorer.service_map.resolve_parents") as span:
+    with start_span(op="explorer.service_map.resolve_parents") as span:
         span.set_data("unique_parent_spans", len(unique_parent_span_ids))
         span.set_data("batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
         for i in range(0, len(unique_parent_span_ids), batch_size):

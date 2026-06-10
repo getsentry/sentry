@@ -1,11 +1,11 @@
 from contextlib import contextmanager
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -176,19 +176,19 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         """
         with self.handle_query_errors():
             tenant_ids = {"organization_id": organization.id}
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="build_outcomes_query"):
+            with start_span(op="outcomes.endpoint", name="build_outcomes_query"):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="run_outcomes_query"):
+            with start_span(op="outcomes.endpoint", name="run_outcomes_query"):
                 result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
                 result_timeseries = (
                     None
                     if "project_id" in query.query_groupby
                     else run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
                 )
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
+            with start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 

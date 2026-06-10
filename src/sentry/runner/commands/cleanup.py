@@ -12,12 +12,11 @@ from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
-import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
 from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
-from sentry_sdk import capture_exception
+from sentry_sdk import capture_exception, start_transaction
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
@@ -126,9 +125,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with sentry_sdk.start_transaction(
-                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker"
-            ):
+            with start_transaction(op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker"):
                 task_execution(model_name, chunk, project_id)
         except Exception:
             metrics.incr(
@@ -346,9 +343,7 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with sentry_sdk.start_transaction(
-        op="cleanup", name=f"{TRANSACTION_PREFIX}.main"
-    ) as transaction:
+    with start_transaction(op="cleanup", name=f"{TRANSACTION_PREFIX}.main") as transaction:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):

@@ -8,10 +8,10 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequenc
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Protocol, TypedDict, TypeGuard
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
+from sentry_sdk import start_span
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -777,7 +777,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+        with start_span(op="GroupSerializerBase.serialize.permalink.build"):
             return obj.get_absolute_url()
 
     @staticmethod

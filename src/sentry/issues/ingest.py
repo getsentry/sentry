@@ -9,6 +9,7 @@ from typing import Any, TypedDict
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
+from sentry_sdk import start_span
 
 from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
@@ -243,7 +244,7 @@ def save_issue_from_occurrence(
             return None
 
         with (
-            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
+            start_span(op="issues.save_issue_from_occurrence.transaction") as span,
             metrics.timer(
                 "issues.save_issue_from_occurrence.transaction",
                 tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},

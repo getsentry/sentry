@@ -9,6 +9,7 @@ from typing import Any
 import orjson
 import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
+from sentry_sdk import start_span
 
 from sentry import options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
@@ -351,7 +352,7 @@ def do_process_event(
         return _continue_to_save_event()
 
     # NOTE: This span ranges in the 1-2ms range.
-    with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
+    with start_span(op="tasks.store.process_event.get_project_from_cache"):
         project = Project.objects.get_from_cache(id=project_id)
 
     project.set_cached_field_value(
@@ -398,7 +399,7 @@ def do_process_event(
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
-        with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
+        with start_span(op="task.store.process_event.preprocessors") as span:
             span.set_data("plugin", plugin.slug)
             span.set_data("from_symbolicate", from_symbolicate)
             processors = safe_execute(plugin.get_event_preprocessors, data=data)

@@ -6,11 +6,11 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from rest_framework.request import Request
+from sentry_sdk import start_span
 
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
@@ -282,7 +282,7 @@ class DbAccess(Access):
         if not teams:
             return frozenset()
 
-        with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
+        with start_span(op="get_project_access_in_teams") as span:
             projects = frozenset(
                 Project.objects.filter(status=ObjectStatus.ACTIVE, teams__in=teams)
                 .distinct()
@@ -360,7 +360,7 @@ class DbAccess(Access):
             return True
 
         if self._member and features.has("organizations:team-roles", self._member.organization):
-            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
+            with start_span(op="check_access_for_all_project_teams") as span:
                 memberships = [
                     self._team_memberships[team]
                     for team in project.teams.all()
@@ -573,7 +573,7 @@ class RpcBackedAccess(Access):
         if self.rpc_user_organization_context.member and features.has(
             "organizations:team-roles", self.rpc_user_organization_context.organization
         ):
-            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
+            with start_span(op="check_access_for_all_project_teams") as span:
                 project_teams_id = set(project.teams.values_list("id", flat=True))
                 orgmember_teams = self.rpc_user_organization_context.member.member_teams
                 span.set_tag("organization", self.rpc_user_organization_context.organization.id)

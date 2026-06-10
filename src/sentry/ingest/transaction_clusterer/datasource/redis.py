@@ -5,10 +5,10 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from typing import Any
 
 import orjson
-import sentry_sdk
 from django.conf import settings
 from rediscluster import RedisCluster
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_sdk import start_span
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
@@ -86,7 +86,7 @@ def get_active_project_ids(namespace: ClustererNamespace) -> Iterator[int]:
 
 
 def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:
-    with sentry_sdk.start_span(op=f"cluster.{namespace.value.name}.record_sample"):
+    with start_span(op=f"cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)
         created = add_to_set([redis_key], [sample, MAX_SET_SIZE, SET_TTL], client)

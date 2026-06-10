@@ -6,12 +6,12 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
 
 import orjson
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.utils import timezone
+from sentry_sdk import start_span
 
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -136,7 +136,7 @@ def get_access_by_project(
 
     result: dict[Project, dict[str, Any]] = {}
     has_team_roles_cache: dict[int, bool] = {}
-    with sentry_sdk.start_span(op="project.check-access"):
+    with start_span(op="project.check-access"):
         for project in projects:
             member_teams = [
                 memberships_by_team[tid]
@@ -367,7 +367,7 @@ class ProjectSerializer(Serializer):
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
-            span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
+            span = start_span(op=f"serialize.get_attrs.project.{op_tag}")
             span.set_data("Object Count", len(item_list))
             return span
 
