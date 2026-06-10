@@ -265,6 +265,15 @@ const trackMissingInstrumentationPreferenceChange = (
     enabled,
   });
 
+const trackCompressedTimelinePreferenceChange = (
+  organization: Organization,
+  enabled: boolean
+) =>
+  trackAnalytics('trace.preferences.compressed_timeline_change', {
+    organization,
+    enabled,
+  });
+
 const traceAnalytics = {
   // Trace Onboarding
   trackTracingOnboarding,
@@ -302,6 +311,7 @@ const traceAnalytics = {
   // Trace Preferences
   trackAutogroupingPreferenceChange,
   trackMissingInstrumentationPreferenceChange,
+  trackCompressedTimelinePreferenceChange,
   // Trace Drawer Details
   trackEAPSpanHasDetails,
 };

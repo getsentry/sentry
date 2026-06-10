@@ -37,11 +37,16 @@ import {
 import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
+import {TraceTimeCompression} from './traceRenderers/traceTimeCompression';
+import type {TraceTimeCompressionGap} from './traceRenderers/traceTimeCompression';
 import {
   useVirtualizedList,
   type VirtualizedRow,
 } from './traceRenderers/traceVirtualizedList';
-import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import type {
+  TraceTimeCompressionManagerOptions,
+  VirtualizedViewManager,
+} from './traceRenderers/virtualizedViewManager';
 import {TraceLoadingRow} from './traceRow/traceLoadingRow';
 import {
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
@@ -50,6 +55,7 @@ import {
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   type TraceRowProps,
 } from './traceRow/traceRow';
+import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from './traceState/tracePreferences';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
@@ -105,6 +111,10 @@ function computeNextIndexFromAction(
     default:
       throw new TypeError(`Invalid or not implemented reducer action - ${action}`);
   }
+}
+
+function snapshotVisibleTraceItems(nodes: BaseNode[], _version: number): BaseNode[] {
+  return nodes.slice();
 }
 
 interface TraceProps {
@@ -166,6 +176,61 @@ export function Trace({
   const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
+  const traceStart = trace.root.space[0];
+  const traceDuration = trace.root.space[1];
+  const hasCompressedTimelineFeature = organization.features.includes(
+    TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
+  );
+
+  const visibleTraceItems = useMemo(
+    () => snapshotVisibleTraceItems(trace.list, forceRerender),
+    [trace.list, forceRerender]
+  );
+
+  const timeCompressionOptions = useMemo((): TraceTimeCompressionManagerOptions => {
+    const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
+    return {
+      enabled:
+        hasCompressedTimelineFeature &&
+        traceState.preferences.compressed_timeline &&
+        trace.type === 'trace',
+      traceSpace,
+      nodes: visibleTraceItems,
+      indicators: trace.indicators,
+    };
+  }, [
+    trace.indicators,
+    traceDuration,
+    traceStart,
+    trace.type,
+    hasCompressedTimelineFeature,
+    traceState.preferences.compressed_timeline,
+    visibleTraceItems,
+  ]);
+
+  const [physicalWidth, setPhysicalWidth] = useState(
+    () => manager.view.trace_physical_space.width
+  );
+
+  const timeCompression = useMemo(
+    () =>
+      TraceTimeCompression.FromVisibleItems({
+        ...timeCompressionOptions,
+        physicalWidth,
+      }),
+    [physicalWidth, timeCompressionOptions]
+  );
+  const timeCompressionOptionsRef = useRef(timeCompressionOptions);
+  timeCompressionOptionsRef.current = timeCompressionOptions;
+
+  useLayoutEffect(() => {
+    manager.timeCompressionOptions = timeCompressionOptions;
+    manager.recomputeTimeCompression(timeCompressionOptions);
+    manager.recomputeTimelineIntervals();
+    manager.recomputeSpanToPXMatrix();
+    manager.draw();
+  }, [manager, physicalWidth, timeCompressionOptions]);
+
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
   >(traceState.preferences);
@@ -179,11 +244,15 @@ export function Trace({
       manager.draw();
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
+      const nextPhysicalWidth = manager.view.trace_physical_space.width;
+      setPhysicalWidth(nextPhysicalWidth);
+      manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
     };
     const onTraceSpaceChange: TraceEvents['initialize trace space'] = () => {
+      manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
@@ -193,12 +262,17 @@ export function Trace({
       manager.recomputeSpanToPXMatrix();
       manager.draw(view);
     };
+    const onDividerResizeEnd: TraceEvents['divider resize end'] = () => {
+      const nextPhysicalWidth = manager.view.trace_physical_space.width;
+      setPhysicalWidth(nextPhysicalWidth);
+    };
 
     scheduler.on('set trace view', onTraceViewChange);
     scheduler.on('set trace space', onTraceSpaceChange);
     scheduler.on('set container physical space', onPhysicalSpaceChange);
     scheduler.on('initialize trace space', onTraceSpaceChange);
     scheduler.on('divider resize', onDividerResize);
+    scheduler.on('divider resize end', onDividerResizeEnd);
 
     return () => {
       scheduler.off('set trace view', onTraceViewChange);
@@ -206,6 +280,7 @@ export function Trace({
       scheduler.off('set container physical space', onPhysicalSpaceChange);
       scheduler.off('initialize trace space', onTraceSpaceChange);
       scheduler.off('divider resize', onDividerResize);
+      scheduler.off('divider resize end', onDividerResizeEnd);
     };
   }, [manager, scheduler]);
 
@@ -464,6 +539,16 @@ export function Trace({
             </div>
           );
         })}
+        {trace.type === 'trace' &&
+          !isLoading &&
+          timeCompression.gaps.map((gap, i) => (
+            <CollapsedGapMarker
+              key={`${gap.start}-${gap.end}`}
+              gap={gap}
+              index={i}
+              manager={manager}
+            />
+          ))}
         {traceNode && traceStartTimestamp ? (
           <VerticalTimestampIndicators
             viewmanager={manager}
@@ -632,6 +717,34 @@ function RenderTraceRow(props: {
   };
 
   return node.renderWaterfallRow(rowProps);
+}
+
+function CollapsedGapMarker({
+  gap,
+  index,
+  manager,
+}: {
+  gap: TraceTimeCompressionGap;
+  index: number;
+  manager: VirtualizedViewManager;
+}) {
+  const registerCollapsedGapMarkerRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      manager.registerCollapsedGapMarkerRef(ref, index, gap);
+    },
+    [gap, index, manager]
+  );
+
+  const durationLabel = formatTraceDuration(gap.duration);
+
+  return (
+    <div ref={registerCollapsedGapMarkerRef} className="TraceCollapsedGapMarker">
+      <div className="TraceCollapsedGapMarkerBreak" />
+      <Tooltip title={`Skipped ${durationLabel} inactive period`}>
+        <div className="TraceCollapsedGapMarkerPill">{durationLabel}</div>
+      </Tooltip>
+    </div>
+  );
 }
 
 function VerticalTimestampIndicators({
@@ -852,6 +965,48 @@ const TraceStylingWrapper = styled('div')`
     background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
+  }
+
+  .TraceCollapsedGapMarker {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    height: 100%;
+    pointer-events: auto;
+    z-index: 2;
+  }
+
+  .TraceCollapsedGapMarkerBreak {
+    position: absolute;
+    top: 19px;
+    left: -2px;
+    right: -2px;
+    height: calc(100% - 19px);
+    box-sizing: border-box;
+    color: ${p => p.theme.tokens.content.secondary};
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 8px,
+      color-mix(in srgb, currentColor 24%, transparent) 8px 10px
+    );
+    border-left: 1px solid color-mix(in srgb, currentColor 52%, transparent);
+    border-right: 1px solid color-mix(in srgb, currentColor 52%, transparent);
+  }
+
+  .TraceCollapsedGapMarkerPill {
+    position: relative;
+    top: 20px;
+    font-size: 10px;
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    color: ${p => p.theme.tokens.content.secondary};
+    background-color: ${p => p.theme.tokens.background.primary};
+    line-height: 1;
+    white-space: nowrap;
+    padding: 2px 6px;
+    border-radius: 100px;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    cursor: default;
   }
 
   .TraceIndicatorLabelContainer {

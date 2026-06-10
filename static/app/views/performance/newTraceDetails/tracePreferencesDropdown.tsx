@@ -21,11 +21,14 @@ import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetai
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceShortcutsModal} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
+import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
+  compressedTimeline: boolean;
   missingInstrumentation: boolean;
   onAutogroupChange: () => void;
+  onCompressedTimelineChange: () => void;
   onMissingInstrumentationChange: () => void;
   rootEventResults: TraceRootEventQueryResults;
 }
@@ -35,6 +38,9 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
 
   const organization = useOrganization();
   const {projects} = useProjects();
+  const hasCompressedTimelineFeature = organization.features.includes(
+    TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
+  );
 
   const traceProject = getTraceProject(projects, props.rootEventResults);
   const selectOptions: Array<SelectOption<string>> = [
@@ -56,6 +62,13 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       ),
     },
   ];
+  if (hasCompressedTimelineFeature) {
+    selectOptions.push({
+      label: t('Compressed Timeline'),
+      value: 'compressed-timeline',
+      details: t('Collapses long inactive gaps in the waterfall timeline.'),
+    });
+  }
 
   const values = useMemo(() => {
     const value: string[] = [];
@@ -65,11 +78,20 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     if (props.missingInstrumentation) {
       value.push('no-instrumentation');
     }
+    if (hasCompressedTimelineFeature && props.compressedTimeline) {
+      value.push('compressed-timeline');
+    }
     return value;
-  }, [props.autogroup, props.missingInstrumentation]);
+  }, [
+    hasCompressedTimelineFeature,
+    props.autogroup,
+    props.compressedTimeline,
+    props.missingInstrumentation,
+  ]);
 
   const onAutogroupChange = props.onAutogroupChange;
   const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
+  const onCompressedTimelineChange = props.onCompressedTimelineChange;
 
   const onChange = useCallback(
     (newValues: Array<SelectOption<string>>) => {
@@ -83,6 +105,9 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (newOption === 'no-instrumentation') {
           onMissingInstrumentationChange();
         }
+        if (newOption === 'compressed-timeline') {
+          onCompressedTimelineChange();
+        }
       }
 
       if (values.length > newValuesArray.length) {
@@ -93,9 +118,17 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (removedOption === 'no-instrumentation') {
           onMissingInstrumentationChange();
         }
+        if (removedOption === 'compressed-timeline') {
+          onCompressedTimelineChange();
+        }
       }
     },
-    [values, onAutogroupChange, onMissingInstrumentationChange]
+    [
+      values,
+      onAutogroupChange,
+      onCompressedTimelineChange,
+      onMissingInstrumentationChange,
+    ]
   );
 
   return (

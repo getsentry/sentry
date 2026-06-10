@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -24,6 +25,8 @@ import {
   makeTraceError,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
+import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {StoredTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
@@ -70,6 +73,7 @@ function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
     drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
     missing_instrumentation: DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation,
     autogroup: DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
+    compressed_timeline: DEFAULT_TRACE_VIEW_PREFERENCES.compressed_timeline,
     ...preferences,
   };
   localStorage.setItem('trace-waterfall-preferences', JSON.stringify(storedPreferences));
@@ -1229,6 +1233,93 @@ describe('trace view', () => {
         await waitFor(async () => {
           expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
         });
+      });
+
+      it('redraws the trace when compressed timeline changes', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        mockQueryString('?node=span-span0&node=txn-1');
+        const organization = OrganizationFixture({
+          features: ['trace-waterfall-time-compression'],
+        });
+
+        const drawSpy = jest.spyOn(VirtualizedViewManager.prototype, 'draw');
+
+        try {
+          await completeTestSetup({organization});
+
+          const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+          await userEvent.click(preferencesDropdownTrigger);
+
+          expect(await screen.findByText('Compressed Timeline')).toBeInTheDocument();
+
+          drawSpy.mockClear();
+          const compressedTimelineOption = await screen.findByText('Compressed Timeline');
+          await userEvent.click(compressedTimelineOption);
+
+          await waitFor(() => {
+            expect(drawSpy).toHaveBeenCalled();
+          });
+        } finally {
+          drawSpy.mockRestore();
+        }
+      });
+
+      it('hides and disables compressed timeline without the feature flag', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        mockQueryString('?node=span-span0&node=txn-1');
+
+        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
+
+        try {
+          await completeTestSetup();
+
+          const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+          await userEvent.click(preferencesDropdownTrigger);
+
+          expect(screen.queryByText('Compressed Timeline')).not.toBeInTheDocument();
+          expect(compressionSpy.mock.calls.at(-1)?.[0]?.enabled).toBe(false);
+        } finally {
+          compressionSpy.mockRestore();
+        }
+      });
+
+      it('recomputes compressed timeline when expanding or collapsing rows changes visible nodes', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        mockQueryString('?node=span-span0&node=txn-1');
+        const organization = OrganizationFixture({
+          features: ['trace-waterfall-time-compression'],
+        });
+
+        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
+
+        try {
+          const {virtualizedContainer} = await completeTestSetup({organization});
+          await within(virtualizedContainer).findAllByText(/Autogrouped/i);
+
+          const initialNodeCount =
+            compressionSpy.mock.calls.at(-1)?.[0]?.nodes.length ?? 0;
+          expect(initialNodeCount).toBeGreaterThan(0);
+
+          compressionSpy.mockClear();
+
+          const rows = getVirtualizedRows(virtualizedContainer);
+          const spanRow = rows.find(row => row.textContent?.includes('http — request'));
+          const collapseButton =
+            spanRow?.querySelector<HTMLButtonElement>('.TraceChildrenCount');
+          expect(collapseButton).toBeInTheDocument();
+
+          fireEvent.click(collapseButton!);
+
+          await waitFor(() => {
+            expect(compressionSpy).toHaveBeenCalled();
+          });
+
+          expect(compressionSpy.mock.calls.at(-1)?.[0]?.nodes.length).toBeLessThan(
+            initialNodeCount
+          );
+        } finally {
+          compressionSpy.mockRestore();
+        }
       });
     });
   });

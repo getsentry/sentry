@@ -90,6 +90,9 @@ export type TracingEventParameters = {
   'trace.preferences.autogrouping_change': {
     enabled: boolean;
   };
+  'trace.preferences.compressed_timeline_change': {
+    enabled: boolean;
+  };
   'trace.preferences.missing_instrumentation_change': {
     enabled: boolean;
   };
@@ -274,6 +277,8 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.search_request': 'Trace Explorer: Search Request',
   'trace_explorer.search_success': 'Trace Explorer: Search Success',
   'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
+  'trace.preferences.compressed_timeline_change':
+    'Changed Compressed Timeline Preference',
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',

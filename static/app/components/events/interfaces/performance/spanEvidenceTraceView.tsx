@@ -38,6 +38,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     parent: true,
     sibling: true,
   },
+  compressed_timeline: false,
   layout: 'drawer bottom',
   list: {
     width: 0.5,
@@ -55,7 +56,8 @@ export function SpanEvidenceTraceView(props: SpanEvidenceTraceViewProps) {
     () =>
       getInitialTracePreferences(
         TRACE_WATERFALL_PREFERENCES_KEY,
-        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES
+        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+        'issues'
       ),
     []
   );
