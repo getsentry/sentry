@@ -17,6 +17,7 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker import namespaces
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise, quiet_retriable_timeouts
 from sentry.utils.locking import UnableToAcquireLock
@@ -77,9 +78,18 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
 
     evaluation.log_to(logger)
 
+    try:
+        activity_type = ActivityType(activity.type).name
+    except ValueError:
+        logger.exception(
+            "workflow_engine.process_workflow_activity.invalid_activity_type",
+            extra={"activity_type": activity.type},
+        )
+        activity_type = activity.type
+
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
-        tags={"activity_type": activity.type, "detector_type": detector.type},
+        tags={"activity_type": activity_type, "detector_type": detector.type},
         sample_rate=1.0,
     )
 

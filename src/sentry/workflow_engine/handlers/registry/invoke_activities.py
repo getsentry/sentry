@@ -34,7 +34,7 @@ def invoke_workflow_activity_handlers(
         activity_type = ActivityType(activity.type).name
     except ValueError:
         logger.exception(
-            "workflow_engine.seer_activity_handler.invalid_activity_type",
+            "workflow_engine.invoke_workflow_activity_handlers.invalid_activity_type",
             extra={"activity_type": activity.type},
         )
         return
