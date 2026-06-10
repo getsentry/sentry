@@ -50,6 +50,45 @@ type Options =
       stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
     };
 
+function isUIMatch(item: PlainRoute | UIMatch): item is UIMatch {
+  return 'id' in item && 'pathname' in item;
+}
+
+function getItemPath(item: PlainRoute | UIMatch): string {
+  if (isUIMatch(item)) {
+    return (item.handle as Record<string, string> | undefined)?.path ?? '';
+  }
+  return item.path ?? '';
+}
+
+function getItemName(item: PlainRoute | UIMatch): string | undefined {
+  if (isUIMatch(item)) {
+    return (item.handle as Record<string, string> | undefined)?.name;
+  }
+  return (item as PlainRoute & {name?: string}).name;
+}
+
+/**
+ * Find the index of `to` in `items`. Tries reference equality first, then
+ * falls back to structural matching by path+name so a PlainRoute from
+ * useRoutes() can be found in a UIMatch[] from useMatches() (and vice versa).
+ */
+function findItemIndex(
+  to: PlainRoute | UIMatch,
+  items: PlainRoute[] | UIMatch[]
+): number {
+  const refIdx = (items as unknown[]).indexOf(to);
+  if (refIdx !== -1) {
+    return refIdx;
+  }
+
+  const toPath = getItemPath(to);
+  const toName = getItemName(to);
+  return (items as Array<PlainRoute | UIMatch>).findIndex(
+    item => getItemPath(item) === toPath && getItemName(item) === toName
+  );
+}
+
 /**
  * Given a route object or a string and a list of routes + params from router, this will attempt to recreate a location string while replacing url params.
  * Can additionally specify the number of routes to move back
@@ -74,7 +113,7 @@ export function recreateRoute(
       return path;
     });
     if (typeof to !== 'string') {
-      toIndex = options.matches.indexOf(to as UIMatch) + 1;
+      toIndex = findItemIndex(to, options.matches) + 1;
     }
   } else {
     paths = options.routes.map(({path: p}) => {
@@ -85,7 +124,7 @@ export function recreateRoute(
       return path;
     });
     if (typeof to !== 'string') {
-      toIndex = options.routes.indexOf(to as PlainRoute) + 1;
+      toIndex = findItemIndex(to, options.routes) + 1;
     }
   }
 

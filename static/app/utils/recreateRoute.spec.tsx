@@ -247,4 +247,29 @@ describe('recreateRoute with matches', () => {
       '/settings/org-slug/api-keys/#section-1'
     );
   });
+
+  it('resolves a PlainRoute to against a matches array', () => {
+    const plainRoutes = [
+      {path: '/'},
+      {},
+      {path: '/settings/', name: 'Settings'},
+      {path: ':orgId/', name: 'Organizations'},
+      {},
+      {path: 'api-keys/', name: 'API Key'},
+    ];
+
+    expect(recreateRoute(plainRoutes[2]!, {matches, params})).toBe('/settings/');
+    expect(recreateRoute(plainRoutes[3]!, {matches, params})).toBe('/settings/org-slug/');
+    expect(recreateRoute(plainRoutes[5]!, {matches, params})).toBe(
+      '/settings/org-slug/api-keys/'
+    );
+  });
+
+  it('resolves a UIMatch to against a routes array', () => {
+    expect(recreateRoute(matches[2]!, {routes, params})).toBe('/settings/');
+    expect(recreateRoute(matches[3]!, {routes, params})).toBe('/settings/org-slug/');
+    expect(recreateRoute(matches[5]!, {routes, params})).toBe(
+      '/settings/org-slug/api-keys/'
+    );
+  });
 });
