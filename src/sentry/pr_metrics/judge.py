@@ -33,9 +33,11 @@ def _parse_attributions(
 ) -> list[tuple[PullRequestAttributionSignalType, PullRequestAttributionSource, Any]]:
     """Validate Seer-supplied attribution signals at the trust boundary.
 
-    Returns the parsed ``(signal_type, source, signal_details)`` tuples, or raises
-    ``ValueError`` if any entry names a signal type or source we don't recognize —
-    we reject the whole batch rather than silently drop malformed signals.
+    Returns the parsed ``(signal_type, source, signal_details)`` tuples. Raises if
+    the payload is the wrong shape (not a list of objects → ``TypeError``), is
+    missing a required key (``KeyError``), or names a signal type or source we
+    don't recognize (``ValueError``) — the caller rejects the whole batch rather
+    than silently dropping malformed signals.
     """
     parsed = []
     for entry in raw:
@@ -81,7 +83,7 @@ def upsert_pr_metrics_summary(
 
     try:
         parsed_attributions = _parse_attributions(attributions or ())
-    except (KeyError, ValueError):
+    except (KeyError, TypeError, ValueError):
         logger.warning("pr_metrics.upsert.invalid_attribution", extra=log_extra)
         metrics.incr("pr_metrics.upsert.skipped", tags={"reason": "invalid_attribution"})
         return {"success": False, "error": "invalid_attribution"}

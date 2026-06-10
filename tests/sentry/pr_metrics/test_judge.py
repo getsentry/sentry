@@ -125,6 +125,20 @@ class UpsertPrMetricsSummaryTest(TestCase):
         assert mock_record.call_count == 0
 
     @patch("sentry.analytics.record")
+    def test_rejects_wrong_shape_attributions(self, mock_record: Any) -> None:
+        self._track()
+        # A single object instead of a list of objects: iterating it yields keys,
+        # which must surface as invalid_attribution rather than a generic error.
+        result = self._call(
+            verdict="merged_unchanged",
+            attributions={"signal_type": "seer_delegated:claude_code", "source": "seer_llm_judge"},
+        )
+
+        assert result == {"success": False, "error": "invalid_attribution"}
+        assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
     def test_does_not_clobber_webhook_counters(self, mock_record: Any) -> None:
         self._track()
         PullRequestMetrics.objects.create(
