@@ -88,7 +88,7 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
 > {
-  applySeerSearchQuery: (item: T, runId?: number) => void;
+  applySeerSearchQuery: (item: T, runId?: number | string) => void;
   initialQuery: string;
   projectIds: number[];
   strategy: string;
@@ -281,6 +281,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             start={item?.start}
             end={item?.end}
             visualizations={item?.visualizations}
+            expandedProjectIds={item?.expandedProjectIds}
           />
         </Item>
       );

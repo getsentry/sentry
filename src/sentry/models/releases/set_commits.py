@@ -250,6 +250,23 @@ def update_group_resolutions(release, commit_author_by_commit):
         if (repo_id := commit_repo_ids.get(commit_id)) is not None:
             provider_by_group[group_id] = normalize_provider_key(repo_providers.get(repo_id))
 
+    # Map each resolved group to the commit that resolved it, so the
+    # issue_resolved analytics event records the commit id. Commit resolutions
+    # carry the commit id directly; PR resolutions are mapped through the PR's
+    # merge_commit_sha to the matching release commit (no extra query needed,
+    # since PRs were already filtered by merge_commit_sha above). PRs are
+    # iterated first so a direct commit resolution wins when a group has both.
+    commit_id_by_group: dict[int, int] = {}
+    commit_id_by_commit_key = {rc["commit__key"]: rc["commit_id"] for rc in release_commits}
+    pr_merge_sha = {pra.id: pra.merge_commit_sha for pra in pr_authors}
+    for group_id, pr_id in pull_request_resolutions:
+        merge_sha = pr_merge_sha.get(pr_id)
+        pr_commit_id = commit_id_by_commit_key.get(merge_sha) if merge_sha is not None else None
+        if pr_commit_id is not None:
+            commit_id_by_group[group_id] = pr_commit_id
+    for group_id, commit_id in commit_resolutions:
+        commit_id_by_group[group_id] = commit_id
+
     user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
     commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
@@ -309,6 +326,7 @@ def update_group_resolutions(release, commit_author_by_commit):
             project=group.project,
             resolution_type="with_commit",
             provider=provider_by_group.get(group_id),
+            commit_id=commit_id_by_group.get(group_id),
             sender=type(release),
         )
 

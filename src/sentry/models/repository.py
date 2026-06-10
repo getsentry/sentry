@@ -37,7 +37,7 @@ class Repository(Model):
     __relocation_scope__ = RelocationScope.Global
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=500)
     url = models.URLField(null=True)
     provider = models.CharField(max_length=64, null=True)
     # The external_id is the id of the repo in the provider's system. (e.g. GitHub's repo id)

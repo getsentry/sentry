@@ -971,7 +971,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     defaultEnvironment: str | None
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
-    dynamicSamplingBiases: list[dict[str, str | bool]]
+    dynamicSamplingBiases: list[dict[str, str | bool]] | None
     symbolSources: str
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]

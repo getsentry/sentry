@@ -5,10 +5,12 @@ from typing import Any
 import sentry_sdk
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
+from django.db.models.functions import Coalesce
 from taskbroker_client.retry import Retry
 
 from sentry import eventstream, similarity, tsdb
 from sentry.db.models.base import Model
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
@@ -101,6 +103,7 @@ def merge_groups(
             UserReport,
             GroupRedirect,
             GroupMeta,
+            GroupActionLogEntry,
         )
 
         has_more = merge_objects(
@@ -241,6 +244,10 @@ def merge_objects(
         else:
             queryset = project_qs.filter(group_id=group.id)  # type: ignore[misc]
             update_kwargs["group_id"] = new_group.id
+
+        if "original_group_id" in all_fields:
+            # Only set original_group_id if not already set.
+            update_kwargs["original_group_id"] = Coalesce(F("original_group_id"), group.id)
 
         for obj in queryset[:limit]:
             try:

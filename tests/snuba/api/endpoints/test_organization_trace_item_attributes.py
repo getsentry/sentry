@@ -892,6 +892,52 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "__sentry_internal_span_buffer_outcome" in attribute_names
         assert "__sentry_internal_test" in attribute_names
 
+    def test_internal_convention_attributes_are_hidden(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={
+                "dsc.trace_id": "internal",
+                "normal_attr": "visible",
+            },
+            measurements={
+                "dsc.sample_rate": 1,
+                "normal_measurement": 2,
+            },
+        )
+
+        response = self.do_request(query={"attributeType": "string"})
+        assert response.status_code == 200, response.content
+
+        string_attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in string_attribute_names
+        assert "dsc.trace_id" not in string_attribute_names
+
+        response = self.do_request(query={"attributeType": "number"})
+        assert response.status_code == 200, response.content
+
+        number_attributes = {(attr["key"], attr["name"]) for attr in response.data}
+        assert ("tags[normal_measurement,number]", "normal_measurement") in number_attributes
+        assert ("tags[dsc.sample_rate,number]", "dsc.sample_rate") not in number_attributes
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(query={"attributeType": "number"})
+        assert response.status_code == 200, response.content
+
+        number_attributes = {(attr["key"], attr["name"]) for attr in response.data}
+        assert ("tags[dsc.sample_rate,number]", "dsc.sample_rate") in number_attributes
+
     def test_boolean_attributes(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {

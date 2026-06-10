@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.base import audit_logger
 from sentry.api.utils import to_valid_int_id_list
+from sentry.apidocs.response_types import ValidationErrorResponse
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.models.group import Group, GroupStatus
@@ -145,7 +146,7 @@ def schedule_tasks_to_delete_groups(
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None = None,
-) -> Response:
+) -> Response[None] | Response[ValidationErrorResponse]:
     """
     `search_fn` refers to the `search.query` method with the appropriate
     project, org, environment, and search params already bound

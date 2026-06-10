@@ -22,6 +22,7 @@ from sentry.seer.autofix.autofix import get_trace_tree_for_event
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
+    get_autofix_agent_state,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
@@ -32,7 +33,6 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
@@ -391,7 +391,7 @@ def run_automation(
         }
     )
 
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    autofix_state = get_autofix_agent_state(group.organization, group.id)
     if autofix_state:
         return  # already have an autofix on this issue
 

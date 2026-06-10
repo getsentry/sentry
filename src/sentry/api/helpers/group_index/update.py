@@ -215,8 +215,16 @@ def update_groups(
     if discard:
         return handle_discard(request, groups, projects, acting_user)
 
-    source = resolve_action_source(request)
-    actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+    # Defer to an outer context if one is already set (e.g. an inbound Slack/Discord/
+    # MS Teams action handler that wrapped this call), so the integration source is not
+    # overwritten by the request-derived source. Only the outermost boundary attributes.
+    existing_ctx = get_action_context()
+    if existing_ctx is not None:
+        source = existing_ctx.source
+        actor = existing_ctx.actor
+    else:
+        source = resolve_action_source(request)
+        actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
 
     with action_context_scope(source=source, actor=actor):
         status_details = result.pop("statusDetails", result)
@@ -469,6 +477,7 @@ def handle_resolve_in_release(
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
+            commit_id=commit.id if commit else None,
             sender=update_groups,
         )
 

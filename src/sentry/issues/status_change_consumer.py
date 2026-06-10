@@ -9,6 +9,7 @@ import sentry_sdk
 from sentry_sdk.traces import StreamedSpan
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
@@ -294,9 +295,12 @@ def process_status_change_message(message: Mapping[str, Any], txn: StreamedSpan)
 
     sentry_sdk.set_tag("group_type", group.issue_type.slug)
 
-    with metrics.timer(
-        "occurrence_consumer._process_message.status_change.update_group_status",
-        tags={"occurrence_type": group.issue_type.type_id},
+    with (
+        metrics.timer(
+            "occurrence_consumer._process_message.status_change.update_group_status",
+            tags={"occurrence_type": group.issue_type.type_id},
+        ),
+        action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR),
     ):
         update_status(group, status_change_data)
 

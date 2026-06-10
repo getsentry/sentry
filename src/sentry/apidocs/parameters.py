@@ -3,7 +3,6 @@ from typing import Any
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
-from rest_framework import serializers
 
 from sentry import constants
 from sentry.snuba.dataset import Dataset
@@ -779,11 +778,15 @@ events that aren't in the top groups.""",
     )
 
 
-class CursorQueryParam(serializers.Serializer):
-    cursor = serializers.CharField(
-        help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
-        required=False,
-    )
+CursorQueryParam = OpenApiParameter(
+    name="cursor",
+    location="query",
+    required=False,
+    type=str,
+    allow_blank=False,
+    description="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
+    extensions={"x-learn-more": "https://docs.sentry.io/api/pagination/"},
+)
 
 
 class MonitorParams:

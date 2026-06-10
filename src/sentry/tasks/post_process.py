@@ -70,6 +70,7 @@ class PostProcessJob(TypedDict, total=False):
     has_reappeared: bool
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool
+    halt_post_process: bool
 
 
 def _should_send_error_created_hooks(project: Project) -> bool:
@@ -698,6 +699,15 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     "pipeline": pipeline_step.__name__,
                 },
             )
+            if job.get("halt_post_process"):
+                metrics.incr(
+                    "sentry.tasks.post_process.post_process_group.halted",
+                    tags={
+                        "issue_category": issue_category_metric,
+                        "pipeline": pipeline_step.__name__,
+                    },
+                )
+                break
 
 
 def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
@@ -783,6 +793,25 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 event.group.status = GroupStatus.UNRESOLVED
                 event.group.substatus = GroupSubStatus.REGRESSED
                 add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+
+
+def _noop_malicious_issue_detection_hook(job: PostProcessJob) -> bool:
+    return False
+
+
+_malicious_issue_detection_hook: Callable[[PostProcessJob], bool] = (
+    _noop_malicious_issue_detection_hook
+)
+
+
+def set_malicious_issue_detection_hook(hook: Callable[[PostProcessJob], bool]) -> None:
+    global _malicious_issue_detection_hook
+    _malicious_issue_detection_hook = hook
+
+
+def process_malicious_issue_detection(job: PostProcessJob) -> None:
+    if _malicious_issue_detection_hook(job):
+        job["halt_post_process"] = True
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -1261,9 +1290,6 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    if not features.has("organizations:processing-errors-eap", event.project.organization):
-        return
-
     processing_errors = event.data.get("errors", [])
     if not processing_errors:
         return
@@ -1627,6 +1653,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
+        process_malicious_issue_detection,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,

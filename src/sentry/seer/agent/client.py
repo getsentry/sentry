@@ -6,7 +6,6 @@ import time
 from datetime import datetime
 from typing import Any, Literal, overload
 
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone as django_timezone
@@ -120,7 +119,7 @@ class SeerAgentClient:
 
         # SIMPLE USAGE
         client = SeerAgentClient(organization, user)
-        run_id = client.start_run("Analyze trace XYZ and find performance issues")
+        run_id = client.start_run("Analyze trace XYZ and find performance issues").seer_run_state_id
         state = client.get_run(run_id)
 
         # WITH ARTIFACTS
@@ -139,7 +138,7 @@ class SeerAgentClient:
             "Analyze why users see 500 errors",
             artifact_key="root_cause",
             artifact_schema=RootCause
-        )
+        ).seer_run_state_id
         state = client.get_run(run_id, blocking=True)
         root_cause = state.get_artifact("root_cause", RootCause)
 
@@ -177,7 +176,7 @@ class SeerAgentClient:
             user,
             custom_tools=[DeploymentStatusTool]
         )
-        run_id = client.start_run("Check if payment-service is deployed in production")
+        run_id = client.start_run("Check if payment-service is deployed in production").seer_run_state_id
 
         # WITH ON-COMPLETION HOOK
         from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
@@ -193,7 +192,7 @@ class SeerAgentClient:
             user,
             on_completion=NotifyOnComplete
         )
-        run_id = client.start_run("Analyze this issue")
+        run_id = client.start_run("Analyze this issue").seer_run_state_id
 
         # WITH CODE EDITING AND PR CREATION
         client = SeerAgentClient(
@@ -202,7 +201,7 @@ class SeerAgentClient:
             enable_coding=True,  # Enable code editing tools
         )
 
-        run_id = client.start_run("Fix the null pointer exception in auth.py")
+        run_id = client.start_run("Fix the null pointer exception in auth.py").seer_run_state_id
         state = client.get_run(run_id, blocking=True)
 
         # Check if agent made code changes and if they need to be pushed
@@ -219,7 +218,7 @@ class SeerAgentClient:
 
         # WITH EXTERNAL CODING AGENTS (e.g., Cursor)
         client = SeerAgentClient(organization, user)
-        run_id = client.start_run("Analyze the authentication bug")
+        run_id = client.start_run("Analyze the authentication bug").seer_run_state_id
         state = client.get_run(run_id, blocking=True)
 
         result = client.launch_coding_agents(
@@ -317,7 +316,7 @@ class SeerAgentClient:
         request: Request | None = None,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
-    ) -> int:
+    ) -> SeerRun:
         """
         Start a new Seer Agent session.
 
@@ -330,7 +329,8 @@ class SeerAgentClient:
             request: Optional rest_framework Request object from endpoints.
 
         Returns:
-            int: The run ID that can be used to fetch results or continue the conversation
+            SeerRun: The mirror row for the run. Its seer_run_state_id is the id
+            passed to get_run/continue_run and surfaced to clients.
 
         Raises:
             SeerApiError: If the Seer API request fails
@@ -425,86 +425,63 @@ class SeerAgentClient:
         ):
             agent_run_options["use_agent_sandbox"] = True
 
-        if features.has("organizations:seer-run-mirror-explorer", self.organization):
-            user_id = (
-                self.user.id
-                if self.user and hasattr(self.user, "id") and self.user.id is not None
-                else None
-            )
-            try:
-                with outbox_context(
-                    transaction.atomic(using=router.db_for_write(SeerRun)), flush=True
-                ):
-                    run = SeerRun.objects.create(
-                        organization=self.organization,
-                        user_id=user_id,
-                        type=SeerRunType.EXPLORER,
-                        last_triggered_at=now(),
-                    )
-                    source = self.category_key or ""
-                    if not source:
-                        logger.warning(
-                            "seer_agent_run.missing_source",
-                            extra={
-                                "organization_id": self.organization.id,
-                                "seer_run_id": run.id,
-                                "user_id": user_id,
-                            },
-                        )
-                    SeerAgentRun.objects.create(
-                        run=run,
-                        title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
-                        source=source,
-                        project=self.project,
-                        extras=(
-                            {"category_value": self.category_value} if self.category_value else {}
-                        ),
-                    )
-                    CellOutbox(
-                        shard_scope=OutboxScope.SEER_SCOPE,
-                        shard_identifier=run.id,
-                        category=OutboxCategory.SEER_RUN_CREATE,
-                        object_identifier=run.id,
-                        payload={
-                            "body": dict(chat_body),
-                            "viewer_context": dict(self.viewer_context),
-                        },
-                    ).save()
-            except (OutboxFlushError, OutboxDatabaseError):
-                metrics.incr("seer.outbox_flush_error", tags={"type": "explorer"})
-                logger.exception(
-                    "explorer.outbox_flush_error",
-                    extra={
-                        "organization_id": self.organization.id,
-                        "seer_run_id": run.id,
-                        "seer_run_uuid": str(run.uuid),
-                    },
-                )
-                run.mirror_status = SeerRunMirrorStatus.FAILED
-                run.save(update_fields=["mirror_status"])
-                raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
-            run.refresh_from_db()
-            if run.mirror_status == SeerRunMirrorStatus.FAILED:
-                raise SeerApiError("Seer run failed during outbox drain", 500)
-            return run.seer_run_state_id
-
-        response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
-
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
-        result = response.json()
-
+        user_id = (
+            self.user.id
+            if self.user and hasattr(self.user, "id") and self.user.id is not None
+            else None
+        )
         try:
-            _trigger_explorer_indexes_if_needed(
-                self.organization.id,
-                has_explorer_index=result.get("has_explorer_index"),
-                has_org_project_context=result.get("has_org_project_context"),
+            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
+                run = SeerRun.objects.create(
+                    organization=self.organization,
+                    user_id=user_id,
+                    type=SeerRunType.EXPLORER,
+                    last_triggered_at=now(),
+                )
+                source = self.category_key or ""
+                if not source:
+                    logger.warning(
+                        "seer_agent_run.missing_source",
+                        extra={
+                            "organization_id": self.organization.id,
+                            "seer_run_id": run.id,
+                            "user_id": user_id,
+                        },
+                    )
+                SeerAgentRun.objects.create(
+                    run=run,
+                    title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
+                    source=source,
+                    project=self.project,
+                    extras=({"category_value": self.category_value} if self.category_value else {}),
+                )
+                CellOutbox(
+                    shard_scope=OutboxScope.SEER_SCOPE,
+                    shard_identifier=run.id,
+                    category=OutboxCategory.SEER_RUN_CREATE,
+                    object_identifier=run.id,
+                    payload={
+                        "body": dict(chat_body),
+                        "viewer_context": dict(self.viewer_context),
+                    },
+                ).save()
+        except (OutboxFlushError, OutboxDatabaseError):
+            metrics.incr("seer.outbox_flush_error", tags={"type": "explorer"})
+            logger.exception(
+                "explorer.outbox_flush_error",
+                extra={
+                    "organization_id": self.organization.id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
+                },
             )
-
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
-        return result["run_id"]
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
+        run.refresh_from_db()
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            raise SeerApiError("Seer run failed during outbox drain", 500)
+        return run
 
     def continue_run(
         self,
@@ -593,6 +570,9 @@ class SeerAgentClient:
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
         result = response.json()
+
+        SeerRun.objects.filter(seer_run_state_id=run_id).update(last_triggered_at=now())
+
         return result["run_id"]
 
     def get_run(

@@ -498,11 +498,47 @@ class NoteEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
+            debug_log(
+                logger,
+                organization,
+                "gitlab.note.repo_not_found",
+                {
+                    "integration_id": integration.id,
+                    "project_id": (event.get("project") or {}).get("id"),
+                },
+            )
             return
+
+        object_attributes = event.get("object_attributes") or {}
+        merge_request = event.get("merge_request") or {}
+        debug_log(
+            logger,
+            organization,
+            "gitlab.note.received",
+            {
+                "organization_slug": organization.slug,
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "note_id": object_attributes.get("id"),
+                "noteable_type": object_attributes.get("noteable_type"),
+                "action": object_attributes.get("action"),
+                "mr_iid": merge_request.get("iid"),
+            },
+        )
 
         # Keep repo metadata fresh (url and path_with_namespace).
         self.update_repo_data(repo, event)
 
+        debug_log(
+            logger,
+            organization,
+            "gitlab.note.dispatching_processors",
+            {
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
+            },
+        )
         self._handle(
             integration=integration,
             event=event,

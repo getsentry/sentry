@@ -368,11 +368,7 @@ export function Controls({
               />
             )}
             {!hasPageFrameFeature && renderEditButton(hasFeature)}
-            {hasFeature && (
-              <Feature features="dashboards-revisions">
-                <DashboardRevisionsButton dashboard={dashboard} />
-              </Feature>
-            )}
+            {hasFeature && <DashboardRevisionsButton dashboard={dashboard} />}
             {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
               <Tooltip
                 title={tooltipMessage}

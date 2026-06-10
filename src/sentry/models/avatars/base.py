@@ -23,8 +23,8 @@ from sentry.utils.db import atomic_transaction
 
 class AvatarBase(Model):
     """
-    Base class for UserAvatar, OrganizationAvatar, and SentryAppAvatar models. Associates those entities with their
-    avatar preferences/files. If extending this class, ensure the model has avatar_type.
+    Base class for UserAvatar, OrganizationAvatar, TeamAvatar, and SentryAppAvatar models. Associates those
+    entities with their avatar preferences/files. If extending this class, ensure the model has avatar_type.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
