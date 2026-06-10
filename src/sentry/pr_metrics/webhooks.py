@@ -157,9 +157,9 @@ def handle_emission(
 ) -> None:
     """Emit a metrics row on a terminal (close/merge) PR webhook for a tracked PR.
 
-    GitHub fires a single ``closed`` action for both merges and plain closes; the
-    merge vs. close distinction is derived from the stored row (``merged_at``),
-    not this payload. All non-terminal actions are ignored.
+    GitHub's single ``closed`` action covers both merges and plain closes; emit
+    derives which from the stored row, so this handler only filters for ``closed``
+    and delegates. All non-terminal actions are ignored.
     """
     if event.get("action") != "closed":
         return

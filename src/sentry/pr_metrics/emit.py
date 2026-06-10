@@ -35,7 +35,7 @@ def _iso(value: datetime | None) -> str | None:
 def needs_judge(pull_request: PullRequest) -> bool:
     """Whether this PR's terminal event must round-trip to Seer for a judge.
 
-    Currently always ``False``: the judge  cpath isn't wired yet, so every tracked
+    Currently always ``False``: the judge path isn't wired yet, so every tracked
     close/merge is emitted immediately. Once judges exist this gates the
     forward-to-Seer path that emits a judge-enriched row on the result.
     """
@@ -121,9 +121,8 @@ def emit_pr_metrics_row(
     are skipped — we don't pay to record PRs that no Sentry feature can be
     attributed to. Returns whether a row was emitted, for callers/tests.
 
-    Takes only the canonical ``PullRequest`` (no payload — the close action is
-    derived from the row), so the judge path's Seer RPC callback can call it
-    directly.
+    Takes only the canonical ``PullRequest`` — no webhook payload — so Seer's
+    judge can call it directly via RPC callback.
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.
