@@ -22,11 +22,7 @@ import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  readStorageValue,
-  removeStorageValue,
-  useSessionStorage,
-} from 'sentry/utils/useSessionStorage';
+import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
 import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
@@ -40,8 +36,9 @@ const WIZARD_STORAGE_KEY = 'project-creation-wizard';
 
 interface WizardState {
   // Id/slug of the project created in this wizard session. The id validates a
-  // return from getting-started (see the mount gate); the slug drives the
-  // getting-started navigation and the project-details reuse check.
+  // return from getting-started (see the entry resolution in ScmCreateProject);
+  // the slug drives the getting-started navigation and the project-details
+  // reuse check.
   createdProjectId: string | undefined;
   createdProjectSlug: string | undefined;
   projectDetailsForm: ProjectDetailsFormState | undefined;
@@ -69,43 +66,51 @@ const INITIAL_STATE: WizardState = {
 };
 
 export function ScmCreateProject() {
+  const location = useLocation();
+  const referrer = decodeScalar(location.query.referrer);
+  const projectId = decodeScalar(location.query.project);
+
+  // Snapshot of the last completed wizard session, written when a project is
+  // created (see the navigation effect below). Restored when this mount is a
+  // return from that project's getting-started page, whose back nav tags the
+  // URL with referrer + project id (mirrors createProject's autofill
+  // condition). Computed reactively rather than once at mount because the tag
+  // can arrive late: deleting an inactive project redirects here bare before
+  // the back nav's replace navigation appends the query params (browser-back
+  // POPs race the same way).
+  const [savedSession] = useSessionStorage<WizardState | null>(WIZARD_STORAGE_KEY, null);
+  const isReturnFromGettingStarted =
+    referrer === 'getting-started' &&
+    !!savedSession?.createdProjectId &&
+    projectId === savedSession.createdProjectId;
+  const restoredSession = isReturnFromGettingStarted ? savedSession : null;
+
+  // Keyed so a restore arriving after mount remounts the wizard and
+  // mount-seeded form state re-reads the restored session.
+  return (
+    <ScmCreateProjectWizard
+      key={restoredSession ? 'restored' : 'fresh'}
+      initialState={restoredSession ?? INITIAL_STATE}
+    />
+  );
+}
+
+function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Decide once, before reading the persisted state, whether this mount is a
-  // legitimate return from the created project's getting-started page (mirrors
-  // createProject's autofill condition). If so, keep the persisted wizard so
-  // the user's selections are restored; otherwise reset it so a fresh visit (or
-  // a reload) starts clean. Doing this before useSessionStorage avoids a flash
-  // of stale state.
-  const didResolveEntry = useRef(false);
-  if (!didResolveEntry.current) {
-    didResolveEntry.current = true;
-    const persisted = readStorageValue(WIZARD_STORAGE_KEY, INITIAL_STATE);
-    const isReturnFromGettingStarted =
-      decodeScalar(location.query.referrer) === 'getting-started' &&
-      !!persisted.createdProjectId &&
-      decodeScalar(location.query.project) === persisted.createdProjectId;
-    if (!isReturnFromGettingStarted) {
-      removeStorageValue(WIZARD_STORAGE_KEY);
-    }
-  }
-
-  // Session-storage backed so a return from getting-started restores how far the
-  // user progressed. Separate key from new-org onboarding's 'onboarding' key.
-  const [
-    {
-      repoStepCompleted,
-      createdProjectSlug,
-      projectDetailsForm,
-      selectedFeatures,
-      selectedIntegration,
-      selectedPlatform,
-      selectedRepository,
-    },
-    setState,
-  ] = useSessionStorage(WIZARD_STORAGE_KEY, INITIAL_STATE);
+  // In-memory while in progress, so a fresh visit or reload starts clean; the
+  // session is only persisted once a project is created.
+  const [wizardState, setState] = useState(initialState);
+  const {
+    repoStepCompleted,
+    createdProjectSlug,
+    projectDetailsForm,
+    selectedFeatures,
+    selectedIntegration,
+    selectedPlatform,
+    selectedRepository,
+  } = wizardState;
 
   const canUserCreateProject = useCanCreateProject();
   // Subscribe so the parent re-renders when integration state changes inside
@@ -202,13 +207,16 @@ export function ScmCreateProject() {
   );
 
   // Defer the getting-started navigation to an effect so the create-time state
-  // writes above commit (to session storage) before this component unmounts.
+  // writes above commit before the session is snapshotted here.
   const handleComplete = useCallback(() => {
     setPendingNavigation(true);
   }, []);
 
   useEffect(() => {
     if (pendingNavigation && createdProjectSlugRef.current) {
+      // Snapshot the completed session so a return from getting-started can
+      // restore it (see ScmCreateProject).
+      writeStorageValue(WIZARD_STORAGE_KEY, wizardState);
       navigate(
         makeProjectsPathname({
           path: `/${createdProjectSlugRef.current}/getting-started/`,
@@ -216,7 +224,7 @@ export function ScmCreateProject() {
         })
       );
     }
-  }, [pendingNavigation, navigate, organization]);
+  }, [pendingNavigation, wizardState, navigate, organization]);
 
   const form = useScmProjectDetails({
     analyticsFlow: 'project-creation',

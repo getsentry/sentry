@@ -140,6 +140,38 @@ describe('ScmCreateProject', () => {
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
   });
 
+  it('restores the wizard when the return params arrive after mount', async () => {
+    const projectDetailsForm: ProjectDetailsFormState = {
+      projectName: 'my-restored-name',
+      teamSlug: adminTeam.slug,
+    };
+    persistRevealedWizard({projectDetailsForm});
+
+    // The back nav from getting-started can land here bare before its replace
+    // navigation appends the referrer/project params (see ScmCreateProject).
+    const {router} = render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/projects/new/'},
+      },
+    });
+
+    await screen.findByRole('button', {name: 'Create project'});
+    expect(
+      screen.queryByRole('heading', {name: 'Project details'})
+    ).not.toBeInTheDocument();
+
+    router.navigate(
+      `/organizations/org-slug/projects/new/?referrer=getting-started&project=${CREATED_PROJECT_ID}`,
+      {replace: true}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Project details'})
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
+  });
+
   it('navigates to the new project getting-started on creation', async () => {
     persistRevealedWizard();
 
