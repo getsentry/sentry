@@ -66,12 +66,12 @@ from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
-    MetricOperationType,
     NON_RESOLVABLE_TAG_VALUES,
     TS_COL_GROUP,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     MetricEntity,
+    MetricOperationType,
     get_num_intervals,
     get_timestamp_column_name,
     require_rhs_condition_resolution,
@@ -874,7 +874,12 @@ class SnubaQueryBuilder:
             if is_order_by:
                 # We return a list in order to use the "extend" method and reduce the number of changes across
                 # the codebase.
-                exp = [OrderBy(exp=exp, direction=cast(MetricOrderByField, metric_action_by_field).direction)]
+                exp = [
+                    OrderBy(
+                        exp=exp,
+                        direction=cast(MetricOrderByField, metric_action_by_field).direction,
+                    )
+                ]
 
             return exp
         elif isinstance(metric_action_by_field.field, MetricField):
