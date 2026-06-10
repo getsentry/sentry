@@ -108,12 +108,6 @@ function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
         icon: theme.tokens.content.warning,
         iconBorder: theme.tokens.content.warning,
       };
-    case GroupActivityType.SET_PRIORITY:
-      return {
-        ...defaultConfig,
-        icon: theme.tokens.graphics.warning.vibrant,
-        iconBorder: theme.tokens.border.warning.vibrant,
-      };
     case GroupActivityType.SET_IGNORED:
       return {
         ...defaultConfig,
