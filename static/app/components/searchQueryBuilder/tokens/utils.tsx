@@ -14,7 +14,12 @@ import {
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils/defined';
-import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  FieldValueType,
+  prettifyTagKey,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
 
 export function shiftFocusToChild(
   element: HTMLElement,
@@ -87,7 +92,17 @@ export function getDefaultFilterValue({
   return getDefaultValueForValueType(fieldDefinition.valueType);
 }
 
-function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition | null) {
+// A key is already in explicit tag syntax when prettifying it changes the
+// value, e.g. `tags[foo,number]` -> `foo`.
+function isExplicitlyTypedTagKey(key: string) {
+  return prettifyTagKey(key) !== key;
+}
+
+function getInitialFilterKeyText(
+  key: string,
+  fieldDefinition: FieldDefinition | null,
+  kind?: FieldKind
+) {
   if (fieldDefinition?.kind === FieldKind.FUNCTION) {
     if (fieldDefinition.parameters) {
       const parametersText = fieldDefinition.parameters
@@ -99,6 +114,20 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
     }
 
     return `${key}()`;
+  }
+
+  // User-created number/boolean attributes (e.g. EAP span/log attributes) are
+  // not in the documented field definitions, so we can't infer their type from
+  // the key alone. Emit explicit tag syntax (`tags[key,number]`) so the query
+  // is unambiguously typed. Documented fields always carry a `desc`, so we use
+  // its absence to detect undocumented attributes.
+  if (
+    !fieldDefinition?.desc &&
+    !isExplicitlyTypedTagKey(key) &&
+    (kind === FieldKind.MEASUREMENT || kind === FieldKind.BOOLEAN)
+  ) {
+    const explicitType = kind === FieldKind.MEASUREMENT ? 'number' : 'boolean';
+    return `tags[${key},${explicitType}]`;
   }
 
   return key;
@@ -120,11 +149,12 @@ function getInitialValueType(fieldDefinition: FieldDefinition | null) {
 
 export function getInitialFilterText(
   key: string,
-  fieldDefinition: FieldDefinition | null
+  fieldDefinition: FieldDefinition | null,
+  kind?: FieldKind
 ) {
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
-  const keyText = getInitialFilterKeyText(key, fieldDefinition);
+  const keyText = getInitialFilterKeyText(key, fieldDefinition, kind);
   const valueType = getInitialValueType(fieldDefinition);
 
   switch (valueType) {

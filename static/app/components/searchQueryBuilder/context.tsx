@@ -22,6 +22,7 @@ import {
   type QueryBuilderActions,
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
+  FieldDefinitionGetter,
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
@@ -29,7 +30,6 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -55,7 +55,7 @@ interface SearchQueryBuilderConfigContextData {
   filterKeyAliases: TagCollection | undefined;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
-  getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
+  getFieldDefinition: FieldDefinitionGetter;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagKeys: GetTagKeys | undefined;
   getTagValues: GetTagValues;

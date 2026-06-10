@@ -7,10 +7,11 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {classifyTagKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {useAttributeValidation} from 'sentry/views/explore/hooks/useAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
@@ -77,9 +78,28 @@ function getTraceItemFieldDefinitionFunction(
   itemType: TraceItemDataset,
   tags: TagCollection
 ) {
-  return (key: string) => {
-    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
+  const getter: FieldDefinitionGetter = (key, options) => {
+    // User-created span/log attributes aren't in the documented field
+    // definitions, so we derive their kind from (in order): the kind passed by
+    // the caller (the attribute's tag), the static tag collection, or the
+    // explicit tag syntax embedded in the key itself (e.g. `tags[key,number]`).
+    // Without this, dynamically-fetched number/boolean attributes fall back to
+    // a string value type.
+    //
+    // `classifyTagKey` returns `TAG` for keys without explicit tag syntax, so we
+    // only use it when it actually disambiguates the type. Otherwise we leave
+    // the kind undefined so undocumented plain keys resolve to `null` (callers
+    // fall back to the attribute's own kind, e.g. for the type badge).
+    const classifiedKind = classifyTagKey(key);
+    return getFieldDefinition(key, {
+      type: typeMap[itemType],
+      kind:
+        options?.kind ??
+        tags[key]?.kind ??
+        (classifiedKind === FieldKind.TAG ? undefined : classifiedKind),
+    });
   };
+  return getter;
 }
 
 export function useTraceItemSearchQueryBuilderProps({

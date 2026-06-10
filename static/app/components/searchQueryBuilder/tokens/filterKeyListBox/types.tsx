@@ -5,6 +5,8 @@ import type {
   SelectSectionWithKey,
 } from '@sentry/scraps/compactSelect';
 
+import type {FieldKind} from 'sentry/utils/fields';
+
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
   hideCheck: boolean;
@@ -12,6 +14,7 @@ export interface KeyItem extends SelectOptionWithKey<string> {
   textValue: string;
   type: 'item';
   value: string;
+  kind?: FieldKind;
 }
 
 export interface KeySectionItem extends SelectSectionWithKey<string> {

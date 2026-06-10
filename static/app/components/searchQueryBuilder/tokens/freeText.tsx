@@ -104,12 +104,13 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  kind?: FieldKind
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key))
+    getInitialFilterText(key, getFieldDefinition(key, {kind}), kind)
   );
 }
 
@@ -501,6 +502,7 @@ function SearchQueryBuilderInputInternal({
           }
 
           const value = option.value;
+          const kind = option.type === 'item' ? option.kind : undefined;
 
           dispatch({
             type: 'UPDATE_FREE_TEXT_ON_SELECT',
@@ -509,9 +511,13 @@ function SearchQueryBuilderInputInternal({
               inputValue,
               selectionIndex,
               value,
-              getFieldDefinition
+              getFieldDefinition,
+              kind
             ),
-            focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
+            focusOverride: calculateNextFocusForFilter(
+              state,
+              getFieldDefinition(value, {kind})
+            ),
             shouldCommitQuery: false,
           });
           resetInputValue();
@@ -652,11 +658,12 @@ function SearchQueryBuilderInputInternal({
                 inputValue,
                 selectionIndex,
                 filterKey,
-                getFieldDefinition
+                getFieldDefinition,
+                key?.kind
               ),
               focusOverride: calculateNextFocusForFilter(
                 state,
-                getFieldDefinition(filterKey)
+                getFieldDefinition(filterKey, {kind: key?.kind})
               ),
               shouldCommitQuery: false,
             });

@@ -27,7 +27,7 @@ import type {
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {FieldKey} from 'sentry/utils/fields';
+import {FieldKey, type FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type KeyComboboxProps = {
@@ -60,8 +60,8 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   );
 
   const handleSelectKey = useCallback(
-    (keyName: string) => {
-      const newFieldDef = getFieldDefinition(keyName);
+    (keyName: string, kind?: FieldKind) => {
+      const newFieldDef = getFieldDefinition(keyName, {kind});
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
       if (keyName === ASK_SEER_ITEM_KEY) {
@@ -115,7 +115,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT',
         tokens: [token],
-        text: getInitialFilterText(keyName, newFieldDef),
+        text: getInitialFilterText(keyName, newFieldDef, kind),
         focusOverride: {
           itemKey: item.key.toString(),
           part: 'value',
@@ -142,7 +142,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
   const onOptionSelected = useCallback(
     (option: SearchKeyItem) => {
-      handleSelectKey(option.value);
+      handleSelectKey(option.value, option.type === 'item' ? option.kind : undefined);
     },
     [handleSelectKey]
   );

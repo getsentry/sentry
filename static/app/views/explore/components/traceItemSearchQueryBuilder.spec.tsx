@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {FieldKind} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
@@ -120,6 +120,40 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
     expect(result.current.filterKeys['log.message']).toBeDefined();
     expect(result.current.filterKeyAliases?.['log.message_alias']).toBeDefined();
+  });
+
+  describe('fieldDefinitionGetter', () => {
+    it('resolves number value type from a passed kind for undocumented attributes', () => {
+      const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+        initialProps: defaultInitialProps,
+        organization,
+      });
+
+      // A user-created attribute that is not in the static collection and not in
+      // the documented field definitions (e.g. dynamically fetched while typing).
+      // Without the kind it resolves to null, letting callers (e.g. the type
+      // badge) fall back to the attribute's own kind.
+      expect(
+        result.current.fieldDefinitionGetter('my.custom.number.attribute')
+      ).toBeNull();
+      expect(
+        result.current.fieldDefinitionGetter('my.custom.number.attribute', {
+          kind: FieldKind.MEASUREMENT,
+        })?.valueType
+      ).toBe(FieldValueType.NUMBER);
+    });
+
+    it('resolves value type from explicit tag syntax embedded in the key', () => {
+      const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+        initialProps: defaultInitialProps,
+        organization,
+      });
+
+      expect(
+        result.current.fieldDefinitionGetter('tags[my.custom.number.attribute,number]')
+          ?.valueType
+      ).toBe(FieldValueType.NUMBER);
+    });
   });
 
   it('merges all secondary alias types into filterKeyAliases', () => {

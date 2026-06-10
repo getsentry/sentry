@@ -35,7 +35,7 @@ export function ValueType({
 export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
 
-  const fieldDefinition = getFieldDefinition(tag.key);
+  const fieldDefinition = getFieldDefinition(tag.key, {kind: tag.kind});
 
   const description =
     fieldDefinition?.desc ??
