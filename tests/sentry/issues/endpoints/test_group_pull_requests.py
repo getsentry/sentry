@@ -252,6 +252,26 @@ class GroupPullRequestsEndpointTest(APITestCase):
         }
 
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_closed_draft_pull_request_status_returns_closed(
+        self, mock_get_integration: Mock
+    ) -> None:
+        self.create_linked_pull_request(key="1")
+
+        client = Mock()
+        client.get_pull_request.return_value = {"state": "closed", "draft": True}
+        installation = Mock()
+        installation.get_client.return_value = client
+        integration = Mock()
+        integration.get_installation.return_value = installation
+        mock_get_integration.return_value = integration
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pullRequests"][0]["status"] == "closed"
+
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
     def test_status_lookup_scopes_integration_to_pull_request_organization(
         self, mock_get_integration: Mock
     ) -> None:

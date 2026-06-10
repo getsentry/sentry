@@ -95,7 +95,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number | string) => {
       if (!result) {
         return;
       }
@@ -271,6 +271,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         query: cleanedQuery,
         groupBys: seerQuery.groupBys,
         mode: seerQuery.mode,
+        interval: seerQuery.interval,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -301,6 +302,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             end: seerQuery.datetime.end,
             statsPeriod: seerQuery.datetime.period,
             utc: seerQuery.datetime.utc,
+            // Only override the interval when Seer suggested one, otherwise
+            // leave the user's current interval untouched.
+            ...(seerQuery.interval ? {interval: seerQuery.interval} : {}),
           },
         },
         {replace: true, preventScrollReset: true}

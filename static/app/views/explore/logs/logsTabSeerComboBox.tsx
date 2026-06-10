@@ -92,6 +92,11 @@ export function getLogsSeerLocationQuery({
     'utc',
     seerQuery.datetime.utc?.toString() ?? null
   );
+  // Only override the interval when Seer suggested one, otherwise leave
+  // the user's current interval untouched.
+  if (seerQuery.interval) {
+    targetLocation.query.interval = seerQuery.interval;
+  }
   delete targetLocation.query[LOGS_CURSOR_KEY];
   delete targetLocation.query[LOGS_AGGREGATE_CURSOR_KEY];
 
@@ -162,7 +167,7 @@ export function LogsTabSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number | string) => {
       if (!result) {
         return;
       }
@@ -190,6 +195,7 @@ export function LogsTabSeerComboBox() {
         groupBys: locationQuery.seerQuery.groupBys,
         sort: locationQuery.seerQuery.sort,
         mode: locationQuery.seerQuery.mode,
+        interval: locationQuery.seerQuery.interval,
       });
       const visualizeCount = result.visualizations?.length ?? 0;
 

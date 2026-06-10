@@ -9,10 +9,14 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import ProjectWithTeamSerializer
+from sentry.api.serializers.models.project import (
+    ProjectWithTeamResponseDict,
+    ProjectWithTeamSerializer,
+)
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse
 from sentry.models.team import Team
 
 
@@ -76,7 +80,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.ADD_TEAM_TO_PROJECT,
     )
-    def post(self, request: Request, project, team: Team) -> Response:
+    def post(self, request: Request, project, team: Team) -> Response[ProjectWithTeamResponseDict]:
         """
         Give a team access to a project.
         """
@@ -90,12 +94,10 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
             event=audit_log.get_event_id("PROJECT_TEAM_ADD"),
             data={"team_slug": team.slug, "project_slug": project.slug},
         )
-        return Response(
-            serialize(
-                project, request.user, ProjectWithTeamSerializer(collapse=["unusedFeatures"])
-            ),
-            status=201,
+        body: ProjectWithTeamResponseDict = serialize(
+            project, request.user, ProjectWithTeamSerializer(collapse=["unusedFeatures"])
         )
+        return Response(body, status=201)
 
     @extend_schema(
         operation_id="Delete a Team from a Project",
@@ -111,7 +113,9 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.DELETE_TEAM_FROM_PROJECT,
     )
-    def delete(self, request: Request, project, team: Team) -> Response:
+    def delete(
+        self, request: Request, project, team: Team
+    ) -> Response[ProjectWithTeamResponseDict] | Response[ValidationErrorResponse]:
         """
         Revoke a team's access to a project.
 
@@ -131,4 +135,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
             data={"team_slug": team.slug, "project_slug": project.slug},
         )
 
-        return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=200)
+        delete_body: ProjectWithTeamResponseDict = serialize(
+            project, request.user, ProjectWithTeamSerializer()
+        )
+        return Response(delete_body, status=200)

@@ -281,7 +281,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         responses={200: ProjectOwnershipSerializer},
         examples=ownership_examples.GET_PROJECT_OWNERSHIP,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[ProjectOwnershipResponse]:
         """
         Returns details on a project's ownership configuration.
         """
@@ -291,7 +291,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             self.refresh_ownership_schema(ownership, project)
             self.rename_schema_identifier_for_parsing(ownership)
 
-        return Response(serialize(ownership, request.user))
+        body: ProjectOwnershipResponse = serialize(ownership, request.user)
+        return Response(body)
 
     @extend_schema(
         operation_id="Update Ownership Configuration for a Project",

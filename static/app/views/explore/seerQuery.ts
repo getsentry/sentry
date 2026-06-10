@@ -25,6 +25,7 @@ interface SeerExploreQuery {
   query: string;
   sort: string;
   visualizes: BaseVisualize[];
+  interval?: string;
 }
 
 function getSeerExploreMode(result: AskSeerSearchQuery): Mode {
@@ -78,6 +79,7 @@ export function getSeerExploreQuery({
     query: result.query,
     sort: result.sort,
     visualizes: getSeerVisualizes(result.visualizations),
+    interval: result.interval ?? undefined,
   };
 }
 

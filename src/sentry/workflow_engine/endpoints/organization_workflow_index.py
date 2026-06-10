@@ -321,7 +321,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[WorkflowSerializerResponse]:
         """
         Creates an alert for an organization
         """
@@ -331,7 +333,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         )
         validator.is_valid(raise_exception=True)
         workflow = validator.create(validator.validated_data)
-        return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
+        return Response(
+            serialize(workflow, request.user, WorkflowSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
 
     @extend_schema(
         operation_id="Mutate an Organization's Alerts",

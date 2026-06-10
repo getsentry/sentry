@@ -14,6 +14,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as TeamRequestSerializer
+from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
@@ -23,7 +24,11 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams, TeamParams
-from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.team import Team, TeamStatus
@@ -82,7 +87,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.RETRIEVE_TEAM_DETAILS,
     )
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team) -> Response[TeamSerializerResponse]:
         """
         Return details on an individual team.
         """
@@ -95,9 +100,10 @@ class TeamDetailsEndpoint(TeamEndpoint):
         else:
             expand.append("organization")
 
-        return Response(
-            serialize(team, request.user, TeamRequestSerializer(collapse=collapse, expand=expand))
+        body: TeamSerializerResponse = serialize(
+            team, request.user, TeamRequestSerializer(collapse=collapse, expand=expand)
         )
+        return Response(body)
 
     @extend_schema(
         operation_id="Update a Team",
@@ -111,7 +117,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.UPDATE_TEAM,
     )
-    def put(self, request: Request, team) -> Response:
+    def put(
+        self, request: Request, team
+    ) -> (
+        Response[TeamSerializerResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update various attributes and configurable settings for the given
         team.
@@ -136,9 +148,10 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 data=data,
             )
 
-            return Response(serialize(team, request.user))
+            body: TeamSerializerResponse = serialize(team, request.user)
+            return Response(body)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         operation_id="Delete a Team",
