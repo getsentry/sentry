@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {EventTransaction, Level} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
+import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -14,6 +15,7 @@ import {
   SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import {extractBaseKey} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -223,18 +225,35 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
   return dropdownOptions;
 }
 
+export function getTypedTagKey(
+  key: string,
+  type: string | undefined,
+  fieldDefinitionType: GetFieldDefinitionType = 'span'
+): string {
+  if (extractBaseKey(key) !== key || getFieldDefinition(key, fieldDefinitionType)) {
+    return key;
+  }
+  if (type === 'int' || type === 'float') {
+    return `tags[${key},number]`;
+  }
+  if (type === 'bool') {
+    return `tags[${key},boolean]`;
+  }
+  return key;
+}
+
 export function getTraceAttributesTreeActions(
   params: Pick<KeyValueActionParams, 'location' | 'organization' | 'projectIds'>
 ): (content: AttributesTreeContent) => MenuItemProps[] {
   return (content: AttributesTreeContent) => {
     const rowKey = content.originalAttribute?.original_attribute_key;
     const rowValue = content.value;
-    if (!rowKey || !rowValue) {
+    if (!rowKey || !defined(rowValue)) {
       return [];
     }
 
     return getTraceKeyValueActions({
-      rowKey,
+      rowKey: getTypedTagKey(rowKey, content.originalAttribute?.type),
       rowValue: content.value,
       kind: TraceDrawerActionValueKind.ATTRIBUTE,
       projectIds: params.projectIds,

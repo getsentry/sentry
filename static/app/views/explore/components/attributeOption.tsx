@@ -1,15 +1,23 @@
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {
+  classifyTagKey,
+  FieldKind,
+  getFieldDefinition,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {extractBaseKey} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+import {getFieldDefinitionType} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
+  const typedKey = getTypedOptionKey(tag.key, tag.kind, traceItemType);
   return {
     label: tag.name,
-    value: tag.key,
+    value: typedKey,
     textValue: tag.key,
     trailingItems: <TypeBadge kind={tag.kind} />,
     showDetailsInOverlay: true,
@@ -22,6 +30,31 @@ export function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
       />
     ),
   };
+}
+
+function getTypedOptionKey(
+  key: string,
+  kind: FieldKind | undefined,
+  traceItemType: TraceItemDataset
+): string {
+  if (extractBaseKey(key) !== key) {
+    return key;
+  }
+  if (getFieldDefinition(key, getFieldDefinitionType(traceItemType))) {
+    return key;
+  }
+  if (kind === FieldKind.MEASUREMENT) {
+    return `tags[${key},number]`;
+  }
+  if (kind === FieldKind.BOOLEAN) {
+    return `tags[${key},boolean]`;
+  }
+  return key;
+}
+
+function hasTag(tags: TagCollection, column: string): boolean {
+  const baseColumn = extractBaseKey(column);
+  return column in tags || baseColumn in tags;
 }
 
 interface BuildAttributeOptionsParams {
@@ -66,9 +99,9 @@ export function buildAttributeOptions({
       .filter(
         column =>
           column &&
-          !(column in stringTags) &&
-          !(column in numberTags) &&
-          !(column in booleanTags)
+          !hasTag(stringTags, column) &&
+          !hasTag(numberTags, column) &&
+          !hasTag(booleanTags, column)
       )
       .map(column =>
         optionFromTag(

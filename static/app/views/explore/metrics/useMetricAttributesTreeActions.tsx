@@ -4,6 +4,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {useAddSearchFilter} from 'sentry/views/explore/queryParams/context';
+import {getTypedTagKey} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export function useMetricAttributesTreeActions() {
   const addSearchFilter = useAddSearchFilter();
@@ -16,7 +17,11 @@ export function useMetricAttributesTreeActions() {
       }
 
       addSearchFilter({
-        key: originalAttribute.original_attribute_key,
+        key: getTypedTagKey(
+          originalAttribute.original_attribute_key,
+          originalAttribute.type,
+          'tracemetric'
+        ),
         value: String(content.value),
         negated,
       });

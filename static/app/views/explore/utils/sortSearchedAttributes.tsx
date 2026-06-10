@@ -54,7 +54,7 @@ export function sortSearchedAttributes<Value extends SelectKey>({
   return {score: Math.max(1, result.score) + prefixBoost + (isKnown ? 2 : 1)};
 }
 
-function getFieldDefinitionType(
+export function getFieldDefinitionType(
   fieldDefinitionType: SortFieldDefinitionType
 ): GetFieldDefinitionType {
   switch (fieldDefinitionType) {

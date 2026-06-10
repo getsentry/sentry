@@ -232,15 +232,28 @@ function VisualizeDropdown({
   sortedNumberKeys,
   sortedStringKeys,
 }: VisualizeDropdownProps) {
+  const firstNumberOptionValue = useMemo(() => {
+    const firstNumberKey = sortedNumberKeys[0];
+    if (!firstNumberKey) {
+      return null;
+    }
+
+    return optionFromTag(
+      {
+        key: firstNumberKey,
+        name: prettifyTagKey(firstNumberKey),
+        kind: FieldKind.MEASUREMENT,
+      },
+      TraceItemDataset.LOGS
+    ).value;
+  }, [sortedNumberKeys]);
+
   const aggregateOptions: Array<SelectOption<OurLogsAggregate>> = useMemo(() => {
     return LOG_AGGREGATES.map(aggregate => {
-      const defaultArgument = getDefaultArgument(
-        aggregate.value,
-        sortedNumberKeys[0] || null
-      );
+      const defaultArgument = getDefaultArgument(aggregate.value, firstNumberOptionValue);
       return {...aggregate, disabled: !defined(defaultArgument)};
     });
-  }, [sortedNumberKeys]);
+  }, [firstNumberOptionValue]);
 
   const aggregateFunction = visualize.parsedFunction?.name ?? '';
   const aggregateParam = visualize.parsedFunction?.arguments?.[0] ?? '';
@@ -300,12 +313,12 @@ function VisualizeDropdown({
           newAggregate: option.value,
           oldAggregate: aggregateFunction,
           oldArgument: aggregateParam,
-          firstNumberKey: sortedNumberKeys[0] || null,
+          firstNumberArgument: firstNumberOptionValue,
         });
         onReplace(visualize.replace({yAxis}));
       }
     },
-    [onReplace, visualize, aggregateFunction, aggregateParam, sortedNumberKeys]
+    [onReplace, visualize, aggregateFunction, aggregateParam, firstNumberOptionValue]
   );
 
   const onChangeArgument = useCallback(
@@ -420,9 +433,9 @@ function updateVisualizeAggregate({
   newAggregate,
   oldAggregate,
   oldArgument,
-  firstNumberKey,
+  firstNumberArgument,
 }: {
-  firstNumberKey: string | null;
+  firstNumberArgument: string | null;
   newAggregate: string;
   oldAggregate: string;
   oldArgument: string;
@@ -439,7 +452,8 @@ function updateVisualizeAggregate({
     oldAggregate === AggregationKey.COUNT ||
     oldAggregate === AggregationKey.COUNT_UNIQUE
   ) {
-    return `${newAggregate}(${getDefaultArgument(newAggregate, firstNumberKey) || ''})`;
+    const defaultArgument = getDefaultArgument(newAggregate, firstNumberArgument) || '';
+    return `${newAggregate}(${defaultArgument})`;
   }
 
   return `${newAggregate}(${oldArgument})`;

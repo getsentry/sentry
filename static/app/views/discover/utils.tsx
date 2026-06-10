@@ -42,7 +42,13 @@ import {
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {getTitle} from 'sentry/utils/events';
-import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  classifyTagKey,
+  DISCOVER_FIELDS,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   DEFAULT_WIDGET_NAME,
@@ -130,6 +136,13 @@ export function decodeColumnOrder(
         column.type = measurementType(col.field);
       } else if (isSpanOperationBreakdownField(col.field)) {
         column.type = 'duration';
+      } else {
+        const tagKind = classifyTagKey(col.field);
+        if (tagKind === FieldKind.MEASUREMENT) {
+          column.type = 'number';
+        } else if (tagKind === FieldKind.BOOLEAN) {
+          column.type = 'boolean';
+        }
       }
     }
 
