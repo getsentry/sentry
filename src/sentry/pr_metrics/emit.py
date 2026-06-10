@@ -68,8 +68,17 @@ def select_verdict(pull_request: PullRequest) -> PullRequestVerdict | None:
     metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
     if metrics_row is None:
         # The metrics row holds the comment counters. handle_metrics persists it
-        # before emission, so a miss means it didn't run for this event — we can't
-        # confirm "no engagement", so defer to a judge rather than guess abandoned.
+        # before emission under the same flag, so a miss is an error state — it
+        # failed for this PR. Warn, and defer to a judge (we can't confirm "no
+        # engagement") rather than silently guess abandoned.
+        logger.warning(
+            "pr_metrics.select_verdict.metrics_row_missing",
+            extra={
+                "organization_id": pull_request.organization_id,
+                "pull_request_id": pull_request.id,
+            },
+        )
+        metrics.incr("pr_metrics.select_verdict.metrics_row_missing")
         return None
     has_discussion = bool(metrics_row.comments_count or metrics_row.review_comments_count)
     if has_commits_after_open or has_discussion:
