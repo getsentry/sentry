@@ -26,7 +26,7 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 class SCIMApiError(APIException):
     def __init__(self, detail, status_code=400):
         span = sentry_sdk.traces.get_current_span()
-        if span is not None:
+        if span is not None and hasattr(span, "_segment"):
             span._segment.set_attribute("http.status_code", status_code)
         super().__init__({"schemas": [SCIM_API_ERROR], "detail": detail})
         self.status_code = status_code
