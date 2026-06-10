@@ -242,6 +242,7 @@ export function MetricPanel({
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
+            data-test-id="metric-panel-chart-type-select"
             tooltipProps={{
               title: t('Type of chart displayed in this visualization (ex. line)'),
             }}
@@ -253,7 +254,7 @@ export function MetricPanel({
         )}
         value={visualize.chartType}
         menuTitle="Type"
-        options={getMetricsChartTypeOptions(organization)}
+        options={getMetricsChartTypeOptions(organization, isVisualizeEquation(visualize))}
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
