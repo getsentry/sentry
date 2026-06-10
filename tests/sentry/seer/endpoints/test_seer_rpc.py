@@ -16,6 +16,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
+from sentry.models.pullrequest import PullRequestAttribution, PullRequestAttributionSignalType
 from sentry.models.repository import Repository
 from sentry.seer.agent.tools import get_trace_item_attributes
 from sentry.seer.endpoints.seer_rpc import (
@@ -28,11 +29,13 @@ from sentry.seer.endpoints.seer_rpc import (
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
+    record_delegated_pr_attribution,
     validate_repo,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
@@ -1676,3 +1679,94 @@ class TestGetOrganizationFeatures(APITestCase):
         with self.feature("organizations:seer-agent-source-code-search"):
             result = get_organization_features(org_id=self.organization.id, user_id=0)
         assert result == {"features": ["seer-agent-source-code-search"]}
+
+
+@with_feature("organizations:pr-metrics-attribution")
+@cell_silo_test
+class TestRecordDelegatedPrAttribution(APITestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="1")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="10",
+        )
+
+    def _call(self, **overrides: Any) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {
+            "organization_id": self.organization.id,
+            "pull_request_id": self.pr.id,
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+        }
+        kwargs.update(overrides)
+        return record_delegated_pr_attribution(**kwargs)
+
+    def test_creates_attribution(self) -> None:
+        result = self._call()
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_type == PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE
+        assert attr.is_valid is True
+        assert result == {"attribution_id": attr.id}
+
+    def test_stores_agent_id_in_signal_details(self) -> None:
+        self._call(agent_id="agent-abc-123")
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details == {"agent_id": "agent-abc-123"}
+
+    def test_no_agent_id_leaves_signal_details_null(self) -> None:
+        self._call()
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is None
+
+    def test_idempotent_on_repeat_call(self) -> None:
+        result1 = self._call()
+        result2 = self._call()
+
+        assert result1 == result2
+        assert PullRequestAttribution.objects.filter(pull_request=self.pr).count() == 1
+
+    def test_invalid_signal_type_raises(self) -> None:
+        from rest_framework.exceptions import ParseError
+
+        with pytest.raises(ParseError):
+            self._call(signal_type="not_a_real_signal")
+
+    def test_org_not_found_raises(self) -> None:
+        from django.core.exceptions import ObjectDoesNotExist
+
+        with pytest.raises(ObjectDoesNotExist):
+            self._call(organization_id=999999)
+
+    def test_pr_not_found_raises(self) -> None:
+        from django.core.exceptions import ObjectDoesNotExist
+
+        with pytest.raises(ObjectDoesNotExist):
+            self._call(pull_request_id=999999)
+
+    def test_pr_from_different_org_raises(self) -> None:
+        from django.core.exceptions import ObjectDoesNotExist
+
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_repo = self.create_repo(
+            other_project, provider="integrations:github", external_id="2"
+        )
+        other_pr = self.create_pull_request(
+            repository_id=other_repo.id,
+            organization_id=other_org.id,
+            key="20",
+        )
+
+        with pytest.raises(ObjectDoesNotExist):
+            self._call(pull_request_id=other_pr.id)
+
+    def test_feature_disabled_returns_null_attribution_id(self) -> None:
+        with self.feature({"organizations:pr-metrics-attribution": False}):
+            result = self._call()
+
+        assert result == {"attribution_id": None}
+        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
