@@ -165,7 +165,7 @@
     "diff": "8.0.3",
     "dompurify": "3.4.2",
     "downsample": "1.4.0",
-    "echarts": "6.0.0",
+    "echarts": "6.1.0",
     "echarts-for-react": "3.0.6",
     "esbuild": "0.25.10",
     "focus-trap": "7.6.5",
@@ -189,7 +189,7 @@
     "mobx": "6.13.7",
     "mobx-react-lite": "4.1.0",
     "mockdate": "3.0.5",
-    "moment-timezone": "0.6.0",
+    "moment-timezone": "0.6.2",
     "nuqs": "2.7.1",
     "papaparse": "^5.3.2",
     "peggy": "5.0.6",
@@ -225,7 +225,7 @@
     "type-fest": "^5.2.0",
     "yaml": "2.8.3",
     "zod": "4.3.5",
-    "zrender": "6.0.0",
+    "zrender": "6.1.0",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

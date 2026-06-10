@@ -94,6 +94,51 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update__assigned_to_foreign_team(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Team", "targetIdentifier": other_team.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+        assert "not part of the organization" in str(response.data).lower()
+
+    def test_update__assigned_to_in_org(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Team", "targetIdentifier": self.team.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        assert response.status_code == 200
+
     def test_update_owner(self) -> None:
         assert self.workflow.owner_team_id is None
         assert self.workflow.owner_user_id is None

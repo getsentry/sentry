@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.db.models import F, Q
-from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -33,6 +32,7 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.release_threshold_examples import ReleaseThresholdExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
@@ -118,7 +118,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         },
         examples=ReleaseThresholdExamples.THRESHOLD_STATUS_RESPONSE,
     )
-    def get(self, request: Request, organization: Organization | RpcOrganization) -> HttpResponse:
+    def get(
+        self, request: Request, organization: Organization | RpcOrganization
+    ) -> Response[dict[str, list[EnrichedThreshold]]] | Response[ValidationErrorResponse]:
         r"""
         **`[WARNING]`**: This API is an experimental Alpha feature and is subject to change!
 
@@ -138,7 +140,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             data=request.query_params,
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         environments_list = serializer.validated_data.get(
             "environment"
@@ -308,7 +310,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # ========================================================================
         # Step 4: Determine threshold status per threshold type and return results
         # ========================================================================
-        release_threshold_health = defaultdict(list)
+        release_threshold_health: dict[str, list[EnrichedThreshold]] = defaultdict(list)
         for threshold_type, filter_list in thresholds_by_type.items():
             project_id_list = [proj_id for proj_id in filter_list["project_ids"]]
             release_value_list = [release_version for release_version in filter_list["releases"]]

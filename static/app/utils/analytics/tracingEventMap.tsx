@@ -44,7 +44,7 @@ export type TracingEventParameters = {
     version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    ai_query_run_id?: number;
+    ai_query_run_id?: number | string;
     attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
     cross_event_log_query_count?: number;
     cross_event_metric_query_count?: number;

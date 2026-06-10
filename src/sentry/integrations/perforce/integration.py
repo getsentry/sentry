@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any, TypedDict, cast
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import URLValidator
 from django.db import models
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from rest_framework.fields import CharField, ChoiceField, URLField
+from rest_framework.fields import CharField, ChoiceField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
@@ -22,7 +25,11 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.perforce.client import PerforceClient
+from sentry.integrations.perforce.client import (
+    InvalidP4Port,
+    PerforceClient,
+    validate_p4port_transport,
+)
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
@@ -119,14 +126,39 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
     password = CharField(required=True, write_only=True)
     client = CharField(required=False, allow_blank=True, default="")
     ssl_fingerprint = CharField(required=False, allow_blank=True, default="")
-    web_url = URLField(required=False, allow_blank=True, default="")
+    # CharField (not URLField) on purpose: a URLField's URLValidator runs
+    # *before* validate_web_url and rejects schemeless input, making the
+    # scheme normalization below unreachable. We validate explicitly instead.
+    web_url = CharField(required=False, allow_blank=True, default="")
     charset = ChoiceField(choices=Charset.choices, default=Charset.NONE)
 
     def validate_p4port(self, value: str) -> str:
-        return value.strip().rstrip("/")
+        value = value.strip().rstrip("/")
+        try:
+            validate_p4port_transport(value)
+        except InvalidP4Port as e:
+            raise serializers.ValidationError(str(e))
+        return value
 
     def validate_web_url(self, value: str) -> str:
-        return value.rstrip("/")
+        value = value.strip().rstrip("/")
+        if not value:
+            return value
+        # The Swarm web URL is used verbatim as the base of stacktrace links, so it
+        # must carry a scheme; otherwise links render as schemeless/relative URLs.
+        # Normalize scheme-relative ("//host") and schemeless ("host") inputs to
+        # https:// before validating, then reject anything that still isn't a URL.
+        if value.startswith("//"):
+            value = f"https:{value}"
+        elif not value.startswith(("http://", "https://")):
+            value = f"https://{value}"
+        # DRF already converts a DjangoValidationError from here into a 400, but
+        # re-raise as a DRF ValidationError explicitly so the contract is obvious.
+        try:
+            URLValidator(schemes=["http", "https"])(value)
+        except DjangoValidationError:
+            raise serializers.ValidationError("Enter a valid URL.")
+        return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs["p4port"].startswith("ssl") and not attrs.get("ssl_fingerprint"):
@@ -254,37 +286,77 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         Args:
             repo: Repository object
             filepath: File path, may include #revision (e.g., "app/file.cpp#1")
-            branch: Stream name (e.g., "main", "dev") to be inserted after depot path.
-                   For Perforce streams: //depot/stream/path/to/file
+            branch: Either a Perforce stream name (e.g., "main", "dev") inserted after
+                   the depot path, or a changelist number (all digits) passed by the
+                   stacktrace-link layer as the commit "sha". A changelist is a revision,
+                   not a stream, so it is rendered as a revision specifier
+                   ("@<changelist>") rather than spliced into the depot path.
 
         Returns:
             Formatted URL (p4:// or Swarm web viewer URL)
         """
         # Use client's build_depot_path to handle both relative and absolute paths correctly
         client = self.get_client()
-        full_path = client.build_depot_path(repo, filepath, branch)
 
-        # If Swarm web viewer is configured, use it
-        # Web URL is stored in Integration.metadata
+        # `branch` is overloaded by the generic stacktrace-link layer: it is either a
+        # stream name (the code mapping's default branch, e.g. "main") or a commit
+        # "sha". In Perforce a commit sha is a changelist number (all digits). A
+        # changelist is a *revision*, not a stream, so it must not be passed to
+        # build_depot_path as a stream -- doing so yields a bogus
+        # "//depot/<changelist>/..." path. Render it as a revision specifier instead.
+        changelist: str | None = None
+        stream = branch
+        if branch is not None and branch.isdigit():
+            changelist = branch
+            stream = None
+
+        full_path = client.build_depot_path(repo, filepath, stream)
+
+        # A file revision may also arrive embedded in the path via the Symbolic
+        # transformer's "#<rev>" syntax (e.g. "file.cpp#1").
+        path_without_rev = full_path
+        file_revision: str | None = None
+        if "#" in full_path:
+            path_without_rev, file_revision = full_path.rsplit("#", 1)
+
+        # Swarm uses "@<changelist>" as the revision specifier for a changelist.
+        revision = file_revision or (f"@{changelist}" if changelist else None)
+
+        # If Swarm web viewer is configured, use it.
+        # Web URL is stored in Integration.metadata.
         web_url = self.model.metadata.get("web_url")
 
         if web_url:
-            # Extract file revision from filepath if present (e.g., "file.cpp#1")
-            revision = None
-            path_without_rev = full_path
-            if "#" in full_path:
-                path_without_rev, revision = full_path.rsplit("#", 1)
-
             # Swarm format: /files/<depot_path>?v=<revision>
             if revision:
-                url = f"{web_url}/files{path_without_rev}?v={revision}"
-            else:
-                url = f"{web_url}/files{full_path}"
-            return url
+                return f"{web_url}/files{path_without_rev}?v={revision}"
+            return f"{web_url}/files{path_without_rev}"
 
-        # Default: p4:// protocol URL with file revision (#) syntax
-        # Strip leading // from full_path to avoid p4:////
-        url = f"p4://{full_path.lstrip('/')}"
+        # Default: p4:// protocol URL with revision syntax.
+        # Strip leading // from the path to avoid p4:////
+        url = f"p4://{path_without_rev.lstrip('/')}"
+        if file_revision:
+            url = f"{url}#{file_revision}"
+        elif changelist:
+            url = f"{url}@{changelist}"
+        return url
+
+    def get_stacktrace_link(
+        self, repo: Repository, filepath: str, default: str, version: str | None
+    ) -> str | None:
+        """
+        Restore the Perforce changelist specifier after base URL-encoding.
+
+        The base implementation percent-encodes the URL path, which turns the
+        ``@<changelist>`` suffix that ``format_source_url`` appends to ``p4://``
+        links into ``%40<changelist>``. ``@`` is Perforce's changelist operator
+        and must stay literal for the link to resolve, so restore just that
+        trailing suffix. Any other ``%40`` (e.g. an ``@`` inside a file name,
+        which Perforce stores percent-encoded) is left untouched.
+        """
+        url = super().get_stacktrace_link(repo, filepath, default, version)
+        if url is not None:
+            url = re.sub(r"%40(\d+)$", r"@\1", url)
         return url
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
@@ -300,8 +372,9 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         Extract file path from URL, removing revision specifiers.
 
         Handles URLs with revisions like:
-        - p4://depot/path/file.cpp#42
-        - https://swarm/files//depot/path/file.cpp?v=42
+        - p4://depot/path/file.cpp#42      (file revision)
+        - p4://depot/path/file.cpp@2998    (changelist)
+        - https://swarm/files//depot/path/file.cpp?v=@2998
 
         Returns just the file path without revision info.
         """
@@ -321,13 +394,19 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         if url.startswith("p4://"):
             url = url[5:]
 
-        # Remove revision specifier (#revision)
+        # Remove query parameters first (Swarm carries the revision as `?v=@<cl>`,
+        # so this also strips the changelist for web-viewer URLs).
+        if "?" in url:
+            url = url.split("?")[0]
+
+        # Remove a `#<file-revision>` specifier.
         if "#" in url:
             url = url.split("#")[0]
 
-        # Remove query parameters (for web viewers)
-        if "?" in url:
-            url = url.split("?")[0]
+        # Remove a trailing `@<changelist>` specifier only. Splitting on any `@`
+        # would truncate a path that legitimately contains one (e.g. a scoped dir
+        # like `@babel`), so anchor to a numeric changelist at the very end.
+        url = re.sub(r"@\d+$", "", url)
 
         # Normalize both paths by stripping leading slashes for comparison
         # depot_path is typically "//depot" from config

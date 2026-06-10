@@ -17,11 +17,13 @@ from sentry.api.serializers.base import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.models.organization import Organization
 from sentry.notifications.api.serializers.notification_action_request import (
     NotificationActionSerializer,
 )
 from sentry.notifications.api.serializers.notification_action_response import (
+    OutgoingNotificationActionResponse,
     OutgoingNotificationActionSerializer,
 )
 from sentry.notifications.models.notificationaction import NotificationAction
@@ -70,7 +72,9 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         },
         examples=NotificationActionExamples.CREATE_NOTIFICATION_ACTION,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[OutgoingNotificationActionResponse]]:
         """
         Returns all Spike Protection Notification Actions for an organization.
 
@@ -121,7 +125,9 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         },
         examples=NotificationActionExamples.CREATE_NOTIFICATION_ACTION,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[OutgoingNotificationActionResponse] | Response[ValidationErrorResponse]:
         """
         Creates a new Notification Action for Spike Protection.
 
@@ -154,7 +160,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             data=request.data,
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
         action = serializer.save()
         logger.info(
             "notification_action.create",
@@ -167,4 +173,5 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("NOTIFICATION_ACTION_ADD"),
             data=action.get_audit_log_data(),
         )
-        return Response(serialize(action, request.user), status=status.HTTP_201_CREATED)
+        body: OutgoingNotificationActionResponse = serialize(action, request.user)
+        return Response(body, status=status.HTTP_201_CREATED)

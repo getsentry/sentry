@@ -11,6 +11,7 @@ import type {
   SeerRawResponse,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
+  buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
@@ -70,11 +71,9 @@ export function SpansTabSeerComboBox() {
           },
         });
 
-        return {
-          status: 'ok',
-          unsupported_reason: data.unsupported_reason,
-          queries: data.responses.map(response => mapSeerResponseItem(response, 'spans')),
-        };
+        return buildSeerMutationResult(data, selectedProjectIds, response =>
+          mapSeerResponseItem(response, 'spans')
+        );
       }
 
       const data = await fetchMutation<TraceAskSeerSearchResponse>({
@@ -110,7 +109,7 @@ export function SpansTabSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number | string) => {
       if (!result) {
         return;
       }
@@ -121,6 +120,9 @@ export function SpansTabSeerComboBox() {
 
       const selection = {
         ...pageFilters.selection,
+        ...(result.expandedProjectIds?.length
+          ? {projects: result.expandedProjectIds}
+          : {}),
         datetime: seerQuery.datetime,
       };
 
@@ -133,6 +135,7 @@ export function SpansTabSeerComboBox() {
         groupBy: seerQuery.groupBys,
         sort: seerQuery.sort,
         mode: seerQuery.mode,
+        interval: seerQuery.interval,
       });
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -142,6 +145,7 @@ export function SpansTabSeerComboBox() {
         groupBy: seerQuery.groupBys,
         sort: seerQuery.sort,
         mode: seerQuery.mode,
+        interval: seerQuery.interval,
       });
       trackAnalytics('ai_query.applied', {
         organization,
@@ -171,10 +175,12 @@ export function SpansTabSeerComboBox() {
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem =>
-        mapSeerResponseItem(responseItem, 'spans')
+      transformSeerResponse(
+        response,
+        responseItem => mapSeerResponseItem(responseItem, 'spans'),
+        selectedProjectIds
       ),
-    []
+    [selectedProjectIds]
   );
 
   if (useTranslateEndpoint) {

@@ -247,6 +247,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             start={item?.start}
             end={item?.end}
             visualizations={item?.visualizations}
+            expandedProjectIds={item?.expandedProjectIds}
+            interval={item?.interval}
           />
         </Item>
       );

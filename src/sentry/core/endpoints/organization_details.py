@@ -26,7 +26,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
+    OrganizationSerializerResponse,
+    OrganizationSummarySerializerResponse,
     OrganizationWithProjectsAndTeamsSerializer,
+    OrganizationWithProjectsAndTeamsSerializerResponse,
     TrustedRelaySerializer,
 )
 from sentry.apidocs.constants import (
@@ -38,6 +41,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
@@ -1088,7 +1092,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_ORGANIZATION,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationSummarySerializerResponse]
+        | Response[OrganizationSerializerResponse]
+        | Response[OrganizationWithProjectsAndTeamsSerializerResponse]
+    ):
         """
         Return details on an individual organization, including various details
         such as membership access and teams.
@@ -1132,7 +1142,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.UPDATE_ORGANIZATION,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationWithProjectsAndTeamsSerializerResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update various attributes and configurable settings for the given organization.
         """
@@ -1171,10 +1186,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         organization_id=organization.id, slug=slug
                     )
                 except RpcValidationException:
-                    return self.respond(
-                        {"slug": [f'The slug "{slug}" is in use by another organization.']},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    slug_err: ValidationErrorResponse = {
+                        "slug": [f'The slug "{slug}" is in use by another organization.'],
+                    }
+                    return self.respond(slug_err, status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
@@ -1279,7 +1294,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             )
 
             return self.respond(context)
-        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
         # TODO: this will take a long time for organizations with a lot of projects

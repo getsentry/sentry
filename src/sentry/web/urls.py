@@ -55,6 +55,7 @@ from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
+from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 
 __all__ = ("urlpatterns",)
@@ -1192,6 +1193,12 @@ urlpatterns += [
                     DisabledMemberView.as_view(),
                     name="sentry-organization-disabled-member",
                 ),
+                # Need to serve the org-slug-prefixed share route for self-hosted
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/share/(?:group|issue)/(?P<share_id>[^/]+)/$",
+                    SharedGroupDetailsView.as_view(auth_required=False),
+                    name="sentry-customer-domain-group-shared",
+                ),
                 # need to force these to React and ensure organization_slug is captured
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/(?P<sub_page>[\w_-]+)/",
@@ -1228,6 +1235,11 @@ urlpatterns += [
         r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url-deprecated",
+    ),
+    re_path(
+        r"^team-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
+        TeamAvatarPhotoView.as_view(),
+        name="sentry-team-avatar-url",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^/]+)/$",

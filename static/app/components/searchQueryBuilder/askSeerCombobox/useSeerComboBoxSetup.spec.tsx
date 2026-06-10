@@ -129,6 +129,48 @@ describe('transformSeerResponse', () => {
       },
     ]);
   });
+
+  it('attaches expandedProjectIds when Seer broadened beyond the selection', () => {
+    const rawResponse = {
+      project_ids: [1, 2, 3],
+      responses: [
+        {
+          query: 'is:unresolved',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+        },
+      ],
+    };
+
+    const result = transformSeerResponse(rawResponse as any, mapItem, [1, 2]);
+
+    expect(result[0]).toEqual(expect.objectContaining({expandedProjectIds: [1, 2, 3]}));
+  });
+
+  it('omits expandedProjectIds when the scope matches the selection', () => {
+    const rawResponse = {
+      project_ids: [1, 2],
+      responses: [
+        {
+          query: 'is:unresolved',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+        },
+      ],
+    };
+
+    const result = transformSeerResponse(rawResponse as any, mapItem, [1, 2]);
+
+    expect(result[0]).not.toHaveProperty('expandedProjectIds');
+  });
 });
 
 describe('mapSeerResponseItem', () => {
@@ -153,6 +195,60 @@ describe('mapSeerResponseItem', () => {
       end: null,
       mode: 'aggregates',
       visualizations: [{chartType: ChartType.BAR, yAxes: ['count()']}],
+    });
+  });
+
+  it('hoists the interval from the visualization to a top-level field', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'aggregates',
+        visualization: [{chart_type: ChartType.BAR, y_axes: ['count()'], interval: '1h'}],
+      })
+    ).toEqual({
+      query: 'span.op:db',
+      sort: '',
+      groupBys: [],
+      statsPeriod: '24h',
+      start: null,
+      end: null,
+      mode: 'aggregates',
+      visualizations: [{chartType: ChartType.BAR, yAxes: ['count()']}],
+      interval: '1h',
+    });
+  });
+
+  it('hoists the interval from a plotted visualization, ignoring axis-less entries', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'aggregates',
+        visualization: [
+          // Dropped because it has no y-axes; its interval must not be used.
+          {y_axes: [], interval: '5m'},
+          {chart_type: ChartType.BAR, y_axes: ['count()'], interval: '1h'},
+        ],
+      })
+    ).toEqual({
+      query: 'span.op:db',
+      sort: '',
+      groupBys: [],
+      statsPeriod: '24h',
+      start: null,
+      end: null,
+      mode: 'aggregates',
+      visualizations: [{chartType: ChartType.BAR, yAxes: ['count()']}],
+      interval: '1h',
     });
   });
 
