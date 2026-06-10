@@ -749,14 +749,32 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     def test_set_webhook_headers(self) -> None:
         response = self.get_success_response(
             self.published_app.slug,
-            webhookHeaders=["X-Example: value", "Another-Header: thing"],
+            webhookHeaders=[
+                "Authorization: Bearer token",
+                "X-Example: value",
+                "User-Agent: custom-agent",
+                "Accept: application/json",
+                "Date: Tue, 10 Jun 2026 12:00:00 GMT",
+                "Prefer: respond-async",
+            ],
             status_code=200,
         )
         self.published_app.refresh_from_db()
-        assert self.published_app.webhook_headers == ["X-Example: value", "Another-Header: thing"]
+        assert self.published_app.webhook_headers == [
+            "Authorization: Bearer token",
+            "X-Example: value",
+            "User-Agent: custom-agent",
+            "Accept: application/json",
+            "Date: Tue, 10 Jun 2026 12:00:00 GMT",
+            "Prefer: respond-async",
+        ]
         assert response.data["webhookHeaders"] == [
+            f"Authorization: {MASKED_VALUE}",
             f"X-Example: {MASKED_VALUE}",
-            f"Another-Header: {MASKED_VALUE}",
+            f"User-Agent: {MASKED_VALUE}",
+            f"Accept: {MASKED_VALUE}",
+            f"Date: {MASKED_VALUE}",
+            f"Prefer: {MASKED_VALUE}",
         ]
 
     @override_options({"staff.ga-rollout": True})
@@ -873,6 +891,25 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             response = self.get_error_response(
                 self.published_app.slug,
                 webhookHeaders=[reserved],
+                status_code=400,
+            )
+            assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_disallowed_name_rejected(self) -> None:
+        response = self.get_error_response(
+            self.published_app.slug,
+            webhookHeaders=["Another-Header: thing"],
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_disallowed_x_header_rejected(self) -> None:
+        for header in ["X-Forwarded-For: 127.0.0.1", "X-Real-IP: 127.0.0.1", "X-Sentry-Test: x"]:
+            response = self.get_error_response(
+                self.published_app.slug,
+                webhookHeaders=[header],
                 status_code=400,
             )
             assert "webhookHeaders" in response.data

@@ -15,10 +15,23 @@ from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUI
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 from sentry.utils.display_name_filter import is_spam_display_name
 
-# Headers Sentry sets on every outgoing webhook request; custom integrations must
-# not be able to override these (the signature header in particular guards payload
-# integrity). Compared case-insensitively. The "sentry-hook-" prefix is also blocked.
-RESERVED_WEBHOOK_HEADERS = frozenset({"content-type", "request-id", "host"})
+# Custom webhook headers are intentionally limited to application-level metadata
+# and common custom-header names. Names are compared case-insensitively.
+ALLOWED_WEBHOOK_HEADERS = frozenset({"authorization", "user-agent", "accept", "date", "prefer"})
+
+# Headers Sentry owns, or transport/proxy identity headers that must not be
+# user-controlled. The "sentry-hook" prefix is also blocked.
+RESERVED_WEBHOOK_HEADERS = frozenset(
+    {
+        "content-type",
+        "host",
+        "request-id",
+        "x-forwarded",
+        "x-real-ip",
+        "x-sentry",
+    }
+)
+RESERVED_WEBHOOK_HEADER_PREFIXES = ("sentry-hook", "x-forwarded-", "x-sentry-")
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
@@ -225,8 +238,15 @@ class SentryAppParser(Serializer):
                     f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
                 )
             normalized = name.lower()
-            if normalized in RESERVED_WEBHOOK_HEADERS or normalized.startswith("sentry-hook"):
+            if normalized in RESERVED_WEBHOOK_HEADERS or normalized.startswith(
+                RESERVED_WEBHOOK_HEADER_PREFIXES
+            ):
                 raise ValidationError(f"'{name}' is a reserved header and cannot be overridden.")
+            if normalized not in ALLOWED_WEBHOOK_HEADERS and not normalized.startswith("x-"):
+                raise ValidationError(
+                    f"'{name}' is not an allowed webhook header. Use Authorization, "
+                    "User-Agent, Accept, Date, Prefer, or X-* custom headers."
+                )
             # Reject duplicate names (case-insensitive). This keeps the masked-value
             # round-trip unambiguous: the updater re-pairs masked entries to stored
             # values by header name, which only works if names are unique.

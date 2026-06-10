@@ -788,14 +788,14 @@ class PostSentryAppsTest(SentryAppsTest):
 
     def test_create_integration_with_webhook_headers(self) -> None:
         response = self.get_success_response(
-            **self.get_data(webhookHeaders=["X-Example: value", "Another-Header: thing"]),
+            **self.get_data(webhookHeaders=["X-Example: value", "Authorization: Bearer token"]),
             status_code=201,
         )
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
-        assert sentry_app.webhook_headers == ["X-Example: value", "Another-Header: thing"]
+        assert sentry_app.webhook_headers == ["X-Example: value", "Authorization: Bearer token"]
         assert response.data["webhookHeaders"] == [
             f"X-Example: {MASKED_VALUE}",
-            f"Another-Header: {MASKED_VALUE}",
+            f"Authorization: {MASKED_VALUE}",
         ]
 
     def test_create_integration_with_invalid_webhook_header(self) -> None:
@@ -807,6 +807,12 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_create_integration_with_reserved_webhook_header(self) -> None:
         response = self.get_error_response(
             **self.get_data(webhookHeaders=["Content-Type: text/plain"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_disallowed_webhook_header(self) -> None:
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["Another-Header: thing"]), status_code=400
         )
         assert "webhookHeaders" in response.data
 
