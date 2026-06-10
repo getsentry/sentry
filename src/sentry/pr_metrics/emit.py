@@ -66,9 +66,12 @@ def select_verdict(pull_request: PullRequest) -> PullRequestVerdict | None:
         return PullRequestVerdict.MERGED_UNCHANGED if not has_commits_after_open else None
 
     metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
-    has_discussion = bool(
-        metrics_row and (metrics_row.comments_count or metrics_row.review_comments_count)
-    )
+    if metrics_row is None:
+        # The metrics row holds the comment counters. handle_metrics persists it
+        # before emission, so a miss means it didn't run for this event — we can't
+        # confirm "no engagement", so defer to a judge rather than guess abandoned.
+        return None
+    has_discussion = bool(metrics_row.comments_count or metrics_row.review_comments_count)
     if has_commits_after_open or has_discussion:
         return None
     return PullRequestVerdict.CLOSED_UNMERGED

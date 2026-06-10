@@ -131,6 +131,12 @@ class PrMetricsEmissionTest(TestCase):
         self.pull_request.merged_at = None
         assert select_verdict(self.pull_request) is None
 
+    def test_select_verdict_closed_without_metrics_row_needs_judge(self) -> None:
+        # No counters to read — can't confirm "no engagement", so defer to a judge.
+        self.pull_request.merged_at = None
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
+        assert select_verdict(self.pull_request) is None
+
     def test_select_verdict_closed_with_later_commits_needs_judge(self) -> None:
         self.pull_request.merged_at = None
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).update(
