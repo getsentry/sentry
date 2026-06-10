@@ -98,11 +98,20 @@ function isExplicitlyTypedTagKey(key: string) {
   return prettifyTagKey(key) !== key;
 }
 
+const DISCOVER_MEASUREMENT_KEY_PATTERN = /^measurements\.[\w-.]+$/;
+
+function isDiscoverMeasurementKey(key: string) {
+  return DISCOVER_MEASUREMENT_KEY_PATTERN.test(key);
+}
+
 // User-created number/boolean attributes (e.g. EAP span/log attributes) are
 // not in the documented field definitions, so we can't infer their type from
 // the key alone. Emit explicit tag syntax (`tags[key,number]`) so the query
 // is unambiguously typed. Documented fields always carry a `desc`, so we use
 // its absence to detect undocumented attributes.
+//
+// Discover measurements are also undocumented numeric fields, but their valid
+// search syntax is the plain `measurements.*` key, not EAP tag syntax.
 //
 // Returns the key unchanged when it doesn't need (or already has) explicit
 // typing. Shared between filter creation and key re-keying so both paths stay
@@ -115,6 +124,7 @@ export function maybeWrapKeyWithExplicitType(
   if (
     !fieldDefinition?.desc &&
     !isExplicitlyTypedTagKey(key) &&
+    !(kind === FieldKind.MEASUREMENT && isDiscoverMeasurementKey(key)) &&
     (kind === FieldKind.MEASUREMENT || kind === FieldKind.BOOLEAN)
   ) {
     const explicitType = kind === FieldKind.MEASUREMENT ? 'number' : 'boolean';

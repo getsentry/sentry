@@ -1,7 +1,7 @@
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
-import {getInitialFilterText} from './utils';
+import {getInitialFilterText, maybeWrapKeyWithExplicitType} from './utils';
 
 describe('getInitialFilterText', () => {
   it('defaults missing field definitions to contains', () => {
@@ -83,5 +83,37 @@ describe('getInitialFilterText', () => {
     expect(
       getInitialFilterText('span.duration', fieldDefinition, FieldKind.MEASUREMENT)
     ).toBe('span.duration:>10ms');
+  });
+
+  it('keeps Discover measurement keys in plain measurement syntax', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NUMBER,
+    };
+
+    expect(
+      getInitialFilterText(
+        'measurements.custom.measurement',
+        fieldDefinition,
+        FieldKind.MEASUREMENT
+      )
+    ).toBe('measurements.custom.measurement:>100');
+  });
+});
+
+describe('maybeWrapKeyWithExplicitType', () => {
+  it('keeps Discover measurement keys in plain measurement syntax when re-keying', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NUMBER,
+    };
+
+    expect(
+      maybeWrapKeyWithExplicitType(
+        'measurements.custom.measurement',
+        fieldDefinition,
+        FieldKind.MEASUREMENT
+      )
+    ).toBe('measurements.custom.measurement');
   });
 });
