@@ -329,7 +329,7 @@ class ProjectDebugFile(Model):
             # Objectstore-backed files cannot be referenced by multiple debug file rows.
             try:
                 self._get_objectstore_session().delete(self.storage_path)
-            except (Project.DoesNotExist, RequestError):
+            except (Project.DoesNotExist, RequestError, HTTPError):
                 logger.info("Failed to delete ProjectDebugFile, will be cleaned up by TTI")
         elif self.file is not None:
             # If another debug file row still references this File, keep the File.

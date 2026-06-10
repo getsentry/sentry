@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid1
 
+import pytest
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
@@ -18,7 +19,9 @@ from sentry.models.artifactbundle import (
 from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.objectstore import get_debug_files_session
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_objectstore
 
 
 class SyncArtifactBundlesTest(TestCase):
@@ -242,6 +245,55 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_project_debug_file.debug_id == source_project_debug_file.debug_id
         assert target_project_debug_file.code_id == source_project_debug_file.code_id
         assert target_project_debug_file.cpu_name == source_project_debug_file.cpu_name
+
+    @requires_objectstore
+    def test_sync_objectstore_project_debug_files(self) -> None:
+        content = b"objectstore-backed-debug-file"
+        content_type = "application/x-mach-binary"
+        date_created = timezone.now()
+        source_storage_path = get_debug_files_session(
+            self.source_org.id, self.source_proj_foo.id
+        ).put(content, compression="none", content_type=content_type)
+        source_project_debug_file = ProjectDebugFile.objects.create(
+            project_id=self.source_proj_foo.id,
+            file=None,
+            storage_path=source_storage_path,
+            content_type=content_type,
+            file_size=len(content),
+            date_created=date_created,
+            checksum="a" * 40,
+            object_name="test.dSYM",
+            cpu_name="x86_64",
+            debug_id="67e9247c-814e-392b-a027-dbde6748fcbf",
+            code_id="code-id",
+            data={"features": ["debug"]},
+        )
+
+        _sync_project_debug_files(
+            source_org=self.source_org,
+            target_org=self.target_org,
+            cutoff_date=self.last_three_days(),
+        )
+
+        target_project_debug_file = ProjectDebugFile.objects.get(
+            project_id=self.target_proj_foo.id,
+            debug_id=source_project_debug_file.debug_id,
+        )
+
+        assert target_project_debug_file.file_id is None
+        assert target_project_debug_file.storage_path is not None
+        assert target_project_debug_file.storage_path != source_project_debug_file.storage_path
+        assert target_project_debug_file.content_type == content_type
+        assert target_project_debug_file.file_size == len(content)
+        assert target_project_debug_file.date_created == date_created
+        assert target_project_debug_file.getfile().read() == content
+
+        target_project_debug_file.delete()
+        source_project_debug_file.refresh_from_db()
+        assert source_project_debug_file.getfile().read() == content
+
+        with pytest.raises(ProjectDebugFile.DoesNotExist):
+            target_project_debug_file.refresh_from_db()
 
     def test_sync_project_debug_files_with_old_uploads(self) -> None:
         source_project_debug_file = self.create_dif_file(
