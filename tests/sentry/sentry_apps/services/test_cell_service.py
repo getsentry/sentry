@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 import orjson
@@ -36,11 +37,11 @@ class TestSentryAppCellService(TestCase):
         self.rpc_installation = serialize_sentry_app_installation(self.install)
         self.auth_context = AuthenticationContext(user=serialize_rpc_user(self.user))
 
-    def _action_log_records(self, logs, action):
+    def _action_log_records(
+        self, records: list[logging.LogRecord], action: str
+    ) -> list[logging.LogRecord]:
         return [
-            r
-            for r in logs.records
-            if r.message == "group.action_log" and getattr(r, "action") == action
+            r for r in records if r.message == "group.action_log" and getattr(r, "action") == action
         ]
 
     @responses.activate
@@ -342,7 +343,7 @@ class TestSentryAppCellService(TestCase):
             )
 
         assert result.error is None
-        records = self._action_log_records(logs, "create_platform_external_issue")
+        records = self._action_log_records(logs.records, "create_platform_external_issue")
         assert len(records) == 1
         record = records[0]
         assert getattr(record, "source") == ActionSource.API
@@ -381,8 +382,8 @@ class TestSentryAppCellService(TestCase):
             )
 
         assert result.error is None
-        assert len(self._action_log_records(logs, "link_platform_external_issue")) == 1
-        assert self._action_log_records(logs, "create_platform_external_issue") == []
+        assert len(self._action_log_records(logs.records, "link_platform_external_issue")) == 1
+        assert self._action_log_records(logs.records, "create_platform_external_issue") == []
 
     def test_create_external_issue_records_action_log(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
@@ -397,7 +398,7 @@ class TestSentryAppCellService(TestCase):
             )
 
         assert result.error is None
-        records = self._action_log_records(logs, "create_platform_external_issue")
+        records = self._action_log_records(logs.records, "create_platform_external_issue")
         assert len(records) == 1
         assert getattr(records[0], "source") == ActionSource.API
         assert getattr(records[0], "actor_type") == "user"
@@ -416,7 +417,7 @@ class TestSentryAppCellService(TestCase):
             )
 
         assert result.error is None
-        records = self._action_log_records(logs, "create_platform_external_issue")
+        records = self._action_log_records(logs.records, "create_platform_external_issue")
         assert len(records) == 1
         assert getattr(records[0], "actor_type") == "system"
         assert getattr(records[0], "actor_id") == "0"
@@ -440,7 +441,7 @@ class TestSentryAppCellService(TestCase):
             )
 
         assert result.success is True
-        records = self._action_log_records(logs, "unlink_platform_external_issue")
+        records = self._action_log_records(logs.records, "unlink_platform_external_issue")
         assert len(records) == 1
         record = records[0]
         assert getattr(record, "source") == ActionSource.API
