@@ -1617,6 +1617,39 @@ class WeeklyReportsTest(
             assert context["trends"]["transaction_pct_change"] is None
             assert context["show_week_over_week_metric"] is False
 
+    @with_feature("organizations:weekly-report-week-over-week-metric")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_pct_change_from_cache(self, message_builder: mock.MagicMock) -> None:
+        from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
+
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=10
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=20,
+            category=DataCategory.TRANSACTION,
+        )
+
+        cache_project_metrics(
+            self.organization.id,
+            {self.project.id: {"e": 5, "t": 40}},
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["trends"]["error_pct_change"] == 1.0
+            assert context["trends"]["transaction_pct_change"] == -0.5
+
     def test_pct_change_helper(self) -> None:
         assert _pct_change(150, 100) == 0.5
         assert _pct_change(50, 100) == -0.5
