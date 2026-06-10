@@ -169,13 +169,21 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         ] or None
         requested_project = parse_id_or_slug_params(serializer.validated_data.get("project", []))
         releases_list = serializer.validated_data.get("release")  # list of release versions
+        project_ids: set[int] | None = None
+        project_slugs: list[str] | set[str] | None = project_slug_list
+        if project_slug_list is None:
+            if requested_project.ids and not requested_project.slugs:
+                project_ids = requested_project.ids
+            elif requested_project.slugs and not requested_project.ids:
+                project_slugs = requested_project.slugs
+
         try:
             filter_params = self.get_filter_params(
                 request,
                 organization,
                 date_filter_optional=True,
-                project_ids=requested_project.ids or None,
-                project_slugs=project_slug_list or requested_project.slugs or None,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
             )
         except NoProjects:
             raise NoProjects("No projects available")
