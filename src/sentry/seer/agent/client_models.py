@@ -141,7 +141,7 @@ class ToolLink(BaseModel):
 class ToolResult(BaseModel):
     """The result of a tool call execution."""
 
-    tool_call_id: str
+    tool_call_id: str | None = None
     tool_call_function: str
     content: str | None = None
 
