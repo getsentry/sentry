@@ -31,9 +31,7 @@ class IssuePlatformIntegrationTests(TestCase):
 
     def test_handler_invoked__when_update_status_called(self) -> None:
         """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_status_update_handler`
-        and increment the metric.
+        Integration test to ensure the `update_status` method trigger workflow_engine
         """
         message = get_test_message_status_change(
             project_id=self.project.id,
@@ -51,8 +49,7 @@ class IssuePlatformIntegrationTests(TestCase):
 
     def test_handler_invoked__when_resolved(self) -> None:
         """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_state_update_handler`
+        Integration test to ensure the `update_status` method trigger workflow_engine
         and increment the metric.
         """
         message = StatusChangeMessageData(
