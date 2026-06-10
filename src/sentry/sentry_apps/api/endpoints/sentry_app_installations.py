@@ -1,4 +1,4 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -34,12 +34,31 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
     slug = SentrySerializerSlugField(required=True, max_length=SENTRY_APP_SLUG_MAX_LENGTH)
 
 
+SENTRY_APP_INSTALLATIONS_EXAMPLE = OpenApiExample(
+    "List Sentry App Installations",
+    value=[
+        {
+            "app": {
+                "uuid": "a9988ad6-5b3f-4905-bb93-f7cbf4c96bbb",
+                "slug": "example-app",
+                "sentryAppId": 1,
+            },
+            "organization": {"slug": "example-org", "id": 1},
+            "uuid": "01635075-4f13-4f96-8fc8-ff9680780a13",
+            "status": "installed",
+        }
+    ],
+    response_only=True,
+    status_codes=["200"],
+)
+
+
 @extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
 
@@ -54,6 +73,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[SENTRY_APP_INSTALLATIONS_EXAMPLE],
     )
     def get(
         self, request: Request, organization: Organization
