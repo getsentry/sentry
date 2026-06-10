@@ -175,6 +175,112 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp"
         assert "depot/depot" not in url
 
+    def _swarm_installation(self, external_id: str) -> PerforceIntegration:
+        """Create a Perforce integration configured with a Swarm web viewer."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce",
+            external_id=external_id,
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+            },
+        )
+        installation = integration.get_installation(self.organization.id)
+        assert isinstance(installation, PerforceIntegration)
+        return installation
+
+    def test_format_source_url_swarm_viewer_changelist_branch(self) -> None:
+        """
+        A numeric `branch` is a changelist (the commit "sha"), not a stream. It must be
+        rendered as a Swarm revision (?v=@<changelist>) and must NOT be spliced into the
+        depot path as "//depot/<changelist>/...".
+        """
+        installation = self._swarm_installation("perforce-test-swarm-cl")
+
+        url = installation.format_source_url(
+            repo=self.repo, filepath="app/services/processor.cpp", branch="2998"
+        )
+
+        assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp?v=@2998"
+        # Regression guard: the changelist must not become a path segment.
+        assert "/2998/" not in url
+
+    def test_format_source_url_swarm_viewer_changelist_with_stream_in_path(self) -> None:
+        """
+        Mirrors the real demo setup: the stream ("main/") is part of the mapped path
+        (from the code mapping's source root) and the changelist arrives via `branch`.
+        """
+        installation = self._swarm_installation("perforce-test-swarm-cl-stream")
+
+        url = installation.format_source_url(
+            repo=self.repo,
+            filepath="main/Source/SentryTower/Player/SentryTowerTurret.cpp",
+            branch="2998",
+        )
+
+        assert url == (
+            "https://swarm.example.com/files"
+            "//depot/main/Source/SentryTower/Player/SentryTowerTurret.cpp?v=@2998"
+        )
+        assert "/2998/" not in url
+
+    def test_format_source_url_swarm_viewer_stream_branch(self) -> None:
+        """A non-numeric `branch` is a stream name and is inserted after the depot."""
+        installation = self._swarm_installation("perforce-test-swarm-stream")
+
+        url = installation.format_source_url(
+            repo=self.repo, filepath="app/services/processor.cpp", branch="main"
+        )
+
+        assert url == "https://swarm.example.com/files//depot/main/app/services/processor.cpp"
+
+    def test_format_source_url_p4_protocol_changelist_branch(self) -> None:
+        """Without a Swarm viewer, a changelist branch uses Perforce '@<changelist>' syntax."""
+        url = self.installation.format_source_url(
+            repo=self.repo, filepath="app/services/processor.cpp", branch="2998"
+        )
+        assert url == "p4://depot/app/services/processor.cpp@2998"
+
+    def test_validate_web_url_adds_scheme(self) -> None:
+        """A web URL without a scheme is normalized to https:// so links aren't relative."""
+        serializer = PerforceInstallationSerializer()
+        assert serializer.validate_web_url("swarm.example.com") == "https://swarm.example.com"
+        assert serializer.validate_web_url("swarm.example.com/") == "https://swarm.example.com"
+        # A scheme-relative URL keeps a single "//" (not "https:////...").
+        assert serializer.validate_web_url("//swarm.example.com") == "https://swarm.example.com"
+        # An existing scheme is preserved.
+        assert (
+            serializer.validate_web_url("https://swarm.example.com") == "https://swarm.example.com"
+        )
+        assert serializer.validate_web_url("http://swarm.example.com") == "http://swarm.example.com"
+
+    def test_serializer_normalizes_schemeless_web_url_end_to_end(self) -> None:
+        """
+        Exercise the full serializer, not just validate_web_url directly. With a URLField
+        the field-level URLValidator rejected schemeless input before validate_web_url ran,
+        so the normalization was dead code; CharField makes it actually reachable.
+        """
+        base = {
+            "p4port": "ssl:perforce.example.com:1666",
+            "user": "testuser",
+            "password": "testpass",
+            "auth_type": "password",
+            "ssl_fingerprint": "AB:CD",
+        }
+        serializer = PerforceInstallationSerializer(data={**base, "web_url": "swarm.example.com"})
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["web_url"] == "https://swarm.example.com"
+
+        # Garbage is still rejected after normalization. CamelSnakeSerializer keys
+        # error output in camelCase, so the field surfaces as "webUrl".
+        bad = PerforceInstallationSerializer(data={**base, "web_url": "not a url"})
+        assert not bad.is_valid()
+        assert "webUrl" in bad.errors
+
     def test_format_source_url_strips_leading_slash_from_relative_path(self) -> None:
         """Test that leading slash is stripped from relative paths"""
         url = self.installation.format_source_url(
@@ -297,6 +403,78 @@ class PerforceIntegrationTest(IntegrationTestCase):
         # The # character is preserved as-is (not URL-encoded in this method)
         assert url == "p4://depot/app/services/processor.cpp#1"
         assert "#1" in url
+
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_link_changelist_not_url_encoded(self, mock_check_file):
+        """
+        A changelist arriving as `version` renders as Perforce '@<changelist>' syntax in
+        the p4:// fallback. `@` is a valid path character and must survive the encode_url
+        step in get_stacktrace_link -- if it becomes %40 the p4:// link breaks.
+        """
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
+
+        url = self.installation.get_stacktrace_link(
+            self.repo, "app/services/processor.cpp", "", "2998"
+        )
+        assert url == "p4://depot/app/services/processor.cpp@2998"
+        assert "%40" not in url
+
+    def test_extract_source_path_strips_p4_changelist(self) -> None:
+        """A p4:// URL with an @<changelist> suffix yields the bare file path."""
+        path = self.installation.extract_source_path_from_source_url(
+            self.repo, "p4://depot/app/services/processor.cpp@2998"
+        )
+        assert path == "app/services/processor.cpp"
+
+    def test_extract_source_path_strips_p4_file_revision(self) -> None:
+        """A p4:// URL with a #<file-revision> suffix yields the bare file path."""
+        path = self.installation.extract_source_path_from_source_url(
+            self.repo, "p4://depot/app/services/processor.cpp#42"
+        )
+        assert path == "app/services/processor.cpp"
+
+    def test_extract_source_path_preserves_in_path_at_sign(self) -> None:
+        """
+        An `@` inside the path (e.g. a scoped dir like `@babel`) must NOT be treated as
+        a changelist specifier -- only a trailing `@<digits>` is stripped.
+        """
+        # No changelist: the `@babel` segment is preserved verbatim.
+        assert (
+            self.installation.extract_source_path_from_source_url(
+                self.repo, "p4://depot/node_modules/@babel/core.js"
+            )
+            == "node_modules/@babel/core.js"
+        )
+        # With a trailing changelist: only the `@2998` suffix is removed.
+        assert (
+            self.installation.extract_source_path_from_source_url(
+                self.repo, "p4://depot/node_modules/@babel/core.js@2998"
+            )
+            == "node_modules/@babel/core.js"
+        )
+
+    def test_extract_source_path_strips_swarm_changelist_query(self) -> None:
+        """A Swarm URL carrying the changelist as ?v=@<cl> yields the bare file path."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce",
+            external_id="perforce-test-extract-swarm",
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+            },
+        )
+        installation = integration.get_installation(self.organization.id)
+        assert isinstance(installation, PerforceIntegration)
+
+        path = installation.extract_source_path_from_source_url(
+            self.repo,
+            "https://swarm.example.com/files//depot/app/services/processor.cpp?v=@2998",
+        )
+        assert path == "app/services/processor.cpp"
 
     def test_integration_name(self) -> None:
         """Test integration has correct name"""

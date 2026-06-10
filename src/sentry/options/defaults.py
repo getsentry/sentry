@@ -2093,6 +2093,13 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
 # there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
