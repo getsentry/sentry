@@ -680,6 +680,63 @@ class SomeMixin:
     assert _run_public(source) == []
 
 
+def test_public_publish_status_annotated_assign_detected() -> None:
+    """`publish_status: dict[str, ApiPublishStatus] = {...}` (annotated
+    assignment) is read the same as the plain-assignment form."""
+    source = """
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status: dict[str, ApiPublishStatus] = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response:
+        return Response()
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].reason == "bare-Response"
+
+
+def test_public_bare_response_in_typing_union_fires() -> None:
+    """`-> Union[Response, Response[Foo]]` is just as bad as `Response`
+    alone — the bare arm opts that path out of body-vs-schema verification."""
+    source = """
+from typing import TypedDict, Union
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Union[Response, Response[FooResponse]]:
+        return Response({"x": 1})
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].reason == "bare-Response"
+
+
+def test_public_typing_union_of_typed_response_passes() -> None:
+    """`Union[Response[A], Response[B]]` is equivalent to the `|` form and
+    is accepted."""
+    source = """
+from typing import TypedDict, Union
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Union[Response[FooResponse], Response[DetailResponse]]:
+        return Response({"x": 1})
+"""
+    assert _run_public(source) == []
+
+
 def test_public_bare_response_under_future_annotations_fires() -> None:
     """`from __future__ import annotations` (PEP 563) defers annotation
     evaluation *at runtime* — `__annotations__` stores strings instead of

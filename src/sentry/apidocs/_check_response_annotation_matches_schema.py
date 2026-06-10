@@ -262,19 +262,30 @@ def _iter_classes(tree: ast.Module) -> Iterator[ast.ClassDef]:
 def _publish_status(cls: ast.ClassDef) -> dict[str, str]:
     """Return `{HTTP_METHOD: ApiPublishStatus_attr_name}` parsed from
     `publish_status = {"GET": ApiPublishStatus.PUBLIC, ...}` on the class
-    body. Returns `{}` when the class has no such assignment or it doesn't
-    statically match the expected literal-dict shape."""
+    body. Also handles the annotated form
+    `publish_status: dict[str, ApiPublishStatus] = {...}`. Returns `{}`
+    when the class has no such assignment or the value doesn't statically
+    match the expected literal-dict shape."""
     for item in cls.body:
-        if not (
+        value: ast.expr | None = None
+        if (
             isinstance(item, ast.Assign)
             and len(item.targets) == 1
             and isinstance(item.targets[0], ast.Name)
             and item.targets[0].id == "publish_status"
-            and isinstance(item.value, ast.Dict)
         ):
+            value = item.value
+        elif (
+            isinstance(item, ast.AnnAssign)
+            and isinstance(item.target, ast.Name)
+            and item.target.id == "publish_status"
+            and item.value is not None
+        ):
+            value = item.value
+        if not isinstance(value, ast.Dict):
             continue
         out: dict[str, str] = {}
-        for k, v in zip(item.value.keys, item.value.values):
+        for k, v in zip(value.keys, value.values):
             if (
                 isinstance(k, ast.Constant)
                 and isinstance(k.value, str)
@@ -285,15 +296,37 @@ def _publish_status(cls: ast.ClassDef) -> dict[str, str]:
     return {}
 
 
+def _is_union_subscript(node: ast.expr) -> ast.expr | None:
+    """If `node` is `Union[a, b, ...]` or `typing.Union[a, b, ...]`, return the
+    slice expression (a `Tuple` of arms, or a single arm for the degenerate
+    `Union[X]`). Otherwise return None."""
+    if not isinstance(node, ast.Subscript):
+        return None
+    val = node.value
+    if (isinstance(val, ast.Name) and val.id == "Union") or (
+        isinstance(val, ast.Attribute) and val.attr == "Union"
+    ):
+        return node.slice
+    return None
+
+
 def _annotation_has_bare_response(returns: ast.expr) -> bool:
     """Walk a return annotation's union arms; return True iff any arm is the
-    bare `Response` name (no `[T]` subscript)."""
+    bare `Response` name (no `[T]` subscript). Handles both `X | Y` and
+    `Union[X, Y]` union forms."""
     pending: list[ast.expr] = [returns]
     while pending:
         node = pending.pop()
         if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
             pending.append(node.left)
             pending.append(node.right)
+            continue
+        union_slice = _is_union_subscript(node)
+        if union_slice is not None:
+            if isinstance(union_slice, ast.Tuple):
+                pending.extend(union_slice.elts)
+            else:
+                pending.append(union_slice)
             continue
         if isinstance(node, ast.Name) and node.id == "Response":
             return True
