@@ -13,36 +13,35 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-def resolve_seer_run_state_id(
-    run_id: str | int, organization: Organization
-) -> tuple[int | None, Response | None]:
+def resolve_seer_run_state_id(run_id: str | int, organization: Organization) -> int | Response:
     """Resolve a client-facing run id (numeric ``seer_run_state_id`` or a
     ``SeerRun.uuid``) to the Seer-side ``seer_run_state_id``.
 
-    Returns ``(seer_run_state_id, None)`` when resolved. Otherwise returns
-    ``(None, error_response)`` following the ``{"session": ...}`` poll contract:
-    400 for an unparseable id, 404 for an unknown run, and a ``processing`` /
-    ``error`` session status while the run's Seer id isn't mirrored yet or its
-    mirror failed. Numeric ids pass straight through.
+    Returns the ``seer_run_state_id`` when resolved, otherwise an error
+    ``Response`` following the ``{"session": ...}`` poll contract: 400 for an
+    unparseable id, 404 for an unknown run, and a ``processing`` / ``error``
+    session status while the run's Seer id isn't mirrored yet or its mirror
+    failed. Callers narrow with ``isinstance(result, Response)``. Numeric ids
+    pass straight through.
     """
     try:
-        return int(run_id), None
+        return int(run_id)
     except (TypeError, ValueError):
         pass
 
     try:
         run_uuid = uuid_module.UUID(str(run_id))
     except (TypeError, ValueError):
-        return None, Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
 
     run = SeerRun.objects.filter(uuid=run_uuid, organization=organization).first()
     if run is None:
-        return None, Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
-        return None, Response({"session": {"status": "error"}})
+        return Response({"session": {"status": "error"}})
     if run.seer_run_state_id is None:
-        return None, Response({"session": {"status": "processing"}})
-    return run.seer_run_state_id, None
+        return Response({"session": {"status": "processing"}})
+    return run.seer_run_state_id
 
 
 def map_org_id_param(func: Callable) -> Callable:
