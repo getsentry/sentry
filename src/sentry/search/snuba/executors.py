@@ -945,9 +945,9 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
     """Recommended sort v2: the Snuba recommended score (recency/spike/severity/user
     impact/event volume) plus additive boosts for viewer assignment, Seer fixability,
     and Seer agent progress."""
-    assignment_weight = options.get("snuba.search.recommended-v2.assignment-weight")
-    fixability_weight = options.get("snuba.search.recommended-v2.fixability-weight")
-    agent_weight = options.get("snuba.search.recommended-v2.agent-weight")
+    assignment_weight = options.get("snuba.search.recommended.assignment-weight")
+    fixability_weight = options.get("snuba.search.recommended.fixability-weight")
+    agent_weight = options.get("snuba.search.recommended.agent-weight")
 
     def score_fn(data: dict[str, Any]) -> float:
         return (

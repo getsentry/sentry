@@ -890,20 +890,18 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# recommended_v2: additive boosts applied on top of the Snuba recommended score.
-# Each boost is weight * signal, where the signal is normalized to [0, 1].
 register(
-    "snuba.search.recommended-v2.assignment-weight",
+    "snuba.search.recommended.assignment-weight",
     default=0.30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "snuba.search.recommended-v2.fixability-weight",
+    "snuba.search.recommended.fixability-weight",
     default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "snuba.search.recommended-v2.agent-weight",
+    "snuba.search.recommended.agent-weight",
     default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
