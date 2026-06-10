@@ -32,7 +32,6 @@ TIMEOUT_OVERRIDES = [
     (["/files/dsyms/"], 90.0),
     (["/installablepreprodartifact/"], 90.0),
     (["/objectstore/"], 90.0),
-    (["/preprodartifacts/snapshots/", "/download/"], 90.0),
 ]
 
 
