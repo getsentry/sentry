@@ -4,7 +4,13 @@ import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
@@ -379,7 +385,63 @@ describe('ProjectFilters', () => {
     ]) {
       expect(screen.getByRole('columnheader', {name: column})).toBeInTheDocument();
     }
-    expect(screen.getByText('No inbound filters found')).toBeInTheDocument();
+    expect(screen.getByText('Ignore flaky connection errors')).toBeInTheDocument();
+    expect(screen.getByText('Drop debug log spam')).toBeInTheDocument();
+    expect(screen.getByText('Filter internal test metrics')).toBeInTheDocument();
+  });
+
+  it('supports local add, toggle, and delete of custom filters', async () => {
+    const organizationWithFlag = OrganizationFixture({
+      ...organization,
+      features: ['inbound-filters-v2'],
+    });
+
+    render(<ProjectFilters />, {
+      organization: organizationWithFlag,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organizationWithFlag.slug}/projects/${project.slug}/filters/inbound-filters/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/filters/:filterType/',
+      },
+    });
+    renderGlobalModal();
+
+    // Toggle an active filter off
+    const switches = screen.getAllByRole('checkbox', {name: 'Disable filter'});
+    await userEvent.click(switches[0]!);
+    expect(screen.getAllByRole('checkbox', {name: 'Enable filter'})).toHaveLength(2);
+
+    // Search rules across fields
+    const searchInput = screen.getByRole('textbox', {name: 'Search rules'});
+    await userEvent.type(searchInput, 'ConnectionError');
+    expect(screen.getByText('Ignore flaky connection errors')).toBeInTheDocument();
+    expect(screen.queryByText('Drop debug log spam')).not.toBeInTheDocument();
+    await userEvent.clear(searchInput);
+
+    // Add a new rule via the modal
+    await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
+    expect(screen.getByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Filter name'}),
+      'Block spam messages'
+    );
+    await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), 'spam');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+    expect(screen.getByText('Block spam messages')).toBeInTheDocument();
+
+    // Edit a filter via the modal
+    const editButtons = screen.getAllByRole('button', {name: 'Edit filter'});
+    await userEvent.click(editButtons[0]!);
+    expect(screen.getByText('Edit Custom Filter')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    // Delete a filter
+    const deleteButtons = screen.getAllByRole('button', {name: 'Delete filter'});
+    await userEvent.click(deleteButtons[0]!);
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    expect(screen.queryByText('Ignore flaky connection errors')).not.toBeInTheDocument();
   });
 
   it('disables configuration for non project:write users', async () => {
