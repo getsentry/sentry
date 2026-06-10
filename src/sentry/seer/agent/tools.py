@@ -1146,15 +1146,19 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 ]
 
 
-class _IssueTroubleshootingContext(TypedDict):
-    # These fields are added to serialized group data, which uses camelCase API keys.
+class _EventTroubleshootingContext(TypedDict):
+    # These fields are added to the serialized event, which uses camelCase API keys.
     detectionContext: str | None
     troubleshootingHint: str | None
 
 
-def _get_issue_troubleshooting_context(
-    group: Group, event: Event | GroupEvent | None = None
-) -> _IssueTroubleshootingContext:
+def _get_event_troubleshooting_context(
+    event: Event | GroupEvent,
+) -> _EventTroubleshootingContext:
+    group = getattr(event, "group", None)
+    if group is None:
+        return {"detectionContext": None, "troubleshootingHint": None}
+
     if group.type == LowValueSpanConfigurationType.type_id:
         occurrence = getattr(event, "occurrence", None)
         evidence_data = occurrence.evidence_data if occurrence else {}
@@ -1197,7 +1201,8 @@ def get_issue_and_event_response(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> dict[str, Any]:
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
+    serialized_event.update(_get_event_troubleshooting_context(event))
 
     result = {
         "event": serialized_event,
@@ -1212,7 +1217,6 @@ def get_issue_and_event_response(
         serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
-        serialized_group.update(_get_issue_troubleshooting_context(group, event))
 
         logger.info(
             "get_issue_and_event_details_v2: Querying for tags overview",
@@ -1337,7 +1341,6 @@ def get_issue_details(
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
     # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
     serialized_group["issueTypeDescription"] = group.issue_type.description
-    serialized_group.update(_get_issue_troubleshooting_context(group))
 
     # Get aggregate tag and event data and activity.
     try:
@@ -1499,7 +1502,8 @@ def get_event_details(
         )
         return None
 
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
+    serialized_event.update(_get_event_troubleshooting_context(event))
 
     return {
         "event": serialized_event,
