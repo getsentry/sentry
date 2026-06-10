@@ -13,7 +13,7 @@ import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
+from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
 from django.db.models import ProtectedError, Q
@@ -36,6 +36,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
+from sentry.objectstore import get_debug_files_session
 from sentry.utils import json, metrics
 from sentry.utils.zip import safe_extract_zip
 
@@ -163,7 +164,7 @@ class ProjectDebugFile(Model):
             return str(self.content_type)
         if self.file is not None:
             return self.file.headers.get("Content-Type", "unknown")
-        raise ValueError("debug file with no underlying file or storage_path")
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_file_size(self) -> int:
         if self.storage_path is not None:
@@ -171,21 +172,23 @@ class ProjectDebugFile(Model):
             return int(self.file_size)
         if self.file is not None:
             return self.file.size
-        raise ValueError("debug file with no underlying file or storage_path")
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_date_created(self) -> datetime:
         if self.storage_path is not None:
+            assert self.date_created is not None
             return self.date_created
         if self.file is not None:
             return self.file.timestamp
-        raise ValueError("debug file with no underlying file or storage_path")
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_headers(self) -> dict[str, str]:
         if self.storage_path is not None:
-            return {"Content-Type": self.content_type} if self.content_type else {}
+            assert self.content_type is not None
+            return {"Content-Type": self.content_type}
         if self.file is not None:
             return self.file.headers
-        raise ValueError("debug file with no underlying file or storage_path")
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     @property
     def file_format(self) -> str:
@@ -238,13 +241,10 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get("features", []))
 
     def _get_objectstore_session(self) -> Session:
-        from sentry.models.project import Project
-        from sentry.objectstore import get_debug_files_session
-
         org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
         return get_debug_files_session(org=org_id, project=self.project_id)
 
-    def getfile(self) -> BinaryIO:
+    def getfile(self) -> IO[bytes]:
         if self.storage_path is not None:
             response = self._get_objectstore_session().get(self.storage_path)
             return response.payload
@@ -258,25 +258,28 @@ class ProjectDebugFile(Model):
             base = os.path.dirname(path)
             os.makedirs(base, exist_ok=True)
 
-            response = self._get_objectstore_session().get(self.storage_path)
-            f = None
+            tmp = None
             try:
-                f = tempfile.NamedTemporaryFile(dir=base, delete=False)
-                shutil.copyfileobj(response.payload, f)
-                f.flush()
-                temp_path = f.name
-                f.close()
-                f = None
+                # Get the payload and save it to a temporary file.
+                contents = self._get_objectstore_session().get(self.storage_path).payload
+                tmp = tempfile.NamedTemporaryFile(dir=base, delete=False)
+                shutil.copyfileobj(contents, tmp)
+                tmp.flush()
+                tmp_path = tmp.name
+                tmp.close()
+                tmp = None
 
                 if not os.path.exists(path):
-                    os.rename(temp_path, path)
+                    os.rename(tmp_path, path)
                 else:
-                    os.remove(temp_path)
+                    # Someone else has already materialized this cached file.
+                    # Keep the existing one, clean up our temporary one.
+                    os.remove(tmp_path)
             finally:
-                if f is not None:
-                    f.close()
+                if tmp is not None:
+                    tmp.close()
                     try:
-                        os.remove(f.name)
+                        os.remove(tmp.name)
                     except Exception:
                         pass
         elif self.file is not None:
@@ -287,18 +290,14 @@ class ProjectDebugFile(Model):
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         ret = super().delete(*args, **kwargs)
 
-        # If another debug file row still references the underlying blob, keep it.
-        # Concurrent last-reference deletes can race past the check, but objectstore
-        # delete is idempotent and File.delete() raises ProtectedError, so no
-        # surviving ProjectDebugFile should point to a deleted blob.
         if self.storage_path is not None:
-            still_referenced = ProjectDebugFile.objects.filter(
-                storage_path=self.storage_path
-            ).exists()
-            if not still_referenced:
-                self._get_objectstore_session().delete(self.storage_path)
-
-        if self.file is not None:
+            # Objectstore-backed files cannot be referenced by multiple debug file rows.
+            self._get_objectstore_session().delete(self.storage_path)
+        elif self.file is not None:
+            # If another debug file row still references this File, keep the File.
+            # Concurrent last-reference deletes can still leave an unreferenced File
+            # row behind, but no surviving ProjectDebugFile should point to a deleted
+            # File.
             try:
                 self.file.delete()
             except ProtectedError:
