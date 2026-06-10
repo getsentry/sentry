@@ -8,6 +8,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
+  buildHandoffPayload,
   knownAgentIntegrationsQueryOptions,
   parseAgentOption,
 } from 'sentry/utils/seer/preferredAgent';
@@ -67,6 +68,16 @@ export function useMutateAutofixProject() {
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
       const {agent, integrationId} = parseAgentOption(agentOption, knownAgents);
       const {stoppingPointValue} = resolveStoppingPoint(stoppingPoint, undefined);
+      // For an external coding agent, whether it auto-opens a PR is the handoff's
+      // auto_create_pr flag. Seat-based orgs derive this server-side from the
+      // stopping point, but legacy orgs do not — so send it explicitly. Seat-based
+      // ignores the unknown field and uses its own derivation, so this is safe for
+      // both. (Returns undefined for Seer, which has no handoff.)
+      const handoff = buildHandoffPayload(
+        agent,
+        integrationId,
+        stoppingPoint === 'create_pr'
+      );
 
       const repos = repoEntries
         .filter(e => Boolean(e.repoId))
@@ -117,6 +128,7 @@ export function useMutateAutofixProject() {
             ...(integrationId ? {integrationId} : {}),
             automationTuning: tuning,
             ...(stoppingPointValue ? {stoppingPoint: stoppingPointValue} : {}),
+            ...(handoff ? {autoCreatePr: handoff.auto_create_pr} : {}),
           },
         });
       } catch (error) {

@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -13,7 +13,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -106,26 +106,35 @@ export function ProjectAddRepoModal({
       }),
       onDynamic: formSchema,
     },
-    onSubmit: ({value}) => {
+    onSubmit: ({value, formApi}) => {
       return saveMutation
         .mutateAsync(formSchema.parse(value), {
           onSuccess: () => {
             addSuccessMessage(t('Project saved successfully'));
             closeModal();
           },
-          onError: error => {
-            // On a partial save the repos already persisted; the modal stays
-            // open so the user can safely retry (both writes are idempotent).
-            addErrorMessage(
-              error instanceof AutofixSettingsPartialSaveError
-                ? t(
-                    'Your repositories were saved, but the automation settings could not be updated. Please try again.'
-                  )
-                : t('Failed to save project settings')
-            );
-          },
         })
-        .catch(() => {});
+        .catch(error => {
+          // Surface failures on the affected fields instead of a toast. The
+          // modal stays open so the user can adjust and retry (both writes are
+          // idempotent full-replaces).
+          if (error instanceof AutofixSettingsPartialSaveError) {
+            // Repos already saved; only the settings write failed.
+            setFieldErrors(formApi, {
+              agentOption: {
+                message: t(
+                  'Your repositories were saved, but these settings could not be updated. Adjust and try again.'
+                ),
+              },
+              stoppingPoint: {message: t('Could not be saved. Please try again.')},
+            });
+          } else {
+            // The repos write failed first, so nothing was persisted.
+            setFieldErrors(formApi, {
+              repoEntries: {message: t('Could not save repositories. Please try again.')},
+            });
+          }
+        });
     },
   });
 
