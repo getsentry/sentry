@@ -40,8 +40,18 @@ class OrganizationIntegrationResponse(TypedDict):
     gracePeriodEnd: str | None
 
 
+class IntegrationProviderInfo(TypedDict):
+    key: str
+    slug: str
+    name: str
+    canAdd: bool
+    canDisable: bool
+    features: list[str]
+    aspects: dict[str, Any]
+
+
 # converts the provider to JSON
-def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
+def serialize_provider(provider: IntegrationProvider) -> IntegrationProviderInfo:
     return {
         "key": provider.key,
         "slug": provider.key,
@@ -53,6 +63,17 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
     }
 
 
+class IntegrationSerializerResponse(TypedDict):
+    id: str
+    name: str
+    icon: str | None
+    domainName: str | None
+    accountType: str | None
+    scopes: list[str] | None
+    status: str
+    provider: IntegrationProviderInfo
+
+
 @register(Integration)
 class IntegrationSerializer(Serializer):
     def serialize(
@@ -61,7 +82,7 @@ class IntegrationSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[str, Any]:
+    ) -> IntegrationSerializerResponse:
         provider = obj.get_provider()
         return {
             "id": str(obj.id),
@@ -73,6 +94,11 @@ class IntegrationSerializer(Serializer):
             "status": obj.get_status_display(),
             "provider": serialize_provider(provider),
         }
+
+
+class IntegrationConfigSerializerResponse(IntegrationSerializerResponse, total=False):
+    configOrganization: Sequence[Any]
+    createIssueConfig: list[dict[str, Any]]
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
@@ -89,34 +115,36 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         user: User | RpcUser | AnonymousUser,
         include_config: bool = True,
         **kwargs: Any,
-    ) -> MutableMapping[str, Any]:
-        data = super().serialize(obj, attrs, user)
+    ) -> IntegrationConfigSerializerResponse:
+        base = super().serialize(obj, attrs, user)
 
         if not include_config:
-            return data
-
-        data.update({"configOrganization": []})
+            return {**base}
 
         if not self.organization_id:
-            return data
+            return {**base, "configOrganization": []}
 
         try:
             install = obj.get_installation(organization_id=self.organization_id)
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
-            pass
-        else:
-            data.update({"configOrganization": install.get_organization_config()})
+            return {**base, "configOrganization": []}
 
-            # Query param "action" only attached in TicketRuleForm modal.
-            if self.params.get("action") == "create":
+        config_organization = install.get_organization_config()
+
+        # Query param "action" only attached in TicketRuleForm modal.
+        if self.params.get("action") == "create":
+            return {
+                **base,
+                "configOrganization": config_organization,
                 # This method comes from IssueBasicIntegration within the integration's installation class
-                data["createIssueConfig"] = install.get_create_issue_config(  # type: ignore[attr-defined]
+                "createIssueConfig": install.get_create_issue_config(  # type: ignore[attr-defined]
                     None, user, params=self.params
-                )
+                ),
+            }
 
-        return data
+        return {**base, "configOrganization": config_organization}
 
 
 @register(OrganizationIntegration)
