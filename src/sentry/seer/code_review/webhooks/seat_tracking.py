@@ -18,10 +18,8 @@ mechanics:
   dispatches each payload once per installed organization; both can otherwise
   cause ``num_actions`` to be incremented multiple times for a single MR-open.
 
-Gated by ``organizations:seer-code-review-gitlab`` — the same cohort flag
-``handle_merge_request_event`` uses — so seeding only happens for orgs that
-are already opted in to GitLab code review. The downstream call to
-``should_increment_contributor_seat`` additionally requires
+Seeding runs for every GitLab MR-open delivery; the downstream call to
+``should_increment_contributor_seat`` requires
 ``organizations:seat-based-seer-enabled`` before any row is actually written
 or a seat is assigned.
 
@@ -46,7 +44,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -102,9 +99,6 @@ def track_gitlab_contributor_seat_processor(
     base_extra["integration_id"] = integration.id
 
     debug_log(logger, organization, "processor_started", base_extra)
-
-    if not features.has("organizations:seer-code-review-gitlab", organization):
-        return
 
     if object_attributes.get("action") != "open":
         debug_log(logger, organization, "skipped_non_open_action", base_extra)
