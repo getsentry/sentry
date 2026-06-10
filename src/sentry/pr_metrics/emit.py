@@ -13,6 +13,7 @@ from typing import Any, Final, Literal
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
+from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestAttribution, PullRequestMetrics
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
@@ -20,8 +21,8 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-# GitHub fires a single ``closed`` action for both outcomes; the ``merged`` flag
-# on the payload disambiguates.
+# GitHub fires a single ``closed`` action for both outcomes; a set ``merged_at``
+# on the PR row disambiguates a merge from a plain close.
 CLOSE_ACTION_CLOSED: Final = "closed"
 CLOSE_ACTION_MERGED: Final = "merged"
 
@@ -76,6 +77,25 @@ def _resolved_group_ids(pull_request: PullRequest) -> list[int]:
     )
 
 
+def _merge_commit_id(pull_request: PullRequest) -> int | None:
+    """The Sentry Commit row id for the PR's merge commit, if Sentry tracks it.
+
+    Resolved from merge_commit_sha via the (repository_id, key) unique key. Null
+    when the PR wasn't merged or Sentry never recorded the landed commit — the
+    pr_metrics module never creates Commit rows, so a match isn't guaranteed.
+    """
+    if pull_request.merge_commit_sha is None:
+        return None
+    return (
+        Commit.objects.filter(
+            repository_id=pull_request.repository_id,
+            key=pull_request.merge_commit_sha,
+        )
+        .values_list("id", flat=True)
+        .first()
+    )
+
+
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
@@ -114,6 +134,7 @@ def build_pr_metrics_row(
         head_commit_sha=head_commit_sha,
         closed_at=closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
+        merge_commit_id=_merge_commit_id(pull_request),
         merged_at=_iso(pull_request.merged_at),
         opened_at=_iso(pull_request.opened_at),
         draft=bool(pull_request.draft),
@@ -125,13 +146,13 @@ def build_pr_metrics_row(
         review_comments_count=metrics.review_comments_count,
         is_assigned=metrics.is_assigned,
         attributions=json.dumps(attributions),
+        verdict=metrics.verdict,
     )
 
 
 def emit_pr_metrics_row(
     *,
     pull_request: PullRequest,
-    close_action: CloseAction,
 ) -> bool:
     """Emit one BigQuery row for a tracked PR's terminal event.
 
@@ -139,8 +160,8 @@ def emit_pr_metrics_row(
     are skipped — we don't pay to record PRs that no Sentry feature can be
     attributed to. Returns whether a row was emitted, for callers/tests.
 
-    Takes only the canonical ``PullRequest`` and close action (no payload), so
-    the judge path's Seer RPC callback can call it directly.
+    Takes only the canonical ``PullRequest`` — no webhook payload — so Seer's
+    judge can call it directly via RPC callback.
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.
@@ -149,6 +170,9 @@ def emit_pr_metrics_row(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
 
+    close_action: CloseAction = (
+        CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED
+    )
     row = build_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,

@@ -4,7 +4,10 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderContext,
+  WidgetBuilderProvider,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   type EquationModeSnapshot,
   useTraceMetricsVisualizeModeState,
@@ -262,6 +265,48 @@ describe('useTraceMetricsVisualizeModeState', () => {
         }),
         expect.anything()
       );
+    });
+  });
+
+  it('clears legend aliases when switching to equation mode and restores them on return', async () => {
+    function useCombinedStateHooks() {
+      const modeState = useTraceMetricsVisualizeModeState();
+      const {state} = useWidgetBuilderContext();
+      return {visualizeModeState: modeState, widgetBuilderState: state};
+    }
+
+    const {result} = renderHookWithProviders(useCombinedStateHooks, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
+            legendAlias: ['my alias'],
+          },
+        },
+      },
+    });
+
+    // Switch to equation mode — aliases should be cleared
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(true);
+    });
+
+    await waitFor(() => {
+      expect(result.current.widgetBuilderState.legendAlias).toEqual([]);
+    });
+
+    // Switch back to series mode — aliases should be restored
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.widgetBuilderState.legendAlias).toEqual(['my alias']);
     });
   });
 

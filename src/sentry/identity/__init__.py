@@ -13,6 +13,7 @@ def _register_providers() -> None:
     from .bitbucket.provider import BitbucketIdentityProvider
     from .datadog.provider import DatadogIdentityProvider
     from .discord.provider import DiscordIdentityProvider
+    from .gcp.provider import GCPIdentityProvider
     from .github.provider import GitHubIdentityProvider
     from .github_enterprise.provider import GitHubEnterpriseIdentityProvider
     from .gitlab.provider import GitlabIdentityProvider
@@ -20,7 +21,6 @@ def _register_providers() -> None:
     from .slack.provider import SlackIdentityProvider, SlackStagingIdentityProvider
     from .vercel.provider import VercelIdentityProvider
     from .vsts.provider import VSTSIdentityProvider, VSTSNewIdentityProvider
-    from .vsts_extension.provider import VstsExtensionIdentityProvider
 
     # TODO(epurkhiser): Should this be moved into it's own plugin, it should be
     # initialized there.
@@ -30,13 +30,13 @@ def _register_providers() -> None:
     register(GitHubEnterpriseIdentityProvider)
     register(VSTSNewIdentityProvider)
     register(VSTSIdentityProvider)
-    register(VstsExtensionIdentityProvider)
     register(VercelIdentityProvider)
     register(BitbucketIdentityProvider)
     register(GitlabIdentityProvider)
     register(GoogleIdentityProvider)
     register(DiscordIdentityProvider)
     register(DatadogIdentityProvider)
+    register(GCPIdentityProvider)
 
 
 _register_providers()

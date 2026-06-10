@@ -47,6 +47,7 @@ class IntegrationProviderSlug(StrEnum):
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
     DATADOG = "datadog"
+    GCP = "gcp"
 
 
 class DataForwarderProviderSlug(StrEnum):
