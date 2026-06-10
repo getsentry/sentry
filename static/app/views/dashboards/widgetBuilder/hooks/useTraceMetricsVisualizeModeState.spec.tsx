@@ -4,7 +4,10 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderContext,
+  WidgetBuilderProvider,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   type EquationModeSnapshot,
   useTraceMetricsVisualizeModeState,
@@ -266,7 +269,13 @@ describe('useTraceMetricsVisualizeModeState', () => {
   });
 
   it('clears legend aliases when switching to equation mode and restores them on return', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    function useCombinedStateHooks() {
+      const modeState = useTraceMetricsVisualizeModeState();
+      const {state} = useWidgetBuilderContext();
+      return {visualizeModeState: modeState, widgetBuilderState: state};
+    }
+
+    const {result} = renderHookWithProviders(useCombinedStateHooks, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -283,37 +292,21 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
 
     // Switch to equation mode — aliases should be cleared
-    mockNavigate.mockClear();
     act(() => {
-      result.current.handleModeToggle(true);
+      result.current.visualizeModeState.handleModeToggle(true);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            legendAlias: [],
-          }),
-        }),
-        expect.anything()
-      );
+      expect(result.current.widgetBuilderState.legendAlias).toEqual([]);
     });
 
     // Switch back to series mode — aliases should be restored
-    mockNavigate.mockClear();
     act(() => {
-      result.current.handleModeToggle(false);
+      result.current.visualizeModeState.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            legendAlias: ['my alias'],
-          }),
-        }),
-        expect.anything()
-      );
+      expect(result.current.widgetBuilderState.legendAlias).toEqual(['my alias']);
     });
   });
 
