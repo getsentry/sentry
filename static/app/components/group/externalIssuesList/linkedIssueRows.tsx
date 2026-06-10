@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
-import {IconDelete} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface LinkedIssueRowsProps {
@@ -55,6 +56,7 @@ function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
 
   return (
     <LinkedIssueRowGrid>
+      <InteractionStateLayer />
       <LinkedIssueRowLink
         aria-label={subtitle ? t('%s, %s', title, subtitle) : title}
         href={linkedIssue.url}
@@ -91,11 +93,12 @@ function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
         align="center"
         padding={hasSubtitle ? 'sm' : 'xs sm'}
         paddingLeft="0"
+        paddingRight="xs"
       >
         <Tooltip title={t('Unlink issue')} skipWrapper>
           <Button
             aria-label={t('Unlink %s', title)}
-            icon={<IconDelete />}
+            icon={<IconClose />}
             onClick={linkedIssue.onUnlink}
             size="zero"
             variant="transparent"
@@ -107,26 +110,21 @@ function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
 }
 
 const LinkedIssueRowGrid = styled('div')`
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
   align-items: stretch;
+  overflow: hidden;
   color: ${p => p.theme.tokens.content.primary};
-
-  &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
 `;
 
 const LinkedIssueRowLink = styled(ExternalLink)`
+  position: relative;
   display: flex;
   align-items: center;
   min-width: 0;
   width: 100%;
   color: ${p => p.theme.tokens.content.primary};
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
-  }
 `;
 
 const LinkedIssueRowTitle = styled('span')`
@@ -134,8 +132,6 @@ const LinkedIssueRowTitle = styled('span')`
   overflow: hidden;
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-variant-ligatures: no-common-ligatures;
-  font-feature-settings: 'liga' 0;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;

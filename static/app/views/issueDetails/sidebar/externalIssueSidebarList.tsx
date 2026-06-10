@@ -55,7 +55,9 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
           <LinkedPullRequests
             group={group}
             showEmptyState={
-              hasLinkedPullRequestsFeature && externalIssueData.linkedIssues.length === 0
+              hasLinkedPullRequestsFeature &&
+              !externalIssueData.isLoading &&
+              externalIssueData.linkedIssues.length === 0
             }
           />
         </ErrorBoundary>

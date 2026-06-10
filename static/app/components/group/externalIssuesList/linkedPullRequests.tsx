@@ -209,8 +209,6 @@ const PullRequestTitle = styled('span')`
   overflow: hidden;
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-variant-ligatures: no-common-ligatures;
-  font-feature-settings: 'liga' 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
