@@ -30,13 +30,23 @@ let bootPromise: Promise<void> | null = null;
 let intercomState: {orgSlug: string; settings: IntercomSettings} | null = null;
 
 function removeIntercomCookies(): void {
-  const cookieNames = document.cookie
-    .split(';')
-    .map(cookie => cookie.trim().split('=')[0])
-    .filter(cookieName => cookieName?.startsWith('intercom'));
+  try {
+    const sentryUrl = ConfigStore.get('customerDomain')?.sentryUrl;
+    if (!sentryUrl) {
+      return;
+    }
 
-  for (const cookieName of cookieNames) {
-    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; path=/; domain=.sentry.io`;
+    const cookieDomain = `.${new URL(sentryUrl).hostname}`;
+    const cookieNames = document.cookie
+      .split(';')
+      .map(cookie => cookie.trim().split('=')[0])
+      .filter(cookieName => cookieName?.startsWith('intercom'));
+
+    for (const cookieName of cookieNames) {
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; path=/; domain=${cookieDomain}`;
+    }
+  } catch {
+    // Ignore malformed customer-domain config and boot Intercom normally.
   }
 }
 
@@ -81,10 +91,10 @@ async function initIntercom(orgSlug: string): Promise<void> {
         hide_default_launcher: true,
       };
 
-      // Intercom's session cookie is scoped to .sentry.io and survives the
-      // hard navigation between org subdomains, so a plain boot resumes the
-      // previous org's session. Load the SDK, drop stale Intercom cookies,
-      // then boot clean with this org's identity.
+      // Intercom's session cookie is scoped to the main Sentry domain and
+      // survives hard navigation between org subdomains, so a plain boot
+      // resumes the previous org's session. Drop stale Intercom cookies, then
+      // boot clean with this org's identity.
       removeIntercomCookies();
 
       const {default: Intercom} = await import('@intercom/messenger-js-sdk');
