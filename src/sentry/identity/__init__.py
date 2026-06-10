@@ -20,7 +20,6 @@ def _register_providers() -> None:
     from .slack.provider import SlackIdentityProvider, SlackStagingIdentityProvider
     from .vercel.provider import VercelIdentityProvider
     from .vsts.provider import VSTSIdentityProvider, VSTSNewIdentityProvider
-    from .vsts_extension.provider import VstsExtensionIdentityProvider
 
     # TODO(epurkhiser): Should this be moved into it's own plugin, it should be
     # initialized there.
@@ -30,7 +29,6 @@ def _register_providers() -> None:
     register(GitHubEnterpriseIdentityProvider)
     register(VSTSNewIdentityProvider)
     register(VSTSIdentityProvider)
-    register(VstsExtensionIdentityProvider)
     register(VercelIdentityProvider)
     register(BitbucketIdentityProvider)
     register(GitlabIdentityProvider)

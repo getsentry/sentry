@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {getRegions} from 'sentry/utils/regions';
+import {getLocalities} from 'sentry/utils/regions';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -475,12 +475,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
 
-  // TODO(cells) this needs the full list of cells
-  const regionMap = getRegions().reduce<Record<string, string>>((acc, region) => {
-    acc[region.url] = region.name;
+  const localityMap = getLocalities().reduce<Record<string, string>>((acc, locality) => {
+    acc[locality.url] = locality.name;
     return acc;
   }, {});
-  const region = regionMap[organization.links.regionUrl] ?? '??';
+  // TODO(cells) We also should show the customer's cell.
+  const locality = localityMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
     categoryInfo => {
@@ -708,7 +708,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             <ExternalLink href={orgUrl}>{customer.slug}</ExternalLink>
           </DetailLabel>
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
-          <DetailLabel title="Data Storage Location">{region}</DetailLabel>
+          <DetailLabel title="Data Storage Location">{locality}</DetailLabel>
           <DetailLabel title="Data Retention">
             {customer.orgRetention?.standard ??
               customer.categories?.errors?.retention?.standard ??

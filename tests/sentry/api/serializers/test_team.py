@@ -64,6 +64,21 @@ class TeamSerializerTest(TestCase):
         assert result["avatar"]["avatarUuid"] == avatar.ident
         assert avatar.ident in result["avatar"]["avatarUrl"]
 
+    def test_avatar_letter_avatar_with_stale_file(self) -> None:
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        photo = File.objects.create(name="test.png", type="avatar.file")
+        photo.putfile(BytesIO(b"test"))
+        TeamAvatar.objects.create(team=team, file_id=photo.id, avatar_type=0)
+
+        result = serialize(team, user)
+        assert result["avatar"] == {
+            "avatarType": "letter_avatar",
+            "avatarUuid": None,
+            "avatarUrl": None,
+        }
+
     def test_member_count(self) -> None:
         user = self.create_user(username="foo")
         other_user = self.create_user(username="bar")

@@ -46,6 +46,24 @@ describe('getSeerExploreQuery', () => {
       visualizes: [{chartType: ChartType.BAR, yAxes: ['count()']}],
     });
   });
+
+  it('passes through the interval', () => {
+    const result = getSeerExploreQuery({
+      pageDatetime,
+      result: seerResult({interval: '1h'}),
+    });
+
+    expect(result.interval).toBe('1h');
+  });
+
+  it('leaves interval undefined when none is provided', () => {
+    const result = getSeerExploreQuery({
+      pageDatetime,
+      result: seerResult({}),
+    });
+
+    expect(result.interval).toBeUndefined();
+  });
 });
 
 describe('getSeerSort', () => {

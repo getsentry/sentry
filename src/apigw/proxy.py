@@ -1,5 +1,6 @@
 import asyncio
 import time
+from collections import defaultdict
 from typing import Any, AsyncIterator
 from urllib.parse import urljoin
 
@@ -45,6 +46,16 @@ class RequestyBodyHttpxGlue(httpx._types.AsyncByteStream):
     async def __aiter__(self) -> AsyncIterator[bytes]:
         async for chunk in self._body:
             yield chunk
+
+
+class ResponseCookieGlue:
+    __slots__ = ["_raw"]
+
+    def __init__(self, raw: str):
+        self._raw = raw
+
+    def __str__(self) -> str:
+        return f"set-cookie: {self._raw}"
 
 
 proxy_client = httpx.AsyncClient(
@@ -104,6 +115,7 @@ def build_proxied_headers(
     server_host = httpx.URL(target)._uri_reference.netloc
     if pass_host:
         server_host = request.host or server_host
+    rv.append(("host", server_host))
     for key in request.headers.keys():
         if key in REQUEST_HEADERS_FILTERED:
             continue
@@ -117,7 +129,6 @@ def build_proxied_headers(
             rv.append((key, val))
     if not forwarded_added:
         rv.append(("x-forwarded-for", client_host))
-    rv.append(("host", server_host))
     return rv
 
 
@@ -162,10 +173,20 @@ def get_timeout(path: str) -> float | None:
 
 def adapt_response(presp: httpx.Response) -> Any:
     response.status = presp.status_code
-    for key, val in presp.headers.items():
+    headers: dict[str, list[str]] = defaultdict(list)
+    cookies: list[str] = []
+    for key, val in presp.headers.multi_items():
         if key in RESPONSE_HEADERS_FILTERED:
             continue
-        response.headers[key] = val
+        if key == "set-cookie":
+            cookies.append(val)
+            continue
+        headers[key].append(val)
+    for key, vals in headers.items():
+        response.headers[key] = ",".join(vals)
+    response.cookies = {
+        f"_proxied{idx}": ResponseCookieGlue(val) for idx, val in enumerate(cookies)
+    }
     return response.stream(presp.aiter_raw(CHUNK_SIZE))
 
 

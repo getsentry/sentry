@@ -641,11 +641,20 @@ export const removeHiddenKeys = (
   tagCollection: TagCollection,
   hiddenKeys: string[]
 ): TagCollection => {
+  const hiddenKeySet = new Set(hiddenKeys);
   const result: TagCollection = {};
   for (const key in tagCollection) {
-    if (key && !hiddenKeys.includes(key) && tagCollection[key]) {
-      result[key] = tagCollection[key];
+    const tag = tagCollection[key];
+    if (!key || !tag) {
+      continue;
     }
+    // Hide by both the raw key and the display name, matching the column
+    // editor. Explicitly-typed keys such as `tags[project_id,number]` carry a
+    // display name (`project_id`) that is what appears in the hidden lists.
+    if (hiddenKeySet.has(key) || (tag.name && hiddenKeySet.has(tag.name))) {
+      continue;
+    }
+    result[key] = tag;
   }
   return result;
 };

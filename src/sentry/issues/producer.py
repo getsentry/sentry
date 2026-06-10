@@ -10,7 +10,6 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
-from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.hybridcloud.rpc import ValueEqualityEnum
@@ -18,7 +17,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.options.rollout import in_random_rollout
-from sentry.taskworker.adapters import SentryMetricsBackend
+from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
@@ -50,10 +49,9 @@ _occurrence_producer = SingletonProducer(
     _get_occurrence_producer, max_futures=settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT
 )
 
-_occurrence_task_producer = TaskProducer(
-    name="sentry.issues.tasks.producer",
+_occurrence_task_producer = get_task_producer(
+    producer_name="sentry.issues.tasks.producer",
     producer_factory=partial(_get_occurrence_producer, name="sentry.issues.tasks.producer"),
-    metrics_backend=SentryMetricsBackend(),
 )
 
 
