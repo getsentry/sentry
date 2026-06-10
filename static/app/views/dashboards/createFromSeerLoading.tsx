@@ -4,8 +4,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+import {DashboardChatBlock} from './dashboardChatBlock';
 
 interface CreateFromSeerLoadingProps {
   blocks: Block[];
@@ -33,7 +34,7 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
               background="primary"
             >
               {blocksToRender.map((block, index) => (
-                <BlockComponent
+                <DashboardChatBlock
                   key={block.id}
                   block={block}
                   blockIndex={index}

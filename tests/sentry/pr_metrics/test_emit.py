@@ -240,19 +240,13 @@ class PrMetricsEmissionTest(TestCase):
     def test_emit_carries_resolved_group_ids(self, mock_record: Any) -> None:
         self._track()
         group_ids = sorted([self._link_group(), self._link_group()])
-        emit_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-        )
+        emit_pr_metrics_row(pull_request=self.pull_request)
         assert mock_record.call_args[0][0].group_ids == group_ids
 
     @patch("sentry.analytics.record")
     def test_emit_records_for_tracked_pr(self, mock_record: Any) -> None:
         self._track()
-        emitted = emit_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-        )
+        emitted = emit_pr_metrics_row(pull_request=self.pull_request)
         assert emitted is True
         assert_last_analytics_event(
             mock_record,
@@ -282,9 +276,6 @@ class PrMetricsEmissionTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_emit_skips_untracked_pr(self, mock_record: Any) -> None:
-        emitted = emit_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-        )
+        emitted = emit_pr_metrics_row(pull_request=self.pull_request)
         assert emitted is False
         assert mock_record.call_count == 0
