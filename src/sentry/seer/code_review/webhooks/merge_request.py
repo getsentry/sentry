@@ -54,7 +54,6 @@ from scm.types import (
     ReactionResult,
 )
 
-from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -375,9 +374,6 @@ def handle_merge_request_event(
     base_log["integration_id"] = integration.id
 
     debug_log(logger, organization, "handler_started", base_log)
-
-    if not features.has("organizations:seer-code-review-gitlab", organization):
-        return
 
     object_attributes = event.get("object_attributes", {})
     action_value = object_attributes.get("action")
@@ -826,9 +822,6 @@ def handle_merge_request_note_event(
 
     base_log["integration_id"] = integration.id
     debug_log(logger, organization, "note.handler_started", base_log)
-
-    if not features.has("organizations:seer-code-review-gitlab", organization):
-        return
 
     action_value = object_attributes.get("action", "")
     base_log["action"] = action_value

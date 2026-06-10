@@ -239,7 +239,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer PR code review for GitHub Enterprise Server organizations
     manager.add("organizations:seer-code-review-github-enterprise", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable Seer MR code review for GitLab organizations
+    # Gates verbose diagnostic logging for the GitLab Seer code-review webhook path
+    # (see sentry.seer.code_review.webhooks.logging.debug_log). The feature itself
+    # is always on; this flag only controls log verbosity for the cohort.
     manager.add("organizations:seer-code-review-gitlab", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
