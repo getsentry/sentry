@@ -390,16 +390,12 @@ function builtInIssuesFields({
       values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
       predefined: true,
     },
-    ...(organization.features.includes('issue-stream-progress-ui')
-      ? {
-          [FieldKey.ISSUE_PROGRESS]: {
-            ...PREDEFINED_FIELDS[FieldKey.ISSUE_PROGRESS]!,
-            name: 'Issue Progress',
-            values: ['identified', 'triaged', 'diagnosed', 'fix_proposed', 'fix_applied'],
-            predefined: true,
-          },
-        }
-      : {}),
+    [FieldKey.ISSUE_PROGRESS]: {
+      ...PREDEFINED_FIELDS[FieldKey.ISSUE_PROGRESS]!,
+      name: 'Issue Progress',
+      values: ['identified', 'triaged', 'diagnosed', 'fix_proposed', 'fix_applied'],
+      predefined: true,
+    },
     [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_SEER_ACTIONABILITY]!,
       name: 'Issue Fixability',
@@ -427,8 +423,12 @@ function builtInIssuesFields({
     ISSUE_FIELDS.includes(key as FieldKey)
   );
 
+  const hasProgressFlag = organization.features.includes('issue-stream-progress-ui');
+  const {[FieldKey.ISSUE_PROGRESS]: _progress, ...predefinedFieldsWithoutProgress} =
+    PREDEFINED_FIELDS;
+
   return {
-    ...PREDEFINED_FIELDS,
+    ...(hasProgressFlag ? PREDEFINED_FIELDS : predefinedFieldsWithoutProgress),
     ...Object.fromEntries(filteredCollection),
     ...semverFields,
   };
