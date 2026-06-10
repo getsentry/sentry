@@ -8,7 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import F, Max, Q
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
@@ -37,7 +37,6 @@ from sentry.search.snuba.executors import (
 )
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
-from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -253,20 +252,10 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
 
 
 def issue_activity_type_filter(activity_types: list[int], projects: Sequence[Project]) -> Q:
-    group_ids = (
-        Activity.objects.filter(
-            project__in=projects,
-            type__in=set(activity_types) | {ActivityType.SET_REGRESSION.value},
-        )
-        .values("group_id")
-        .annotate(
-            _latest_match=Max("datetime", filter=Q(type__in=activity_types)),
-            _latest_regression=Max("datetime", filter=Q(type=ActivityType.SET_REGRESSION.value)),
-        )
-        .filter(_latest_match__isnull=False)
-        .filter(Q(_latest_regression__isnull=True) | Q(_latest_match__gte=F("_latest_regression")))
-        .values_list("group_id", flat=True)
-    )
+    group_ids = Activity.objects.filter(
+        project__in=projects,
+        type__in=activity_types,
+    ).values_list("group_id", flat=True)
 
     return Q(id__in=group_ids)
 
@@ -278,17 +267,15 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
       identified -> triaged -> diagnosed -> fix_proposed -> fix_applied
 
     "diagnosed" and above are determined by seer/resolution activity types (see
-    ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression (SET_REGRESSION) resets an issue
-    back, so only activities *after* the latest regression count.
+    ISSUE_PROGRESS_TO_ACTIVITY_TYPES).
 
     "identified" and "triaged" are the two base states before any seer activity,
     distinguished solely by whether the issue is currently assigned:
-      - identified: not assigned AND no post-regression seer activity
-      - triaged:    assigned (via GroupAssignee) AND no post-regression seer activity
+      - identified: not assigned AND no matching seer activity
+      - triaged:    assigned (via GroupAssignee) AND no matching seer activity
 
-    Assignment is checked via GroupAssignee rather than ASSIGNED activity so that it
-    survives regressions — an issue that was assigned, progressed, then regressed
-    remains triaged as long as it's still assigned.
+    XXX(malwilley): For performance reasons, we do not reset the progress state when a regression occurs.
+    This will be addressed when we are able to use group action log derived properties.
     """
     from sentry.issues.issue_search import ISSUE_PROGRESS_TO_ACTIVITY_TYPES, IssueProgressState
 
