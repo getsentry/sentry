@@ -20,9 +20,8 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.models.detector import Detector
-from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.types import DetectorId, WorkflowId
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +122,7 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
 
 
 def validate_detectors_exist_and_have_permissions(
-    detector_ids: list[int], organization: Organization, request: Request
+    detector_ids: list[DetectorId], organization: Organization, request: Request
 ) -> QuerySet[Detector]:
     detectors = Detector.objects.filter(
         project__organization=organization,
@@ -158,14 +157,14 @@ def connect_workflows_to_detectors(
     request: Request,
     organization: Organization,
     workflow_id: int,
-    detector_ids: list[int] | None,
+    detector_ids: list[DetectorId] | None,
     update: bool = False,
 ) -> None:
     if detector_ids is not None:
         validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
 
         def get_detector_workflows_to_add(
-            workflow_id: int, detector_ids: set[int]
+            workflow_id: WorkflowId, detector_ids: set[DetectorId]
         ) -> list[dict[Literal["detector_id", "workflow_id"], int]]:
             detector_workflows_to_add: list[dict[Literal["detector_id", "workflow_id"], int]] = [
                 {"detector_id": detector_id, "workflow_id": workflow_id}
@@ -205,7 +204,7 @@ def connect_workflows_to_detectors(
 def connect_detectors_to_workflows(
     request: Request,
     organization: Organization,
-    detector_id: int,
+    detector_id: DetectorId,
     workflow_ids: list[int] | None,
     update: bool = False,
 ) -> None:
@@ -213,7 +212,7 @@ def connect_detectors_to_workflows(
         validate_workflows_exist(workflow_ids, organization)
 
         def get_detector_workflows_to_add(
-            detector_id: int, workflow_ids: set[int]
+            detector_id: DetectorId, workflow_ids: set[WorkflowId]
         ) -> list[dict[Literal["detector_id", "workflow_id"], int]]:
             detector_workflows_to_add: list[dict[Literal["detector_id", "workflow_id"], int]] = [
                 {"detector_id": detector_id, "workflow_id": workflow_id}

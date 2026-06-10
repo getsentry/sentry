@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
@@ -11,17 +11,24 @@ import type {DetailedProject, Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
-import {buildHandoffPayload, type PreferredAgent} from 'sentry/utils/seer/preferredAgent';
+import {
+  buildHandoffPayload,
+  knownAgentIntegrationsQueryOptions,
+  parseAgentOption,
+} from 'sentry/utils/seer/preferredAgent';
 import {
   getTuningFromStoppingPoint,
   resolveStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
-import type {UserFacingStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
+import type {
+  AutofixAgentSelectOption,
+  UserFacingStoppingPoint,
+} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TData = [DetailedProject, SeerPreferencesResponse];
 type TVariables = {
-  agent: PreferredAgent;
+  agentOption: AutofixAgentSelectOption;
   project: Project;
   repoEntries: Array<{
     branch: string;
@@ -35,17 +42,24 @@ export function useMutateAutofixProject() {
   const organization = useOrganization();
 
   const repositoriesById = useRepositoriesById();
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
 
   return useMutation({
     mutationFn: async ({
       project,
       repoEntries,
-      agent,
+      agentOption,
       stoppingPoint,
     }: TVariables): Promise<TData> => {
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
-
-      const handoff = buildHandoffPayload(agent, stoppingPoint === 'create_pr');
+      const {agent, integrationId} = parseAgentOption(agentOption, knownAgents);
+      const handoff = buildHandoffPayload(
+        agent,
+        integrationId,
+        stoppingPoint === 'create_pr'
+      );
       const {stoppingPointValue, automationHandoff} = resolveStoppingPoint(
         stoppingPoint,
         handoff

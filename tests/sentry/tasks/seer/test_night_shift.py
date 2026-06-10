@@ -20,6 +20,7 @@ from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strateg
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.redis import redis_clusters
@@ -46,9 +47,10 @@ class FakeExplorerClient:
             status="completed",
             updated_at="2025-01-01T00:00:00",
         )
+        self.organization = None
 
     def start_run(self, **kwargs):
-        return 1
+        return Factories.create_seer_run(self.organization, seer_run_state_id=self._state.run_id)
 
     def get_run(self, run_id, **kwargs):
         return self._state
@@ -279,10 +281,15 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         side_effect = trigger if trigger is not None else (lambda **kwargs: next(counter))
 
         fake_client = FakeExplorerClient(verdicts)
+
+        def _build_client(organization, *args, **kwargs):
+            fake_client.organization = organization
+            return fake_client
+
         with (
             patch(
                 "sentry.tasks.seer.night_shift.agentic_triage.SeerAgentClient",
-                return_value=fake_client,
+                side_effect=_build_client,
             ),
             patch(
                 "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent",

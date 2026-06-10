@@ -1,4 +1,5 @@
 import logging
+from typing import TypedDict
 
 import orjson
 import sentry_sdk
@@ -20,6 +21,11 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
 from sentry.apidocs.parameters import SentryAppParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
@@ -44,6 +50,13 @@ from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
 PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
+
+
+class _PublishedAppErrorResponse(TypedDict):
+    """`{"detail": ["Published apps cannot be removed."]}` — list-shaped detail
+    retained for backward compat with existing API consumers."""
+
+    detail: list[str]
 
 
 class SentryAppDetailsEndpointPermission(SentryAppAndStaffPermission):
@@ -76,7 +89,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         },
         examples=SentryAppExamples.RETRIEVE_SENTRY_APP,
     )
-    def get(self, request: Request, sentry_app) -> Response:
+    def get(self, request: Request, sentry_app: SentryApp) -> Response[SentryAppSerializerResponse]:
         """
         Retrieve a custom integration.
         """
@@ -104,7 +117,13 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         },
         examples=SentryAppExamples.UPDATE_SENTRY_APP,
     )
-    def put(self, request: Request, sentry_app) -> Response:
+    def put(
+        self, request: Request, sentry_app: SentryApp
+    ) -> (
+        Response[SentryAppSerializerResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update an existing custom integration.
         """
@@ -204,7 +223,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     )
                 )
 
-        return Response(serializer.errors, status=400)
+        return Response(as_validation_errors(serializer), status=400)
 
     @extend_schema(
         operation_id="Delete a custom integration.",
@@ -213,7 +232,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         ],
         responses={204: RESPONSE_NO_CONTENT, 403: RESPONSE_FORBIDDEN},
     )
-    def delete(self, request: Request, sentry_app) -> Response:
+    def delete(
+        self, request: Request, sentry_app
+    ) -> Response[None] | Response[DetailResponse] | Response[_PublishedAppErrorResponse]:
         """
         Delete a custom integration.
         """

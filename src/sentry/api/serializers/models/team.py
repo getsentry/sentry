@@ -20,6 +20,7 @@ from sentry.auth.access import (
 from sentry.auth.superuser import is_active_superuser
 from sentry.core.endpoints.scim.constants import SCIM_SCHEMA_GROUP
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.avatars.team_avatar import TeamAvatar
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -204,6 +205,7 @@ class BaseTeamSerializer(Serializer):
         member_totals = get_member_totals(item_list, user)
         team_memberships = _get_team_memberships(item_list, user, optimization=optimization)
         access_requests = get_access_requests(item_list, user)
+        avatars = {a.team_id: a for a in TeamAvatar.objects.filter(team__in=item_list)}
 
         is_superuser = request and is_active_superuser(request) and request.user == user
         result: dict[Team, dict[str, Any]] = {}
@@ -244,6 +246,7 @@ class BaseTeamSerializer(Serializer):
                 "team_role": team_role_id if is_member else None,
                 "access": team_role_scopes,
                 "has_access": has_access,
+                "avatar": avatars.get(team.id),
                 "member_count": member_totals.get(team.id, 0),
             }
 
@@ -290,6 +293,16 @@ class BaseTeamSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> BaseTeamSerializerResponse:
+        if attrs.get("avatar"):
+            avatar_obj = attrs["avatar"]
+            avatar: SerializedAvatarFields = {
+                "avatarType": avatar_obj.get_avatar_type_display(),
+                "avatarUuid": avatar_obj.ident if avatar_obj.file_id else None,
+                "avatarUrl": avatar_obj.absolute_url() if avatar_obj.file_id else None,
+            }
+        else:
+            avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
+
         return {
             "id": str(obj.id),
             "slug": obj.slug,
@@ -302,8 +315,7 @@ class BaseTeamSerializer(Serializer):
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
-            # Teams only have letter avatars.
-            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            "avatar": avatar,
         }
 
 

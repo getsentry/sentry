@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {ToolBox} from 'sentry/components/charts/components/toolBox';
+import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -222,16 +223,7 @@ export function useChartZoom({
    * before we update URL state and re-render
    */
   const handleChartFinished = useCallback<EChartFinishedHandler>((_props, chart) => {
-    // This attempts to activate the area zoom toolbox feature
-    const zoom = (chart as any)._componentsViews?.find((c: any) => c._features?.dataZoom);
-    if (zoom && !zoom._features.dataZoom._isZoomActive) {
-      // Calling dispatchAction will re-trigger handleChartFinished
-      chart.dispatchAction({
-        type: 'takeGlobalCursor',
-        key: 'dataZoomSelect',
-        dataZoomSelectActive: true,
-      });
-    }
+    activateZoomAreaSelect(chart);
   }, []);
 
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {

@@ -800,6 +800,8 @@ describe('SearchQueryBuilder', () => {
           body: [
             // Level is not a valid filter key
             {query: 'assigned:me level:error'},
+            // Prototype keys should be treated as invalid filter keys
+            {query: '__proto__:a'},
           ],
         });
 

@@ -119,7 +119,7 @@ class SeerAgentClient:
 
         # SIMPLE USAGE
         client = SeerAgentClient(organization, user)
-        run_id = client.start_run("Analyze trace XYZ and find performance issues")
+        run_id = client.start_run("Analyze trace XYZ and find performance issues").seer_run_state_id
         state = client.get_run(run_id)
 
         # WITH ARTIFACTS
@@ -138,7 +138,7 @@ class SeerAgentClient:
             "Analyze why users see 500 errors",
             artifact_key="root_cause",
             artifact_schema=RootCause
-        )
+        ).seer_run_state_id
         state = client.get_run(run_id, blocking=True)
         root_cause = state.get_artifact("root_cause", RootCause)
 
@@ -176,7 +176,7 @@ class SeerAgentClient:
             user,
             custom_tools=[DeploymentStatusTool]
         )
-        run_id = client.start_run("Check if payment-service is deployed in production")
+        run_id = client.start_run("Check if payment-service is deployed in production").seer_run_state_id
 
         # WITH ON-COMPLETION HOOK
         from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
@@ -192,7 +192,7 @@ class SeerAgentClient:
             user,
             on_completion=NotifyOnComplete
         )
-        run_id = client.start_run("Analyze this issue")
+        run_id = client.start_run("Analyze this issue").seer_run_state_id
 
         # WITH CODE EDITING AND PR CREATION
         client = SeerAgentClient(
@@ -201,7 +201,7 @@ class SeerAgentClient:
             enable_coding=True,  # Enable code editing tools
         )
 
-        run_id = client.start_run("Fix the null pointer exception in auth.py")
+        run_id = client.start_run("Fix the null pointer exception in auth.py").seer_run_state_id
         state = client.get_run(run_id, blocking=True)
 
         # Check if agent made code changes and if they need to be pushed
@@ -218,7 +218,7 @@ class SeerAgentClient:
 
         # WITH EXTERNAL CODING AGENTS (e.g., Cursor)
         client = SeerAgentClient(organization, user)
-        run_id = client.start_run("Analyze the authentication bug")
+        run_id = client.start_run("Analyze the authentication bug").seer_run_state_id
         state = client.get_run(run_id, blocking=True)
 
         result = client.launch_coding_agents(
@@ -316,7 +316,7 @@ class SeerAgentClient:
         request: Request | None = None,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
-    ) -> int:
+    ) -> SeerRun:
         """
         Start a new Seer Agent session.
 
@@ -329,7 +329,8 @@ class SeerAgentClient:
             request: Optional rest_framework Request object from endpoints.
 
         Returns:
-            int: The run ID that can be used to fetch results or continue the conversation
+            SeerRun: The mirror row for the run. Its seer_run_state_id is the id
+            passed to get_run/continue_run and surfaced to clients.
 
         Raises:
             SeerApiError: If the Seer API request fails
@@ -480,7 +481,7 @@ class SeerAgentClient:
         run.refresh_from_db()
         if run.mirror_status == SeerRunMirrorStatus.FAILED:
             raise SeerApiError("Seer run failed during outbox drain", 500)
-        return run.seer_run_state_id
+        return run
 
     def continue_run(
         self,

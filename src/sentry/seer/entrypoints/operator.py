@@ -36,7 +36,6 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.workflow_engine.registry import invoke_workflow_activity_handlers
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
@@ -522,7 +521,7 @@ class SeerAgentOperator[CachePayloadT]:
                     run_id = client.start_run(
                         prompt=prompt,
                         on_page_context=on_page_context,
-                    )
+                    ).seer_run_state_id
                     lifecycle.add_extra("continued", "false")
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
@@ -587,13 +586,12 @@ def _create_seer_activity(
         if pull_requests:
             activity_data["pull_requests"] = pull_requests
 
-    activity = Activity.objects.create_group_activity(
+    Activity.objects.create_group_activity(
         group,
         activity_type,
         data=activity_data if activity_data else None,
         send_notification=False,
     )
-    invoke_workflow_activity_handlers(group=group, activity=activity)
 
 
 @instrumented_task(

@@ -13,7 +13,6 @@ from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.models.night_shift import SeerNightShiftRun
-from sentry.seer.models.run import SeerRun
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
@@ -109,14 +108,12 @@ def _triage_candidates(
             ],
         )
 
-        agent_run_id = client.start_run(
+        seer_run = client.start_run(
             prompt=_build_triage_prompt(candidates, extra_triage_instructions),
             artifact_key="triage_verdicts",
             artifact_schema=_TriageResponse,
         )
-
-        # TODO: have start_run return the SeerRun directly to avoid this lookup.
-        seer_run = SeerRun.objects.filter(seer_run_state_id=agent_run_id).first()
+        agent_run_id = seer_run.seer_run_state_id
         run.update(seer_run=seer_run, extras={**run.extras, "agent_run_id": agent_run_id})
 
         logger.info(

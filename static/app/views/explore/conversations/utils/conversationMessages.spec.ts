@@ -340,6 +340,43 @@ describe('conversationMessages utilities', () => {
       });
       expect(parseAssistantContent(node as any)).toBe('fallback text');
     });
+
+    it('returns null when output.messages has tool calls but no text', () => {
+      const messages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [{type: 'tool_call', toolCallId: 'tc-1', toolName: 'search', args: {}}],
+        },
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+          [SpanFields.GEN_AI_RESPONSE_OBJECT]: '{"tool_calls": [{"name": "search"}]}',
+        },
+      });
+      // Should NOT fall through to gen_ai.response.object
+      expect(parseAssistantContent(node as any)).toBeNull();
+    });
+
+    it('returns text when output.messages has both text and tool calls', () => {
+      const messages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [
+            {type: 'text', text: 'Let me search for that'},
+            {type: 'tool_call', toolCallId: 'tc-1', toolName: 'search', args: {}},
+          ],
+        },
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      expect(parseAssistantContent(node as any)).toBe('Let me search for that');
+    });
   });
 
   describe('partitionSpansByType', () => {
@@ -506,6 +543,32 @@ describe('conversationMessages utilities', () => {
         'tool-b',
         'tool-c',
       ]);
+    });
+
+    it('flushes pending tool calls onto last turn when no subsequent turn has content', () => {
+      const turns = [
+        {
+          generation: {id: 'gen-1'} as any,
+          userContent: 'Question',
+          assistantContent: 'Answer',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+        {
+          generation: {id: 'gen-2'} as any,
+          userContent: null,
+          assistantContent: null,
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          userEmail: undefined,
+        },
+      ];
+
+      const merged = mergeEmptyTurns(turns);
+
+      // The pending tool call should be flushed onto the last result turn
+      expect(merged).toHaveLength(1);
+      expect(merged[0]?.toolCalls).toHaveLength(1);
+      expect(merged[0]?.toolCalls[0]?.name).toBe('search');
     });
 
     it('preserves user content turns even without assistant response', () => {
@@ -842,6 +905,49 @@ describe('conversationMessages utilities', () => {
       expect(messages[1]?.content).toBe('First response');
       expect(messages[2]?.content).toBe('Second');
       expect(messages[3]?.content).toBe('Second response');
+    });
+
+    it('creates assistant message for tool-call-only turns without text', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: 'Do something',
+          assistantContent: null,
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      expect(assistantMessages).toHaveLength(1);
+      expect(assistantMessages[0]?.content).toBe('');
+      expect(assistantMessages[0]?.toolCalls).toHaveLength(1);
+      expect(assistantMessages[0]?.toolCalls?.[0]?.name).toBe('search');
+    });
+
+    it('does not create assistant message when no content and no tool calls', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: 'Hello',
+          assistantContent: null,
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      expect(assistantMessages).toHaveLength(0);
     });
 
     it('keeps user→assistant pairing across back-to-back turns under one second apart', () => {
