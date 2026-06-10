@@ -386,11 +386,11 @@ class GroupManager(BaseManager["Group"]):
         ).filter(project__organization=organization_id)
 
         groups = list(base_group_queryset.filter(short_id_lookup).select_related("project"))
-        # Key the lookup on (project_slug, short_id): short ids are only unique per project,
-        # so the integer short_id alone collides across projects (e.g. PROJ-A-1 and PROJ-B-1).
+        # Key the lookup by ShortId(project_slug, short_id): short ids are only unique per
+        # project, so the integer short_id alone collides across projects (PROJ-A-1 vs PROJ-B-1).
         # parse_short_id lowercases the slug, so lowercase the project slug to match.
-        group_lookup: set[tuple[str, int]] = {
-            (group.project.slug.lower(), group.short_id) for group in groups
+        group_lookup: set[ShortId] = {
+            ShortId(group.project.slug.lower(), group.short_id) for group in groups
         }
 
         # If any requested short_ids are missing after the exact slug match,
@@ -398,7 +398,7 @@ class GroupManager(BaseManager["Group"]):
         # Handles legacy project slugs that may not be entirely lowercase.
         missing_by_slug = defaultdict(list)
         for sid in short_ids:
-            if (sid.project_slug, sid.short_id) not in group_lookup:
+            if sid not in group_lookup:
                 missing_by_slug[sid.project_slug].append(sid.short_id)
 
         if len(missing_by_slug) > 0:
@@ -416,11 +416,12 @@ class GroupManager(BaseManager["Group"]):
 
             groups.extend(fallback_groups)
             group_lookup.update(
-                (group.project.slug.lower(), group.short_id) for group in fallback_groups
+                ShortId(group.project.slug.lower(), group.short_id) for group in fallback_groups
             )
 
+        # Throw an error if we cannot find a group for any short id requested
         for short_id in short_ids:
-            if (short_id.project_slug, short_id.short_id) not in group_lookup:
+            if short_id not in group_lookup:
                 raise Group.DoesNotExist()
         return groups
 
