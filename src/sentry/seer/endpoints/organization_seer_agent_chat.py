@@ -193,7 +193,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         - on_page_context: Optional context from the user's screen.
 
         Returns:
-        - run_id: The run ID.
+        - run_id: The numeric Seer run id.
+        - sentry_run_id: The run's UUID (new runs only).
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
