@@ -76,7 +76,7 @@ export function ProblemSection({evidenceData}: ProblemSectionProps) {
               <InfoTip
                 size="xs"
                 title={t(
-                  'This monthly volume is extrapolated from a recent sample of this span, so it may not match the final span volume for the billing period.'
+                  'Projected 30-day volume based on a recent sample. Actual volume may differ.'
                 )}
               />
             )}
@@ -98,7 +98,7 @@ export function ProblemSection({evidenceData}: ProblemSectionProps) {
                 <InfoTip
                   size="xs"
                   title={t(
-                    'This estimate is based on a recent sample of this span, so it may not match your final bill for the billing period.'
+                    'Projected 30-day cost based on a recent sample. Actual cost may differ.'
                   )}
                 />
               </Flex>
