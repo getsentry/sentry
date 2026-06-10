@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -41,20 +43,29 @@ export function ScmProjectDetails({
   selectedRepository,
   genBackButton,
 }: ScmProjectDetailsProps) {
+  // Live form for this step, seeded from the saved form in the onboarding
+  // context. The context only ever holds submitted values, which the hook's
+  // unchanged-return reuse check relies on as its baseline, so live edits stay
+  // here. This step remounts on every onboarding navigation, so each visit
+  // re-seeds and abandoned edits are discarded.
+  const [liveForm, setLiveForm] = useState(projectDetailsForm);
+
   const form = useScmProjectDetails({
     analyticsFlow: 'onboarding',
     selectedPlatform,
     selectedRepository,
     createdProjectSlug,
-    projectDetailsForm,
+    projectDetailsForm: liveForm,
+    onProjectDetailsFormChange: setLiveForm,
     onComplete: ({
       project,
       projectDetailsForm: submittedForm,
     }: ScmProjectDetailsCompletion) => {
       // Store the slug separately so onboarding.tsx can find the project via
       // useRecentCreatedProject without corrupting selectedPlatform.key (which
-      // the platform features step needs), and persist the form so navigating
-      // back from setup-docs restores it. Both land before the step advances.
+      // the platform features step needs), and persist the submitted form so
+      // navigating back from setup-docs restores it. Both land before the
+      // step advances.
       onProjectCreated(project.slug);
       onProjectDetailsFormChange(submittedForm);
       onComplete(undefined, selectedFeatures ? {product: selectedFeatures} : undefined);
