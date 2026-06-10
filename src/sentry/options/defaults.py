@@ -3742,6 +3742,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out the new TaskProducer to the clock_pulse task
+register(
+    "tasks.producer.clock-pulse.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "github-enterprise.disallow-domain-mismatch",
     type=Bool,
