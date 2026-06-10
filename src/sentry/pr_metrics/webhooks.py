@@ -34,6 +34,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestMetrics,
+    PullRequestVerdict,
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
@@ -60,6 +61,7 @@ from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     needs_judge,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -132,6 +134,34 @@ def handle_attribution(
     _write_author_attribution(pr, github_user)
 
 
+def _claim_terminal_event(pr: PullRequest) -> bool:
+    """Atomically claim a PR's terminal (close/merge) event for processing.
+
+    The redelivery guard for the metrics pipeline. GitHub redelivers webhooks,
+    and ``PullRequestEventWebhook._handle`` eagerly stamps ``closed_at``/``state``
+    from every payload, so the PR row can't tell us whether *we* already processed
+    the terminal event. The pipeline-owned ``PullRequestMetrics.verdict`` can: it
+    is null until we process the close/merge, so a single compare-and-set claims
+    the event — race-safe because the ``verdict IS NULL`` predicate lets exactly
+    one of two concurrent/redelivered events touch the row.
+
+    The claim writes a provisional, lifecycle-derived verdict (``merged_unchanged``
+    for a merge, ``closed_unmerged`` for a plain close) — the terminal outcome when
+    no judge runs; the judge callback later refines it to ``merged_with_iteration``
+    where warranted. Returns whether this call won the claim (and so should emit or
+    forward); a redelivery loses and must be dropped before any expensive work.
+    """
+    provisional = (
+        PullRequestVerdict.MERGED_UNCHANGED
+        if pr.merged_at is not None
+        else PullRequestVerdict.CLOSED_UNMERGED
+    )
+    claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
+        verdict=provisional
+    )
+    return bool(claimed)
+
+
 def handle_emission(
     *,
     github_event: GithubWebhookType,
@@ -146,6 +176,10 @@ def handle_emission(
     GitHub's single ``closed`` action covers both merges and plain closes; emit
     derives which from the stored row, so this handler only filters for ``closed``
     and delegates. All non-terminal actions are ignored.
+
+    A redelivery guard runs before the ``needs_judge`` fork so a redelivered
+    terminal event is dropped before any emit *or* (once wired) forward — without
+    it, every redelivery would re-launch the pricey judge work.
     """
     if event.get("action") != "closed":
         return
@@ -155,6 +189,12 @@ def handle_emission(
 
     pr = _get_pull_request(organization, repo, event.get("pull_request"))
     if pr is None:
+        return
+
+    if not _claim_terminal_event(pr):
+        # A prior delivery already processed this PR's terminal event. Drop it
+        # before the fork so we neither emit a duplicate row nor re-forward.
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
 
     if needs_judge(pr):

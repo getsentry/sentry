@@ -232,13 +232,25 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def test_emits_on_merge(self, mock_record: MagicMock) -> None:
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
-        assert mock_record.call_args_list[-1].args[0].close_action == "merged"
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.close_action == "merged"
+        # The guard claims the event with a provisional lifecycle verdict, which
+        # rides along on the no-judge row.
+        assert row.verdict == "merged_unchanged"
 
     @patch("sentry.analytics.record")
     def test_emits_on_close_unmerged(self, mock_record: MagicMock) -> None:
         self._call(merged=False)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
-        assert mock_record.call_args_list[-1].args[0].close_action == "closed"
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.close_action == "closed"
+        assert row.verdict == "closed_unmerged"
+
+    def test_claims_provisional_verdict_on_metrics_row(self) -> None:
+        with patch("sentry.analytics.record"):
+            self._call(merged=True)
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.verdict == "merged_unchanged"
 
     @patch(f"{MODULE}.needs_judge", return_value=True)
     @patch("sentry.analytics.record")
@@ -269,12 +281,23 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
-    def test_redelivery_emits_each_time(self, mock_record: MagicMock) -> None:
-        # Emission is stateless — it does not dedupe webhook redeliveries; that
-        # guard lives at the terminal-event/PR-status check, not here.
+    def test_redelivery_dropped_after_first_terminal_event(self, mock_record: MagicMock) -> None:
+        # The verdict-keyed guard claims the terminal event on the first delivery;
+        # a redelivery finds the verdict set and is dropped, so the row emits once.
         self._call(merged=True)
         self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 2
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.needs_judge", return_value=True)
+    @patch("sentry.analytics.record")
+    def test_redelivery_dropped_before_judge_fork(
+        self, mock_record: MagicMock, _needs_judge: MagicMock
+    ) -> None:
+        # The guard runs before the needs_judge fork, so a redelivery can't
+        # re-launch the (pricey) judge work — exactly what the guard exists for.
+        self._call(merged=True)
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
     @patch(f"{MODULE}.logger")
     @patch("sentry.analytics.record")
