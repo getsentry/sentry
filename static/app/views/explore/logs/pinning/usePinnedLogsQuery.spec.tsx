@@ -117,58 +117,11 @@ describe('usePinnedLogsQuery', () => {
           query: 'id:[log-missing]',
           dataset: 'ourlogs',
           sampling: 'HIGHEST_ACCURACY',
+          statsPeriod: '9999d',
         }),
       })
     );
     expect(result.current.fetchedRows[0]?.[OurLogKnownFieldKey.ID]).toBe('log-missing');
-  });
-
-  it('includes the utc flag when fetching with an absolute date range', async () => {
-    PageFiltersStore.onInitializeUrlState({
-      projects: [parseInt(project.id, 10)],
-      environments: [],
-      datetime: {
-        period: null,
-        start: '2024-01-01T00:00:00',
-        end: '2024-01-02T00:00:00',
-        utc: true,
-      },
-    });
-
-    const missingLog = LogFixture({
-      [OurLogKnownFieldKey.ID]: 'log-missing',
-      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
-      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
-    });
-
-    const eventsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {
-        data: [missingLog],
-        meta: {fields: {id: 'string'}, units: {}},
-      },
-    });
-
-    const logsPinning = makeLogsPinning(['log-missing']);
-
-    renderHookWithProviders(() => usePinnedLogsQuery({allRows: [], logsPinning}), {
-      organization,
-      additionalWrapper: AdditionalWrapper,
-    });
-
-    await waitFor(() => {
-      expect(eventsRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            utc: true,
-            start: '2024-01-01T00:00:00',
-            end: '2024-01-02T00:00:00',
-          }),
-        })
-      );
-    });
   });
 
   it('does not call removePinnedRows when the scan was only partial', async () => {
