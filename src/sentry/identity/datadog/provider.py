@@ -114,12 +114,10 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         self.client_id = pipeline.fetch_state("dcr_client_id")
 
-        # dispatch is called twice: once for the initial redirect and again on
-        # the OAuth callback. Only generate a new verifier on the first pass so
-        # the code challenge still matches on the token exchange.
-        if existing_code_verifier := pipeline.fetch_state("pkce_code_verifier"):
-            self._code_verifier = existing_code_verifier
-        else:
+        # dispatch is called twice: once for the initial redirect and again
+        # on the OAuth callback (code/error/state in GET). Only generate
+        # a new verifier on the first pass.
+        if not any(p in request.GET for p in ("code", "error", "state")):
             self._code_verifier = generate_pkce_code_verifier()
             pipeline.bind_state("pkce_code_verifier", self._code_verifier)
 

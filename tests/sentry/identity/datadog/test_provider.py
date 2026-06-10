@@ -181,13 +181,24 @@ class DatadogOAuth2LoginViewTest(TestCase):
         assert verifier is not None
         assert len(verifier) > 0
 
-    def test_preserves_existing_code_verifier(self) -> None:
+    def test_does_not_overwrite_code_verifier_on_callback(self) -> None:
         pipeline = self._make_pipeline()
-        pipeline.bind_state("pkce_code_verifier", "existing-verifier")
 
+        # First pass: generates verifier and redirects.
         self.view.dispatch(self.request, pipeline)
+        original_verifier = pipeline.fetch_state("pkce_code_verifier")
+        assert original_verifier is not None
 
-        assert pipeline.fetch_state("pkce_code_verifier") == "existing-verifier"
+        # Second pass: callback with code in GET params. Mock next_step to
+        # prevent the pipeline from advancing into the callback view.
+        callback_request = RequestFactory().get("/", data={"code": "auth-code", "state": "s"})
+        callback_request.session = Client().session
+        callback_request.user = self.user
+        callback_request.subdomain = None
+        with patch.object(pipeline, "next_step"):
+            self.view.dispatch(callback_request, pipeline)
+
+        assert pipeline.fetch_state("pkce_code_verifier") == original_verifier
 
     def test_preserves_standard_oauth_params(self) -> None:
         pipeline = self._make_pipeline()
