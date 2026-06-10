@@ -30,6 +30,7 @@ SLACK_SDK_ERROR_CATEGORIES = (
     INVALID_BLOCKS := SlackSdkErrorCategory("invalid_blocks"),
     INVALID_ATTACHMENTS := SlackSdkErrorCategory("invalid_attachments"),
     INVALID_AUTH := SlackSdkErrorCategory("invalid_auth"),
+    INVALID_ARGUMENTS := SlackSdkErrorCategory("invalid_arguments"),
     NON_JSON_RESPONSE := SlackSdkErrorCategory("non_json_response"),
 )
 
@@ -46,6 +47,7 @@ SLACK_SDK_HALT_ERROR_CATEGORIES = (
     FATAL_ERROR,
     INTERNAL_ERROR,
     INVALID_AUTH,
+    INVALID_ARGUMENTS,
     NON_JSON_RESPONSE,
 )
 
