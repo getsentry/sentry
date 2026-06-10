@@ -52,8 +52,9 @@ def read_project_metrics(
     for i, project_id in enumerate(project_ids):
         raw = results[i]
         if raw is None:
-            metrics.incr("weekly_report.cache.miss")
+            metrics.incr("weekly_report.cache_read", tags={"result": "miss"})
         else:
+            metrics.incr("weekly_report.cache_read", tags={"result": "hit"})
             result_map[project_id] = json.loads(raw)
 
     return result_map
