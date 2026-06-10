@@ -5,14 +5,17 @@ export type ExternalActorMapping = {
   teamId?: string;
   userId?: string;
 };
+
 export type ExternalActorSuggestion = {
   externalName: string;
   teamId?: string;
   userId?: string;
 };
+
 export type ExternalActorMappingOrSuggestion =
   | ExternalActorMapping
   | ExternalActorSuggestion;
+
 export type ExternalUser = {
   externalName: string;
   id: string;
@@ -20,6 +23,7 @@ export type ExternalUser = {
   memberId: string;
   provider: string;
 };
+
 export type ExternalTeam = {
   externalName: string;
   id: string;
@@ -27,6 +31,7 @@ export type ExternalTeam = {
   provider: string;
   teamId: string;
 };
+
 /**
  * Repositories, pull requests, and commits
  */
@@ -37,6 +42,7 @@ export enum RepositoryStatus {
   PENDING_DELETION = 'pending_deletion',
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
+
 export type Repository = {
   dateCreated: string;
   externalId: string;
@@ -48,6 +54,7 @@ export type Repository = {
   status: RepositoryStatus;
   url: string;
 };
+
 /**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
@@ -62,10 +69,12 @@ export type IntegrationRepository = {
   defaultBranch?: string | null;
   url?: string | null;
 };
+
 export type CommitAuthor = {
   email?: string;
   name?: string;
 };
+
 export type CommitFile = {
   author: CommitAuthor;
   commitMessage: string;
@@ -75,6 +84,7 @@ export type CommitFile = {
   repoName: string;
   type: string;
 };
+
 export type PullRequest = {
   dateCreated: string;
   externalUrl: string;
@@ -84,6 +94,7 @@ export type PullRequest = {
   title: string | null;
   author?: CommitAuthor;
 };
+
 /**
  * Sentry Apps
  */
@@ -93,6 +104,7 @@ export type SentryAppStatus =
   | 'internal'
   | 'publish_request_inprogress'
   | 'deletion_in_progress';
+
 export type SentryAppSchemaIssueLink = {
   create: {
     required_fields: any[];
@@ -106,17 +118,20 @@ export type SentryAppSchemaIssueLink = {
   };
   type: 'issue-link';
 };
+
 export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
   url: string;
   params?: string[];
 };
+
 type SentryAppSchemaAlertRuleAction = {
   settings: SentryAppSchemaAlertRuleActionSettings;
   title: string;
   type: 'alert-rule-action';
 };
+
 type SentryAppSchemaAlertRuleActionSettings = {
   description: string;
   // a list of FormFields
@@ -125,14 +140,17 @@ type SentryAppSchemaAlertRuleActionSettings = {
   uri: string;
   optional_fields?: any[];
 };
+
 export type StacktraceErrorMessage =
   | 'file_not_found'
   | 'stack_root_mismatch'
   | 'integration_link_forbidden';
+
 export type SentryAppSchemaElement =
   | SentryAppSchemaIssueLink
   | SentryAppSchemaAlertRuleAction
   | SentryAppSchemaStacktraceLink;
+
 export type SentryAppInstallation = {
   app: {
     slug: string;
@@ -145,7 +163,9 @@ export type SentryAppInstallation = {
   uuid: string;
   code?: string;
 };
+
 export type SentryAppAvatarPhotoType = 'icon' | 'logo';
+
 export type SentryAppWebhookRequest = {
   date: string;
   eventType: string;
@@ -159,19 +179,23 @@ export type SentryAppWebhookRequest = {
     slug: string;
   };
 };
+
 /**
  * Organization Integrations
  */
 export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_app';
+
 export type IntegrationFeature = {
   description: string;
   featureGate: string;
   featureId: number;
 };
+
 export type IntegrationDialog = {
   actionText: string;
   body: string;
 };
+
 export interface BaseIntegrationProvider {
   canAdd: boolean;
   canDisable: boolean;
@@ -180,9 +204,11 @@ export interface BaseIntegrationProvider {
   name: string;
   slug: string;
 }
+
 export type ConfigData = Record<string, unknown> & {
   installationType?: string;
 };
+
 /**
  * Integration & External issue links
  */
@@ -194,6 +220,7 @@ export type IntegrationExternalIssue = {
   title: string;
   url: string;
 };
+
 export type PlatformExternalIssue = {
   displayName: string;
   id: string;
@@ -201,6 +228,7 @@ export type PlatformExternalIssue = {
   serviceType: string;
   webUrl: string;
 };
+
 export type ExternalIssue = {
   description: string;
   displayName: string;
@@ -210,6 +238,7 @@ export type ExternalIssue = {
   key: string;
   title: string;
 };
+
 /**
  * Project Plugins
  */
@@ -245,15 +274,19 @@ export type PluginNoProject = {
   resourceLinks?: Array<{title: string; url: string}>;
   version?: string;
 };
+
 export type Plugin = PluginNoProject & {
   enabled: boolean;
 };
+
 export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
+
 export type CodeownersFile = {
   filepath: string;
   html_url: string;
   raw: string;
 };
+
 type RepoName = string;
 type FileName = string;
 export type FilesByRepository = Record<
@@ -266,6 +299,7 @@ export type FilesByRepository = Record<
     }
   >
 >;
+
 interface BaseRepositoryProjectPathConfig {
   id: string;
   projectId: string;
@@ -276,14 +310,17 @@ interface BaseRepositoryProjectPathConfig {
   stackRoot: string;
   defaultBranch?: string;
 }
+
 export interface RepositoryProjectPathConfig extends BaseRepositoryProjectPathConfig {
   integrationId: string | null;
   provider: BaseIntegrationProvider | null;
 }
+
 export interface RepositoryProjectPathConfigWithIntegration extends BaseRepositoryProjectPathConfig {
   integrationId: string;
   provider: BaseIntegrationProvider;
 }
+
 export type ServerlessFunction = {
   enabled: boolean;
   name: string;

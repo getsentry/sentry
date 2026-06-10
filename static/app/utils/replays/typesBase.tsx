@@ -12,6 +12,7 @@ export type Dimensions = {
   height: number;
   width: number;
 };
+
 // Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
 // the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
 // field.
@@ -32,6 +33,7 @@ type DeprecatedReplayWebVitalFrameData = {
 interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
   data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
 }
+
 // These stub types should be coming from the sdk, but they're hard-coded until
 // the SDK updates to the latest version... once that happens delete this!
 // Needed for tests
@@ -45,9 +47,11 @@ export type RawHydrationErrorFrame = {
   };
   message?: string;
 };
+
 // These stub types should be coming from the sdk, but they're hard-coded until
 // the SDK updates to the latest version... once that happens delete this!
 type StubBreadcrumbTypes = RawHydrationErrorFrame;
+
 // TODO: more types get added here
 type MobileBreadcrumbTypes =
   | {
@@ -92,6 +96,7 @@ type MobileBreadcrumbTypes =
       type: string;
       message?: string;
     };
+
 /**
  * Extra breadcrumb types not included in `@sentry/replay`.
  * Also includes mobile types.
@@ -111,6 +116,7 @@ type ExtraBreadcrumbTypes =
       timestamp: number;
       type: string; // For compatibility reasons
     };
+
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
@@ -119,7 +125,9 @@ export type RawSpanFrame =
   | Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>
   | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
+
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
+
 type HydratedTimestamp = {
   /**
    * The difference in timestamp and replay.started_at, in millieseconds
@@ -134,10 +142,12 @@ type HydratedTimestamp = {
    */
   timestampMs: number;
 };
+
 type HydratedBreadcrumb<Category extends string> = Overwrite<
   Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
 >;
+
 type HydratedStartEndDate = {
   /**
    * The end Date of the span
@@ -168,11 +178,13 @@ type HydratedSpan<Op extends string> = Overwrite<
   Extract<TRawSpanFrame, {op: Op}>,
   HydratedStartEndDate // TODO: do we need `{id:string}` added too?
 >;
+
 // Breadcrumbs
 export type BreadcrumbFrame = Overwrite<
   TRawBreadcrumbFrame | ExtraBreadcrumbTypes | FeedbackFrame,
   HydratedTimestamp
 >;
+
 export type FeedbackFrame = {
   category: 'feedback';
   data: {
@@ -189,6 +201,7 @@ export type FeedbackFrame = {
   timestampMs: number;
   type: string;
 };
+
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
 export type SwipeFrame = HydratedBreadcrumb<'ui.swipe'>;
@@ -210,6 +223,7 @@ export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 export type DeviceBatteryFrame = HydratedBreadcrumb<'device.battery'>;
 export type DeviceConnectivityFrame = HydratedBreadcrumb<'device.connectivity'>;
 export type DeviceOrientationFrame = HydratedBreadcrumb<'device.orientation'>;
+
 // Spans
 export type SpanFrame = Overwrite<TRawSpanFrame, HydratedStartEndDate>;
 export type WebVitalFrame = HydratedSpan<
@@ -234,6 +248,7 @@ export type ResourceFrame = HydratedSpan<
   | 'resource.other'
   | 'resource.script'
 >;
+
 // OurLogs converted from log to frame for use with jump buttons etc.
 export type OurLogsPseudoFrame = {
   category: 'ourlogs';
@@ -241,6 +256,7 @@ export type OurLogsPseudoFrame = {
   timestampMs: number;
   data?: undefined;
 };
+
 /**
  * This is a result of a custom discover query
  */
@@ -256,6 +272,7 @@ export type RawReplayError = {
   timestamp_ms: string;
   title: string;
 };
+
 export type ErrorFrame = Overwrite<
   BreadcrumbFrame,
   {
@@ -272,7 +289,9 @@ export type ErrorFrame = Overwrite<
     message: string;
   }
 >;
+
 export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | OurLogsPseudoFrame;
+
 interface VideoFrame {
   container: string;
   duration: number;
@@ -287,6 +306,7 @@ interface VideoFrame {
   top: number;
   width: number;
 }
+
 export interface VideoFrameEvent {
   data: {
     payload: VideoFrame;
@@ -295,11 +315,13 @@ export interface VideoFrameEvent {
   timestamp: number;
   type: EventType.Custom;
 }
+
 export interface VideoEvent {
   duration: number;
   id: number;
   timestamp: number;
 }
+
 export interface ClipWindow {
   endTimestampMs: number;
   startTimestampMs: number;

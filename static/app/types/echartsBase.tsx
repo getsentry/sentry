@@ -2,8 +2,11 @@ import type {Color, ECharts as EChartsType} from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 
 export type ReactEchartsRef = EChartsReact;
+
 export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
+
 export type EChartChartReadyHandler = (instance: ECharts) => void;
+
 /**
  * Incomplete type for the "highlight" event handler in ECharts. This is taken
  * from a combination of the ECharts documentation page, and data seen in running code
@@ -21,8 +24,11 @@ interface EChartsHighlightEventParam {
   }>;
   name?: string;
 }
+
 export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventParam>;
+
 export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventParam>;
+
 /**
  * Incomplete type for the "legendselectchanged" event handler in ECharts. This is extracted from types we were using in the app at one time.
  */
@@ -31,8 +37,10 @@ interface EChartsLegendSelectChangeEventParam {
   selected: Record<string, boolean>;
   type: 'legendselectchanged';
 }
+
 export type EChartLegendSelectChangeHandler =
   EChartEventHandler<EChartsLegendSelectChangeEventParam>;
+
 type EChartMouseEventData = string | number | Record<string, any>;
 /**
  * XXX: These are incomplete types and can also vary depending on the component type
@@ -73,15 +81,19 @@ interface EChartMouseEventParam<T = EChartMouseEventData> {
   // i.e., 'line', 'bar', 'pie'
   seriesType?: string;
 }
+
 export type EChartMouseOutHandler<T = EChartMouseEventData> = EChartEventHandler<
   EChartMouseEventParam<T>
 >;
+
 export type EChartMouseOverHandler<T = EChartMouseEventData> = EChartEventHandler<
   EChartMouseEventParam<T>
 >;
+
 export type EChartClickHandler<T = EChartMouseEventData> = EChartEventHandler<
   EChartMouseEventParam<T>
 >;
+
 export type EChartDataZoomHandler = EChartEventHandler<{
   /**
    * percentage of zoom finish position, 0 - 100
@@ -103,26 +115,34 @@ export type EChartDataZoomHandler = EChartEventHandler<{
    */
   startValue?: number;
 }>;
+
 export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
+
 export type EChartFinishedHandler = EChartEventHandler<Record<string, unknown>>;
+
 export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
+
 type EchartBrushAreas = Array<{
   coordRange: number[] | number[][];
   panelId: string;
   range: number[] | number[][];
 }>;
+
 export type EChartBrushStartHandler = EChartEventHandler<{
   areas: EchartBrushAreas;
   brushId: string;
   type: 'brush';
 }>;
+
 export type EChartBrushEndHandler = EChartEventHandler<{
   areas: EchartBrushAreas;
   brushId: string;
   type: 'brushend';
 }>;
+
 export type EChartBrushSelectedHandler = EChartEventHandler<{
   brushId: string;
   type: 'brushselected';
 }>;
+
 export type ECharts = EChartsType;
