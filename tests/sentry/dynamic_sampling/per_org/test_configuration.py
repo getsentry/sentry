@@ -88,6 +88,10 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
                 return_value=0.25,
             ) as compute_sample_rate,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=None,
+            ),
         ):
             configuration = get_configuration(org.id)
 
@@ -122,12 +126,159 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             patch(
                 "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
             ) as compute_sample_rate,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=None,
+            ),
         ):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.get_sample_rate() == 0.5
         compute_sample_rate.assert_not_called()
+
+    def test_subscription_backed_org_calculates_recalibration_factor(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=org_volume,
+            ) as get_outcome_volume,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
+                return_value=1.1,
+            ) as get_legacy_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.get_adjusted_factor",
+                return_value=1.4,
+            ) as get_per_org_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.set_guarded_adjusted_factor",
+            ) as set_per_org_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.calculate_recalibration_factor",
+                return_value=0.7,
+            ) as calculate_factor,
+            patch("sentry.dynamic_sampling.per_org.configuration.logger.info") as logger_info,
+        ):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.organization_recalibration_factor == 0.7
+        get_outcome_volume.assert_called_once()
+        get_legacy_factor.assert_called_once_with(org.id)
+        get_per_org_factor.assert_called_once_with(org.id)
+        calculate_factor.assert_called_once_with(org_volume, 1.4, 0.5)
+        set_per_org_factor.assert_called_once_with(org.id, 0.7)
+        logger_info.assert_called_once_with(
+            "dynamic_sampling.per_org.recalibration_factor_discrepancy",
+            extra={
+                "org_id": org.id,
+                "discrepancy": pytest.approx(0.3),
+                "old_pipeline_factor": 1.1,
+                "new_pipeline_factor": 1.4,
+                "sample_rate": 0.5,
+            },
+        )
+
+    def test_subscription_backed_org_deletes_recalibration_factor_when_out_of_bounds(
+        self,
+    ) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=1)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=org_volume,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.get_adjusted_factor",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.delete_adjusted_factor",
+            ) as delete_per_org_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.set_guarded_adjusted_factor",
+            ) as set_per_org_factor,
+        ):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.organization_recalibration_factor is None
+        delete_per_org_factor.assert_called_once_with(org.id)
+        set_per_org_factor.assert_not_called()
+
+    def test_subscription_backed_org_leaves_recalibration_factor_when_not_computed(
+        self,
+    ) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=org_volume,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.get_adjusted_factor",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.calculate_recalibration_factor",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.delete_adjusted_factor",
+            ) as delete_per_org_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.set_guarded_adjusted_factor",
+            ) as set_per_org_factor,
+        ):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.organization_recalibration_factor is None
+        delete_per_org_factor.assert_not_called()
+        set_per_org_factor.assert_not_called()
 
     def test_subscription_backed_org_without_sample_rate_is_disabled(self) -> None:
         org = self.create_organization()
@@ -149,8 +300,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         get_volume.assert_not_called()
         with pytest.raises(AttributeError):
             getattr(configuration, "measure")
-        with pytest.raises(AttributeError):
-            getattr(configuration, "sample_rate")
+        assert configuration.sample_rate is None
 
     def test_subscription_backed_org_without_subscription_bubbles_terminal_status(self) -> None:
         org = self.create_organization()
@@ -251,8 +401,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                     project_without_rate.id: None,
                 }
                 assert configuration.get_sample_rate() is None
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
+                assert configuration.sample_rate is None
                 get_blended_sample_rate.assert_not_called()
 
     def test_project_mode_custom_dynamic_sampling_without_project_rates_is_disabled(
@@ -279,8 +428,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 assert not configuration.is_enabled
                 assert configuration.measure == measure_case.expected_measure
                 assert configuration.project_sample_rates == {project.id: None}
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
+                assert configuration.sample_rate is None
 
     def test_project_mode_custom_dynamic_sampling_without_projects_is_disabled(self) -> None:
         for measure_case in MEASURE_OPTION_CASES:
@@ -303,8 +451,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 assert not configuration.is_enabled
                 assert configuration.measure == measure_case.expected_measure
                 assert configuration.project_sample_rates == {}
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
+                assert configuration.sample_rate is None
 
     def test_subscription_backed_org_uses_measure_options(self) -> None:
         for measure_case in MEASURE_OPTION_CASES:
@@ -350,7 +497,13 @@ class GetProjectSampleRatesTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         project_a.update_option("sentry:target_sample_rate", 0.2)
 
-        with self.feature("organizations:dynamic-sampling-custom"):
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=None,
+            ),
+        ):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
@@ -368,7 +521,13 @@ class GetProjectSampleRatesTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org.update_option("sentry:target_sample_rate", 0.5)
 
-        with self.feature("organizations:dynamic-sampling-custom"):
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=None,
+            ),
+        ):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
@@ -390,7 +549,13 @@ class GetProjectSampleRatesTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org.update_option("sentry:target_sample_rate", 0.5)
 
-        with self.feature("organizations:dynamic-sampling-custom"):
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=None,
+            ),
+        ):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
@@ -405,9 +570,15 @@ class GetProjectSampleRatesTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=0.5,
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=None,
+            ),
         ):
             configuration = get_configuration(org.id)
 
@@ -422,9 +593,15 @@ class GetProjectSampleRatesTest(TestCase):
         self.create_project(organization=org)
         self.create_project(organization=org)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=0.5,
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=None,
+            ),
         ):
             configuration = get_configuration(org.id)
 

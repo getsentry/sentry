@@ -22,7 +22,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
+from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume, sample_rate_to_float
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -37,6 +37,30 @@ PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 logger = logging.getLogger(__name__)
+
+
+def calculate_recalibration_factor(
+    data_volume: OrganizationDataVolume | None,
+    previous_factor: float,
+    target_sample_rate: float | None,
+) -> float | None:
+    if (
+        target_sample_rate is None
+        or target_sample_rate == 0.0
+        or data_volume is None
+        or not data_volume.is_valid_for_recalibration()
+        or previous_factor == 0.0
+        or data_volume.indexed is None
+        or data_volume.indexed == 0
+    ):
+        return None
+
+    # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
+    # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
+    # biases that oversample or down sample irrespectively of the incoming volume.
+    effective_sample_rate = data_volume.indexed / data_volume.total
+    new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
+    return new_factor
 
 
 def run_project_balancing(

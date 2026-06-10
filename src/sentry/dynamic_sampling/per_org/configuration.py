@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from datetime import timedelta
 
@@ -8,13 +9,22 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
+from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
+from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
+from sentry.dynamic_sampling.per_org.queries import (
+    get_eap_organization_volume,
+    get_outcomes_organization_volume,
+)
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import compute_sliding_window_sample_rate
+from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
+from sentry.dynamic_sampling.tasks.helpers import (
+    recalibrate_orgs as legacy_recalibration_cache,
+)
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
@@ -24,6 +34,8 @@ from sentry.models.project import Project
 
 TargetSampleRate = float | None
 ProjectSampleRates = dict[ProjectId, TargetSampleRate]
+RecalibrationFactor = float | None
+logger = logging.getLogger(__name__)
 
 
 def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
@@ -49,7 +61,9 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
 
 class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
+    sample_rate: TargetSampleRate = None
     should_balance_projects: bool = True
+    organization_recalibration_factor: RecalibrationFactor = None
     projects: list[Project]
 
     def __init__(self, organization: Organization) -> None:
@@ -96,6 +110,44 @@ class BaseDynamicSamplingConfiguration(ABC):
             Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
         )
 
+    def _get_organization_recalibration_factor(self) -> RecalibrationFactor:
+        if not self.projects:
+            return None
+
+        org_volume = get_outcomes_organization_volume(
+            self.organization.id, time_interval=timedelta(minutes=5)
+        )
+        if org_volume is None or not org_volume.is_valid_for_recalibration():
+            return None
+
+        old_pipeline_factor = legacy_recalibration_cache.get_adjusted_factor(self.organization.id)
+        new_pipeline_factor = per_org_recalibration_cache.get_adjusted_factor(self.organization.id)
+        logger.info(
+            "dynamic_sampling.per_org.recalibration_factor_discrepancy",
+            extra={
+                "org_id": self.organization.id,
+                "discrepancy": new_pipeline_factor - old_pipeline_factor,
+                "old_pipeline_factor": old_pipeline_factor,
+                "new_pipeline_factor": new_pipeline_factor,
+                "sample_rate": self.get_sample_rate(),
+            },
+        )
+        adjusted_factor = calculate_recalibration_factor(
+            org_volume,
+            new_pipeline_factor,
+            self.get_sample_rate(),
+        )
+        if adjusted_factor is None:
+            return None
+        if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+            per_org_recalibration_cache.delete_adjusted_factor(self.organization.id)
+            return None
+
+        per_org_recalibration_cache.set_guarded_adjusted_factor(
+            self.organization.id, adjusted_factor
+        )
+        return adjusted_factor
+
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def __init__(self) -> None:
@@ -120,6 +172,7 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     """
 
     sample_rate: TargetSampleRate
+    organization_recalibration_factor: RecalibrationFactor
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
@@ -134,6 +187,7 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
             return
         self.projects = self._get_projects()
         self.sliding_window_sample_rate = self._get_sliding_window_sample_rate()
+        self.organization_recalibration_factor = self._get_organization_recalibration_factor()
 
     @property
     def is_enabled(self) -> bool:
@@ -176,6 +230,7 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
     """
 
     sample_rate: TargetSampleRate
+    organization_recalibration_factor: RecalibrationFactor
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
@@ -186,6 +241,7 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
             self.organization.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
         )
         self.project_sample_rates = {}
+        self.organization_recalibration_factor = self._get_organization_recalibration_factor()
 
     @property
     def is_enabled(self) -> bool:

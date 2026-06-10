@@ -8,6 +8,7 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
+    calculate_recalibration_factor,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
@@ -18,6 +19,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -132,6 +134,11 @@ class ProjectBalancingCalculationsTest(TestCase):
         self.redis.hset(cache_key, str(project.id), "0.25")
 
         assert get_cached_rebalanced_project_sample_rates(org.id) == {project.id: 0.25}
+
+    def test_calculate_recalibration_factor(self) -> None:
+        org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=25)
+        adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
+        assert adjusted_factor == 2.8
 
 
 def _project_transactions(

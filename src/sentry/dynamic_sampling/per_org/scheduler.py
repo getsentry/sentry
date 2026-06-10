@@ -16,7 +16,9 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_project_balancing,
     run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.configuration import get_configuration
+from sentry.dynamic_sampling.per_org.configuration import (
+    get_configuration,
+)
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
@@ -112,7 +114,6 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     config = get_configuration(org_id)
     if not config.is_enabled:
         return DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
-
     if not config.projects:
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
