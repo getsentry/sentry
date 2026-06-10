@@ -10,19 +10,19 @@ import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
+import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
 interface Props {
   allRows: LogTableRowItem[];
   logsPinning: LogsPinning;
-  query: ReturnType<typeof usePinnedLogsQuery>;
   renderRow: (dataRow: LogTableRowItem) => React.ReactNode;
 }
 
-export function PinnedLogs({allRows, logsPinning, query, renderRow}: Props) {
-  const {fetchedRows: fetchedPinnedRows, isPending: isFetchingPinnedRows} = query;
+export function PinnedLogs({allRows, logsPinning, renderRow}: Props) {
+  const {fetchedRows: fetchedPinnedRows, isPending: isFetchingPinnedRows} =
+    usePinnedLogsQuery({allRows, logsPinning});
   const [expanded, setExpanded] = useState(true);
   const pinnedRows = logsPinning.getPinnedRowIds();
 

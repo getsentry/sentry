@@ -48,7 +48,6 @@ import {
 import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -447,7 +446,6 @@ export function LogsInfiniteTable({
   }, []);
 
   const logsPinning = useLogsPinning();
-  const pinnedLogsQuery = usePinnedLogsQuery({allRows: data, logsPinning});
 
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
@@ -533,12 +531,7 @@ export function LogsInfiniteTable({
           />
         )}
         {!isPending && logsPinning && (
-          <PinnedLogs
-            allRows={data}
-            logsPinning={logsPinning}
-            query={pinnedLogsQuery}
-            renderRow={renderRow}
-          />
+          <PinnedLogs allRows={data} logsPinning={logsPinning} renderRow={renderRow} />
         )}
         <LogTableBody
           showHeader={!embedded}
