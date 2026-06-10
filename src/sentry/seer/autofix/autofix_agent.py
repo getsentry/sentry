@@ -198,6 +198,7 @@ def get_autofix_agent_client(
     return SeerAgentClient(
         organization=group.organization,
         project=group.project,
+        group=group,
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),
@@ -322,7 +323,7 @@ def trigger_autofix_agent(
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"group_id": group.id, "referrer": referrer.value}
+        metadata = {"referrer": referrer.value}
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
