@@ -5,6 +5,7 @@ import logging
 import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
@@ -111,6 +113,16 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
         "GET": ["org:read"],
         "POST": ["org:read"],
     }
+
+    # Allow POST requests in demo mode to showcase Seer Agent
+    DEMO_ALLOWED_METHODS = (*SAFE_METHODS, "POST")
+
+    def has_permission(self, request: Request, view: object) -> bool:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
+                return False
+            return True
+        return super().has_permission(request, view)
 
 
 @cell_silo_endpoint
