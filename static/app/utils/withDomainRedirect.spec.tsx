@@ -11,7 +11,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('react-router-dom');
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useMatches: jest.fn().mockReturnValue([]),
+}));
 
 // /settings/:orgId/:projectId/(searches/:searchId/)alerts/
 const projectRoutes: UIMatch[] = [
