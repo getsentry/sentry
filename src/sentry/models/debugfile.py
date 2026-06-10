@@ -9,6 +9,7 @@ import os.path
 import re
 import shutil
 import tempfile
+import time
 import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
@@ -19,10 +20,13 @@ from django.db import models
 from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
 from django.utils import timezone
+from objectstore_client import RequestError
+from objectstore_client.multipart import CompletePart, MultipartUpload
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
+from urllib3.exceptions import HTTPError
 
-from sentry import options
+from sentry import features, options
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
@@ -35,7 +39,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
-from sentry.models.files.utils import clear_cached_files
+from sentry.models.files.utils import MAX_FILE_SIZE, clear_cached_files
 from sentry.objectstore import get_debug_files_session
 from sentry.utils import json, metrics
 from sentry.utils.zip import safe_extract_zip
@@ -48,6 +52,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
+OBJECTSTORE_DEBUGFILES_WRITE_FEATURE = "organizations:objectstore-debugfiles-write"
+OBJECTSTORE_MULTIPART_PART_SIZE = 32 * 1024 * 1024
+OBJECTSTORE_MULTIPART_MAX_RETRIES = 3
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
@@ -382,10 +389,98 @@ def create_dif_from_file(
     return create_dif_from_id(project, result[0], file=file)
 
 
+def _fileobj_is_seekable(fileobj: IO[bytes]) -> bool:
+    try:
+        return fileobj.seekable()
+    except AttributeError:
+        try:
+            pos = fileobj.tell()
+            fileobj.seek(pos, 0)
+        except (OSError, AttributeError):
+            return False
+        return True
+
+
+def _prepare_fileobj_for_reuse(fileobj: IO[bytes]) -> tuple[IO[bytes], int, str, IO[bytes] | None]:
+    checksum = hashlib.sha1()
+    size = 0
+    reusable_fileobj = fileobj if _fileobj_is_seekable(fileobj) else tempfile.TemporaryFile()
+
+    while True:
+        chunk = fileobj.read(16384)
+        if not chunk:
+            break
+        size += len(chunk)
+        checksum.update(chunk)
+        if reusable_fileobj is not fileobj:
+            reusable_fileobj.write(chunk)
+
+    reusable_fileobj.seek(0, 0)
+    return (
+        reusable_fileobj,
+        size,
+        checksum.hexdigest(),
+        reusable_fileobj if reusable_fileobj is not fileobj else None,
+    )
+
+
+def _put_objectstore_part_with_retry(
+    upload: MultipartUpload, chunk: bytes, part_number: int
+) -> CompletePart:
+    for attempt in range(OBJECTSTORE_MULTIPART_MAX_RETRIES):
+        try:
+            return upload.put_part(chunk, part_number=part_number, content_length=len(chunk))
+        except (RequestError, HTTPError):
+            if attempt == OBJECTSTORE_MULTIPART_MAX_RETRIES - 1:
+                raise
+            time.sleep(2**attempt)
+
+    raise AssertionError("unreachable")
+
+
+def _upload_dif_to_objectstore(
+    session: Session,
+    fileobj: IO[bytes],
+    content_type: str,
+) -> tuple[str, int]:
+    upload = session.initiate_multipart_upload(content_type=content_type)
+    try:
+        parts: list[CompletePart] = []
+        part_number = 1
+        file_size = 0
+        while True:
+            chunk = fileobj.read(OBJECTSTORE_MULTIPART_PART_SIZE)
+            if not chunk:
+                break
+
+            file_size += len(chunk)
+            if file_size > MAX_FILE_SIZE:
+                raise BadDif(f"Object exceeds maximum size ({file_size} > {MAX_FILE_SIZE})")
+
+            parts.append(_put_objectstore_part_with_retry(upload, chunk, part_number))
+            part_number += 1
+
+        storage_path = upload.complete(parts)
+        return storage_path, file_size
+    except Exception:
+        try:
+            upload.abort()
+        except (RequestError, HTTPError):
+            logger.warning("debugfile.objectstore_multipart_abort_failed")
+        raise
+
+
+def _delete_source_file_if_unreferenced(file: File) -> None:
+    try:
+        file.delete()
+    except ProtectedError:
+        pass
+
+
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
-    fileobj: BinaryIO | None = None,
+    fileobj: IO[bytes] | None = None,
     file: File | None = None,
 ) -> tuple[ProjectDebugFile, bool]:
     """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
@@ -421,19 +516,17 @@ def create_dif_from_id(
     else:
         raise TypeError(f"unknown dif type {meta.file_format!r}")
 
+    fileobj_to_close = None
     if file is not None:
+        file_size = file.size
         checksum = file.checksum
     elif fileobj is not None:
-        h = hashlib.sha1()
-        while True:
-            chunk = fileobj.read(16384)
-            if not chunk:
-                break
-            h.update(chunk)
-        checksum = h.hexdigest()
-        fileobj.seek(0, 0)
+        fileobj, file_size, checksum, fileobj_to_close = _prepare_fileobj_for_reuse(fileobj)
     else:
         raise RuntimeError("missing file object")
+
+    if checksum is None:
+        raise RuntimeError("missing file checksum")
 
     dif = (
         ProjectDebugFile.objects.select_related("file")
@@ -445,18 +538,80 @@ def create_dif_from_id(
     )
 
     if dif is not None:
+        if fileobj_to_close is not None:
+            fileobj_to_close.close()
         return dif, False
+
+    content_type = DIF_MIMETYPES[meta.file_format]
+
+    if features.has(OBJECTSTORE_DEBUGFILES_WRITE_FEATURE, project.organization):
+        if file_size is not None and file_size > MAX_FILE_SIZE:
+            if fileobj_to_close is not None:
+                fileobj_to_close.close()
+            raise BadDif(f"Object exceeds maximum size ({file_size} > {MAX_FILE_SIZE})")
+
+        session = get_debug_files_session(project.organization_id, project.id)
+        if file is not None:
+            with file.getfile() as source_fileobj:
+                storage_path, uploaded_file_size = _upload_dif_to_objectstore(
+                    session, source_fileobj, content_type
+                )
+        elif fileobj is not None:
+            try:
+                storage_path, uploaded_file_size = _upload_dif_to_objectstore(
+                    session, fileobj, content_type
+                )
+            finally:
+                if fileobj_to_close is not None:
+                    fileobj_to_close.close()
+        else:
+            raise RuntimeError("missing file object")
+
+        metrics.distribution(
+            "storage.put.size",
+            uploaded_file_size,
+            tags={"usecase": "debug-files", "compression": "none"},
+            unit="byte",
+        )
+
+        dif = ProjectDebugFile.objects.create(
+            file=None,
+            storage_path=storage_path,
+            content_type=content_type,
+            file_size=uploaded_file_size,
+            date_created=timezone.now(),
+            checksum=checksum,
+            debug_id=meta.debug_id,
+            code_id=meta.code_id,
+            cpu_name=meta.arch,
+            object_name=object_name,
+            project_id=project.id,
+            data=meta.data,
+        )
+
+        if file is not None:
+            _delete_source_file_if_unreferenced(file)
+
+        # The DIF we've just created might actually be removed here again. But since
+        # this can happen at any time in near or distant future, we don't care and
+        # assume a successful upload. The DIF will be reported to the uploader and
+        # reprocessing can start.
+        clean_redundant_difs(project, meta.debug_id)
+
+        return dif, True
 
     if file is None:
         file = File.objects.create(
             name=meta.debug_id,
             type="project.dif",
-            headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
+            headers={"Content-Type": content_type},
         )
         file.putfile(fileobj)
+        if fileobj_to_close is not None:
+            fileobj_to_close.close()
     else:
         file.type = "project.dif"
-        file.headers["Content-Type"] = DIF_MIMETYPES[meta.file_format]
+        file.headers["Content-Type"] = content_type
         file.save()
 
     metrics.distribution(
