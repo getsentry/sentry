@@ -161,7 +161,8 @@ class SentryAppSerializer(Serializer):
             uuid=obj.uuid,
             verifyInstall=obj.verify_install,
             webhookUrl=obj.webhook_url,
-            # Masked by default; real values are revealed below for authorized viewers.
+            # Header values are write-only after save; masked values can still be
+            # resubmitted unchanged because the updater preserves stored values.
             webhookHeaders=mask_webhook_header_values(obj.webhook_headers),
         )
 
@@ -195,10 +196,6 @@ class SentryAppSerializer(Serializer):
                 client_secret = MASKED_VALUE
                 if can_view_secrets:
                     client_secret = application.client_secret
-                    # Reveal real header values to viewers allowed to see secrets.
-                    # Unlike clientSecret there's no time window: headers must stay
-                    # editable, and the updater preserves masked entries on save.
-                    data["webhookHeaders"] = list(obj.webhook_headers)
 
                 data.update(
                     {

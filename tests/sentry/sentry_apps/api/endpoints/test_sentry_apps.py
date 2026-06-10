@@ -793,6 +793,10 @@ class PostSentryAppsTest(SentryAppsTest):
         )
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.webhook_headers == ["X-Example: value", "Another-Header: thing"]
+        assert response.data["webhookHeaders"] == [
+            f"X-Example: {MASKED_VALUE}",
+            f"Another-Header: {MASKED_VALUE}",
+        ]
 
     def test_create_integration_with_invalid_webhook_header(self) -> None:
         response = self.get_error_response(

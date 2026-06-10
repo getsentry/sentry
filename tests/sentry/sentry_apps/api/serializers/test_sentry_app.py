@@ -118,7 +118,7 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
         result = serialize(sentry_app, None, SentryAppSerializer(), access=None)
         assert result["webhookHeaders"] == [f"Authorization: {MASKED_VALUE}"]
 
-    def test_webhook_headers_visible_with_access(self) -> None:
+    def test_webhook_headers_masked_with_access(self) -> None:
         sentry_app = self.create_sentry_app(
             name="Tesla App",
             organization=self.organization,
@@ -129,11 +129,9 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
 
         acc = access.from_user(self.user, self.organization)
         result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
-        assert result["webhookHeaders"] == ["Authorization: Bearer secret"]
+        assert result["webhookHeaders"] == [f"Authorization: {MASKED_VALUE}"]
 
-    def test_webhook_headers_visible_for_internal_app_owner(self) -> None:
-        # Internal integrations are a primary use case; their owners must be able
-        # to view (and therefore edit) the real header values too.
+    def test_webhook_headers_masked_for_internal_app_owner(self) -> None:
         self.create_project(organization=self.organization)
         sentry_app = self.create_internal_integration(
             name="Internal App",
@@ -144,4 +142,4 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
 
         acc = access.from_user(self.user, self.organization)
         result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
-        assert result["webhookHeaders"] == ["Authorization: Bearer secret"]
+        assert result["webhookHeaders"] == [f"Authorization: {MASKED_VALUE}"]
