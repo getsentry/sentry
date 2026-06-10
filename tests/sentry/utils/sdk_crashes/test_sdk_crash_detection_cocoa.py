@@ -57,10 +57,10 @@ class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
                     "image_addr": "0x1a4e8f000",
                 },
                 {
-                    "function": "sentrycrashcm_setActiveMonitors",
-                    "raw_function": "sentrycrashcm_setActiveMonitors()",
+                    "function": "installCrashHandler",
+                    "raw_function": "installCrashHandler()",
                     "filename": filename,
-                    "symbol": "_ZL31sentrycrashcm_setActiveMonitorsv",
+                    "symbol": "_ZL19installCrashHandlerv",
                     "package": "MainApp",
                     "in_app": False,
                     "image_addr": "0x1a4e8f000",
