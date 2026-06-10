@@ -1,5 +1,7 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
+import * as qs from 'query-string';
 
 import {defined} from 'sentry/utils/defined';
 import {
@@ -18,7 +20,8 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -60,6 +63,7 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 ] as const;
 
 export const MAX_NUM_Y_AXES = 3;
+const URL_SYNC_DEBOUNCE_MS = 300;
 
 export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
   keyof WidgetBuilderStateLocalParams,
@@ -299,929 +303,1046 @@ function fixupTableSortOnRemoval(
     : [];
 }
 
-export function useWidgetBuilderState(): {
-  dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
-  state: WidgetBuilderState;
-} {
-  const [title, setTitle] = useQueryParamState({fieldName: 'title'});
-  const [description, setDescription] = useQueryParamState({
-    fieldName: 'description',
-  });
-  const [displayType, setDisplayType] = useQueryParamState<DisplayType>({
-    fieldName: 'displayType',
-    deserializer: deserializeDisplayType,
-  });
-  const [dataset, setDataset] = useQueryParamState<WidgetType>({
-    fieldName: 'dataset',
-    deserializer: deserializeDataset,
-  });
-  const [fields, setFields] = useQueryParamState<Column[]>({
-    fieldName: 'field',
-    decoder: decodeList,
-    deserializer: deserializeFields,
-    serializer: serializeFields,
-  });
-  const [yAxis, setYAxis] = useQueryParamState<Column[]>({
-    fieldName: 'yAxis',
-    decoder: decodeList,
-    deserializer: deserializeFields,
-    serializer: serializeFields,
-  });
-  const [query, setQuery] = useQueryParamState<string[]>({
-    fieldName: 'query',
-    decoder: decodeList,
-    deserializer: deserializeQuery,
-  });
-  const [sort, setSort] = useQueryParamState<Sort[]>({
-    fieldName: 'sort',
-    decoder: decodeSorts,
-    deserializer: deserializeSorts(dataset),
-    serializer: serializeSorts(dataset),
-  });
-  const [limit, setLimit] = useQueryParamState<number>({
-    fieldName: 'limit',
-    decoder: decodeScalar,
-    deserializer: deserializeLimit,
-  });
-  const [legendAlias, setLegendAlias] = useQueryParamState<string[]>({
-    fieldName: 'legendAlias',
-    decoder: decodeList,
-  });
-  const [legendType, setLegendType] = useQueryParamState<LegendType | undefined>({
-    fieldName: 'legendType',
-    deserializer: deserializeLegendType,
-  });
-  const [selectedAggregate, setSelectedAggregate] = useQueryParamState<number>({
-    fieldName: 'selectedAggregate',
-    decoder: decodeScalar,
-    deserializer: deserializeSelectedAggregate,
-  });
-  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig | null>({
-    fieldName: 'thresholds',
-    decoder: decodeScalar,
-    deserializer: deserializeThresholds,
-    serializer: serializeThresholds,
-  });
-  const [linkedDashboards, setLinkedDashboards] = useQueryParamState<LinkedDashboard[]>({
-    fieldName: 'linkedDashboards',
-    decoder: decodeList,
-    deserializer: deserializeLinkedDashboards,
-    serializer: serializeLinkedDashboards,
-  });
-  const [axisRange, setAxisRange] = useQueryParamState<AxisRange | undefined>({
-    fieldName: 'axisRange',
-    decoder: decodeScalar,
-    deserializer: getAxisRange,
-  });
-  const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
-    string | undefined
-  >(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key, undefined);
 
-  const state = useMemo(
-    () => ({
-      title,
-      description,
-      textContent,
-      displayType,
-      dataset,
-      fields,
-      yAxis,
-      query,
-      sort,
-      limit,
-      legendAlias,
-      legendType,
-      thresholds,
-      linkedDashboards,
-      axisRange,
-      // The selected aggregate is the last aggregate for big number and categorical bar widgets
-      // if it hasn't been explicitly set.
-      // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
-      selectedAggregate:
-        displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
-          ? (selectedAggregate ?? fields.length - 1)
-          : displayType === DisplayType.CATEGORICAL_BAR && defined(fields)
-            ? (() => {
-                const aggregateCount = fields.filter(
-                  f =>
-                    f.kind === FieldValueKind.FUNCTION ||
-                    f.kind === FieldValueKind.EQUATION
-                ).length;
-                return aggregateCount > 1
-                  ? Math.min(selectedAggregate ?? aggregateCount - 1, aggregateCount - 1)
-                  : undefined;
-              })()
-            : undefined,
-    }),
-    [
-      title,
-      displayType,
-      textContent,
-      description,
-      dataset,
-      fields,
-      yAxis,
-      query,
-      sort,
-      limit,
-      legendAlias,
-      legendType,
-      thresholds,
-      linkedDashboards,
-      axisRange,
-      selectedAggregate,
-    ]
-  );
+/**
+ * Pure reducer that computes state transitions atomically.
+ * Each case returns a complete new state — no stale closures, no multi-setter
+ * coordination. The URL sync layer (in the hook) is responsible for
+ * persisting state changes.
+ *
+ * `textContent` lives in session storage and is merged in by the hook;
+ * the reducer never reads or writes it.
+ */
+function widgetBuilderReducer(
+  state: WidgetBuilderState,
+  action: WidgetAction
+): WidgetBuilderState {
+  switch (action.type) {
+    case BuilderStateAction.SET_TITLE:
+      return {...state, title: action.payload};
 
-  const dispatch = useCallback(
-    (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => {
-      const currentDatasetConfig = getDatasetConfig(dataset);
-      switch (action.type) {
-        case BuilderStateAction.SET_TITLE:
-          setTitle(action.payload, options);
-          break;
-        case BuilderStateAction.SET_DESCRIPTION:
-          setDescription(action.payload, options);
-          break;
-        case BuilderStateAction.SET_DISPLAY_TYPE: {
-          setDisplayType(action.payload, options);
-          // When leaving the text widget type, clear local text content
-          if (displayType === DisplayType.TEXT && action.payload !== DisplayType.TEXT) {
-            setTextContent(undefined);
-          }
-          const [aggregates, columns] = partition(fields, field => {
-            if (field.kind === FieldValueKind.EQUATION) {
-              return true;
-            }
+    case BuilderStateAction.SET_DESCRIPTION:
+      return {...state, description: action.payload};
+
+    case BuilderStateAction.SET_DISPLAY_TYPE: {
+      const currentDatasetConfig = getDatasetConfig(state.dataset);
+      const [aggregates, columns] = partition(state.fields, field => {
+        if (field.kind === FieldValueKind.EQUATION) {
+          return true;
+        }
+        const fieldString = generateFieldAsString(field);
+        return isAggregateFieldOrEquation(fieldString);
+      });
+      const columnsWithoutAlias = columns.map(column => ({
+        ...column,
+        alias: undefined,
+      }));
+      const aggregatesWithoutAlias = aggregates.map(aggregate => ({
+        ...aggregate,
+        alias: undefined,
+      }));
+      const yAxisWithoutAlias = state.yAxis?.map(axis => ({...axis, alias: undefined}));
+
+      let next: WidgetBuilderState = {
+        ...state,
+        displayType: action.payload,
+        selectedAggregate: undefined,
+        linkedDashboards: [],
+      };
+
+      if (action.payload === DisplayType.TABLE) {
+        let newFields: Column[];
+        if (state.displayType === DisplayType.DETAILS) {
+          newFields =
+            currentDatasetConfig.defaultWidgetQuery.fields?.map(field =>
+              explodeField({field})
+            ) ?? [];
+        } else {
+          newFields = [
+            ...columnsWithoutAlias,
+            ...aggregatesWithoutAlias,
+            ...(yAxisWithoutAlias ?? []),
+          ];
+        }
+
+        let newSort = state.sort;
+        if (
+          newFields.length > 0 &&
+          !newFields.some(
+            field => generateFieldAsString(field) === state.sort?.[0]?.field
+          )
+        ) {
+          const validReleaseSortOptions = newFields.filter(field => {
             const fieldString = generateFieldAsString(field);
-            return isAggregateFieldOrEquation(fieldString);
+            return (
+              !DISABLED_SORT.includes(fieldString) &&
+              !TAG_SORT_DENY_LIST.includes(fieldString)
+            );
           });
-          const columnsWithoutAlias = columns.map(column => {
-            return {...column, alias: undefined};
-          });
-          const aggregatesWithoutAlias = aggregates.map(aggregate => ({
-            ...aggregate,
-            alias: undefined,
-          }));
-          const yAxisWithoutAlias = yAxis?.map(axis => ({...axis, alias: undefined}));
-          if (action.payload === DisplayType.TABLE) {
-            setLinkedDashboards([], options);
-            setLimit(undefined, options);
-            setYAxis([], options);
-            setLegendAlias([], options);
-            // When coming from DETAILS, its hardcoded display columns are not
-            // user-chosen, so reset to the dataset's default table fields
-            // instead of carrying them over.
-            let newFields: Column[];
-            if (displayType === DisplayType.DETAILS) {
-              newFields =
-                currentDatasetConfig.defaultWidgetQuery.fields?.map(field =>
-                  explodeField({field})
-                ) ?? [];
-            } else {
-              newFields = [
-                ...columnsWithoutAlias,
-                ...aggregatesWithoutAlias,
-                ...(yAxisWithoutAlias ?? []),
-              ];
-            }
-            setFields(newFields, options);
 
-            // Keep the sort if it's already contained in the new fields
-            // Otherwise, reset sorting to the first field
-            if (
-              newFields.length > 0 &&
-              !newFields.some(field => generateFieldAsString(field) === sort?.[0]?.field)
-            ) {
-              const validReleaseSortOptions = newFields.filter(field => {
+          newSort =
+            state.dataset === WidgetType.RELEASE
+              ? validReleaseSortOptions.length > 0
+                ? [
+                    {
+                      kind: 'desc',
+                      field: generateFieldAsString(validReleaseSortOptions[0]!),
+                    },
+                  ]
+                : []
+              : [{kind: 'desc', field: generateFieldAsString(newFields[0]!)}];
+        }
+
+        next = {
+          ...next,
+          fields: newFields,
+          yAxis: [],
+          sort: newSort,
+          limit: undefined,
+          legendAlias: [],
+        };
+      } else if (action.payload === DisplayType.BIG_NUMBER) {
+        next = {
+          ...next,
+          fields: [...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])],
+          yAxis: [],
+          sort: [],
+          limit: undefined,
+          legendAlias: [],
+          query: state.query?.slice(0, 1),
+        };
+      } else if (action.payload === DisplayType.DETAILS) {
+        next = {
+          ...next,
+          fields: DETAIL_WIDGET_FIELDS.map(field => ({
+            field,
+            kind: FieldValueKind.FIELD,
+          })),
+          yAxis: [],
+          sort: [],
+          limit: 1,
+          legendAlias: [],
+          query: state.query?.slice(0, 1),
+        };
+      } else if (action.payload === DisplayType.CATEGORICAL_BAR) {
+        const nextAggregates = [
+          ...aggregatesWithoutAlias,
+          ...(yAxisWithoutAlias ?? []),
+        ];
+        if (nextAggregates.length === 0) {
+          nextAggregates.push({
+            ...currentDatasetConfig.defaultField,
+            alias: undefined,
+          });
+        }
+
+        const nextColumns = [...columnsWithoutAlias.slice(0, 1)];
+        if (nextColumns.length === 0 && currentDatasetConfig.defaultCategoryField) {
+          nextColumns.push({
+            kind: FieldValueKind.FIELD,
+            field: currentDatasetConfig.defaultCategoryField,
+            alias: undefined,
+          });
+        }
+
+        let newSort: Sort[] = [];
+        if (nextAggregates.length > 0) {
+          const sortField = generateSortField(
+            nextAggregates,
+            nextAggregates.length - 1
+          );
+          newSort = [{kind: 'desc', field: sortField}];
+        }
+
+        next = {
+          ...next,
+          fields: [...nextColumns, ...nextAggregates],
+          yAxis: [],
+          sort: newSort,
+          legendAlias: [],
+          query: state.query?.slice(0, 1),
+          limit: DEFAULT_CATEGORICAL_BAR_LIMIT,
+        };
+      } else if (action.payload === DisplayType.TEXT) {
+        next = {
+          ...next,
+          description: undefined,
+          fields: [],
+          yAxis: [],
+          query: [''],
+          sort: [],
+          limit: undefined,
+          legendAlias: [],
+          dataset: undefined,
+          linkedDashboards: [],
+          thresholds: undefined,
+          axisRange: undefined,
+          selectedAggregate: undefined,
+        };
+      } else {
+        // Time series (LINE, AREA, BAR, TOP_N)
+        const nextAggregates = [
+          ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
+          ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
+        ];
+        if (nextAggregates.length === 0) {
+          nextAggregates.push({
+            ...currentDatasetConfig.defaultField,
+            alias: undefined,
+          });
+        }
+
+        const maxLimit = getResultsLimit(
+          state.query?.length ?? 1,
+          nextAggregates.length
+        );
+
+        let newSort = state.sort;
+        if (
+          state.dataset === WidgetType.RELEASE &&
+          (state.sort?.length ?? 0) === 0
+        ) {
+          newSort = decodeSorts(
+            getDatasetConfig(WidgetType.RELEASE).defaultWidgetQuery.orderby
+          );
+        }
+
+        next = {
+          ...next,
+          fields: columnsWithoutAlias,
+          yAxis: nextAggregates,
+          sort: newSort,
+          limit: Math.min(state.limit ?? DEFAULT_RESULTS_LIMIT, maxLimit),
+        };
+      }
+
+      if (!doesDisplayTypeSupportThresholds(action.payload)) {
+        next = {...next, thresholds: undefined};
+      }
+      if (!usesTimeSeriesData(action.payload)) {
+        next = {...next, axisRange: undefined, legendType: undefined};
+      }
+
+      return next;
+    }
+
+    case BuilderStateAction.SET_DATASET: {
+      const config = getDatasetConfig(action.payload);
+
+      let nextDisplayType = state.displayType;
+      if (action.payload === WidgetType.ISSUE) {
+        nextDisplayType = DisplayType.TABLE;
+      } else if (
+        nextDisplayType &&
+        !config.supportedDisplayTypes.includes(nextDisplayType) &&
+        config.supportedDisplayTypes.length > 0
+      ) {
+        nextDisplayType = config.supportedDisplayTypes[0];
+      }
+
+      let next: WidgetBuilderState = {
+        ...state,
+        dataset: action.payload,
+        displayType: nextDisplayType,
+        thresholds: undefined,
+        axisRange: undefined,
+        legendType: undefined,
+        query: [config.defaultWidgetQuery.conditions],
+        legendAlias: [],
+        selectedAggregate: undefined,
+        linkedDashboards: [],
+      };
+
+      if (nextDisplayType === DisplayType.CATEGORICAL_BAR) {
+        const categoricalBarFields: Column[] = [];
+        if (config.defaultCategoryField) {
+          categoricalBarFields.push({
+            kind: FieldValueKind.FIELD,
+            field: config.defaultCategoryField,
+          });
+        }
+        if (config.defaultField) {
+          categoricalBarFields.push({
+            ...config.defaultField,
+            alias: undefined,
+          });
+        }
+
+        const aggregateField = categoricalBarFields.find(
+          f => f.kind === FieldValueKind.FUNCTION
+        );
+
+        next = {
+          ...next,
+          yAxis: [],
+          fields: categoricalBarFields,
+          sort: aggregateField
+            ? [{kind: 'desc', field: generateFieldAsString(aggregateField)}]
+            : [],
+          limit: DEFAULT_CATEGORICAL_BAR_LIMIT,
+        };
+      } else if (usesTimeSeriesData(nextDisplayType)) {
+        next = {
+          ...next,
+          fields: [],
+          yAxis:
+            config.defaultWidgetQuery.aggregates?.map(aggregate =>
+              explodeField({field: aggregate})
+            ),
+          sort: decodeSorts(config.defaultWidgetQuery.orderby),
+          limit: undefined,
+        };
+      } else {
+        next = {
+          ...next,
+          yAxis: [],
+          fields: config.defaultWidgetQuery.fields?.map(field =>
+            explodeField({field})
+          ),
+          sort:
+            nextDisplayType === DisplayType.BIG_NUMBER
+              ? []
+              : decodeSorts(config.defaultWidgetQuery.orderby),
+          limit: undefined,
+        };
+      }
+
+      return next;
+    }
+
+    case BuilderStateAction.SET_FIELDS: {
+      let next: WidgetBuilderState = {
+        ...state,
+        fields: action.payload,
+      };
+
+      // Clean up linked dashboards
+      const remainingKindFields = action.payload.filter(
+        field => field.kind === FieldValueKind.FIELD
+      );
+      next.linkedDashboards = state.linkedDashboards?.filter(linkedDashboard =>
+        remainingKindFields.some(field => field.field === linkedDashboard.field)
+      );
+
+      const isRemoved = action.payload.length < (state.fields?.length ?? 0);
+      if (
+        state.displayType === DisplayType.TABLE &&
+        action.payload.length > 0 &&
+        !action.payload.some(
+          field => generateFieldAsString(field) === state.sort?.[0]?.field
+        )
+      ) {
+        if (state.dataset === WidgetType.ISSUE) {
+          // Issue widgets can sort their tables by limited fields that aren't
+          // in the fields array.
+          // Reset legend breakdown when more than one column is selected
+          if (action.payload.length > 1 && state.legendType === 'breakdown') {
+            next = {...next, legendType: undefined};
+          }
+          return next;
+        }
+
+        if (isRemoved) {
+          const fixedSort = fixupTableSortOnRemoval(
+            action.payload,
+            state.sort,
+            state.dataset
+          );
+          if (fixedSort) {
+            next = {...next, sort: fixedSort};
+          }
+        } else {
+          const firstActionPayloadNotEquation: QueryFieldValue | undefined =
+            action.payload.find(field => field.kind !== FieldValueKind.EQUATION);
+
+          let validSortOptions: QueryFieldValue[] = firstActionPayloadNotEquation
+            ? [firstActionPayloadNotEquation]
+            : [];
+          if (state.dataset === WidgetType.RELEASE) {
+            validSortOptions = [
+              ...action.payload.filter(field => {
                 const fieldString = generateFieldAsString(field);
                 return (
                   !DISABLED_SORT.includes(fieldString) &&
                   !TAG_SORT_DENY_LIST.includes(fieldString)
                 );
-              });
-
-              setSort(
-                dataset === WidgetType.RELEASE
-                  ? validReleaseSortOptions.length > 0
-                    ? [
-                        {
-                          kind: 'desc',
-                          field: generateFieldAsString(validReleaseSortOptions[0]!),
-                        },
-                      ]
-                    : []
-                  : [
+              }),
+            ];
+          }
+          const changedFieldIndex = action.payload.findIndex(
+            field =>
+              !state.fields?.find(
+                originalField =>
+                  generateFieldAsString(originalField) ===
+                    generateFieldAsString(field) ||
+                  originalField.kind === FieldValueKind.EQUATION ||
+                  (state.dataset === WidgetType.RELEASE &&
+                    (DISABLED_SORT.includes(generateFieldAsString(field)) ||
+                      TAG_SORT_DENY_LIST.includes(generateFieldAsString(field))))
+              )
+          );
+          if (changedFieldIndex === -1) {
+            next = {
+              ...next,
+              sort:
+                validSortOptions.length > 0
+                  ? [
                       {
-                        kind: 'desc',
-                        field: generateFieldAsString(newFields[0]!),
+                        kind: state.sort?.[0]?.kind ?? 'desc',
+                        field: generateFieldAsString(validSortOptions[0]!),
                       },
-                    ],
-                options
-              );
-            }
-          } else if (action.payload === DisplayType.BIG_NUMBER) {
-            // TODO: Reset the selected aggregate here for widgets with equations
-            setLimit(undefined, options);
-            setSort([], options);
-            setYAxis([], options);
-            setLegendAlias([], options);
-            // Columns are ignored for big number widgets because there is no grouping
-            setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])], options);
-            setQuery(query?.slice(0, 1), options);
-          } else if (action.payload === DisplayType.DETAILS) {
-            setLimit(1, options);
-            setSort([], options);
-            setYAxis([], options);
-            setLegendAlias([], options);
-            setFields(
-              DETAIL_WIDGET_FIELDS.map(field => ({field, kind: FieldValueKind.FIELD})),
-              options
-            );
-            setQuery(query?.slice(0, 1), options);
-          } else if (action.payload === DisplayType.CATEGORICAL_BAR) {
-            // Categorical bar widgets store both X-axis field (FIELD kind) and
-            // aggregates (FUNCTION/EQUATION kind) in state.fields, not yAxis.
-            // Like Big Number, categorical bar supports multiple aggregates with
-            // radio selection to choose which one to plot.
-            setYAxis([], options);
-            setLegendAlias([], options);
-
-            // Keep all aggregates from both fields and yAxis (like Big Number)
-            const nextAggregates = [
-              ...aggregatesWithoutAlias,
-              ...(yAxisWithoutAlias ?? []),
-            ];
-
-            // If no existing aggregate found, use the dataset's default
-            if (nextAggregates.length === 0) {
-              nextAggregates.push({
-                ...currentDatasetConfig.defaultField,
-                alias: undefined,
-              });
-            }
-
-            // Get an X-axis field from existing columns or use the dataset's default
-            const nextColumns = [...columnsWithoutAlias.slice(0, 1)];
-            if (nextColumns.length === 0 && currentDatasetConfig.defaultCategoryField) {
-              nextColumns.push({
-                kind: FieldValueKind.FIELD,
-                field: currentDatasetConfig.defaultCategoryField,
-                alias: undefined,
-              });
-            }
-
-            const categoricalBarFields = [...nextColumns, ...nextAggregates];
-            setFields(categoricalBarFields, options);
-
-            // Set default sort to descending on the last aggregate (like Big Number)
-            if (nextAggregates.length > 0) {
-              const sortField = generateSortField(
-                nextAggregates,
-                nextAggregates.length - 1
-              );
-              setSort([{kind: 'desc', field: sortField}], options);
-            }
-
-            setQuery(query?.slice(0, 1), options);
-            // Categorical bars show more categories than time-series groupings
-            setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
-          } else if (action.payload === DisplayType.TEXT) {
-            // Text widgets don't need any data fields, just title and description.
-            // Move any existing URL description into local state and clear the URL param
-            // to prevent excessively long URLs when the user types content.
-            setTextContent(description ?? '');
-            setDescription(undefined, options);
-            setFields([], options);
-            setYAxis([], options);
-            setQuery([''], options);
-            setSort([], options);
-            setLimit(undefined, options);
-            setLegendAlias([], options);
-            setDataset(undefined, options);
-            setLinkedDashboards([], options);
-            setThresholds(undefined, options);
-            setAxisRange(undefined, options);
-            setSelectedAggregate(undefined, options);
+                    ]
+                  : [],
+            };
           } else {
-            setFields(columnsWithoutAlias, options);
-            const nextAggregates = [
-              ...aggregatesWithoutAlias.slice(0, MAX_NUM_Y_AXES),
-              ...(yAxisWithoutAlias?.slice(0, MAX_NUM_Y_AXES) ?? []),
-            ];
-            if (nextAggregates.length === 0) {
-              nextAggregates.push({
-                ...currentDatasetConfig.defaultField,
-                alias: undefined,
-              });
-            }
-            setYAxis(nextAggregates, options);
-
-            // Reset the limit to a valid value, bias towards the current limit or
-            // default if possible
-            const maxLimit = getResultsLimit(query?.length ?? 1, nextAggregates.length);
-            setLimit(Math.min(limit ?? DEFAULT_RESULTS_LIMIT, maxLimit), options);
-
-            if (dataset === WidgetType.RELEASE && sort?.length === 0) {
-              setSort(
-                decodeSorts(
-                  getDatasetConfig(WidgetType.RELEASE).defaultWidgetQuery.orderby
-                ),
-                options
-              );
-            }
-          }
-          if (!doesDisplayTypeSupportThresholds(action.payload)) {
-            setThresholds(undefined, options);
-          }
-          if (!usesTimeSeriesData(action.payload)) {
-            setAxisRange(undefined, options);
-            setLegendType(undefined, options);
-          }
-          setSelectedAggregate(undefined, options);
-          setLinkedDashboards([], options);
-          break;
-        }
-        case BuilderStateAction.SET_DATASET: {
-          const config = getDatasetConfig(action.payload);
-
-          let nextDisplayType = displayType;
-          if (action.payload === WidgetType.ISSUE) {
-            // Issues only support table display type
-            nextDisplayType = DisplayType.TABLE;
-          } else if (
-            nextDisplayType &&
-            !config.supportedDisplayTypes.includes(nextDisplayType) &&
-            config.supportedDisplayTypes.length > 0
-          ) {
-            // If the current display type is not supported by the new dataset,
-            // reset to the first supported display type. This can happen when switching
-            // between datasets in the UI
-            nextDisplayType = config.supportedDisplayTypes[0];
-          }
-
-          setDataset(action.payload, options);
-          setDisplayType(nextDisplayType, options);
-
-          if (nextDisplayType === DisplayType.CATEGORICAL_BAR) {
-            // Categorical bar charts need both an X-axis field and aggregate
-            setYAxis([], options);
-
-            const categoricalBarFields: Column[] = [];
-
-            // Add X-axis field from dataset config
-            if (config.defaultCategoryField) {
-              categoricalBarFields.push({
-                kind: FieldValueKind.FIELD,
-                field: config.defaultCategoryField,
-              });
-            }
-
-            // Add aggregate from dataset config
-            if (config.defaultField) {
-              categoricalBarFields.push({
-                ...config.defaultField,
-                alias: undefined,
-              });
-            }
-            setFields(categoricalBarFields, options);
-
-            // Sort by the aggregate descending
-            const aggregateField = categoricalBarFields.find(
-              f => f.kind === FieldValueKind.FUNCTION
-            );
-            if (aggregateField) {
-              setSort(
-                [{kind: 'desc', field: generateFieldAsString(aggregateField)}],
-                options
-              );
-            } else {
-              setSort([], options);
-            }
-            // Categorical bars show more categories than time-series groupings
-            setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
-          } else if (usesTimeSeriesData(nextDisplayType)) {
-            setFields([], options);
-            setYAxis(
-              config.defaultWidgetQuery.aggregates?.map(aggregate =>
-                explodeField({field: aggregate})
-              ),
-              options
-            );
-            setSort(decodeSorts(config.defaultWidgetQuery.orderby), options);
-            setLimit(undefined, options);
-          } else {
-            setYAxis([], options);
-            setFields(
-              config.defaultWidgetQuery.fields?.map(field => explodeField({field})),
-              options
-            );
-            setSort(
-              nextDisplayType === DisplayType.BIG_NUMBER
-                ? []
-                : decodeSorts(config.defaultWidgetQuery.orderby),
-              options
-            );
-            setLimit(undefined, options);
-          }
-
-          setThresholds(undefined, options);
-          setAxisRange(undefined, options);
-          setLegendType(undefined, options);
-          setQuery([config.defaultWidgetQuery.conditions], options);
-          setLegendAlias([], options);
-          setSelectedAggregate(undefined, options);
-          setLinkedDashboards([], options);
-          break;
-        }
-        case BuilderStateAction.SET_FIELDS: {
-          setFields(action.payload, options);
-          const remainingKindFields = action.payload.filter(
-            field => field.kind === FieldValueKind.FIELD
-          );
-          const remainingLinkedDashboards = linkedDashboards?.filter(linkedDashboard =>
-            remainingKindFields.some(field => field.field === linkedDashboard.field)
-          );
-          setLinkedDashboards(remainingLinkedDashboards, options);
-
-          const isRemoved = action.payload.length < (fields?.length ?? 0);
-          if (
-            displayType === DisplayType.TABLE &&
-            action.payload.length > 0 &&
-            !action.payload.some(
-              field => generateFieldAsString(field) === sort?.[0]?.field
-            )
-          ) {
-            if (dataset === WidgetType.ISSUE) {
-              // Issue widgets can sort their tables by limited fields that aren't
-              // in the fields array.
-              return;
-            }
-
-            if (isRemoved) {
-              const fixedSort = fixupTableSortOnRemoval(action.payload, sort, dataset);
-              if (fixedSort) {
-                setSort(fixedSort, options);
-              }
-            } else {
-              const firstActionPayloadNotEquation: QueryFieldValue | undefined =
-                action.payload.find(field => field.kind !== FieldValueKind.EQUATION);
-
-              let validSortOptions: QueryFieldValue[] = firstActionPayloadNotEquation
-                ? [firstActionPayloadNotEquation]
-                : [];
-              if (dataset === WidgetType.RELEASE) {
-                validSortOptions = [
-                  ...action.payload.filter(field => {
-                    const fieldString = generateFieldAsString(field);
-                    return (
-                      !DISABLED_SORT.includes(fieldString) &&
-                      !TAG_SORT_DENY_LIST.includes(fieldString)
-                    );
-                  }),
-                ];
-              }
-              // Find the index of the first field that doesn't match the old fields, is not an equation, and is not a disabled release sort option.
-              const changedFieldIndex = action.payload.findIndex(
-                field =>
-                  !fields?.find(
-                    originalField =>
-                      generateFieldAsString(originalField) ===
-                        generateFieldAsString(field) ||
-                      originalField.kind === FieldValueKind.EQUATION ||
-                      (dataset === WidgetType.RELEASE &&
-                        (DISABLED_SORT.includes(generateFieldAsString(field)) ||
-                          TAG_SORT_DENY_LIST.includes(generateFieldAsString(field))))
-                  )
-              );
-              if (changedFieldIndex === -1) {
-                setSort(
-                  validSortOptions.length > 0
-                    ? [
-                        {
-                          kind: sort?.[0]?.kind ?? 'desc',
-                          field: generateFieldAsString(validSortOptions[0]!),
-                        },
-                      ]
-                    : [],
-                  options
-                );
-              } else {
-                // At this point, we can assume the fields are the same length so
-                // using the changedFieldIndex in fieldsPayload is safe.
-                setSort(
-                  [
-                    {
-                      kind: sort?.[0]?.kind ?? 'desc',
-                      field: generateFieldAsString(action.payload[changedFieldIndex]!),
-                    },
-                  ],
-                  options
-                );
-              }
-            }
-          }
-
-          if (
-            displayType !== DisplayType.TABLE &&
-            displayType !== DisplayType.BIG_NUMBER &&
-            action.payload.length > 0
-          ) {
-            const firstYAxisNotEquation = yAxis?.find(
-              field => field.kind !== FieldValueKind.EQUATION
-            );
-            const firstActionPayloadNotEquation = action.payload.find(
-              field => field.kind !== FieldValueKind.EQUATION
-            );
-
-            // Adding a grouping, so default the sort to the first aggregate if possible
-            let sortField: string | undefined;
-            if (firstYAxisNotEquation) {
-              sortField = generateFieldAsString(firstYAxisNotEquation);
-            } else if (firstActionPayloadNotEquation) {
-              sortField = generateFieldAsString(firstActionPayloadNotEquation);
-            }
-
-            // Only update sort if we have a valid field to sort by
-            if (sortField) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: sortField,
-                  },
-                ],
-                options
-              );
-            }
-          }
-
-          if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && !defined(limit)) {
-            setLimit(
-              Math.min(
-                DEFAULT_RESULTS_LIMIT,
-                getResultsLimit(query?.length ?? 1, yAxis?.length ?? 0)
-              ),
-              options
-            );
-          }
-
-          // Reset legend breakdown when more than one column is selected
-          if (action.payload.length > 1 && legendType === 'breakdown') {
-            setLegendType(undefined, options);
-          }
-          break;
-        }
-        case BuilderStateAction.SET_Y_AXIS: {
-          setYAxis(action.payload, options);
-
-          if (fields?.length && fields.length > 0) {
-            // Check if we need to update the limit for a Top N query
-            const maxLimit = getResultsLimit(query?.length ?? 1, action.payload.length);
-            if (limit && limit > maxLimit) {
-              setLimit(maxLimit, options);
-            }
-          }
-
-          // If there are yAxis fields but no groupings, clear the sort
-          if (action.payload.length > 0 && (!fields || fields.length === 0)) {
-            setSort([], options);
-          } else if (
-            action.payload.length > 0 &&
-            dataset === WidgetType.TRACEMETRICS &&
-            sort?.length &&
-            !checkTraceMetricSortUsed(sort, action.payload, fields)
-          ) {
-            setSort(
-              [
+            next = {
+              ...next,
+              sort: [
                 {
-                  kind: 'desc',
-                  field: generateSortField(action.payload, 0),
+                  kind: state.sort?.[0]?.kind ?? 'desc',
+                  field: generateFieldAsString(action.payload[changedFieldIndex]!),
                 },
               ],
-              options
-            );
-          }
-          break;
-        }
-        case BuilderStateAction.SET_QUERY:
-          setQuery(action.payload, options);
-          break;
-        case BuilderStateAction.SET_SORT: {
-          if (dataset === WidgetType.ISSUE) {
-            setSort(
-              action.payload.map(
-                ({field}): Sort => ({
-                  field,
-                  kind: REVERSED_ORDER_FIELD_SORT_LIST.includes(field) ? 'desc' : 'asc',
-                })
-              ),
-              options
-            );
-          } else {
-            setSort(action.payload, options);
-          }
-          break;
-        }
-        case BuilderStateAction.SET_LINKED_DASHBOARDS:
-          if (displayType === DisplayType.TABLE || legendType === 'breakdown') {
-            setLinkedDashboards(action.payload, options);
-          } else {
-            setLinkedDashboards([], options);
-          }
-          break;
-        case BuilderStateAction.SET_LIMIT:
-          setLimit(action.payload, options);
-          break;
-        case BuilderStateAction.SET_LEGEND_ALIAS:
-          setLegendAlias(action.payload, options);
-          break;
-        case BuilderStateAction.SET_LEGEND_TYPE:
-          setLegendType(action.payload, options);
-          if (action.payload !== 'breakdown' && displayType !== DisplayType.TABLE) {
-            setLinkedDashboards([], options);
-          }
-          break;
-        case BuilderStateAction.SET_SELECTED_AGGREGATE:
-          setSelectedAggregate(action.payload, options);
-          // For categorical bar, sync sort to the selected aggregate so
-          // bars are ordered by the displayed metric.
-          if (
-            displayType === DisplayType.CATEGORICAL_BAR &&
-            action.payload !== undefined &&
-            fields
-          ) {
-            const aggregates = fields.filter(
-              f =>
-                f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
-            );
-            if (aggregates[action.payload]) {
-              setSort(
-                [
-                  {
-                    kind: sort?.[0]?.kind ?? 'desc',
-                    field: generateSortField(aggregates, action.payload),
-                  },
-                ],
-                options
-              );
-            }
-          }
-          break;
-        case BuilderStateAction.SET_STATE:
-          setDataset(action.payload.dataset, options);
-          setDisplayType(action.payload.displayType, options);
-          if (action.payload.displayType === DisplayType.TEXT) {
-            setTextContent(action.payload.textContent);
-            setDescription(undefined, options);
-          } else {
-            setDescription(action.payload.description, options);
-            setTextContent(undefined);
-          }
-
-          if (action.payload.field) {
-            setFields(deserializeFields(action.payload.field), options);
-          }
-          setLegendAlias(action.payload.legendAlias, options);
-          setLegendType(action.payload.legendType, options);
-          setLimit(action.payload.limit, options);
-          setQuery(action.payload.query, options);
-          setSelectedAggregate(action.payload.selectedAggregate, options);
-          setSort(decodeSorts(action.payload.sort), options);
-          setTitle(action.payload.title, options);
-          if (action.payload.yAxis) {
-            setYAxis(deserializeFields(action.payload.yAxis), options);
-          }
-          setAxisRange(getAxisRange(action.payload.axisRange), options);
-          if (action.payload.linkedDashboards) {
-            setLinkedDashboards(
-              deserializeLinkedDashboards(action.payload.linkedDashboards),
-              options
-            );
-          }
-          break;
-        case BuilderStateAction.SET_THRESHOLDS:
-          setThresholds(action.payload, options);
-          break;
-        case BuilderStateAction.SET_AXIS_RANGE:
-          setAxisRange(action.payload, options);
-          break;
-        case BuilderStateAction.SET_CATEGORICAL_X_AXIS:
-          // Only applies to categorical bar charts
-          if (displayType === DisplayType.CATEGORICAL_BAR) {
-            // Preserve existing aggregates (functions and equations), update only the X-axis field
-            const existingAggregates =
-              fields?.filter(
-                f =>
-                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
-              ) ?? [];
-            const newXAxisField: Column = {
-              kind: FieldValueKind.FIELD,
-              field: action.payload,
             };
-            const newCategoricalFields = [newXAxisField, ...existingAggregates];
-            setFields(newCategoricalFields, options);
-
-            // Reset sort if it references a field no longer in the widget.
-            // Falls back to the selected aggregate (or last, matching Big Number).
-            if (existingAggregates.length > 0) {
-              const fixedSort = fixupCategoricalBarSort(
-                existingAggregates,
-                sort,
-                selectedAggregate,
-                [newXAxisField]
-              );
-              if (fixedSort) {
-                setSort(fixedSort, options);
-              }
-            } else {
-              setSort([], options);
-            }
           }
-          break;
-        case BuilderStateAction.SET_CATEGORICAL_AGGREGATE: {
-          // Only applies to categorical bar charts
-          if (displayType === DisplayType.CATEGORICAL_BAR) {
-            // Preserve existing X-axis field, update only the aggregates
-            const existingXAxisFields =
-              fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
-            setFields([...existingXAxisFields, ...action.payload], options);
-
-            // If the sort was on an aggregate that got edited in-place, fall
-            // back to the same index so the sort follows the edit.
-            const oldAggregates =
-              fields?.filter(
-                f =>
-                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
-              ) ?? [];
-            const sortedOldIndex = oldAggregates.findIndex(
-              f => generateFieldAsString(f) === sort?.[0]?.field
-            );
-
-            // Recompute sort when the current sort field is no longer valid
-            // in the new aggregates (e.g., after editing or adding a field).
-            // Deletions are handled atomically by DELETE_AGGREGATE.
-            const fixedSort = fixupCategoricalBarSort(
-              action.payload,
-              sort,
-              sortedOldIndex >= 0 ? sortedOldIndex : undefined,
-              existingXAxisFields
-            );
-            if (fixedSort) {
-              setSort(fixedSort, options);
-            }
-          }
-          break;
-        }
-        case BuilderStateAction.DELETE_AGGREGATE: {
-          const deleteIndex = action.payload;
-
-          if (displayType === DisplayType.CATEGORICAL_BAR) {
-            // Categorical bar: fields = [xAxisField, ...aggregates]
-            // The payload index is relative to the aggregates-only list shown in
-            // the Visualize section, so split out X-axis fields before filtering.
-            const xAxisFields =
-              fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
-            const aggregates =
-              fields?.filter(
-                f =>
-                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
-              ) ?? [];
-            const newAggregates = aggregates.filter((_, i) => i !== deleteIndex);
-            setFields([...xAxisFields, ...newAggregates], options);
-
-            // Recompute sort if the deleted aggregate was the current sort target
-            const fixedSort = fixupCategoricalBarSort(
-              newAggregates,
-              sort,
-              undefined,
-              xAxisFields
-            );
-            if (fixedSort) {
-              setSort(fixedSort, options);
-            }
-          } else if (displayType === DisplayType.BIG_NUMBER) {
-            // Big Number: fields list is flat (no X-axis separation), delete by index
-            const newFields = fields?.filter((_, i) => i !== deleteIndex) ?? [];
-            setFields(newFields, options);
-          } else if (
-            displayType === DisplayType.LINE ||
-            displayType === DisplayType.AREA ||
-            displayType === DisplayType.BAR ||
-            displayType === DisplayType.TOP_N
-          ) {
-            // Time series: aggregates are in yAxis
-            const newYAxis = yAxis?.filter((_, i) => i !== deleteIndex) ?? [];
-            setYAxis(newYAxis, options);
-
-            // Replicate SET_Y_AXIS limit check
-            if (fields?.length && fields.length > 0) {
-              const maxLimit = getResultsLimit(query?.length ?? 1, newYAxis.length);
-              if (limit && limit > maxLimit) {
-                setLimit(maxLimit, options);
-              }
-            }
-
-            // Replicate SET_Y_AXIS sort reconciliation
-            if (newYAxis.length > 0 && (!fields || fields.length === 0)) {
-              setSort([], options);
-            } else if (
-              newYAxis.length > 0 &&
-              dataset === WidgetType.TRACEMETRICS &&
-              sort?.length &&
-              !checkTraceMetricSortUsed(sort, newYAxis, fields)
-            ) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: generateFieldAsString(newYAxis[0]!),
-                  },
-                ],
-                options
-              );
-            }
-          } else {
-            // Table / other: fields list is flat, delete by index
-            const newFields = fields?.filter((_, i) => i !== deleteIndex) ?? [];
-            setFields(newFields, options);
-
-            // Clean up linked dashboards
-            const remainingKindFields = newFields.filter(
-              f => f.kind === FieldValueKind.FIELD
-            );
-            const remainingLinkedDashboards = linkedDashboards?.filter(ld =>
-              remainingKindFields.some(f => f.field === ld.field)
-            );
-            setLinkedDashboards(remainingLinkedDashboards, options);
-
-            // Table sort fixup: fall back to a valid sort field when the
-            // current sort target was the deleted field
-            if (displayType === DisplayType.TABLE) {
-              const fixedSort = fixupTableSortOnRemoval(newFields, sort, dataset);
-              if (fixedSort) {
-                setSort(fixedSort, options);
-              }
-            }
-          }
-
-          // Adjust selectedAggregate index for Big Number and Categorical Bar
-          // (these are the widget types that use radio selection)
-          if (
-            (displayType === DisplayType.BIG_NUMBER ||
-              displayType === DisplayType.CATEGORICAL_BAR) &&
-            selectedAggregate !== undefined
-          ) {
-            if (deleteIndex < selectedAggregate) {
-              setSelectedAggregate(selectedAggregate - 1, options);
-            } else if (deleteIndex === selectedAggregate) {
-              setSelectedAggregate(undefined, options);
-            }
-          }
-          break;
-        }
-        case BuilderStateAction.SET_TEXT_CONTENT: {
-          setTextContent(action.payload);
-          break;
         }
       }
-    },
-    [
-      dataset,
-      setTitle,
-      setDescription,
-      setQuery,
-      displayType,
-      setLimit,
-      setLegendAlias,
-      setLegendType,
-      setSelectedAggregate,
-      fields,
-      setDataset,
-      setDisplayType,
-      setSort,
-      setAxisRange,
-      setThresholds,
-      yAxis,
-      setLinkedDashboards,
-      setTextContent,
-      setYAxis,
-      setFields,
-      sort,
-      query,
-      description,
-      limit,
-      legendType,
-      linkedDashboards,
-      selectedAggregate,
-    ]
+
+      if (
+        state.displayType !== DisplayType.TABLE &&
+        state.displayType !== DisplayType.BIG_NUMBER &&
+        action.payload.length > 0
+      ) {
+        const firstYAxisNotEquation = state.yAxis?.find(
+          field => field.kind !== FieldValueKind.EQUATION
+        );
+        const firstActionPayloadNotEquation = action.payload.find(
+          field => field.kind !== FieldValueKind.EQUATION
+        );
+
+        let sortField: string | undefined;
+        if (firstYAxisNotEquation) {
+          sortField = generateFieldAsString(firstYAxisNotEquation);
+        } else if (firstActionPayloadNotEquation) {
+          sortField = generateFieldAsString(firstActionPayloadNotEquation);
+        }
+
+        if (sortField) {
+          next = {
+            ...next,
+            sort: [{kind: 'desc', field: sortField}],
+          };
+        }
+      }
+
+      if (
+        action.payload.length > 0 &&
+        (state.yAxis?.length ?? 0) > 0 &&
+        !defined(state.limit)
+      ) {
+        next = {
+          ...next,
+          limit: Math.min(
+            DEFAULT_RESULTS_LIMIT,
+            getResultsLimit(state.query?.length ?? 1, state.yAxis?.length ?? 0)
+          ),
+        };
+      }
+
+      // Reset legend breakdown when more than one column is selected
+      if (action.payload.length > 1 && state.legendType === 'breakdown') {
+        next = {...next, legendType: undefined};
+      }
+
+      return next;
+    }
+
+    case BuilderStateAction.SET_Y_AXIS: {
+      let next: WidgetBuilderState = {
+        ...state,
+        yAxis: action.payload,
+      };
+
+      if (state.fields?.length && state.fields.length > 0) {
+        const maxLimit = getResultsLimit(
+          state.query?.length ?? 1,
+          action.payload.length
+        );
+        if (state.limit && state.limit > maxLimit) {
+          next = {...next, limit: maxLimit};
+        }
+      }
+
+      if (action.payload.length > 0 && (!state.fields || state.fields.length === 0)) {
+        next = {...next, sort: []};
+      } else if (
+        action.payload.length > 0 &&
+        state.dataset === WidgetType.TRACEMETRICS &&
+        state.sort?.length &&
+        !checkTraceMetricSortUsed(state.sort, action.payload, state.fields)
+      ) {
+        next = {
+          ...next,
+          sort: [
+            {
+              kind: 'desc',
+              field: generateSortField(action.payload, 0),
+            },
+          ],
+        };
+      }
+
+      return next;
+    }
+
+    case BuilderStateAction.SET_QUERY:
+      return {...state, query: action.payload};
+
+    case BuilderStateAction.SET_SORT: {
+      if (state.dataset === WidgetType.ISSUE) {
+        return {
+          ...state,
+          sort: action.payload.map(
+            ({field}): Sort => ({
+              field,
+              kind: REVERSED_ORDER_FIELD_SORT_LIST.includes(field) ? 'desc' : 'asc',
+            })
+          ),
+        };
+      }
+      return {...state, sort: action.payload};
+    }
+
+    case BuilderStateAction.SET_LINKED_DASHBOARDS:
+      if (
+        state.displayType === DisplayType.TABLE ||
+        state.legendType === 'breakdown'
+      ) {
+        return {...state, linkedDashboards: action.payload};
+      }
+      return {...state, linkedDashboards: []};
+
+    case BuilderStateAction.SET_LIMIT:
+      return {...state, limit: action.payload};
+
+    case BuilderStateAction.SET_LEGEND_ALIAS:
+      return {...state, legendAlias: action.payload};
+
+    case BuilderStateAction.SET_LEGEND_TYPE: {
+      let next: WidgetBuilderState = {...state, legendType: action.payload};
+      if (
+        action.payload !== 'breakdown' &&
+        state.displayType !== DisplayType.TABLE
+      ) {
+        next = {...next, linkedDashboards: []};
+      }
+      return next;
+    }
+
+    case BuilderStateAction.SET_SELECTED_AGGREGATE: {
+      let next: WidgetBuilderState = {
+        ...state,
+        selectedAggregate: action.payload,
+      };
+
+      if (
+        state.displayType === DisplayType.CATEGORICAL_BAR &&
+        action.payload !== undefined &&
+        state.fields
+      ) {
+        const aggregates = state.fields.filter(
+          f =>
+            f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+        );
+        if (aggregates[action.payload]) {
+          next = {
+            ...next,
+            sort: [
+              {
+                kind: state.sort?.[0]?.kind ?? 'desc',
+                field: generateSortField(aggregates, action.payload),
+              },
+            ],
+          };
+        }
+      }
+
+      return next;
+    }
+
+    case BuilderStateAction.SET_STATE: {
+      const p = action.payload;
+      return {
+        ...state,
+        dataset: p.dataset,
+        displayType: p.displayType,
+        description:
+          p.displayType === DisplayType.TEXT ? undefined : p.description,
+        fields: p.field ? deserializeFields(p.field) : state.fields,
+        legendAlias: p.legendAlias,
+        legendType: p.legendType,
+        limit: p.limit,
+        query: p.query,
+        selectedAggregate: p.selectedAggregate,
+        sort: decodeSorts(p.sort),
+        title: p.title,
+        yAxis: p.yAxis ? deserializeFields(p.yAxis) : state.yAxis,
+        axisRange: getAxisRange(p.axisRange),
+        linkedDashboards: p.linkedDashboards
+          ? deserializeLinkedDashboards(p.linkedDashboards)
+          : state.linkedDashboards,
+      };
+    }
+
+    case BuilderStateAction.SET_THRESHOLDS:
+      return {...state, thresholds: action.payload};
+
+    case BuilderStateAction.SET_AXIS_RANGE:
+      return {...state, axisRange: action.payload};
+
+    case BuilderStateAction.SET_CATEGORICAL_X_AXIS: {
+      if (state.displayType !== DisplayType.CATEGORICAL_BAR) {
+        return state;
+      }
+
+      const existingAggregates =
+        state.fields?.filter(
+          f =>
+            f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+        ) ?? [];
+      const newXAxisField: Column = {
+        kind: FieldValueKind.FIELD,
+        field: action.payload,
+      };
+      const newCategoricalFields = [newXAxisField, ...existingAggregates];
+
+      let next: WidgetBuilderState = {
+        ...state,
+        fields: newCategoricalFields,
+      };
+
+      if (existingAggregates.length > 0) {
+        const fixedSort = fixupCategoricalBarSort(
+          existingAggregates,
+          state.sort,
+          state.selectedAggregate,
+          [newXAxisField]
+        );
+        if (fixedSort) {
+          next = {...next, sort: fixedSort};
+        }
+      } else {
+        next = {...next, sort: []};
+      }
+
+      return next;
+    }
+
+    case BuilderStateAction.SET_CATEGORICAL_AGGREGATE: {
+      if (state.displayType !== DisplayType.CATEGORICAL_BAR) {
+        return state;
+      }
+
+      const existingXAxisFields =
+        state.fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
+
+      let next: WidgetBuilderState = {
+        ...state,
+        fields: [...existingXAxisFields, ...action.payload],
+      };
+
+      const oldAggregates =
+        state.fields?.filter(
+          f =>
+            f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+        ) ?? [];
+      const sortedOldIndex = oldAggregates.findIndex(
+        f => generateFieldAsString(f) === state.sort?.[0]?.field
+      );
+
+      const fixedSort = fixupCategoricalBarSort(
+        action.payload,
+        state.sort,
+        sortedOldIndex >= 0 ? sortedOldIndex : undefined,
+        existingXAxisFields
+      );
+      if (fixedSort) {
+        next = {...next, sort: fixedSort};
+      }
+
+      return next;
+    }
+
+    case BuilderStateAction.DELETE_AGGREGATE: {
+      const deleteIndex = action.payload;
+
+      let next: WidgetBuilderState = {...state};
+
+      if (state.displayType === DisplayType.CATEGORICAL_BAR) {
+        const xAxisFields =
+          state.fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
+        const aggregates =
+          state.fields?.filter(
+            f =>
+              f.kind === FieldValueKind.FUNCTION ||
+              f.kind === FieldValueKind.EQUATION
+          ) ?? [];
+        const newAggregates = aggregates.filter((_, i) => i !== deleteIndex);
+
+        next = {...next, fields: [...xAxisFields, ...newAggregates]};
+
+        const fixedSort = fixupCategoricalBarSort(
+          newAggregates,
+          state.sort,
+          undefined,
+          xAxisFields
+        );
+        if (fixedSort) {
+          next = {...next, sort: fixedSort};
+        }
+      } else if (state.displayType === DisplayType.BIG_NUMBER) {
+        const newFields = state.fields?.filter((_, i) => i !== deleteIndex) ?? [];
+        next = {...next, fields: newFields};
+      } else if (
+        state.displayType === DisplayType.LINE ||
+        state.displayType === DisplayType.AREA ||
+        state.displayType === DisplayType.BAR ||
+        state.displayType === DisplayType.TOP_N
+      ) {
+        const newYAxis = state.yAxis?.filter((_, i) => i !== deleteIndex) ?? [];
+        next = {...next, yAxis: newYAxis};
+
+        if (state.fields?.length && state.fields.length > 0) {
+          const maxLimit = getResultsLimit(
+            state.query?.length ?? 1,
+            newYAxis.length
+          );
+          if (state.limit && state.limit > maxLimit) {
+            next = {...next, limit: maxLimit};
+          }
+        }
+
+        if (newYAxis.length > 0 && (!state.fields || state.fields.length === 0)) {
+          next = {...next, sort: []};
+        } else if (
+          newYAxis.length > 0 &&
+          state.dataset === WidgetType.TRACEMETRICS &&
+          state.sort?.length &&
+          !checkTraceMetricSortUsed(state.sort, newYAxis, state.fields)
+        ) {
+          next = {
+            ...next,
+            sort: [
+              {kind: 'desc', field: generateFieldAsString(newYAxis[0]!)},
+            ],
+          };
+        }
+      } else {
+        // Table / other
+        const newFields = state.fields?.filter((_, i) => i !== deleteIndex) ?? [];
+        next = {...next, fields: newFields};
+
+        const remainingKindFields = newFields.filter(
+          f => f.kind === FieldValueKind.FIELD
+        );
+        next.linkedDashboards = state.linkedDashboards?.filter(ld =>
+          remainingKindFields.some(f => f.field === ld.field)
+        );
+
+        if (state.displayType === DisplayType.TABLE) {
+          const fixedSort = fixupTableSortOnRemoval(
+            newFields,
+            state.sort,
+            state.dataset
+          );
+          if (fixedSort) {
+            next = {...next, sort: fixedSort};
+          }
+        }
+      }
+
+      // Adjust selectedAggregate index for Big Number and Categorical Bar
+      if (
+        (state.displayType === DisplayType.BIG_NUMBER ||
+          state.displayType === DisplayType.CATEGORICAL_BAR) &&
+        state.selectedAggregate !== undefined
+      ) {
+        if (deleteIndex < state.selectedAggregate) {
+          next = {...next, selectedAggregate: state.selectedAggregate - 1};
+        } else if (deleteIndex === state.selectedAggregate) {
+          next = {...next, selectedAggregate: undefined};
+        }
+      }
+
+      return next;
+    }
+
+    case BuilderStateAction.SET_TEXT_CONTENT:
+      // textContent is managed via session storage in the hook, not in reducer state.
+      // Return state unchanged; the hook wrapper handles this action.
+      return state;
+
+    default:
+      return state;
+  }
+}
+
+
+const WIDGET_BUILDER_URL_PARAMS = new Set([
+  'title',
+  'description',
+  'displayType',
+  'dataset',
+  'field',
+  'yAxis',
+  'query',
+  'sort',
+  'limit',
+  'legendAlias',
+  'legendType',
+  'selectedAggregate',
+  'thresholds',
+  'linkedDashboards',
+  'axisRange',
+]);
+
+/**
+ * Deserialize URL query params into WidgetBuilderState.
+ */
+function deserializeUrlToState(
+  queryParams: Record<string, any>
+): WidgetBuilderState {
+  const title = decodeScalar(queryParams.title, '') ?? undefined;
+  const description = decodeScalar(queryParams.description, '') ?? undefined;
+  const displayType = deserializeDisplayType(
+    decodeScalar(queryParams.displayType, '') ?? ''
   );
+  const dataset = deserializeDataset(
+    decodeScalar(queryParams.dataset, '') ?? ''
+  );
+  const fields = queryParams.field
+    ? deserializeFields(decodeList(queryParams.field))
+    : undefined;
+  const yAxis = queryParams.yAxis
+    ? deserializeFields(decodeList(queryParams.yAxis))
+    : undefined;
+  const query = deserializeQuery(decodeList(queryParams.query));
+  const sort = deserializeSorts(dataset)(decodeSorts(queryParams.sort));
+  const decodedLimit = decodeScalar(queryParams.limit, '');
+  const limit = defined(decodedLimit) ? deserializeLimit(decodedLimit) : undefined;
+  const legendAlias = queryParams.legendAlias
+    ? decodeList(queryParams.legendAlias)
+    : undefined;
+  const legendType = queryParams.legendType
+    ? deserializeLegendType(decodeScalar(queryParams.legendType, '') ?? '')
+    : undefined;
+  const selectedAggregate = queryParams.selectedAggregate
+    ? deserializeSelectedAggregate(
+        decodeScalar(queryParams.selectedAggregate, '') ?? ''
+      )
+    : undefined;
+  const thresholds = queryParams.thresholds
+    ? deserializeThresholds(decodeScalar(queryParams.thresholds, '') ?? '')
+    : undefined;
+  const linkedDashboards = queryParams.linkedDashboards
+    ? deserializeLinkedDashboards(decodeList(queryParams.linkedDashboards))
+    : undefined;
+  const axisRange = queryParams.axisRange
+    ? getAxisRange(decodeScalar(queryParams.axisRange, '') ?? '')
+    : undefined;
 
   return {
-    state,
-    dispatch,
+    title,
+    description,
+    displayType,
+    dataset,
+    fields,
+    yAxis,
+    query,
+    sort,
+    limit,
+    legendAlias,
+    legendType,
+    selectedAggregate,
+    thresholds,
+    linkedDashboards,
+    axisRange,
   };
 }
+
+/**
+ * Serialize WidgetBuilderState to URL query params.
+ * Returns only widget builder params; non-widget params are preserved separately.
+ */
+function serializeStateToUrl(
+  state: WidgetBuilderState
+): Record<string, string | string[] | number | undefined> {
+  return {
+    title: state.title,
+    description: state.description,
+    displayType: state.displayType,
+    dataset: state.dataset,
+    field: serializeFields(state.fields ?? []),
+    yAxis: serializeFields(state.yAxis ?? []),
+    query: state.query,
+    sort: serializeSorts(state.dataset)(state.sort ?? []),
+    limit: state.limit,
+    legendAlias: state.legendAlias,
+    legendType: state.legendType,
+    selectedAggregate: state.selectedAggregate,
+    thresholds: state.thresholds ? serializeThresholds(state.thresholds) : undefined,
+    linkedDashboards: state.linkedDashboards
+      ? serializeLinkedDashboards(state.linkedDashboards)
+      : undefined,
+    axisRange: state.axisRange,
+  };
+}
+
+
+export function useWidgetBuilderState(): {
+  dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
+  state: WidgetBuilderState;
+} {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Initialize reducer state from URL on mount only
+  const [initialState] = useState(() => deserializeUrlToState(location.query));
+  const [reducerState, rawDispatch] = useReducer(widgetBuilderReducer, initialState);
+
+  // textContent lives in session storage, not the URL
+  const [textContent, setTextContent] = useSessionStorage<string | undefined>(
+    WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key,
+    undefined
+  );
+
+  // Skip the initial mount (state already matches URL)
+  const isInitialRenderRef = useRef(true);
+  // Track whether the next effect should sync to URL
+  const shouldSyncUrlRef = useRef(true);
+
+  // Merge textContent and compute derived selectedAggregate
+  const state = useMemo(() => {
+    const {displayType, fields, selectedAggregate: rawSelected} = reducerState;
+    let selectedAggregate: number | undefined;
+
+    if (
+      displayType === DisplayType.BIG_NUMBER &&
+      defined(fields) &&
+      fields.length > 1
+    ) {
+      selectedAggregate = rawSelected ?? fields.length - 1;
+    } else if (
+      displayType === DisplayType.CATEGORICAL_BAR &&
+      defined(fields)
+    ) {
+      const aggregateCount = fields.filter(
+        f =>
+          f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+      ).length;
+      selectedAggregate =
+        aggregateCount > 1
+          ? Math.min(rawSelected ?? aggregateCount - 1, aggregateCount - 1)
+          : undefined;
+    }
+
+    return {
+      ...reducerState,
+      textContent,
+      selectedAggregate,
+    };
+  }, [reducerState, textContent]);
+
+  // Wrapped dispatch
+  const dispatch = useCallback(
+    (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => {
+      shouldSyncUrlRef.current = options?.updateUrl !== false;
+
+      // Handle textContent side effects
+      if (action.type === BuilderStateAction.SET_TEXT_CONTENT) {
+        setTextContent(action.payload);
+        // Don't sync URL for text content changes
+        shouldSyncUrlRef.current = false;
+        rawDispatch(action);
+        return;
+      }
+
+      if (action.type === BuilderStateAction.SET_DISPLAY_TYPE) {
+        if (
+          reducerState.displayType === DisplayType.TEXT &&
+          action.payload !== DisplayType.TEXT
+        ) {
+          setTextContent(undefined);
+        } else if (action.payload === DisplayType.TEXT) {
+          setTextContent(reducerState.description ?? '');
+        }
+      }
+
+      if (action.type === BuilderStateAction.SET_STATE) {
+        if (action.payload.displayType === DisplayType.TEXT) {
+          setTextContent(action.payload.textContent);
+        } else {
+          setTextContent(undefined);
+        }
+      }
+
+      rawDispatch(action);
+    },
+    [rawDispatch, setTextContent, reducerState.displayType, reducerState.description]
+  );
+
+  // Debounced URL writer — collapses rapid-fire dispatches (e.g. typing)
+  // into a single navigate call, matching the old UrlParamBatchProvider behavior.
+  const flushToUrl = useMemo(
+    () =>
+      debounce((nextState: WidgetBuilderState) => {
+        const serialized = serializeStateToUrl(nextState);
+
+        const existingParams = qs.parse(window.location.search);
+        const nonWidgetParams: Record<
+          string,
+          string | string[] | null | undefined
+        > = {};
+        for (const [key, value] of Object.entries(existingParams)) {
+          if (!WIDGET_BUILDER_URL_PARAMS.has(key)) {
+            nonWidgetParams[key] = value;
+          }
+        }
+
+        navigate(
+          {
+            pathname: window.location.pathname,
+            query: {
+              ...nonWidgetParams,
+              ...serialized,
+            },
+          },
+          {replace: true, preventScrollReset: true}
+        );
+      }, URL_SYNC_DEBOUNCE_MS),
+    [navigate]
+  );
+
+  // Cancel pending URL writes on unmount
+  useEffect(() => () => flushToUrl.cancel(), [flushToUrl]);
+
+  // URL sync effect: schedule a debounced URL write when reducer state changes
+  useEffect(() => {
+    if (isInitialRenderRef.current) {
+      isInitialRenderRef.current = false;
+      return;
+    }
+    if (!shouldSyncUrlRef.current) {
+      shouldSyncUrlRef.current = true;
+      return;
+    }
+
+    flushToUrl(reducerState);
+  }, [reducerState, flushToUrl]);
+
+  return {state, dispatch};
+}
+
 
 /**
  * Decodes the display type from the query params
