@@ -32,6 +32,11 @@ type LinkedPullRequestsResponse = {
   pullRequests: LinkedPullRequest[];
 };
 
+interface LinkedPullRequestsProps {
+  group: Group;
+  showEmptyState?: boolean;
+}
+
 type StatusIconConfig = {
   Icon: React.ComponentType<SVGIconProps>;
   variant: SVGIconProps['variant'];
@@ -124,11 +129,11 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
   );
 }
 
-export function LinkedPullRequests({group}: {group: Group}) {
+export function useLinkedPullRequests({group}: {group: Group}) {
   const organization = useOrganization();
   const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
 
-  const {data, isError} = useQuery(
+  return useQuery(
     apiOptions.as<LinkedPullRequestsResponse>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
@@ -139,8 +144,26 @@ export function LinkedPullRequests({group}: {group: Group}) {
       }
     )
   );
+}
 
-  if (!hasFeature || isError || !data?.pullRequests.length) {
+export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
+  const organization = useOrganization();
+  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
+  const {data, isError} = useLinkedPullRequests({group});
+
+  if (!hasFeature || isError) {
+    return null;
+  }
+
+  if (data?.pullRequests.length === 0) {
+    return showEmptyState ? (
+      <EmptyLinksText variant="muted">
+        {t('No linked issues or pull requests')}
+      </EmptyLinksText>
+    ) : null;
+  }
+
+  if (!data?.pullRequests.length) {
     return null;
   }
 
@@ -179,6 +202,10 @@ const PullRequestRow = styled(ExternalLink)`
   }
 `;
 
+const EmptyLinksText = styled(Text)`
+  margin: 0;
+`;
+
 const RepositoryIcon = styled(IconRepository)`
   transform: translateY(1px);
 `;
@@ -188,8 +215,6 @@ const PullRequestTitle = styled('span')`
   overflow: hidden;
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-variant-ligatures: no-common-ligatures;
-  font-feature-settings: 'liga' 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
