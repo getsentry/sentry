@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import NoReturn
 from unittest.mock import Mock
 from urllib.parse import urlencode
 
@@ -7,6 +8,7 @@ import pytest
 import responses
 from asgiref.sync import async_to_sync
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import JsonResponse
 from django.test.client import RequestFactory
 from requests import PreparedRequest
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -349,6 +351,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().get("http://sentry.io/unreachable")
         resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
         assert resp.status_code == 504
+        assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Proxied request timed out"
 
     @responses.activate
@@ -361,10 +364,11 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().get("http://sentry.io/unreachable")
         resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
         assert resp.status_code == 502
+        assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
 
     def test_async_timeout_returns_504(self) -> None:
-        def raise_timeout(request: httpx.Request) -> httpx.Response:
+        def raise_timeout(request: httpx.Request) -> NoReturn:
             raise httpx.ConnectTimeout("connection timed out", request=request)
 
         self.httpx_router.add_callback(
@@ -374,10 +378,11 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().get("http://sentry.io/unreachable")
         resp = proxy_request(request, self.organization.slug, url_name)
         assert resp.status_code == 504
+        assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Proxied request timed out"
 
     def test_async_connection_error_returns_502(self) -> None:
-        def raise_connect_error(request: httpx.Request) -> httpx.Response:
+        def raise_connect_error(request: httpx.Request) -> NoReturn:
             raise httpx.ConnectError("connection refused", request=request)
 
         self.httpx_router.add_callback(
@@ -387,6 +392,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().get("http://sentry.io/unreachable")
         resp = proxy_request(request, self.organization.slug, url_name)
         assert resp.status_code == 502
+        assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
 
 
