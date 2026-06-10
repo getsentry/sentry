@@ -52,7 +52,12 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
           linkedIssues={externalIssueData.linkedIssues}
         />
         <ErrorBoundary customComponent={null}>
-          <LinkedPullRequests group={group} />
+          <LinkedPullRequests
+            group={group}
+            showEmptyState={
+              hasLinkedPullRequestsFeature && externalIssueData.linkedIssues.length === 0
+            }
+          />
         </ErrorBoundary>
       </Flex>
     </SidebarFoldSection>

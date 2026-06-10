@@ -301,6 +301,23 @@ describe('ExternalIssueSidebarList', () => {
     ).toBeInTheDocument();
   });
 
+  it('should render an external links empty state', async () => {
+    mockLinkedPullRequestsFeatureRequests([
+      GitHubIntegrationFixture({
+        status: 'active',
+        externalIssues: [],
+        name: 'GitHub sentry',
+      }),
+    ]);
+
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+      organization: organizationWithLinkedPullRequestsFeature,
+    });
+
+    expect(await screen.findByText('No external links yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Issue Tracker'})).toBeInTheDocument();
+  });
+
   it('should render empty state when no integrations', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,

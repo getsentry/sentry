@@ -32,6 +32,11 @@ type LinkedPullRequestsResponse = {
   pullRequests: LinkedPullRequest[];
 };
 
+interface LinkedPullRequestsProps {
+  group: Group;
+  showEmptyState?: boolean;
+}
+
 type StatusIconConfig = {
   Icon: React.ComponentType<SVGIconProps>;
   variant: SVGIconProps['variant'];
@@ -124,7 +129,7 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
   );
 }
 
-export function LinkedPullRequests({group}: {group: Group}) {
+export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
   const organization = useOrganization();
   const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
 
@@ -140,7 +145,17 @@ export function LinkedPullRequests({group}: {group: Group}) {
     )
   );
 
-  if (!hasFeature || isError || !data?.pullRequests.length) {
+  if (!hasFeature || isError) {
+    return null;
+  }
+
+  if (data?.pullRequests.length === 0) {
+    return showEmptyState ? (
+      <EmptyLinksText variant="muted">{t('No external links yet')}</EmptyLinksText>
+    ) : null;
+  }
+
+  if (!data?.pullRequests.length) {
     return null;
   }
 
@@ -177,6 +192,10 @@ const PullRequestRow = styled(ExternalLink)`
     color: ${p => p.theme.tokens.content.primary};
     background: ${p => p.theme.tokens.background.secondary};
   }
+`;
+
+const EmptyLinksText = styled(Text)`
+  margin: 0;
 `;
 
 const RepositoryIcon = styled(IconRepository)`
