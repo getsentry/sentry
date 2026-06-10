@@ -197,6 +197,12 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     ({project, projectDetailsForm: submittedForm}: ScmProjectDetailsCompletion) => {
       writeStorageValue(WIZARD_STORAGE_KEY, {
         ...wizardState,
+        // An optimistic repo (empty id, see useScmRepoSelection) can never
+        // fetch detection; restoring one would strand the platform section in
+        // a permanent spinner, so it is not worth persisting.
+        selectedRepository: wizardState.selectedRepository?.id
+          ? wizardState.selectedRepository
+          : undefined,
         createdProjectId: project.id,
         createdProjectSlug: project.slug,
         projectDetailsForm: submittedForm,
