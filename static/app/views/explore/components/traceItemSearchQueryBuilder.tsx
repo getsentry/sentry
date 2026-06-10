@@ -79,12 +79,11 @@ function getTraceItemFieldDefinitionFunction(
   tags: TagCollection
 ) {
   const getter: FieldDefinitionGetter = (key, options) => {
-    // User-created span/log attributes aren't in the documented field
-    // definitions, so we derive their kind from (in order): the kind passed by
-    // the caller (the attribute's tag), the static tag collection, or the
-    // explicit tag syntax embedded in the key itself (e.g. `tags[key,number]`).
-    // Without this, dynamically-fetched number/boolean attributes fall back to
-    // a string value type.
+    // User-created attributes aren't in the documented field definitions, so we derive
+    // their kind from (in order): the kind passed by the caller (the attribute's tag),
+    // the static tag collection, or the explicit tag syntax embedded in the key itself
+    // (e.g. `tags[key,number]`). Without this, dynamically-fetched number/boolean
+    // attributes fall back to a string value type.
     //
     // `classifyTagKey` returns `TAG` for keys without explicit tag syntax, so we
     // only use it when it actually disambiguates the type. Otherwise we leave

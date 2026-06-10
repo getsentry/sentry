@@ -129,10 +129,6 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
         organization,
       });
 
-      // A user-created attribute that is not in the static collection and not in
-      // the documented field definitions (e.g. dynamically fetched while typing).
-      // Without the kind it resolves to null, letting callers (e.g. the type
-      // badge) fall back to the attribute's own kind.
       expect(
         result.current.fieldDefinitionGetter('my.custom.number.attribute')
       ).toBeNull();
