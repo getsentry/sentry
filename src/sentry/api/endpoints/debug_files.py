@@ -274,8 +274,15 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         try:
             fp = debug_file.getfile()
+
+            def stream_debug_file():
+                try:
+                    yield from iter(lambda: fp.read(4096), b"")
+                finally:
+                    fp.close()
+
             response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
+                stream_debug_file(), content_type="application/octet-stream"
             )
             response["Content-Length"] = debug_file.get_file_size()
             response["Content-Disposition"] = (
