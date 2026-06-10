@@ -423,13 +423,15 @@ function builtInIssuesFields({
     ISSUE_FIELDS.includes(key as FieldKey)
   );
 
-  const hasProgressFlag = organization.features.includes('issue-stream-progress-ui');
-  const {[FieldKey.ISSUE_PROGRESS]: _progress, ...predefinedFieldsWithoutProgress} =
-    PREDEFINED_FIELDS;
-
-  return {
-    ...(hasProgressFlag ? PREDEFINED_FIELDS : predefinedFieldsWithoutProgress),
+  const allFields: TagCollection = {
+    ...PREDEFINED_FIELDS,
     ...Object.fromEntries(filteredCollection),
     ...semverFields,
   };
+
+  if (!organization.features.includes('issue-stream-progress-ui')) {
+    delete allFields[FieldKey.ISSUE_PROGRESS];
+  }
+
+  return allFields;
 }
