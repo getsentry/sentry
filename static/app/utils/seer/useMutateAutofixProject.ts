@@ -1,27 +1,24 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {
-  projectSeerPreferencesApiOptions,
-  type SeerPreferencesResponse,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {projectSeerReposApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerRepos';
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
-  buildHandoffPayload,
   knownAgentIntegrationsQueryOptions,
   parseAgentOption,
 } from 'sentry/utils/seer/preferredAgent';
+import {getSeerProjectSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   getTuningFromStoppingPoint,
   resolveStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
 import type {
   AutofixAgentSelectOption,
+  SeerProjectSettingResponse,
   UserFacingStoppingPoint,
 } from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -53,15 +50,7 @@ export function useMutateAutofixProject() {
     }: TVariables): Promise<void> => {
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
       const {agent, integrationId} = parseAgentOption(agentOption, knownAgents);
-      const handoff = buildHandoffPayload(
-        agent,
-        integrationId,
-        stoppingPoint === 'create_pr'
-      );
-      const {stoppingPointValue, automationHandoff} = resolveStoppingPoint(
-        stoppingPoint,
-        handoff
-      );
+      const {stoppingPointValue} = resolveStoppingPoint(stoppingPoint, undefined);
 
       const repos = repoEntries
         .filter(e => Boolean(e.repoId))
@@ -84,53 +73,23 @@ export function useMutateAutofixProject() {
         data: {repos},
       });
 
-      // 2. Tuning + stopping point go through the bulk automation-settings
-      //    endpoint. Its write path rewrites existing repos by repository_id
-      //    (read back from the DB), so it avoids the legacy preferences
-      //    filter_repo_by_provider path that 400s ("Invalid repository") on
-      //    GitLab repos.
-      await fetchMutation({
-        method: 'POST',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/autofix/automation-settings/',
-          {path: {organizationIdOrSlug: organization.slug}}
-        ),
+      // 2. Agent, tuning, and stopping point go through the project settings
+      //    endpoint added for the new Seer settings UI.
+      const settingsQueryOptions = getSeerProjectSettingsQueryOptions({
+        organization,
+        project: {slug: project.slug},
+      });
+      const [settingsUrl] = settingsQueryOptions.queryKey;
+      await fetchMutation<SeerProjectSettingResponse>({
+        method: 'PUT',
+        url: settingsUrl,
         data: {
-          autofixAutomationTuning: tuning,
-          projectIds: [Number(project.id)],
-          ...(stoppingPointValue ? {automatedRunStoppingPoint: stoppingPointValue} : {}),
+          agent,
+          ...(integrationId ? {integrationId} : {}),
+          automationTuning: tuning,
+          ...(stoppingPointValue ? {stoppingPoint: stoppingPointValue} : {}),
         },
       });
-
-      // 3. Coding-agent handoff (external agents only) isn't settable via the
-      //    bulk endpoint, so fall back to the preferences endpoint for it. The
-      //    Seer agent needs no handoff and skips this. We read back the repos we
-      //    just wrote (same SeerProjectRepository store) so we don't clobber
-      //    them on the preferences replace-all.
-      if (automationHandoff) {
-        const prefsData = await queryClient.fetchQuery({
-          ...projectSeerPreferencesApiOptions(organization.slug, project.slug),
-          staleTime: 0,
-        });
-
-        await fetchMutation<SeerPreferencesResponse>({
-          method: 'POST',
-          url: getApiUrl(
-            '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
-            {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                projectIdOrSlug: project.slug,
-              },
-            }
-          ),
-          data: {
-            repositories: prefsData.json.preference?.repositories ?? [],
-            automated_run_stopping_point: stoppingPointValue,
-            automation_handoff: automationHandoff,
-          },
-        });
-      }
     },
     onSuccess: (_data, variables) => {
       const {project, stoppingPoint} = variables;
@@ -142,14 +101,17 @@ export function useMutateAutofixProject() {
     onSettled: (_data, _error, variables, _context) => {
       const {project} = variables;
       queryClient.invalidateQueries({
-        queryKey: projectSeerReposApiOptions(organization.slug, project.slug).queryKey,
-      });
-      queryClient.invalidateQueries({
         queryKey: projectSeerPreferencesApiOptions(organization.slug, project.slug)
           .queryKey,
       });
       queryClient.invalidateQueries({
         queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: getSeerProjectSettingsQueryOptions({
+          organization,
+          project: {slug: project.slug},
+        }).queryKey,
       });
       queryClient.invalidateQueries({
         queryKey: makeDetailedProjectQueryKey({

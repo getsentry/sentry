@@ -13,7 +13,7 @@ describe('useMutateAutofixProject', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('writes repos via seer/repos and settings via the bulk endpoint, skipping preferences for the Seer agent', async () => {
+  it('writes repos via seer/repos and project settings via seer/settings', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
@@ -24,9 +24,9 @@ describe('useMutateAutofixProject', () => {
       method: 'PUT',
       status: 204,
     });
-    const bulkPost = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/autofix/automation-settings/`,
-      method: 'POST',
+    const settingsPut = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'PUT',
       status: 204,
     });
     const prefsPost = MockApiClient.addMockResponse({
@@ -50,19 +50,20 @@ describe('useMutateAutofixProject', () => {
       expect.objectContaining({data: {repos: [{repositoryId: 7, branchName: 'main'}]}})
     );
 
-    await waitFor(() => expect(bulkPost).toHaveBeenCalled());
-    expect(bulkPost).toHaveBeenCalledWith(
+    await waitFor(() => expect(settingsPut).toHaveBeenCalled());
+    expect(settingsPut).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          automatedRunStoppingPoint: 'root_cause',
-          projectIds: [Number(project.id)],
+          agent: 'seer',
+          automationTuning: 'medium',
+          stoppingPoint: 'root_cause',
         }),
       })
     );
 
-    // The Seer agent needs no handoff, so the legacy (GitLab-incompatible)
-    // preferences endpoint is never called.
+    // The legacy preferences endpoint is GitLab-incompatible for nested groups,
+    // so the modal save path should avoid it.
     expect(prefsPost).not.toHaveBeenCalled();
   });
 });
