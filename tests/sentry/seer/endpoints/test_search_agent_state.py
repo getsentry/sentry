@@ -23,9 +23,11 @@ class SearchAgentStateEndpointTest(APITestCase):
         mock_request.return_value = Mock(
             status=200, json=Mock(return_value={"session": {"status": "completed"}})
         )
+        self.create_seer_run(type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=42)
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug, "42")
         assert response.data["session"]["status"] == "completed"
+        assert mock_request.call_args[0][0]["run_id"] == 42
 
     def test_uuid_returns_processing_when_outbox_not_drained(self) -> None:
         run = self.create_seer_run(type=SeerRunType.ASSISTED_QUERY)

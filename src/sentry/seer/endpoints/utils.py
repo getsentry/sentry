@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid as uuid_module
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -13,21 +13,34 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-def resolve_seer_run_state_id(run_id: str | int, organization: Organization) -> int | Response:
-    """Resolve a client-facing run id (numeric ``seer_run_state_id`` or a
-    ``SeerRun.uuid``) to the Seer-side ``seer_run_state_id``.
+class ResolvedSeerRun(NamedTuple):
+    seer_run_state_id: int
+    uuid: str
 
-    Returns the ``seer_run_state_id`` when resolved, otherwise an error
-    ``Response`` following the ``{"session": ...}`` poll contract: 400 for an
-    unparseable id, 404 for an unknown run, and a ``processing`` / ``error``
-    session status while the run's Seer id isn't mirrored yet or its mirror
-    failed. Callers narrow with ``isinstance(result, Response)``. Numeric ids
-    pass straight through.
+
+def resolve_seer_run(run_id: str | int, organization: Organization) -> ResolvedSeerRun | Response:
+    """Resolve a client-facing run id (numeric ``seer_run_state_id`` or a
+    ``SeerRun.uuid``) to its :class:`SeerRun`, scoped to ``organization``.
+
+    Returns a :class:`ResolvedSeerRun` (the Seer-side id and the run's UUID) in
+    a single lookup, or an error ``Response`` following the ``{"session": ...}``
+    poll contract: 400 for an unparseable id, 404 for an unknown run, and a
+    ``processing`` / ``error`` session status while the run's Seer id isn't
+    mirrored yet or its mirror failed. Callers narrow with
+    ``isinstance(result, Response)``.
     """
     try:
-        return int(run_id)
+        seer_run_state_id = int(run_id)
     except (TypeError, ValueError):
-        pass
+        seer_run_state_id = None
+
+    if seer_run_state_id is not None:
+        run = SeerRun.objects.filter(
+            seer_run_state_id=seer_run_state_id, organization=organization
+        ).first()
+        if run is None:
+            return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
+        return ResolvedSeerRun(seer_run_state_id, str(run.uuid))
 
     try:
         run_uuid = uuid_module.UUID(str(run_id))
@@ -41,7 +54,7 @@ def resolve_seer_run_state_id(run_id: str | int, organization: Organization) -> 
         return Response({"session": {"status": "error"}})
     if run.seer_run_state_id is None:
         return Response({"session": {"status": "processing"}})
-    return run.seer_run_state_id
+    return ResolvedSeerRun(run.seer_run_state_id, str(run.uuid))
 
 
 def map_org_id_param(func: Callable) -> Callable:

@@ -42,6 +42,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client = MagicMock()
         mock_client.get_run.return_value = mock_state
         mock_client_class.return_value = mock_client
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
 
         response = self.client.get(f"{self.url}123/")
 
@@ -79,6 +80,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client = MagicMock()
         mock_client.get_run.return_value = mock_state
         mock_client_class.return_value = mock_client
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
 
         response = self.client.get(f"{self.url}123/")
 
@@ -166,6 +168,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client = MagicMock()
         mock_client.continue_run.return_value = 789
         mock_client_class.return_value = mock_client
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=789)
 
         data = {
             "query": "Follow up question",
@@ -174,7 +177,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.post(f"{self.url}789/", data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 789}
+        assert response.data == {"run_id": 789, "sentry_run_id": str(run.uuid)}
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
@@ -280,6 +283,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_enable_coding(self, mock_client_class: MagicMock) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
         for i, (feature_enabled, option_enabled) in enumerate(
             [(True, True), (True, False), (False, True), (False, False)]
         ):
@@ -319,6 +323,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client = MagicMock()
         mock_client.get_run.return_value = mock_state
         mock_client_class.return_value = mock_client
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
 
         with self.feature(
             {
@@ -339,6 +344,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client = MagicMock()
         mock_client.continue_run.return_value = 789
         mock_client_class.return_value = mock_client
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=789)
 
         data = {"query": "Follow up question"}
         with self.feature(
@@ -350,7 +356,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             response = self.client.post(f"{self.url}789/", data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 789}
+        assert response.data == {"run_id": 789, "sentry_run_id": str(run.uuid)}
 
     def test_new_run_denied_without_seer_explorer_flag(self) -> None:
         """POST without run_id should be denied with only dashboards-ai-generate flag."""

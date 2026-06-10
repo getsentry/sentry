@@ -20,9 +20,8 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.endpoints.utils import resolve_seer_run_state_id
+from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerRun
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -158,14 +157,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         if not run_id:
             return Response({"session": None}, status=404)
 
-        seer_run_id_or_response = resolve_seer_run_state_id(run_id, organization)
-        if isinstance(seer_run_id_or_response, Response):
-            return seer_run_id_or_response
-        seer_run_state_id = seer_run_id_or_response
+        resolved = resolve_seer_run(run_id, organization)
+        if isinstance(resolved, Response):
+            return resolved
 
         try:
             client = SeerAgentClient(organization, request.user)
-            state = client.get_run(run_id=seer_run_state_id)
+            state = client.get_run(run_id=resolved.seer_run_state_id)
             return Response({"session": state.dict()})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
@@ -263,13 +261,12 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 reasoning_effort="medium",
             )
             if run_id:
-                seer_run_id_or_response = resolve_seer_run_state_id(run_id, organization)
-                if isinstance(seer_run_id_or_response, Response):
-                    return seer_run_id_or_response
-                seer_run_state_id = seer_run_id_or_response
+                resolved = resolve_seer_run(run_id, organization)
+                if isinstance(resolved, Response):
+                    return resolved
                 # Continue existing conversation
-                result_run_id = client.continue_run(
-                    run_id=seer_run_state_id,
+                client.continue_run(
+                    run_id=resolved.seer_run_state_id,
                     prompt=query,
                     insert_index=insert_index,
                     on_page_context=on_page_context,
@@ -277,13 +274,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     request=request,
                 )
-                response_data: dict[str, str | int] = {"run_id": result_run_id}
-                run = SeerRun.objects.filter(
-                    seer_run_state_id=result_run_id, organization=organization
-                ).first()
-                if run is not None:
-                    response_data["sentry_run_id"] = str(run.uuid)
-                return Response(response_data)
+                return Response(
+                    {"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid}
+                )
 
             # Start new conversation
             run = client.start_run(
