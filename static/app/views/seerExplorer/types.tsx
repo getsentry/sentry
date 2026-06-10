@@ -72,7 +72,7 @@ export interface ToolLink {
 export interface ToolResult {
   content: string;
   tool_call_function: string;
-  tool_call_id: string;
+  tool_call_id: string | null;
 }
 
 export interface ToolCall {
