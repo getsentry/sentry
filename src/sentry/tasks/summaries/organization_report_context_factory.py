@@ -103,6 +103,11 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.project_event_counts_previous_week")
     def _append_project_event_counts_previous_week(self, ctx: OrganizationReportContext) -> None:
+        """Populate previous-week accepted error/transaction counts for week-over-week comparison.
+
+        Reads from Redis cache first (written by cache_project_metrics() at the end of each
+        weekly report run), then falls back to a Snuba query for any cache misses.
+        """
         with sentry_sdk.start_span(op="weekly_reports.project_event_counts_previous_week"):
             project_ids = list(ctx.projects_context_map.keys())
             cached = read_project_metrics(ctx.organization.id, project_ids)
@@ -116,6 +121,7 @@ class OrganizationReportContextFactory:
             if not missed_project_ids:
                 return
 
+            # Snuba fallback for cache misses (e.g. new projects, first report run)
             prev_start = ctx.start - timedelta(days=7)
             prev_end = ctx.end - timedelta(days=7)
             event_counts = project_event_counts_for_organization(
