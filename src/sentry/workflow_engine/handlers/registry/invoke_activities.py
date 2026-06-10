@@ -31,7 +31,7 @@ def invoke_workflow_activity_handlers(
     have metrics and timing support out of the box.
     """
     try:
-        activity_type = ActivityType(activity.type)
+        activity_type = ActivityType(activity.type).name
     except ValueError:
         logger.exception(
             "workflow_engine.seer_activity_handler.invalid_activity_type",
