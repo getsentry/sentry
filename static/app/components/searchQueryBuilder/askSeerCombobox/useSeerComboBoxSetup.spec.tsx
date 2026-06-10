@@ -198,7 +198,7 @@ describe('mapSeerResponseItem', () => {
     });
   });
 
-  it('maps the visualization interval when present', () => {
+  it('hoists the interval from the visualization to a top-level field', () => {
     expect(
       mapSeerResponseItem({
         query: 'span.op:db',
@@ -218,7 +218,8 @@ describe('mapSeerResponseItem', () => {
       start: null,
       end: null,
       mode: 'aggregates',
-      visualizations: [{chartType: ChartType.BAR, yAxes: ['count()'], interval: '1h'}],
+      visualizations: [{chartType: ChartType.BAR, yAxes: ['count()']}],
+      interval: '1h',
     });
   });
 

@@ -37,15 +37,6 @@ function getSeerVisualizes(
   }));
 }
 
-// The chart uses a single interval (the `interval` URL param) shared across all
-// y-axes, but Seer returns it per visualization. Use the first interval Seer
-// provided.
-function getSeerInterval(
-  visualizations: readonly SeerVisualization[]
-): string | undefined {
-  return visualizations.find(({interval}) => Boolean(interval))?.interval ?? undefined;
-}
-
 export function getSeerExploreQuery({
   pageDatetime,
   result,
@@ -67,7 +58,7 @@ export function getSeerExploreQuery({
     query: result.query,
     sort: result.sort,
     visualizes: getSeerVisualizes(result.visualizations),
-    interval: getSeerInterval(result.visualizations),
+    interval: result.interval ?? undefined,
   };
 }
 

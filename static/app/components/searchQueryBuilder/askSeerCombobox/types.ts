@@ -43,15 +43,14 @@ export interface QueryTokensProps {
    */
   expandedProjectIds?: number[];
   groupBys?: string[];
+  // Seer returns the interval nested per-visualization, but the chart uses a
+  // single shared interval, so we hoist it to a chart-level field.
+  interval?: string | null;
   query?: string;
   sort?: string;
   start?: string | null;
   statsPeriod?: string;
-  visualizations?: Array<{
-    yAxes: string[];
-    chartType?: ChartType;
-    interval?: string | null;
-  }>;
+  visualizations?: Array<{yAxes: string[]; chartType?: ChartType}>;
 }
 
 export interface AskSeerSearchQuery extends QueryTokensProps {
@@ -62,11 +61,7 @@ export interface AskSeerSearchQuery extends QueryTokensProps {
   sort: string;
   start: string | null;
   statsPeriod: string;
-  visualizations: Array<{
-    yAxes: string[];
-    chartType?: ChartType;
-    interval?: string | null;
-  }>;
+  visualizations: Array<{yAxes: string[]; chartType?: ChartType}>;
 }
 
 /**
