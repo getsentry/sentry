@@ -290,7 +290,7 @@ export function ScmPlatformFeaturesCore({
       openConsoleModal({
         organization,
         selectedPlatform: toSelectedSdk(platformInfo),
-        origin: 'onboarding',
+        origin: analyticsFlow,
       });
       return;
     }
@@ -317,8 +317,9 @@ export function ScmPlatformFeaturesCore({
               applyPlatformSelection(baseSdk);
               closeModal();
             }}
-            newOrg
+            newOrg={analyticsFlow === 'onboarding'}
             hasScmOnboarding
+            analyticsFlow={analyticsFlow}
           />
         ),
         {modalCss}

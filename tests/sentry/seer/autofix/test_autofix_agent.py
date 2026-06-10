@@ -318,10 +318,10 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_trigger_autofix_agent_passes_project_to_client(
+    def test_trigger_autofix_agent_passes_project_and_group_to_client(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        """SeerAgentClient is constructed with project from the group."""
+        """SeerAgentClient is constructed with project and group from the group."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
@@ -336,15 +336,16 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client_class.assert_called_once()
         call_kwargs = mock_client_class.call_args.kwargs
         assert call_kwargs["project"] == self.group.project
+        assert call_kwargs["group"] == self.group
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_trigger_autofix_agent_passes_group_id_in_metadata(
+    def test_trigger_autofix_agent_metadata_omits_group_id(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        """start_run is called with metadata containing group_id even without stopping_point."""
+        """group_id is injected by the client from its group, not hand-built here."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
@@ -358,7 +359,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client.start_run.assert_called_once()
         call_kwargs = mock_client.start_run.call_args.kwargs
-        assert call_kwargs["metadata"] == {"group_id": self.group.id, "referrer": "unknown"}
+        assert call_kwargs["metadata"] == {"referrer": "unknown"}
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)

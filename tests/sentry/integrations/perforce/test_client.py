@@ -40,6 +40,14 @@ class PerforceClientTest(TestCase):
             integration=self.integration, org_integration=self.org_integration
         )
 
+        # These tests mock the P4 connection with placeholder hosts that don't
+        # resolve; bypass the SSRF host check (covered in test_integration.py).
+        patcher = mock.patch(
+            "sentry.integrations.perforce.client.is_safe_hostname", return_value=True
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_get_blame_for_files_success(self, mock_p4_class):
         """Test get_blame_for_files returns commit info for files"""
