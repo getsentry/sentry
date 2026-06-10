@@ -14,18 +14,28 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconAdd, IconClock, IconCopy, IconEllipsis, IconLink} from 'sentry/icons';
+import {
+  IconAdd,
+  IconClock,
+  IconCopy,
+  IconEllipsis,
+  IconLink,
+  IconWindow,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
 interface ExplorerDrawerHeaderProps {
+  isPipSupported: boolean;
+  isPoppedOut: boolean;
   onChangeSession: (runId: number) => void;
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
   onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
+  onTogglePictureInPicture: () => void;
   overrideCtxEngEnable: boolean;
   showContextEngineToggle: boolean;
   showThinking: boolean;
@@ -44,6 +54,9 @@ export function ExplorerDrawerHeader({
   showThinking,
   showThinkingToggle,
   onShowThinkingToggle,
+  isPipSupported,
+  isPoppedOut,
+  onTogglePictureInPicture,
   disableNewChatButton = false,
 }: ExplorerDrawerHeaderProps) {
   const [search, setSearch] = useState('');
@@ -105,7 +118,7 @@ export function ExplorerDrawerHeader({
   );
 
   return (
-    <DrawerHeader hideBar hideCloseButtonText>
+    <DrawerHeader hideBar hideCloseButtonText hideCloseButton={isPoppedOut}>
       <Flex align="center" gap="xs" height="100%">
         <Text wrap="nowrap" size="md">
           {t('Seer Agent')}
@@ -194,6 +207,22 @@ export function ExplorerDrawerHeader({
               }}
             />
           </OverflowActions>
+          {isPipSupported && (
+            <Button
+              icon={<IconWindow />}
+              onClick={onTogglePictureInPicture}
+              variant="transparent"
+              size="xs"
+              aria-label={
+                isPoppedOut ? t('Dock back into drawer') : t('Open in a separate window')
+              }
+              tooltipProps={{
+                title: isPoppedOut
+                  ? t('Dock back into drawer')
+                  : t('Open in a separate window'),
+              }}
+            />
+          )}
           <CompactSelect
             options={sessionOptions}
             value={undefined}

@@ -11,15 +11,20 @@ import {
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useModal} from '@sentry/scraps/modal';
+import {
+  PictureInPicturePortal,
+  usePictureInPicture,
+} from '@sentry/scraps/pictureInPicture';
 
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
+import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
+import {usePageReferrer, useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
@@ -54,6 +59,58 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     onClose: () => setLastViewedAt(Date.now()),
   });
 
+  const {getPageReferrer} = usePageReferrer();
+
+  const {pipWindow, closePipWindow} = usePictureInPicture();
+  const isPoppedOut = pipWindow !== null;
+
+  // Re-dock into the drawer whenever the PiP window closes (native controls,
+  // dock button, or programmatically) — unless a full close was requested via
+  // `closeSeerExplorer`. The watcher lives here because re-docking needs the
+  // drawer controls, which are only available inside `GlobalDrawer`.
+  const suppressRedockRef = useRef(false);
+  const wasPoppedOutRef = useRef(false);
+  useEffect(() => {
+    const wasPoppedOut = wasPoppedOutRef.current;
+    wasPoppedOutRef.current = isPoppedOut;
+    if (wasPoppedOut && !isPoppedOut) {
+      if (suppressRedockRef.current) {
+        suppressRedockRef.current = false;
+        return;
+      }
+      openSeerExplorerDrawer();
+    }
+  }, [isPoppedOut, openSeerExplorerDrawer]);
+
+  const openSeerExplorer = useCallback(
+    (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
+      if (pipWindow) {
+        pipWindow.focus();
+        return;
+      }
+      openSeerExplorerDrawer(drawerOptions);
+    },
+    [pipWindow, openSeerExplorerDrawer]
+  );
+
+  const closeSeerExplorer = useCallback(() => {
+    if (pipWindow) {
+      suppressRedockRef.current = true;
+      closePipWindow();
+      return;
+    }
+    closeSeerExplorerDrawer();
+  }, [pipWindow, closePipWindow, closeSeerExplorerDrawer]);
+
+  const toggleSeerExplorer = useCallback(() => {
+    if (pipWindow) {
+      // Re-dock back into the drawer.
+      closePipWindow();
+      return;
+    }
+    toggleSeerExplorerDrawer();
+  }, [pipWindow, closePipWindow, toggleSeerExplorerDrawer]);
+
   const {apiData} = useSeerExplorerPolling({runId});
   const blocks = apiData?.session?.blocks;
 
@@ -80,7 +137,11 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   }, []);
 
   const unreadCount = useMemo(() => {
-    if (!blocks?.length || runId === null || (isOpen && isWindowVisible)) {
+    if (
+      !blocks?.length ||
+      runId === null ||
+      ((isOpen || isPoppedOut) && isWindowVisible)
+    ) {
       return 0;
     }
     return blocks.filter(block => {
@@ -90,7 +151,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       const ts = getDateFromTimestampAssumeUtc(block.timestamp)?.getTime();
       return ts !== null && ts !== undefined && ts > lastViewedAt;
     }).length;
-  }, [blocks, isOpen, isWindowVisible, lastViewedAt, runId]);
+  }, [blocks, isOpen, isPoppedOut, isWindowVisible, lastViewedAt, runId]);
 
   // Gates `thinking` / `done-thinking`: otherwise an initial fetch of a stale
   // runId from sessionStorage flashes polling state before the user engages.
@@ -132,17 +193,17 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const contextValue = useMemo<SeerExplorerContextValue>(
     () => ({
       isOpen,
-      openSeerExplorer: openSeerExplorerDrawer,
-      closeSeerExplorer: closeSeerExplorerDrawer,
-      toggleSeerExplorer: toggleSeerExplorerDrawer,
+      openSeerExplorer,
+      closeSeerExplorer,
+      toggleSeerExplorer,
       sessionState,
       unreadCount,
     }),
     [
       isOpen,
-      openSeerExplorerDrawer,
-      closeSeerExplorerDrawer,
-      toggleSeerExplorerDrawer,
+      openSeerExplorer,
+      closeSeerExplorer,
+      toggleSeerExplorer,
       sessionState,
       unreadCount,
     ]
@@ -150,15 +211,16 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   const {visible: isModalOpen} = useModal();
 
-  // Deep link effect while drawer closed (drawer content handles when open)
+  // Deep link effect while Seer isn't already showing (the drawer content
+  // handles deep links itself when open or popped out).
   const deepLinkCallback = useCallback(
-    (_runId: number) => openSeerExplorerDrawer({runId: _runId}),
-    [openSeerExplorerDrawer]
+    (_runId: number) => openSeerExplorer({runId: _runId}),
+    [openSeerExplorer]
   );
 
   useSeerExplorerDeepLink({
     callback: deepLinkCallback,
-    enabled: !isOpen,
+    enabled: !isOpen && !isPoppedOut,
   });
 
   useHotkeys(
@@ -174,7 +236,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
               'mod+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
             ],
             callback: () => {
-              toggleSeerExplorerDrawer();
+              toggleSeerExplorer();
             },
             includeInputs: true,
           },
@@ -184,6 +246,11 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   return (
     <SeerExplorerContext.Provider value={contextValue}>
       {children}
+      {pipWindow && (
+        <PictureInPicturePortal pipWindow={pipWindow}>
+          <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
+        </PictureInPicturePortal>
+      )}
     </SeerExplorerContext.Provider>
   );
 }

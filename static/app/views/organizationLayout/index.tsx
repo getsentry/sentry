@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
@@ -56,11 +57,13 @@ export function OrganizationLayout() {
       <OrganizationContainer>
         <SeerExplorerSessionsProvider>
           <SeerExplorerChatStateProvider>
-            <GlobalDrawer>
-              <SeerExplorerContextProvider>
-                <AppLayout organization={organization} />
-              </SeerExplorerContextProvider>
-            </GlobalDrawer>
+            <PictureInPictureProvider>
+              <GlobalDrawer>
+                <SeerExplorerContextProvider>
+                  <AppLayout organization={organization} />
+                </SeerExplorerContextProvider>
+              </GlobalDrawer>
+            </PictureInPictureProvider>
           </SeerExplorerChatStateProvider>
         </SeerExplorerSessionsProvider>
       </OrganizationContainer>
