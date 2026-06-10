@@ -818,7 +818,15 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    if debug_file.file is not None:
+        dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    else:
+        source_fileobj = debug_file.getfile()
+        try:
+            dif, created = create_dif_from_id(project, meta, fileobj=source_fileobj)
+        finally:
+            source_fileobj.close()
+
     if created:
         record_last_upload(project)
 
