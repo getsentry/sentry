@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -66,6 +67,34 @@ const INITIAL_STATE: WizardState = {
   selectedPlatform: undefined,
   selectedRepository: undefined,
 };
+
+// Mirrors classic createProject's submit tooltip: name the missing field, or a
+// summary when several are missing. Transient blockers (stores loading, create
+// in flight) fall through without a message.
+function getSubmitTooltipText({
+  platform,
+  projectName,
+  team,
+}: {
+  platform: boolean;
+  projectName: boolean;
+  team: boolean;
+}): string | undefined {
+  const missingCount = [platform, projectName, team].filter(Boolean).length;
+  if (missingCount > 1) {
+    return t('Please fill out all the required fields');
+  }
+  if (platform) {
+    return t('Please select a platform');
+  }
+  if (projectName) {
+    return t('Please provide a project name');
+  }
+  if (team) {
+    return t('Please select a team');
+  }
+  return undefined;
+}
 
 export function ScmCreateProject() {
   const location = useLocation();
@@ -228,6 +257,8 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     onComplete: handleComplete,
   });
 
+  const submitTooltipText = getSubmitTooltipText(form.missingFields);
+
   const showContinueWithoutRepo = !selectedRepository && !repoStepCompleted;
   const showAllSteps = repoStepCompleted;
 
@@ -360,15 +391,17 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           <Stack gap="md">
             <ProjectCreationErrorAlert error={form.error} />
             <Flex justify="end">
-              <Button
-                variant="primary"
-                onClick={form.submit}
-                disabled={!form.canSubmit}
-                busy={form.isBusy}
-                icon={<IconProject />}
-              >
-                {t('Create project')}
-              </Button>
+              <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
+                <Button
+                  variant="primary"
+                  onClick={form.submit}
+                  disabled={!form.canSubmit}
+                  busy={form.isBusy}
+                  icon={<IconProject />}
+                >
+                  {t('Create project')}
+                </Button>
+              </Tooltip>
             </Flex>
           </Stack>
         </Stack>
