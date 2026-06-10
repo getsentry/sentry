@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Client as MockApiClient} from 'sentry/api';
 import * as globalActions from 'sentry/components/pageFilters/actions';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
