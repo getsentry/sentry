@@ -137,19 +137,16 @@ def handle_attribution(
 def _claim_terminal_event(pr: PullRequest) -> bool:
     """Atomically claim a PR's terminal (close/merge) event for processing.
 
-    The redelivery guard for the metrics pipeline. GitHub redelivers webhooks,
-    and ``PullRequestEventWebhook._handle`` eagerly stamps ``closed_at``/``state``
-    from every payload, so the PR row can't tell us whether *we* already processed
-    the terminal event. The pipeline-owned ``PullRequestMetrics.verdict`` can: it
-    is null until we process the close/merge, so a single compare-and-set claims
-    the event — race-safe because the ``verdict IS NULL`` predicate lets exactly
-    one of two concurrent/redelivered events touch the row.
+    GitHub redelivers webhooks, and ``PullRequestEventWebhook._handle`` stamps
+    ``closed_at``/``state`` from every payload, so the PR row can't tell whether
+    the terminal event was already processed. The pipeline-owned
+    ``PullRequestMetrics.verdict`` can: it stays null until then, so a
+    compare-and-set on ``verdict IS NULL`` lets exactly one delivery claim the
+    event, even under concurrent redeliveries.
 
-    The claim writes a provisional, lifecycle-derived verdict (``merged_unchanged``
-    for a merge, ``closed_unmerged`` for a plain close) — the terminal outcome when
-    no judge runs; the judge callback later refines it to ``merged_with_iteration``
-    where warranted. Returns whether this call won the claim (and so should emit or
-    forward); a redelivery loses and must be dropped before any expensive work.
+    The claim writes the lifecycle-derived verdict (``merged_unchanged`` for a
+    merge, ``closed_unmerged`` for a plain close). Returns True if this call
+    won the claim.
     """
     provisional = (
         PullRequestVerdict.MERGED_UNCHANGED
@@ -177,9 +174,8 @@ def handle_emission(
     derives which from the stored row, so this handler only filters for ``closed``
     and delegates. All non-terminal actions are ignored.
 
-    A redelivery guard runs before the ``needs_judge`` fork so a redelivered
-    terminal event is dropped before any emit *or* (once wired) forward — without
-    it, every redelivery would re-launch the pricey judge work.
+    The redelivery guard runs before the ``needs_judge`` fork so a redelivered
+    terminal event is dropped before any expensive work.
     """
     if event.get("action") != "closed":
         return
@@ -192,8 +188,6 @@ def handle_emission(
         return
 
     if not _claim_terminal_event(pr):
-        # A prior delivery already processed this PR's terminal event. Drop it
-        # before the fork so we neither emit a duplicate row nor re-forward.
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
 
