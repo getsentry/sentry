@@ -1,8 +1,8 @@
 """Seer judge path for the PR metrics pipeline.
 
 This module owns the Sentry side of the judge round-trip. Today it holds the
-inbound ``upsert_pr_metrics_summary`` handler — the callback Seer makes once it
-has judged a forwarded terminal PR event. The forward (Sentry → Seer) half lands
+inbound ``update_pr_metrics`` handler — the callback Seer makes once it has
+judged a forwarded terminal PR event. The forward (Sentry → Seer) half lands
 later and will live here alongside it.
 """
 
@@ -47,7 +47,7 @@ def _parse_attributions(
     return parsed
 
 
-def upsert_pr_metrics_summary(
+def update_pr_metrics(
     *,
     pull_request_id: int,
     organization_id: int,
@@ -58,15 +58,19 @@ def upsert_pr_metrics_summary(
     """Persist Seer's judge result for a PR and emit the enriched metrics row.
 
     Inbound Seer RPC (Seer → Sentry), invoked once Seer has judged a forwarded
-    terminal PR event. Persists the ``verdict`` onto ``PullRequestMetrics``
-    (leaving the webhook-sourced counters untouched), records any Seer-derived
-    ``PullRequestAttribution`` signals, then re-emits the now judge-enriched
-    ``pr_metrics.row``.
+    terminal PR event. Updates the ``verdict`` on the PR's ``PullRequestMetrics``
+    row (the webhook creates and keeps the row's activity counters current, so
+    this leaves them untouched), records any ``attributions`` Seer produced while
+    judging, then re-emits the now judge-enriched ``pr_metrics.row``.
+
+    ``attributions`` are new signals Seer surfaced during judging (recorded with
+    a ``seer_*`` source), additive to the ones the webhook already detected — not
+    an echo or filter of the attributions Sentry forwarded.
 
     The PR is located by its Sentry id but constrained to the reported
     ``organization_id``/``repository_id``, so a mismatched id can't reach another
-    tenant's PR. A missing or unrecognized ``verdict`` is rejected as invalid
-    input. Returns ``{"success": bool}`` for the Seer caller.
+    tenant's PR. A missing/unrecognized ``verdict`` or a non-terminal PR is
+    rejected up front. Returns ``{"success": bool}`` for the Seer caller.
     """
     log_extra = {
         "pull_request_id": pull_request_id,
@@ -75,17 +79,17 @@ def upsert_pr_metrics_summary(
     }
 
     # The verdict is the judge result this callback exists to deliver, so a
-    # missing one is malformed input — reject it rather than upserting a null.
+    # missing one is malformed input — reject it rather than writing a null.
     if verdict is None or verdict not in PullRequestVerdict.values:
-        logger.warning("pr_metrics.upsert.invalid_verdict", extra={**log_extra, "verdict": verdict})
-        metrics.incr("pr_metrics.upsert.skipped", tags={"reason": "invalid_verdict"})
+        logger.warning("pr_metrics.update.invalid_verdict", extra={**log_extra, "verdict": verdict})
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_verdict"})
         return {"success": False, "error": "invalid_verdict"}
 
     try:
         parsed_attributions = _parse_attributions(attributions or ())
     except (KeyError, TypeError, ValueError):
-        logger.warning("pr_metrics.upsert.invalid_attribution", extra=log_extra)
-        metrics.incr("pr_metrics.upsert.skipped", tags={"reason": "invalid_attribution"})
+        logger.warning("pr_metrics.update.invalid_attribution", extra=log_extra)
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_attribution"})
         return {"success": False, "error": "invalid_attribution"}
 
     # Scope the lookup to the reported org+repo: the id alone is attacker-influenced
@@ -97,12 +101,20 @@ def upsert_pr_metrics_summary(
             repository_id=repository_id,
         )
     except PullRequest.DoesNotExist:
-        logger.warning("pr_metrics.upsert.pull_request_not_found", extra=log_extra)
-        metrics.incr("pr_metrics.upsert.skipped", tags={"reason": "pr_not_found"})
+        logger.warning("pr_metrics.update.pull_request_not_found", extra=log_extra)
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "pr_not_found"})
         return {"success": False, "error": "pull_request_not_found"}
 
+    # Emit needs a terminal PR (closed_at + head_commit_sha). Validate it before
+    # writing so a non-terminal PR is rejected up front rather than committing the
+    # verdict and then failing in emit — i.e. no committed-but-errored state.
+    if pull_request.closed_at is None or pull_request.head_commit_sha is None:
+        logger.warning("pr_metrics.update.not_terminal", extra=log_extra)
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "not_terminal"})
+        return {"success": False, "error": "pull_request_not_terminal"}
+
     # Only the verdict is written here; the webhook keeps the activity counters
-    # current, so this partial upsert must not clobber them.
+    # current, so this partial update must not clobber them.
     with transaction.atomic(using=router.db_for_write(PullRequestMetrics)):
         PullRequestMetrics.objects.update_or_create(
             pull_request=pull_request,
@@ -118,6 +130,6 @@ def upsert_pr_metrics_summary(
 
     emit_pr_metrics_row(pull_request=pull_request)
 
-    metrics.incr("pr_metrics.upsert.recorded", tags={"verdict": verdict or "none"})
-    logger.info("pr_metrics.upsert.recorded", extra={**log_extra, "verdict": verdict})
+    metrics.incr("pr_metrics.update.recorded", tags={"verdict": verdict})
+    logger.info("pr_metrics.update.recorded", extra={**log_extra, "verdict": verdict})
     return {"success": True}

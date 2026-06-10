@@ -10,7 +10,7 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
 )
 from sentry.pr_metrics.attribution import record_attribution_signal
-from sentry.pr_metrics.judge import upsert_pr_metrics_summary
+from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import get_event_count
 from sentry.testutils.silo import cell_silo_test
@@ -25,7 +25,7 @@ def _last_row(mock_record: Any) -> PrCloseMetricsEvent:
 
 
 @cell_silo_test
-class UpsertPrMetricsSummaryTest(TestCase):
+class UpdatePrMetricsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
             self.project, name="getsentry/sentry", provider="integrations:github"
@@ -45,7 +45,7 @@ class UpsertPrMetricsSummaryTest(TestCase):
         )
 
     def _call(self, **kwargs: Any) -> dict[str, Any]:
-        return upsert_pr_metrics_summary(
+        return update_pr_metrics(
             pull_request_id=self.pull_request.id,
             organization_id=self.organization.id,
             repository_id=self.repo.id,
@@ -91,7 +91,7 @@ class UpsertPrMetricsSummaryTest(TestCase):
         self._track()
         other_org = self.create_organization()
 
-        result = upsert_pr_metrics_summary(
+        result = update_pr_metrics(
             pull_request_id=self.pull_request.id,
             organization_id=other_org.id,
             repository_id=self.repo.id,
@@ -169,7 +169,7 @@ class UpsertPrMetricsSummaryTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_pull_request_not_found(self, mock_record: Any) -> None:
-        result = upsert_pr_metrics_summary(
+        result = update_pr_metrics(
             pull_request_id=self.pull_request.id + 1000,
             organization_id=self.organization.id,
             repository_id=self.repo.id,
@@ -177,6 +177,19 @@ class UpsertPrMetricsSummaryTest(TestCase):
         )
 
         assert result == {"success": False, "error": "pull_request_not_found"}
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_rejects_non_terminal_pr(self, mock_record: Any) -> None:
+        self._track()
+        # A PR that never reached a terminal state can't build a row. Reject up
+        # front so we don't commit the verdict and then fail in emit.
+        self.pull_request.update(closed_at=None, head_commit_sha=None)
+
+        result = self._call(verdict="merged_unchanged")
+
+        assert result == {"success": False, "error": "pull_request_not_terminal"}
+        assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
     @patch("sentry.analytics.record")
