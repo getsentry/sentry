@@ -141,14 +141,13 @@ class DatadogOAuth2DCRViewTest(TestCase):
         self.pipeline.next_step.assert_called_once()
 
     @responses.activate
-    def test_unauthenticated_user_skips_existing_identity(self, mock_record: MagicMock) -> None:
+    def test_existing_identity_missing_credentials(self, mock_record: MagicMock) -> None:
         self.create_identity(
             user=self.user,
             identity_provider=self.identity_provider,
             external_id="dd-user-123",
-            data={"client_id": "existing-client", "client_secret": "existing-secret"},
+            data={},
         )
-        self.request.user = MagicMock(is_authenticated=False)
         responses.add(
             responses.POST,
             REGISTER_URL,
@@ -162,13 +161,14 @@ class DatadogOAuth2DCRViewTest(TestCase):
         self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-secret")
 
     @responses.activate
-    def test_existing_identity_missing_credentials(self, mock_record: MagicMock) -> None:
+    def test_existing_identity_unauthenticated_user(self, mock_record: MagicMock) -> None:
         self.create_identity(
             user=self.user,
             identity_provider=self.identity_provider,
             external_id="dd-user-123",
-            data={},
+            data={"client_id": "existing-client", "client_secret": "existing-secret"},
         )
+        self.request.user = MagicMock(is_authenticated=False)
         responses.add(
             responses.POST,
             REGISTER_URL,
