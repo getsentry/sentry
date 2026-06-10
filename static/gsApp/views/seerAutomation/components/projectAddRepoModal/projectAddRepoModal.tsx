@@ -142,7 +142,7 @@ export function ProjectAddRepoModal({
             <Grid columns="minmax(0, 1fr) max-content minmax(0, 1fr)" gap="lg">
               <form.AppField name="project">
                 {field => (
-                  <Flex minWidth={0}>
+                  <Flex minWidth={0} alignSelf="start">
                     <Flex gap="sm" align="center" flexGrow={1} minWidth={0}>
                       <CompactSelect
                         style={{width: '100%'}}
@@ -178,7 +178,7 @@ export function ProjectAddRepoModal({
                 )}
               </form.AppField>
 
-              <Flex align="center" height="36px">
+              <Flex align="center" height="36px" alignSelf="start">
                 <IconArrow direction="right" size="md" />
               </Flex>
 
