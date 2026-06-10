@@ -25,7 +25,6 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
 from sentry.pipeline.views.base import PipelineView
-from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, ApiUnauthorized
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
@@ -259,9 +258,10 @@ class DatadogIdentityProvider(OAuth2Provider):
         user = get_user_info(access_token, self._get_oauth_parameter("site"))
 
         oauth_data = self.get_oauth_data(token_data)
-        # Persist DCR credentials so refresh_identity can authenticate later.
+        # Persist DCR credentials and site so refresh_identity can access them outside a pipeline context.
         oauth_data["client_id"] = data.get("dcr_client_id")
         oauth_data["client_secret"] = data.get("dcr_client_secret")
+        oauth_data["site"] = self._get_oauth_parameter("site")
 
         return {
             "type": IntegrationProviderSlug.DATADOG,
@@ -275,35 +275,34 @@ class DatadogIdentityProvider(OAuth2Provider):
     def get_refresh_token_url(self) -> str:
         return self.get_oauth_access_token_url()
 
+    def get_refresh_token_headers(self) -> dict[str, str]:
+        client_id = self.config.get("client_id")
+        client_secret = self.config.get("client_secret")
+
+        if not client_id or not client_secret:
+            raise IdentityNotValid("Missing DCR credentials")
+
+        return {"Authorization": _basic_auth_header(client_id, client_secret)}
+
     def get_refresh_token_params(
         self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
         return {"grant_type": "refresh_token", "refresh_token": refresh_token}
 
-    def get_refresh_token(
-        self, refresh_token: str, url: str, identity: Identity | RpcIdentity, **kwargs: Any
-    ) -> Response:
-        data = self.get_refresh_token_params(refresh_token, identity, **kwargs)
+    def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
+        # Add site and client credentials to config so get_refresh_token_headers
+        # and get_refresh_token_url can access them.
+
+        site = identity.data.get("site")
+        if not site:
+            raise IdentityNotValid("Missing Datadog site")
+        self.config["site"] = site
 
         client_id = identity.data.get("client_id")
         client_secret = identity.data.get("client_secret")
         if not client_id or not client_secret:
             raise IdentityNotValid("Missing DCR credentials")
-        headers = {"Authorization": _basic_auth_header(client_id, client_secret)}
+        self.config["client_id"] = client_id
+        self.config["client_secret"] = client_secret
 
-        try:
-            req = safe_urlopen(
-                url=url,
-                headers=headers,
-                data=data,
-                verify_ssl=kwargs.get("verify_ssl", True),
-            )
-            req.raise_for_status()
-        except HTTPError as e:
-            error_resp = e.response
-            exc = ApiError.from_response(error_resp, url=url)
-            if isinstance(exc, ApiUnauthorized | ApiInvalidRequestError):
-                raise IdentityNotValid from e
-            raise exc from e
-
-        return req
+        super().refresh_identity(identity, **kwargs)
