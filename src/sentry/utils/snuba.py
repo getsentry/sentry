@@ -1183,7 +1183,7 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     span = sentry_sdk.traces.get_current_span()
-    if span is not None:
+    if span is not None and hasattr(span, "_segment"):
         parent_api = span._segment.name
 
     # Store the original position of the query so that we can maintain the order
