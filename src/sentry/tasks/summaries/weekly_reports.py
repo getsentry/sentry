@@ -496,19 +496,16 @@ group_status_to_color = {
 }
 
 
-def _pct_change(current: int, previous: int) -> float | None:
+def _pct_change(current: int, previous: int) -> str | None:
+    """Returns a formatted string like '▲ 50%' or '▼ 25%', or None if not meaningful."""
     if previous == 0:
         return None
     change = (current - previous) / previous
-    if round(change * 100) == 0:
+    pct = round(change * 100)
+    if pct == 0:
         return None
-    return change
-
-
-def _format_pct(value: float | None) -> str:
-    if value is None:
-        return ""
-    return f"{abs(round(value * 100))}%"
+    arrow = "▲" if change > 0 else "▼"
+    return f"{arrow} {abs(pct)}%"
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
@@ -698,11 +695,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_transaction_count": total_transaction,
             "total_replay_count": total_replays,
             "error_pct_change": _pct_change(total_error, prev_week_error),
-            "error_pct_change_display": _format_pct(_pct_change(total_error, prev_week_error)),
             "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
-            "transaction_pct_change_display": _format_pct(
-                _pct_change(total_transaction, prev_week_transaction)
-            ),
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),

@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 import sentry_sdk
 
 from sentry import features
@@ -122,8 +120,8 @@ class OrganizationReportContextFactory:
                 return
 
             # Snuba fallback for cache misses (e.g. new projects, first report run)
-            prev_start = ctx.start - timedelta(days=7)
-            prev_end = ctx.end - timedelta(days=7)
+            prev_start = ctx.start - (ctx.end - ctx.start)
+            prev_end = ctx.start
             event_counts = project_event_counts_for_organization(
                 start=prev_start,
                 end=prev_end,

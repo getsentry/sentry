@@ -1571,8 +1571,8 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["trends"]["error_pct_change"] == 1.0
-            assert context["trends"]["transaction_pct_change"] == -0.5
+            assert context["trends"]["error_pct_change"] == "▲ 100%"
+            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
             assert context["show_week_over_week_metric"] is True
 
     @with_feature("organizations:weekly-report-week-over-week-metric")
@@ -1647,13 +1647,13 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            assert context["trends"]["error_pct_change"] == 1.0
-            assert context["trends"]["transaction_pct_change"] == -0.5
+            assert context["trends"]["error_pct_change"] == "▲ 100%"
+            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
 
     def test_pct_change_helper(self) -> None:
-        assert _pct_change(150, 100) == 0.5
-        assert _pct_change(50, 100) == -0.5
-        assert _pct_change(0, 100) == -1.0
+        assert _pct_change(150, 100) == "▲ 50%"
+        assert _pct_change(50, 100) == "▼ 50%"
+        assert _pct_change(0, 100) == "▼ 100%"
         assert _pct_change(100, 0) is None
         assert _pct_change(0, 0) is None
         assert _pct_change(100, 100) is None
