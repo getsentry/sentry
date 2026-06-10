@@ -11,7 +11,6 @@ function makeProvider(key: string, name: string): IntegrationProvider {
     canAdd: true,
     canDisable: false,
     features: [],
-    setupDialog: {url: '', width: 600, height: 600},
     metadata: {
       description: '',
       features: [],

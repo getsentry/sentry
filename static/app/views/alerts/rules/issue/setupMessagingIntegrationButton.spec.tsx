@@ -1,6 +1,5 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -17,7 +16,6 @@ import {
 
 describe('SetupAlertIntegrationButton', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
   const providers = (providerKey: string) => [
     GitHubIntegrationProviderFixture({key: providerKey}),
   ];
@@ -26,7 +24,6 @@ describe('SetupAlertIntegrationButton', () => {
 
   const getComponent = () => (
     <SetupMessagingIntegrationButton
-      projectId={project.id}
       refetchConfigs={jest.fn()}
       analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
     />
