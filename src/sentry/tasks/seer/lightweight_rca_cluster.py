@@ -4,6 +4,8 @@ from sentry.models.group import Group
 from sentry.seer.supergroups.lightweight_rca_cluster import trigger_lightweight_rca_cluster
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks, ingest_errors_tasks
+from sentry.utils import metrics
+from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,9 @@ def trigger_lightweight_rca_cluster_task(group_id: int, **kwargs) -> None:
 
     try:
         trigger_lightweight_rca_cluster(group)
+    except RateLimitExceeded:
+        metrics.incr("seer.lightweight_rca_cluster.rate-limited")
+        return None
     except Exception:
         logger.exception(
             "lightweight_rca_cluster_task.failed",
