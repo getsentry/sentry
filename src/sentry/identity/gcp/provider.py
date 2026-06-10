@@ -7,6 +7,7 @@ import orjson
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.oauth2 import (
+    OAuth2ApiStep,
     OAuth2CallbackView,
     OAuth2LoginView,
     OAuth2Provider,
@@ -66,7 +67,7 @@ class GCPIdentityProvider(OAuth2Provider):
             ),
         ]
 
-    def make_oauth_api_step(self, **kwargs: Any) -> Any:
+    def make_oauth_api_step(self, **kwargs: Any) -> OAuth2ApiStep:
         return super().make_oauth_api_step(
             extra_authorize_params={"access_type": "offline", "prompt": "consent"},
             **kwargs,
