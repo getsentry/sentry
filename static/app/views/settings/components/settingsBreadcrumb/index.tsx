@@ -1,4 +1,4 @@
-import {Link as RouterLink} from 'react-router-dom';
+import {Link as RouterLink, useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -27,6 +27,7 @@ type Props = {
 };
 
 export function SettingsBreadcrumb({className, params}: Props) {
+  const matches = useMatches();
   const routes = useRoutes() as RouteWithName[];
   const pathMap = useBreadcrumbsPathmap();
 
@@ -74,7 +75,7 @@ export function SettingsBreadcrumb({className, params}: Props) {
         return (
           <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
             <CrumbLink
-              to={recreateRoute(route, {routes, params})}
+              to={recreateRoute(route, {matches, params})}
               onClick={onSettingsBreadcrumbLinkClick}
             >
               {pathTitle || route.name}

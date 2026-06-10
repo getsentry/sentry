@@ -1,4 +1,4 @@
-import {generatePath} from 'react-router-dom';
+import {generatePath, useMatches} from 'react-router-dom';
 import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
@@ -9,7 +9,6 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {useOrganization} from './useOrganization';
 
@@ -39,7 +38,7 @@ export function withDomainRedirect(WrappedComponent: React.ComponentType<any>) {
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});
     const params = useParams();
-    const routes = useRoutes();
+    const matches = useMatches();
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
@@ -63,7 +62,7 @@ export function withDomainRedirect(WrappedComponent: React.ComponentType<any>) {
       Object.keys(params).forEach(param => {
         newParams[param] = `:${param}`;
       });
-      const fullRoute = recreateRoute('', {routes, params: newParams});
+      const fullRoute = recreateRoute('', {matches, params: newParams});
       const orglessSlugRoute = normalizeUrl(fullRoute, {forceCustomerDomain: true});
 
       if (orglessSlugRoute === fullRoute) {

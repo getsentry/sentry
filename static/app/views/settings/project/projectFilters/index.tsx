@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -7,7 +8,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {GroupTombstones} from 'sentry/views/settings/project/projectFilters/groupTombstones';
 import {ProjectFiltersChart} from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
@@ -16,7 +16,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 export default function ProjectFilters() {
-  const routes = useRoutes();
+  const matches = useMatches();
   const params = useParams<{filterType: string; projectId: string}>();
   const {projectId, filterType} = params;
   const {project} = useProjectSettingsOutlet();
@@ -48,13 +48,13 @@ export default function ProjectFilters() {
               <TabList>
                 <TabList.Item
                   key="data-filters"
-                  to={recreateRoute('data-filters/', {routes, params, stepBack: -1})}
+                  to={recreateRoute('data-filters/', {matches, params, stepBack: -1})}
                 >
                   {t('Data Filters')}
                 </TabList.Item>
                 <TabList.Item
                   key="discarded-groups"
-                  to={recreateRoute('discarded-groups/', {routes, params, stepBack: -1})}
+                  to={recreateRoute('discarded-groups/', {matches, params, stepBack: -1})}
                 >
                   {t('Discarded Issues')}
                 </TabList.Item>
