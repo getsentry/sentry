@@ -206,10 +206,9 @@ export function RelocationDetails() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  // TODO(cells) Relocations deal with localities, but may also need cells in the future.
   const relocationData = {
     ...data,
-    region: localities.find(c => c.name === regionName) || {
+    region: localities.find(l => l.name === regionName) || {
       name: regionName,
       url: '',
     },
