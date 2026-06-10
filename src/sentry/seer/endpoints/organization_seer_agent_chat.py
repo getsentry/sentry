@@ -264,7 +264,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             if run_id:
                 seer_run_id_or_response = resolve_seer_run_state_id(run_id, organization)
                 if isinstance(seer_run_id_or_response, Response):
-                    return Response({"detail": "Invalid run_id"}, status=400)
+                    return seer_run_id_or_response
                 seer_run_state_id = seer_run_id_or_response
                 # Continue existing conversation
                 result_run_id = client.continue_run(

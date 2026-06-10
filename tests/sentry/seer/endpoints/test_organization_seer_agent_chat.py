@@ -254,13 +254,26 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert mock_client.continue_run.call_args.kwargs["run_id"] == 555
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_post_continue_with_unknown_uuid_returns_400(
+    def test_post_continue_with_unknown_uuid_returns_404(
         self, mock_client_class: MagicMock
     ) -> None:
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
 
         response = self.client.post(f"{self.url}{uuid.uuid4()}/", {"query": "More"}, format="json")
+
+        assert response.status_code == 404
+        assert response.data == {"session": None}
+        mock_client.continue_run.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_continue_with_garbage_run_id_returns_400(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(f"{self.url}not-a-real-id/", {"query": "More"}, format="json")
 
         assert response.status_code == 400
         mock_client.continue_run.assert_not_called()
