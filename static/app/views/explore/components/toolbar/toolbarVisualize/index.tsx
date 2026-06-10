@@ -73,7 +73,7 @@ export function ToolbarVisualizeDropdown({
 
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
-    ? getFieldDefinition(aggregateFunc, 'span')
+    ? getFieldDefinition(aggregateFunc, {type: 'span'})
     : undefined;
 
   return (

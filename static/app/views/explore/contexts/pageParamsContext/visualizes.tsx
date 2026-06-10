@@ -108,9 +108,9 @@ export function updateVisualizeAggregate({
     return `${newAggregate}()`;
   }
 
-  const newFieldDefinition = getFieldDefinition(newAggregate, 'span');
+  const newFieldDefinition = getFieldDefinition(newAggregate, {type: 'span'});
   const oldFieldDefinition = oldAggregate
-    ? getFieldDefinition(oldAggregate, 'span')
+    ? getFieldDefinition(oldAggregate, {type: 'span'})
     : undefined;
 
   if (newFieldDefinition?.parameters?.length !== oldFieldDefinition?.parameters?.length) {

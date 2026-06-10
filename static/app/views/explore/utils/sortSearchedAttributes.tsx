@@ -44,10 +44,9 @@ export function sortSearchedAttributes<Value extends SelectKey>({
   }
 
   const isKnown =
-    getFieldDefinition(
-      String(option.value),
-      getFieldDefinitionType(fieldDefinitionType)
-    ) !== null;
+    getFieldDefinition(String(option.value), {
+      type: getFieldDefinitionType(fieldDefinitionType),
+    }) !== null;
 
   const prefixBoost =
     result.start === 0 && result.end === normalizedSearch.length ? 8 : 0;
@@ -90,9 +89,9 @@ export function sortKnownAttributes<Value extends SelectOption<string>>(
   traceItemType: TraceItemDataset
 ) {
   const aKnown =
-    getFieldDefinition(a.value, getFieldDefinitionType(traceItemType)) !== null;
+    getFieldDefinition(a.value, {type: getFieldDefinitionType(traceItemType)}) !== null;
   const bKnown =
-    getFieldDefinition(b.value, getFieldDefinitionType(traceItemType)) !== null;
+    getFieldDefinition(b.value, {type: getFieldDefinitionType(traceItemType)}) !== null;
   if (aKnown !== bKnown) {
     return aKnown ? -1 : 1;
   }

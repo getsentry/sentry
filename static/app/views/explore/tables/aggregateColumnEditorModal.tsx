@@ -426,7 +426,7 @@ function AggregateSelector({
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
-    ? getFieldDefinition(aggregateFunc, 'span')
+    ? getFieldDefinition(aggregateFunc, {type: 'span'})
     : undefined;
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
@@ -699,7 +699,7 @@ function EquationSelector({
   const getSpanFieldDefinition = useCallback(
     (key: string) => {
       const tag = numberTags[key] ?? stringTags[key];
-      return getFieldDefinition(key, 'span', tag?.kind);
+      return getFieldDefinition(key, {type: 'span', kind: tag?.kind});
     },
     [numberTags, stringTags]
   );

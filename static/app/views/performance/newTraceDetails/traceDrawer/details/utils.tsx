@@ -175,7 +175,7 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
     },
   ];
 
-  const valueType = getFieldDefinition(rowKey, 'span')?.valueType;
+  const valueType = getFieldDefinition(rowKey, {type: 'span'})?.valueType;
   const isNumeric =
     typeof rowValue === 'number' ||
     (valueType &&

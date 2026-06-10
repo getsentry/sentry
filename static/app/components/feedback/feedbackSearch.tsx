@@ -61,7 +61,8 @@ const NON_TAG_FIELDS: string[] = [
   FieldKey.MESSAGE,
 ];
 
-const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
+const getFeedbackFieldDefinition = (key: string) =>
+  getFieldDefinition(key, {type: 'feedback'});
 
 function getHasFieldValues(supportedTags: TagCollection): string[] {
   const customTagKeys = Object.values(supportedTags)

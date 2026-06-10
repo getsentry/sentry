@@ -116,7 +116,10 @@ export function SchemaHintsDrawer({
       filterQuery.removeFilter(keyToRemove);
       filterQuery.removeFilter(`!${keyToRemove}`);
     } else {
-      const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+      const hintFieldDefinition = getFieldDefinition(hint.key, {
+        type: 'span',
+        kind: hint.kind,
+      });
       addFilterToQuery(filterQuery, hint, hintFieldDefinition);
     }
 
@@ -148,7 +151,10 @@ export function SchemaHintsDrawer({
   );
 
   function HintItem({hint, index}: {hint: Tag; index: number}) {
-    const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+    const hintFieldDefinition = getFieldDefinition(hint.key, {
+      type: 'span',
+      kind: hint.kind,
+    });
 
     return (
       <div ref={virtualizer.measureElement} data-index={index}>

@@ -34,7 +34,7 @@ const getSpanFieldDefinition = (key: string) => {
     functionArgument => functionArgument.name === key
   );
 
-  return getFieldDefinition(key, 'span', argument?.kind);
+  return getFieldDefinition(key, {type: 'span', kind: argument?.kind});
 };
 
 const getSuggestedKey = (key: string) => {

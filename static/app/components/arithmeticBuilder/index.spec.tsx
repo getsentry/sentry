@@ -16,7 +16,7 @@ const getSpanFieldDefinition = (key: string) => {
   const argument = functionArguments.find(
     functionArgument => functionArgument.name === key
   );
-  return getFieldDefinition(key, 'span', argument?.kind);
+  return getFieldDefinition(key, {type: 'span', kind: argument?.kind});
 };
 
 function ArithmeticBuilderWrapper({

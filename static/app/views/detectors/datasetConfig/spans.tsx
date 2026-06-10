@@ -42,7 +42,7 @@ function getAggregateOptions(
 ): Record<string, SelectValue<FieldValue>> {
   const base = SpansConfig.getTableFieldOptions(organization, tags, customMeasurements);
 
-  const apdexDefinition = getFieldDefinition(AggregationKey.APDEX, 'span');
+  const apdexDefinition = getFieldDefinition(AggregationKey.APDEX, {type: 'span'});
 
   if (apdexDefinition?.parameters) {
     // Convert field definition parameters to discover field format

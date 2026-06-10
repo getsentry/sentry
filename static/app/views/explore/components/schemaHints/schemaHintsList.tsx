@@ -408,7 +408,10 @@ export function SchemaHintsList({
     }
 
     const newSearchQuery = new MutableSearch(query);
-    const fieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+    const fieldDefinition = getFieldDefinition(hint.key, {
+      type: 'span',
+      kind: hint.kind,
+    });
     addFilterToQuery(newSearchQuery, hint, fieldDefinition);
 
     const newQuery = newSearchQuery.formatString();

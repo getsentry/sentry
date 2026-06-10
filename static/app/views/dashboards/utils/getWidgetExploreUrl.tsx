@@ -192,7 +192,7 @@ function getAggregateArguments(yAxis: string): string[] {
   if (!parsedFunction) {
     return [];
   }
-  const definition = getFieldDefinition(parsedFunction.name, 'span');
+  const definition = getFieldDefinition(parsedFunction.name, {type: 'span'});
   if (definition?.kind !== FieldKind.FUNCTION) {
     return [];
   }

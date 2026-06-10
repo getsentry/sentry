@@ -287,10 +287,9 @@ function GenericVisualize() {
     // For Spans dataset, use span-specific options from the provider
     if (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) {
       // Use field definition to determine what options should be displayed
-      const fieldDefinition = getFieldDefinition(
-        aggregate,
-        dataset === DetectorDataset.SPANS ? 'span' : 'log'
-      );
+      const fieldDefinition = getFieldDefinition(aggregate, {
+        type: dataset === DetectorDataset.SPANS ? 'span' : 'log',
+      });
       let isTypeAllowed = (_valueType: FieldValueType) => true;
       if (fieldDefinition?.parameters?.[0]?.kind === 'column') {
         const columnTypes = fieldDefinition?.parameters[0]?.columnTypes;

@@ -26,7 +26,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
+const getReplayFieldDefinition = (key: string) =>
+  getFieldDefinition(key, {type: 'replay'});
 
 function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
   return Object.fromEntries(

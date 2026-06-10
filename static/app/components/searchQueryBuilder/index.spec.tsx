@@ -5192,7 +5192,10 @@ describe('SearchQueryBuilder', () => {
     const builderProps = {
       ...defaultProps,
       fieldDefinitionGetter: (key: string) =>
-        getFieldDefinition(key, 'span', defaultProps.filterKeys[key]?.kind),
+        getFieldDefinition(key, {
+          type: 'span',
+          kind: defaultProps.filterKeys[key]?.kind,
+        }),
     };
 
     it('renders explicit string tag filter', async () => {
@@ -5333,7 +5336,10 @@ describe('SearchQueryBuilder', () => {
     const builderProps = {
       ...defaultProps,
       fieldDefinitionGetter: (key: string) =>
-        getFieldDefinition(key, 'span', defaultProps.filterKeys[key]?.kind),
+        getFieldDefinition(key, {
+          type: 'span',
+          kind: defaultProps.filterKeys[key]?.kind,
+        }),
       getSuggestedFilterKey,
     };
 

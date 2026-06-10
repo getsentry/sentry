@@ -69,7 +69,7 @@ export function getFieldDefinitionForDataset(
         return 'event';
     }
   };
-  return getFieldDefinition(tag.key, fieldType(), tag.kind);
+  return getFieldDefinition(tag.key, {type: fieldType(), kind: tag.kind});
 }
 
 export function parseFilterValue(

@@ -65,7 +65,7 @@ export function VisualizeEquation({
   const getSpanFieldDefinition = useCallback(
     (key: string) => {
       const tag = numberTags[key] ?? stringTags[key];
-      return getFieldDefinition(key, 'span', tag?.kind);
+      return getFieldDefinition(key, {type: 'span', kind: tag?.kind});
     },
     [numberTags, stringTags]
   );

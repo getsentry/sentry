@@ -20,7 +20,7 @@ export function AttributeDetails({
   traceItemType,
 }: AttributeDetailsProps) {
   const type = traceItemTypeToType(traceItemType);
-  const definition = getFieldDefinition(column, type, kind);
+  const definition = getFieldDefinition(column, {type, kind});
   const description = definition?.desc ?? t('An attribute sent with one or more events');
   return (
     <Details>

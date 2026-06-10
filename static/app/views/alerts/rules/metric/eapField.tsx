@@ -233,10 +233,9 @@ export function EAPField({aggregate, onChange, eventTypes, project}: Props) {
     traceItemType === TraceItemDataset.LOGS ? LOG_OPERATIONS : SPAN_OPERATIONS;
 
   const aggregateDefinition = aggregation
-    ? getFieldDefinition(
-        aggregation,
-        traceItemType === TraceItemDataset.LOGS ? 'log' : 'span'
-      )
+    ? getFieldDefinition(aggregation, {
+        type: traceItemType === TraceItemDataset.LOGS ? 'log' : 'span',
+      })
     : undefined;
 
   return (

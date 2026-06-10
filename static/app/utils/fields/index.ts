@@ -3717,9 +3717,9 @@ export type GetFieldDefinitionType =
 
 export const getFieldDefinition = (
   key: string,
-  type: GetFieldDefinitionType = 'event',
-  kind?: FieldKind
+  options: {kind?: FieldKind; type?: GetFieldDefinitionType} = {}
 ): FieldDefinition | null => {
+  const {type = 'event', kind} = options;
   return _getFieldFromMappings(type, key, kind) ?? null;
 };
 

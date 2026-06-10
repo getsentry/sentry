@@ -118,7 +118,7 @@ function getSupportedAttributes({
       functionName === AggregationKey.PERFORMANCE_SCORE ||
       functionName === AggregationKey.OPPORTUNITY_SCORE
     ) {
-      const fieldDef = getFieldDefinition(functionName, 'span');
+      const fieldDef = getFieldDefinition(functionName, {type: 'span'});
       const param = fieldDef?.parameters?.[0];
       if (param?.kind === 'column' && typeof param.columnTypes === 'function') {
         const filtered: TagCollection = {};
