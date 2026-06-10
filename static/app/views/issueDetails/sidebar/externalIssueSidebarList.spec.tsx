@@ -339,6 +339,10 @@ describe('ExternalIssueSidebarList', () => {
 
   it('should render empty state when no integrations', async () => {
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
     });
@@ -347,11 +351,16 @@ describe('ExternalIssueSidebarList', () => {
       body: [],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+      organization: organizationWithLinkedPullRequestsFeature,
+    });
 
     expect(
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText('No linked issues or pull requests')
+    ).not.toBeInTheDocument();
   });
 
   it('should render dropdown items with subtext correctly', async () => {

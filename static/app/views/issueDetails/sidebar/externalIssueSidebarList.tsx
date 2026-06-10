@@ -57,6 +57,7 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
             showEmptyState={
               hasLinkedPullRequestsFeature &&
               !externalIssueData.isLoading &&
+              externalIssueData.integrations.length > 0 &&
               externalIssueData.linkedIssues.length === 0
             }
           />
