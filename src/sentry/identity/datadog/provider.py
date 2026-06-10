@@ -167,13 +167,11 @@ class DatadogOAuth2CallbackView(OAuth2CallbackView):
     def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
         data = self.get_token_params(code=code, redirect_uri=absolute_uri(_redirect_url(pipeline)))
 
-        # PKCE: Add code verifier to the token params.
         code_verifier = pipeline.fetch_state("pkce_code_verifier")
         if not code_verifier:
             raise MissingPipelineStateError("PKCE code_verifier missing from pipeline state")
         data["code_verifier"] = code_verifier
 
-        # DCR: Include client id and secret in header.
         client_id = pipeline.fetch_state("dcr_client_id")
         client_secret = pipeline.fetch_state("dcr_client_secret")
         if not client_id or not client_secret:
