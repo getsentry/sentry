@@ -121,15 +121,17 @@ export function seerAgentProviderNameSelectQueryOptions({
   };
   return queryOptions({
     ...knownAgentIntegrationsQueryOptions({organization}),
-    select: data => [
-      {value: 'seer' as const, label: t('Seer')},
-      ...selectAgentIntegrations(data)
-        .filter(i => isPreferredAgentProvider(i.provider)) // filter out copilot, it cannot be saved.
-        .map(i => ({
-          value: i.provider,
-          label: labels[i.provider],
-        })),
-    ],
+    select: data => {
+      const seen = new Set<CodingAgentProvider>();
+      const providerOptions: Array<{label: string; value: CodingAgentProvider}> = [];
+      for (const i of selectAgentIntegrations(data)) {
+        if (isPreferredAgentProvider(i.provider) && !seen.has(i.provider)) {
+          seen.add(i.provider);
+          providerOptions.push({value: i.provider, label: labels[i.provider]});
+        }
+      }
+      return [{value: 'seer' as const, label: t('Seer')}, ...providerOptions];
+    },
   });
 }
 

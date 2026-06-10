@@ -92,14 +92,16 @@ export function ProjectAddRepoModal({
   });
 
   const saveMutation = useMutateAutofixProject();
-
+  const agentOption =
+    useQuery(orgDefaultAgentQueryOptions({organization})).data ?? 'seer';
+  const stoppingPoint = useOrgDefaultStoppingPoint();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
       project: defaultProject?.id ?? '',
       repoEntries: [] as Array<{branch: string; repoId: string}>,
-      agentOption: useQuery(orgDefaultAgentQueryOptions({organization})).data ?? 'seer',
-      stoppingPoint: useOrgDefaultStoppingPoint(),
+      agentOption,
+      stoppingPoint,
     },
     validators: {
       onMount: formSchema.extend({
