@@ -56,12 +56,12 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {defined} from 'sentry/utils/defined';
+import {MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES} from 'sentry/utils/discover/constants';
 import {EventView, isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DiscoverDatasets,
   DisplayModes,
-  MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';

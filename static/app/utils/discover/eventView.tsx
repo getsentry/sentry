@@ -19,6 +19,12 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {toArray} from 'sentry/utils/array/toArray';
+import {
+  CHART_AXIS_OPTIONS,
+  DISPLAY_MODE_FALLBACK_OPTIONS,
+  DISPLAY_MODE_OPTIONS,
+  TOP_N,
+} from 'sentry/utils/discover/constants';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -31,12 +37,8 @@ import {
   isLegalYAxisType,
 } from 'sentry/utils/discover/fields';
 import {
-  CHART_AXIS_OPTIONS,
   DiscoverDatasets,
-  DISPLAY_MODE_FALLBACK_OPTIONS,
-  DISPLAY_MODE_OPTIONS,
   DisplayModes,
-  TOP_N,
   type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';

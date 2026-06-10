@@ -5,8 +5,8 @@ import {Container} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {isSpanFrame} from 'sentry/utils/replays/frameUtils';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import {isSpanFrame} from 'sentry/utils/replays/types';
 
 interface Props {
   frame: ReplayFrame;

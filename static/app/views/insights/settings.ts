@@ -34,7 +34,7 @@ import {
   MODULE_FEATURES as CACHE_MODULE_FEATURES,
   MODULE_TITLE as CACHE_MODULE_TITLE,
 } from 'sentry/views/insights/cache/settings';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/utils';
 import {
   DATA_TYPE as DB_DATA_TYPE,
   DATA_TYPE_PLURAL as DB_DATA_TYPE_PLURAL,

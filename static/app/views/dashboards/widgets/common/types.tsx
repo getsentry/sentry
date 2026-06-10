@@ -1,5 +1,7 @@
 import type {Confidence} from 'sentry/types/organization';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {DataUnit} from 'sentry/utils/discover/fields';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
 type AttributeValueType =

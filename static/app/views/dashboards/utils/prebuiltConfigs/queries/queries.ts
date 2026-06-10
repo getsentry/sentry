@@ -9,7 +9,7 @@ import {
   DASHBOARD_TITLE,
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/utils';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {

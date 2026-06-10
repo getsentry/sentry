@@ -1,11 +1,9 @@
 import {queryOptions} from '@tanstack/react-query';
 import {parseAsStringEnum} from 'nuqs';
 
-import {
-  CodingAgentProvider,
-  getCodingAgentName,
-} from 'sentry/components/events/autofix/types';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
+import {getCodingAgentName} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

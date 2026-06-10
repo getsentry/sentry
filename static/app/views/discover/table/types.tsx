@@ -1,7 +1,8 @@
 import type {
   GridColumnOrder,
   GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
+} from 'sentry/components/tables/gridEditable/types';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {
   AggregateParameter,
   Column,

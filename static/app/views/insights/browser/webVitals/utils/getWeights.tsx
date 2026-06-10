@@ -1,4 +1,4 @@
-import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/fields';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 

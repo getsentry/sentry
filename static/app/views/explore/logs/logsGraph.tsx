@@ -22,9 +22,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/constants';
 import {
   DashboardWidgetSource,
-  DEFAULT_WIDGET_NAME,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';

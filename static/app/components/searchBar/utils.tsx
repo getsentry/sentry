@@ -1,4 +1,6 @@
-import type {SearchGroup, SearchItem} from './types';
+import {ItemType, type SearchGroup, type SearchItem} from './types';
+
+export const invalidTypes = [ItemType.INVALID_TAG, ItemType.INVALID_QUERY_WITH_WILDCARD];
 
 /**
  * Sets an item as active within a search group array and returns new search groups without mutating.

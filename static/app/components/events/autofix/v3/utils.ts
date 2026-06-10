@@ -1,4 +1,3 @@
-import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
@@ -9,6 +8,7 @@ import {
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {getCodingAgentName} from 'sentry/components/events/autofix/utils';
 import {defined} from 'sentry/utils/defined';
 import {
   type Artifact,

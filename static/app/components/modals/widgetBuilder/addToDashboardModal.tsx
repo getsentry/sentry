@@ -32,6 +32,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
+import {DEFAULT_WIDGET_NAME, MAX_WIDGETS} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {
   assignDefaultLayout,
@@ -46,13 +47,7 @@ import type {
   DashboardWidgetSource,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {
-  DashboardFilter,
-  DEFAULT_WIDGET_NAME,
-  DisplayType,
-  MAX_WIDGETS,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import {DashboardFilter, DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getMergedDashboardFilters,

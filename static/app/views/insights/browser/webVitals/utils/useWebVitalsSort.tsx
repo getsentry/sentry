@@ -4,7 +4,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {
   DEFAULT_SORT,
   SORTABLE_FIELDS,
-} from 'sentry/views/insights/browser/webVitals/types';
+} from 'sentry/views/insights/browser/webVitals/fields';
 
 export function useWebVitalsSort({
   sortName = 'sort',

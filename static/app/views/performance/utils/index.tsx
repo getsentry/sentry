@@ -38,6 +38,8 @@ export const QUERY_KEYS = [
   'statsPeriod',
 ] as const;
 
+export type ViewProps = Pick<EventView, (typeof QUERY_KEYS)[number]>;
+
 export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represents 'other' transactions with high cardinality names that were dropped on the metrics dataset.
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 

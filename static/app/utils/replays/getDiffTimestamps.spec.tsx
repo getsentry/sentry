@@ -10,6 +10,7 @@ import {
 } from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
+import {isHydrationErrorFrame} from 'sentry/utils/replays/frameUtils';
 import {
   getReplayDiffOffsetsFromEvent,
   getReplayDiffOffsetsFromFrame,
@@ -18,7 +19,6 @@ import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {
   IncrementalSource,
-  isHydrationErrorFrame,
   type RawBreadcrumbFrame,
   type RawReplayError,
 } from 'sentry/utils/replays/types';

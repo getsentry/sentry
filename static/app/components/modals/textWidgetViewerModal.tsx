@@ -14,12 +14,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/constants';
 import type {
   DashboardFilters,
   DashboardPermissions,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';

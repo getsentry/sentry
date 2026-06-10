@@ -4,13 +4,11 @@ import {useTheme} from '@emotion/react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {
-  rawSpanKeys,
-  type RawSpanType,
-} from 'sentry/components/events/interfaces/spans/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {
   getSpanSubTimings,
   isHiddenDataKey,
+  rawSpanKeys,
   type SubTimingInfo,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {OpsDot} from 'sentry/components/events/opsBreakdown';

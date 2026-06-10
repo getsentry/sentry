@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
-import {ORDER, WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
+import {ORDER, WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/fields';
 import type {
   ProjectScore,
   WebVitals,

@@ -7,16 +7,13 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {EAP_EXTRAPOLATION_MODE_MAP} from 'sentry/views/alerts/rules/metric/constants';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   getPeriodInterval,
   getViableDateRange,
 } from 'sentry/views/alerts/rules/metric/details/utils';
-import {
-  Dataset,
-  EAP_EXTRAPOLATION_MODE_MAP,
-  type MetricRule,
-} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';

@@ -21,7 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import {transformEventStats} from 'sentry/views/performance/trends/utils/transformEventStats';
-import type {ViewProps} from 'sentry/views/performance/types';
+import type {ViewProps} from 'sentry/views/performance/utils';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 import type {

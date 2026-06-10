@@ -1,3 +1,4 @@
+/* eslint-disable @sentry/scraps/restrict-types-file -- type-only imports from runtime modules; extracting type leaves would cascade to their importers */
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';

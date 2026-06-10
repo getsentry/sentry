@@ -26,14 +26,14 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-import {
-  SEGMENT_SPANS_COLUMN_ORDER,
-  type SegmentSpansColumn,
-  type SegmentSpansRow,
+import type {
+  SegmentSpansColumn,
+  SegmentSpansRow,
 } from 'sentry/views/performance/eap/types';
 import {useSegmentSpansQuery} from 'sentry/views/performance/eap/useSegmentSpansQuery';
 import {
   getEAPSegmentSpansListSort,
+  SEGMENT_SPANS_COLUMN_ORDER,
   SEGMENT_SPANS_CURSOR,
 } from 'sentry/views/performance/eap/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';

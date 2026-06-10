@@ -205,49 +205,7 @@ export type ReplayListQueryReferrer =
   | 'issueReplays'
   | 'transactionReplays';
 
-// Sync with ReplayListRecord below
-// Skip some fields because the backend doesn't support them in the field list:
-// 'ota_updates.channel', 'ota_updates.runtime_version', 'ota_updates.update_id', 'replay_type',
-export const REPLAY_LIST_FIELDS = [
-  'activity',
-  'browser.name',
-  'browser.version',
-  'count_dead_clicks',
-  'count_errors',
-  'count_infos',
-  'count_rage_clicks',
-  'count_segments',
-  'count_urls',
-  'count_warnings',
-  'device.brand',
-  'device.family',
-  'device.model_id',
-  'device.name',
-  'dist',
-  'duration',
-  'environment',
-  'error_ids',
-  'finished_at',
-  'has_viewed',
-  'id',
-  'info_ids',
-  'is_archived',
-  'os.name',
-  'os.version',
-  'platform',
-  'project_id',
-  'releases',
-  'sdk.name',
-  'sdk.version',
-  'started_at',
-  'tags',
-  'trace_ids',
-  'urls',
-  'user',
-  'warning_ids',
-];
-
-// Sync with REPLAY_LIST_FIELDS above
+// Sync with REPLAY_LIST_FIELDS in ./utils
 // TODO: Account for is_archived
 export type ReplayListRecord = Pick<
   ReplayRecord,

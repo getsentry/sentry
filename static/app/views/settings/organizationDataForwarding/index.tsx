@@ -17,13 +17,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {DataForwarderOnboarding} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderOnboarding';
 import {DataForwarderRow} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderRow';
-import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
-import {useDataForwarders} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import {
   DATA_FORWARDING_DOCS_URL,
   DATA_FORWARDING_FEATURES,
-  DataForwarderProviderSlug,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from 'sentry/views/settings/organizationDataForwarding/util/constants';
+import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
+import {useDataForwarders} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
+import {DataForwarderProviderSlug} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export default function OrganizationDataForwarding() {
   const organization = useOrganization();

@@ -23,7 +23,7 @@ import {
 } from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
 import {MobileBuildPreviewSection} from 'sentry/views/detectors/components/forms/mobileBuild/previewSection';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
-import {STATUS_CHECK_ALLOWED_FILTER_KEYS} from 'sentry/views/settings/project/preprod/types';
+import {STATUS_CHECK_ALLOWED_FILTER_KEYS} from 'sentry/views/settings/project/preprod/utils';
 
 function MobileBuildDetectorForm() {
   const theme = useTheme();

@@ -9,7 +9,7 @@ import {CrumbItem} from 'sentry/components/replays/diff/picker/crumbItem';
 import {MutationOption} from 'sentry/components/replays/diff/picker/mutationOption';
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import {t} from 'sentry/locale';
-import {isHydrateCrumb, isRRWebChangeFrame} from 'sentry/utils/replays/types';
+import {isHydrateCrumb, isRRWebChangeFrame} from 'sentry/utils/replays/frameUtils';
 
 const maxOptions = 3;
 

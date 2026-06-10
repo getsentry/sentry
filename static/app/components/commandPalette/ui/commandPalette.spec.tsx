@@ -33,7 +33,6 @@ import {
 import {closeModal} from 'sentry/actionCreators/modal';
 import * as modalActions from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   CommandPaletteProvider,
@@ -46,6 +45,7 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/utils';
 
 function makeRenderProps(onClose: () => void) {
   return {

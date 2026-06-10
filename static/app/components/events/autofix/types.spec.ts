@@ -1,9 +1,9 @@
 import {
   DiffFileType,
   DiffLineType,
-  isFilePatch,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import {isFilePatch} from 'sentry/components/events/autofix/utils';
 
 function makeValidDiffLine(): FilePatch['hunks'][number]['lines'][number] {
   return {

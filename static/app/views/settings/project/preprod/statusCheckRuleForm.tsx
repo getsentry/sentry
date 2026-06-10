@@ -25,7 +25,7 @@ import {
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
   STATUS_CHECK_ALLOWED_FILTER_KEYS,
-} from './types';
+} from './utils';
 
 interface Props {
   onDelete: () => void;

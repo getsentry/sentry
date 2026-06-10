@@ -25,6 +25,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
+import * as dashboardsConstants from 'sentry/views/dashboards/constants';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
@@ -625,7 +626,7 @@ describe('Dashboards > Detail', () => {
     });
 
     it('hides add widget option', async () => {
-      jest.spyOn(types, 'MAX_WIDGETS', 'get').mockReturnValue(1 as 30);
+      jest.spyOn(dashboardsConstants, 'MAX_WIDGETS', 'get').mockReturnValue(1 as 30);
 
       render(
         <OrganizationContext value={initialData.organization}>

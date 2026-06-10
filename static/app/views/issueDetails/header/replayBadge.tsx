@@ -10,8 +10,9 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {TabPaths} from 'sentry/views/issueDetails/constants';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function ReplayBadge({group, project}: {group: Group; project: Project}) {

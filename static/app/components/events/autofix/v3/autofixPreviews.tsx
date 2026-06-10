@@ -8,10 +8,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  CodingAgentStatus,
-  getCodingAgentName,
-} from 'sentry/components/events/autofix/types';
+import {CodingAgentStatus} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
@@ -22,6 +19,7 @@ import {
   isSolutionArtifact,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {getCodingAgentName} from 'sentry/components/events/autofix/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';

@@ -30,6 +30,7 @@ import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {defined} from 'sentry/utils/defined';
+import {DiscoverDatasetsToDatasetMap} from 'sentry/utils/discover/constants';
 import type {Field} from 'sentry/utils/discover/fields';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -40,10 +41,7 @@ import {
   isMeasurement,
   parseFunction,
 } from 'sentry/utils/discover/fields';
-import {
-  DiscoverDatasets,
-  DiscoverDatasetsToDatasetMap,
-} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,

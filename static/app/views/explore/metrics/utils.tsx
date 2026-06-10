@@ -33,7 +33,9 @@ import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregat
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   TraceMetricKnownFieldKey,
+  type MetricsSamplesTableSource,
   type SampleTableColumnKey,
+  type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -340,3 +342,28 @@ export function getEquationMetricsTotalFilter(equation: string) {
 
   return createTraceMetricEventsFilter(traceMetricsUsed);
 }
+
+export function isTraceMetricTypeValue(
+  metricType: string
+): metricType is TraceMetricTypeValue {
+  switch (metricType) {
+    case 'counter':
+    case 'distribution':
+    case 'gauge':
+      return true;
+    default:
+      return false;
+  }
+}
+
+export const DEFAULT_METRICS_SAMPLES_TABLE_SOURCE: MetricsSamplesTableSource =
+  'metricsPage';
+
+export function isEmbeddedMetricsSamplesTableSource(source: MetricsSamplesTableSource) {
+  return source !== 'metricsPage';
+}
+
+export const SORTABLE_SAMPLE_COLUMNS = new Set<SampleTableColumnKey>([
+  TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
+]);

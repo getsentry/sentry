@@ -83,6 +83,7 @@ import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
+import {MAX_WIDGETS} from './constants';
 import {Controls} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
@@ -102,7 +103,7 @@ import type {
   DashboardPermissions,
   Widget,
 } from './types';
-import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './types';
+import {DashboardFilterKeys, DashboardState, WidgetType} from './types';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 

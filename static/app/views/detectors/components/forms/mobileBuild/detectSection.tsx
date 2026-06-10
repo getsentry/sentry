@@ -28,7 +28,7 @@ import {
   isDiffThreshold,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
-} from 'sentry/views/settings/project/preprod/types';
+} from 'sentry/views/settings/project/preprod/utils';
 
 function getMetricOptions(platform: Platform | undefined): Array<[string, string]> {
   return METRIC_OPTIONS.map(({value}) => [

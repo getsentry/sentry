@@ -2,8 +2,11 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {useMatches} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
+import {z} from 'zod';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {FilePatch} from 'sentry/components/events/autofix/types';
+import {isFilePatch} from 'sentry/components/events/autofix/utils';
 import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -34,7 +37,11 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
+  Artifact,
   Block,
+  ExplorerCodingAgentState,
+  ExplorerFilePatch,
+  RepoPRState,
   ToolCall,
   ToolLink,
   ToolResult,
@@ -1140,4 +1147,71 @@ export function isSeerExplorerEnabled(organization: Organization | null): boolea
     organization.features.includes('gen-ai-features') &&
     organization.features.includes('seer-explorer')
   );
+}
+
+/**
+ * z.enum but forward-compatible: accepts any string at runtime while preserving
+ * autocomplete for the known values via the `(string & {})` trick.
+ */
+function zLooseEnum<T extends string>(values: readonly [T, ...T[]]) {
+  return z.enum(values).or(z.custom<string & {}>(val => typeof val === 'string'));
+}
+
+const explorerFilePatchSchema = z.object({
+  diff: z.string(),
+  patch: z.custom<FilePatch>(isFilePatch),
+  repo_name: z.string(),
+});
+
+const repoPRStateSchema = z.object({
+  branch_name: z.string().nullable(),
+  commit_sha: z.string().nullable(),
+  pr_creation_error: z.string().nullable(),
+  pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
+  pr_id: z.number().nullable(),
+  pr_number: z.number().nullable(),
+  pr_url: z.string().nullable(),
+  repo_name: z.string(),
+  title: z.string().nullable(),
+});
+
+const artifactSchema = z.object({
+  data: z.record(z.string(), z.unknown()).nullable(),
+  key: z.string(),
+  reason: z.string(),
+});
+
+const codingAgentResultSchema = z.object({
+  description: z.string(),
+  repo_full_name: z.string(),
+  repo_provider: z.string(),
+  pr_url: z.string().nullable().optional(),
+});
+
+const explorerCodingAgentStateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  provider: z.string(),
+  started_at: z.string(),
+  status: zLooseEnum(['pending', 'running', 'completed', 'failed']),
+  agent_url: z.string().nullable().optional(),
+  results: z.array(codingAgentResultSchema).optional(),
+});
+
+export function isExplorerFilePatch(value: unknown): value is ExplorerFilePatch {
+  return explorerFilePatchSchema.safeParse(value).success;
+}
+
+export function isRepoPRState(value: unknown): value is RepoPRState {
+  return repoPRStateSchema.safeParse(value).success;
+}
+
+export function isArtifact(value: unknown): value is Artifact {
+  return artifactSchema.safeParse(value).success;
+}
+
+export function isExplorerCodingAgentState(
+  value: unknown
+): value is ExplorerCodingAgentState {
+  return explorerCodingAgentStateSchema.safeParse(value).success;
 }

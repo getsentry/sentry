@@ -1,4 +1,6 @@
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {FieldKind} from 'sentry/utils/fields';
 
 export enum ItemType {
@@ -15,8 +17,6 @@ export enum ItemType {
   LINK = 'link',
   RECOMMENDED = 'recommended',
 }
-
-export const invalidTypes = [ItemType.INVALID_TAG, ItemType.INVALID_QUERY_WITH_WILDCARD];
 
 export type SearchGroup = {
   children: SearchItem[];

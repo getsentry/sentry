@@ -11,10 +11,10 @@ import {
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-import {
-  ProviderLabels,
-  type DataForwarder,
-  type DataForwarderPayload,
+import {ProviderLabels} from 'sentry/views/settings/organizationDataForwarding/util/constants';
+import type {
+  DataForwarder,
+  DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [

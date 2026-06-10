@@ -1,8 +1,19 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {BACKEND_PLATFORMS} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_PLATFORMS} from 'sentry/views/insights/pages/frontend/settings';
-import {MOBILE_PLATFORMS} from 'sentry/views/insights/pages/mobile/settings';
+import {AGENTS_LANDING_TITLE} from 'sentry/views/insights/pages/agents/settings';
+import {
+  BACKEND_LANDING_TITLE,
+  BACKEND_PLATFORMS,
+} from 'sentry/views/insights/pages/backend/settings';
+import {
+  FRONTEND_LANDING_TITLE,
+  FRONTEND_PLATFORMS,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {MCP_LANDING_TITLE} from 'sentry/views/insights/pages/mcp/settings';
+import {
+  MOBILE_LANDING_TITLE,
+  MOBILE_PLATFORMS,
+} from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_MODULES} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
@@ -12,6 +23,14 @@ import {
   MODULES_CONSIDERED_NEW,
 } from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
+
+export const DOMAIN_VIEW_TITLES: Record<DomainView, string> = {
+  backend: BACKEND_LANDING_TITLE,
+  frontend: FRONTEND_LANDING_TITLE,
+  mobile: MOBILE_LANDING_TITLE,
+  'ai-agents': AGENTS_LANDING_TITLE,
+  mcp: MCP_LANDING_TITLE,
+};
 
 export const isModuleEnabled = (module: ModuleName, organization: Organization) =>
   MODULE_FEATURE_MAP[module].every(f => organization.features.includes(f));

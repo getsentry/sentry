@@ -1,3 +1,4 @@
+/* eslint-disable @sentry/scraps/restrict-types-file -- type-only imports from runtime form modules; extracting type leaves would cascade to their many importers */
 import type {AlertProps} from '@sentry/scraps/alert';
 import type {SelectValue} from '@sentry/scraps/select';
 

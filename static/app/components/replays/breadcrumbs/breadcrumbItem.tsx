@@ -12,11 +12,11 @@ import {BreadcrumbStructuredData} from 'sentry/components/replays/breadcrumbs/br
 import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
 import {Timeline} from 'sentry/components/timeline';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {isErrorFrame} from 'sentry/utils/replays/frameUtils';
 import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
 import {useExtractDomNodes} from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame} from 'sentry/utils/replays/types';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
 

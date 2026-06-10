@@ -1,7 +1,8 @@
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
+import {MAX_TABLE_LIMIT} from 'sentry/views/dashboards/constants';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {
   PrebuiltDashboard,
   PrebuiltWidget,

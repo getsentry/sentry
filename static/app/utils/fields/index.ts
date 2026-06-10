@@ -2,10 +2,10 @@ import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 
 import {t, td} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
+import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/constants';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
+import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/utils';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 

@@ -10,7 +10,7 @@ import type {
   PreprodMeasurement,
   PreprodThresholdType,
 } from 'sentry/types/workflowEngine/detectors';
-import {bytesToMB, mbToBytes} from 'sentry/views/settings/project/preprod/types';
+import {bytesToMB, mbToBytes} from 'sentry/views/settings/project/preprod/utils';
 
 interface PreprodDetectorFormData {
   description: string | null;

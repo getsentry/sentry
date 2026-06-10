@@ -1,8 +1,10 @@
 import type moment from 'moment-timezone';
 
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {EventQuery} from 'sentry/actionCreators/events';
 import type {EventsStatsData} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {EventView, LocationQuery} from 'sentry/utils/discover/eventView';
 
 export type TrendView = EventView & {

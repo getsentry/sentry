@@ -25,6 +25,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
 import {
+  DATA_FORWARDING_FEATURES,
+  ProviderLabels,
+} from 'sentry/views/settings/organizationDataForwarding/util/constants';
+import {
   useDataForwarders,
   useMutateDataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/hooks';
@@ -32,9 +36,7 @@ import {SegmentEditForm} from 'sentry/views/settings/organizationDataForwarding/
 import {SplunkEditForm} from 'sentry/views/settings/organizationDataForwarding/util/splunkForm';
 import {SQSEditForm} from 'sentry/views/settings/organizationDataForwarding/util/sqsForm';
 import {
-  DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
-  ProviderLabels,
   type DataForwarder,
   type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';

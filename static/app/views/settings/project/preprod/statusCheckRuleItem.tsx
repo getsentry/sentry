@@ -19,7 +19,7 @@ import {
   getDisplayUnit,
   getMeasurementLabel,
   getMetricLabel,
-} from './types';
+} from './utils';
 
 interface Props {
   isExpanded: boolean;

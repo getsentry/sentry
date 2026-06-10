@@ -1,6 +1,7 @@
 // This enum is used to represent known fields or attributes in the metrics response.
 // Should always map to the public alias from the backend (.../search/eap/trace_metrics/attributes.py)
 
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 
 // This is not an exhaustive list, it's only the fields which have special handling in the frontend
@@ -65,19 +66,6 @@ export type TraceMetricFieldKey = TraceMetricCustomFieldKey | TraceMetricKnownFi
 
 export type TraceMetricTypeValue = 'counter' | 'gauge' | 'distribution';
 
-export function isTraceMetricTypeValue(
-  metricType: string
-): metricType is TraceMetricTypeValue {
-  switch (metricType) {
-    case 'counter':
-    case 'distribution':
-    case 'gauge':
-      return true;
-    default:
-      return false;
-  }
-}
-
 type TraceMetricsKnownFieldResponseMap = Record<
   TraceMetricKnownFieldKey,
   string | number
@@ -121,15 +109,3 @@ export enum VirtualTableSampleColumnKey {
 export type SampleTableColumnKey = TraceMetricFieldKey | VirtualTableSampleColumnKey;
 
 export type MetricsSamplesTableSource = 'metricsPage' | 'traceWaterfall' | 'issueDetails';
-
-export const DEFAULT_METRICS_SAMPLES_TABLE_SOURCE: MetricsSamplesTableSource =
-  'metricsPage';
-
-export function isEmbeddedMetricsSamplesTableSource(source: MetricsSamplesTableSource) {
-  return source !== 'metricsPage';
-}
-
-export const SORTABLE_SAMPLE_COLUMNS = new Set<SampleTableColumnKey>([
-  TraceMetricKnownFieldKey.METRIC_VALUE,
-  TraceMetricKnownFieldKey.TIMESTAMP,
-]);

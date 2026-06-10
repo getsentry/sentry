@@ -9,7 +9,7 @@ import {
 import {
   getMetricLabelForPlatform,
   guessPlatformForProject,
-} from 'sentry/views/settings/project/preprod/types';
+} from 'sentry/views/settings/project/preprod/utils';
 
 export function MobileBuildPreviewSection({step}: {step: number}) {
   const measurement =

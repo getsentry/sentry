@@ -18,6 +18,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
+  DATA_FORWARDING_FEATURES,
+  ProviderLabels,
+} from 'sentry/views/settings/organizationDataForwarding/util/constants';
+import {
   useDataForwarders,
   useMutateDataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/hooks';
@@ -25,9 +29,7 @@ import {SegmentSetupForm} from 'sentry/views/settings/organizationDataForwarding
 import {SplunkSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/splunkForm';
 import {SQSSetupForm} from 'sentry/views/settings/organizationDataForwarding/util/sqsForm';
 import {
-  DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
-  ProviderLabels,
   type DataForwarderPayload,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 

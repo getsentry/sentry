@@ -9,9 +9,10 @@ import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
+import {TabPaths} from 'sentry/views/issueDetails/constants';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function AttachmentsBadge({group}: {group: Group}) {

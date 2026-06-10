@@ -51,11 +51,8 @@ import {
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
-import {
-  SpanFields,
-  subregionCodeToName,
-  type SubregionCode,
-} from 'sentry/views/insights/types';
+import {subregionCodeToName} from 'sentry/views/insights/constants';
+import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type FilterSelectorProps = {
   globalFilter: GlobalFilter;

@@ -6,6 +6,7 @@ import type {
   TagValue,
 } from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;

@@ -6,8 +6,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {TabPaths} from 'sentry/views/issueDetails/constants';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 import {IssueEventNavigation} from '.';
 

@@ -7,19 +7,20 @@ import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
+import {TOP_N} from 'sentry/utils/discover/constants';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
   isAggregateField,
   type AggregationOutputType,
   type DataUnit,
 } from 'sentry/utils/discover/fields';
-import {TOP_N} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/constants';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   usesTimeSeriesData,

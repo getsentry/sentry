@@ -3,13 +3,14 @@ import trimStart from 'lodash/trimStart';
 import type {EventsStatsOptions} from 'sentry/actionCreators/events';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {TOP_N} from 'sentry/utils/discover/constants';
 import {
   getAggregateAlias,
   getEquationAliasIndex,
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets, TOP_N} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {getNumEquations, getWidgetInterval} from 'sentry/views/dashboards/utils';
 

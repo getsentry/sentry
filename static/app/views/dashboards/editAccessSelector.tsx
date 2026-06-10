@@ -25,12 +25,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/constants';
 import type {
   DashboardDetails,
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
-import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 interface EditAccessSelectorProps {
   dashboard: DashboardDetails | DashboardListItem;

@@ -3,6 +3,7 @@ import {noDoubleDollarInterpolation} from './no-double-dollar-interpolation';
 import {noTokenImport} from './no-token-import';
 import {preferInfoText} from './prefer-info-text';
 import {restrictJsxSlotChildren} from './restrict-jsx-slot-children';
+import {restrictTypesFile} from './restrict-types-file';
 import {useSemanticToken} from './use-semantic-token';
 
 export const rules = {
@@ -11,5 +12,6 @@ export const rules = {
   'no-token-import': noTokenImport,
   'prefer-info-text': preferInfoText,
   'restrict-jsx-slot-children': restrictJsxSlotChildren,
+  'restrict-types-file': restrictTypesFile,
   'use-semantic-token': useSemanticToken,
 };

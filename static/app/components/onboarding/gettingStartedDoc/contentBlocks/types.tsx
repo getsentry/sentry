@@ -1,5 +1,6 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 
 type BaseBlock<T extends string> = {

@@ -10,7 +10,7 @@ import type {
   PipelineDefinition,
   PipelineStepProps,
 } from 'sentry/components/pipeline/types';
-import {pipelineComplete} from 'sentry/components/pipeline/types';
+import {pipelineComplete} from 'sentry/components/pipeline/utils';
 import {t} from 'sentry/locale';
 
 function DummyStepOne({

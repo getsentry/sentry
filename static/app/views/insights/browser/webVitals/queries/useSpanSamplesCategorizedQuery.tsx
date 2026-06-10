@@ -1,4 +1,5 @@
 import {defined} from 'sentry/utils/defined';
+import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/fields';
 import {
   CLS_SPANS_FILTER,
   INTERACTION_SPANS_FILTER,
@@ -6,7 +7,6 @@ import {
   SPANS_FILTER,
   useSpanSamplesWebVitalsQuery,
 } from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesWebVitalsQuery';
-import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {

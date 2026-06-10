@@ -21,7 +21,7 @@ import {
   getDisplayUnit,
   getMeasurementLabel,
   getMetricLabel,
-} from 'sentry/views/settings/project/preprod/types';
+} from 'sentry/views/settings/project/preprod/utils';
 
 function getConditionLabel({condition}: {condition: MetricCondition}) {
   switch (condition.conditionResult) {

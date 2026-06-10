@@ -9,8 +9,8 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
+import {TOP_EVENT_MODES} from 'sentry/utils/discover/constants';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
   displayMode: string;

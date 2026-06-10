@@ -1,3 +1,4 @@
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {NotificationBodyFormattingBlock} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 
 export enum NotificationProviderKey {

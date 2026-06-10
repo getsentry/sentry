@@ -2,11 +2,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
-import {
-  REPLAY_LIST_FIELDS,
-  type ReplayListQueryReferrer,
-  type ReplayListRecord,
+import type {
+  ReplayListQueryReferrer,
+  ReplayListRecord,
 } from 'sentry/views/explore/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/utils';
 
 interface QueryOptions {
   cursor?: string;

@@ -9,10 +9,8 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
-import {
-  ProviderLabels,
-  type DataForwarder,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+import {ProviderLabels} from 'sentry/views/settings/organizationDataForwarding/util/constants';
+import type {DataForwarder} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export function DataForwarderRow({
   dataForwarder,

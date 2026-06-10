@@ -10,14 +10,14 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {TOP_N} from 'sentry/utils/discover/types';
+import {TOP_N} from 'sentry/utils/discover/constants';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {MAX_CATEGORICAL_BAR_LIMIT} from 'sentry/views/dashboards/constants';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   DashboardFilter,
   DisplayType,
-  MAX_CATEGORICAL_BAR_LIMIT,
   type DashboardDetails,
   type DashboardListItem,
   type Widget,

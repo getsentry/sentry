@@ -43,8 +43,6 @@ import {
 } from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
-  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
-  isEmbeddedMetricsSamplesTableSource,
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
   type MetricsSamplesTableSource,
@@ -52,8 +50,10 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {
+  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   getMetricTableColumnType,
   getMetricsUrl,
+  isEmbeddedMetricsSamplesTableSource,
   makeMetricsAggregate,
 } from 'sentry/views/explore/metrics/utils';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';

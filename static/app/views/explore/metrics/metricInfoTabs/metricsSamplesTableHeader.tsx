@@ -9,15 +9,17 @@ import {
   StyledSimpleTableHeaderCell,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {
-  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
-  isEmbeddedMetricsSamplesTableSource,
   type MetricsSamplesTableSource,
-  SORTABLE_SAMPLE_COLUMNS,
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {
+  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
+  getMetricTableColumnType,
+  isEmbeddedMetricsSamplesTableSource,
+  SORTABLE_SAMPLE_COLUMNS,
+} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,

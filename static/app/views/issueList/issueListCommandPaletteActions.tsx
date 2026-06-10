@@ -6,12 +6,12 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
-import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   type CMDKResourceContext,
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {IconBookmark, IconFilter, IconGroup, IconIssues, IconSort} from 'sentry/icons';

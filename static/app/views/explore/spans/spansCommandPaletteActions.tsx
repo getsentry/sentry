@@ -1,12 +1,12 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
   type CMDKResourceContext,
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {cmdkQueryOptions} from 'sentry/components/commandPalette/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconFilter, IconSpan} from 'sentry/icons';

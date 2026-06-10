@@ -10,17 +10,17 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import type {
+  MeasurementType,
+  MetricType,
+} from 'sentry/views/settings/project/preprod/types';
 import {
   bytesToMB,
   getDisplayUnit,
   getMeasurementLabel,
   getMetricLabelForArtifactType,
   isDiffThreshold,
-} from 'sentry/views/settings/project/preprod/types';
-import type {
-  MeasurementType,
-  MetricType,
-} from 'sentry/views/settings/project/preprod/types';
+} from 'sentry/views/settings/project/preprod/utils';
 
 interface SizeAnalysisEvidenceData {
   conditions: MetricCondition[];

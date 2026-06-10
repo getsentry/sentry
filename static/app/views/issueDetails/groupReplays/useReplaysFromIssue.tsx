@@ -10,7 +10,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/utils';
 
 export function useReplaysFromIssue({
   group,

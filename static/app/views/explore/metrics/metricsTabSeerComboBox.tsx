@@ -35,11 +35,11 @@ import {
 } from 'sentry/views/explore/metrics/metricQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {
   isTraceMetricTypeValue,
-  TraceMetricKnownFieldKey,
-} from 'sentry/views/explore/metrics/types';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+  makeMetricsAggregate,
+} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';

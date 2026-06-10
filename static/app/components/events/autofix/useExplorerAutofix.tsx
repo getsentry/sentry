@@ -24,17 +24,19 @@ import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import type {
+  Artifact,
+  Block,
+  ExplorerCodingAgentState,
+  ExplorerFilePatch,
+  RepoPRState,
+} from 'sentry/views/seerExplorer/types';
 import {
   isArtifact,
   isExplorerCodingAgentState,
   isExplorerFilePatch,
   isRepoPRState,
-  type Artifact,
-  type Block,
-  type ExplorerCodingAgentState,
-  type ExplorerFilePatch,
-  type RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+} from 'sentry/views/seerExplorer/utils';
 
 /**
  * Available autofix steps that can be triggered via the Explorer.

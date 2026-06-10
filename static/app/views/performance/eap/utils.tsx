@@ -1,9 +1,49 @@
 import type {Location} from 'history';
 
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type {SegmentSpansColumn} from 'sentry/views/performance/eap/types';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+
+export const SEGMENT_SPANS_COLUMN_ORDER: SegmentSpansColumn[] = [
+  {
+    key: 'trace',
+    name: t('Trace ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'span_id',
+    name: t('Span ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'user.display',
+    name: t('User'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'span.duration',
+    name: t('Total Duration'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'timestamp',
+    name: t('Timestamp'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'replayId',
+    name: t('Replay'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'profile.id',
+    name: t('Profile'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+];
 
 export function getEAPSegmentSpansListSort(
   location: Location,

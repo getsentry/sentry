@@ -5,8 +5,8 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Link} from '@sentry/scraps/link';
 
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
+import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/frameUtils';
 import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';

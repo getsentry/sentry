@@ -14,7 +14,7 @@ import type {
   PipelineDefinition,
   PipelineStepProps,
 } from 'sentry/components/pipeline/types';
-import {pipelineComplete} from 'sentry/components/pipeline/types';
+import {pipelineComplete} from 'sentry/components/pipeline/utils';
 import {t, tn} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import type {ScmGithubMultiOrgInstallProps} from 'sentry/types/overrides';

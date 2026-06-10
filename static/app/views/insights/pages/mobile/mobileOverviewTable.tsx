@@ -22,7 +22,7 @@ import {SPAN_HEADER_TOOLTIPS} from 'sentry/views/insights/common/components/head
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/utils';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 

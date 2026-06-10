@@ -22,13 +22,15 @@ import {MetricsSamplesTableHeader} from 'sentry/views/explore/metrics/metricInfo
 import {SampleTableRow} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTableRow';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
-  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
-  isEmbeddedMetricsSamplesTableSource,
   type MetricsSamplesTableSource,
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
-import {mapMetricUnitToFieldType} from 'sentry/views/explore/metrics/utils';
+import {
+  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
+  isEmbeddedMetricsSamplesTableSource,
+  mapMetricUnitToFieldType,
+} from 'sentry/views/explore/metrics/utils';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;

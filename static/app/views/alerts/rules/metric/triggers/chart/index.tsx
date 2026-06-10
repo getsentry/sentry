@@ -48,12 +48,14 @@ import {
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {withApi} from 'sentry/utils/withApi';
-import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {
+  COMPARISON_DELTA_OPTIONS,
+  EAP_EXTRAPOLATION_MODE_MAP,
+} from 'sentry/views/alerts/rules/metric/constants';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {
   AlertRuleComparisonType,
   Dataset,
-  EAP_EXTRAPOLATION_MODE_MAP,
   ExtrapolationMode,
   SessionsAggregate,
   TimePeriod,

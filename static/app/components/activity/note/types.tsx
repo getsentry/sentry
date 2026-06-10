@@ -1,5 +1,6 @@
 import type {OnChangeHandlerFunc} from 'react-mentions';
 
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {DEFAULT_ERROR_JSON} from 'sentry/constants';
 
 /**

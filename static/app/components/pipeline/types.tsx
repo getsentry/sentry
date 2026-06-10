@@ -1,15 +1,7 @@
-import {RequestError} from 'sentry/utils/requestError/requestError';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-const PIPELINE_NAME_MAP = {
-  integration: 'integration_pipeline',
-  identity: 'identity_provider',
-} as const;
-
-type PipelineType = keyof typeof PIPELINE_NAME_MAP;
-
-export function getBackendPipelineType(type: PipelineType): string {
-  return PIPELINE_NAME_MAP[type];
-}
+export type PipelineType = 'integration' | 'identity';
 
 /**
  * A single step in a pipeline definition.
@@ -89,16 +81,6 @@ export interface PipelineStepProps<
   stepData: D | null;
   stepIndex: number;
   totalSteps: number;
-}
-
-/**
- * Identity function that asserts the raw completion data to a typed shape.
- * Avoids the verbose `(data: Record<string, unknown>) => data as unknown as T`
- * boilerplate in every pipeline definition.
- */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-export function pipelineComplete<T>(data: Record<string, unknown>): T {
-  return data as unknown as T;
 }
 
 /**

@@ -9,9 +9,9 @@ import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getInterval
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/constants';
 import {
   DashboardWidgetSource,
-  DEFAULT_WIDGET_NAME,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';

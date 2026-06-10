@@ -7,9 +7,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {isCLSFrame, isWebVitalFrame} from 'sentry/utils/replays/frameUtils';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import {isCLSFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
 

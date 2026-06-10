@@ -20,9 +20,9 @@ import {
 } from 'sentry/utils/queryString';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {DEFAULT_CATEGORICAL_BAR_LIMIT} from 'sentry/views/dashboards/constants';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
-  DEFAULT_CATEGORICAL_BAR_LIMIT,
   DisplayType,
   WidgetType,
   type LegendType,

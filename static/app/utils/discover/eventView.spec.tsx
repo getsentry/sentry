@@ -7,6 +7,7 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
+import {CHART_AXIS_OPTIONS, DISPLAY_MODE_OPTIONS} from 'sentry/utils/discover/constants';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {
   EventView,
@@ -15,9 +16,7 @@ import {
 } from 'sentry/utils/discover/eventView';
 import type {Column} from 'sentry/utils/discover/fields';
 import {
-  CHART_AXIS_OPTIONS,
   DiscoverDatasets,
-  DISPLAY_MODE_OPTIONS,
   DisplayModes,
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';

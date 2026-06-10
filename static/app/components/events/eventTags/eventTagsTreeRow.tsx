@@ -26,7 +26,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {TabPaths} from 'sentry/views/issueDetails/constants';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   getSearchInExploreTarget,

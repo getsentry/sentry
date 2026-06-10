@@ -5,13 +5,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WEB_VITAL_FULL_NAME_MAP} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
+import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/fields';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {
   DEFAULT_QUERY_FILTER,
   FIELD_ALIASES,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,

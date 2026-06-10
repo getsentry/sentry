@@ -9,7 +9,7 @@ import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/utils';
 
 type Options = {
   location: Location;

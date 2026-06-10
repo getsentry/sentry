@@ -8,8 +8,9 @@ import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {TabPaths} from 'sentry/views/issueDetails/constants';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function UserFeedbackBadge({group, project}: {group: Group; project: Project}) {

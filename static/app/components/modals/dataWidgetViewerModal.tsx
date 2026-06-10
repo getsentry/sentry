@@ -65,17 +65,14 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/constants';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {
   DashboardFilters,
   DashboardPermissions,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {
-  DisplayType,
-  PREBUILT_DASHBOARD_LABEL,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,

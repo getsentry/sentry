@@ -32,11 +32,12 @@ import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './constants';
 import {DashboardRevisionsButton} from './dashboardRevisions';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardPermissions} from './types';
-import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
+import {DashboardState} from './types';
 
 type Props = {
   dashboard: DashboardDetails;

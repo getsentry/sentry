@@ -21,8 +21,8 @@ import {useRepositories} from 'sentry/utils/useRepositories';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {StatusCheckRuleItem} from './statusCheckRuleItem';
-import {DEFAULT_ARTIFACT_TYPE} from './types';
 import {useStatusCheckRules} from './useStatusCheckRules';
+import {DEFAULT_ARTIFACT_TYPE} from './utils';
 
 export function StatusCheckRules() {
   const organization = useOrganization();

@@ -17,7 +17,7 @@ import type {
   PipelineDefinition,
   PipelineStepProps,
 } from 'sentry/components/pipeline/types';
-import {pipelineComplete} from 'sentry/components/pipeline/types';
+import {pipelineComplete} from 'sentry/components/pipeline/utils';
 import {IconCheckmark, IconCode, IconFatal, IconOpen} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';

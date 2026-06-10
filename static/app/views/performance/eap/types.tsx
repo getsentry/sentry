@@ -1,8 +1,4 @@
-import {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnHeader,
-} from 'sentry/components/tables/gridEditable';
-import {t} from 'sentry/locale';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
 // TODO: When supported, also add span operation breakdown as a field
@@ -34,41 +30,3 @@ export type SegmentSpansColumn = GridColumnHeader<
   | 'replayId'
   | 'profile.id'
 >;
-
-export const SEGMENT_SPANS_COLUMN_ORDER: SegmentSpansColumn[] = [
-  {
-    key: 'trace',
-    name: t('Trace ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span_id',
-    name: t('Span ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'user.display',
-    name: t('User'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span.duration',
-    name: t('Total Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'timestamp',
-    name: t('Timestamp'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'replayId',
-    name: t('Replay'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'profile.id',
-    name: t('Profile'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-];

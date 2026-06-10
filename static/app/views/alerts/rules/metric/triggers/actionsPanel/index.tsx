@@ -22,15 +22,17 @@ import {replaceAtArrayIndex} from 'sentry/utils/array/replaceAtArrayIndex';
 import {uniqueId} from 'sentry/utils/guid';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import {
+  ActionLabel,
+  DefaultPriorities,
+  PriorityOptions,
+  TargetLabel,
+} from 'sentry/views/alerts/rules/metric/constants';
 import {ActionSpecificTargetSelector} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
 import {ActionTargetSelector} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
 import {DeleteActionButton} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
 import {
-  ActionLabel,
   AlertRuleComparisonType,
-  DefaultPriorities,
-  PriorityOptions,
-  TargetLabel,
   type Action,
   type ActionType,
   type MetricActionTemplate,

@@ -19,7 +19,8 @@ import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
 import type {SearchGroup, SearchItem, Shortcut} from './types';
-import {invalidTypes, ItemType} from './types';
+import {ItemType} from './types';
+import {invalidTypes} from './utils';
 
 const getDropdownItemKey = (item: SearchItem): string =>
   `${item.value || item.desc || item.title}-${

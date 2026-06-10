@@ -1,13 +1,15 @@
 import type {Layout} from 'react-grid-layout';
 
-import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
-import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {DatasetSource} from 'sentry/utils/discover/types';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
 export enum DashboardFilter {
@@ -22,21 +24,6 @@ export enum DashboardFilter {
 }
 
 export type LegendType = 'default' | 'breakdown';
-
-// Max widgets per dashboard we are currently willing
-// to allow to limit the load on snuba from the
-// parallel requests. Somewhat arbitrary
-// limit that can be changed if necessary.
-export const MAX_WIDGETS = 30;
-
-export const DEFAULT_TABLE_LIMIT = 5;
-export const MAX_TABLE_LIMIT = 10;
-
-export const DEFAULT_CATEGORICAL_BAR_LIMIT = 20;
-export const MAX_CATEGORICAL_BAR_LIMIT = 25;
-
-export const DEFAULT_WIDGET_NAME = t('Custom Widget');
-export const PREBUILT_DASHBOARD_LABEL = t('Sentry Built');
 
 export enum DisplayType {
   AREA = 'area',
@@ -89,11 +76,6 @@ export enum OnDemandExtractionState {
   ENABLED_MANUAL = 'enabled:manual',
   ENABLED_CREATION = 'enabled:creation',
 }
-
-export const WIDGET_TYPE_TO_SAVED_QUERY_DATASET = {
-  [WidgetType.ERRORS]: SavedQueryDatasets.ERRORS,
-  [WidgetType.TRANSACTIONS]: SavedQueryDatasets.TRANSACTIONS,
-};
 
 interface WidgetQueryOnDemand {
   enabled: boolean;

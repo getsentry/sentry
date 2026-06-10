@@ -35,6 +35,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {WIDGET_TYPE_TO_SAVED_QUERY_DATASET} from 'sentry/views/dashboards/constants';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -44,7 +45,6 @@ import type {
 import {
   DashboardFilterKeys,
   DisplayType,
-  WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 

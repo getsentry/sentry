@@ -10,6 +10,7 @@ import type {DetailedProject} from 'sentry/types/project';
 import {uniqueId} from 'sentry/utils/guid';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 
+import type {StatusCheckRule} from './types';
 import {
   DEFAULT_ARTIFACT_TYPE,
   DEFAULT_MEASUREMENT_TYPE,
@@ -17,8 +18,7 @@ import {
   toArtifactType,
   toMeasurementType,
   toMetricType,
-  type StatusCheckRule,
-} from './types';
+} from './utils';
 
 const ENABLED_KEY = 'sentry:preprod_size_status_checks_enabled';
 const RULES_KEY = 'sentry:preprod_size_status_checks_rules';

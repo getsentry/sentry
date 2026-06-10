@@ -1,16 +1,16 @@
-import type {
-  OptionFrame,
-  RawBreadcrumbFrame,
-  RawSpanFrame,
-  RecordingFrame,
-  VideoEvent,
-} from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrameEvent,
   isOptionFrameEvent,
   isRecordingFrame,
   isSpanFrameEvent,
   isVideoFrameEvent,
+} from 'sentry/utils/replays/frameUtils';
+import type {
+  OptionFrame,
+  RawBreadcrumbFrame,
+  RawSpanFrame,
+  RecordingFrame,
+  VideoEvent,
 } from 'sentry/utils/replays/types';
 
 export function hydrateFrames(attachments: unknown[]) {

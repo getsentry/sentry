@@ -3,12 +3,9 @@ import {useCallback, useMemo, useRef} from 'react';
 
 import {defined} from 'sentry/utils/defined';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {isConsoleFrame} from 'sentry/utils/replays/frameUtils';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {
-  isConsoleFrame,
-  type BreadcrumbFrame,
-  type ConsoleFrame,
-} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
 type Options = {

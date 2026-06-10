@@ -6,10 +6,8 @@ import {TabPanels} from '@sentry/scraps/tabs';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
-import {
-  isEmbeddedMetricsSamplesTableSource,
-  type MetricsSamplesTableSource,
-} from 'sentry/views/explore/metrics/types';
+import type {MetricsSamplesTableSource} from 'sentry/views/explore/metrics/types';
+import {isEmbeddedMetricsSamplesTableSource} from 'sentry/views/explore/metrics/utils';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
 export const TabListWrapper = styled('div')`

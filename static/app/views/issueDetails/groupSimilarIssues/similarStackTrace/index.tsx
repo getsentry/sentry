@@ -18,8 +18,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 import {List} from './list';
-import {processSimilarItem} from './types';
 import type {SimilarApiResponse} from './types';
+import {processSimilarItem} from './utils';
 
 type Props = {
   project: Project;

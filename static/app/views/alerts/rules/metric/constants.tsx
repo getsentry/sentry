@@ -9,12 +9,15 @@ import {AggregationKey, MobileVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Trigger, UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
+  ActionType,
   AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
   Datasource,
   EventTypes,
+  ExtrapolationMode,
+  TargetType,
   TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
@@ -60,6 +63,41 @@ export type OptionConfig = {
 export const errorFieldConfig: OptionConfig = {
   aggregations: [AggregationKey.COUNT, AggregationKey.COUNT_UNIQUE],
   fields: ['user'],
+};
+
+export const EAP_EXTRAPOLATION_MODE_MAP = {
+  [ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED]: 'sampleWeighted',
+  [ExtrapolationMode.SERVER_WEIGHTED]: 'serverOnly',
+  [ExtrapolationMode.NONE]: 'none',
+  [ExtrapolationMode.UNKNOWN]: 'sampleWeighted',
+};
+
+export const ActionLabel = {
+  // \u200B is needed because Safari disregards autocomplete="off". It's seeing "Email" and
+  // opening up the browser autocomplete for email. https://github.com/JedWatson/react-select/issues/3500
+  [ActionType.EMAIL]: t('Emai\u200Bl'),
+  [ActionType.SLACK]: t('Slack'),
+  [ActionType.PAGERDUTY]: t('Pagerduty'),
+  [ActionType.MSTEAMS]: t('MS Teams'),
+  [ActionType.OPSGENIE]: t('Opsgenie'),
+  [ActionType.DISCORD]: t('Discord'),
+  [ActionType.SENTRY_APP]: t('Notification'),
+};
+
+export const TargetLabel = {
+  [TargetType.USER]: t('Member'),
+  [TargetType.TEAM]: t('Team'),
+};
+
+export const PriorityOptions = {
+  [ActionType.PAGERDUTY]: ['critical', 'warning', 'error', 'info'],
+  [ActionType.OPSGENIE]: ['P1', 'P2', 'P3', 'P4', 'P5'],
+};
+
+// default priorities per threshold (0 = critical, 1 = warning)
+export const DefaultPriorities = {
+  [ActionType.PAGERDUTY]: {[0]: 'critical', [1]: 'warning'},
+  [ActionType.OPSGENIE]: {[0]: 'P1', [1]: 'P2'},
 };
 
 const commonAggregations = [

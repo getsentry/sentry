@@ -2,9 +2,10 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import {TabPaths} from 'sentry/views/issueDetails/constants';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {ViewButton} from 'sentry/views/issueDetails/sidebar/viewButton';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function MergedIssuesSidebarSection() {

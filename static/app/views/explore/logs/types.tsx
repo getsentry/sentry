@@ -1,3 +1,4 @@
+/* eslint-disable @sentry/scraps/restrict-types-file -- type-only imports from runtime modules; extracting type leaves would cascade to their many importers */
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {
   CountUnit,

@@ -9,9 +9,9 @@ import {
   useFetchProjectSeerPreferences,
   useUpdateProjectSeerPreferences,
 } from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
+import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/utils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';

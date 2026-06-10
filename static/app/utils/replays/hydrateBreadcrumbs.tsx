@@ -3,9 +3,9 @@ import invariant from 'invariant';
 import {t} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
+import {isBreadcrumbFrame} from 'sentry/utils/replays/frameUtils';
 import {defaultTitle} from 'sentry/utils/replays/getFrameDetails';
 import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
-import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function hydrateBreadcrumbs(

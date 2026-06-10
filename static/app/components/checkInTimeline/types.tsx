@@ -1,5 +1,6 @@
 import type {Theme} from '@emotion/react';
 
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {DateTimeProps} from 'sentry/components/dateTime';
 
 interface MarkerIntervals {

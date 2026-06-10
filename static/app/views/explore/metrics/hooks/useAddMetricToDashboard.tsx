@@ -7,11 +7,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  DashboardWidgetSource,
-  DEFAULT_WIDGET_NAME,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/constants';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {
   handleAddMultipleQueriesToDashboard,
   handleAddQueryToDashboard,

@@ -134,3 +134,60 @@ export const SPANS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   EVENT_FILTERS,
   USER_CONTEXT_FILTERS,
 ];
+
+export const COUNTER_AGGREGATES = [
+  SpanFunction.SUM,
+  SpanFunction.AVG,
+  SpanFunction.MIN,
+  SpanFunction.MAX,
+  SpanFunction.P100,
+  SpanFunction.COUNT,
+] as const;
+
+export const DISTRIBUTION_AGGREGATES = [
+  SpanFunction.P50,
+  SpanFunction.P75,
+  SpanFunction.P90,
+  SpanFunction.P95,
+  SpanFunction.P99,
+] as const;
+
+export const SPAN_FUNCTIONS = [
+  SpanFunction.EPM,
+  SpanFunction.TPM,
+  SpanFunction.COUNT,
+  SpanFunction.TIME_SPENT_PERCENTAGE,
+  SpanFunction.HTTP_RESPONSE_RATE,
+  SpanFunction.HTTP_RESPONSE_COUNT,
+  SpanFunction.CACHE_HIT_RATE,
+  SpanFunction.CACHE_MISS_RATE,
+  SpanFunction.SUM,
+  SpanFunction.FAILURE_RATE,
+] as const;
+
+// Maps the subregion code to the subregion name according to UN m49 standard
+// We also define this in relay in `country_subregion.rs`
+export const subregionCodeToName = {
+  '21': 'North America',
+  '13': 'Central America',
+  '29': 'Caribbean',
+  '5': 'South America',
+  '154': 'Northern Europe',
+  '155': 'Western Europe',
+  '39': 'Southern Europe',
+  '151': 'Eastern Europe',
+  '30': 'Eastern Asia',
+  '34': 'Southern Asia',
+  '35': 'South Eastern Asia',
+  '145': 'Western Asia',
+  '143': 'Central Asia',
+  '15': 'Northern Africa',
+  '11': 'Western Africa',
+  '17': 'Middle Africa',
+  '14': 'Eastern Africa',
+  '18': 'Southern Africa',
+  '54': 'Melanesia',
+  '57': 'Micronesia',
+  '61': 'Polynesia',
+  '53': 'Australia and New Zealand',
+};

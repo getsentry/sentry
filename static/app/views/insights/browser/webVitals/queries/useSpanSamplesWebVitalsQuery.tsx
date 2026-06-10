@@ -1,11 +1,13 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {
   DEFAULT_INDEXED_SPANS_SORT,
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
-  type SpanSampleRowWithScore,
-  type WebVitals,
+} from 'sentry/views/insights/browser/webVitals/fields';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
+import type {
+  SpanSampleRowWithScore,
+  WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';

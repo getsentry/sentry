@@ -14,6 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {TOP_N} from 'sentry/utils/discover/constants';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {
@@ -39,13 +40,13 @@ import {
   PROFILING_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/constants';
 import {
-  DEFAULT_WIDGET_NAME,
   DisplayType,
   WidgetType,
   type DashboardWidgetSource,

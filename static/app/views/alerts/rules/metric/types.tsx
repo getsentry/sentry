@@ -1,6 +1,7 @@
-import {t} from 'sentry/locale';
 import type {Incident} from 'sentry/views/alerts/types';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 export enum AlertRuleThresholdType {
@@ -45,13 +46,6 @@ export enum ExtrapolationMode {
   UNKNOWN = 'unknown',
   NONE = 'none',
 }
-
-export const EAP_EXTRAPOLATION_MODE_MAP = {
-  [ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED]: 'sampleWeighted',
-  [ExtrapolationMode.SERVER_WEIGHTED]: 'serverOnly',
-  [ExtrapolationMode.NONE]: 'none',
-  [ExtrapolationMode.UNKNOWN]: 'sampleWeighted',
-};
 
 export enum EventTypes {
   DEFAULT = 'default',
@@ -194,18 +188,6 @@ export enum ActionType {
   SENTRY_APP = 'sentry_app',
 }
 
-export const ActionLabel = {
-  // \u200B is needed because Safari disregards autocomplete="off". It's seeing "Email" and
-  // opening up the browser autocomplete for email. https://github.com/JedWatson/react-select/issues/3500
-  [ActionType.EMAIL]: t('Emai\u200Bl'),
-  [ActionType.SLACK]: t('Slack'),
-  [ActionType.PAGERDUTY]: t('Pagerduty'),
-  [ActionType.MSTEAMS]: t('MS Teams'),
-  [ActionType.OPSGENIE]: t('Opsgenie'),
-  [ActionType.DISCORD]: t('Discord'),
-  [ActionType.SENTRY_APP]: t('Notification'),
-};
-
 export enum TargetType {
   // A direct reference, like an email address, Slack channel, or PagerDuty service
   SPECIFIC = 'specific',
@@ -219,22 +201,6 @@ export enum TargetType {
   // A Sentry App instead of any of the above.
   SENTRY_APP = 'sentry_app',
 }
-
-export const TargetLabel = {
-  [TargetType.USER]: t('Member'),
-  [TargetType.TEAM]: t('Team'),
-};
-
-export const PriorityOptions = {
-  [ActionType.PAGERDUTY]: ['critical', 'warning', 'error', 'info'],
-  [ActionType.OPSGENIE]: ['P1', 'P2', 'P3', 'P4', 'P5'],
-};
-
-// default priorities per threshold (0 = critical, 1 = warning)
-export const DefaultPriorities = {
-  [ActionType.PAGERDUTY]: {[0]: 'critical', [1]: 'warning'},
-  [ActionType.OPSGENIE]: {[0]: 'P1', [1]: 'P2'},
-};
 
 /**
  * This is an available action template that is associated to a Trigger in a

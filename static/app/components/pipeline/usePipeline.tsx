@@ -20,7 +20,7 @@ import type {
   PipelineStepProps,
   PipelineStepResponse,
 } from './types';
-import {getBackendPipelineType} from './types';
+import {getBackendPipelineType} from './utils';
 
 type PipelineState<T extends RegisteredPipelineType, P extends ProvidersByType[T]> =
   | {

@@ -1,7 +1,9 @@
 import type {ButtonProps} from '@sentry/scraps/button';
 
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 /**

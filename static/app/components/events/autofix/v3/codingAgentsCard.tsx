@@ -5,17 +5,17 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  CodingAgentStatus,
-  getCodingAgentName,
-  getResultButtonLabel,
-} from 'sentry/components/events/autofix/types';
+import {CodingAgentStatus} from 'sentry/components/events/autofix/types';
 import {
   getAutofixArtifactFromSection,
   isCodingAgentsArtifact,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  getCodingAgentName,
+  getResultButtonLabel,
+} from 'sentry/components/events/autofix/utils';
 import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';

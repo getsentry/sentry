@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {keepPreviousData, type UseQueryOptions} from '@tanstack/react-query';
+import type {UseQueryOptions} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 interface Action {
@@ -17,7 +17,7 @@ interface Action {
   limit?: number;
 }
 
-type BaseCMDKQueryOptions<TData = unknown> = Omit<
+export type BaseCMDKQueryOptions<TData = unknown> = Omit<
   UseQueryOptions<TData, Error, CommandPaletteAction[], any>,
   'meta'
 >;
@@ -25,17 +25,6 @@ type BaseCMDKQueryOptions<TData = unknown> = Omit<
 export type CMDKQueryOptions<TData = unknown> = BaseCMDKQueryOptions<TData> & {
   meta: {[key: string]: unknown; cmdk: true};
 };
-
-/**
- * Wraps a query options object and injects the cmdk meta marker required for
- * the command palette loading indicator to track this query via useIsFetching.
- * All resource functions passed to CMDKAction must use this helper.
- */
-export function cmdkQueryOptions<TData = unknown>(
-  options: BaseCMDKQueryOptions<TData>
-): CMDKQueryOptions<TData> {
-  return {placeholderData: keepPreviousData, ...options, meta: {cmdk: true}};
-}
 
 interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */

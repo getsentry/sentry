@@ -7,7 +7,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {ProblemSection} from './problemSection';
 import {TroubleshootingSection} from './troubleshootingSection';
-import {getLowValueSpanEvidenceData} from './types';
+import {getLowValueSpanEvidenceData} from './utils';
 
 interface LowValueSpanIssueDetailsProps {
   event: Event;

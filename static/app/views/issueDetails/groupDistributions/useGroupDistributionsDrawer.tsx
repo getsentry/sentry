@@ -6,8 +6,9 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {TabPaths} from 'sentry/views/issueDetails/constants';
 import {GroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributionsDrawer';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 /**

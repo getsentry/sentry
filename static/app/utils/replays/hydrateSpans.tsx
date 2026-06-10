@@ -1,8 +1,8 @@
 import invariant from 'invariant';
 
 import {isValidDate} from 'sentry/utils/date/isValidDate';
+import {isSpanFrame} from 'sentry/utils/replays/frameUtils';
 import type {RawSpanFrame, SpanFrame} from 'sentry/utils/replays/types';
-import {isSpanFrame} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function hydrateSpans(

@@ -1,6 +1,7 @@
 import type {Simplify} from 'type-fest';
 
 import type {PlatformKey} from 'sentry/types/platform';
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -426,26 +427,22 @@ export enum SpanFunction {
   FAILURE_RATE = 'failure_rate',
 }
 
-export const COUNTER_AGGREGATES = [
-  SpanFunction.SUM,
-  SpanFunction.AVG,
-  SpanFunction.MIN,
-  SpanFunction.MAX,
-  SpanFunction.P100,
-  SpanFunction.COUNT,
-] as const;
+type CounterAggregate =
+  | SpanFunction.SUM
+  | SpanFunction.AVG
+  | SpanFunction.MIN
+  | SpanFunction.MAX
+  | SpanFunction.P100
+  | SpanFunction.COUNT;
 
-export const DISTRIBUTION_AGGREGATES = [
-  SpanFunction.P50,
-  SpanFunction.P75,
-  SpanFunction.P90,
-  SpanFunction.P95,
-  SpanFunction.P99,
-] as const;
+type DistributionAggregate =
+  | SpanFunction.P50
+  | SpanFunction.P75
+  | SpanFunction.P90
+  | SpanFunction.P95
+  | SpanFunction.P99;
 
-export type Aggregate =
-  | (typeof COUNTER_AGGREGATES)[number]
-  | (typeof DISTRIBUTION_AGGREGATES)[number];
+export type Aggregate = CounterAggregate | DistributionAggregate;
 
 type CounterConditionalAggregate =
   | SpanFunction.SUM_IF
@@ -464,19 +461,6 @@ type ConditionalAggregate =
   | SpanFunction.TRACE_STATUS_RATE
   | SpanFunction.TIME_SPENT_PERCENTAGE;
 
-export const SPAN_FUNCTIONS = [
-  SpanFunction.EPM,
-  SpanFunction.TPM,
-  SpanFunction.COUNT,
-  SpanFunction.TIME_SPENT_PERCENTAGE,
-  SpanFunction.HTTP_RESPONSE_RATE,
-  SpanFunction.HTTP_RESPONSE_COUNT,
-  SpanFunction.CACHE_HIT_RATE,
-  SpanFunction.CACHE_MISS_RATE,
-  SpanFunction.SUM,
-  SpanFunction.FAILURE_RATE,
-] as const;
-
 type BreakpointCondition = 'less' | 'greater';
 
 // TODO: Check if these functions are still used, they aren't available in the backend
@@ -488,7 +472,17 @@ type RegressionFunctions = [
 
 type SpanAnyFunction = `any(${string})`;
 
-export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
+export type SpanFunctions =
+  | SpanFunction.EPM
+  | SpanFunction.TPM
+  | SpanFunction.COUNT
+  | SpanFunction.TIME_SPENT_PERCENTAGE
+  | SpanFunction.HTTP_RESPONSE_RATE
+  | SpanFunction.HTTP_RESPONSE_COUNT
+  | SpanFunction.CACHE_HIT_RATE
+  | SpanFunction.CACHE_MISS_RATE
+  | SpanFunction.SUM
+  | SpanFunction.FAILURE_RATE;
 
 type WebVitalsFunctions =
   | SpanFunction.PERFORMANCE_SCORE
@@ -584,31 +578,26 @@ export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanFields.PROJECT_ID]?: string;
 };
 
-// Maps the subregion code to the subregion name according to UN m49 standard
-// We also define this in relay in `country_subregion.rs`
-export const subregionCodeToName = {
-  '21': 'North America',
-  '13': 'Central America',
-  '29': 'Caribbean',
-  '5': 'South America',
-  '154': 'Northern Europe',
-  '155': 'Western Europe',
-  '39': 'Southern Europe',
-  '151': 'Eastern Europe',
-  '30': 'Eastern Asia',
-  '34': 'Southern Asia',
-  '35': 'South Eastern Asia',
-  '145': 'Western Asia',
-  '143': 'Central Asia',
-  '15': 'Northern Africa',
-  '11': 'Western Africa',
-  '17': 'Middle Africa',
-  '14': 'Eastern Africa',
-  '18': 'Southern Africa',
-  '54': 'Melanesia',
-  '57': 'Micronesia',
-  '61': 'Polynesia',
-  '53': 'Australia and New Zealand',
-};
-
-export type SubregionCode = keyof typeof subregionCodeToName;
+export type SubregionCode =
+  | '21'
+  | '13'
+  | '29'
+  | '5'
+  | '154'
+  | '155'
+  | '39'
+  | '151'
+  | '30'
+  | '34'
+  | '35'
+  | '145'
+  | '143'
+  | '15'
+  | '11'
+  | '17'
+  | '14'
+  | '18'
+  | '54'
+  | '57'
+  | '61'
+  | '53';

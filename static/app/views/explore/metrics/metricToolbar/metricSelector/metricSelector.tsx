@@ -34,12 +34,12 @@ import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metr
 import {MetricListBoxOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricListBoxOption';
 import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
-  isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
 import {
   hasDisplayMetricUnit,
+  isTraceMetricTypeValue,
   makeMetricSelectValue,
 } from 'sentry/views/explore/metrics/utils';
 

@@ -4,6 +4,7 @@ import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import type {Organization} from 'sentry/types/organization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
+import {DEFAULT_TABLE_LIMIT} from './constants';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -11,7 +12,6 @@ import {
   getDefaultWidgetHeight,
   getInitialColumnDepths,
 } from './layoutUtils';
-import {DEFAULT_TABLE_LIMIT} from './types';
 import type {DashboardDetails, Widget, WidgetLayout} from './types';
 
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';

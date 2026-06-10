@@ -1,3 +1,4 @@
+// eslint-disable-next-line @sentry/scraps/restrict-types-file -- type-only import from a runtime module; extracting a type leaf would cascade to its many importers
 import type {API_ACCESS_SCOPES} from 'sentry/constants';
 
 type Scope = (typeof API_ACCESS_SCOPES)[number];

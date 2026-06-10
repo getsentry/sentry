@@ -10,6 +10,19 @@ import {clamp} from 'sentry/utils/number/clamp';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {extractDomNodes} from 'sentry/utils/replays/extractDomNodes';
 import {
+  BreadcrumbCategories,
+  isCLSFrame,
+  isConsoleFrame,
+  isDeadClick,
+  isDeadRageClick,
+  isMetaFrame,
+  isPaintFrame,
+  isTouchEndFrame,
+  isTouchMoveFrame,
+  isTouchStartFrame,
+  isWebVitalFrame,
+} from 'sentry/utils/replays/frameUtils';
+import {
   hydrateBreadcrumbs,
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -39,22 +52,7 @@ import type {
   VideoEvent,
   WebVitalFrame,
 } from 'sentry/utils/replays/types';
-import {
-  BreadcrumbCategories,
-  EventType,
-  IncrementalSource,
-  isCLSFrame,
-  isConsoleFrame,
-  isDeadClick,
-  isDeadRageClick,
-  isMetaFrame,
-  isPaintFrame,
-  isTouchEndFrame,
-  isTouchMoveFrame,
-  isTouchStartFrame,
-  isWebVitalFrame,
-  NodeType,
-} from 'sentry/utils/replays/types';
+import {EventType, IncrementalSource, NodeType} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface ReplayReaderParams {

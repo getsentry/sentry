@@ -27,7 +27,8 @@ import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
+import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from './constants';
+import {DiscoverDatasets} from './types';
 
 export type SortKind = 'asc' | 'desc';
 

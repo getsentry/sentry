@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {useLocation} from 'sentry/utils/useLocation';
+import {TabPaths} from 'sentry/views/issueDetails/constants';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface Props {
