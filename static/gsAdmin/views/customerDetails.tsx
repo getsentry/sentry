@@ -20,10 +20,10 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {getRegions} from 'sentry/utils/regions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -320,6 +320,7 @@ export function CustomerDetails() {
     }
   };
 
+  // TODO(cells) need to have all cells here.
   const regionMap = getRegions().reduce<Record<string, string>>(
     (acc: any, region: any) => {
       acc[region.url] = region.name;

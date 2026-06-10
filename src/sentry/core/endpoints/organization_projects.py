@@ -2,7 +2,7 @@ import logging
 import random
 import string
 from email.headerregistry import Address
-from typing import Any, TypeIs
+from typing import Any, TypedDict, TypeIs
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -44,6 +44,7 @@ from sentry.apidocs.parameters import (
     OrganizationParams,
     VisibilityParams,
 )
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
@@ -65,6 +66,21 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 ERR_INVALID_STATS_PERIOD = (
     "Invalid stats_period. Valid choices are '', '1h', '24h', '7d', '14d', '30d', and '90d'"
 )
+
+
+class _LegacyParamErrorResponse(TypedDict):
+    # Legacy nested error envelope used by this endpoint's stats_period / id
+    # validation; kept as-is for wire compatibility.
+    error: dict[str, dict[str, dict[str, str]]]
+
+
+class _OrganizationProjectCreateResponse(OrganizationProjectResponse):
+    """Project-creation response: the base `OrganizationProjectResponse` shape
+    plus a `team_slug` key that the endpoint appends post-serialize to surface
+    the auto-created personal team."""
+
+    team_slug: str
+
 
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
@@ -132,7 +148,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.LIST_PROJECTS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[OrganizationProjectResponse]]
+        | Response[DetailResponse]
+        | Response[_LegacyParamErrorResponse]
+    ):
         """
         Return a list of projects bound to a organization.
         """
@@ -288,7 +310,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             "(`disable_member_project_creation`), `org:write` scope is required."
         ),
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[_OrganizationProjectCreateResponse]:
         """
         Create a new project for an organization.
 
@@ -424,11 +448,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             "created team through project creation flow",
             extra={"team_slug": default_team_slug, "project_slug": project_name},
         )
-        serialized_response = serialize(
+        base: OrganizationProjectResponse = serialize(
             project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])
         )
-        serialized_response["team_slug"] = team.slug
-
+        serialized_response: _OrganizationProjectCreateResponse = {
+            **base,
+            "team_slug": team.slug,
+        }
         return Response(serialized_response, status=201)
 
 

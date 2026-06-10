@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import BooleanField, CharField, URLField
 
-from sentry import features, http
+from sentry import features, http, options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.identity.oauth2 import OAuth2ApiStep
 from sentry.integrations.base import (
@@ -736,6 +736,23 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
         return None
 
+    @staticmethod
+    def ensure_matching_domain(state: Mapping[str, Any], installation: Mapping[str, Any]) -> None:
+        # Compare netloc of the installation account URL with the installation
+        # URL from the previous pipeline step. This ensures we always have a
+        # matching domain + port combination before building the integration.
+        account_netloc = urlparse(installation["account"]["html_url"]).netloc
+        state_netloc = state["installation_data"]["url"]
+        if not account_netloc or not state_netloc:
+            raise IntegrationError(
+                "The GitHub Enterprise domain is not valid. Please check the domain and port combination."
+            )
+
+        if account_netloc.lower() != state_netloc.lower():
+            raise IntegrationError(
+                "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
+            )
+
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         identity = state["oauth_data"]
         installation_data = state["installation_data"]
@@ -743,6 +760,14 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         installation = self._get_ghe_installation_info(
             installation_data, identity["access_token"], state["installation_id"]
         )
+
+        if not installation:
+            raise IntegrationError(
+                "Ensure the user has sufficient permissions to access the installation."
+            )
+
+        if options.get("github-enterprise.disallow-domain-mismatch"):
+            self.ensure_matching_domain(state, installation)
 
         domain = urlparse(installation["account"]["html_url"]).netloc
         return {

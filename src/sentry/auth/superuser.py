@@ -150,7 +150,7 @@ def is_active_superuser(request: Request) -> TypeIs[_RequestWithUser]: ...
 def is_active_superuser(request: HttpRequest) -> TypeIs[_HttpRequestWithUser]: ...
 
 
-def is_active_superuser(request: HttpRequest) -> bool:
+def is_active_superuser(request: HttpRequest | Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)

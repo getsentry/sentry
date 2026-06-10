@@ -414,6 +414,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
+  // TODO(cells) This should be localities
   const regionData =
     getRegions().length > 1 ? getRegionDataFromOrganization(organization) : null;
 
@@ -554,7 +555,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 </Text>
               </Stack>
               <Container flexGrow={1}>
-                <Text>{`${regionData?.flag ?? ''} ${regionData.displayName}`}</Text>
+                <Text>{regionData.label}</Text>
               </Container>
             </Flex>
           )}

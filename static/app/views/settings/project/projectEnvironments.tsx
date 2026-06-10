@@ -197,29 +197,25 @@ export default function ProjectEnvironments() {
   return (
     <div>
       <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
-      <SettingsPageHeader
-        title={t('Manage Environments')}
-        tabs={
-          <TabsContainer>
-            <Tabs value={isHidden ? 'hidden' : 'environments'}>
-              <TabList>
-                <TabList.Item
-                  key="environments"
-                  to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
-                >
-                  {t('Environments')}
-                </TabList.Item>
-                <TabList.Item
-                  key="hidden"
-                  to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
-                >
-                  {t('Hidden')}
-                </TabList.Item>
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-        }
-      />
+      <SettingsPageHeader title={t('Manage Environments')} />
+      <TabsContainer>
+        <Tabs value={isHidden ? 'hidden' : 'environments'}>
+          <TabList>
+            <TabList.Item
+              key="environments"
+              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
+            >
+              {t('Environments')}
+            </TabList.Item>
+            <TabList.Item
+              key="hidden"
+              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
+            >
+              {t('Hidden')}
+            </TabList.Item>
+          </TabList>
+        </Tabs>
+      </TabsContainer>
       <ProjectPermissionAlert project={project} />
 
       <EnvironmentTable>
