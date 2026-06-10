@@ -378,7 +378,7 @@ export function InvoiceComparison() {
                 onChange={opt => setPageSize(Number(opt.value))}
               />
             </Flex>
-            <Button variant="primary" onClick={onSubmit} disabled={!cells}>
+            <Button variant="primary" onClick={onSubmit} disabled={!cell}>
               Run comparison
             </Button>
           </Flex>
