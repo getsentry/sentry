@@ -48,10 +48,11 @@ export function WidgetCardConfidenceFooter({
     seriesName?.match(/.* : Other$|^Other$/)
   );
 
+  // Guard against division by zero — widgets with no aggregates can exist due to API bugs (see DAIN-1712)
+  const aggregatesCount = widget.queries[0]?.aggregates.length || 1;
   const topEventsCountExcludingOther =
     timeseriesResults?.length && widget.queries[0]?.columns.length
-      ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (hasOtherSeries ? 1 : 0)
+      ? Math.floor(timeseriesResults.length / aggregatesCount) - (hasOtherSeries ? 1 : 0)
       : undefined;
 
   const isTopN =
