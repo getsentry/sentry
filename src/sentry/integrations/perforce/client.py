@@ -70,7 +70,9 @@ def validate_p4port_transport(p4port: str) -> None:
     if not host:
         raise InvalidP4Port("P4PORT must include a host, e.g. ssl:perforce.example.com:1666.")
     if not is_safe_hostname(host):
-        raise InvalidP4Port(f"P4PORT host is not allowed: {host}")
+        raise InvalidP4Port(
+            f"P4PORT host could not be resolved or is not an allowed address: {host}"
+        )
 
 
 class P4ChangeInfo(TypedDict):

@@ -14,7 +14,7 @@ from sentry.integrations.perforce.integration import (
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -593,6 +593,35 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
         with pytest.raises(ApiError):
             with client._connect():
                 pass
+
+    def _installation_for_update(self, external_id: str) -> PerforceIntegration:
+        with assume_test_silo_mode(SiloMode.CELL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="perforce",
+                name="Perforce",
+                external_id=external_id,
+                metadata={"p4port": "ssl:perforce.example.com:1666", "user": "u", "password": "p"},
+            )
+        return integration.get_installation(self.organization.id)
+
+    def test_update_organization_config_rejects_disallowed_transport(self) -> None:
+        installation = self._installation_for_update("perforce-update-invalid")
+        with pytest.raises(IntegrationError):
+            installation.update_organization_config({"p4port": "demo:test"})
+
+    def test_update_organization_config_rejects_internal_host(self) -> None:
+        installation = self._installation_for_update("perforce-update-local")
+        with pytest.raises(IntegrationError):
+            installation.update_organization_config({"p4port": "tcp:169.254.169.254:1666"})
+
+    @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
+    def test_update_organization_config_accepts_and_normalizes_p4port(
+        self, mock_safe_hostname
+    ) -> None:
+        installation = self._installation_for_update("perforce-update-ok")
+        installation.update_organization_config({"p4port": "tcp:perforce.example.com:1666/"})
+        assert installation.get_config_data()["p4port"] == "tcp:perforce.example.com:1666"
 
 
 class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
