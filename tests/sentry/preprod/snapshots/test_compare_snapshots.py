@@ -986,6 +986,195 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         comparison.refresh_from_db()
         assert comparison.chunks_total == 2
 
+    def _setup_selective_chain(self):
+        # main(full) -> PR1(selective, base=main); head (PR2) compares against PR1.
+        from sentry.models.commitcomparison import CommitComparison
+
+        cc_main = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_repo_name="o/r",
+            base_repo_name="o/r",
+            head_sha="h_main",
+            base_sha=None,
+            provider="github",
+        )
+        cc_pr1 = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_repo_name="o/r",
+            base_repo_name="o/r",
+            head_sha="h_pr1",
+            base_sha="h_main",
+            provider="github",
+        )
+        a_main = self.create_preprod_artifact(
+            project=self.project, app_id="com.x", commit_comparison=cc_main
+        )
+        a_pr1 = self.create_preprod_artifact(
+            project=self.project, app_id="com.x", commit_comparison=cc_pr1
+        )
+        m_main = self.create_preprod_snapshot_metrics(a_main, is_selective=False)
+        m_main.extras = {"manifest_key": "k_main"}
+        m_main.save()
+        m_pr1 = self.create_preprod_snapshot_metrics(a_pr1, is_selective=True)
+        m_pr1.extras = {"manifest_key": "k_pr1"}
+        m_pr1.save()
+        a_pr2 = self.create_preprod_artifact(
+            project=self.project, app_id="com.x", commit_comparison=cc_pr1
+        )
+        m_pr2 = self.create_preprod_snapshot_metrics(a_pr2)
+        m_pr2.extras = {"manifest_key": "k_head"}
+        m_pr2.save()
+        return a_pr2, a_pr1, a_main
+
+    def test_compare_against_selective_base_reconstructs_and_processes(self):
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
+        manifests = {
+            "k_main": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v0", width=10, height=10)}
+                ).dict()
+            ),
+            "k_pr1": orjson.dumps(
+                SnapshotManifest(
+                    images={"b": ImageMetadata(content_hash="b1", width=10, height=10)},
+                    selective=True,
+                ).dict()
+            ),
+            "k_head": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v1", width=10, height=10)}
+                ).dict()
+            ),
+        }
+        session = _mock_session_with_manifests(manifests)
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+        # Proves reconstruction occurred: "a" is matched-and-changed (v1 vs main's
+        # inherited v0) requiring one diff chunk. Without reconstruction the raw selective
+        # base lacks "a", so "a" would be an add with zero diff chunks.
+        assert comparison.chunks_total == 1
+
+    def test_incomplete_chain_within_window_defers_to_pending(self):
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
+        # main's manifest (k_main) intentionally absent -> reconstruction incomplete.
+        manifests = {
+            "k_pr1": orjson.dumps(
+                SnapshotManifest(
+                    images={"b": ImageMetadata(content_hash="b1", width=10, height=10)},
+                    selective=True,
+                ).dict()
+            ),
+            "k_head": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v1", width=10, height=10)}
+                ).dict()
+            ),
+        }
+        session = _mock_session_with_manifests(manifests)
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PENDING
+        assert reschedule.call_count == 1
+        assert reschedule.call_args.kwargs["countdown"] == 60
+        reschedule_kwargs = reschedule.call_args.kwargs["kwargs"]
+        assert reschedule_kwargs["head_artifact_id"] == head_artifact.id
+        assert reschedule_kwargs["base_artifact_id"] == base_artifact.id
+
+    def test_incomplete_chain_past_window_fails(self):
+        from datetime import timedelta
+
+        import orjson
+        from django.utils import timezone
+
+        from sentry.preprod.models import PreprodArtifact
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
+        # Age the head beyond the 600s grace window so deferral gives way to terminal failure.
+        PreprodArtifact.objects.filter(id=head_artifact.id).update(
+            date_added=timezone.now() - timedelta(seconds=601)
+        )
+        manifests = {
+            "k_pr1": orjson.dumps(
+                SnapshotManifest(
+                    images={"b": ImageMetadata(content_hash="b1", width=10, height=10)},
+                    selective=True,
+                ).dict()
+            ),
+            "k_head": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v1", width=10, height=10)}
+                ).dict()
+            ),
+        }
+        session = _mock_session_with_manifests(manifests)
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.TIMEOUT
+        assert reschedule.call_count == 0  # no further deferral past the window
+        failure_calls = [
+            c for c in vcs.call_args_list if c.kwargs.get("caller") == "compare_failure"
+        ]
+        assert len(failure_calls) == 1  # failure posted
+
 
 @cell_silo_test
 class EndToEndFanoutTest(TestCase):

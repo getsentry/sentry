@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -447,6 +448,135 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
 
         self._call_task(status=StatusCheckStatus.IN_PROGRESS.value)
 
+        mock_provider.create_status_check.assert_called_once()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_failure_suppressed_when_newer_sibling_succeeded(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_should_not_post"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        newer_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=self.commit_comparison,
+            app_id=self.artifact.app_id,
+            build_configuration=self.artifact.build_configuration,
+        )
+        newer_head = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_artifact, image_count=10
+        )
+        newer_base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        newer_base = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=newer_head,
+            base_snapshot_metrics=newer_base,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_changed=0,
+            images_unchanged=10,
+        )
+
+        self._call_task(status=StatusCheckStatus.FAILURE.value)
+
+        mock_provider.create_status_check.assert_not_called()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_failure_posted_when_no_newer_successful_sibling(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_789"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        self._call_task(status=StatusCheckStatus.FAILURE.value)
+
+        mock_provider.create_status_check.assert_called_once()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_failure_posted_when_successful_sibling_is_older(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_older_sibling"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        older_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=self.commit_comparison,
+            app_id=self.artifact.app_id,
+            build_configuration=self.artifact.build_configuration,
+        )
+        older_head = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=older_artifact, image_count=10
+        )
+        older_base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        older_base = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=older_base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=older_head,
+            base_snapshot_metrics=older_base,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_changed=0,
+            images_unchanged=10,
+        )
+        PreprodArtifact.objects.filter(id=older_artifact.id).update(
+            date_added=self.artifact.date_added - timedelta(hours=1)
+        )
+
+        self._call_task(status=StatusCheckStatus.FAILURE.value)
+
+        mock_provider.create_status_check.assert_called_once()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_failure_posted_when_newer_sibling_still_in_progress(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_in_progress_sibling"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        newer_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=self.commit_comparison,
+            app_id=self.artifact.app_id,
+            build_configuration=self.artifact.build_configuration,
+        )
+        newer_head = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_artifact, image_count=10
+        )
+        newer_base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        newer_base = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=newer_head,
+            base_snapshot_metrics=newer_base,
+            state=PreprodSnapshotComparison.State.PROCESSING,
+        )
+
+        self._call_task(status=StatusCheckStatus.FAILURE.value)
+
+        # A still-in-flight newer sibling must NOT suppress the failure; it posts its own
+        # result when it finishes. Suppressing on PROCESSING/PENDING risks a hung newer
+        # attempt swallowing this failure forever.
         mock_provider.create_status_check.assert_called_once()
 
 
