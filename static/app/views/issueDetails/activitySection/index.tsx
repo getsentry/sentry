@@ -54,21 +54,21 @@ function getAuthorName(item: GroupActivity) {
   return 'Sentry';
 }
 
-function getActivityMarker(item: GroupActivity, color: string) {
+function ActivityMarker({item, color}: {color: string; item: GroupActivity}) {
   if (item.sentry_app) {
     return (
-      <AvatarMarker color={color}>
+      <SentryAppActivityMarker>
         <SentryAppAvatar
           data-test-id="sentry-app-activity-marker"
           sentryApp={item.sentry_app}
           size={22}
         />
-      </AvatarMarker>
+      </SentryAppActivityMarker>
     );
   }
   if (item.user) {
     return (
-      <AvatarMarker color={color}>
+      <AvatarMarker color={color} data-test-id="colored-activity-marker">
         <UserAvatar data-test-id="user-activity-marker" user={item.user} size={22} />
       </AvatarMarker>
     );
@@ -90,10 +90,6 @@ function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
     case GroupActivityType.SET_RESOLVED_IN_COMMIT:
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST:
     case GroupActivityType.MARK_REVIEWED:
-    case GroupActivityType.SEER_RCA_COMPLETED:
-    case GroupActivityType.SEER_SOLUTION_COMPLETED:
-    case GroupActivityType.SEER_CODING_COMPLETED:
-    case GroupActivityType.SEER_PR_CREATED:
       return {
         ...defaultConfig,
         icon: theme.tokens.graphics.success.vibrant,
@@ -107,6 +103,11 @@ function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
         iconBorder: theme.tokens.border.danger.vibrant,
       };
     case GroupActivityType.SET_ESCALATING:
+      return {
+        ...defaultConfig,
+        icon: theme.tokens.content.warning,
+        iconBorder: theme.tokens.content.warning,
+      };
     case GroupActivityType.SET_PRIORITY:
       return {
         ...defaultConfig,
@@ -184,7 +185,11 @@ function TimelineItem({
         </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} />}
-      marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
+      marker={
+        useTwoColumnLayout ? (
+          <ActivityMarker item={item} color={colorConfig.icon} />
+        ) : undefined
+      }
       colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
         Icon && (
@@ -532,6 +537,14 @@ const ActivityInputFrame = styled('div')`
   min-width: 0;
 `;
 
+const SentryAppActivityMarker = styled('span')`
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 22px;
+  line-height: 0;
+`;
+
 const AvatarMarker = styled('span')<{color: string}>`
   display: block;
   position: relative;
@@ -543,7 +556,7 @@ const AvatarMarker = styled('span')<{color: string}>`
     position: absolute;
     inset: 0;
     border-radius: 100%;
-    box-shadow: inset 0 0 0 2px ${p => p.color};
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, ${p => p.color} 80%, transparent);
     pointer-events: none;
   }
 `;

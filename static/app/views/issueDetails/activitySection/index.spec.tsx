@@ -277,6 +277,72 @@ describe('ActivitySection', () => {
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
   });
 
+  it('does not render a colored marker circle around sentry app activity markers', async () => {
+    const sentryApp = SentryAppFixture({
+      name: 'Linear',
+      slug: 'linear',
+      avatars: [
+        {
+          avatarType: 'upload',
+          avatarUrl: 'https://example.com/linear.png',
+          avatarUuid: 'linear-avatar',
+          photoType: 'icon',
+          color: true,
+        },
+      ],
+    });
+    const activityGroup = GroupFixture({
+      id: '1339',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-by-sentry-app-1',
+          data: {},
+          dateCreated: '2020-01-01T00:00:00',
+          sentry_app: sentryApp,
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={activityGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+
+    expect(await screen.findByText('Resolved')).toBeInTheDocument();
+    expect(screen.getByTestId('sentry-app-activity-marker')).toBeInTheDocument();
+    expect(screen.queryByTestId('colored-activity-marker')).not.toBeInTheDocument();
+  });
+
+  it('renders a marker circle around assigned user activity markers', async () => {
+    const activityGroup = GroupFixture({
+      id: '1340',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'assigned-by-user-1',
+          data: {
+            assignee: user.id,
+            assigneeType: 'user',
+            user,
+          },
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={activityGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+
+    expect(await screen.findByText('Assigned')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
+    expect(screen.getByTestId('colored-activity-marker')).toBeInTheDocument();
+  });
+
   it('renders provider-specific icon for create issue in two-column layout', async () => {
     const createIssueGroup = GroupFixture({
       id: '1345',

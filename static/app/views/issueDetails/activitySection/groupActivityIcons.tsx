@@ -118,7 +118,7 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.AUTO_SET_ONGOING]: {Component: IconPlay, defaultProps: {}},
   [GroupActivityType.SET_ESCALATING]: {
     Component: IconGraph,
-    defaultProps: {type: 'area'},
+    defaultProps: {type: 'line'},
   },
   [GroupActivityType.SET_PRIORITY]: {
     Component: IconCellSignal,
@@ -146,7 +146,6 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.SEER_RCA_COMPLETED]: {
     Component: IconSeer,
     defaultProps: {},
-    propsFunction: () => ({variant: 'success'}),
   },
   [GroupActivityType.SEER_SOLUTION_STARTED]: {
     Component: IconSeer,
@@ -156,7 +155,6 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.SEER_SOLUTION_COMPLETED]: {
     Component: IconSeer,
     defaultProps: {},
-    propsFunction: () => ({variant: 'success'}),
   },
   [GroupActivityType.SEER_CODING_STARTED]: {
     Component: IconSeer,
@@ -166,12 +164,10 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.SEER_CODING_COMPLETED]: {
     Component: IconSeer,
     defaultProps: {},
-    propsFunction: () => ({variant: 'success'}),
   },
   [GroupActivityType.SEER_PR_CREATED]: {
     Component: IconSeer,
     defaultProps: {},
-    propsFunction: () => ({variant: 'success'}),
   },
 };
 
