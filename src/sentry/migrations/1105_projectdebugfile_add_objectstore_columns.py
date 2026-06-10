@@ -10,7 +10,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1104_remove_email_model_drop"),
+        ("sentry", "1109_add_group_action_log_entry"),
     ]
 
     operations = [

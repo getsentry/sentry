@@ -159,31 +159,33 @@ class ProjectDebugFile(Model):
 
     def get_content_type(self) -> str:
         if self.storage_path is not None:
-            return self.content_type or "unknown"
+            assert self.content_type is not None
+            return str(self.content_type)
         if self.file is not None:
             return self.file.headers.get("Content-Type", "unknown")
-        return "unknown"
+        raise ValueError("debug file with no underlying file or storage_path")
 
-    def get_file_size(self) -> int | None:
+    def get_file_size(self) -> int:
         if self.storage_path is not None:
-            return self.file_size
+            assert self.file_size is not None
+            return int(self.file_size)
         if self.file is not None:
             return self.file.size
-        return None
+        raise ValueError("debug file with no underlying file or storage_path")
 
-    def get_date_created(self) -> datetime | None:
+    def get_date_created(self) -> datetime:
         if self.storage_path is not None:
             return self.date_created
         if self.file is not None:
             return self.file.timestamp
-        return None
+        raise ValueError("debug file with no underlying file or storage_path")
 
     def get_headers(self) -> dict[str, str]:
         if self.storage_path is not None:
             return {"Content-Type": self.content_type} if self.content_type else {}
         if self.file is not None:
             return self.file.headers
-        return {}
+        raise ValueError("debug file with no underlying file or storage_path")
 
     @property
     def file_format(self) -> str:
