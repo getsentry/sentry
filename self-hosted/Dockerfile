@@ -13,7 +13,7 @@ ADD --chmod=755 \
 ARG TARGETARCH
 FROM odiff-${TARGETARCH} AS odiff
 
-FROM python:3.13.1-slim-bookworm
+FROM python:3.13.13-slim-bookworm
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
