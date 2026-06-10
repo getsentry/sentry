@@ -449,6 +449,15 @@ function TriggeredConditionDetails({
               value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
               subject: t('Aggregate'),
             },
+            ...(snubaQuery.environment
+              ? [
+                  {
+                    key: 'environment',
+                    value: snubaQuery.environment,
+                    subject: t('Environment'),
+                  },
+                ]
+              : []),
             ...(snubaQuery.query
               ? [
                   {
