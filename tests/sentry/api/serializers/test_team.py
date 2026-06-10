@@ -1,9 +1,13 @@
+from io import BytesIO
+
 from django.conf import settings
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectSerializer
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.app import env
+from sentry.models.avatars.team_avatar import TeamAvatar
+from sentry.models.files.file import File
 from sentry.models.organizationmember import InviteStatus
 from sentry.testutils.cases import TestCase
 
@@ -30,9 +34,35 @@ class TeamSerializerTest(TestCase):
             "isMember": False,
             "teamRole": None,
             "flags": {"idp:provisioned": False},
-            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
             "memberCount": 0,
         }
+
+    def test_avatar_letter_avatar_row(self) -> None:
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        TeamAvatar.objects.create(team=team)
+
+        result = serialize(team, user)
+        assert result["avatar"] == {
+            "avatarType": "letter_avatar",
+            "avatarUuid": None,
+            "avatarUrl": None,
+        }
+
+    def test_avatar_upload(self) -> None:
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        photo = File.objects.create(name="test.png", type="avatar.file")
+        photo.putfile(BytesIO(b"test"))
+        avatar = TeamAvatar.objects.create(team=team, file_id=photo.id, avatar_type=1)
+
+        result = serialize(team, user)
+        assert result["avatar"]["avatarType"] == "upload"
+        assert result["avatar"]["avatarUuid"] == avatar.ident
+        assert avatar.ident in result["avatar"]["avatarUrl"]
 
     def test_member_count(self) -> None:
         user = self.create_user(username="foo")
@@ -271,7 +301,7 @@ class TeamWithProjectsSerializerTest(TestCase):
             "teamRole": None,
             "flags": {"idp:provisioned": False},
             "projects": serialized_projects,
-            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
             "memberCount": 0,
             "dateCreated": team.date_added,
             "externalTeams": [],

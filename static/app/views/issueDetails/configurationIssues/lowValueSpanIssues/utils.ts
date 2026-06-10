@@ -4,10 +4,13 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {LowValueSpanEvidenceData} from './types';
 
 const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
-  'https://docs.sentry.io/platforms/javascript/configuration/options/#ignorespans';
+  'https://docs.sentry.io/platforms/javascript/configuration/options/#ignoreSpans';
 const PYTHON_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/python/configuration/filtering/#filtering-transaction-events';
-const GENERIC_SPAN_FILTERING_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
+const GENERIC_FILTERING_DOCS_URL =
+  'https://docs.sentry.io/platform-redirect/?next=/configuration/filtering/';
+const CUSTOM_INSTRUMENTATION_DOCS_URL =
+  'https://docs.sentry.io/platform-redirect/?next=/tracing/instrumentation/custom-instrumentation/';
 const JAVASCRIPT_PROJECT_PLATFORMS = new Set<PlatformKey>([
   'bun',
   'capacitor',
@@ -32,10 +35,6 @@ export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
     return description;
   }
   return t('Unknown span');
-}
-
-export function formatCount(count: number | null): string {
-  return count === null ? t('Unknown') : count.toLocaleString();
 }
 
 export function formatDurationMs(duration: number | null): string {
@@ -92,7 +91,11 @@ export function getSpanFilteringDocsUrl(projectPlatform?: PlatformKey | null): s
   if (isJavaScriptProjectPlatform(projectPlatform)) {
     return JAVASCRIPT_SPAN_FILTERING_DOCS_URL;
   }
-  return GENERIC_SPAN_FILTERING_DOCS_URL;
+  return GENERIC_FILTERING_DOCS_URL;
+}
+
+export function getCustomInstrumentationDocsUrl(): string {
+  return CUSTOM_INSTRUMENTATION_DOCS_URL;
 }
 
 function toCodeString(value: string | null, fallback: string): string {

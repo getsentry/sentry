@@ -137,9 +137,17 @@ def execute_table_query(
     end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     case_insensitive: bool | None = None,
+    span_query: list[str] | None = None,
+    log_query: list[str] | None = None,
+    metric_query: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a query to get table data by calling the events endpoint.
+
+    span_query/log_query/metric_query are optional cross-event (same-trace) filters:
+    when set, results are restricted to the primary dataset's rows whose trace also
+    contains a matching span/log/metric. Forwarded to the events endpoint as repeated
+    spanQuery/logQuery/metricQuery params (read server-side by get_additional_queries).
 
     Arg notes:
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
@@ -186,6 +194,14 @@ def execute_table_query(
     # Add boolean params only if provided.
     if case_insensitive is not None:
         params["caseInsensitive"] = "1" if case_insensitive else "0"
+
+    # Cross-event (same-trace) filters.
+    if span_query:
+        params["spanQuery"] = span_query
+    if log_query:
+        params["logQuery"] = log_query
+    if metric_query:
+        params["metricQuery"] = metric_query
 
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}

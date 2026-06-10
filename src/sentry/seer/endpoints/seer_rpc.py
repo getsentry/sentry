@@ -21,7 +21,6 @@ from rest_framework.exceptions import (
     ParseError,
     PermissionDenied,
     Throttled,
-    ValidationError,
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -103,17 +102,8 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_values_with_substring,
 )
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
-from sentry.seer.autofix.coding_agent import (
-    AutofixStateNotFound,
-    IntegrationNotFound,
-    OrganizationNotFound,
-    StateReposNotFound,
-    launch_coding_agents_for_run,
-)
 from sentry.seer.autofix.utils import (
-    AutofixTriggerSource,
     bulk_read_preferences_from_sentry_db,
-    clear_preference_automation_handoff,
     read_preference_from_sentry_db,
 )
 from sentry.seer.constants import SeerSCMProvider
@@ -636,78 +626,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
     return {"success": True}
 
 
-def trigger_coding_agent_launch(
-    *,
-    organization_id: int,
-    project_id: int | None = None,
-    integration_id: int,
-    run_id: int,
-    trigger_source: str = "solution",
-) -> dict:
-    """
-    Trigger a coding agent launch for an autofix run.
-
-    Args:
-        organization_id: The organization ID
-        integration_id: The coding agent integration ID
-        run_id: The autofix run ID
-        trigger_source: Either "root_cause" or "solution" (default: "solution")
-
-    Returns:
-        dict: {"success": bool, "error_code": str | None}
-    """
-    try:
-        launch_coding_agents_for_run(
-            organization_id=organization_id,
-            integration_id=integration_id,
-            run_id=run_id,
-            trigger_source=AutofixTriggerSource(trigger_source),
-            referrer="seer_rpc.trigger_coding_agent_launch",
-        )
-        return {"success": True}
-    except IntegrationNotFound:
-        logger.exception(
-            "coding_agent.rpc_launch_error",
-            extra={
-                "organization_id": organization_id,
-                "integration_id": integration_id,
-                "run_id": run_id,
-            },
-        )
-        try:
-            project = Project.objects.get_from_cache(id=project_id)
-            if project.organization_id != organization_id:
-                raise Project.DoesNotExist
-            clear_preference_automation_handoff(project)
-        except Exception:
-            logger.exception(
-                "coding_agent.clear_handoff_preference_failed",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": organization_id,
-                    "run_id": run_id,
-                },
-            )
-        return {"success": False, "error_code": "integration_not_found"}
-    except (
-        OrganizationNotFound,
-        AutofixStateNotFound,
-        StateReposNotFound,
-        PermissionDenied,
-        ValidationError,
-        APIException,
-    ):
-        logger.exception(
-            "coding_agent.rpc_launch_error",
-            extra={
-                "organization_id": organization_id,
-                "integration_id": integration_id,
-                "run_id": run_id,
-            },
-        )
-        return {"success": False}
-
-
 def has_repo_code_mappings(
     *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
 ) -> dict[str, bool | dict[str, int]]:
@@ -994,7 +912,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profile_details": get_profile_details,
     "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
-    "trigger_coding_agent_launch": trigger_coding_agent_launch,
     "get_project_preferences": get_project_preferences,
     "bulk_get_project_preferences": bulk_get_project_preferences,
     #

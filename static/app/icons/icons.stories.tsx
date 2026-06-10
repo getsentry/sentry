@@ -1297,6 +1297,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'graph-type-heatmap',
+        name: 'Graph',
+        defaultProps: {
+          type: 'heatmap',
+        },
+      },
+      {
         id: 'stack',
         groups: ['chart'],
         keywords: ['group', 'combine', 'view', 'layers', 'pile'],

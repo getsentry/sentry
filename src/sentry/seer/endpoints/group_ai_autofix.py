@@ -324,7 +324,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             agent_providers = {a.provider for a in state.coding_agents.values()}
             if CodingAgentProviderType.GITHUB_COPILOT_AGENT in agent_providers:
                 poll_github_copilot_agents(
-                    coding_agents=state.coding_agents, user_id=request.user.id
+                    coding_agents=state.coding_agents,
+                    user_id=request.user.id,
+                    organization_id=group.organization.id,
                 )
             if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
                 poll_claude_code_agents(

@@ -7,12 +7,17 @@ from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
+    activity_handler_registry,
     group_type_notification_registry,
     issue_alert_handler_registry,
     metric_alert_handler_registry,
 )
-from sentry.notifications.notification_action.types import BaseMetricAlertHandler
+from sentry.notifications.notification_action.types import (
+    ActivityHandlerValidationError,
+    BaseMetricAlertHandler,
+)
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
@@ -47,6 +52,21 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
             and invocation.event_data.group.type == MetricIssue.type_id
         ):
             return execute_via_metric_alert_handler(invocation)
+
+        organization_id = invocation.detector.project.organization_id
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+            if features.has("organizations:workflow-engine-evaluate-seer-activities", organization):
+                return execute_via_activity_type_registry(invocation=invocation)
+        except (Exception, Organization.DoesNotExist):
+            logger.exception(
+                "Error executing via activity type registry",
+                extra={
+                    "action_id": invocation.action.id,
+                    "detector_id": invocation.detector.id,
+                    "organization_id": organization_id,
+                },
+            )
         return invocation.event_data.event.send_notification()
 
     try:
@@ -199,3 +219,29 @@ def metric_alert_notification_data_factory(
         text=attachment_info["text"],
         chart_url=chart_url,
     )
+
+
+def execute_via_activity_type_registry(invocation: ActionInvocation) -> None:
+    logging_ctx = {
+        "action_id": invocation.action.id,
+        "detector_id": invocation.detector.id,
+        "action_type": invocation.action.type,
+    }
+    try:
+        handler = activity_handler_registry.get(invocation.action.type)
+    except NoRegistrationExistsError:
+        logger.exception("No activity handler found for action type", extra=logging_ctx)
+        raise
+
+    try:
+        activity = handler.validate_activity(invocation=invocation)
+    except (Exception, ActivityHandlerValidationError):
+        logger.exception("Error validating activity for activity handler", extra=logging_ctx)
+        raise
+
+    try:
+        handler.invoke_action(invocation=invocation, activity=activity)
+    except Exception:
+        logger.exception("Error invoking action via activity handler", extra=logging_ctx)
+        raise
+    logger.info("Invoked action via activity handler", extra=logging_ctx)

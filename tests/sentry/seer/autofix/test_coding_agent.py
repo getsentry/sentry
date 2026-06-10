@@ -1,18 +1,15 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
-from rest_framework.exceptions import PermissionDenied
-
 from sentry.integrations.claude_code.utils import ClaudeSessionEvent, ClaudeSessionEventStatus
-from sentry.integrations.cursor.integration import CursorAgentIntegration
+from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
     GithubCopilotArtifactData,
     GithubCopilotTask,
 )
+from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.seer.autofix.coding_agent import (
-    _launch_agents_for_repos,
     extract_result_from_events,
     poll_claude_code_agents,
     poll_github_copilot_agents,
@@ -20,273 +17,12 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.utils import (
     AutofixRequest,
     AutofixState,
-    AutofixTriggerSource,
     CodingAgentProviderType,
     CodingAgentState,
     CodingAgentStatus,
 )
 from sentry.seer.models import SeerRepoDefinition
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-
-
-class TestLaunchAgentsForRepos(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.organization = self.create_organization()
-        self.project = self.create_project(organization=self.organization)
-        self.run_id = 12345
-
-        repository = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            external_id="123456",
-            name="getsentry/sentry",
-        )
-        self.create_seer_project_repository(project=self.project, repository=repository)
-
-        # Create a basic autofix state with a solution that references a repo
-        self.autofix_state = AutofixState(
-            run_id=self.run_id,
-            request=AutofixRequest(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                issue={"id": 1, "title": "Test Issue"},
-                repos=[
-                    SeerRepoDefinition(
-                        provider="integrations:github",
-                        owner="getsentry",
-                        name="sentry",
-                        external_id="123456",
-                    )
-                ],
-            ),
-            updated_at=datetime.now(UTC),
-            status="COMPLETED",
-            steps=[
-                {
-                    "key": "solution",
-                    "solution": [
-                        {
-                            "relevant_code_file": {
-                                "repo_name": "getsentry/sentry",
-                                "file_path": "test.py",
-                            }
-                        }
-                    ],
-                }
-            ],
-        )
-
-    def _enable_auto_create_pr(self) -> None:
-        """Set automation handoff project options."""
-        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
-        self.project.update_option(
-            "sentry:seer_automation_handoff_target", "cursor_background_agent"
-        )
-        self.project.update_option("sentry:seer_automation_handoff_integration_id", 123)
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    def test_auto_create_pr_falls_back_to_false_when_project_missing(
-        self, mock_get_prompt, mock_store_states
-    ):
-        """When the project is missing from the cache, auto_create_pr falls back to False."""
-        self.autofix_state.request.project_id = 999999  # non-existent project id
-        mock_get_prompt.return_value = "Test prompt"
-
-        mock_installation = MagicMock()
-        mock_installation.launch.return_value = {
-            "url": "https://example.com/agent",
-            "id": "agent-123",
-        }
-
-        _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        # Assert: Verify that launch was called with auto_create_pr=False
-        assert mock_installation.launch.called
-        launch_request = mock_installation.launch.call_args[0][0]
-        assert launch_request.auto_create_pr is False
-        assert mock_store_states.call_args.kwargs["organization_id"] == self.organization.id
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    def test_auto_create_pr_uses_preference_when_available(
-        self, mock_get_prompt, mock_store_states
-    ):
-        """Test that auto_create_pr uses the preference value when available."""
-        self._enable_auto_create_pr()
-        mock_get_prompt.return_value = "Test prompt"
-
-        mock_installation = MagicMock()
-        mock_installation.launch.return_value = {
-            "url": "https://example.com/agent",
-            "id": "agent-123",
-        }
-
-        _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        # Assert: Verify that launch was called with auto_create_pr=True
-        assert mock_installation.launch.called
-        launch_request = mock_installation.launch.call_args[0][0]
-        assert launch_request.auto_create_pr is True
-        assert mock_store_states.call_args.kwargs["organization_id"] == self.organization.id
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    def test_auto_create_pr_defaults_to_false_when_no_automation_handoff(
-        self, mock_get_prompt, mock_store_states
-    ):
-        """Test that auto_create_pr defaults to False when automation_handoff is None."""
-        # No handoff options set → _build_automation_handoff returns None.
-
-        mock_get_prompt.return_value = "Test prompt"
-
-        mock_installation = MagicMock()
-        mock_installation.launch.return_value = {
-            "url": "https://example.com/agent",
-            "id": "agent-123",
-        }
-
-        _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        # Assert: Verify that launch was called with auto_create_pr=False
-        assert mock_installation.launch.called
-        launch_request = mock_installation.launch.call_args[0][0]
-        assert launch_request.auto_create_pr is False
-        assert mock_store_states.call_args.kwargs["organization_id"] == self.organization.id
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    def test_api_error_401_includes_credentials_message(self, mock_get_prompt, mock_store_states):
-        """Test that 401 ApiError failures include credentials hint in error message."""
-        mock_get_prompt.return_value = "Test prompt"
-
-        mock_installation = MagicMock()
-        mock_installation.launch.side_effect = ApiError(
-            text='{"code":"internal","message":"Error"}',
-            code=401,
-            url="https://api.cursor.com/v0/agents",
-        )
-
-        result = _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        assert len(result["failures"]) == 1
-        assert result["failures"][0]["repo_name"] == "getsentry/sentry"
-        error_message = result["failures"][0]["error_message"]
-        assert "Failed to make request to coding agent" in error_message
-        assert "https://api.cursor.com/v0/agents" in error_message
-        assert "Please check that your API credentials are correct" in error_message
-        assert "401" in error_message
-        assert '{"code":"internal","message":"Error"}' in error_message
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    def test_verify_branch_error_returns_cursor_github_access_failure_type(
-        self, mock_get_prompt, mock_store_states
-    ):
-        """Test that a 400 ApiError with 'Failed to verify existence of branch' returns cursor_github_access failure_type."""
-        mock_get_prompt.return_value = "Test prompt"
-
-        mock_installation = MagicMock(spec=CursorAgentIntegration)
-        mock_installation.launch.side_effect = ApiError(
-            text='{"error":"Failed to verify existence of branch \'main\' in repository owner/repo. Please ensure the branch name is correct."}',
-            code=400,
-        )
-
-        result = _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        assert len(result["failures"]) == 1
-        failure = result["failures"][0]
-        assert failure["failure_type"] == "cursor_github_access"
-        assert "Cursor does not have GitHub access" in failure["error_message"]
-        assert "install the Cursor GitHub App" in failure["error_message"]
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    def test_api_error_non_401_includes_status_code(self, mock_get_prompt, mock_store_states):
-        """Test that non-401 ApiError failures include status code in error message."""
-        mock_get_prompt.return_value = "Test prompt"
-
-        mock_installation = MagicMock()
-        mock_installation.launch.side_effect = ApiError(
-            text="Some error message",
-            code=500,
-        )
-
-        result = _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        assert len(result["failures"]) == 1
-        error_message = result["failures"][0]["error_message"]
-        assert (
-            error_message == "Failed to make request to coding agent. 500 Error: Some error message"
-        )
-
-    @patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
-    def test_short_id_passed_to_prompt(self, mock_get_prompt, mock_store_states):
-        """Test that short_id is passed to get_coding_agent_prompt."""
-        self.autofix_state.request.issue["short_id"] = "AIML-2301"
-        mock_get_prompt.return_value = "Test prompt with Fixes AIML-2301"
-
-        mock_installation = MagicMock()
-        mock_installation.launch.return_value = {
-            "url": "https://example.com/agent",
-            "id": "agent-123",
-        }
-
-        _launch_agents_for_repos(
-            installation=mock_installation,
-            autofix_state=self.autofix_state,
-            run_id=self.run_id,
-            organization=self.organization,
-            trigger_source=AutofixTriggerSource.SOLUTION,
-        )
-
-        # Assert: Verify get_coding_agent_prompt was called with the short_id
-        mock_get_prompt.assert_called_once()
-        call_args = mock_get_prompt.call_args
-        assert call_args[0][3] == "AIML-2301"
-        launch_request = mock_installation.launch.call_args[0][0]
-        assert launch_request.issue_short_id == "AIML-2301"
-        assert mock_store_states.call_args.kwargs["organization_id"] == self.organization.id
 
 
 class TestPollGithubCopilotAgents(TestCase):
@@ -438,6 +174,117 @@ class TestPollGithubCopilotAgents(TestCase):
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/12345"
         assert call_kwargs["result"].description == "Fix the bug"
         assert call_kwargs["result"].repo_full_name == "getsentry/sentry"
+
+    @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_attributes_pr_when_task_complete(
+        self, mock_identity_service, mock_update_state, mock_attribute
+    ):
+        """A completed Copilot task with a PR is attributed to the Copilot agent."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_client = MagicMock()
+        mock_client.get_task_status.return_value = GithubCopilotTask(
+            id="task-123",
+            state="completed",
+            artifacts=[
+                GithubCopilotArtifact(
+                    provider="github",
+                    type="pull_request",
+                    data=GithubCopilotArtifactData(id=456, type="pull", global_id="PR_abc123"),
+                )
+            ],
+        )
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/12345"
+        mock_pr_info.title = "Fix the bug"
+        mock_client.get_pr_from_graphql.return_value = mock_pr_info
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(
+                GithubCopilotAgentClient, "get_task_status", mock_client.get_task_status
+            ):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_client.get_pr_from_graphql
+                ):
+                    poll_github_copilot_agents(
+                        autofix_state,
+                        user_id=self.user.id,
+                        organization_id=self.organization.id,
+                    )
+
+        mock_attribute.assert_called_once_with(
+            organization_id=self.organization.id,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
+            repo_full_name="getsentry/sentry",
+            repo_provider="github",
+            pr_url="https://github.com/getsentry/sentry/pull/12345",
+            agent_id="getsentry:sentry:task-123",
+        )
+
+    @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_does_not_attribute_when_task_not_done(
+        self, mock_identity_service, mock_update_state, mock_attribute
+    ):
+        """A PR seen while the task is still running is not attributed yet."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_client = MagicMock()
+        mock_client.get_task_status.return_value = GithubCopilotTask(
+            id="task-123",
+            state="in_progress",
+            artifacts=[
+                GithubCopilotArtifact(
+                    provider="github",
+                    type="pull_request",
+                    data=GithubCopilotArtifactData(id=456, type="pull", global_id="PR_abc123"),
+                )
+            ],
+        )
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/12345"
+        mock_pr_info.title = "WIP"
+        mock_client.get_pr_from_graphql.return_value = mock_pr_info
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(
+                GithubCopilotAgentClient, "get_task_status", mock_client.get_task_status
+            ):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_client.get_pr_from_graphql
+                ):
+                    poll_github_copilot_agents(
+                        autofix_state,
+                        user_id=self.user.id,
+                        organization_id=self.organization.id,
+                    )
+
+        mock_attribute.assert_not_called()
 
     @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
@@ -793,6 +640,70 @@ class TestPollClaudeCodeAgents(TestCase):
         assert call_kwargs["agent_id"] == "claude-session-123"
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
 
+    @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_attributes_pr_on_completion(
+        self, mock_integration_service, mock_import_string, mock_update_state, mock_attribute
+    ):
+        """A completed Claude session with a PR is attributed to the Claude agent."""
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.list_session_events.return_value = [
+            {
+                "type": "agent.message",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "PR created: https://github.com/getsentry/sentry/pull/999",
+                    }
+                ],
+            },
+            {"type": ClaudeSessionEventStatus.IDLE},
+        ]
+        mock_client.build_result_from_session.return_value = MagicMock(
+            pr_url="https://github.com/getsentry/sentry/pull/999",
+            repo_full_name="getsentry/sentry",
+            repo_provider="github",
+        )
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_attribute.assert_called_once_with(
+            organization_id=self.organization.id,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            repo_full_name="getsentry/sentry",
+            repo_provider="github",
+            pr_url="https://github.com/getsentry/sentry/pull/999",
+            agent_id="claude-session-123",
+        )
+
+    @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_does_not_attribute_when_no_pr_url(
+        self, mock_integration_service, mock_import_string, mock_update_state, mock_attribute
+    ):
+        """A completed session without a PR is not attributed."""
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.list_session_events.return_value = [
+            {"type": "agent.message", "content": [{"type": "text", "text": "Done, no PR."}]},
+            {"type": ClaudeSessionEventStatus.IDLE},
+        ]
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_attribute.assert_not_called()
+
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
@@ -978,17 +889,3 @@ class TestPollClaudeCodeAgents(TestCase):
 
         mock_integration_service.get_integration.assert_called_once()
         assert mock_client.list_session_events.call_count == 2
-
-
-class TestLaunchCodingAgentsForRunCodingDisabled(TestCase):
-    def test_raises_permission_denied_when_coding_disabled(self):
-        from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
-
-        self.organization.update_option("sentry:enable_seer_coding", False)
-
-        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
-            launch_coding_agents_for_run(
-                organization_id=self.organization.id,
-                run_id=123,
-                integration_id=1,
-            )

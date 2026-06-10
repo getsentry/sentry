@@ -14,9 +14,12 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.deploy import DeploySerializer as DeployModelSerializer
+from sentry.api.serializers.models.deploy import DeploySerializerResponse
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -148,7 +151,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, CursorQueryParam],
         responses={200: DeployResponseSerializer(many=True)},
     )
-    def get(self, request: Request, organization, version) -> Response:
+    def get(
+        self, request: Request, organization, version
+    ) -> Response[list[DeploySerializerResponse]]:
         """
         Returns a list of deploys based on the organization, version, and project.
         """
@@ -188,7 +193,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         request=DeploySerializer,
         responses={201: DeployResponseSerializer, 400: RESPONSE_BAD_REQUEST},
     )
-    def post(self, request: Request, organization, version) -> Response:
+    def post(
+        self, request: Request, organization, version
+    ) -> Response[DeploySerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a deploy for a given release.
         """
@@ -230,7 +237,6 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
         if serializer.is_valid():
             deploy = create_deploy(organization, release, serializer)
+            return Response(serialize(deploy, request.user, DeployModelSerializer()), status=201)
 
-            return Response(serialize(deploy, request.user), status=201)
-
-        return Response(serializer.errors, status=400)
+        return Response(as_validation_errors(serializer), status=400)
