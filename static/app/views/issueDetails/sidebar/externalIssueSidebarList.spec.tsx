@@ -224,13 +224,11 @@ describe('ExternalIssueSidebarList', () => {
 
     expect(await screen.findByText('External Links')).toBeInTheDocument();
     expect(screen.queryByText('Issue Tracking')).not.toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', {name: 'Issue Tracker'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'GitHub'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Jira'})).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Issue Tracker'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Link issue'}));
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'GitHub'})
@@ -258,7 +256,7 @@ describe('ExternalIssueSidebarList', () => {
     });
     renderGlobalModal({organization: organizationWithLinkedPullRequestsFeature});
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Issue Tracker'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Link issue'}));
 
     expect(screen.queryByRole('menuitemradio', {name: 'GitHub'})).not.toBeInTheDocument();
     await waitFor(() => {
@@ -317,7 +315,7 @@ describe('ExternalIssueSidebarList', () => {
     expect(
       await screen.findByText('No linked issues or pull requests')
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Issue Tracker'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Link issue'})).toBeInTheDocument();
   });
 
   it('should render empty state when no integrations', async () => {

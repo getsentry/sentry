@@ -184,6 +184,7 @@ export function IssueTrackerActionDropdown({
   isLoading,
 }: IssueTrackerActionDropdownProps) {
   const organization = useOrganization();
+  const issueTrackerActionLabel = t('Link issue');
 
   if (isLoading || integrations.length === 0) {
     return null;
@@ -248,7 +249,7 @@ export function IssueTrackerActionDropdown({
           tooltipProps={{title: tooltipTitle}}
           variant="transparent"
         >
-          {t('Issue Tracker')}
+          {issueTrackerActionLabel}
         </LinkButton>
       );
     }
@@ -262,7 +263,7 @@ export function IssueTrackerActionDropdown({
         tooltipProps={{title: tooltipTitle}}
         variant="transparent"
       >
-        {t('Issue Tracker')}
+        {issueTrackerActionLabel}
       </Button>
     );
   }
@@ -279,7 +280,7 @@ export function IssueTrackerActionDropdown({
           size="zero"
           variant="transparent"
         >
-          {t('Issue Tracker')}
+          {issueTrackerActionLabel}
         </DropdownButton>
       )}
       items={issueTrackerActions.map(
