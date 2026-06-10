@@ -239,7 +239,7 @@ class DatadogIdentityProvider(OAuth2Provider):
             ),
             DatadogOAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),
-                scope=" ".join(self.get_oauth_scopes()),
+                scope=",".join(self.get_oauth_scopes()),
                 resource=self._get_mcp_base_url(),
             ),
             DatadogOAuth2CallbackView(
