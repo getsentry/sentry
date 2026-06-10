@@ -775,7 +775,13 @@ if (IS_UI_DEV_ONLY) {
     },
     proxy: [
       {
-        context: ['/api/', '/avatar/', '/organization-avatar/', '/extensions/'],
+        context: [
+          '/api/',
+          '/avatar/',
+          '/organization-avatar/',
+          '/team-avatar/',
+          '/extensions/',
+        ],
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
@@ -826,7 +832,7 @@ if (IS_UI_DEV_ONLY) {
     historyApiFallback: {
       rewrites: [
         {
-          from: /^(?!\/(?:_assets|api|avatar|organization-avatar|extensions|region)\/).*$/,
+          from: /^(?!\/(?:_assets|api|avatar|organization-avatar|team-avatar|extensions|region)\/).*$/,
           to: '/_assets/index.html',
         },
       ],

@@ -1,7 +1,12 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {OrganizationAvatar, SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {
+  OrganizationAvatar,
+  SentryAppAvatar,
+  TeamAvatar,
+  UserAvatar,
+} from '@sentry/scraps/avatar';
 import type {AvatarProps} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -22,7 +27,7 @@ import type {
   SentryAppAvatarPhotoType,
   SentryAppAvatar as SentryAppAvatarType,
 } from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -37,6 +42,7 @@ type AvatarType = Avatar['avatarType'];
 
 type AvatarChooserType =
   | 'user'
+  | 'team'
   | 'organization'
   | 'sentryAppColor'
   | 'sentryAppSimple'
@@ -87,7 +93,7 @@ export function AvatarChooser({
   const isSentryApp = ['sentryAppColor', 'sentryAppSimple'].includes(type);
 
   const replaceAvatar = (avatar: Avatar) => {
-    if (['user', 'organization', 'docIntegration'].includes(type)) {
+    if (['user', 'team', 'organization', 'docIntegration'].includes(type)) {
       setModel(prevModel => ({...prevModel, avatar}));
       return;
     }
@@ -230,6 +236,8 @@ export function AvatarChooser({
   const avatarPreview =
     type === 'user' ? (
       <UserAvatar {...sharedAvatarProps} user={model as AvatarUser} />
+    ) : type === 'team' ? (
+      <TeamAvatar {...sharedAvatarProps} team={model as Team} />
     ) : type === 'organization' ? (
       <OrganizationAvatar {...sharedAvatarProps} organization={model as Organization} />
     ) : isSentryApp ? (
