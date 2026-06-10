@@ -434,6 +434,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         self,
         handoff_point: AutofixHandoffPoint = AutofixHandoffPoint.ROOT_CAUSE,
         integration_id: int = 123,
+        auto_create_pr: bool = True,
     ) -> SeerAutomationHandoffConfiguration:
         """Helper to create a handoff configuration in ProjectOptions.
 
@@ -443,13 +444,13 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
         self.project.update_option("sentry:seer_automation_handoff_integration_id", integration_id)
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", auto_create_pr)
 
         return SeerAutomationHandoffConfiguration(
             handoff_point=handoff_point,
             target="cursor_background_agent",
             integration_id=integration_id,
-            auto_create_pr=True,
+            auto_create_pr=auto_create_pr,
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.get_automation_handoff")
@@ -569,6 +570,25 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
         assert call_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
+        assert call_kwargs["auto_create_pr"] is True
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
+    def test_trigger_coding_agent_handoff_always_creates_pr(self, mock_trigger):
+        """Automated handoffs should create a PR even if the stored preference is false."""
+        mock_trigger.return_value = {
+            "successes": [{"repo": "owner/repo"}],
+            "failures": [],
+        }
+        handoff_config = self._make_handoff_config(auto_create_pr=False)
+
+        AutofixOnCompletionHook._trigger_coding_agent_handoff(
+            organization=self.organization,
+            run_id=123,
+            group=self.group,
+            handoff_config=handoff_config,
+        )
+
+        assert mock_trigger.call_args.kwargs["auto_create_pr"] is True
 
 
 class AutofixOnCompletionHookTest(TestCase):

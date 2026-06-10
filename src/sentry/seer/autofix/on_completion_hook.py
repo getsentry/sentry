@@ -578,6 +578,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 run_id=run_id,
                 referrer=referrer,
                 integration_id=handoff_config.integration_id,
+                auto_create_pr=True,
             )
             logger.info(
                 "autofix.on_completion_hook.coding_agent_handoff_completed",
