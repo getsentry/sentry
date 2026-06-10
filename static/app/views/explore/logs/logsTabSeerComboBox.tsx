@@ -1,27 +1,27 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderLayout,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token} from 'sentry/components/searchSyntax/parser';
-import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+  buildSeerDateTimeSelection,
+  buildSeerMutationResult,
+  getRawSeerInterval,
+  transformSeerResponse,
+  useInitialSeerQuery,
+  useSelectedProjectIds,
+  useSelectedProjectIdsForMutation,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -38,107 +38,55 @@ interface AskSeerSearchQuery {
   sort: string;
   start: string | null;
   statsPeriod: string;
-}
-
-interface LogsAskSeerTranslateResponse {
-  responses: Array<{
-    end: string | null;
-    group_by: string[];
-    mode: string;
-    query: string;
-    sort: string;
-    start: string | null;
-    stats_period: string;
-  }>;
-  unsupported_reason: string | null;
+  expandedProjectIds?: number[];
+  interval?: string | null;
 }
 
 export function LogsTabSeerComboBox() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
-  const {query, committedQuery} = useSearchQueryBuilderState();
-  const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
-  let initialSeerQuery = '';
-  const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
-    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
-    return {parsedQuery, queryToUse};
-  }, [committedQuery, query]);
-
-  const inputValue = currentInputValueRef.current.trim();
-
-  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
-  const filteredCommittedQuery = queryDetails?.parsedQuery
-    ?.filter(
-      token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
-    )
-    ?.map(token => stringifyToken(token))
-    ?.join(' ')
-    ?.trim();
-
-  // Use filteredCommittedQuery if it has content.
-  // Only fall back to queryToUse when there's no inputValue to filter by.
-  // This prevents duplication when the entire query is free text matching inputValue.
-  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
-    initialSeerQuery = filteredCommittedQuery;
-  } else if (!inputValue && queryDetails?.queryToUse) {
-    initialSeerQuery = queryDetails.queryToUse;
-  }
-
-  if (inputValue) {
-    initialSeerQuery =
-      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
-  }
+  const initialSeerQuery = useInitialSeerQuery();
+  const selectedProjectIds = useSelectedProjectIds();
+  const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
 
   const logsTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
-      const selectedProjects =
-        pageFilters.selection.projects?.length > 0 &&
-        pageFilters.selection.projects?.[0] !== -1
-          ? pageFilters.selection.projects
-          : projects.filter(p => p.isMember).map(p => p.id);
-
       const user = ConfigStore.get('user');
-      const data = await fetchMutation<LogsAskSeerTranslateResponse>({
+      const data = await fetchMutation<SeerRawResponse>({
         url: `/organizations/${organization.slug}/search-agent/translate/`,
         method: 'POST',
         data: {
           org_id: organization.id,
           org_slug: organization.slug,
           natural_language_query: queryToSubmit,
-          project_ids: selectedProjects,
+          project_ids: selectedProjectIdsForMutation,
           strategy: 'Logs',
           user_email: user?.email,
         },
       });
 
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-          mode: r?.mode ?? 'samples',
-        })),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, r => ({
+        query: r?.query ?? '',
+        sort: r?.sort ?? '',
+        groupBys: r?.group_by ?? [],
+        statsPeriod: r?.stats_period ?? '',
+        start: r?.start ?? null,
+        end: r?.end ?? null,
+        mode: r?.mode ?? 'samples',
+        interval: getRawSeerInterval(r),
+      }));
     },
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number | string) => {
       if (!result) {
         return;
       }
@@ -148,25 +96,19 @@ export function LogsTabSeerComboBox() {
         statsPeriod,
         start: resultStart,
         end: resultEnd,
+        expandedProjectIds,
       } = result;
 
-      let start: DateString = null;
-      let end: DateString = null;
+      const dt = buildSeerDateTimeSelection(
+        resultStart,
+        resultEnd,
+        statsPeriod,
+        pageFilters.selection.datetime
+      );
 
-      if (resultStart && resultEnd) {
-        // Strip 'Z' suffix to treat UTC dates as local time
-        const startLocal = resultStart.endsWith('Z')
-          ? resultStart.slice(0, -1)
-          : resultStart;
-        const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
-        start = new Date(startLocal).toISOString();
-        end = new Date(endLocal).toISOString();
-      } else {
-        start = pageFilters.selection.datetime.start;
-        end = pageFilters.selection.datetime.end;
-      }
+      const start = dt.start;
+      const end = dt.end;
 
-      // Update mode based on groupBys or response mode (matches Trace Explorer logic)
       const mode =
         groupBys.length > 0
           ? Mode.AGGREGATE
@@ -174,8 +116,9 @@ export function LogsTabSeerComboBox() {
             ? Mode.AGGREGATE
             : Mode.SAMPLES;
 
-      // Build aggregateFields array (similar to useSetQueryParamsGroupBys logic)
-      // This combines groupBys with existing visualizations
+      // Build aggregateFields: combines groupBys with existing visualizations,
+      // preserving the existing field ordering (groupBy-before-visualize vs
+      // visualize-before-groupBy layout).
       let seenVisualizes = false;
       let groupByAfterVisualizes = false;
 
@@ -194,7 +137,6 @@ export function LogsTabSeerComboBox() {
       for (const aggregateField of queryParams.aggregateFields) {
         if (isVisualize(aggregateField)) {
           if (!groupByAfterVisualizes) {
-            // Insert group bys before visualizes
             for (const groupBy of iter) {
               aggregateFields.push({groupBy});
             }
@@ -208,37 +150,28 @@ export function LogsTabSeerComboBox() {
         }
       }
 
-      // Add any remaining group bys
       for (const groupBy of iter) {
         aggregateFields.push({groupBy});
       }
 
-      // Build datetime selection similar to Trace Explorer
       const selection = {
         ...pageFilters.selection,
-        datetime: {
-          start,
-          end,
-          utc: pageFilters.selection.datetime.utc,
-          period:
-            resultStart && resultEnd
-              ? null
-              : statsPeriod || pageFilters.selection.datetime.period,
-        },
+        datetime: {start, end, utc: dt.utc, period: dt.period},
       };
 
-      // Build complete URL with all params (query, mode, aggregateFields, datetime)
-      // This matches the Trace Explorer pattern of single navigation
       const newQuery = {
         ...location.query,
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         [LOGS_QUERY_KEY]: queryToUse,
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
-        // Datetime params from selection
         start: selection.datetime.start,
         end: selection.datetime.end,
         statsPeriod: selection.datetime.period,
         utc: selection.datetime.utc,
+        // Only override the interval when Seer suggested one, otherwise leave
+        // the user's current interval untouched.
+        ...(result.interval ? {interval: result.interval} : {}),
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -246,6 +179,7 @@ export function LogsTabSeerComboBox() {
         query: queryToUse,
         groupBys,
         mode,
+        interval: result.interval,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -259,7 +193,6 @@ export function LogsTabSeerComboBox() {
         setRunId(runId);
       }
 
-      // Single navigation with all params (matches Trace Explorer pattern)
       navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
     },
     [
@@ -274,34 +207,11 @@ export function LogsTabSeerComboBox() {
     ]
   );
 
-  // Get selected project IDs for the polling variant
-  const selectedProjectIds = useMemo(() => {
-    if (
-      pageFilters.selection.projects?.length > 0 &&
-      pageFilters.selection.projects?.[0] !== -1
-    ) {
-      return pageFilters.selection.projects;
-    }
-    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
-  }, [pageFilters.selection.projects, projects]);
-
-  // Transform the final_response from Seer to match the expected format
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
-      const seerResponse = response as unknown as {
-        responses?: Array<{
-          end: string | null;
-          group_by: string[];
-          mode: string;
-          query: string;
-          sort: string;
-          start: string | null;
-          stats_period: string;
-        }>;
-      };
-
-      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
-        return seerResponse.responses.map(r => ({
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(
+        response,
+        r => ({
           query: r?.query ?? '',
           sort: r?.sort ?? '',
           groupBys: r?.group_by ?? [],
@@ -309,12 +219,11 @@ export function LogsTabSeerComboBox() {
           start: r?.start ?? null,
           end: r?.end ?? null,
           mode: r?.mode ?? 'samples',
-        }));
-      }
-
-      return [response];
-    },
-    []
+          interval: getRawSeerInterval(r),
+        }),
+        selectedProjectIds
+      ),
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {

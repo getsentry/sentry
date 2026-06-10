@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import logger as sentry_logger
@@ -19,8 +20,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import metrics
+from sentry.shared_integrations.exceptions import ApiConflictError
 
 # Metric namespace for the candidate (tree-based) detector.
 _MULTI_METRICS_PREFIX = "onboarding-scm.platform_detection.multi"
@@ -92,23 +92,37 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
                 f"/repos/{repo.name}/git/trees/HEAD",
                 params={"recursive": 1},
             )
-        except ApiError:
-            # Includes empty repos (409), which are expected. Log and bail
-            # without emitting a completion, so failures don't skew the metrics.
+
+            tree: list[dict[str, Any]] = (
+                response.get("tree", []) if isinstance(response, dict) else []
+            )
+            is_truncated = bool(response.get("truncated")) if isinstance(response, dict) else False
+            repo_size_bytes = sum(
+                entry.get("size", 0) for entry in tree if entry.get("type") == "blob"
+            )
+
+            sentry_sdk.metrics.distribution(
+                f"{_MULTI_METRICS_PREFIX}.duration",
+                (time.monotonic() - start_time) * 1000,
+                unit="millisecond",
+            )
+            sentry_sdk.metrics.count(
+                f"{_MULTI_METRICS_PREFIX}.completed",
+                1,
+                attributes={"is_truncated": is_truncated},
+            )
+            sentry_sdk.metrics.distribution(f"{_MULTI_METRICS_PREFIX}.tree.entry_count", len(tree))
+            sentry_sdk.metrics.distribution(
+                f"{_MULTI_METRICS_PREFIX}.repo_size_bytes",
+                repo_size_bytes,
+                unit="byte",
+            )
+        except Exception as e:
+            # Empty repositories return a 409 (ApiConflictError) — an expected
+            # measurement failure, so log only. Surface anything else as an issue.
             sentry_logger.warning(
                 f"{_MULTI_METRICS_PREFIX}.failed",
                 attributes={"repo_id": repo.id, "repo_name": repo.name},
             )
-            return
-
-        tree: list[dict[str, Any]] = response.get("tree", []) if isinstance(response, dict) else []
-        is_truncated = bool(response.get("truncated")) if isinstance(response, dict) else False
-        repo_size_bytes = sum(entry.get("size", 0) for entry in tree if entry.get("type") == "blob")
-
-        metrics.timing(f"{_MULTI_METRICS_PREFIX}.duration", time.monotonic() - start_time)
-        metrics.incr(
-            f"{_MULTI_METRICS_PREFIX}.completed",
-            tags={"is_truncated": "true" if is_truncated else "false"},
-        )
-        metrics.distribution(f"{_MULTI_METRICS_PREFIX}.tree.entry_count", len(tree))
-        metrics.distribution(f"{_MULTI_METRICS_PREFIX}.repo_size_bytes", repo_size_bytes)
+            if not isinstance(e, ApiConflictError):
+                sentry_sdk.capture_exception()

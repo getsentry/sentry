@@ -54,6 +54,7 @@ const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'github_enterprise',
   'gitlab',
   'jira',
+  'jira_server',
   'msteams',
   'opsgenie',
   'pagerduty',

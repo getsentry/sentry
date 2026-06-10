@@ -54,7 +54,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'First, initialize Sentry on the client in your [code:src/router.tsx] file:',
+            'First, create an [code:instrument.client.ts] file in your [code:src] directory and initialize Sentry in it:',
             {code: <code />}
           ),
         },
@@ -64,8 +64,109 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'TypeScript',
               language: 'typescript',
-              filename: 'src/router.tsx',
+              filename: 'src/instrument.client.ts',
               code: `import * as Sentry from "@sentry/tanstackstart-react";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+
+  // To disable sending user data, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false },${
+    params.isReplaySelected
+      ? `
+
+  integrations: [
+    Sentry.replayIntegration(),
+  ],`
+      : ''
+  }${
+    params.isPerformanceSelected
+      ? `
+
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for tracing.
+  // We recommend adjusting this value in production.
+  // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
+  tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+
+  // Capture Replay for 10% of all sessions,
+  // plus for 100% of sessions with an error.
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+
+  // Enable logs to be sent to Sentry
+  enableLogs: true,`
+      : ''
+  }
+});`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Then import this file as the first import in your [clientEntryLink:client entry point] [code:src/client.tsx]. This ensures Sentry initializes before any other code runs, so errors and events before hydration are captured:',
+            {
+              code: <code />,
+              clientEntryLink: (
+                <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/client-entry-point" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'TypeScript',
+              language: 'tsx',
+              filename: 'src/client.tsx',
+              code: `// Sentry initialization should be imported first!
+import "./instrument.client";
+
+import { StartClient } from "@tanstack/react-start/client";
+import { StrictMode, startTransition } from "react";
+import { hydrateRoot } from "react-dom/client";
+
+startTransition(() => {
+  hydrateRoot(
+    document,
+    <StrictMode>
+      <StartClient />
+    </StrictMode>
+  );
+});`,
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.isPerformanceSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'Add the TanStack Router browser tracing integration in your [code:src/router.tsx] file:',
+                {code: <code />}
+              ),
+            },
+            {
+              type: 'code',
+              tabs: [
+                {
+                  label: 'TypeScript',
+                  language: 'tsx',
+                  filename: 'src/router.tsx',
+                  code: `import * as Sentry from "@sentry/tanstackstart-react";
 import { createRouter } from '@tanstack/react-router'
 
 // Create a new router instance
@@ -73,60 +174,15 @@ export const getRouter = () => {
   const router = createRouter();
 
   if (!router.isServer) {
-    Sentry.init({
-      dsn: "${params.dsn.public}",
-
-      // Adds request headers and IP for users, for more info visit:
-      // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#sendDefaultPii
-      sendDefaultPii: true,${
-        params.isPerformanceSelected || params.isReplaySelected
-          ? `
-
-      integrations: [${
-        params.isPerformanceSelected
-          ? `
-        Sentry.tanstackRouterBrowserTracingIntegration(router),`
-          : ''
-      }${
-        params.isReplaySelected
-          ? `
-        Sentry.replayIntegration(),`
-          : ''
-      }
-      ],`
-          : ''
-      }${
-        params.isPerformanceSelected
-          ? `
-
-      // Set tracesSampleRate to 1.0 to capture 100%
-      // of transactions for tracing.
-      // We recommend adjusting this value in production.
-      // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
-      tracesSampleRate: 1.0,`
-          : ''
-      }${
-        params.isReplaySelected
-          ? `
-
-      // Capture Replay for 10% of all sessions,
-      // plus for 100% of sessions with an error.
-      replaysSessionSampleRate: 0.1,
-      replaysOnErrorSampleRate: 1.0,`
-          : ''
-      }${
-        params.isLogsSelected
-          ? `
-
-      // Enable logs to be sent to Sentry
-      enableLogs: true,`
-          : ''
-      }
-    });
+    Sentry.addIntegration(
+      Sentry.tanstackRouterBrowserTracingIntegration(router)
+    );
   }
 
   return router;
 }`,
+                },
+              ],
             },
           ],
         },
@@ -149,9 +205,9 @@ export const getRouter = () => {
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,${
+  // To disable sending user data, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false },${
     params.isPerformanceSelected
       ? `
 

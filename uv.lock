@@ -307,7 +307,7 @@ wheels = [
 
 [[package]]
 name = "devservices"
-version = "1.4.0"
+version = "1.4.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -317,7 +317,7 @@ dependencies = [
     { name = "supervisor", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.4.0-py3-none-any.whl", hash = "sha256:259b2cbf8f129474cddcef2d952e1b23a22d274ea50cca816db4c97789bfbf8c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.4.1-py3-none-any.whl", hash = "sha256:911f0ac0a489e2b66830eb69074814274a570e258646358adafdf1dedf2671e8" },
 ]
 
 [[package]]
@@ -1844,14 +1844,14 @@ wheels = [
 
 [[package]]
 name = "pytest-rerunfailures"
-version = "15.0"
+version = "16.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_rerunfailures-15.0-py3-none-any.whl", hash = "sha256:dd150c4795c229ef44320adc9a0c0532c51b78bb7a6843a8c53556b9a611df1a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_rerunfailures-16.3-py3-none-any.whl", hash = "sha256:6bdfb8ffb46c46072e6c16bdedee38b6c13eac620d9415ed5b63152cbf283170" },
 ]
 
 [[package]]
@@ -2421,10 +2421,10 @@ requires-dist = [
     { name = "sentry-arroyo", specifier = ">=2.39.2" },
     { name = "sentry-conventions", specifier = ">=0.10.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
-    { name = "sentry-kafka-schemas", specifier = ">=2.1.27" },
+    { name = "sentry-kafka-schemas", specifier = ">=2.1.33" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-options", specifier = ">=1.0.13" },
-    { name = "sentry-protos", specifier = ">=0.24.0" },
+    { name = "sentry-protos", specifier = ">=0.26.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
     { name = "sentry-scm", specifier = "==0.22.0" },
@@ -2439,7 +2439,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.18.3" },
+    { name = "taskbroker-client", specifier = ">=0.18.4" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2448,7 +2448,7 @@ requires-dist = [
     { name = "ua-parser", specifier = ">=0.10.0" },
     { name = "unidiff", specifier = ">=0.7.4" },
     { name = "urllib3", specifier = ">=2.7.0" },
-    { name = "vroomrs", specifier = ">=0.1.20" },
+    { name = "vroomrs", specifier = ">=0.1.21" },
     { name = "xmlsec", specifier = ">=1.3.17" },
     { name = "zstandard", specifier = ">=0.18.0" },
 ]
@@ -2457,7 +2457,7 @@ requires-dist = [
 dev = [
     { name = "codeowners-coverage", specifier = ">=0.3.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
-    { name = "devservices", specifier = ">=1.4.0" },
+    { name = "devservices", specifier = ">=1.4.1" },
     { name = "django-stubs", specifier = ">=5.2.9" },
     { name = "djangorestframework-stubs", specifier = ">=3.16.8" },
     { name = "docker", specifier = ">=7.1.0" },
@@ -2478,7 +2478,7 @@ dev = [
     { name = "pytest-django", specifier = ">=4.12.0" },
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
-    { name = "pytest-rerunfailures", specifier = ">=15.0" },
+    { name = "pytest-rerunfailures", specifier = ">=16.2" },
     { name = "pytest-sentry", specifier = ">=0.3.0" },
     { name = "pytest-workaround-12888", specifier = ">=1.0.0" },
     { name = "pytest-xdist", specifier = ">=3.0.2" },
@@ -2571,7 +2571,7 @@ wheels = [
 
 [[package]]
 name = "sentry-kafka-schemas"
-version = "2.1.27"
+version = "2.1.33"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "fastjsonschema", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2582,7 +2582,7 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.27-py2.py3-none-any.whl", hash = "sha256:c9f2ad159702623c9e5e2b33e19033f5d0f1ff2ccd1e50ad864d0f99d41c5714" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.33-py2.py3-none-any.whl", hash = "sha256:5ddadce9456acb140db31774f801d8b4bac7dffd14ac74c6711534b6f3474b2a" },
 ]
 
 [[package]]
@@ -2608,7 +2608,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.24.0"
+version = "0.26.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2616,7 +2616,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.24.0-py3-none-any.whl", hash = "sha256:11367d578ef46f002f376546ff193b86a4e925f4eb92626c7fed74813207ac69" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.26.0-py3-none-any.whl", hash = "sha256:1f8a1c0ba05f922e2c4b36a09394d250b16192971b11e8bc1f93cb58ffb51765" },
 ]
 
 [[package]]
@@ -2832,7 +2832,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.18.3"
+version = "0.18.4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2850,7 +2850,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.18.3-py3-none-any.whl", hash = "sha256:dfb5ae98e11dc0108d1a06ca2c9ca1c2ed3a419e55e62bcf2db6bc1efacbe98a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.18.4-py3-none-any.whl", hash = "sha256:527ac7ec416fe3609149774687e0acd76c29adeff1c5aabf4d017356741e5231" },
 ]
 
 [[package]]
@@ -3182,12 +3182,12 @@ wheels = [
 
 [[package]]
 name = "vroomrs"
-version = "0.1.20"
+version = "0.1.21"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.20-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:fb6f71f91e39978c8b8b3ee3dbe4c146f836a127b330039a1ae77be15e516251" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.20-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cf8cdfbf2769efc9acaaf2945474401837fbe52b164057392aa4ad0dc7aac00d" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.20-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3432a73809c03558cf1138cbf5dc92043fea933a6f266f1959bd0f30d26ec32a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.21-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0240c7adc48b80a765af7a45b542b5371081fe96903422339756233a54f4754e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.21-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5081dc76f0ff95cb63a1d170ebfb6f1a2cd3fc756a19817768451c86976d8971" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.21-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4fa0eb43a0eb708e7c0aadf49a6a33eefb073ab07644c1ddaad82d197b38d0cf" },
 ]
 
 [[package]]

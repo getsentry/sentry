@@ -46,6 +46,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
+# Read internally via the SENTRY_LOGGING_FORMAT Django setting, which
+# options_mapper populates from this option (see sentry.runner.initializer).
+# Registration supplies the default that gets promoted into the setting.
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -774,13 +777,6 @@ register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Azure DevOps Integration Social Login Flow
-register(
-    "vsts.social-auth-migration",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Add consent prompt for Azure DevOps Integration
 register(
@@ -1305,6 +1301,9 @@ register(
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
+# Whether Relay requests sent from internal ip addresses should be allowed even if the
+# credentials can not be verified.
+register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
@@ -2092,6 +2091,13 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
@@ -3118,7 +3124,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
     "workflow_engine.ensure_detector_association",
     type=Bool,
@@ -3669,7 +3674,14 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
+# TODO(cells): Routes the org listing through the control silo endpoint instead of
+# fanning out across cells. Remove once the cell fan-out path is deleted.
+register(
+    "cells.use-control-org-listing",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # SCM
 
@@ -3714,18 +3726,33 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables cell resolver in APIGateway, should be removed after rollout
-register(
-    "apigateway.cell_resolver.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
 register(
     "repository.auto-link-by-name-dry-run",
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
+register(
+    "tasks.producer.occurrences.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to the clock_pulse task
+register(
+    "tasks.producer.clock-pulse.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "github-enterprise.disallow-domain-mismatch",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

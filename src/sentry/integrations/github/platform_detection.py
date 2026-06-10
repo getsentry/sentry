@@ -8,10 +8,11 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
+import sentry_sdk
 from yaml import YAMLError
 
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.yaml import safe_load
 
 if TYPE_CHECKING:
@@ -1270,14 +1271,17 @@ def detect_platforms(
     results = [r for r in results if r["platform"] not in _NON_SELECTABLE_PLATFORMS]
     results.sort(key=lambda r: (r["bytes"], r["priority"]), reverse=True)
 
-    metrics.timing(
+    sentry_sdk.metrics.distribution(
         f"{_SINGLE_METRICS_PREFIX}.duration",
-        time.monotonic() - start_time,
+        (time.monotonic() - start_time) * 1000,
+        unit="millisecond",
     )
-    metrics.incr(
+    sentry_sdk.metrics.count(
         f"{_SINGLE_METRICS_PREFIX}.completed",
-        tags={
+        1,
+        attributes={
             "confidence": results[0]["confidence"] if results else "none",
+            "detected_platforms_count": len(results),
             "languages_count": _bucket_languages_count(languages),
             "content_reads": _bucket_content_reads(needed_paths),
         },

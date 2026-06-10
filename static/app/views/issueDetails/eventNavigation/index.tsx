@@ -13,7 +13,6 @@ import {Count} from 'sentry/components/count';
 import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -116,28 +115,26 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const activeThreadId = useActiveThreadId();
 
   // Get data for markdown copy functionality
-  const {data: groupSummaryData} = useGroupSummaryData(group);
   const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
 
   const handleCopyMarkdown = useCallback(() => {
-    const markdownText = issueAndEventToMarkdown(
+    const markdownText = issueAndEventToMarkdown({
       group,
       event,
-      groupSummaryData,
       autofixData,
-      activeThreadId
-    );
+      activeThreadId,
+      organization,
+    });
 
     trackAnalytics('issue_details.copy_issue_details_as_markdown', {
       organization,
       groupId: group.id,
       eventId: event?.id,
       hasAutofix: Boolean(autofixData),
-      hasSummary: Boolean(groupSummaryData),
     });
 
     return markdownText;
-  }, [activeThreadId, event, group, groupSummaryData, autofixData, organization]);
+  }, [activeThreadId, event, group, autofixData, organization]);
 
   return (
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
