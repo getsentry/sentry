@@ -189,6 +189,40 @@ class PrMetricsEmissionTest(TestCase):
         assert row.head_commit_sha == HEAD_SHA
         assert row.closed_at == CLOSED_AT.isoformat()
 
+    def test_build_row_resolves_merge_commit_id(self) -> None:
+        # When Sentry tracks the landed commit, the row carries its Commit.id.
+        commit = self.create_commit(repo=self.repo, key=MERGE_SHA)
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.merge_commit_id == commit.id
+
+    def test_build_row_merge_commit_id_null_when_commit_untracked(self) -> None:
+        # No Commit row matches the merge sha (pr_metrics never creates them), so
+        # the id resolves to null rather than erroring.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.merge_commit_id is None
+
+    def test_build_row_merge_commit_id_null_when_unmerged(self) -> None:
+        # A closed-but-unmerged PR has no merge commit sha, so no id to resolve.
+        self.pull_request.merge_commit_sha = None
+        self.pull_request.merged_at = None
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="closed",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.merge_commit_id is None
+
     def test_active_attributions_only_includes_valid_signals(self) -> None:
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
         self._track(
