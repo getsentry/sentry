@@ -10,7 +10,9 @@ export enum DashboardFilter {
   ALL = 'all',
   SHOW_HIDDEN = 'showHidden',
 }
+
 export type LegendType = 'default' | 'breakdown';
+
 export enum DisplayType {
   AREA = 'area',
   BAR = 'bar',
@@ -26,6 +28,7 @@ export enum DisplayType {
   AGENTS_TRACES_TABLE = 'agents_traces_table',
   TEXT = 'text',
 }
+
 export enum WidgetType {
   DISCOVER = 'discover',
   ISSUE = 'issue',
@@ -38,16 +41,19 @@ export enum WidgetType {
   TRACEMETRICS = 'tracemetrics',
   PREPROD_APP_SIZE = 'preprod-app-size',
 }
+
 // These only pertain to on-demand warnings at this point in time
 // Since they are the only soft-validation we do.
 type WidgetWarning = Record<string, OnDemandExtractionState>;
 type WidgetQueryWarning = null | OnDemandExtractionState;
+
 export interface ValidateWidgetResponse {
   warnings: {
     columns: WidgetWarning;
     queries: WidgetQueryWarning[]; // Ordered, matching queries passed via the widget.
   };
 }
+
 export enum OnDemandExtractionState {
   DISABLED_NOT_APPLICABLE = 'disabled:not-applicable',
   DISABLED_PREROLLOUT = 'disabled:pre-rollout',
@@ -58,10 +64,12 @@ export enum OnDemandExtractionState {
   ENABLED_MANUAL = 'enabled:manual',
   ENABLED_CREATION = 'enabled:creation',
 }
+
 export interface WidgetQueryOnDemand {
   enabled: boolean;
   extractionState: OnDemandExtractionState;
 }
+
 export type WidgetChangedReason = {
   equations: Array<{
     equation: string;
@@ -73,22 +81,27 @@ export type WidgetChangedReason = {
   }> | null;
   selected_columns: string[];
 };
+
 // We store an explicit set of keys in the backend now
 export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
   minH: number;
 };
+
 export type WidgetPreview = {
   displayType: DisplayType;
   layout: WidgetLayout | null;
 };
+
 export type DashboardPermissions = {
   isEditableByEveryone: boolean;
   teamsWithEditAccess?: number[];
 };
+
 export enum DashboardFilterKeys {
   RELEASE = 'release',
   GLOBAL_FILTER = 'globalFilter',
 }
+
 export enum DashboardState {
   VIEW = 'view',
   EDIT = 'edit',
@@ -98,6 +111,7 @@ export enum DashboardState {
   PREVIEW = 'preview',
   EMBEDDED = 'embedded',
 }
+
 // where we launch the dashboard widget from
 export enum DashboardWidgetSource {
   DISCOVERV2 = 'discoverv2',
@@ -109,6 +123,7 @@ export enum DashboardWidgetSource {
   INSIGHTS = 'insights',
   TRACEMETRICS = 'traceMetrics',
 }
+
 export enum SlideoutId {
   LCP = 'lcp',
   FCP = 'fcp',

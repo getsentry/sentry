@@ -3,11 +3,13 @@ export enum AlertRuleThresholdType {
   BELOW = 1,
   ABOVE_AND_BELOW = 2,
 }
+
 export enum AlertRuleTriggerType {
   CRITICAL = 'critical',
   WARNING = 'warning',
   RESOLVE = 'resolve',
 }
+
 export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
@@ -15,6 +17,7 @@ export enum AlertRuleComparisonType {
   DYNAMIC = 'dynamic',
   STATIC = 'static',
 }
+
 export enum Dataset {
   /**
    * Events include errors and transactions
@@ -30,12 +33,14 @@ export enum Dataset {
   REPLAYS = 'replays',
   EVENTS_ANALYTICS_PLATFORM = 'events_analytics_platform',
 }
+
 export enum ExtrapolationMode {
   CLIENT_AND_SERVER_WEIGHTED = 'client_and_server_weighted',
   SERVER_WEIGHTED = 'server_weighted',
   UNKNOWN = 'unknown',
   NONE = 'none',
 }
+
 export enum EventTypes {
   DEFAULT = 'default',
   ERROR = 'error',
@@ -46,20 +51,24 @@ export enum EventTypes {
   TRACE_ITEM_LOG = 'trace_item_log',
   TRACE_ITEM_METRIC = 'trace_item_metric',
 }
+
 export enum Datasource {
   ERROR_DEFAULT = 'error_default',
   DEFAULT = 'default',
   ERROR = 'error',
   TRANSACTION = 'transaction',
 }
+
 export enum AlertRuleSensitivity {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
 }
+
 export enum AlertRuleSeasonality {
   AUTO = 'auto',
 }
+
 /**
  * This is not a real aggregate as crash-free sessions/users can be only calculated on frontend by comparing the count of sessions broken down by status
  * It is here nevertheless to shoehorn sessions dataset into existing alerts codebase
@@ -69,6 +78,7 @@ export enum SessionsAggregate {
   CRASH_FREE_SESSIONS = 'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
   CRASH_FREE_USERS = 'percentage(users_crashed, users) AS _crash_rate_alert_aggregate',
 }
+
 export type UnsavedTrigger = {
   actions: Action[];
   alertThreshold: number | '' | null;
@@ -77,6 +87,7 @@ export type UnsavedTrigger = {
   // id yet
   alertRuleId?: string;
 };
+
 export type ThresholdControlValue = {
   /**
    * Resolve threshold is optional, so it can be null
@@ -84,12 +95,15 @@ export type ThresholdControlValue = {
   threshold: number | '' | null;
   thresholdType: AlertRuleThresholdType;
 };
+
 export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   actions: Action[];
   dateCreated: string;
   id: string;
 };
+
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
+
 export enum TimePeriod {
   SIX_HOURS = '6h',
   ONE_DAY = '1d',
@@ -101,6 +115,7 @@ export enum TimePeriod {
   FOURTEEN_DAYS = '14d',
   TWENTY_EIGHT_DAYS = '28d',
 }
+
 export enum TimeWindow {
   ONE_MINUTE = 1,
   FIVE_MINUTES = 5,
@@ -112,6 +127,7 @@ export enum TimeWindow {
   FOUR_HOURS = 240,
   ONE_DAY = 1440,
 }
+
 export enum ActionType {
   EMAIL = 'email',
   SLACK = 'slack',
@@ -121,6 +137,7 @@ export enum ActionType {
   DISCORD = 'discord',
   SENTRY_APP = 'sentry_app',
 }
+
 export enum TargetType {
   // A direct reference, like an email address, Slack channel, or PagerDuty service
   SPECIFIC = 'specific',
@@ -134,10 +151,12 @@ export enum TargetType {
   // A Sentry App instead of any of the above.
   SENTRY_APP = 'sentry_app',
 }
+
 /**
  * This is the user's configured action
  */
 export type Action = UnsavedAction & Partial<SavedActionFields>;
+
 type SavedActionFields = {
   /**
    * The id of the alert rule this action belongs to
@@ -169,6 +188,7 @@ type SavedActionFields = {
    */
   priority?: string;
 };
+
 type UnsavedAction = {
   /**
    * An optional Slack channel or user id the user can input to avoid rate limiting issues.

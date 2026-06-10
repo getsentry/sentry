@@ -6,6 +6,7 @@ export enum DisplayModes {
   DAILYTOP5 = 'dailytop5',
   BAR = 'bar',
 }
+
 export enum DiscoverDatasets {
   DISCOVER = 'discover',
   ERRORS = 'errors',
@@ -18,11 +19,13 @@ export enum DiscoverDatasets {
   TRANSACTIONS = 'transactions',
   TRACEMETRICS = 'tracemetrics',
 }
+
 export enum SavedQueryDatasets {
   DISCOVER = 'discover',
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
 }
+
 export enum DatasetSource {
   USER = 'user',
   UNKNOWN = 'unknown',
