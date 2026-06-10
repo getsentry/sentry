@@ -1,7 +1,9 @@
 import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
+import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -28,6 +30,9 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
     >
       <Flex direction="column" gap="md">
         <ExternalIssueList group={group} event={event} project={project} />
+        <ErrorBoundary customComponent={null}>
+          <LinkedPullRequests group={group} />
+        </ErrorBoundary>
       </Flex>
     </SidebarFoldSection>
   );
