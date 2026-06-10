@@ -36,7 +36,10 @@ import {
   useOrgDefaultStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
 import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
-import {useMutateAutofixProject} from 'sentry/utils/seer/useMutateAutofixProject';
+import {
+  AutofixSettingsPartialSaveError,
+  useMutateAutofixProject,
+} from 'sentry/utils/seer/useMutateAutofixProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -110,8 +113,16 @@ export function ProjectAddRepoModal({
             addSuccessMessage(t('Project saved successfully'));
             closeModal();
           },
-          onError: () => {
-            addErrorMessage(t('Failed to save project settings'));
+          onError: error => {
+            // On a partial save the repos already persisted; the modal stays
+            // open so the user can safely retry (both writes are idempotent).
+            addErrorMessage(
+              error instanceof AutofixSettingsPartialSaveError
+                ? t(
+                    'Your repositories were saved, but the automation settings could not be updated. Please try again.'
+                  )
+                : t('Failed to save project settings')
+            );
           },
         })
         .catch(() => {});

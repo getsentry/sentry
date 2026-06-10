@@ -33,6 +33,22 @@ type TVariables = {
   stoppingPoint: UserFacingStoppingPoint;
 };
 
+/**
+ * Thrown when the repos write succeeds but the follow-up settings write fails.
+ *
+ * The project is left partially saved (repos updated, settings stale). Both
+ * writes are idempotent full-replaces, so re-submitting the form re-sends both
+ * requests and converges to the desired state. Callers should use this to tell
+ * the user their repositories were saved and that retrying is safe, rather than
+ * showing a generic "nothing saved" error.
+ */
+export class AutofixSettingsPartialSaveError extends Error {
+  constructor(options?: {cause?: unknown}) {
+    super('Repositories were saved, but Seer settings could not be updated.', options);
+    this.name = 'AutofixSettingsPartialSaveError';
+  }
+}
+
 export function useMutateAutofixProject() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -59,9 +75,16 @@ export function useMutateAutofixProject() {
           branchName: e.branch || null,
         }));
 
-      // 1. Connected repos go through the dedicated endpoint. It is addressed by
-      //    repositoryId, so it handles GitLab's nested-group names that the
-      //    legacy preferences endpoint's provider/owner/name matching cannot.
+      // There is no single endpoint that writes both repos and settings, so
+      // this is two sequential requests. The ordering is deliberate and the
+      // sequencing is load-bearing — do NOT parallelize with Promise.all:
+      //
+      // 1. Repos are written FIRST because they are the higher-priority write.
+      //    The endpoint is addressed by repositoryId, so it handles GitLab's
+      //    nested-group names that the legacy preferences endpoint's
+      //    provider/owner/name matching cannot. Its replace-all is transactional,
+      //    so if this request fails we abort before touching settings and
+      //    nothing is persisted.
       await fetchMutation({
         method: 'PUT',
         url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/', {
@@ -73,23 +96,32 @@ export function useMutateAutofixProject() {
         data: {repos},
       });
 
-      // 2. Agent, tuning, and stopping point go through the project settings
-      //    endpoint added for the new Seer settings UI.
+      // 2. Agent, tuning, and stopping point are written SECOND, through the
+      //    project settings endpoint added for the new Seer settings UI. Because
+      //    settings goes last, the only reachable partial-failure state is
+      //    "repos saved, settings stale" — the benign one, since repos matter
+      //    more. Both endpoints take idempotent full-replace payloads, so a
+      //    failure here is recoverable by re-submitting. Surface it as a
+      //    distinct error so the caller can tell the user their repos were saved.
       const settingsQueryOptions = getSeerProjectSettingsQueryOptions({
         organization,
         project: {slug: project.slug},
       });
       const [settingsUrl] = settingsQueryOptions.queryKey;
-      await fetchMutation<SeerProjectSettingResponse>({
-        method: 'PUT',
-        url: settingsUrl,
-        data: {
-          agent,
-          ...(integrationId ? {integrationId} : {}),
-          automationTuning: tuning,
-          ...(stoppingPointValue ? {stoppingPoint: stoppingPointValue} : {}),
-        },
-      });
+      try {
+        await fetchMutation<SeerProjectSettingResponse>({
+          method: 'PUT',
+          url: settingsUrl,
+          data: {
+            agent,
+            ...(integrationId ? {integrationId} : {}),
+            automationTuning: tuning,
+            ...(stoppingPointValue ? {stoppingPoint: stoppingPointValue} : {}),
+          },
+        });
+      } catch (error) {
+        throw new AutofixSettingsPartialSaveError({cause: error});
+      }
     },
     onSuccess: (_data, variables) => {
       const {project, stoppingPoint} = variables;
