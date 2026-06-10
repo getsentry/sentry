@@ -174,11 +174,19 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     }));
   }, [setState]);
 
-  // Clear the persisted project-details form when the platform changes, since
-  // the project name defaults from the platform key.
+  // Clear the project-details form when the platform changes, since the
+  // project name defaults from the platform key; the hook re-derives cleared
+  // fields.
   const handleClearProjectDetailsForm = useCallback(() => {
     setState(s => ({...s, projectDetailsForm: undefined}));
   }, [setState]);
+
+  const handleProjectDetailsFormChange = useCallback(
+    (projectDetailsFormState: ProjectDetailsFormState) => {
+      setState(s => ({...s, projectDetailsForm: projectDetailsFormState}));
+    },
+    [setState]
+  );
 
   // Snapshot the completed session (the created project's id validates the
   // return from getting-started, the slug feeds the reuse check, and the form
@@ -210,6 +218,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     selectedRepository,
     createdProjectSlug,
     projectDetailsForm,
+    onProjectDetailsFormChange: handleProjectDetailsFormChange,
     onComplete: handleComplete,
   });
 
