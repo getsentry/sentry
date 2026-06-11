@@ -77,7 +77,9 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         if len(rendered_template.actions) > 0:
             actions_block = ActionsBlock(elements=[])
             for action in rendered_template.actions:
-                actions_block.elements.append(ButtonElement(text=action.label, url=action.link))
+                actions_block.elements.append(
+                    ButtonElement(text=action.label, url=action.link, value="link_clicked")
+                )
             blocks.append(actions_block)
 
         if rendered_template.chart:

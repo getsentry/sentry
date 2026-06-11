@@ -109,7 +109,7 @@ class WorkflowEngineActivityActionTemplate(NotificationTemplate[WorkflowEngineAc
                 )
                 return ActivityNotificationContent(
                     subject="Seer found the root cause",
-                    body=[issue_body, CodeBlock(blocks=[summary_block])],
+                    body=[CodeBlock(blocks=[summary_block]), issue_body],
                     actions=[NotificationRenderedAction(label="View in Sentry", link=seer_url)],
                 )
             case ActivityType.SEER_SOLUTION_STARTED.value:
@@ -124,7 +124,7 @@ class WorkflowEngineActivityActionTemplate(NotificationTemplate[WorkflowEngineAc
                 )
                 return ActivityNotificationContent(
                     subject="Seer has prepared a plan",
-                    body=[issue_body, CodeBlock(blocks=[summary_block])],
+                    body=[CodeBlock(blocks=[summary_block]), issue_body],
                     actions=[NotificationRenderedAction(label="View in Sentry", link=seer_url)],
                 )
             case ActivityType.SEER_CODING_STARTED.value:
@@ -134,10 +134,12 @@ class WorkflowEngineActivityActionTemplate(NotificationTemplate[WorkflowEngineAc
                     actions=[NotificationRenderedAction(label="View in Sentry", link=seer_url)],
                 )
             case ActivityType.SEER_CODING_COMPLETED.value:
-                text_block = PlainTextBlock(text="Check out the Seer's suggested diff in Sentry.")
+                text_block = PlainTextBlock(
+                    text="You can check out the Seer's suggested diff in Sentry."
+                )
                 return ActivityNotificationContent(
                     subject="Seer's code changes are prepared",
-                    body=[issue_body, ParagraphBlock(blocks=[text_block])],
+                    body=[ParagraphBlock(blocks=[text_block]), issue_body],
                     actions=[NotificationRenderedAction(label="View in Sentry", link=seer_url)],
                 )
             case ActivityType.SEER_PR_CREATED.value:
@@ -155,7 +157,7 @@ class WorkflowEngineActivityActionTemplate(NotificationTemplate[WorkflowEngineAc
 
                 subject = (
                     "Seer has created a pull request"
-                    if len(actions) > 2
+                    if len(actions) <= 2
                     else "Seer has created some pull requests"
                 )
 
@@ -170,7 +172,7 @@ class WorkflowEngineActivityActionTemplate(NotificationTemplate[WorkflowEngineAc
 
                 return ActivityNotificationContent(
                     subject=subject,
-                    body=[issue_body, repo_body],
+                    body=[repo_body, issue_body],
                     actions=actions,
                 )
             case _:
