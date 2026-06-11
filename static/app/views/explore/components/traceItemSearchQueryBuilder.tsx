@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilder,
@@ -97,6 +98,7 @@ export function useTraceItemSearchQueryBuilderProps({
   onSearch,
   portalTarget,
   projects,
+  datetime,
   supportedAggregates = [],
   namespace,
   replaceRawSearchKeys,
@@ -114,6 +116,8 @@ export function useTraceItemSearchQueryBuilderProps({
   placeholder,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
+  const {selection} = usePageFilters();
+  const effectiveProjects = projects ?? selection.projects;
 
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
@@ -129,6 +133,7 @@ export function useTraceItemSearchQueryBuilderProps({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    datetime,
     query: attributeQuery,
   });
 
@@ -250,7 +255,7 @@ export function TraceItemSearchQueryBuilder({
   searchSource,
   stringAttributes,
   itemType,
-  datetime: _datetime,
+  datetime,
   getFilterTokenWarning,
   onBlur,
   onChange,
@@ -304,6 +309,7 @@ export function TraceItemSearchQueryBuilder({
     hiddenAttributeKeys,
     allowedAttributeKeys,
     placeholder,
+    datetime,
   });
 
   return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
