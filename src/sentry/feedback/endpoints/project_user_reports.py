@@ -44,7 +44,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
     @extend_schema(
-        operation_id="List a Project's User Feedback",
+        operation_id="listProjectUserFeedback",
+        summary="List a Project's User Feedback",
         parameters=[CursorQueryParam],
     )
     def get(self, request: Request, project) -> Response:

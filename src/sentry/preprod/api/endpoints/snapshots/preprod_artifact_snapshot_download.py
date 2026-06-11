@@ -95,7 +95,8 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Download Snapshot images as ZIP",
+        operation_id="downloadOrganizationPreprodArtifactSnapshot",
+        summary="Download Snapshot images as ZIP",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(

@@ -97,7 +97,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         return (parsed_args, parsed_kwargs)
 
     @extend_schema(
-        operation_id="Retrieve a Spike Protection Notification Action",
+        operation_id="getOrganizationNotificationsAction",
+        summary="Retrieve a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,
@@ -122,7 +123,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         return Response(body)
 
     @extend_schema(
-        operation_id="Update a Spike Protection Notification Action",
+        operation_id="updateOrganizationNotificationsAction",
+        summary="Update a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,
@@ -171,7 +173,8 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         return Response(put_body, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
-        operation_id="Delete a Spike Protection Notification Action",
+        operation_id="deleteOrganizationNotificationsAction",
+        summary="Delete a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,

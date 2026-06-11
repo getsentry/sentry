@@ -35,7 +35,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
     owner = ApiOwner.CRONS
 
     @extend_schema(
-        operation_id="Retrieve a Monitor",
+        operation_id="getOrganizationMonitor",
+        summary="Retrieve a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
@@ -57,7 +58,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         return self.get_monitor(request, project, monitor)
 
     @extend_schema(
-        operation_id="Update a Monitor",
+        operation_id="updateOrganizationMonitor",
+        summary="Update a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
@@ -80,7 +82,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
         return self.update_monitor(request, project, monitor)
 
     @extend_schema(
-        operation_id="Delete a Monitor or Monitor Environments",
+        operation_id="deleteOrganizationMonitor",
+        summary="Delete a Monitor or Monitor Environments",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,

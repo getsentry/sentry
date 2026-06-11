@@ -58,7 +58,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     permission_classes = (NotificationActionsPermission,)
 
     @extend_schema(
-        operation_id="List Spike Protection Notifications",
+        operation_id="listOrganizationNotificationsActions",
+        summary="List Spike Protection Notifications",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -113,7 +114,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Spike Protection Notification Action",
+        operation_id="createOrganizationNotificationsAction",
+        summary="Create a Spike Protection Notification Action",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],

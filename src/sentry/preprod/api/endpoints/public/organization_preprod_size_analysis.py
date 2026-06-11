@@ -70,7 +70,8 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve Size Analysis results for a given artifact",
+        operation_id="getOrganizationPreprodArtifactSizeAnalysis",
+        summary="Retrieve Size Analysis results for a given artifact",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(

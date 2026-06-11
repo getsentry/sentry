@@ -201,7 +201,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Delete a Snapshot",
+        operation_id="deleteOrganizationPreprodArtifactSnapshot",
+        summary="Delete a Snapshot",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -283,7 +284,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         return Response(status=204)
 
     @extend_schema(
-        operation_id="Retrieve Snapshot details",
+        operation_id="getOrganizationPreprodArtifactSnapshot",
+        summary="Retrieve Snapshot details",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -631,7 +633,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="Upload a Snapshot",
+        operation_id="uploadProjectPreprodArtifactSnapshot",
+        summary="Upload a Snapshot",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
