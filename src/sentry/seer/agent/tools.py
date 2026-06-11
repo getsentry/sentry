@@ -299,12 +299,26 @@ def execute_timeseries_query(
     params = {k: v for k, v in params.items() if v is not None}
 
     # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events-stats/",
-        params=params,
-    )
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events-stats/",
+            params=params,
+        )
+    except client.ApiError as e:
+        # For 400 errors, return an error detail for the query builder agent.
+        # Use a reserved "_seer_error_detail" key so it can't collide with a
+        # group_by value (which becomes a top-level key in grouped responses below).
+        if e.status_code == 400:
+            logger.exception("execute_timeseries_query: bad request", extra={"org_id": org_id})
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {
+                "_seer_error_detail": (
+                    str(error_detail) if error_detail is not None else str(e.body)
+                )
+            }
+        raise
     data = resp.data
 
     # Always normalize to the nested {"metric": {"data": [...]}} format for consistency
@@ -959,7 +973,7 @@ def _get_issue_event_timeseries(
         partial=True,
     )
 
-    if data is None:
+    if data is None or data.get("_seer_error_detail"):
         return None
     return data, selected_period, interval
 
