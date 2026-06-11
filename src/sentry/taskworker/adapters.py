@@ -39,6 +39,19 @@ from sentry.viewer_context import (
 
 logger = logging.getLogger(__name__)
 
+# Map from namespaces to topics that ONLY applies to the current process (no global options)
+_route_overrides: dict[str, str] = {}
+
+
+#
+def set_route_overrides(overrides: dict[str, str]) -> None:
+    """
+    Replace route overrides (`_route_overrides`) with the provided map.
+    This change is local to the running application and does not impact global options.
+    """
+    _route_overrides.clear()
+    _route_overrides.update(overrides)
+
 
 class DjangoCacheAtMostOnceStore(AtMostOnceStore):
     """
@@ -149,9 +162,8 @@ class SentryRouter(LibraryRouter):
         )
 
     def route_namespace(self, name: str) -> str:
-        overrides = options.get("taskworker.route.overrides")
-        if name in overrides:
-            return Topic(overrides[name]).value
+        if name in _route_overrides:
+            return Topic(_route_overrides[name]).value
         if name in self._route_map:
             return Topic(self._route_map[name]).value
         return self._default_topic.value
