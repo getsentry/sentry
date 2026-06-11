@@ -5215,6 +5215,62 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
     });
 
+    it('uses the explicit string tag key when selecting a pretty tag option', async () => {
+      render(<SearchQueryBuilder {...builderProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo');
+      await userEvent.click(screen.getByRole('option', {name: 'foo'}));
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('normalizes typed pretty tag keys to the explicit string tag key', async () => {
+      render(<SearchQueryBuilder {...builderProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo:');
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('normalizes edited pretty tag keys to the explicit string tag key', async () => {
+      render(
+        <SearchQueryBuilder {...builderProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
+      await userEvent.clear(input);
+      await userEvent.keyboard('foo{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('row', {name: 'tags[foo,string]:firefox'})
+      ).toBeInTheDocument();
+    });
+
+    it('uses the explicit string tag key when selecting a pretty has value', async () => {
+      render(<SearchQueryBuilder {...builderProps} initialQuery="has:custom_tag_name" />);
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+      await userEvent.keyboard('foo');
+      await userEvent.click(screen.getByRole('option', {name: 'foo'}));
+
+      expect(screen.getByRole('row', {name: 'has:tags[foo,string]'})).toBeInTheDocument();
+    });
+
     it('renders explicit number tag filter', async () => {
       render(
         <SearchQueryBuilder {...builderProps} initialQuery="tags[bar,number]:<=100" />
@@ -6592,6 +6648,24 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
 
       expect(await screen.findByRole('row', {name: /async_tag_one/})).toBeInTheDocument();
+    });
+
+    it('normalizes typed pretty tag keys using loaded async explicit keys', async () => {
+      const mockGetTagKeys = jest
+        .fn()
+        .mockResolvedValue([{key: 'tags[foo,string]', name: 'foo', kind: FieldKind.TAG}]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo');
+      expect(await screen.findByRole('option', {name: 'foo'})).toBeInTheDocument();
+      await userEvent.keyboard(':');
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
     });
 
     it('shows async keys when editing an existing filter key', async () => {
