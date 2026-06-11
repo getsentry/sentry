@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconArrow, IconBranch, IconChevron, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-interface PathMappingValue {
+export interface PathMappingValue {
   branch: string;
   sourceRoot: string;
   stackRoot: string;
@@ -83,7 +83,7 @@ const schema = z.object({
  * branch becomes `main`), so mappings that differ only by that normalization
  * parse to the same values.
  */
-const normalizedPathMappingSchema = schema.extend({
+export const normalizedPathMappingSchema = schema.extend({
   stackRoot: z.string().transform(normalizeRoot),
   sourceRoot: z.string().transform(normalizeRoot),
   branch: z.string().transform(resolveBranch),
