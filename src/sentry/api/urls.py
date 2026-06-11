@@ -303,6 +303,7 @@ from sentry.issues.endpoints import (
     GroupTombstoneEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
+    OrganizationGroupIndexProgressEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewDetailsStarredEndpoint,
@@ -1885,6 +1886,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-stats/$",
         OrganizationGroupIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-group-index-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issues-progress/$",
+        OrganizationGroupIndexProgressEndpoint.as_view(),
+        name="sentry-api-0-organization-group-index-progress",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-with-supergroups/$",
