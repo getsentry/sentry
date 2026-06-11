@@ -256,7 +256,8 @@ class SearchResolver:
                 Group.objects.by_qualified_short_id_bulk(
                     organization_id=self.params.organization_id,
                     short_ids_raw=list(collected),
-                    project_ids=self.params.project_ids or None,
+                    # org-wide: the Snuba query is already scoped to the requested projects.
+                    project_ids=None,
                 )
             )
         except Group.DoesNotExist:
