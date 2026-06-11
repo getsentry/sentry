@@ -772,10 +772,6 @@ def format_search_filter(
                 groups = Group.objects.by_qualified_short_id_bulk(
                     params["organization_id"],
                     group_short_ids,
-                    # Scope to the projects the query is restricted to so a short id for a
-                    # project outside the search scope does not resolve. Fall back to None
-                    # (no pre-filter) when there is no project scope, so an organization-wide
-                    # query still resolves; the downstream Snuba query enforces the projects.
                     project_ids=params.get("project_id") or None,
                 )
             except Exception:
