@@ -1867,7 +1867,7 @@ def _handle_regression(
             "event_id": event.event_id,
             "version": release.version if release else "",
         }
-        if incoming_group_values:
+        if incoming_group_values and options.get("groups.regression-activity-event-metadata"):
             event_data = incoming_group_values.get("data", {})
             activity_data["event_metadata"] = event_data.get("metadata", {})
             activity_data["event_title"] = event_data.get("title", "")
