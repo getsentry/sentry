@@ -51,6 +51,7 @@ interface GridListProps<T extends ListItemBase>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  searchFocusedId?: string;
   searchFocusedKey?: SelectKey | null;
   size?: GridListOptionProps<ListItemBase>['size'];
   /**
@@ -80,6 +81,7 @@ function GridList<T extends ListItemBase>({
   sizeLimitMessage,
   keyDownHandler,
   virtualized,
+  searchFocusedId,
   searchFocusedKey,
   ...props
 }: GridListProps<T>) {
@@ -146,6 +148,7 @@ function GridList<T extends ListItemBase>({
                       key={item.key}
                       node={item}
                       listState={listState}
+                      searchFocusedId={searchFocusedId}
                       searchFocusedKey={searchFocusedKey}
                       size={size}
                     />
@@ -160,6 +163,7 @@ function GridList<T extends ListItemBase>({
                     listState={listState}
                     size={size}
                     forceFocused={item.key === searchFocusedKey}
+                    searchFocusedId={searchFocusedId}
                   />
                 );
               })}

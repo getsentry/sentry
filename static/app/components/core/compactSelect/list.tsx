@@ -32,6 +32,7 @@ import {
   getDisabledOptions,
   getEscapedKey,
   getHiddenOptions,
+  getSearchResultOptionId,
   getSelectedOptions,
   getSortedItems,
   HiddenSectionToggle,
@@ -215,6 +216,7 @@ export function List<Value extends SelectKey>({
     searchable,
     overlayIsOpen,
     searchMatcher,
+    clearFocusedSearchResult,
     focusFirstSearchResult,
     registerSearchResultList,
   } = useContext(ControlContext);
@@ -301,16 +303,27 @@ export function List<Value extends SelectKey>({
     items: sortedItems,
   });
 
+  const listId = useId();
   const firstVisibleEnabledKey = useMemo(
     () => getFirstVisibleEnabledKey(listState, hiddenOptions),
     [listState, hiddenOptions]
+  );
+  const firstVisibleEnabledSearchResult = useMemo(
+    () =>
+      firstVisibleEnabledKey === null
+        ? null
+        : {
+            id: getSearchResultOptionId(listId, firstVisibleEnabledKey),
+            key: firstVisibleEnabledKey,
+          },
+    [firstVisibleEnabledKey, listId]
   );
 
   const [searchFocusedKey, setSearchFocusedKey] = useState<SelectKey | null>(null);
   const listStateRef = useRef(listState);
   listStateRef.current = listState;
-  const firstVisibleEnabledKeyRef = useRef(firstVisibleEnabledKey);
-  firstVisibleEnabledKeyRef.current = firstVisibleEnabledKey;
+  const firstVisibleEnabledSearchResultRef = useRef(firstVisibleEnabledSearchResult);
+  firstVisibleEnabledSearchResultRef.current = firstVisibleEnabledSearchResult;
   const hiddenOptionsRef = useRef(hiddenOptions);
   hiddenOptionsRef.current = hiddenOptions;
   const searchFocusedKeyRef = useRef(searchFocusedKey);
@@ -321,7 +334,8 @@ export function List<Value extends SelectKey>({
       clearFocusedKey: () => {
         setSearchFocusedKey(null);
       },
-      getFirstVisibleEnabledKey: () => firstVisibleEnabledKeyRef.current,
+      getFirstVisibleEnabledSearchResult: () =>
+        firstVisibleEnabledSearchResultRef.current,
       selectFocusedKey: () => {
         const selectionManager = listStateRef.current.selectionManager;
         const focusedKey = searchFocusedKeyRef.current;
@@ -350,6 +364,17 @@ export function List<Value extends SelectKey>({
   useEffect(() => {
     focusFirstSearchResult?.();
   }, [firstVisibleEnabledKey, focusFirstSearchResult]);
+
+  useEffect(() => {
+    if (searchFocusedKey !== null && listState.selectionManager.isFocused) {
+      clearFocusedSearchResult?.();
+    }
+  }, [
+    clearFocusedSearchResult,
+    listState.selectionManager.focusedKey,
+    listState.selectionManager.isFocused,
+    searchFocusedKey,
+  ]);
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed
@@ -429,7 +454,10 @@ export function List<Value extends SelectKey>({
     return true;
   };
 
-  const listId = useId();
+  const searchFocusedId =
+    searchFocusedKey === null
+      ? undefined
+      : getSearchResultOptionId(listId, searchFocusedKey);
 
   const sections = useMemo(
     () =>
@@ -453,6 +481,7 @@ export function List<Value extends SelectKey>({
             id={listId}
             listState={listState}
             searchFocusedKey={searchFocusedKey}
+            searchFocusedId={searchFocusedId}
             sizeLimitMessage={sizeLimitMessage}
             keyDownHandler={keyDownHandler}
           />
@@ -466,6 +495,7 @@ export function List<Value extends SelectKey>({
           id={listId}
           listState={listState}
           searchFocusedKey={searchFocusedKey}
+          searchFocusedId={searchFocusedId}
           shouldFocusWrap={shouldFocusWrap}
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}

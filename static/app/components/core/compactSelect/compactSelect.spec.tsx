@@ -467,10 +467,40 @@ describe('CompactSelect', () => {
       await userEvent.type(searchInput, 'Two');
 
       expect(searchInput).toHaveFocus();
+      const activeDescendant = searchInput.getAttribute('aria-activedescendant');
+      expect(activeDescendant).toBeTruthy();
+      expect(screen.getByRole('option', {name: 'Option Two'})).toHaveAttribute(
+        'id',
+        activeDescendant
+      );
 
       await userEvent.keyboard('{Enter}');
 
       expect(mock).toHaveBeenCalledWith({value: 'opt_two', label: 'Option Two'});
+    });
+
+    it('clears the active search result when focus moves into the list', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search here…');
+      await userEvent.type(searchInput, 'Two');
+      expect(searchInput).toHaveAttribute('aria-activedescendant');
+
+      await userEvent.keyboard('{ArrowDown}');
+
+      expect(screen.getByRole('option', {name: 'Option Two'})).toHaveFocus();
+      expect(searchInput).not.toHaveAttribute('aria-activedescendant');
     });
 
     it('does not select the first search result when autoFocusFirstResult is false', async () => {

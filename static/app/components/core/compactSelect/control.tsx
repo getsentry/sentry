@@ -57,9 +57,14 @@ function nextFrameCallback(cb: () => void) {
   }
 }
 
+interface SearchResult {
+  id: string;
+  key: SelectKey;
+}
+
 interface SearchResultListController {
   clearFocusedKey: () => void;
-  getFirstVisibleEnabledKey: () => SelectKey | null;
+  getFirstVisibleEnabledSearchResult: () => SearchResult | null;
   selectFocusedKey: () => boolean;
   setFocusedKey: (key: SelectKey) => void;
 }
@@ -74,6 +79,7 @@ interface ControlContextValue {
    * Whether the select has a search input field.
    */
   searchable: boolean;
+  clearFocusedSearchResult?: () => void;
   disabled?: boolean;
   focusFirstSearchResult?: () => void;
   /**
@@ -275,9 +281,11 @@ export function Control({
   const activeSearchResultListControllerRef = useRef<SearchResultListController | null>(
     null
   );
+  const [activeSearchResultId, setActiveSearchResultId] = useState<string>();
 
   const clearFocusedSearchResult = useCallback(() => {
     activeSearchResultListControllerRef.current = null;
+    setActiveSearchResultId(undefined);
     for (const controller of searchResultListControllersRef.current) {
       controller.clearFocusedKey();
     }
@@ -290,14 +298,18 @@ export function Control({
     }
 
     const target = searchResultListControllersRef.current
-      .map(controller => ({controller, key: controller.getFirstVisibleEnabledKey()}))
-      .find(({key}) => key !== null);
+      .map(controller => ({
+        controller,
+        searchResult: controller.getFirstVisibleEnabledSearchResult(),
+      }))
+      .find(({searchResult}) => searchResult !== null);
 
     activeSearchResultListControllerRef.current = target?.controller ?? null;
+    setActiveSearchResultId(target?.searchResult?.id);
 
     for (const controller of searchResultListControllersRef.current) {
-      if (controller === target?.controller && target.key !== null) {
-        controller.setFocusedKey(target.key);
+      if (controller === target?.controller && target.searchResult !== null) {
+        controller.setFocusedKey(target.searchResult.key);
       } else {
         controller.clearFocusedKey();
       }
@@ -316,6 +328,7 @@ export function Control({
           searchResultListControllersRef.current.filter(item => item !== controller);
         if (activeSearchResultListControllerRef.current === controller) {
           activeSearchResultListControllerRef.current = null;
+          setActiveSearchResultId(undefined);
         }
       };
     },
@@ -355,6 +368,7 @@ export function Control({
       // we should move the focus to the menu items list.
       if (e.key === 'ArrowDown') {
         e.preventDefault(); // Prevent scroll action
+        clearFocusedSearchResult();
         overlayRef.current
           ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
           ?.focus();
@@ -566,6 +580,7 @@ export function Control({
       size,
       disabled,
       searchMatcher: searchFilter,
+      clearFocusedSearchResult,
       focusFirstSearchResult,
       registerSearchResultList,
     };
@@ -577,6 +592,7 @@ export function Control({
     size,
     disabled,
     searchFilter,
+    clearFocusedSearchResult,
     focusFirstSearchResult,
     registerSearchResultList,
   ]);
@@ -659,6 +675,7 @@ export function Control({
                       ref={searchRef}
                       placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                       value={searchInputValue}
+                      aria-activedescendant={activeSearchResultId}
                       onFocus={onSearchFocus}
                       onBlur={onSearchBlur}
                       onChange={e => updateSearch(e.target.value)}

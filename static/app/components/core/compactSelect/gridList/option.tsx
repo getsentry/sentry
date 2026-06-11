@@ -26,6 +26,7 @@ export interface GridListOptionProps<
   node: Node<T>;
   size: FormSize;
   forceFocused?: boolean;
+  searchFocusedId?: string;
 }
 
 /**
@@ -37,6 +38,7 @@ export function GridListOption<T extends ListItemBase>({
   listState,
   size,
   forceFocused = false,
+  searchFocusedId,
 }: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -116,9 +118,14 @@ export function GridListOption<T extends ListItemBase>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
+  const rowPropsWithId = {
+    ...rowPropsMerged,
+    id: forceFocused && searchFocusedId ? searchFocusedId : rowPropsMerged.id,
+  };
+
   return (
     <StyledMenuListItem
-      {...rowPropsMerged}
+      {...rowPropsWithId}
       ref={ref}
       size={size}
       label={label}

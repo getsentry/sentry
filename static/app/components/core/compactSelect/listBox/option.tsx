@@ -23,6 +23,7 @@ export interface ListBoxOptionProps extends AriaOptionProps {
   'data-index'?: number;
   forceFocused?: boolean;
   ref?: React.Ref<HTMLLIElement>;
+  searchFocusedId?: string;
   showDetails?: boolean;
 }
 
@@ -37,6 +38,7 @@ export function ListBoxOption({
   showDetails = true,
   ref: refProp,
   forceFocused = false,
+  searchFocusedId,
   'data-index': dataIndex,
 }: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
@@ -99,9 +101,14 @@ export function ListBoxOption({
     );
   }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
 
+  const optionPropsWithId = {
+    ...optionProps,
+    id: forceFocused && searchFocusedId ? searchFocusedId : optionProps.id,
+  };
+
   return (
     <StyledMenuListItem
-      {...optionProps}
+      {...optionPropsWithId}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
       size={size}

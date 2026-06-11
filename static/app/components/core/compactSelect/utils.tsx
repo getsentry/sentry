@@ -43,6 +43,10 @@ export function getEscapedKey(value: SelectKey): string {
   return CSS.escape(String(value));
 }
 
+export function getSearchResultOptionId(listId: string, key: SelectKey): string {
+  return `${listId}-search-result-${encodeURIComponent(String(key))}`;
+}
+
 export function getItemsWithKeys<Value extends SelectKey>(
   options: Array<SelectOption<Value>>
 ): Array<SelectOptionWithKey<Value>>;
