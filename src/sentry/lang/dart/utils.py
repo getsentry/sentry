@@ -10,6 +10,7 @@ import sentry_sdk
 
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
 # Obfuscated type values are either in the form of "xyz" or "xyz<abc>" where
@@ -109,3 +110,11 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
                 new_value = re.sub(INSTANCE_OF_VALUE_RE, replace_symbol, exception_value)
                 if new_value != exception_value:
                     exception["value"] = new_value
+
+
+def has_native_frames_in_stacktraces(data) -> bool:
+    for stacktrace_info in find_stacktraces_in_data(data):
+        frames = stacktrace_info.get_frames()
+        if frames and any(frame.get("platform") == "native" for frame in frames):
+            return True
+    return False
