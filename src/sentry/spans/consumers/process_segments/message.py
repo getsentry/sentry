@@ -28,6 +28,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.options.rollout import in_random_rollout
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
@@ -287,7 +288,7 @@ def _create_models(
 def _detect_performance_problems(
     segment_span: CompatibleSpan, spans: list[CompatibleSpan], project: Project
 ) -> None:
-    if not options.get("spans.process-segments.detect-performance-problems.enable"):
+    if not in_random_rollout("spans.process-segments.detect-performance-problems.sample_rate"):
         return
 
     event_data = build_shim_event_data(segment_span, spans)
