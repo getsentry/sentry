@@ -12,7 +12,6 @@ from sentry.seer.code_review.webhooks.seat_tracking import (
     SEAT_SEEN_KEY_PREFIX,
     track_gitlab_contributor_seat_processor,
 )
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.redis import redis_clusters
 
 
@@ -54,7 +53,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
             integration=self.integration,
         )
 
-    @with_feature("organizations:seer-code-review-gitlab")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_calls_track_contributor_seat_on_open(self, mock_track: Any) -> None:
         self._call()
@@ -69,23 +67,15 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         assert kwargs["provider"] == "gitlab"
 
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
-    def test_no_call_without_cohort_flag(self, mock_track: Any) -> None:
-        self._call()
-        mock_track.assert_not_called()
-
-    @with_feature("organizations:seer-code-review-gitlab")
-    @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_on_update_action(self, mock_track: Any) -> None:
         self._call(event=_make_event(action="update"))
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-code-review-gitlab")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_on_close_action(self, mock_track: Any) -> None:
         self._call(event=_make_event(action="close"))
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-code-review-gitlab")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_without_integration(self, mock_track: Any) -> None:
         track_gitlab_contributor_seat_processor(
@@ -96,7 +86,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         )
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-code-review-gitlab")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_when_author_id_missing(self, mock_track: Any) -> None:
         event = _make_event()
@@ -104,7 +93,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-code-review-gitlab")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_when_username_missing(self, mock_track: Any) -> None:
         event = _make_event()
@@ -112,7 +100,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-code-review-gitlab")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_duplicate_delivery_within_window_skipped(self, mock_track: Any) -> None:
         # GitLab redelivers webhooks on response timeout, and the endpoint
@@ -125,7 +112,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
 
         mock_track.assert_called_once()
 
-    @with_feature("organizations:seer-code-review-gitlab")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_duplicate_delivery_after_ttl_processes_again(self, mock_track: Any) -> None:
         event = _make_event()
@@ -140,7 +126,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         assert mock_track.call_count == 2
 
-    @with_feature("organizations:seer-code-review-gitlab")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_missing_organization_does_not_poison_dedup(self, mock_track: Any) -> None:
         # If the Organization can't be resolved, no Redis key is set, so a
