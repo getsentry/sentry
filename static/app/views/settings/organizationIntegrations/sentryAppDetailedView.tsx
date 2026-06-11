@@ -344,9 +344,9 @@ export default function SentryAppDetailedView() {
         integrationSlug.charAt(0).toUpperCase() + integrationSlug.slice(1);
       if (install?.status === 'pending_deletion') {
         return (
-          <StyledButton size="sm" disabled>
+          <Button size="sm" disabled>
             {t('Pending Deletion')}
-          </StyledButton>
+          </Button>
         );
       }
       if (install) {
@@ -360,10 +360,10 @@ export default function SentryAppDetailedView() {
             onConfirming={recordUninstallClicked} // called when the confirm modal opens
             priority="danger"
           >
-            <StyledButton size="sm" data-test-id="sentry-app-uninstall">
+            <Button size="sm" data-test-id="sentry-app-uninstall">
               <IconSubtract style={{marginRight: theme.space.sm}} />
               {t('Uninstall')}
-            </StyledButton>
+            </Button>
           </Confirm>
         );
       }
@@ -469,14 +469,4 @@ const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
 
 const InstallButton = styled(Button)`
   margin-left: ${p => p.theme.space.md};
-`;
-
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-  background: ${p => p.theme.tokens.background.primary};
-
-  border: ${p => `1px solid ${p.theme.colors.gray400}`};
-  box-sizing: border-box;
-  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
 `;

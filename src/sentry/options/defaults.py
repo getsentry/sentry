@@ -2237,13 +2237,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "workflow_engine.nodestore_read_timeout",
-    default=5.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # === Backpressure related runtime options ===
 
 # Enables monitoring of services for backpressure management.
@@ -2852,6 +2845,13 @@ register(
     "spans.process-spans.profiling.rate",
     type=Float,
     default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Skip the script_exists check in ensure_script and trust the cached SHA.
+register(
+    "spans.buffer.ensure-script.skip-exists-check",
+    type=Bool,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Timeout for stale segments without a root span to be flushed.
@@ -3697,8 +3697,8 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TODO(cells): Routes the org listing through the control silo endpoint instead of
-# fanning out across cells. Remove once the cell fan-out path is deleted.
+# TODO(cells): Fully rolled out and no longer read anywhere. Unregister once the
+# value is removed from sentry-options-automator.
 register(
     "cells.use-control-org-listing",
     type=Bool,

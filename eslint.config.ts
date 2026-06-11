@@ -979,7 +979,7 @@ export default typescript.config([
   },
   {
     name: 'files/scripts',
-    files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
+    files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/*.ts'],
     languageOptions: {
       sourceType: 'module',
       globals: globals.node,

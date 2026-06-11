@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import sys
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
@@ -224,7 +224,6 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     integration_cls: type[IntegrationInstallation] | None = None
     """an Integration class that will manage the functionality once installed"""
 
-    setup_dialog_config = {"width": 600, "height": 600}
     """configuration for the setup dialog"""
 
     can_add = True
@@ -312,19 +311,15 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
                 data={"provider": integration.provider, "name": integration.name},
             )
 
-    def get_pipeline_views(
-        self,
-    ) -> Sequence[
-        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
-    ]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         """
-        Return a list of ``View`` instances describing this integration's
-        configuration pipeline.
-
-        >>> def get_pipeline_views(self):
-        >>>    return []
+        Do NOT override this for an integration. Integrations install through
+        the API-driven pipeline (``get_pipeline_api_steps``) and have no
+        server-rendered pipeline views -- the legacy web-view setup flow has
+        been removed. This empty implementation exists only to satisfy the
+        abstract ``PipelineProvider`` interface for every integration provider.
         """
-        raise NotImplementedError
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline] | None:
         """

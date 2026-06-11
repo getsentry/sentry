@@ -79,13 +79,13 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isWidgetInvalid: boolean;
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
+  isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
 };
@@ -97,7 +97,7 @@ function WidgetBuilderSlideoutInner({
   dashboard,
   dashboardFilters,
   setIsPreviewDraggable,
-  isWidgetInvalid,
+  isQueryConditionInvalid,
   openWidgetTemplates,
   setOpenWidgetTemplates,
   onDataFetched,
@@ -408,7 +408,7 @@ function WidgetBuilderSlideoutInner({
                         <WidgetPreviewContainer
                           dashboard={dashboard}
                           dashboardFilters={dashboardFilters}
-                          isWidgetInvalid={isWidgetInvalid}
+                          isQueryConditionInvalid={isQueryConditionInvalid}
                           onDataFetched={onDataFetched}
                           openWidgetTemplates={openWidgetTemplates}
                         />
@@ -465,7 +465,7 @@ function WidgetBuilderSlideoutInner({
                           <WidgetPreviewContainer
                             dashboard={dashboard}
                             dashboardFilters={dashboardFilters}
-                            isWidgetInvalid={isWidgetInvalid}
+                            isQueryConditionInvalid={isQueryConditionInvalid}
                             onDataFetched={onDataFetched}
                             openWidgetTemplates={openWidgetTemplates}
                           />
