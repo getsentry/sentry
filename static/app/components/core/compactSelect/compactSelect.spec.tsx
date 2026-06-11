@@ -466,10 +466,14 @@ describe('CompactSelect', () => {
       await userEvent.click(screen.getByPlaceholderText('Search here…'));
       await userEvent.keyboard('Two');
 
-      expect(screen.getByRole('option', {name: 'Option Two'})).toHaveAttribute(
-        'data-auto-highlighted',
-        'true'
-      );
+      const highlightedOption = screen.getByRole('option', {name: 'Option Two'});
+      expect(highlightedOption).toHaveAttribute('data-auto-highlighted', 'true');
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search here…')).toHaveAttribute(
+          'aria-activedescendant',
+          highlightedOption.id
+        );
+      });
 
       await userEvent.keyboard('{Enter}');
       expect(mock).toHaveBeenCalledWith({value: 'opt_two', label: 'Option Two'});
@@ -1277,10 +1281,14 @@ describe('CompactSelect', () => {
       await userEvent.click(screen.getByPlaceholderText('Search here…'));
       await userEvent.keyboard('Two');
 
-      expect(screen.getByRole('row', {name: 'Option Two'})).toHaveAttribute(
-        'data-auto-highlighted',
-        'true'
-      );
+      const highlightedRow = screen.getByRole('row', {name: 'Option Two'});
+      expect(highlightedRow).toHaveAttribute('data-auto-highlighted', 'true');
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search here…')).toHaveAttribute(
+          'aria-activedescendant',
+          highlightedRow.id
+        );
+      });
 
       await userEvent.keyboard('{Enter}');
       expect(mock).toHaveBeenCalledWith({value: 'opt_two', label: 'Option Two'});

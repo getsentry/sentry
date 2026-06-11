@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useId, useMemo} from 'react';
+import {createContext, Fragment, useContext, useEffect, useId, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -21,7 +21,9 @@ import type {
 import {
   getDisabledOptions,
   getEscapedKey,
+  getGridListRowId,
   getHiddenOptions,
+  getListBoxOptionId,
   getSelectedOptions,
   getSortedItems,
   HiddenSectionToggle,
@@ -182,6 +184,8 @@ export function List<Value extends SelectKey>({
     overlayIsOpen,
     searchMatcher,
     highlightFirstResult,
+    setAutoHighlightedOptionId,
+    selectAutoHighlightedOptionRef,
   } = useContext(ControlContext);
 
   const {hidden: hiddenOptions, scores} = useMemo(
@@ -265,6 +269,7 @@ export function List<Value extends SelectKey>({
     ...listStateProps,
     items: sortedItems,
   });
+  const listId = useId();
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed
@@ -303,6 +308,52 @@ export function List<Value extends SelectKey>({
     search.trim().length > 0
       ? firstFocusableKey
       : null;
+
+  const autoHighlightedOptionId = useMemo(() => {
+    if (autoHighlightedKey === null) {
+      return;
+    }
+
+    return grid
+      ? getGridListRowId(listId, autoHighlightedKey)
+      : getListBoxOptionId(listId, autoHighlightedKey);
+  }, [autoHighlightedKey, grid, listId]);
+
+  const selectAutoHighlightedOption = useMemo(() => {
+    if (autoHighlightedKey === null) {
+      return;
+    }
+
+    return () => listState.selectionManager.select(autoHighlightedKey);
+  }, [autoHighlightedKey, listState.selectionManager]);
+
+  useEffect(() => {
+    if (!autoHighlightedOptionId) {
+      return;
+    }
+
+    setAutoHighlightedOptionId?.(autoHighlightedOptionId);
+
+    return () => {
+      setAutoHighlightedOptionId?.(current =>
+        current === autoHighlightedOptionId ? undefined : current
+      );
+    };
+  }, [autoHighlightedOptionId, setAutoHighlightedOptionId]);
+
+  useEffect(() => {
+    if (!selectAutoHighlightedOption || !selectAutoHighlightedOptionRef) {
+      return;
+    }
+
+    selectAutoHighlightedOptionRef.current = selectAutoHighlightedOption;
+
+    return () => {
+      if (selectAutoHighlightedOptionRef.current === selectAutoHighlightedOption) {
+        selectAutoHighlightedOptionRef.current = undefined;
+      }
+    };
+  }, [selectAutoHighlightedOption, selectAutoHighlightedOptionRef]);
 
   /**
    * Keyboard event handler to seamlessly move focus from one composite list to another
@@ -351,8 +402,6 @@ export function List<Value extends SelectKey>({
 
     return true;
   };
-
-  const listId = useId();
 
   const sections = useMemo(
     () =>

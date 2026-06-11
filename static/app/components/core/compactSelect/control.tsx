@@ -75,6 +75,10 @@ interface ControlContextValue {
    * Whether the select has a search input field.
    */
   searchable: boolean;
+  /**
+   * ID of the option that is visually highlighted while focus remains in the search input.
+   */
+  autoHighlightedOptionId?: string;
   disabled?: boolean;
   /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
@@ -88,6 +92,11 @@ interface ControlContextValue {
     option: SelectOptionWithKey<SelectKey>,
     search: string
   ) => SearchMatchResult;
+  /**
+   * Selects the option that is visually highlighted while focus remains in the search input.
+   */
+  selectAutoHighlightedOptionRef?: React.RefObject<(() => void) | undefined>;
+  setAutoHighlightedOptionId?: React.Dispatch<React.SetStateAction<string | undefined>>;
   size?: FormSize;
 }
 
@@ -265,6 +274,8 @@ export function Control({
   const searchFilter =
     typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
   const highlightFirstResult = !normalizedSearch?.disableHighlightFirstResult;
+  const [autoHighlightedOptionId, setAutoHighlightedOptionId] = useState<string>();
+  const selectAutoHighlightedOptionRef = useRef<(() => void) | undefined>(undefined);
 
   /**
    * Search/filter value, used to filter out the list of displayed elements
@@ -296,9 +307,7 @@ export function Control({
       if (e.key === 'Enter') {
         e.preventDefault();
         if (highlightFirstResult && searchInputValue.trim().length > 0) {
-          overlayRef.current
-            ?.querySelector<HTMLElement>('[data-auto-highlighted="true"]')
-            ?.click();
+          selectAutoHighlightedOptionRef.current?.();
         }
       }
 
@@ -494,6 +503,9 @@ export function Control({
     return {
       overlayState,
       overlayIsOpen,
+      autoHighlightedOptionId,
+      selectAutoHighlightedOptionRef,
+      setAutoHighlightedOptionId,
       search,
       searchInputValue,
       searchable: searchEnabled,
@@ -505,6 +517,9 @@ export function Control({
   }, [
     overlayState,
     overlayIsOpen,
+    autoHighlightedOptionId,
+    selectAutoHighlightedOptionRef,
+    setAutoHighlightedOptionId,
     search,
     searchInputValue,
     searchEnabled,
@@ -592,6 +607,7 @@ export function Control({
                       ref={searchRef}
                       placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                       value={searchInputValue}
+                      aria-activedescendant={autoHighlightedOptionId}
                       onFocus={onSearchFocus}
                       onBlur={onSearchBlur}
                       onChange={e => updateSearch(e.target.value)}

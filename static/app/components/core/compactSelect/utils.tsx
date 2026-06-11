@@ -43,6 +43,22 @@ export function getEscapedKey(value: SelectKey): string {
   return CSS.escape(String(value));
 }
 
+function normalizeAriaKey(key: React.Key): string {
+  if (typeof key === 'string') {
+    return key.replace(/\s*/g, '');
+  }
+
+  return String(key);
+}
+
+export function getListBoxOptionId(listId: string, key: React.Key): string {
+  return `${listId}-option-${normalizeAriaKey(key)}`;
+}
+
+export function getGridListRowId(listId: string, key: React.Key): string {
+  return `${listId}-${normalizeAriaKey(key)}`;
+}
+
 export function getItemsWithKeys<Value extends SelectKey>(
   options: Array<SelectOption<Value>>
 ): Array<SelectOptionWithKey<Value>>;

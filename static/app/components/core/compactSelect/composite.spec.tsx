@@ -328,10 +328,14 @@ describe('CompositeSelect', () => {
     await userEvent.click(screen.getByPlaceholderText('Search placeholder…'));
     await userEvent.keyboard('Choice');
 
-    expect(screen.getByRole('option', {name: 'Choice One'})).toHaveAttribute(
-      'data-auto-highlighted',
-      'true'
-    );
+    const highlightedOption = screen.getByRole('option', {name: 'Choice One'});
+    expect(highlightedOption).toHaveAttribute('data-auto-highlighted', 'true');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search placeholder…')).toHaveAttribute(
+        'aria-activedescendant',
+        highlightedOption.id
+      );
+    });
     expect(screen.getByRole('option', {name: 'Choice Three'})).not.toHaveAttribute(
       'data-auto-highlighted'
     );

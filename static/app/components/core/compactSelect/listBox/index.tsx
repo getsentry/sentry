@@ -210,6 +210,21 @@ export function ListBox<T extends ListItemBase>({
     }
   }, [virtualized, listItems, listState.selectionManager.focusedKey, virtualizer]);
 
+  // Auto-highlight keeps DOM focus in the search input, so the selection manager's
+  // focusedKey does not change and the focus-scrolling effect above will not run.
+  // Scroll the virtualizer directly so the highlighted result is mounted for
+  // aria-activedescendant and visible to sighted keyboard users.
+  useEffect(() => {
+    if (!virtualized || autoHighlightedKey === null || autoHighlightedKey === undefined) {
+      return;
+    }
+
+    const highlightedIndex = listItems.findIndex(item => item.key === autoHighlightedKey);
+    if (highlightedIndex !== -1) {
+      virtualizer.scrollToIndex(highlightedIndex);
+    }
+  }, [autoHighlightedKey, virtualized, listItems, virtualizer]);
+
   const refs = useMemo(() => {
     const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
       if (hasEverOverflowed || listItems.length === 0 || !scrollContainer) {

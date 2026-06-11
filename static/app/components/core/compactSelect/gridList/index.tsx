@@ -1,4 +1,4 @@
-import {Fragment, useContext, useId, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useId, useMemo, useRef} from 'react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -121,6 +121,20 @@ function GridList<T extends ListItemBase>({
     virtualized,
     size,
   });
+
+  // Auto-highlight keeps DOM focus in the search input, so the selection manager's
+  // focusedKey does not change. Scroll the virtualizer directly so the highlighted
+  // row is mounted for aria-activedescendant and visible to sighted keyboard users.
+  useEffect(() => {
+    if (!virtualized || autoHighlightedKey === null || autoHighlightedKey === undefined) {
+      return;
+    }
+
+    const highlightedIndex = listItems.findIndex(item => item.key === autoHighlightedKey);
+    if (highlightedIndex !== -1) {
+      virtualizer.scrollToIndex(highlightedIndex);
+    }
+  }, [autoHighlightedKey, virtualized, listItems, virtualizer]);
 
   const mergedProps = mergeProps(gridProps, props);
 
