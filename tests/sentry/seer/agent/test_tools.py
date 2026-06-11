@@ -1689,6 +1689,22 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
+    def test_by_qualified_short_id_scoped_to_project_slug(self):
+        """A short ID is only resolvable within the project_slug-scoped projects."""
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        other_project = self.create_project(organization=self.organization, name="other project")
+
+        # Restricting to a different project must not resolve this project's short ID.
+        with pytest.raises(Group.DoesNotExist):
+            get_issue_details(
+                organization_id=self.organization.id,
+                issue_id=group.qualified_short_id,
+                project_slug=other_project.slug,
+            )
+
     # --- timeseries ---
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
