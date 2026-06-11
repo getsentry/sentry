@@ -6,6 +6,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -15,17 +16,23 @@ import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilte
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
+import {CustomFilters} from './customFilters';
+
 export default function ProjectFilters() {
   const routes = useRoutes();
   const params = useParams<{filterType: string; projectId: string}>();
   const {projectId, filterType} = params;
   const {project} = useProjectSettingsOutlet();
+  const organization = useOrganization();
 
   if (!project) {
     return null;
   }
 
   const features = new Set(project.features);
+  const hasInboundFiltersV2 = organization.features.includes('inbound-filters-v2');
+  const hasDiscardGroups = features.has('discard-groups');
+  const showTabs = hasDiscardGroups || hasInboundFiltersV2;
 
   return (
     <Fragment>
@@ -42,7 +49,7 @@ export default function ProjectFilters() {
       <div>
         <ProjectFiltersChart project={project} />
 
-        {features.has('discard-groups') && (
+        {showTabs && (
           <TabsContainer>
             <Tabs value={filterType}>
               <TabList>
@@ -53,7 +60,19 @@ export default function ProjectFilters() {
                   {t('Data Filters')}
                 </TabList.Item>
                 <TabList.Item
+                  key="inbound-filters"
+                  hidden={!hasInboundFiltersV2}
+                  to={recreateRoute('inbound-filters/', {
+                    routes,
+                    params,
+                    stepBack: -1,
+                  })}
+                >
+                  {t('Custom Filters')}
+                </TabList.Item>
+                <TabList.Item
                   key="discarded-groups"
+                  hidden={!hasDiscardGroups}
                   to={recreateRoute('discarded-groups/', {routes, params, stepBack: -1})}
                 >
                   {t('Discarded Issues')}
@@ -65,6 +84,8 @@ export default function ProjectFilters() {
 
         {filterType === 'discarded-groups' ? (
           <GroupTombstones project={project} />
+        ) : hasInboundFiltersV2 && filterType === 'inbound-filters' ? (
+          <CustomFilters />
         ) : (
           <ProjectFiltersSettings project={project} params={params} />
         )}
