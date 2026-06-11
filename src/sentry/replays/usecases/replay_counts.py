@@ -190,23 +190,21 @@ def _query_eap_spans_for_replay_ids(
     result = Spans.run_table_query(
         params=snuba_params,
         query_string=query,
-        # We don't care about the count(), but it forces grouping by the other
-        # columns (so `replay.id`s will be unique).
-        selected_columns=["replay.id", "count()"],
+        selected_columns=["replay.id"],
         orderby=None,
         offset=0,
-        limit=2500,
+        # In buffer mode we'll often set IDs for replays that are never sent to
+        # Sentry - load a lot of extra IDs to compensate.
+        limit=MAX_REPLAY_COUNT * 10,
         referrer="api.organization-issue-replay-count",
         config=SearchResolverConfig(),
-        sampling_mode="HIGHEST_ACCURACY",
     )
 
     replay_id_to_identifier_map = defaultdict(list)
-    for row in result["data"]:
-        replay_id = row.get("replay.id", "")
-        if replay_id:
-            replay_id = replay_id.replace("-", "")
-            replay_id_to_identifier_map[replay_id].append(identifier)
+    replay_ids = {replay_id for row in result["data"] if (replay_id := row.get("replay.id", ""))}
+    for replay_id in replay_ids:
+        replay_id = replay_id.replace("-", "")
+        replay_id_to_identifier_map[replay_id].append(identifier)
 
     return replay_id_to_identifier_map
 
