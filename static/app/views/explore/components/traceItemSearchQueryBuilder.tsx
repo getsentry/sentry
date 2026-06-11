@@ -7,6 +7,7 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -76,9 +77,9 @@ const typeMap: Partial<
 function getTraceItemFieldDefinitionFunction(
   itemType: TraceItemDataset,
   tags: TagCollection
-) {
-  return (key: string) => {
-    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
+): FieldDefinitionGetter {
+  return (key, options) => {
+    return getFieldDefinition(key, typeMap[itemType], options?.kind ?? tags[key]?.kind);
   };
 }
 
@@ -162,10 +163,32 @@ export function useTraceItemSearchQueryBuilderProps({
   // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
   // the allowlist (and unrecognized keys are auto-rejected).
   const getTagKeys = allowedAttributeKeys ? undefined : dynamicTagKeys;
+  const asyncFilterKeyRegistryQueryKey = useMemo(
+    () => [
+      'trace-item-search-query-builder-filter-key-registry',
+      itemType,
+      effectiveProjects,
+      selection.environments,
+      selection.datetime,
+      attributeQuery,
+      hiddenAttributeKeys,
+      allowedAttributeKeys,
+    ],
+    [
+      allowedAttributeKeys,
+      attributeQuery,
+      effectiveProjects,
+      hiddenAttributeKeys,
+      itemType,
+      selection.datetime,
+      selection.environments,
+    ]
+  );
 
   return useMemo(
     () => ({
       placeholder: placeholderText,
+      asyncFilterKeyRegistryQueryKey,
       filterKeys: filterTags,
       initialQuery,
       fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
@@ -200,6 +223,7 @@ export function useTraceItemSearchQueryBuilderProps({
       invalidFilterKeys,
     }),
     [
+      asyncFilterKeyRegistryQueryKey,
       booleanSecondaryAliases,
       caseInsensitive,
       disabled,

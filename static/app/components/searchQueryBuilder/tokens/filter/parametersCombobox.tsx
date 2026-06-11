@@ -186,7 +186,7 @@ function useParameterSuggestions({
             : field => columnTypes.includes(field.valueType);
 
         return potentialColumns
-          .map(col => [col, getFieldDefinition(col.key, col.kind)] as const)
+          .map(col => [col, getFieldDefinition(col.key, {kind: col.kind})] as const)
           .filter(([col, definition]) =>
             filterFn({
               key: col.key,

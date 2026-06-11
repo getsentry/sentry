@@ -580,7 +580,9 @@ function useConflictingFilterWarning({
     }
 
     const widgetFilterKeys = widget.queries.flatMap(query => {
-      const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
+      const parseResult = parseQueryBuilderValue(query.conditions, key =>
+        getFieldDefinition(key)
+      );
       if (!parseResult) {
         return [];
       }
