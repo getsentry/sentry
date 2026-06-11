@@ -1,12 +1,13 @@
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from dataclasses import field as dataclass_field
+from typing import Any
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -17,7 +18,7 @@ from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import fields
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import RPC_DATASETS
@@ -87,7 +88,7 @@ def _check_attributes_by_type(
 
 def check_attributes_exist(
     resolver: SearchResolver,
-    item_type: SupportedTraceItemType,
+    dataset: Any,
     attrs_by_type: dict[AttributeKey.Type.ValueType, list[ResolvedAttribute]],
 ) -> set[tuple[AttributeKey.Type.ValueType, str]]:
     """Check which typed attribute internal names exist in storage."""
@@ -95,9 +96,6 @@ def check_attributes_exist(
         return set()
 
     meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_VALIDATE.value)
-    meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
-        item_type, TraceItemType.TRACE_ITEM_TYPE_SPAN
-    )
 
     found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
     with ContextPropagatingThreadPoolExecutor(
@@ -144,6 +142,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             response.projects.append(
                 Validation(valid=False, error="At least one valid project is required to query")
             )
+            return self.serialize_response(response)
 
         try:
             dataset = self.get_dataset(request, organization)
