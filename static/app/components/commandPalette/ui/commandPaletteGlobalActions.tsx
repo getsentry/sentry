@@ -12,7 +12,7 @@ import {
 import {Tag} from '@sentry/scraps/badge';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {openInviteMembersModal, openPrideSplashModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
@@ -43,6 +43,7 @@ import {
   IconRepository,
   IconSearch,
   IconSeer,
+  IconSentryPrideLogo,
   IconSettings,
   IconSiren,
   IconStar,
@@ -65,6 +66,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {showPrideElements} from 'sentry/utils/showPrideElements';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -1120,6 +1122,16 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
       </CMDKAction>
+
+      {/* Pride splash easter egg — only available during Pride month (June),
+          matching the `#loader-pride` boot splash in static/index.ejs. */}
+      {showPrideElements() && (
+        <CMDKAction
+          display={{label: t('Happy Pride'), icon: <IconSentryPrideLogo />}}
+          keywords={[t('pride'), t('rainbow'), t('splash'), t('lgbtq')]}
+          onAction={openPrideSplashModal}
+        />
+      )}
 
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
         <CMDKAction

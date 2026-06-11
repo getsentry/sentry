@@ -454,3 +454,10 @@ export async function openAttributeBreakdownViewerModal(
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
+
+export async function openPrideSplashModal() {
+  const {default: Modal, modalCss} =
+    await import('sentry/components/modals/prideSplashModal');
+
+  openModal(deps => <Modal {...deps} />, {modalCss});
+}
