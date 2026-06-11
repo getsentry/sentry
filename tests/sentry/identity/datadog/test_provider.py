@@ -35,6 +35,7 @@ from sentry.users.models.identity import Identity
 REGISTER_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/register"
 AUTHORIZE_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"
 TOKEN_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/token"
+MCP_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
 RESOURCE = "https://mcp.datadoghq.com"
 
 
@@ -447,6 +448,19 @@ class DatadogIdentityProviderTest(TestCase):
         assert result["email"] is None
         assert result["name"] is None
 
+    @responses.activate
+    def test_build_identity_malformed_user_info(self) -> None:
+        responses.add(
+            responses.POST,
+            MCP_URL,
+            json={"jsonrpc": "2.0", "id": 1, "result": {}},
+            headers={"mcp-session-id": "sess-abc"},
+        )
+        responses.add(responses.POST, MCP_URL, body="not json", status=200)
+
+        with pytest.raises(IdentityNotValid, match="unexpected response"):
+            self.provider.build_identity({"data": {"access_token": "token"}})
+
     def _make_identity(self, **data_overrides: Any) -> Identity:
         data = {
             "access_token": "old-token",
@@ -490,6 +504,9 @@ class DatadogIdentityProviderTest(TestCase):
         identity.refresh_from_db()
         assert identity.data["access_token"] == "new-token"
         assert identity.data["refresh_token"] == "new-refresh"
+        assert identity.data["client_id"] == "dcr-client-id"
+        assert identity.data["client_secret"] == "dcr-client-secret"
+        assert identity.data["site"] == "datadoghq.com"
 
     def test_refresh_identity_missing_site(self) -> None:
         identity = self._make_identity(site=None)

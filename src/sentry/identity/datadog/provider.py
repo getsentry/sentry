@@ -65,8 +65,11 @@ def get_user_info(access_token: str, site: str) -> dict[str, Any]:
     )
     resp.raise_for_status()
 
-    body = orjson.loads(safe_urlread(resp))
-    return orjson.loads(body["result"]["contents"][0]["text"])
+    try:
+        body = orjson.loads(safe_urlread(resp))
+        return orjson.loads(body["result"]["contents"][0]["text"])
+    except (KeyError, IndexError, orjson.JSONDecodeError) as e:
+        raise IdentityNotValid("MCP whoami returned an unexpected response") from e
 
 
 def generate_pkce_code_verifier() -> str:
