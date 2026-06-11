@@ -346,15 +346,16 @@ def taskbroker_send_tasks(
     namespace: str,
     extra_arg_bytes: int | None,
 ) -> None:
+    from contextlib import AbstractContextManager, nullcontext
+    from typing import Any
+    from unittest.mock import patch
+
     from sentry import options
     from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.utils.imports import import_string
 
     if bootstrap_servers:
         KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
-
-    if kafka_topic and namespace:
-        options.set("taskworker.route.overrides", {namespace: kafka_topic})
 
     try:
         func = import_string(task_function_path)
@@ -371,31 +372,50 @@ def taskbroker_send_tasks(
         )
         task_args.append(extra_padding_arg)
 
-    if not infinite:
-        checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
-        for i in range(repeat):
-            func.delay(*task_args, **task_kwargs)
-            if i in checkmarks:
-                click.echo(message=f"{int((i / repeat) * 100)}% complete")
+    if kafka_topic and namespace:
+        # Override the routing in-process only — do not use options.set() here.
+        # options.set() persists to the database and will drift against
+        # options-automator, which manages taskworker.route.overrides for each region.
+        route_override = {namespace: kafka_topic}
+        _orig_store_get = options.default_manager.store.get
 
-        click.echo(message=f"Successfully sent {repeat} messages.")
+        def _patched_store_get(key: Any, **kw: Any) -> Any:
+            if key.name == "taskworker.route.overrides":
+                return route_override
+            return _orig_store_get(key, **kw)
+
+        dispatch_ctx: AbstractContextManager[Any] = patch.object(
+            options.default_manager.store, "get", side_effect=_patched_store_get
+        )
     else:
-        sent = 0.0
-        start_time = time.time()
-        while True:
-            func.delay(*task_args, **task_kwargs)
-            sent += 1.0
-            interval = time.time() - start_time
-            if sent % 1000 == 0 and interval > 10:
-                throughput = sent / interval
-                click.echo(
-                    message=f"Sent {sent} messages in {interval} seconds. Throughput: {throughput} messages/second."
-                )
-                start_time = time.time()
-                sent = 0.0
+        dispatch_ctx = nullcontext()
 
-            if infinite_delay_ms > 0:
-                time.sleep(infinite_delay_ms / 1000.0)
+    with dispatch_ctx:
+        if not infinite:
+            checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
+            for i in range(repeat):
+                func.delay(*task_args, **task_kwargs)
+                if i in checkmarks:
+                    click.echo(message=f"{int((i / repeat) * 100)}% complete")
+
+            click.echo(message=f"Successfully sent {repeat} messages.")
+        else:
+            sent = 0.0
+            start_time = time.time()
+            while True:
+                func.delay(*task_args, **task_kwargs)
+                sent += 1.0
+                interval = time.time() - start_time
+                if sent % 1000 == 0 and interval > 10:
+                    throughput = sent / interval
+                    click.echo(
+                        message=f"Sent {sent} messages in {interval} seconds. Throughput: {throughput} messages/second."
+                    )
+                    start_time = time.time()
+                    sent = 0.0
+
+                if infinite_delay_ms > 0:
+                    time.sleep(infinite_delay_ms / 1000.0)
 
 
 @run.command("consumer")
