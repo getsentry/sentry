@@ -682,7 +682,7 @@ export function getGroupActivityItem(
         };
       }
       case GroupActivityType.AUTO_SET_ONGOING: {
-        const afterDays = activity.data?.after_days ?? activity.data?.afterDays;
+        const afterDays = activity.data?.after_days;
         return {
           title: t('Marked as Ongoing'),
           message: afterDays
