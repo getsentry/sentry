@@ -22,6 +22,7 @@ import {GroupActivityType, IssueCategory as IssueCategoryEnum} from 'sentry/type
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
@@ -288,13 +289,7 @@ export function getGroupActivityItem(
         };
       }
       case GroupActivityType.SET_RESOLVED_BY_AGE: {
-        const age = activity.data.age;
-        const duration =
-          age && age >= 24
-            ? tn('%s day', '%s days', Math.round(age / 24))
-            : age
-              ? tn('%s hour', '%s hours', age)
-              : null;
+        const duration = formatAutoResolveAge(activity.data.age);
         return {
           title: t('Resolved'),
           message: duration
@@ -796,6 +791,21 @@ export function getGroupActivityItem(
     }
   }
   return renderContent();
+}
+
+function formatAutoResolveAge(age: number | undefined) {
+  if (!age) {
+    return null;
+  }
+
+  const precision = age > 23 && age % 24 === 0 ? 'day' : 'hour';
+  const count = Number(
+    formatDuration({duration: [age, 'hour'], precision, style: 'count'})
+  );
+
+  return precision === 'day'
+    ? tn('%s day', '%s days', count)
+    : tn('%s hour', '%s hours', count);
 }
 
 function ActivityRelease({project, version}: {project: Project; version: string}) {
