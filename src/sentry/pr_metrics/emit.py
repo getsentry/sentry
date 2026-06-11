@@ -97,6 +97,16 @@ def select_verdict(
     return PullRequestVerdict.CLOSED_UNMERGED
 
 
+def is_pr_tracked(pull_request: PullRequest) -> bool:
+    """Whether the PR has ≥1 valid attribution — the emission tracking gate.
+
+    Mirrors the gate ``emit_pr_metrics_row`` applies, as a cheap existence check
+    so a caller can verify tracking before an irreversible step (claiming a
+    verdict) it would otherwise take for a PR that can never emit.
+    """
+    return PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True).exists()
+
+
 def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     """The PR's valid attribution signals, highest-confidence first.
 

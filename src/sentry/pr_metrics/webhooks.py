@@ -59,6 +59,7 @@ from sentry.pr_metrics.activity_types import (
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
+    is_pr_tracked,
     select_verdict,
 )
 from sentry.utils import metrics
@@ -170,10 +171,13 @@ def handle_emission(
     derives which from the stored row, so this handler only filters for ``closed``
     and delegates. All non-terminal actions are ignored.
 
-    ``select_verdict`` decides the outcome: a deterministic verdict is claimed
-    (the redelivery guard) and emitted. A PR that needs a judge is forwarded to
-    Seer instead; that path — including its own redelivery guard — isn't wired
-    yet, so for now a judge-needed PR is skipped here.
+    Untracked PRs (no valid attribution) are dropped first, before any verdict is
+    claimed: claiming would burn the redelivery guard, so a PR that gained
+    attribution only later (e.g. a Seer backfill) could never emit. ``select_verdict``
+    then decides the outcome: a deterministic verdict is claimed (the redelivery
+    guard) and emitted. A PR that needs a judge is forwarded to Seer instead; that
+    path — including its own redelivery guard — isn't wired yet, so for now a
+    judge-needed PR is skipped here.
     """
     if event.get("action") != "closed":
         return
@@ -183,6 +187,10 @@ def handle_emission(
 
     pr = _get_pull_request(organization, repo, event.get("pull_request"))
     if pr is None:
+        return
+
+    if not is_pr_tracked(pr):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return
 
     verdict = select_verdict(pr, organization)

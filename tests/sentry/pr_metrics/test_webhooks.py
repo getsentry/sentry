@@ -305,6 +305,28 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        # No verdict is claimed for an untracked PR, so the redelivery guard stays open.
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch("sentry.analytics.record")
+    def test_untracked_pr_emits_once_attribution_lands(self, mock_record: MagicMock) -> None:
+        # An untracked PR claims no verdict; once attribution arrives (e.g. a Seer
+        # backfill), a later delivery still emits — the claim was never burned.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+        )
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
 
     @patch("sentry.analytics.record")
     def test_redelivery_dropped_after_first_terminal_event(self, mock_record: MagicMock) -> None:

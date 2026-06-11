@@ -20,6 +20,7 @@ from sentry.pr_metrics.emit import (
     _resolved_group_ids,
     build_pr_metrics_row,
     emit_pr_metrics_row,
+    is_pr_tracked,
     select_verdict,
 )
 from sentry.testutils.cases import TestCase
@@ -270,6 +271,17 @@ class PrMetricsEmissionTest(TestCase):
         assert row.merged_at is None
         assert row.head_commit_sha == HEAD_SHA
         assert row.closed_at == CLOSED_AT.isoformat()
+
+    def test_is_pr_tracked_requires_a_valid_attribution(self) -> None:
+        assert is_pr_tracked(self.pull_request) is False
+        self._track(
+            PullRequestAttributionSignalType.REFERENCED_ISSUE,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            is_valid=False,
+        )
+        assert is_pr_tracked(self.pull_request) is False
+        self._track()
+        assert is_pr_tracked(self.pull_request) is True
 
     def test_active_attributions_only_includes_valid_signals(self) -> None:
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
