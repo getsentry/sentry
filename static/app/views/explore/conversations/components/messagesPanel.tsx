@@ -2,11 +2,13 @@ import {useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -126,6 +128,9 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   onSelectNode={onSelectNode}
                 />
               )}
+              {isAssistant && message.reasoning && (
+                <ReasoningSection reasoning={message.reasoning} />
+              )}
               {message.content !== '' && (
                 <StyledClippedBox
                   clipHeight={200}
@@ -227,6 +232,55 @@ const MessageBubble = styled('div')<{
         border-color: ${p.theme.tokens.focus.default};
       }
     `}
+`;
+
+function ReasoningSection({reasoning}: {reasoning: string}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <ReasoningWrapper>
+      <ReasoningToggle
+        size="zero"
+        variant="link"
+        onClick={e => {
+          e.stopPropagation();
+          setIsExpanded(prev => !prev);
+        }}
+        aria-expanded={isExpanded}
+      >
+        <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
+        <Text size="xs" variant="muted">
+          {t('Thinking')}
+        </Text>
+      </ReasoningToggle>
+      {isExpanded && (
+        <ReasoningContent>
+          <Container padding="md">
+            <MessageText size="sm" align="left">
+              <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+            </MessageText>
+          </Container>
+        </ReasoningContent>
+      )}
+    </ReasoningWrapper>
+  );
+}
+
+const ReasoningWrapper = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+const ReasoningToggle = styled(Button)`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  width: 100%;
+  justify-content: flex-start;
+`;
+
+const ReasoningContent = styled('div')`
+  opacity: 0.6;
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

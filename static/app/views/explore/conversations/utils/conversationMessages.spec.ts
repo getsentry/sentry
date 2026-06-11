@@ -231,7 +231,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Output response');
+      expect(parseAssistantContent(node as any).content).toBe('Output response');
     });
 
     it('falls back to gen_ai.response.text', () => {
@@ -241,7 +241,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response text fallback',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Response text fallback');
+      expect(parseAssistantContent(node as any).content).toBe('Response text fallback');
     });
 
     it('falls back to gen_ai.response.object', () => {
@@ -251,7 +251,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_OBJECT]: 'Response object fallback',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Response object fallback');
+      expect(parseAssistantContent(node as any).content).toBe('Response object fallback');
     });
 
     it('prefers gen_ai.output.messages over response.text', () => {
@@ -265,12 +265,12 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response loses',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Output wins');
+      expect(parseAssistantContent(node as any).content).toBe('Output wins');
     });
 
-    it('returns null when no assistant content', () => {
+    it('returns null content when no assistant content', () => {
       const node = createMockNode({id: 'node-1'});
-      expect(parseAssistantContent(node as any)).toBeNull();
+      expect(parseAssistantContent(node as any).content).toBeNull();
     });
 
     it('extracts content from non-array JSON object in output messages', () => {
@@ -281,7 +281,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj,
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Object content response');
+      expect(parseAssistantContent(node as any).content).toBe('Object content response');
     });
 
     it('falls back to response.text when output messages is object without content', () => {
@@ -293,7 +293,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Fallback text',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Fallback text');
+      expect(parseAssistantContent(node as any).content).toBe('Fallback text');
     });
 
     it('returns [Filtered] when output messages are scrubbed', () => {
@@ -303,7 +303,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: '[Filtered]',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('[Filtered]');
+      expect(parseAssistantContent(node as any).content).toBe('[Filtered]');
     });
 
     it('treats a plain string output.messages as the assistant response', () => {
@@ -313,7 +313,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'just a plain response',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('just a plain response');
+      expect(parseAssistantContent(node as any).content).toBe('just a plain response');
     });
 
     it('parses parts-format assistant messages', () => {
@@ -326,7 +326,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Parts response');
+      expect(parseAssistantContent(node as any).content).toBe('Parts response');
     });
 
     it('falls back to response.text when output.messages has no assistant role', () => {
@@ -338,10 +338,10 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_TEXT]: 'fallback text',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('fallback text');
+      expect(parseAssistantContent(node as any).content).toBe('fallback text');
     });
 
-    it('returns null when output.messages has tool calls but no text', () => {
+    it('returns null content when output.messages has tool calls but no text', () => {
       const messages = JSON.stringify([
         {
           role: 'assistant',
@@ -356,7 +356,7 @@ describe('conversationMessages utilities', () => {
         },
       });
       // Should NOT fall through to gen_ai.response.object
-      expect(parseAssistantContent(node as any)).toBeNull();
+      expect(parseAssistantContent(node as any).content).toBeNull();
     });
 
     it('returns text when output.messages has both text and tool calls', () => {
@@ -375,7 +375,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Let me search for that');
+      expect(parseAssistantContent(node as any).content).toBe('Let me search for that');
     });
   });
 
@@ -488,6 +488,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question 1',
           assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -495,6 +496,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question 2',
           assistantContent: 'Answer',
           toolCalls: [{name: 'calc', nodeId: 'tool-2', hasError: false}],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -513,6 +515,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Q1',
           assistantContent: null,
           toolCalls: [{name: 'tool-a', nodeId: 't-1', hasError: false}],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -520,6 +523,7 @@ describe('conversationMessages utilities', () => {
           userContent: null,
           assistantContent: null,
           toolCalls: [{name: 'tool-b', nodeId: 't-2', hasError: false}],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -527,6 +531,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Q2',
           assistantContent: 'Final answer',
           toolCalls: [{name: 'tool-c', nodeId: 't-3', hasError: false}],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -552,6 +557,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question',
           assistantContent: 'Answer',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -559,6 +565,7 @@ describe('conversationMessages utilities', () => {
           userContent: null,
           assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -578,6 +585,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question without answer',
           assistantContent: null,
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -600,6 +608,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: 'Hi there',
           toolCalls: [],
+          reasoning: null,
           userEmail: 'user@example.com',
         },
       ];
@@ -628,6 +637,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: 'Response 1',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -638,6 +648,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello', // Exact same content
           assistantContent: 'Response 2',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -662,6 +673,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: 'Response 1',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -672,6 +684,7 @@ describe('conversationMessages utilities', () => {
           userContent: '  HELLO  ', // Different due to whitespace and case
           assistantContent: 'Response 2',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -692,6 +705,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question 1',
           assistantContent: 'Same response',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -702,6 +716,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question 2',
           assistantContent: 'Same response', // Exact same content
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -722,6 +737,7 @@ describe('conversationMessages utilities', () => {
           userContent: '[Filtered]',
           assistantContent: '[Filtered]',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -732,6 +748,7 @@ describe('conversationMessages utilities', () => {
           userContent: '[Filtered]',
           assistantContent: '[Filtered]',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -758,6 +775,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: 'Hi',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -780,6 +798,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: 'Hi',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -803,6 +822,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: 'Hi',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -825,6 +845,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: 'Hi',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -844,6 +865,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: 'Hi',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -864,6 +886,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question',
           assistantContent: 'Answer',
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -885,6 +908,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Second',
           assistantContent: 'Second response',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -895,6 +919,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'First',
           assistantContent: 'First response',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -917,6 +942,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Do something',
           assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -940,6 +966,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Hello',
           assistantContent: null,
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -963,6 +990,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Q1',
           assistantContent: 'A1',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -973,6 +1001,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Q2',
           assistantContent: 'A2',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
         {
@@ -983,6 +1012,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Q3',
           assistantContent: 'A3',
           toolCalls: [],
+          reasoning: null,
           userEmail: undefined,
         },
       ];
@@ -1163,6 +1193,98 @@ describe('conversationMessages utilities', () => {
     });
   });
 
+  describe('parseAssistantContent with reasoning', () => {
+    it('extracts reasoning separately from content', () => {
+      const messages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [
+            {type: 'reasoning', content: 'Let me think...'},
+            {type: 'text', text: 'The answer is 42'},
+          ],
+        },
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      const result = parseAssistantContent(node as any);
+      expect(result.content).toBe('The answer is 42');
+      expect(result.reasoning).toBe('Let me think...');
+    });
+
+    it('returns null reasoning when no reasoning parts', () => {
+      const messages = JSON.stringify([
+        {role: 'assistant', parts: [{type: 'text', text: 'Just text'}]},
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      const result = parseAssistantContent(node as any);
+      expect(result.content).toBe('Just text');
+      expect(result.reasoning).toBeNull();
+    });
+
+    it('returns reasoning even with no text content', () => {
+      const messages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [
+            {type: 'reasoning', content: 'Thinking only...'},
+            {
+              type: 'tool_call',
+              toolCallId: 'tc-1',
+              toolName: 'search',
+              args: {},
+            },
+          ],
+        },
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      const result = parseAssistantContent(node as any);
+      expect(result.content).toBeNull();
+      expect(result.reasoning).toBe('Thinking only...');
+    });
+  });
+
+  describe('reasoning in extractMessagesFromNodes', () => {
+    it('includes reasoning on assistant messages', () => {
+      const outputMessages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [
+            {type: 'reasoning', content: 'Thinking...'},
+            {type: 'text', text: 'Answer'},
+          ],
+        },
+      ]);
+      const inputMessages = JSON.stringify([{role: 'user', content: 'Question'}]);
+      const node = createMockNode({
+        id: 'span-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: inputMessages,
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputMessages,
+        },
+      });
+
+      const messages = extractMessagesFromNodes([node as any]);
+      const assistant = messages.find(m => m.role === 'assistant');
+      expect(assistant?.content).toBe('Answer');
+      expect(assistant?.reasoning).toBe('Thinking...');
+    });
+  });
+
   describe('messagesToMarkdown', () => {
     it('formats user messages with email', () => {
       const result = messagesToMarkdown([
@@ -1275,6 +1397,21 @@ describe('conversationMessages utilities', () => {
 
     it('returns empty string for empty messages', () => {
       expect(messagesToMarkdown([])).toBe('');
+    });
+
+    it('excludes reasoning from markdown output', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'The answer is 42',
+          timestamp: 1000,
+          nodeId: 'n1',
+          reasoning: 'Let me think step by step...',
+        },
+      ]);
+      expect(result).not.toContain('step by step');
+      expect(result).toContain('The answer is 42');
     });
   });
 });
