@@ -338,9 +338,9 @@ def org_key_errors(
 
         callsite = "tasks.summaries.project_key_errors"
         if EAPOccurrencesComparator.should_check_experiment(callsite):
-            for pid in list(snuba_results.keys()):
+            for pid in project_ids:
                 project = ctx.projects_context_map[pid].project
-                snuba_rows = snuba_results[pid]
+                snuba_rows = snuba_results.get(pid, [])
                 eap_rows = _project_key_errors_eap(
                     ctx=ctx,
                     project=project,
