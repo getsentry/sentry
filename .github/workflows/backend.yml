@@ -232,6 +232,9 @@ jobs:
       XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
       # DO NOT MERGE: hang-repro telemetry for SingletonProducer future-deque depth
       SENTRY_SP_DEBUG: '1'
+      # DO NOT MERGE: pause kafka 7.5min into the test step, after futures accumulate but
+      # before workers finish, so atexit _shutdown blocks on undelivered futures (the natural path)
+      KAFKA_PAUSE_AT: '450'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7

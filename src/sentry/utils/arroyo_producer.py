@@ -96,14 +96,21 @@ class SingletonProducer:
                     future.result()
 
     def _shutdown(self) -> None:
+        start = time.monotonic()
+        if _SP_DEBUG:
+            _sp_log(f"producer={id(self):x} SHUTDOWN start, draining {len(self._futures)} futures")
         for future in self._futures:
             try:
                 future.result()
             except Exception:
                 pass
+        if _SP_DEBUG:
+            _sp_log(f"producer={id(self):x} SHUTDOWN futures drained in {time.monotonic() - start:.1f}s")
 
         if self._producer:
             self._producer.close()
+        if _SP_DEBUG:
+            _sp_log(f"producer={id(self):x} SHUTDOWN complete in {time.monotonic() - start:.1f}s")
 
 
 def get_arroyo_producer(
