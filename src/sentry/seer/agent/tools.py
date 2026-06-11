@@ -299,12 +299,26 @@ def execute_timeseries_query(
     params = {k: v for k, v in params.items() if v is not None}
 
     # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events-stats/",
-        params=params,
-    )
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events-stats/",
+            params=params,
+        )
+    except client.ApiError as e:
+        # For 400 errors, return an error detail for the query builder agent.
+        # Use a reserved "_seer_error_detail" key so it can't collide with a
+        # group_by value (which becomes a top-level key in grouped responses below).
+        if e.status_code == 400:
+            logger.exception("execute_timeseries_query: bad request", extra={"org_id": org_id})
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {
+                "_seer_error_detail": (
+                    str(error_detail) if error_detail is not None else str(e.body)
+                )
+            }
+        raise
     data = resp.data
 
     # Always normalize to the nested {"metric": {"data": [...]}} format for consistency
@@ -959,7 +973,7 @@ def _get_issue_event_timeseries(
         partial=True,
     )
 
-    if data is None:
+    if data is None or data.get("_seer_error_detail"):
         return None
     return data, selected_period, interval
 
@@ -1146,15 +1160,19 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 ]
 
 
-class _IssueTroubleshootingContext(TypedDict):
-    # These fields are added to serialized group data, which uses camelCase API keys.
+class _EventTroubleshootingContext(TypedDict):
+    # These fields are added to the serialized event, which uses camelCase keys.
     detectionContext: str | None
     troubleshootingHint: str | None
 
 
-def _get_issue_troubleshooting_context(
-    group: Group, event: Event | GroupEvent | None = None
-) -> _IssueTroubleshootingContext:
+def _get_event_troubleshooting_context(
+    event: Event | GroupEvent,
+) -> _EventTroubleshootingContext:
+    group = event.group
+    if group is None:
+        return {"detectionContext": None, "troubleshootingHint": None}
+
     if group.type == LowValueSpanConfigurationType.type_id:
         occurrence = getattr(event, "occurrence", None)
         evidence_data = occurrence.evidence_data if occurrence else {}
@@ -1197,7 +1215,8 @@ def get_issue_and_event_response(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> dict[str, Any]:
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
+    serialized_event.update(_get_event_troubleshooting_context(event))
 
     result = {
         "event": serialized_event,
@@ -1212,7 +1231,6 @@ def get_issue_and_event_response(
         serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
-        serialized_group.update(_get_issue_troubleshooting_context(group, event))
 
         logger.info(
             "get_issue_and_event_details_v2: Querying for tags overview",
@@ -1337,7 +1355,6 @@ def get_issue_details(
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
     # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
     serialized_group["issueTypeDescription"] = group.issue_type.description
-    serialized_group.update(_get_issue_troubleshooting_context(group))
 
     # Get aggregate tag and event data and activity.
     try:
@@ -1499,7 +1516,8 @@ def get_event_details(
         )
         return None
 
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
+    serialized_event.update(_get_event_troubleshooting_context(event))
 
     return {
         "event": serialized_event,

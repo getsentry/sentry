@@ -110,6 +110,7 @@ function useTrackAnalytics({
   const chartError = timeseriesResult.error;
   const query_status = tableError?.message || chartError?.message ? 'error' : 'success';
   const tableErrorBox = useBox(tableError);
+  const chartErrorBox = useBox(chartError);
 
   const {isLoading: isLoadingSeerSetup} = useOrganizationSeerSetup({
     enabled: !organization.hideAiFeatures,
@@ -173,7 +174,7 @@ function useTrackAnalytics({
         referrer: 'spans',
         resultCount: aggregatesTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
-        error: tableErrorBox.current || false,
+        error: tableErrorBox.current || chartErrorBox.current || false,
       });
     }
 
@@ -222,6 +223,7 @@ function useTrackAnalytics({
     queryType,
     query_status,
     tableErrorBox,
+    chartErrorBox,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -307,7 +309,7 @@ function useTrackAnalytics({
         referrer: 'spans',
         resultCount: spansTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
-        error: tableErrorBox.current || false,
+        error: tableErrorBox.current || chartErrorBox.current || false,
       });
     }
   }, [
@@ -332,6 +334,7 @@ function useTrackAnalytics({
     spansTableResult.result.isPending,
     spansTableResult.result.meta?.dataScanned,
     tableErrorBox,
+    chartErrorBox,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -500,7 +503,7 @@ function useTrackAnalytics({
         referrer: 'traces',
         resultCount: tracesTableResult.result.data?.json?.data?.length ?? 0,
         runId: aiQueryRunId,
-        error: tableErrorBox.current || false,
+        error: tableErrorBox.current || chartErrorBox.current || false,
       });
     }
   }, [
@@ -520,6 +523,7 @@ function useTrackAnalytics({
     queryType,
     query_status,
     tableErrorBox,
+    chartErrorBox,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,

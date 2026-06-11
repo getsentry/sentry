@@ -14,7 +14,6 @@ from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
-from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.toolbar.views.iframe_view import IframeView
 from sentry.toolbar.views.login_success_view import LoginSuccessView
@@ -55,6 +54,7 @@ from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
+from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 
 __all__ = ("urlpatterns",)
@@ -1119,11 +1119,6 @@ urlpatterns += [
                     name="sentry-organization-auth-provider-settings",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[^/]+)/integrations/(?P<provider_id>[^/]+)/setup/$",
-                    OrganizationIntegrationSetupView.as_view(),
-                    name="sentry-organization-integrations-setup",
-                ),
-                re_path(
                     r"^(?P<organization_slug>[^/]+)/members/$",
                     RedirectView.as_view(
                         pattern_name="sentry-organization-members", permanent=False
@@ -1234,6 +1229,11 @@ urlpatterns += [
         r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url-deprecated",
+    ),
+    re_path(
+        r"^team-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
+        TeamAvatarPhotoView.as_view(),
+        name="sentry-team-avatar-url",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^/]+)/$",

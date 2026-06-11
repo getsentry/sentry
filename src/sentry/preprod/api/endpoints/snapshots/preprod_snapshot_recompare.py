@@ -5,6 +5,7 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -73,6 +74,9 @@ class PreprodSnapshotRecompareEndpoint(OrganizationEndpoint):
                 app_id=artifact.app_id,
                 artifact_type=artifact.artifact_type,
                 build_configuration=artifact.build_configuration,
+                allow_selective=features.has(
+                    "organizations:preprod-selective-base-snapshots", organization
+                ),
             )
             if not base_artifact:
                 return Response({"detail": "No base artifact found"}, status=404)

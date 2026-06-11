@@ -36,7 +36,7 @@ export function trackAiQueryOutcome({
   orgSlug: string;
   referrer: string;
   resultCount: number;
-  runId: number;
+  runId: number | string;
   error?: string | boolean | Error;
 }) {
   const outcome = error
@@ -216,6 +216,10 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
       const vizText = vizParts.length === 1 ? vizParts[0] : vizParts.join(', ');
       parts.push(`visualizations are '${vizText}'`);
     }
+  }
+
+  if (args?.interval) {
+    parts.push(`interval is '${args.interval}'`);
   }
 
   if (args?.groupBys && args.groupBys.length > 0) {

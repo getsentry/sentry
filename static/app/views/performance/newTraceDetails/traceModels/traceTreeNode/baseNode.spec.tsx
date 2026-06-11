@@ -1875,4 +1875,11 @@ describe('BaseNode', () => {
       expect(node.hasOccurrences).toBe(true);
     });
   });
+
+  describe('hasHttpError', () => {
+    it('should return false by default', () => {
+      const node = new TestNode(null, createMockValue(), createMockExtra());
+      expect(node.hasHttpError).toBe(false);
+    });
+  });
 });

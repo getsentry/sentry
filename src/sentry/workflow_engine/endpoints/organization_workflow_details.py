@@ -23,7 +23,10 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowEndpoint,
 )
-from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
+    WorkflowSerializer,
+    WorkflowSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Workflow
 
@@ -53,7 +56,9 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.GET_WORKFLOW,
     )
-    def get(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
+    def get(
+        self, request: Request, organization: Organization, workflow: Workflow
+    ) -> Response[WorkflowSerializerResponse]:
         """
         Returns an alert.
         """
@@ -80,7 +85,9 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.UPDATE_WORKFLOW,
     )
-    def put(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
+    def put(
+        self, request: Request, organization: Organization, workflow: Workflow
+    ) -> Response[WorkflowSerializerResponse]:
         """
         Updates an alert.
         """

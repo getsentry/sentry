@@ -41,7 +41,7 @@ class TestGetTriggerMetadata:
         assert result["trigger_comment_id"] == 12345
         assert result["trigger_user"] == "test-user"
         assert result["trigger_user_id"] == 99999
-        assert result["trigger_comment_type"] == "issue_comment"
+        assert result["trigger_comment_type"] == "pull_request_review_comment"
         assert result["trigger_at"] == "2024-01-15T10:30:00Z"
 
     def test_extracts_issue_comment_trigger_at_defaults_to_now_when_missing(self) -> None:
@@ -296,7 +296,7 @@ class TestTransformWebhookToCodegenRequest:
         assert config["trigger"] == SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
-        assert config["trigger_comment_type"] == "issue_comment"
+        assert config["trigger_comment_type"] == "pull_request_review_comment"
         assert config["trigger_at"] == "2024-01-15T14:00:00Z"
         # sentry_received_trigger_at is set to current time when transform happens
         assert isinstance(config["sentry_received_trigger_at"], str)

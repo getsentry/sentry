@@ -31,14 +31,17 @@ from sentry.signals import pending_delete
 from sentry.users.services.user import RpcUser
 from sentry.utils.email import MessageBuilder
 
+REPOSITORY_NAME_LENGTH = 500
+REPOSITORY_URL_LENGTH = 512
+
 
 @cell_silo_model
 class Repository(Model):
     __relocation_scope__ = RelocationScope.Global
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    name = models.CharField(max_length=500)
-    url = models.URLField(null=True)
+    name = models.CharField(max_length=REPOSITORY_NAME_LENGTH)
+    url = models.URLField(null=True, max_length=REPOSITORY_URL_LENGTH)
     provider = models.CharField(max_length=64, null=True)
     # The external_id is the id of the repo in the provider's system. (e.g. GitHub's repo id)
     external_id = models.CharField(max_length=64, null=True)

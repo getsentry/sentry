@@ -2,11 +2,13 @@ from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.claude_code.utils import ClaudeSessionEvent, ClaudeSessionEventStatus
+from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
     GithubCopilotArtifactData,
     GithubCopilotTask,
 )
+from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.seer.autofix.coding_agent import (
     extract_result_from_events,
     poll_claude_code_agents,
@@ -172,6 +174,117 @@ class TestPollGithubCopilotAgents(TestCase):
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/12345"
         assert call_kwargs["result"].description == "Fix the bug"
         assert call_kwargs["result"].repo_full_name == "getsentry/sentry"
+
+    @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_attributes_pr_when_task_complete(
+        self, mock_identity_service, mock_update_state, mock_attribute
+    ):
+        """A completed Copilot task with a PR is attributed to the Copilot agent."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_client = MagicMock()
+        mock_client.get_task_status.return_value = GithubCopilotTask(
+            id="task-123",
+            state="completed",
+            artifacts=[
+                GithubCopilotArtifact(
+                    provider="github",
+                    type="pull_request",
+                    data=GithubCopilotArtifactData(id=456, type="pull", global_id="PR_abc123"),
+                )
+            ],
+        )
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/12345"
+        mock_pr_info.title = "Fix the bug"
+        mock_client.get_pr_from_graphql.return_value = mock_pr_info
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(
+                GithubCopilotAgentClient, "get_task_status", mock_client.get_task_status
+            ):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_client.get_pr_from_graphql
+                ):
+                    poll_github_copilot_agents(
+                        autofix_state,
+                        user_id=self.user.id,
+                        organization_id=self.organization.id,
+                    )
+
+        mock_attribute.assert_called_once_with(
+            organization_id=self.organization.id,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
+            repo_full_name="getsentry/sentry",
+            repo_provider="github",
+            pr_url="https://github.com/getsentry/sentry/pull/12345",
+            agent_id="getsentry:sentry:task-123",
+        )
+
+    @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_does_not_attribute_when_task_not_done(
+        self, mock_identity_service, mock_update_state, mock_attribute
+    ):
+        """A PR seen while the task is still running is not attributed yet."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_client = MagicMock()
+        mock_client.get_task_status.return_value = GithubCopilotTask(
+            id="task-123",
+            state="in_progress",
+            artifacts=[
+                GithubCopilotArtifact(
+                    provider="github",
+                    type="pull_request",
+                    data=GithubCopilotArtifactData(id=456, type="pull", global_id="PR_abc123"),
+                )
+            ],
+        )
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/12345"
+        mock_pr_info.title = "WIP"
+        mock_client.get_pr_from_graphql.return_value = mock_pr_info
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(
+                GithubCopilotAgentClient, "get_task_status", mock_client.get_task_status
+            ):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_client.get_pr_from_graphql
+                ):
+                    poll_github_copilot_agents(
+                        autofix_state,
+                        user_id=self.user.id,
+                        organization_id=self.organization.id,
+                    )
+
+        mock_attribute.assert_not_called()
 
     @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
@@ -526,6 +639,70 @@ class TestPollClaudeCodeAgents(TestCase):
         call_kwargs = mock_update_state.call_args[1]
         assert call_kwargs["agent_id"] == "claude-session-123"
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+
+    @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_attributes_pr_on_completion(
+        self, mock_integration_service, mock_import_string, mock_update_state, mock_attribute
+    ):
+        """A completed Claude session with a PR is attributed to the Claude agent."""
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.list_session_events.return_value = [
+            {
+                "type": "agent.message",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "PR created: https://github.com/getsentry/sentry/pull/999",
+                    }
+                ],
+            },
+            {"type": ClaudeSessionEventStatus.IDLE},
+        ]
+        mock_client.build_result_from_session.return_value = MagicMock(
+            pr_url="https://github.com/getsentry/sentry/pull/999",
+            repo_full_name="getsentry/sentry",
+            repo_provider="github",
+        )
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_attribute.assert_called_once_with(
+            organization_id=self.organization.id,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            repo_full_name="getsentry/sentry",
+            repo_provider="github",
+            pr_url="https://github.com/getsentry/sentry/pull/999",
+            agent_id="claude-session-123",
+        )
+
+    @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_does_not_attribute_when_no_pr_url(
+        self, mock_integration_service, mock_import_string, mock_update_state, mock_attribute
+    ):
+        """A completed session without a PR is not attributed."""
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.list_session_events.return_value = [
+            {"type": "agent.message", "content": [{"type": "text", "text": "Done, no PR."}]},
+            {"type": ClaudeSessionEventStatus.IDLE},
+        ]
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_attribute.assert_not_called()
 
     @patch(MOCK_UPDATE_STATE_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)

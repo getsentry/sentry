@@ -74,6 +74,14 @@ class _LegacyParamErrorResponse(TypedDict):
     error: dict[str, dict[str, dict[str, str]]]
 
 
+class _OrganizationProjectCreateResponse(OrganizationProjectResponse):
+    """Project-creation response: the base `OrganizationProjectResponse` shape
+    plus a `team_slug` key that the endpoint appends post-serialize to surface
+    the auto-created personal team."""
+
+    team_slug: str
+
+
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,
@@ -302,7 +310,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             "(`disable_member_project_creation`), `org:write` scope is required."
         ),
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[_OrganizationProjectCreateResponse]:
         """
         Create a new project for an organization.
 
@@ -438,11 +448,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             "created team through project creation flow",
             extra={"team_slug": default_team_slug, "project_slug": project_name},
         )
-        serialized_response = serialize(
+        base: OrganizationProjectResponse = serialize(
             project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])
         )
-        serialized_response["team_slug"] = team.slug
-
+        serialized_response: _OrganizationProjectCreateResponse = {
+            **base,
+            "team_slug": team.slug,
+        }
         return Response(serialized_response, status=201)
 
 

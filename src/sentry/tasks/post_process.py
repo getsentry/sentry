@@ -1272,9 +1272,6 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    if not features.has("organizations:processing-errors-eap", event.project.organization):
-        return
-
     processing_errors = event.data.get("errors", [])
     if not processing_errors:
         return
