@@ -200,6 +200,12 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     help="The number of seconds before touching the health check file",
     default=taskworker_constants.DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
 )
+@click.option(
+    "--push-timeout-sec",
+    help="The timeout in seconds for the worker to wait to push a task into the child queue",
+    default=5.0,
+    type=float,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -227,6 +233,7 @@ def run_taskworker(
     pod_name: str,
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
+    push_timeout_sec: float,
     **options: Any,
 ) -> None:
     """
@@ -251,6 +258,7 @@ def run_taskworker(
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
+                push_task_timeout=push_timeout_sec,
             )
         else:
             worker = TaskWorker(
