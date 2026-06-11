@@ -3,9 +3,9 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getLocalities} from 'sentry/utils/regions';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailsPage} from 'admin/components/detailsPage';
@@ -21,7 +21,7 @@ export function RelocationArtifactDetails() {
     regionName: string;
     relocationUuid: string;
   }>();
-  const region = ConfigStore.get('regions').find((r: any) => r.name === regionName);
+  const locality = getLocalities().find(l => l.name === regionName);
 
   const {data, isPending, isError} = useApiQuery<RelocationData>(
     [
@@ -29,7 +29,7 @@ export function RelocationArtifactDetails() {
         path: {relocationUuid, artifactKind, fileName},
       }),
       {
-        host: region?.url,
+        host: locality?.url,
       },
     ],
     {

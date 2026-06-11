@@ -3,24 +3,33 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {InfoText} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Count} from 'sentry/components/count';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {
+  NegativeCostInfo,
+  TOKEN_TROUBLESHOOTING_URL,
+} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
+import {
+  getTokenBreakdown,
+  hasTokenMismatch,
+} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import {SpanFields} from 'sentry/views/insights/types';
 import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
@@ -124,12 +133,16 @@ function getAISpanAttributes({
   }
 
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
-  const cachedTokens = attributes['gen_ai.usage.input_tokens.cached'];
+  const cachedTokens =
+    attributes['gen_ai.usage.cache_read.input_tokens'] ??
+    attributes['gen_ai.usage.input_tokens.cached'];
   const outputTokens = attributes['gen_ai.usage.output_tokens'];
-  const reasoningTokens = attributes['gen_ai.usage.output_tokens.reasoning'];
+  const reasoningTokens =
+    attributes['gen_ai.usage.reasoning.output_tokens'] ??
+    attributes['gen_ai.usage.output_tokens.reasoning'];
   const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
-  if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {
+  if (inputTokens && outputTokens && totalTokens && Number(totalTokens) !== 0) {
     highlightedAttributes.push({
       name: t('Tokens'),
       value: (
@@ -145,10 +158,16 @@ function getAISpanAttributes({
   }
 
   const totalCosts = attributes['gen_ai.cost.total_tokens'];
-  if (totalCosts && Number(totalCosts) > 0) {
+  if (totalCosts && Number(totalCosts) !== 0) {
+    const costValue = Number(totalCosts);
     highlightedAttributes.push({
       name: t('Cost'),
-      value: <LLMCosts cost={totalCosts.toString()} />,
+      value:
+        costValue < 0 ? (
+          <NegativeCostInfo cost={totalCosts.toString()} />
+        ) : (
+          <LLMCosts cost={totalCosts.toString()} />
+        ),
     });
   }
 
@@ -272,7 +291,9 @@ function HighlightedTools({
   const hasToolNames = toolNames.length > 0;
   const toolSpansQuery = useSpans(
     {
-      search: `parent_span:${spanId} has:${SpanFields.GEN_AI_TOOL_NAME} ${getToolSpansFilter()}`,
+      search: `parent_span:${spanId} has:${
+        SpanFields.GEN_AI_TOOL_NAME
+      } ${getToolSpansFilter()}`,
       fields: [SpanFields.GEN_AI_TOOL_NAME],
       enabled: hasToolNames,
     },
@@ -329,59 +350,53 @@ function HighlightedTokenAttributes({
   reasoningTokens: number;
   totalTokens: number;
 }) {
-  const breakdown = getTokenBreakdown({
+  const tokenArgs = {
     inputTokens,
     cachedTokens,
     outputTokens,
     reasoningTokens,
     totalTokens,
-  });
+  };
+  const breakdown = getTokenBreakdown(tokenArgs);
+  const mismatch = hasTokenMismatch(tokenArgs);
 
   const hasCached = breakdown.cached > 0;
 
-  return (
-    <Tooltip
-      title={
-        <TokensTooltipTitle>
-          <span>{t('Input')}</span>
-          <span>{breakdown.netNewInput.toLocaleString()}</span>
-          {hasCached && (
-            <Fragment>
-              <span>{t('Cached')}</span>
-              <span>{breakdown.cached.toLocaleString()}</span>
-            </Fragment>
-          )}
-          <span>{t('Output')}</span>
-          <span>{breakdown.output.toLocaleString()}</span>
-          <span>{t('Total')}</span>
-          <span>{breakdown.total.toLocaleString()}</span>
-        </TokensTooltipTitle>
-      }
-    >
-      <TokensSpan>
-        <Container as="span" display="inline-block">
-          <Count value={breakdown.netNewInput} /> {t('in')}
-        </Container>
-        {hasCached && (
-          <Fragment>
-            {' '}
-            <Container as="span" display="inline-block">
-              {' + '}
-              <Count value={breakdown.cached} /> {t('cached')}
-            </Container>
-          </Fragment>
-        )}{' '}
-        <Container as="span" display="inline-block">
-          {' + '}
-          <Count value={breakdown.output} /> {t('out')}
-        </Container>{' '}
-        <Container as="span" display="inline-block">
-          {' = '}
-          <Count value={breakdown.total} /> {t('total')}
-        </Container>
-      </TokensSpan>
-    </Tooltip>
+  const abbr = formatAbbreviatedNumber;
+  const tokenSummary = `${abbr(breakdown.netNewInput)} ${t('in')}${hasCached ? ` + ${abbr(breakdown.cached)} ${t('cached')}` : ''} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
+
+  const breakdownTooltip = (
+    <TokensTooltipTitle>
+      <span>{t('Input')}</span>
+      <span>{breakdown.netNewInput.toLocaleString()}</span>
+      {hasCached && (
+        <Fragment>
+          <span>{t('Cached')}</span>
+          <span>{breakdown.cached.toLocaleString()}</span>
+        </Fragment>
+      )}
+      <span>{t('Output')}</span>
+      <span>{breakdown.output.toLocaleString()}</span>
+      <span>{t('Total')}</span>
+      <span>{breakdown.total.toLocaleString()}</span>
+    </TokensTooltipTitle>
   );
+
+  if (mismatch) {
+    return (
+      <InfoText
+        variant="warning"
+        title={tct(
+          'Input and output token counts do not add up to the reported total. This may indicate an error in token reporting. [link:Learn more].',
+          {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
+        )}
+      >
+        {tokenSummary}
+      </InfoText>
+    );
+  }
+
+  return <InfoText title={breakdownTooltip}>{tokenSummary}</InfoText>;
 }
 
 function HighlightedContextUtilization({
@@ -397,20 +412,10 @@ function HighlightedContextUtilization({
   const tokensUsed =
     windowSize === undefined ? totalTokens : Math.round(utilization * windowSize);
 
-  const inlineValue = (
-    <Fragment>
-      {percentage}%
-      {tokensUsed !== undefined && windowSize !== undefined && (
-        <Fragment>
-          {' ('}
-          <Count value={tokensUsed} />
-          {' / '}
-          <Count value={windowSize} />
-          {')'}
-        </Fragment>
-      )}
-    </Fragment>
-  );
+  const inlineText =
+    tokensUsed !== undefined && windowSize !== undefined
+      ? `${percentage}% (${formatAbbreviatedNumber(tokensUsed)} / ${formatAbbreviatedNumber(windowSize)})`
+      : `${percentage}%`;
 
   const tooltipContent = (
     <TokensTooltipTitle>
@@ -431,11 +436,7 @@ function HighlightedContextUtilization({
     </TokensTooltipTitle>
   );
 
-  return (
-    <Tooltip title={tooltipContent}>
-      <TokensSpan>{inlineValue}</TokensSpan>
-    </Tooltip>
-  );
+  return <InfoText title={tooltipContent}>{inlineText}</InfoText>;
 }
 
 const TokensTooltipTitle = styled('div')`
@@ -448,10 +449,4 @@ const TokensTooltipTitle = styled('div')`
     text-align: right;
   }
   gap: ${p => p.theme.space.xs};
-`;
-
-const TokensSpan = styled('span')`
-  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 `;

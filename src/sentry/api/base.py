@@ -31,6 +31,7 @@ from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
+from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.middleware import is_frontend_request
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
@@ -719,6 +720,14 @@ class EndpointSiloLimit(SiloLimit):
         raise TypeError("`@EndpointSiloLimit` must decorate a class or method")
 
 
+class CellSiloEndpoint(EndpointSiloLimit):
+    def __init__(
+        self, internal: bool = False, cell_resolver: CellRequestResolver | None = None
+    ) -> None:
+        super().__init__(SiloMode.CELL, internal=internal)
+        self.cell_resolver = cell_resolver
+
+
 control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
 """
 Apply to endpoints that exist in CONTROL silo.
@@ -732,22 +741,45 @@ Apply to endpoints that exist in CONTROL silo that
 should not be included in the frontend URL mapping
 """
 
-cell_silo_endpoint = EndpointSiloLimit(SiloMode.CELL)
-"""
-Apply to endpoints that exist in CELL silo.
-If a request is received and the application is not in CELL
-mode 404s will be returned.
-"""
 
-internal_cell_silo_endpoint = EndpointSiloLimit(SiloMode.CELL, internal=True)
-"""
-Apply to endpoints that exist in CELL silo that are internal only.
-Internal endpoints are not subject to URL pattern rules required
-for public endpoints in cells.
+def cell_silo_endpoint(
+    decorated_obj: Any = None,
+    *,
+    cell_resolver: CellRequestResolver | None = None,
+) -> Any:
+    """
+    Apply to endpoints that exist in Cell silo that are publicly accesible.
 
-If a request is received and the application is not in CELL
-mode 404s will be returned.
-"""
+    By default, if a request is received and the application is not in CELL
+    mode 404s will be returned.
+
+    Optionally, a resolver class can be specified to allow Control Silo to
+    dispatch a request to the correct cell, if possible.
+    """
+    limiter = CellSiloEndpoint(internal=False, cell_resolver=cell_resolver)
+    if decorated_obj is not None:
+        return limiter(decorated_obj)
+    return limiter
+
+
+def internal_cell_silo_endpoint(
+    decorated_obj: Any = None,
+    *,
+    cell_resolver: CellRequestResolver | None = None,
+) -> Any:
+    """
+    Apply to endpoints that exist in CELL silo that are internal only.
+    Internal endpoints are not subject to URL pattern rules required
+    for public endpoints in cells.
+
+    Optionally, a resolver class can be specified to allow Control Silo to
+    dispatch a request to the correct cell, if possible.
+    """
+    limiter = CellSiloEndpoint(internal=True, cell_resolver=cell_resolver)
+    if decorated_obj is not None:
+        return limiter(decorated_obj)
+    return limiter
+
 
 all_silo_endpoint = EndpointSiloLimit([SiloMode.CONTROL, SiloMode.CELL, SiloMode.MONOLITH])
 """

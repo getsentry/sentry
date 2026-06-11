@@ -1,9 +1,7 @@
 from django.urls import re_path
 
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
-from sentry.integrations.web.msteams_extension_configuration import (
-    MsTeamsExtensionConfigurationView,
-)
+from sentry.integrations.msteams.views.configure_redirect import MsTeamsConfigureRedirectView
 
 from .webhook import MsTeamsWebhookEndpoint
 
@@ -13,9 +11,12 @@ urlpatterns = [
         MsTeamsWebhookEndpoint.as_view(),
         name="sentry-integration-msteams-webhooks",
     ),
+    # The Sentry-Teams bot card links here with `signed_params`. We forward
+    # those to the link view, which opens the install pipeline modal to finish
+    # the install.
     re_path(
         r"^configure/$",
-        MsTeamsExtensionConfigurationView.as_view(),
+        MsTeamsConfigureRedirectView.as_view(),
         name="sentry-integration-msteams-configure",
     ),
 ]

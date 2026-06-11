@@ -672,8 +672,7 @@ describe('Dashboards > WidgetCard', () => {
         widgetLimitReached={false}
         isPreview
         widgetLegendState={widgetLegendState}
-      />,
-      ['transaction-widget-deprecation-explore-view']
+      />
     );
 
     expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();

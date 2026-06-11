@@ -127,8 +127,6 @@ class TestCreateIssueFlag(CliTestCase):
                                 property="organization_slug",
                                 value=[
                                     "sentry",
-                                    "codecov",
-                                    "sentry",
                                     "sentry-eu",
                                     "sentry-sdks",
                                     "sentry-st",
@@ -165,8 +163,6 @@ class TestCreateIssueFlag(CliTestCase):
                                 property="organization_slug",
                                 value=[
                                     "sentry",
-                                    "codecov",
-                                    "sentry",
                                     "sentry-eu",
                                     "sentry-sdks",
                                     "sentry-st",
@@ -202,8 +198,6 @@ class TestCreateIssueFlag(CliTestCase):
                             InCondition(
                                 property="organization_slug",
                                 value=[
-                                    "sentry",
-                                    "codecov",
                                     "sentry",
                                     "sentry-eu",
                                     "sentry-sdks",

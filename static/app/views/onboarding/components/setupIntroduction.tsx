@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {useExperiment} from 'sentry/utils/useExperiment';
 
 import {OnboardingStepHeading} from './onboardingStepHeading';

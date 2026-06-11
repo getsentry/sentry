@@ -64,5 +64,8 @@ class DeleteRuleTest(HybridCloudTestMixin, BaseWorkflowTest):
         ).exists()
         assert not GroupRuleStatus.objects.filter(id=group_rule_status.id).exists()
         assert not RuleActivity.objects.filter(id=rule_activity.id).exists()
+        # Link rows are cleaned up
         assert not AlertRuleDetector.objects.filter(rule_id=rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+        # Org-scoped Workflow survives Rule deletion
+        assert Workflow.objects.filter(id=workflow.id).exists()

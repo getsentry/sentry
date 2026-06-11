@@ -288,7 +288,8 @@ class IncidentOccurrenceTestCase(TestCase):
         )
 
     @override_settings(
-        KAFKA_TOPIC_OVERRIDES={"monitors-incident-occurrences": "monitors-test-topic"}
+        KAFKA_TOPIC_OVERRIDES={"monitors-incident-occurrences": "monitors-test-topic"},
+        KAFKA_TOPIC_TO_CLUSTER={"monitors-test-topic": "default"},
     )
     @mock.patch("sentry.monitors.logic.incident_occurrence._incident_occurrence_producer")
     def test_queue_incident_occurrence(self, mock_producer: mock.MagicMock) -> None:

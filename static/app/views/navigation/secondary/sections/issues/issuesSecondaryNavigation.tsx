@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Badge} from '@sentry/scraps/badge';
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -44,12 +44,13 @@ export function IssuesSecondaryNavigation() {
                   !featureFlags ||
                   featureFlags.some(feature => organization.features.includes(feature))
               )
-              .map(({key, label}) => (
+              .map(({key, label, badge}) => (
                 <SecondaryNavigation.ListItem key={key}>
                   <SecondaryNavigation.Link
                     to={`${baseUrl}/${key}/`}
                     end
                     analyticsItemName={`issues_types_${key}`}
+                    trailingItems={badge ? <FeatureBadge type={badge} /> : null}
                   >
                     {label}
                   </SecondaryNavigation.Link>
@@ -106,10 +107,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const isSticky = layout === 'sidebar';
 
   const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
-  const hasRedirectOptOut = organization.features.includes(
-    'workflow-engine-redirect-opt-out'
-  );
-  const shouldRedirectToWorkflowEngineUI = !hasRedirectOptOut && hasWorkflowEngineUI;
+  const shouldRedirectToWorkflowEngineUI = hasWorkflowEngineUI;
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
     ? makeAutomationBasePathname(organization.slug)

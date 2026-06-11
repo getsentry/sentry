@@ -13,7 +13,6 @@ from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.models.night_shift import SeerNightShiftRun
-from sentry.seer.models.run import SeerRun
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
@@ -109,14 +108,12 @@ def _triage_candidates(
             ],
         )
 
-        agent_run_id = client.start_run(
+        seer_run = client.start_run(
             prompt=_build_triage_prompt(candidates, extra_triage_instructions),
             artifact_key="triage_verdicts",
             artifact_schema=_TriageResponse,
         )
-
-        # TODO: have start_run return the SeerRun directly to avoid this lookup.
-        seer_run = SeerRun.objects.filter(seer_run_state_id=agent_run_id).first()
+        agent_run_id = seer_run.seer_run_state_id
         run.update(seer_run=seer_run, extras={**run.extras, "agent_run_id": agent_run_id})
 
         logger.info(
@@ -314,18 +311,46 @@ def _build_triage_prompt(
 
         When evaluating each issue, consider whether an AI coding agent with full
         codebase access could fix the ROOT CAUSE of the issue — not just add try/except or defensive
-        checks around it. Use these criteria:
+        checks around it.
 
-        Clearly fixable in code (-> autofix):
-        - The bug is a clear mistake in application logic (wrong key, off-by-one,
-          missing None check on app data)
-        - Root cause is visible in application code within a connected repository
-        - Straightforward change to business logic
+        The verdicts form a ladder of increasing caution. Default to the LEAST
+        aggressive verdict that fits, and only step up to `autofix` when you have
+        cleared a high bar. When you are torn between two verdicts, always pick
+        the more conservative one (`root_cause_only` over `autofix`, `skip` over
+        `root_cause_only`).
 
-        Worth investigating but not auto-fixable (-> root_cause_only):
-        - Likely fixable but requires non-trivial investigation or cross-cutting changes
-        - Error originates in third-party libraries, vendor code, or framework internals
-        - Root cause is outside the code (filesystem, external services, environment)
+        Autofix actually opens a code change with no human in the loop before it
+        is written, so reserve it for issues you are CONVINCED can be fixed
+        correctly and automatically. Choose `autofix` ONLY when ALL of the
+        following hold:
+        - You have pinpointed the exact root cause in application code (specific
+          file and function), confirmed by reading the code — not a hypothesis.
+        - There is exactly ONE clearly-correct fix. If several plausible fixes
+          exist and choosing between them depends on product intent or domain
+          knowledge you don't have, it is NOT an autofix.
+        - The fix is small and localized. It does not require a redesign, a new
+          API or abstraction, a schema/data migration, or coordinated changes
+          across many files or systems.
+        - Applying the fix cannot plausibly change intended behavior or make
+          things worse, and needs no human judgment to confirm it is correct.
+        - The change is not in a high-blast-radius area — authentication,
+          permissions/access control, billing or payments, security, money
+          math, concurrency/locking, or data deletion/migration — unless the fix
+          is truly trivial and obviously correct.
+        - You would be comfortable shipping this fix without a human reviewing
+          the approach first.
+        If you cannot honestly check every box, do NOT autofix.
+
+        Worth investigating but not safe to auto-fix (-> root_cause_only):
+        - Likely fixable, but you are not fully confident the fix is correct, or
+          it needs human judgment, or it touches a high-blast-radius area.
+        - The fix requires non-trivial investigation, design decisions, or
+          cross-cutting changes.
+        - Error originates in third-party libraries, vendor code, or framework internals.
+        - Root cause is outside the code (filesystem, external services, environment).
+        This is the default home for anything fixable that doesn't clear the
+        autofix bar — investigating the root cause is still valuable, and a human
+        decides what to do with it.
 
         Not worth processing (-> skip):
         - The issue is vague with no actionable stacktrace
@@ -337,7 +362,8 @@ def _build_triage_prompt(
         the issue is to be fixable (0.0 = not fixable, 1.0 = very fixable). Issues
         marked "not scored" have not been evaluated yet — treat them neutrally rather
         than assuming they are unfixable. Use the score as a signal but verify with
-        your own investigation.
+        your own investigation. A high fixability score is NOT on its own a reason
+        to autofix — it only means investigation is likely worthwhile.
 
         For each verdict, fill the `reason` field. For `autofix` and `root_cause_only`
         verdicts, the `reason` is handed off as context to the downstream autofix agent

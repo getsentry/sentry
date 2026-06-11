@@ -28,7 +28,7 @@ class AuthProviderDict(TypedDict):
 
 
 @register(AuthProvider)
-class AuthProviderSerializer(Serializer):
+class AuthProviderSerializer(Serializer[AuthProviderDict]):
     def serialize(
         self,
         obj: AuthProvider | RpcAuthProvider,

@@ -167,8 +167,8 @@ function SupergroupIssueList({
   filterWithCurrentSearch,
 }: {
   groupIds: number[];
+  memberList: IndexedMembersByProject | undefined;
   filterWithCurrentSearch?: boolean;
-  memberList?: IndexedMembersByProject;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -295,8 +295,8 @@ function SupergroupIssueList({
           <DrawerActionsBar groupIds={visibleGroupIds} />
           <PanelBody>
             {sortedGroups.map(group => {
-              const members = memberList?.[group.project?.slug]
-                ? memberList[group.project.slug]
+              const members = group.project
+                ? memberList?.get(group.project.slug)
                 : undefined;
               return (
                 <IssueRow key={group.id}>

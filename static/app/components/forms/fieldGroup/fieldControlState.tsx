@@ -22,5 +22,5 @@ export const FieldControlState = styled('div')<FieldControlStateProps>`
       : css`
           width: 24px;
           margin-left: ${p.theme.space.xs};
-        `};
+        `}
 `;

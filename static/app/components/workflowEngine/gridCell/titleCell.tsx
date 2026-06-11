@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconSentry, IconWarning} from 'sentry/icons';
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export type TitleCellProps = {
   link: LocationDescriptor | null;

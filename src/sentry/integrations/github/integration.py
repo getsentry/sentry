@@ -31,7 +31,6 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.issue_sync import GitHubIssueSyncSpec
-from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.github.types import GitHubIssueStatus
 from sentry.integrations.models.integration import Integration
@@ -693,6 +692,7 @@ def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
 class GitHubIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.GITHUB.value
     name = "GitHub"
+    can_add_externally = True
     metadata = metadata
     integration_cls: type[IntegrationInstallation] = GitHubIntegration
     features = frozenset(
@@ -719,44 +719,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
-        # Check if this is the Codecov GitHub app to trigger account linking
-        github_app_id = extra.get("app_id")
-        SENTRY_GITHUB_APP_ID = options.get("github-app.id")
-
-        if not github_app_id or not SENTRY_GITHUB_APP_ID:
-            logger.warning(
-                "codecov.account_link.configuration_error",
-                extra={
-                    "integration_id": integration.id,
-                    "organization_id": organization.id,
-                    "has_github_app_id": bool(github_app_id),
-                    "has_sentry_github_app_id": bool(SENTRY_GITHUB_APP_ID),
-                },
-            )
-
-        if (
-            github_app_id
-            and SENTRY_GITHUB_APP_ID
-            and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
-        ):
-            org_integration = OrganizationIntegration.objects.filter(
-                integration=integration, organization_id=organization.id
-            ).first()
-
-            # Double check org integration exists before linking accounts
-            if org_integration:
-                codecov_account_link.apply_async(
-                    kwargs={
-                        "integration_id": integration.id,
-                        "organization_id": organization.id,
-                    }
-                )
-            else:
-                logger.warning(
-                    "codecov.account_link.org_integration_missing",
-                    extra={"integration_id": integration.id, "organization_id": organization.id},
-                )
-
         repos = repository_service.get_repositories(
             organization_id=organization.id,
             providers=[IntegrationProviderSlug.GITHUB.value, "integrations:github"],

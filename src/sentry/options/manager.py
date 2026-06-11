@@ -183,7 +183,6 @@ class OptionsManager:
     def __init__(self, store: OptionsStore):
         self.store = store
         self.registry: dict[str, Key] = {}
-        self._seen: set[str] = set()
 
     def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
@@ -284,15 +283,6 @@ class OptionsManager:
         """
         return key in settings.SENTRY_OPTIONS
 
-    def _record_seen(self, key: str) -> None:
-        """Emit one log line per key per process lifetime so reads can be
-        audited in GCP. Logs before adding to _seen so a logging failure
-        doesn't permanently suppress the event. In debug mode, mark keys as
-        seen without logging to keep local tooling output clean."""
-        if not settings.DEBUG:
-            logger.info("option.seen", extra={"option_key": key})
-        self._seen.add(key)
-
     def get(self, key: str, silent=False):
         """
         Get the value of an option, falling back to the local configuration.
@@ -316,12 +306,6 @@ class OptionsManager:
             sample_rate=0.01,
         ) as tags:
             opt = self.lookup_key(key)
-            if key not in self._seen:
-                try:
-                    self._record_seen(key)
-                except Exception:
-                    # Tracking is best-effort. Never let it affect option reads.
-                    pass
 
             # First check if the option should exist on disk, and if it actually
             # has a value set, let's use that one instead without even attempting
@@ -506,11 +490,17 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
-    def can_update(self, key: str, value, channel: UpdateChannel) -> NotWritableReason | None:
+    def can_update(
+        self, key: str, value, channel: UpdateChannel, include_drift: bool = True
+    ) -> NotWritableReason | None:
         """
         Return the reason the provided channel cannot update the option
         to the provided value or None if there is no reason and the update
         is allowed.
+
+        Drift detection requires reading the current value from the option
+        store. Pass ``include_drift=False`` to skip it and rely only on
+        the option's registration and flags.
         """
 
         required_flag = WRITE_REQUIRED_FLAGS.get(channel)
@@ -525,6 +515,9 @@ class OptionsManager:
 
         if required_flag and not opt.has_any_flag({required_flag}):
             return NotWritableReason.CHANNEL_NOT_ALLOWED
+
+        if not include_drift:
+            return None
 
         if not self.isset(key):
             # If the option is not readonly and it is not stored in the

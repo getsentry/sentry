@@ -14,7 +14,7 @@ from sentry.users.services.user.service import user_service
 
 
 @register(OrganizationMemberInvite)
-class OrganizationMemberInviteSerializer(Serializer):
+class OrganizationMemberInviteSerializer(Serializer[OrganizationMemberInviteResponse]):
     def get_attrs(
         self,
         item_list: Sequence[OrganizationMemberInvite],

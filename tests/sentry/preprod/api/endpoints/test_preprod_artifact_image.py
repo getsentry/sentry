@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
-from objectstore_client.client import RequestError
+from objectstore_client import RequestError
 
 from sentry.testutils.cases import APITestCase
 
@@ -103,6 +103,136 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         assert response["Content-Type"] == "application/octet-stream"
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
         mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_content_disposition_with_filename(self, mock_get_session):
+        mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url,
+            data={"filename": "alert-dark-danger-no-icon.png"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        assert response["Content-Disposition"] == 'inline; filename="alert-dark-danger-no-icon.png"'
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_no_content_disposition_without_filename_param(self, mock_get_session):
+        mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        assert not response.has_header("Content-Disposition")
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_content_disposition_strips_path_traversal(self, mock_get_session):
+        mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url,
+            data={"filename": "static/app/components/core/alert/alert-dark-danger-no-icon.png"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        assert response["Content-Disposition"] == 'inline; filename="alert-dark-danger-no-icon.png"'
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_content_disposition_strips_parent_dir_traversal(self, mock_get_session):
+        mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url,
+            data={"filename": "../../etc/passwd"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        assert response["Content-Disposition"] == 'inline; filename="passwd"'
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_content_disposition_strips_header_injection(self, mock_get_session):
+        mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url,
+            data={"filename": "foo.png\r\nSet-Cookie: evil=1"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        cd = response["Content-Disposition"]
+        assert "\r" not in cd
+        assert "\n" not in cd
+        assert not response.has_header("Set-Cookie")
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_content_disposition_strips_quotes(self, mock_get_session):
+        mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url,
+            data={"filename": 'foo".png'},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        assert response["Content-Disposition"] == 'inline; filename="foo.png"'
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_no_content_disposition_when_filename_empties_out(self, mock_get_session):
+        mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url,
+            data={"filename": "../"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        assert not response.has_header("Content-Disposition")
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_content_disposition_non_ascii_filename(self, mock_get_session):
+        mock_session = self._create_mock_session(b"\x89PNG\r\n\x1a\n", "image/png")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url,
+            data={"filename": "café.png"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+        )
+
+        assert response.status_code == 200
+        cd = response["Content-Disposition"]
+        assert cd.startswith("inline; ")
+        assert "filename*=utf-8''caf%C3%A9.png" in cd
 
     def test_endpoint_requires_project_access(self) -> None:
         other_user = self.create_user()

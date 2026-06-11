@@ -1,11 +1,11 @@
 import {Fragment, useMemo} from 'react';
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -13,12 +13,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import {LoadingError} from 'sentry/components/loadingError';
-import {Placeholder} from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -30,13 +27,19 @@ import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSel
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
-import {useOrgDefaultAgent} from 'sentry/utils/seer/preferredAgent';
-import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
+import {
+  useOrgDefaultAgentOption,
+  useSeerAgentSelectOptions,
+} from 'sentry/utils/seer/preferredAgent';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
   useOrgDefaultStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
-import {useMutateAutofixProject} from 'sentry/utils/seer/useMutateAutofixProject';
+import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
+import {
+  AutofixSettingsPartialSaveError,
+  useMutateAutofixProject,
+} from 'sentry/utils/seer/useMutateAutofixProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -60,7 +63,7 @@ export function ProjectAddRepoModal({
   const unconfiguredProjects = useUnconfiguredProjects();
   const projectOptions = useCompactSelectProjectOptions({projects: unconfiguredProjects});
   const repositoryOptions = useCompactSelectRepositoryOptions();
-  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
+  const agentOptions = useSeerAgentSelectOptions();
   const stoppingPointOptions = PROJECT_STOPPING_POINT_OPTIONS;
 
   const repoEntrySchema = z.object({
@@ -82,7 +85,7 @@ export function ProjectAddRepoModal({
     repoEntries: z
       .array(repoEntrySchema)
       .min(1, {message: t('Please add at least one repository')}),
-    agent: z.union([z.literal('seer'), z.custom<CodingAgentIntegration>()]),
+    agentOption: z.custom<AutofixAgentSelectOption>(),
     stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
   });
 
@@ -93,7 +96,7 @@ export function ProjectAddRepoModal({
     defaultValues: {
       project: defaultProject?.id ?? '',
       repoEntries: [] as Array<{branch: string; repoId: string}>,
-      agent: useOrgDefaultAgent(),
+      agentOption: useOrgDefaultAgentOption(),
       stoppingPoint: useOrgDefaultStoppingPoint(),
     },
     validators: {
@@ -103,18 +106,35 @@ export function ProjectAddRepoModal({
       }),
       onDynamic: formSchema,
     },
-    onSubmit: ({value}) => {
+    onSubmit: ({value, formApi}) => {
       return saveMutation
         .mutateAsync(formSchema.parse(value), {
           onSuccess: () => {
             addSuccessMessage(t('Project saved successfully'));
             closeModal();
           },
-          onError: () => {
-            addErrorMessage(t('Failed to save project settings'));
-          },
         })
-        .catch(() => {});
+        .catch(error => {
+          // Surface failures on the affected fields instead of a toast. The
+          // modal stays open so the user can adjust and retry (both writes are
+          // idempotent full-replaces).
+          if (error instanceof AutofixSettingsPartialSaveError) {
+            // Repos already saved; only the settings write failed.
+            setFieldErrors(formApi, {
+              agentOption: {
+                message: t(
+                  'Your repositories were saved, but these settings could not be updated. Adjust and try again.'
+                ),
+              },
+              stoppingPoint: {message: t('Could not be saved. Please try again.')},
+            });
+          } else {
+            // The repos write failed first, so nothing was persisted.
+            setFieldErrors(formApi, {
+              repoEntries: {message: t('Could not save repositories. Please try again.')},
+            });
+          }
+        });
     },
   });
 
@@ -297,7 +317,7 @@ export function ProjectAddRepoModal({
 
             <Separator orientation="horizontal" />
 
-            <form.AppField name="agent">
+            <form.AppField name="agentOption">
               {field => (
                 <field.Layout.Row
                   label={t('Handoff to Agent')}
@@ -312,21 +332,11 @@ export function ProjectAddRepoModal({
                     }
                   )}
                 >
-                  {agentOptions.isPending ? (
-                    <Placeholder height="36px" width="100%" />
-                  ) : agentOptions.isError ? (
-                    <LoadingError />
-                  ) : (
-                    <field.Select
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      options={agentOptions.data}
-                      isValueEqual={(a, b) =>
-                        a === b ||
-                        (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
-                      }
-                    />
-                  )}
+                  <field.Select
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={agentOptions}
+                  />
                 </field.Layout.Row>
               )}
             </form.AppField>

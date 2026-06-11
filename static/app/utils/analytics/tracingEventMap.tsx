@@ -1,4 +1,5 @@
-import type {PlatformKey} from 'sentry/types/project';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -43,7 +44,7 @@ export type TracingEventParameters = {
     version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    ai_query_run_id?: number;
+    ai_query_run_id?: number | string;
     attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
     cross_event_log_query_count?: number;
     cross_event_metric_query_count?: number;
@@ -60,6 +61,10 @@ export type TracingEventParameters = {
     direction: string;
     num_results: number;
     type: 'samples' | 'traces' | 'aggregates';
+  };
+  'trace.explorer.table_tab_changed': {
+    organization: Organization;
+    tab: string;
   };
   'trace.load.empty_state': {
     source: TraceTreeSource;
@@ -220,6 +225,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.schema_hints_drawer':
     'Improved Trace Explorer: Schema Hints Drawer Events',
   'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
+  'trace.explorer.table_tab_changed': 'Trace Explorer: Table Tab Changed',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',

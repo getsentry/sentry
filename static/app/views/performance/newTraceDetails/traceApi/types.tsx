@@ -3,7 +3,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 
 /**
  * `EventLite` represents the type of a simplified event from
- * the `events-trace` and `events-trace-light` endpoints.
+ * the `events-trace` endpoint.
  */
 type EventLite = {
   event_id: string;

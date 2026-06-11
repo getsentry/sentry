@@ -11,8 +11,8 @@ import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEd
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';

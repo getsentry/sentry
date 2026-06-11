@@ -10,9 +10,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {getLocalities} from 'sentry/utils/regions';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
@@ -20,8 +20,8 @@ export function SeerAdminPage() {
   const [organizationId, setOrganizationId] = useState('');
   const [dryRun, setDryRun] = useState(false);
   const [maxCandidates, setMaxCandidates] = useState('');
-  const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState(regions[0] ?? null);
+  const localities = getLocalities();
+  const [locality, setLocality] = useState(localities[0] ?? null);
 
   const {mutate: triggerNightShift, isPending: isNightShiftPending} = useMutation({
     mutationFn: () => {
@@ -34,7 +34,7 @@ export function SeerAdminPage() {
           dry_run: dryRun,
           ...(maxCandidates ? {max_candidates: parseInt(maxCandidates, 10)} : {}),
         },
-        options: {host: region?.url},
+        options: {host: locality?.url},
       });
     },
     onSuccess: () => {
@@ -52,7 +52,7 @@ export function SeerAdminPage() {
 
   const handleNightShiftSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!region) {
+    if (!locality) {
       addErrorMessage('Please select a region first');
       return;
     }
@@ -81,17 +81,17 @@ export function SeerAdminPage() {
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
-          value={region ? region.url : undefined}
-          options={regions.map((r: Region) => ({
-            label: r.name,
-            value: r.url,
+          value={locality ? locality.url : undefined}
+          options={localities.map(l => ({
+            label: l.name,
+            value: l.url,
           }))}
           onChange={opt => {
-            const regionOption = regions.find((r: Region) => r.url === opt.value);
+            const regionOption = localities.find((r: Region) => r.url === opt.value);
             if (regionOption === undefined) {
               return;
             }
-            setRegion(regionOption);
+            setLocality(regionOption);
           }}
         />
 
@@ -146,7 +146,7 @@ export function SeerAdminPage() {
                 <Button
                   variant="primary"
                   type="submit"
-                  disabled={!region || isNightShiftPending}
+                  disabled={!locality || isNightShiftPending}
                 >
                   {isFullSchedule
                     ? 'Trigger Night Shift (all orgs)'

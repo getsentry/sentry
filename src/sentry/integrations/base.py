@@ -159,6 +159,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.BITBUCKET,
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
+        IntegrationProviderSlug.PERFORCE,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
@@ -204,7 +205,8 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """
     a unique identifier to use when creating the ``Integration`` object.
     Only needed when you want to create the above object with something other
-    than ``key``. See: VstsExtensionIntegrationProvider.
+    than ``key`` (e.g. a provider variant that stores its ``Integration`` under
+    a shared provider key).
     """
 
     visible = True
@@ -227,6 +229,17 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
 
     can_add = True
     """whether or not the integration installation be initiated from Sentry"""
+
+    can_add_externally = False
+    """
+    Marks providers whose install is initiated from the third party's app
+    directory or marketplace (e.g. Discord's App Directory, the GitHub App
+    listing, the Teams Marketplace) and completed through the pipeline modal.
+
+    For providers that also set `can_add = False`, hiding the in-app install
+    button because the install can only start from the third party, this is
+    what lets the pipeline endpoint accept the externally-initiated install.
+    """
 
     allow_multiple = True
     """whether multiple installations of this integration are allowed per organization"""

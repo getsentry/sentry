@@ -58,14 +58,18 @@ from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tasks import post_process as post_process_module
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
+    GROUP_CATEGORY_POST_PROCESS_PIPELINE,
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     feedback_filter_decorator,
     locks,
     post_process_group,
+    process_siem_security_logging,
     run_post_process_job,
+    set_siem_security_log_hook,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -154,6 +158,29 @@ class ProcessWorkflowsKwargsMatcher:
             return False
 
         return True
+
+
+class SiemSecurityLoggingTest(TestCase):
+    def test_registered_in_error_pipeline(self) -> None:
+        assert (
+            process_siem_security_logging
+            in GROUP_CATEGORY_POST_PROCESS_PIPELINE[GroupCategory.ERROR]
+        )
+
+    def test_noop(self) -> None:
+        # Default hook is a no-op: the call must complete without touching the job.
+        process_siem_security_logging({})
+
+    def test_hook_swap_takes_effect(self) -> None:
+        original = post_process_module._siem_security_log_hook
+        calls = []
+        try:
+            set_siem_security_log_hook(lambda job: calls.append(job))
+            process_siem_security_logging({})
+        finally:
+            set_siem_security_log_hook(original)
+
+        assert calls == [{}]
 
 
 class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -549,6 +576,71 @@ class ResourceChangeBoundsTestMixin(BasePostProcessGroupMixin):
         )
 
         assert not delay.called
+
+
+class MaliciousIssueDetectionTestMixin(BasePostProcessGroupMixin):
+    def test_malicious_issue_detection_calls_registered_processor(self) -> None:
+        from sentry.tasks.post_process import (
+            _noop_malicious_issue_detection_hook,
+            set_malicious_issue_detection_hook,
+        )
+
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        calls = []
+
+        def hook(job: Any) -> bool:
+            calls.append(
+                (job["event"].event_id, job["group_state"]["is_new"], job["is_reprocessed"])
+            )
+            return False
+
+        set_malicious_issue_detection_hook(hook)
+        try:
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+        finally:
+            set_malicious_issue_detection_hook(_noop_malicious_issue_detection_hook)
+
+        assert calls == [(event.event_id, False, False)]
+        event.group.refresh_from_db()
+        assert event.group.status == GroupStatus.UNRESOLVED
+
+    def test_malicious_issue_detection_halts_when_processor_returns_true(self) -> None:
+        from sentry.tasks.post_process import (
+            _noop_malicious_issue_detection_hook,
+            set_malicious_issue_detection_hook,
+        )
+
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+
+        def hook(job: Any) -> bool:
+            return True
+
+        set_malicious_issue_detection_hook(hook)
+        try:
+            with (
+                patch(
+                    "sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay"
+                ) as mock_resource_change,
+                patch(
+                    "sentry.workflow_engine.tasks.workflows.process_workflows_event"
+                ) as mock_process_workflows_event,
+            ):
+                self.call_post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    event=event,
+                )
+        finally:
+            set_malicious_issue_detection_hook(_noop_malicious_issue_detection_hook)
+
+        mock_resource_change.assert_not_called()
+        mock_process_workflows_event.apply_async.assert_not_called()
 
 
 class InboxTestMixin(BasePostProcessGroupMixin):
@@ -2080,7 +2172,6 @@ class SDKCrashMonitoringTestMixin(BasePostProcessGroupMixin):
 
 @patch("sentry.processing_errors.eap.producer.produce_processing_errors_to_eap")
 class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
-    @with_feature("organizations:processing-errors-eap")
     def test_processing_errors_eap_called_with_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={
@@ -2105,26 +2196,6 @@ class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
         assert args[0].id == self.project.id
         assert args[2] == [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
 
-    def test_processing_errors_eap_not_called_without_feature(
-        self, mock_produce: MagicMock
-    ) -> None:
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
-        event.data["errors"] = [{"type": "js_no_source"}]
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        mock_produce.assert_not_called()
-
-    @with_feature("organizations:processing-errors-eap")
     def test_processing_errors_eap_not_called_without_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={"message": "testing"},
@@ -3545,6 +3616,7 @@ class PostProcessGroupErrorTest(
     ProcessCommitsTestMixin,
     CorePostProcessGroupTestMixin,
     DeriveCodeMappingsProcessGroupTestMixin,
+    MaliciousIssueDetectionTestMixin,
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
     KickOffSeerAutomationTestMixin,

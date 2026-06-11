@@ -38,7 +38,7 @@ describe('FilterSelector', () => {
     );
 
     const button = screen.getByRole('button', {
-      name: `${mockGlobalFilter.tag.key} contains`,
+      name: `${mockGlobalFilter.tag.key} contains All`,
     });
     await userEvent.click(button);
 
@@ -58,7 +58,7 @@ describe('FilterSelector', () => {
     );
 
     const button = screen.getByRole('button', {
-      name: `${mockGlobalFilter.tag.key} contains`,
+      name: `${mockGlobalFilter.tag.key} contains All`,
     });
     await userEvent.click(button);
 
@@ -90,7 +90,7 @@ describe('FilterSelector', () => {
       />
     );
 
-    const button = screen.getByRole('button', {name: mockGlobalFilter.tag.key + ' :'});
+    const button = screen.getByRole('button', {name: /^browser :/});
     await userEvent.click(button);
 
     expect(screen.getByRole('checkbox', {name: 'Select firefox'})).toBeChecked();
@@ -108,7 +108,7 @@ describe('FilterSelector', () => {
     );
 
     const button = screen.getByRole('button', {
-      name: `${mockGlobalFilter.tag.key} contains`,
+      name: `${mockGlobalFilter.tag.key} contains All`,
     });
     await userEvent.click(button);
     await userEvent.click(screen.getByRole('button', {name: 'Remove Filter'}));
@@ -209,7 +209,7 @@ describe('FilterSelector', () => {
     );
 
     const button = screen.getByRole('button', {
-      name: `${SpanFields.USER_GEO_SUBREGION} contains`,
+      name: `${SpanFields.USER_GEO_SUBREGION} contains All`,
     });
     await userEvent.click(button);
 
@@ -240,7 +240,7 @@ describe('FilterSelector', () => {
     );
 
     const button = screen.getByRole('button', {
-      name: `${mockGlobalFilter.tag.key} contains`,
+      name: `${mockGlobalFilter.tag.key} contains All`,
     });
     await userEvent.click(button);
 

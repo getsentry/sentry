@@ -24,7 +24,7 @@ class ExternalActorResponse(ExternalActorResponseOptional):
 
 
 @register(ExternalActor)
-class ExternalActorSerializer(Serializer):
+class ExternalActorSerializer(Serializer[ExternalActorResponse]):
     def get_attrs(
         self,
         item_list: Sequence[ExternalActor],

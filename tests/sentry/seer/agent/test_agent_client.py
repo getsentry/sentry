@@ -1,6 +1,8 @@
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 from pydantic import BaseModel
 
 from sentry.seer.agent.client import SeerAgentClient
@@ -13,6 +15,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerAgentRun
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
 
@@ -58,7 +61,7 @@ class TestSeerAgentClient(TestCase):
         assert client.enable_coding is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_basic(self, mock_collect_context, mock_post, mock_access):
         """Test starting a new run collects user context"""
@@ -69,17 +72,25 @@ class TestSeerAgentClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Test query")
+        project = self.create_project(organization=self.organization)
+        group = self.create_group(project=project)
 
-        assert run_id == 123
+        client = SeerAgentClient(self.organization, self.user, project=project, group=group)
+        run = client.start_run("Test query")
+
+        assert run.seer_run_state_id == 123
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=None)
         assert mock_post.called
         body = mock_post.call_args[0][0]
-        assert "enable_frontend_code_search" not in body
+        assert "enable_frontend_code_search" not in body["agent_run_options"]
+        assert body["metadata"]["group_id"] == group.id
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.project_id == project.id
+        assert agent_run.group_id == group.id
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_request(self, mock_collect_context, mock_post, mock_access):
         """Test starting a new run passes request object to collect_user_org_context"""
@@ -92,14 +103,14 @@ class TestSeerAgentClient(TestCase):
 
         client = SeerAgentClient(self.organization, self.user)
         request, _ = make_request()
-        run_id = client.start_run("Test query", request=request)
+        run_id = client.start_run("Test query", request=request).seer_run_state_id
 
         assert run_id == 123
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=request)
         assert mock_post.called
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_start_run_with_optional_params(self, mock_post, mock_access):
         """Test starting a run with optional parameters"""
         mock_access.return_value = (True, None)
@@ -109,14 +120,14 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Query", on_page_context="some context")
+        run_id = client.start_run("Query", on_page_context="some context").seer_run_state_id
 
         assert run_id == 789
         call_args = mock_post.call_args
         assert call_args is not None
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_start_run_http_error(self, mock_post, mock_access):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
@@ -127,7 +138,7 @@ class TestSeerAgentClient(TestCase):
             client.start_run("Test query")
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_categories(self, mock_collect_context, mock_post, mock_access):
         """Test starting a run with category fields"""
@@ -142,13 +153,51 @@ class TestSeerAgentClient(TestCase):
             self.organization, self.user, category_key="bug-fixer", category_value="issue-123"
         )
         with self.feature("organizations:seer-agent-source-code-search"):
-            run_id = client.start_run("Fix bug")
+            run_id = client.start_run("Fix bug").seer_run_state_id
 
         assert run_id == 999
         body = mock_post.call_args[0][0]
         assert body["category_key"] == "bug-fixer"
         assert body["category_value"] == "issue-123"
-        assert body["enable_frontend_code_search"] is True
+        assert body["agent_run_options"]["enable_frontend_code_search"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_start_run_defaults_code_review_disabled(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 123}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["code_review_enabled"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_start_run_passes_code_review_enabled(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 123}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        client = SeerAgentClient(self.organization, self.user, code_review_enabled=True)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["code_review_enabled"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_init_category_key_only_raises_error(self, mock_access):
@@ -187,7 +236,7 @@ class TestSeerAgentClient(TestCase):
         assert client.intelligence_level == "medium"
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_includes_intelligence_level(
         self, mock_collect_context, mock_post, mock_access
@@ -201,7 +250,7 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user, intelligence_level="low")
-        run_id = client.start_run("Test query")
+        run_id = client.start_run("Test query").seer_run_state_id
 
         assert run_id == 555
         body = mock_post.call_args[0][0]
@@ -224,7 +273,7 @@ class TestSeerAgentClient(TestCase):
         assert client.max_iterations is None
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_includes_max_iterations(self, mock_collect_context, mock_post, mock_access):
         """Test that max_iterations is included in the payload when set"""
@@ -236,14 +285,14 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user, max_iterations=3)
-        run_id = client.start_run("Test query")
+        run_id = client.start_run("Test query").seer_run_state_id
 
         assert run_id == 444
         body = mock_post.call_args[0][0]
         assert body["max_iterations"] == 3
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_excludes_max_iterations_when_none(
         self, mock_collect_context, mock_post, mock_access
@@ -257,7 +306,7 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Test query")
+        run_id = client.start_run("Test query").seer_run_state_id
 
         assert run_id == 445
         body = mock_post.call_args[0][0]
@@ -279,7 +328,7 @@ class TestSeerAgentClient(TestCase):
         assert run_id == 456
         assert mock_post.called
         body = mock_post.call_args[0][0]
-        assert "enable_frontend_code_search" not in body
+        assert "enable_frontend_code_search" not in body["agent_run_options"]
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
@@ -299,7 +348,7 @@ class TestSeerAgentClient(TestCase):
 
         assert run_id == 789
         body = mock_post.call_args[0][0]
-        assert body["enable_frontend_code_search"] is True
+        assert body["agent_run_options"]["enable_frontend_code_search"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
@@ -311,6 +360,24 @@ class TestSeerAgentClient(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerApiError):
             client.continue_run(123, "Test query")
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    def test_continue_run_bumps_last_triggered_at(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 456}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        stale = timezone.now() - timedelta(days=10)
+        run = self.create_seer_run(seer_run_state_id=456, last_triggered_at=stale)
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.continue_run(456, "Follow up query")
+
+        run.refresh_from_db()
+        assert run.last_triggered_at > stale
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.fetch_run_status")
@@ -407,7 +474,7 @@ class TestSeerAgentClientArtifacts(TestCase):
         self.organization = self.create_organization(owner=self.user)
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_artifact_schema(self, mock_collect_context, mock_post, mock_access):
         """Test that artifact key and schema are serialized and sent to API"""
@@ -425,7 +492,7 @@ class TestSeerAgentClientArtifacts(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         run_id = client.start_run(
             "Analyze errors", artifact_key="analysis", artifact_schema=IssueAnalysis
-        )
+        ).seer_run_state_id
 
         assert run_id == 123
 
@@ -438,7 +505,7 @@ class TestSeerAgentClientArtifacts(TestCase):
         assert "severity" in body["artifact_schema"]["properties"]
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_start_run_artifact_schema_requires_key(self, mock_post, mock_access):
         """Test that artifact_schema without artifact_key raises ValueError"""
         mock_access.return_value = (True, None)
@@ -989,7 +1056,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         return mock_response
 
     @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_triggers_indexing_when_explorer_index_missing(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
         mock_dispatch.return_value = iter([])
@@ -999,7 +1066,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
 
         client = SeerAgentClient(self.organization, self.user)
         with self.options({"seer.explorer_index.killswitch.enable": False}):
-            run_id = client.start_run("Why are my errors spiking?")
+            run_id = client.start_run("Why are my errors spiking?").seer_run_state_id
 
         assert run_id == 123
         mock_dispatch.assert_called_once()
@@ -1009,7 +1076,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
     @patch("sentry.seer.agent.client.index_org_project_knowledge")
     @patch("sentry.seer.agent.client.build_service_map")
     @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_triggers_indexing_when_org_project_context_missing(
         self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
     ):
@@ -1026,7 +1093,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
                 "explorer.context_engine_indexing.enable": True,
             }
         ):
-            run_id = client.start_run("Why are my errors spiking?")
+            run_id = client.start_run("Why are my errors spiking?").seer_run_state_id
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
@@ -1034,7 +1101,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_build_service_map.apply_async.assert_called_once_with(args=[self.organization.id])
 
     @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_excludes_projects_without_transactions_from_batch(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
         mock_dispatch.return_value = iter([])
@@ -1052,25 +1119,25 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         assert (project_without_txns.id, self.organization.id) not in projects_batch
 
     @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_skips_indexing_when_index_present(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response(
             has_explorer_index=True, has_org_project_context=True
         )
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Why are my errors spiking?")
+        run_id = client.start_run("Why are my errors spiking?").seer_run_state_id
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
 
     @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_skips_indexing_when_flags_absent_from_response(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response()
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Why are my errors spiking?")
+        run_id = client.start_run("Why are my errors spiking?").seer_run_state_id
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
@@ -1078,7 +1145,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
     @patch("sentry.seer.agent.client.index_org_project_knowledge")
     @patch("sentry.seer.agent.client.build_service_map")
     @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_skips_indexing_when_killswitch_on(
         self, mock_chat, mock_dispatch, mock_build_service_map, mock_index_knowledge
     ):
@@ -1103,7 +1170,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_build_service_map.apply_async.assert_not_called()
 
     @patch("sentry.seer.agent.client.dispatch_explorer_index_projects")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_skips_indexing_when_no_projects_with_transactions(self, mock_chat, mock_dispatch):
         mock_chat.return_value = self._mock_chat_response(has_explorer_index=False)
         self.create_project(organization=self.organization)

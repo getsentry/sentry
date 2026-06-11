@@ -33,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsDrawer} from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
+  CONVERSATIONS_INCLUDES_KEYS,
   getSchemaHintsListOrder,
   onlyShowSchemaHintsKeys,
   removeHiddenSchemaHintsKeys,
@@ -116,6 +117,8 @@ export function addFilterToQuery(
   if (tag.kind === FieldKind.FUNCTION) {
     const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue ?? '';
     filterQuery.addFilterValue(`${tag.key}(${defaultFunctionParam})`, '>0');
+  } else if (CONVERSATIONS_INCLUDES_KEYS.has(tag.key)) {
+    filterQuery.addContainsFilterValue(tag.key, '');
   } else {
     const isBoolean = fieldDefinition?.valueType === FieldValueType.BOOLEAN;
     filterQuery.addFilterValue(
@@ -156,6 +159,9 @@ export function formatHintName(hint: Tag) {
 function formatHintOperator(hint: Tag) {
   if (hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION) {
     return '>';
+  }
+  if (CONVERSATIONS_INCLUDES_KEYS.has(hint.key)) {
+    return 'contains';
   }
   return 'is';
 }

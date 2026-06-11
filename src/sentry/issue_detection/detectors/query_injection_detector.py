@@ -9,8 +9,6 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.utils import json
 
 MAX_EVIDENCE_VALUE_LENGTH = 10_000
@@ -26,10 +24,9 @@ class QueryInjectionDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.stored_problems = {}
         self.potential_unsafe_inputs: list[tuple[str, dict[str, Any]]] = []
@@ -121,10 +118,7 @@ class QueryInjectionDetector(PerformanceDetector):
             ],
         )
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     def _is_span_eligible(self, span: Span) -> bool:

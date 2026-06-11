@@ -12,21 +12,24 @@ class RepositorySettingsSerializerResponse(TypedDict):
     codeReviewTriggers: list[str]
 
 
-class RepositorySerializerResponse(TypedDict, total=False):
-    id: str
-    name: str
+class RepositorySerializerResponseOptional(TypedDict, total=False):
     url: str | None
     provider: dict[str, str]
     status: str
-    dateCreated: datetime
     integrationId: str | None
     externalSlug: str | None
     externalId: str | None
     settings: RepositorySettingsSerializerResponse | None
 
 
+class RepositorySerializerResponse(RepositorySerializerResponseOptional):
+    id: str
+    name: str
+    dateCreated: datetime
+
+
 @register(RepositorySettings)
-class RepositorySettingsSerializer(Serializer):
+class RepositorySettingsSerializer(Serializer[RepositorySettingsSerializerResponse]):
     def serialize(
         self, obj: RepositorySettings, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> RepositorySettingsSerializerResponse:
@@ -37,7 +40,7 @@ class RepositorySettingsSerializer(Serializer):
 
 
 @register(Repository)
-class RepositorySerializer(Serializer):
+class RepositorySerializer(Serializer[RepositorySerializerResponse]):
     def __init__(self, expand: Sequence[str] | None = None) -> None:
         super().__init__()
         self.expand = expand or []

@@ -13,7 +13,7 @@ class IncidentGroupOpenPeriodSerializerResponse(TypedDict):
 
 
 @register(IncidentGroupOpenPeriod)
-class IncidentGroupOpenPeriodSerializer(Serializer):
+class IncidentGroupOpenPeriodSerializer(Serializer[IncidentGroupOpenPeriodSerializerResponse]):
     def serialize(
         self, obj: IncidentGroupOpenPeriod, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> IncidentGroupOpenPeriodSerializerResponse:

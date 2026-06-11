@@ -59,10 +59,6 @@ class JiraInstalledTest(APITestCase):
 
     def body(self, client_key: str | None = None) -> Mapping[str, Any]:
         return {
-            "jira": {
-                "metadata": {},
-                "external_id": self.external_id,
-            },
             "clientKey": client_key if client_key is not None else self.external_id,
             "oauthClientId": "EFG",
             "publicKey": "yourCar",
@@ -212,12 +208,10 @@ class JiraInstalledTest(APITestCase):
         self.add_response()
 
         # JWT is signed by tenant `it2may+cody` (self.external_id) but the body
-        # carries a different tenant in clientKey. With no `jira` sub-dict
-        # build_integration falls back to clientKey for external_id, so
-        # rejecting on iss != clientKey prevents persisting a row keyed by
-        # an unsigned tenant.
+        # carries a different tenant in clientKey. build_integration falls back
+        # to clientKey for external_id, so rejecting on iss != clientKey prevents
+        # persisting a row keyed by an unsigned tenant.
         body = dict(self.body(client_key="some-other-tenant"))
-        body.pop("jira", None)
         self.get_error_response(
             **body,
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
@@ -231,18 +225,20 @@ class JiraInstalledTest(APITestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_rejects_when_jira_external_id_does_not_match_jwt_iss(
+    def test_rejects_when_top_level_external_id_does_not_match_jwt_iss(
         self, mock_record_event: MagicMock
     ) -> None:
         self.add_response()
 
         # JWT is signed by tenant `it2may+cody` (self.external_id) and clientKey
-        # matches it, but `jira.external_id` is different. Since
-        # build_integration prefers `state["jira"]["external_id"]` over
-        # clientKey, the persisted Integration.external_id must also match the
-        # signing tenant.
+        # matches it, but the body injects a top-level external_id + metadata for
+        # a different tenant. build_integration prefers that top-level pair (the
+        # shape the API pipeline binds), so the issuer check must validate
+        # against it rather than clientKey — otherwise a valid token for one
+        # tenant could persist a row keyed to another tenant.
         body = dict(self.body())
-        body["jira"] = {"metadata": {}, "external_id": "some-other-tenant"}
+        body["external_id"] = "some-other-tenant"
+        body["metadata"] = {"base_url": "https://attacker.example"}
         self.get_error_response(
             **body,
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
@@ -252,26 +248,6 @@ class JiraInstalledTest(APITestCase):
         assert not Integration.objects.filter(
             provider="jira", external_id="some-other-tenant"
         ).exists()
-        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @responses.activate
-    def test_rejects_when_jira_external_id_is_empty(self, mock_record_event: MagicMock) -> None:
-        self.add_response()
-
-        # state["jira"] is truthy but its external_id is empty. build_integration
-        # branches on state["jira"]'s truthiness, so it would persist
-        # external_id="" — the binding must reject this rather than silently
-        # fall back to clientKey for the comparison.
-        body = dict(self.body())
-        body["jira"] = {"metadata": {}, "external_id": ""}
-        self.get_error_response(
-            **body,
-            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
-
-        assert not Integration.objects.filter(provider="jira", external_id="").exists()
         assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

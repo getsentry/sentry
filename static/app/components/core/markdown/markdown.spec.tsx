@@ -351,6 +351,51 @@ describe('Markdown', () => {
     });
   });
 
+  describe('tags', () => {
+    it('renders nothing for tags by default', () => {
+      const {container} = render(
+        <Markdown raw='{% ref type="issue" id="PROJ-123" /%}' />
+      );
+      expect(container).toHaveTextContent('');
+    });
+
+    it('renders custom Tag component with attrs', () => {
+      render(
+        <Markdown
+          raw='{% ref type="issue" id="PROJ-123" /%}'
+          components={{
+            Tag: ({attrs}) => <output role="log">{JSON.stringify(attrs)}</output>,
+          }}
+        />
+      );
+      expect(screen.getByRole('log')).toHaveTextContent(
+        '{"type":"issue","id":"PROJ-123"}'
+      );
+    });
+
+    it('passes separate attrs and data for block tags', () => {
+      render(
+        <Markdown
+          raw='{% artifact type="root-cause" %}{"description":"Race condition"}{% /artifact %}'
+          components={{
+            Tag: ({attrs, data}) => (
+              <output role="log">{JSON.stringify({attrs, data})}</output>
+            ),
+          }}
+        />
+      );
+      expect(screen.getByRole('log')).toHaveTextContent(
+        '{"attrs":{"type":"root-cause"},"data":{"description":"Race condition"}}'
+      );
+    });
+
+    it('suppresses partial tag syntax in text', () => {
+      const {container} = render(<Markdown raw='Some text {% ref type="issue"' />);
+      expect(container).toHaveTextContent(/Some text/);
+      expect(container).not.toHaveTextContent(/\{%/);
+    });
+  });
+
   describe('token caching', () => {
     it('renders correctly when raw prop changes', () => {
       const {rerender} = render(<Markdown raw="First" />);

@@ -12,7 +12,7 @@ import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];

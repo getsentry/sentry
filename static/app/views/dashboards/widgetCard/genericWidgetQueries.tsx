@@ -2,8 +2,8 @@ import {useEffect, useMemo, useRef} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
-import type {ResponseMeta} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';

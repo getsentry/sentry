@@ -70,6 +70,7 @@ class PostProcessJob(TypedDict, total=False):
     has_reappeared: bool
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool
+    halt_post_process: bool
 
 
 def _should_send_error_created_hooks(project: Project) -> bool:
@@ -689,6 +690,15 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     "pipeline": pipeline_step.__name__,
                 },
             )
+            if job.get("halt_post_process"):
+                metrics.incr(
+                    "sentry.tasks.post_process.post_process_group.halted",
+                    tags={
+                        "issue_category": issue_category_metric,
+                        "pipeline": pipeline_step.__name__,
+                    },
+                )
+                break
 
 
 def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
@@ -768,6 +778,25 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 event.group.status = GroupStatus.UNRESOLVED
                 event.group.substatus = GroupSubStatus.REGRESSED
                 add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+
+
+def _noop_malicious_issue_detection_hook(job: PostProcessJob) -> bool:
+    return False
+
+
+_malicious_issue_detection_hook: Callable[[PostProcessJob], bool] = (
+    _noop_malicious_issue_detection_hook
+)
+
+
+def set_malicious_issue_detection_hook(hook: Callable[[PostProcessJob], bool]) -> None:
+    global _malicious_issue_detection_hook
+    _malicious_issue_detection_hook = hook
+
+
+def process_malicious_issue_detection(job: PostProcessJob) -> None:
+    if _malicious_issue_detection_hook(job):
+        job["halt_post_process"] = True
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -1243,9 +1272,6 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    if not features.has("organizations:processing-errors-eap", event.project.organization):
-        return
-
     processing_errors = event.data.get("errors", [])
     if not processing_errors:
         return
@@ -1578,6 +1604,24 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     trigger_lightweight_rca_cluster_task.delay(group.id)
 
 
+def _noop_siem_security_log_hook(job: PostProcessJob) -> None:
+    pass
+
+
+# No-op in sentry; getsentry overrides via set_siem_security_log_hook. Resolved
+# at call time so the override needs no changes to the pipelines below.
+_siem_security_log_hook: Callable[[PostProcessJob], None] = _noop_siem_security_log_hook
+
+
+def set_siem_security_log_hook(hook: Callable[[PostProcessJob], None]) -> None:
+    global _siem_security_log_hook
+    _siem_security_log_hook = hook
+
+
+def process_siem_security_logging(job: PostProcessJob) -> None:
+    _siem_security_log_hook(job)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
     GroupCategory, list[Callable[[PostProcessJob], None]]
 ] = {
@@ -1585,6 +1629,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
+        process_malicious_issue_detection,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,
@@ -1606,6 +1651,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         check_if_flags_sent,
         process_processing_errors_eap,
         process_processing_issue_detection,
+        process_siem_security_logging,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

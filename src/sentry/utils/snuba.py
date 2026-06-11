@@ -6,7 +6,6 @@ import logging
 import math
 import os
 import re
-import time
 from collections import namedtuple
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
@@ -482,15 +481,6 @@ SnubaTSResult = namedtuple("SnubaTSResult", ("data", "start", "end", "rollup"))
 
 
 @contextmanager
-def timer(name, prefix="snuba.client"):
-    t = time.time()
-    try:
-        yield
-    finally:
-        metrics.timing(f"{prefix}.{name}", time.time() - t)
-
-
-@contextmanager
 def options_override(overrides):
     """\
     NOT THREAD SAFE!
@@ -716,7 +706,7 @@ def get_query_params_to_update_for_projects(
         project_ids = list(set(query_params.filter_keys["project_id"]))
     elif query_params.filter_keys:
         # Otherwise infer the project_ids from any related models
-        with timer("get_related_project_ids"):
+        with metrics.timer("snuba.client.get_related_project_ids"):
             project_ids = infer_project_ids_from_related_models(query_params.filter_keys)
     elif query_params.conditions:
         project_ids = []
@@ -1239,11 +1229,10 @@ def _apply_cache_and_build_results(
 
 
 def _is_rejected_query(body: Any) -> bool:
-    return (
+    return bool(
         "quota_allowance" in body
         and "summary" in body["quota_allowance"]
-        and "rejected_by" in body["quota_allowance"]["summary"]
-        and body["quota_allowance"]["summary"]["rejected_by"] is not None
+        and body["quota_allowance"]["summary"].get("rejected_by")
     )
 
 
@@ -1469,7 +1458,7 @@ def _raw_delete_query(
         )
 
     # Enter hub such that http spans are properly nested
-    with timer("delete_query"):
+    with metrics.timer("snuba.client.delete_query"):
         referrer = headers.get("referer", "unknown")
         with sentry_sdk.start_span(op="snuba_delete.validation", name=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
@@ -1484,7 +1473,7 @@ def _raw_delete_query(
 
 def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.response.HTTPResponse:
     # Enter hub such that http spans are properly nested
-    with timer("mql_query"):
+    with metrics.timer("snuba.client.mql_query"):
         referrer = headers.get("referer", "unknown")
 
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
@@ -1502,7 +1491,7 @@ def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.resp
 
 def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.response.HTTPResponse:
     # Enter hub such that http spans are properly nested
-    with timer("snql_query"):
+    with metrics.timer("snuba.client.snql_query"):
         referrer = headers.get("referer", "<unknown>")
 
         serialized_req = request.serialize()
@@ -1570,7 +1559,7 @@ def query(
 
     assert expected_cols == got_cols, f"expected {expected_cols}, got {got_cols}"
 
-    with timer("process_result"):
+    with metrics.timer("snuba.client.process_result"):
         if totals:
             return (
                 nest_groups(body["data"], groupby, aggregate_names + selected_names),

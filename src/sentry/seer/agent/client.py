@@ -6,7 +6,6 @@ import time
 from datetime import datetime
 from typing import Any, Literal, overload
 
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone as django_timezone
@@ -23,6 +22,7 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client_models import AgentRun, AgentRunWithPrs, SeerRunState
@@ -57,14 +57,53 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+def _trigger_explorer_indexes_if_needed(
+    organization_id: int,
+    has_explorer_index: bool | None,
+    has_org_project_context: bool | None,
+) -> None:
+    """Trigger explorer indexing for the org if Seer reports missing indexes."""
+    if options.get("seer.explorer_index.killswitch.enable"):
+        logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
+        return
+
+    logger.info(
+        "Maybe trigger explorer index tasks",
+        extra={
+            "organization_id": organization_id,
+            "has_explorer_index": has_explorer_index,
+            "has_org_project_context": has_org_project_context,
+        },
+    )
+    if has_explorer_index is False:
+        projects = list(
+            Project.objects.filter(
+                organization_id=organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
+        )
+
+        projects_batch = [(p.id, organization_id) for p in projects if p.flags.has_transactions]
+
+        if projects_batch:
+            for _ in dispatch_explorer_index_projects(iter(projects_batch), django_timezone.now()):
+                pass
+
+    if has_org_project_context is False:
+        logger.info(
+            "Dispatching context engine index tasks",
+            extra={"organization_id": organization_id},
+        )
+        index_org_project_knowledge.apply_async(args=[organization_id])
+        build_service_map.apply_async(args=[organization_id])
+
+
 def _has_context_engine(
     organization: Organization, user: User | RpcUser | AnonymousUser | None
 ) -> bool:
-    return (
-        features.has("organizations:seer-explorer-context-engine", organization, actor=user)
-        or features.has("organizations:seat-based-seer-enabled", organization, actor=user)
-        or features.has("organizations:seer-added", organization, actor=user)
-    )
+    return features.has(
+        "organizations:seat-based-seer-enabled", organization, actor=user
+    ) or features.has("organizations:seer-added", organization, actor=user)
 
 
 class SeerAgentClient:
@@ -81,7 +120,7 @@ class SeerAgentClient:
 
         # SIMPLE USAGE
         client = SeerAgentClient(organization, user)
-        run_id = client.start_run("Analyze trace XYZ and find performance issues")
+        run_id = client.start_run("Analyze trace XYZ and find performance issues").seer_run_state_id
         state = client.get_run(run_id)
 
         # WITH ARTIFACTS
@@ -100,7 +139,7 @@ class SeerAgentClient:
             "Analyze why users see 500 errors",
             artifact_key="root_cause",
             artifact_schema=RootCause
-        )
+        ).seer_run_state_id
         state = client.get_run(run_id, blocking=True)
         root_cause = state.get_artifact("root_cause", RootCause)
 
@@ -138,7 +177,7 @@ class SeerAgentClient:
             user,
             custom_tools=[DeploymentStatusTool]
         )
-        run_id = client.start_run("Check if payment-service is deployed in production")
+        run_id = client.start_run("Check if payment-service is deployed in production").seer_run_state_id
 
         # WITH ON-COMPLETION HOOK
         from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
@@ -154,7 +193,7 @@ class SeerAgentClient:
             user,
             on_completion=NotifyOnComplete
         )
-        run_id = client.start_run("Analyze this issue")
+        run_id = client.start_run("Analyze this issue").seer_run_state_id
 
         # WITH CODE EDITING AND PR CREATION
         client = SeerAgentClient(
@@ -163,7 +202,7 @@ class SeerAgentClient:
             enable_coding=True,  # Enable code editing tools
         )
 
-        run_id = client.start_run("Fix the null pointer exception in auth.py")
+        run_id = client.start_run("Fix the null pointer exception in auth.py").seer_run_state_id
         state = client.get_run(run_id, blocking=True)
 
         # Check if agent made code changes and if they need to be pushed
@@ -180,7 +219,7 @@ class SeerAgentClient:
 
         # WITH EXTERNAL CODING AGENTS (e.g., Cursor)
         client = SeerAgentClient(organization, user)
-        run_id = client.start_run("Analyze the authentication bug")
+        run_id = client.start_run("Analyze the authentication bug").seer_run_state_id
         state = client.get_run(run_id, blocking=True)
 
         result = client.launch_coding_agents(
@@ -200,6 +239,7 @@ class SeerAgentClient:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, RpcUser, AnonymousUser, or None)
             project: Optional project for project-scoped runs (e.g. autofix for an issue)
+            group: Optional group/issue for issue-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `AgentTool` classes to make available as tools to the agent. Each tool must inherit from AgentTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
@@ -207,6 +247,7 @@ class SeerAgentClient:
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
+            code_review_enabled: Expose the review_code_changes tool, which spawns a reviewer agent to check accumulated code edits before finalizing. Only useful alongside enable_coding. Default is False.
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
     """
 
@@ -215,6 +256,7 @@ class SeerAgentClient:
         organization: Organization,
         user: User | RpcUser | AnonymousUser | None = None,
         project: Project | None = None,
+        group: Group | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
         custom_tools: list[type[AgentTool[Any]]] | None = None,
@@ -224,11 +266,13 @@ class SeerAgentClient:
         is_interactive: bool = False,
         enable_coding: bool = False,
         enable_code_mode_tools: str = "off",
+        code_review_enabled: bool = False,
         max_iterations: int | None = None,
     ):
         self.organization = organization
         self.user = user
         self.project = project
+        self.group = group
         self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
         self.intelligence_level = intelligence_level
@@ -237,6 +281,7 @@ class SeerAgentClient:
         self.category_value = category_value
         self.is_interactive = is_interactive
         self.enable_code_mode_tools = enable_code_mode_tools
+        self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
@@ -275,7 +320,7 @@ class SeerAgentClient:
         request: Request | None = None,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
-    ) -> int:
+    ) -> SeerRun:
         """
         Start a new Seer Agent session.
 
@@ -284,11 +329,13 @@ class SeerAgentClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key to identify this artifact (required if artifact_schema is provided)
             artifact_schema: Optional Pydantic model to generate a structured artifact
-            metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
+            metadata: Optional metadata to store with the run (e.g., stopping_point). group_id is
+                added automatically when the client was constructed with a group.
             request: Optional rest_framework Request object from endpoints.
 
         Returns:
-            int: The run ID that can be used to fetch results or continue the conversation
+            SeerRun: The mirror row for the run. Its seer_run_state_id is the id
+            passed to get_run/continue_run and surfaced to clients.
 
         Raises:
             SeerApiError: If the Seer API request fails
@@ -298,6 +345,12 @@ class SeerAgentClient:
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
         user_org_context = collect_user_org_context(self.user, self.organization, request=request)
+
+        agent_run_options: dict[str, Any] = {
+            "enable_coding": self.enable_coding,
+            "enable_code_mode_tools": self.enable_code_mode_tools,
+            "code_review_enabled": self.code_review_enabled,
+        }
 
         chat_body: AgentChatRequest = AgentChatRequest(
             organization_id=self.organization.id,
@@ -309,8 +362,7 @@ class SeerAgentClient:
             user_org_context=user_org_context,
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
-            enable_coding=self.enable_coding,
-            enable_code_mode_tools=self.enable_code_mode_tools,
+            agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
@@ -347,6 +399,9 @@ class SeerAgentClient:
             chat_body["category_key"] = self.category_key
             chat_body["category_value"] = self.category_value
 
+        if self.group:
+            metadata = {**(metadata or {}), "group_id": self.group.id}
+
         if metadata:
             chat_body["metadata"] = metadata
 
@@ -355,136 +410,87 @@ class SeerAgentClient:
 
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                chat_body["is_context_engine_enabled"] = True
+                agent_run_options["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
             self.organization,
             actor=self.user,
         ):
-            chat_body["is_context_engine_enabled"] = override_ce_enable
+            agent_run_options["is_context_engine_enabled"] = override_ce_enable
 
         if features.has(
             "organizations:seer-agent-source-code-search",
             self.organization,
             actor=self.user,
         ):
-            chat_body["enable_frontend_code_search"] = True
+            agent_run_options["enable_frontend_code_search"] = True
 
-        if features.has("organizations:seer-run-mirror-explorer", self.organization):
-            user_id = (
-                self.user.id
-                if self.user and hasattr(self.user, "id") and self.user.id is not None
-                else None
-            )
-            try:
-                with outbox_context(
-                    transaction.atomic(using=router.db_for_write(SeerRun)), flush=True
-                ):
-                    run = SeerRun.objects.create(
-                        organization=self.organization,
-                        user_id=user_id,
-                        type=SeerRunType.EXPLORER,
-                        last_triggered_at=now(),
-                    )
-                    source = self.category_key or ""
-                    if not source:
-                        logger.warning(
-                            "seer_agent_run.missing_source",
-                            extra={
-                                "organization_id": self.organization.id,
-                                "seer_run_id": run.id,
-                                "user_id": user_id,
-                            },
-                        )
-                    SeerAgentRun.objects.create(
-                        run=run,
-                        title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
-                        source=source,
-                        project=self.project,
-                        extras=(
-                            {"category_value": self.category_value} if self.category_value else {}
-                        ),
-                    )
-                    CellOutbox(
-                        shard_scope=OutboxScope.SEER_SCOPE,
-                        shard_identifier=run.id,
-                        category=OutboxCategory.SEER_RUN_CREATE,
-                        object_identifier=run.id,
-                        payload={
-                            "body": dict(chat_body),
-                            "viewer_context": dict(self.viewer_context),
-                        },
-                    ).save()
-            except (OutboxFlushError, OutboxDatabaseError):
-                metrics.incr("seer.outbox_flush_error", tags={"type": "explorer"})
-                logger.exception(
-                    "explorer.outbox_flush_error",
-                    extra={
-                        "organization_id": self.organization.id,
-                        "seer_run_id": run.id,
-                        "seer_run_uuid": str(run.uuid),
-                    },
-                )
-                run.mirror_status = SeerRunMirrorStatus.FAILED
-                run.save(update_fields=["mirror_status"])
-                raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
-            run.refresh_from_db()
-            if run.mirror_status == SeerRunMirrorStatus.FAILED:
-                raise SeerApiError("Seer run failed during outbox drain", 500)
-            return run.seer_run_state_id
-
-        response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
-
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
-        result = response.json()
-
-        try:
-            self._maybe_trigger_explorer_index_for_new_run(
-                result.get("has_explorer_index"),
-                result.get("has_org_project_context"),
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
-        return result["run_id"]
-
-    def _maybe_trigger_explorer_index_for_new_run(
-        self,
-        has_explorer_index: bool | None,
-        has_org_project_context: bool | None,
-    ) -> None:
-        """Trigger explorer indexing for the org if Seer reports missing indexes."""
-        if options.get("seer.explorer_index.killswitch.enable"):
-            logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
-            return
-
-        if has_explorer_index is not None and not has_explorer_index:
-            projects = list(
-                Project.objects.filter(
-                    organization_id=self.organization.id,
-                    status=ObjectStatus.ACTIVE,
-                )
-            )
-
-            projects_batch = [
-                (p.id, self.organization.id) for p in projects if p.flags.has_transactions
-            ]
-
-            if projects_batch:
-                for _ in dispatch_explorer_index_projects(
-                    iter(projects_batch), django_timezone.now()
-                ):
-                    pass
-
-        if (
-            has_org_project_context is not None
-            and not has_org_project_context
-            and options.get("explorer.context_engine_indexing.enable")
+        if features.has(
+            "organizations:seer-use-agent-sandbox",
+            self.organization,
+            actor=self.user,
         ):
-            index_org_project_knowledge.apply_async(args=[self.organization.id])
-            build_service_map.apply_async(args=[self.organization.id])
+            agent_run_options["use_agent_sandbox"] = True
+
+        user_id = (
+            self.user.id
+            if self.user and hasattr(self.user, "id") and self.user.id is not None
+            else None
+        )
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(SeerRun)), flush=True):
+                run = SeerRun.objects.create(
+                    organization=self.organization,
+                    user_id=user_id,
+                    type=SeerRunType.EXPLORER,
+                    last_triggered_at=now(),
+                )
+                source = self.category_key or ""
+                if not source:
+                    logger.warning(
+                        "seer_agent_run.missing_source",
+                        extra={
+                            "organization_id": self.organization.id,
+                            "seer_run_id": run.id,
+                            "user_id": user_id,
+                        },
+                    )
+                SeerAgentRun.objects.create(
+                    run=run,
+                    title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
+                    source=source,
+                    project=self.project,
+                    group=self.group,
+                    extras=({"category_value": self.category_value} if self.category_value else {}),
+                )
+                CellOutbox(
+                    shard_scope=OutboxScope.SEER_SCOPE,
+                    shard_identifier=run.id,
+                    category=OutboxCategory.SEER_RUN_CREATE,
+                    object_identifier=run.id,
+                    payload={
+                        "body": dict(chat_body),
+                        "viewer_context": dict(self.viewer_context),
+                    },
+                ).save()
+        except (OutboxFlushError, OutboxDatabaseError):
+            metrics.incr("seer.outbox_flush_error", tags={"type": "explorer"})
+            logger.exception(
+                "explorer.outbox_flush_error",
+                extra={
+                    "organization_id": self.organization.id,
+                    "seer_run_id": run.id,
+                    "seer_run_uuid": str(run.uuid),
+                },
+            )
+            run.mirror_status = SeerRunMirrorStatus.FAILED
+            run.save(update_fields=["mirror_status"])
+            raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
+        run.refresh_from_db()
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            raise SeerApiError("Seer run failed during outbox drain", 500)
+        return run
 
     def continue_run(
         self,
@@ -520,6 +526,12 @@ class SeerAgentClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
+        agent_run_options: dict[str, Any] = {
+            "enable_coding": self.enable_coding,
+            "enable_code_mode_tools": self.enable_code_mode_tools,
+            "code_review_enabled": self.code_review_enabled,
+        }
+
         chat_body: AgentChatRequest = AgentChatRequest(
             organization_id=self.organization.id,
             query=prompt,
@@ -528,8 +540,7 @@ class SeerAgentClient:
             on_page_context=on_page_context,
             page_name=page_name,
             is_interactive=self.is_interactive,
-            enable_coding=self.enable_coding,
-            enable_code_mode_tools=self.enable_code_mode_tools,
+            agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
@@ -547,20 +558,30 @@ class SeerAgentClient:
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
         if _has_context_engine(self.organization, self.user):
-            chat_body["is_context_engine_enabled"] = True
+            agent_run_options["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-agent-source-code-search",
             self.organization,
             actor=self.user,
         ):
-            chat_body["enable_frontend_code_search"] = True
+            agent_run_options["enable_frontend_code_search"] = True
+
+        if features.has(
+            "organizations:seer-use-agent-sandbox",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["use_agent_sandbox"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
         result = response.json()
+
+        SeerRun.objects.filter(seer_run_state_id=run_id).update(last_triggered_at=now())
+
         return result["run_id"]
 
     def get_run(
@@ -707,6 +728,7 @@ class SeerAgentClient:
         repo_name: str | None = None,
         blocking: bool = True,
         pr_description_suffix: str | None = None,
+        ready_for_review: bool = True,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:
@@ -736,7 +758,7 @@ class SeerAgentClient:
             raise SeerPermissionError("Code generation is disabled for this organization")
 
         # Trigger PR creation
-        payload: dict[str, Any] = {"type": "create_pr"}
+        payload: dict[str, Any] = {"type": "create_pr", "ready_for_review": ready_for_review}
         if repo_name:
             payload["repo_name"] = repo_name
         if pr_description_suffix:

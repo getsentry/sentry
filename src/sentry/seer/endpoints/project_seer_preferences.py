@@ -60,8 +60,8 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         ProjectEventPermission,  # Anyone in the org should be able to set preferences, follows event permissions.
     )
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True

@@ -96,7 +96,7 @@ def initialize_integration_pipeline(
             % "\n".join(is_feature_enabled)
         )
 
-    if not pipeline.provider.can_add:
+    if not pipeline.provider.can_add and not pipeline.provider.can_add_externally:
         raise IntegrationPipelineError("Integration cannot be added.", not_found=True)
 
     pipeline.initialize()

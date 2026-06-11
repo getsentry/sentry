@@ -26,7 +26,7 @@ import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selec
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
@@ -34,6 +34,7 @@ import {
   DetectorListRow,
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
+import {IssueStreamDetectorContextProvider} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 import {
@@ -133,6 +134,11 @@ export function DetectorListTable({
   const canDisable = useMemo(
     () => detectors.some(d => selected.has(d.id) && d.enabled),
     [detectors, selected]
+  );
+
+  const uniqueProjectIds = useMemo(
+    () => [...new Set(detectors.map(d => d.projectId))],
+    [detectors]
   );
 
   const selectedDetectors = detectors.filter(d => selected.has(d.id));
@@ -267,14 +273,16 @@ export function DetectorListTable({
             cursorOverlayAnchorOffset={10}
           />
         )}
-        {detectors.map(detector => (
-          <DetectorListRow
-            key={detector.id}
-            detector={detector}
-            selected={selected.has(detector.id)}
-            onSelect={handleSelect}
-          />
-        ))}
+        <IssueStreamDetectorContextProvider projectIds={uniqueProjectIds}>
+          {detectors.map(detector => (
+            <DetectorListRow
+              key={detector.id}
+              detector={detector}
+              selected={selected.has(detector.id)}
+              onSelect={handleSelect}
+            />
+          ))}
+        </IssueStreamDetectorContextProvider>
       </DetectorListSimpleTable>
     </TableContainer>
   );

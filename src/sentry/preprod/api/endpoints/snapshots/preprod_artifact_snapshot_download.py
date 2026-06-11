@@ -14,7 +14,6 @@ from io import BytesIO
 import orjson
 from django.conf import settings
 from django.http import StreamingHttpResponse
-from django.http.response import HttpResponseBase
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -29,6 +28,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
@@ -115,7 +115,7 @@ class OrganizationPreprodSnapshotDownloadEndpoint(OrganizationEndpoint):
     )
     def get(
         self, request: Request, organization: Organization, snapshot_id: str
-    ) -> HttpResponseBase:
+    ) -> Response[DetailResponse] | StreamingHttpResponse:
         """
         Download all images in a snapshot as a ZIP archive.
 

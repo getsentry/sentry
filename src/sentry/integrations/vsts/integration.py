@@ -7,18 +7,17 @@ from time import time
 from typing import Any, TypedDict
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
-from django import forms
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext as _
+from rest_framework import serializers
 from rest_framework.fields import CharField
 from rest_framework.serializers import Serializer
 
 from sentry import features, http, options
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2ApiStep
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import VSTSNewIdentityProvider, get_user_info
 from sentry.integrations.base import (
@@ -53,7 +52,6 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
-from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -62,7 +60,6 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from .client import VstsApiClient, VstsSetupApiClient
 from .repository import VstsRepositoryProvider
@@ -450,6 +447,28 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
             return None
 
 
+class VstsInitialDataSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    """Optional initial pipeline data for Azure DevOps Marketplace installs.
+
+    The Marketplace redirects to the configure link with `targetId`
+    identifying the Azure DevOps organization the install was started from. We
+    bind it as a pre-selected account so the account-selection step can
+    auto-advance -- but it is still verified against the user's actual Azure
+    DevOps memberships before it's accepted (see VstsAccountSelectionApiStep),
+    so it is only a hint, not a trusted value. In-app installs send no initial
+    data and fall through to the normal picker.
+    """
+
+    target_id = serializers.CharField(required=False)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        target_id = attrs.get("target_id")
+        if not target_id:
+            return {}
+
+        return {"preselected_account_id": target_id}
+
+
 class VstsAccountSelectionSerializer(Serializer):
     account = CharField(required=True)
 
@@ -469,9 +488,7 @@ class VstsAccountSelectionApiStep:
     def get_serializer_cls(self) -> type:
         return VstsAccountSelectionSerializer
 
-    def get_step_data(
-        self, pipeline: IntegrationPipeline, request: HttpRequest
-    ) -> VstsAccountSelectionStepData:
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.ACCOUNT_CONFIG,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -495,12 +512,23 @@ class VstsAccountSelectionApiStep:
 
             accounts_list = accounts["value"]
             pipeline.bind_state("accounts", accounts_list)
-            return {
+            step_data: dict[str, Any] = {
                 "accounts": [
                     {"accountId": account["accountId"], "accountName": account["accountName"]}
                     for account in accounts_list
                 ]
             }
+
+            # Marketplace installs pre-select an account via initialData. When
+            # the user is actually a member of it, surface it as the chosen
+            # account so the frontend can advance without prompting; otherwise
+            # fall through to the normal picker. The selection is still verified
+            # in handle_post, so this is purely a UX shortcut.
+            preselected_id = pipeline.fetch_state("preselected_account_id")
+            if preselected_id and get_account_from_id(preselected_id, accounts_list) is not None:
+                step_data["account"] = preselected_id
+
+            return step_data
 
     def handle_post(
         self,
@@ -521,6 +549,9 @@ class VstsAccountSelectionApiStep:
 class VstsIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
+    # Installs can also be initiated from the Azure DevOps Marketplace, which
+    # drives this same pipeline with the account supplied as initial data.
+    can_add_externally = True
     metadata = metadata
     api_version = "4.1"
     oauth_redirect_url = "/extensions/vsts/setup/"
@@ -575,26 +606,16 @@ class VstsIntegrationProvider(IntegrationProvider):
         return VstsIntegrationProvider.NEW_SCOPES
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        identity_pipeline_config = {
-            "redirect_url": absolute_uri(self.oauth_redirect_url),
-            "oauth_scopes": self.get_scopes(),
-        }
-
-        return [
-            NestedPipelineView(
-                bind_key="identity",
-                provider_key=self.key,
-                pipeline_cls=IdentityPipeline,
-                config=identity_pipeline_config,
-            ),
-            AccountConfigView(),
-        ]
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [
             self._make_oauth_api_step(),
             VstsAccountSelectionApiStep(),
         ]
+
+    def get_initial_data_serializer_cls(self) -> type[VstsInitialDataSerializer]:
+        return VstsInitialDataSerializer
 
     def _make_oauth_api_step(self) -> OAuth2ApiStep:
         provider = VSTSNewIdentityProvider(
@@ -611,13 +632,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         )
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        # TODO: legacy views write token data to state["identity"]["data"] via
-        # NestedPipelineView. API steps write directly to state["oauth_data"].
-        # Remove the legacy path once the old views are retired.
-        if "oauth_data" in state:
-            data = state["oauth_data"]
-        else:
-            data = state["identity"]["data"]
+        data = state["oauth_data"]
         oauth_data = self.get_oauth_data(data)
         account = state["account"]
         user = get_user_info(data["access_token"])
@@ -794,58 +809,4 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         bindings.add(
             "integration-repository.provider", VstsRepositoryProvider, id="integrations:vsts"
-        )
-
-
-class AccountConfigView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with IntegrationPipelineViewEvent(
-            IntegrationPipelineViewType.ACCOUNT_CONFIG,
-            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            VstsIntegrationProvider.key,
-        ).capture() as lifecycle:
-            account_id = request.POST.get("account")
-            if account_id is not None:
-                state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
-                    key="accounts"
-                )
-                account = get_account_from_id(account_id, state_accounts or [])
-                if account is not None:
-                    pipeline.bind_state("account", account)
-                    return pipeline.next_step()
-
-            state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
-            access_token = (state or {}).get("data", {}).get("access_token")
-            user = get_user_info(access_token)
-
-            accounts = get_accounts(access_token, user["uuid"])
-            extra = {
-                "organization_id": pipeline.organization.id if pipeline.organization else None,
-                "user_id": request.user.id,
-                "accounts": accounts,
-            }
-            if not accounts or not accounts.get("value"):
-                lifecycle.record_halt(IntegrationPipelineHaltReason.NO_ACCOUNTS, extra=extra)
-                return render_to_response(
-                    template="sentry/integrations/vsts-config.html",
-                    context={"no_accounts": True},
-                    request=request,
-                )
-            accounts = accounts["value"]
-            pipeline.bind_state("accounts", accounts)
-            account_form = AccountForm(accounts)
-            return render_to_response(
-                template="sentry/integrations/vsts-config.html",
-                context={"form": account_form, "no_accounts": False},
-                request=request,
-            )
-
-
-class AccountForm(forms.Form):
-    def __init__(self, accounts: Sequence[Mapping[str, str]], *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.fields["account"] = forms.ChoiceField(
-            choices=[(acct["accountId"], acct["accountName"]) for acct in accounts],
-            label="Account",
-            help_text="Azure DevOps organization.",
         )

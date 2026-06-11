@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -93,7 +93,7 @@ def _get_tag_and_feature_flag_keys(
 
     # Get custom tags
     event_params = {**base_params, "dataset": Dataset.Events.value}
-    event_resp = client.get(
+    event_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{org_slug}/tags/",
@@ -112,7 +112,7 @@ def _get_tag_and_feature_flag_keys(
             "dataset": Dataset.Events.value,
             "useFlagsBackend": "1",
         }
-        flags_resp = client.get(
+        flags_resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{org_slug}/tags/",
@@ -287,7 +287,7 @@ def get_event_filter_key_values(
         base_params["query"] = substring
 
     # Try tags query
-    resp = client.get(
+    resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/{filter_key}/values/",
@@ -297,7 +297,7 @@ def get_event_filter_key_values(
     # Try ff query. In the case of collisions we use tag values as we deem them more important.
     # TODO: Pass in an explicit is_feature_flag param if the agent can produce it.
     if not resp.data:
-        resp = client.get(
+        resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/tags/{filter_key}/values/",

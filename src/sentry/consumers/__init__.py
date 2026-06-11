@@ -582,12 +582,13 @@ def get_stream_processor(
         **extra_kwargs,
     )
 
-    def build_consumer_config(group_id: str):
+    def build_consumer_config(group_id: str, topic: Topic | None = consumer_topic):
         assert cluster is not None
 
         consumer_config = build_kafka_consumer_configuration(
             kafka_config.get_kafka_consumer_cluster_options(
                 cluster,
+                topic=topic,
             ),
             group_id=group_id,
             auto_offset_reset=auto_offset_reset,
@@ -628,8 +629,15 @@ def get_stream_processor(
         assert synchronize_commit_group is not None
         assert synchronize_commit_log_topic is not None
 
+        # The commit log consumer reads its own topic, so key its per-topic config by that
+        # topic rather than the main consumer's
+        try:
+            commit_log_topic = Topic(synchronize_commit_log_topic)
+        except ValueError:
+            commit_log_topic = None
+
         commit_log_consumer = KafkaConsumer(
-            build_consumer_config(f"sentry-commit-log-{uuid.uuid1().hex}")
+            build_consumer_config(f"sentry-commit-log-{uuid.uuid1().hex}", topic=commit_log_topic)
         )
 
         from sentry.consumers.synchronized import SynchronizedConsumer

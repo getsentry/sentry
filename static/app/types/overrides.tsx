@@ -145,10 +145,7 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 type AttemptCloseAttemptProps = {
   handleRemoveAccount: () => void;
   organizationSlugs: string[];
-};
-
-type CodecovLinkProps = {
-  organization: Organization;
+  userEmail: string;
 };
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
@@ -187,7 +184,6 @@ type DashboardLimitProviderProps = {
 type ComponentOverrides = {
   'component:ai-configure-seer-quota-sidebar': () => React.ComponentType<AutofixContentProps>;
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
-  'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
@@ -259,7 +255,6 @@ type AnalyticsOverrides = {
 export type FeatureDisabledOverrides = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledOverride;
   'feature-disabled:alerts-page': FeatureDisabledOverride;
-  'feature-disabled:codecov-integration-setting': FeatureDisabledOverride;
   'feature-disabled:custom-inbound-filters': FeatureDisabledOverride;
   'feature-disabled:dashboards-edit': FeatureDisabledOverride;
   'feature-disabled:dashboards-page': FeatureDisabledOverride;

@@ -69,6 +69,7 @@ const config: Config.InitialOptions = {
 
   transform: {
     '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
+    '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
@@ -76,7 +77,7 @@ const config: Config.InitialOptions = {
       : '/node_modules/',
   ],
 
-  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
 };
 
 export default config;

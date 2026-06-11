@@ -396,6 +396,37 @@ class NPlusOneDBSpanDetectorTest(unittest.TestCase):
 
         assert self.find_problems(event) == []
 
+    def test_does_not_detect_n_plus_one_with_cached_queries(self) -> None:
+        source_span = create_span(
+            "db",
+            100,
+            "SELECT * FROM features WHERE key = 'a'",
+            hash="source_hash",
+        )
+
+        # Repeats look like an N+1 but are served from the query cache, so they
+        # never touch the database and shouldn't be flagged.
+        repeating_spans = [
+            create_span(
+                "db",
+                100,
+                "SELECT * FROM features WHERE key = 'b'",
+                hash="repeating_hash",
+                data={"cached": True},
+            )
+            for _ in range(11)
+        ]
+
+        event = create_event([source_span] + repeating_spans)
+        event["contexts"] = {
+            "trace": {
+                "span_id": "a" * 16,
+                "op": "http.server",
+            }
+        }
+
+        assert self.find_problems(event) == []
+
 
 @pytest.mark.django_db
 class NPlusOneDbSettingTest(TestCase):
@@ -407,7 +438,7 @@ class NPlusOneDbSettingTest(TestCase):
         settings = get_detection_settings(project)
         detector = NPlusOneDBSpanDetector(settings[NPlusOneDBSpanDetector.settings_key], event)
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -418,4 +449,4 @@ class NPlusOneDbSettingTest(TestCase):
         settings = get_detection_settings(project)
         detector = NPlusOneDBSpanDetector(settings[NPlusOneDBSpanDetector.settings_key], event)
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()

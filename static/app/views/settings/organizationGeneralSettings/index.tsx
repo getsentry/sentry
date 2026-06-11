@@ -17,7 +17,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -74,13 +73,6 @@ export default function OrganizationGeneralSettings() {
         navigate(`/settings/${updated.slug}/`, {replace: true});
       }
     } else {
-      if (prevData.codecovAccess !== updated.codecovAccess) {
-        trackAnalytics('organization_settings.codecov_access_updated', {
-          organization: updated,
-          has_access: updated.codecovAccess,
-        });
-      }
-
       // This will update OrganizationStore (as well as OrganizationsStore
       // which is slightly incorrect because it has summaries vs a detailed org)
       updateOrganization(updated);

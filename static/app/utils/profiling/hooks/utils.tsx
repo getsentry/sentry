@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {EventsStatsSeries} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';
 

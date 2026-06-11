@@ -25,10 +25,6 @@ jest.mock('@sentry/scraps/layout', () => {
   };
 });
 
-jest.mock('@sentry/scraps/tooltip', () => ({
-  Tooltip: ({children}: {children: React.ReactNode}) => children,
-}));
-
 jest.mock('sentry/utils/useCopyToClipboard', () => ({
   useCopyToClipboard: () => ({copy: jest.fn()}),
 }));

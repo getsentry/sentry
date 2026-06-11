@@ -1,15 +1,21 @@
 from collections.abc import Sequence
 
+from django.db import router
+
 from sentry.deletions.base import (
     BaseRelation,
     BulkModelDeletionTask,
     ModelDeletionTask,
     ModelRelation,
 )
+from sentry.models.environment import Environment
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
+from sentry.silo.safety import unguarded_write
+from sentry.utils.query import bulk_delete_objects
 
 
 class OrganizationDeletionTask(ModelDeletionTask[Organization]):
@@ -31,8 +37,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.artifactbundle import ArtifactBundle
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
-        from sentry.models.environment import Environment
-        from sentry.models.groupenvironment import GroupEnvironment
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.project import Project
         from sentry.models.promptsactivity import PromptsActivity
@@ -67,7 +71,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             ModelRelation(
                 GroupEnvironment,
                 {"environment__organization_id": instance.id},
-                task=BulkModelDeletionTask,
+                task=GroupEnvironmentBulkDeletionTask,
             )
         )
 
@@ -103,3 +107,51 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
                     org_id=instance.id,
                     update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS},
                 )
+
+
+class GroupEnvironmentBulkDeletionTask(BulkModelDeletionTask[GroupEnvironment]):
+    """
+    Deletes GroupEnvironment rows by resolving environment IDs first to avoid
+    a cross-table JOIN that times out for large orgs. Pages through environment
+    IDs in batches to stay under PostgreSQL's 32k placeholder limit.
+    """
+
+    ENV_ID_BATCH_SIZE = 10_000
+    _last_env_id = 0
+
+    def _delete_instance_bulk(self) -> bool:
+        org_id = self.query["environment__organization_id"]
+
+        env_ids = list(
+            Environment.objects.filter(organization_id=org_id, id__gt=self._last_env_id)
+            .order_by("id")
+            .values_list("id", flat=True)[: self.ENV_ID_BATCH_SIZE]
+        )
+        if not env_ids:
+            self._last_env_id = 0
+            return False
+
+        try:
+            with unguarded_write(using=router.db_for_write(self.model)):
+                has_more_rows = bulk_delete_objects(
+                    model=self.model,
+                    limit=self.chunk_size,
+                    transaction_id=self.transaction_id,
+                    environment_id__in=env_ids,
+                )
+        finally:
+            model_name = self.model.__name__
+            self.logger.info(
+                f"object.delete.bulk_executed ({model_name})",
+                extra={
+                    "transaction_id": self.transaction_id,
+                    "app_label": self.model._meta.app_label,
+                    "model": model_name,
+                    **self.query,
+                },
+            )
+
+        if not has_more_rows:
+            self._last_env_id = env_ids[-1]
+
+        return True

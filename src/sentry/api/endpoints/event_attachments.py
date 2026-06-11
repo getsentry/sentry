@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,29 +9,61 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExamples
+from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.search.utils import tokenize_query
 from sentry.services import eventstore
 
+EVENT_ATTACHMENTS_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description=(
+        "Filter the attachments by name (substring match) or by attachment kind. "
+        "Use `is:screenshot` to restrict the results to screenshot attachments."
+    ),
+)
 
+
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    @extend_schema(
+        operation_id="List an Event's Attachments",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            EventParams.EVENT_ID,
+            EVENT_ATTACHMENTS_QUERY_PARAM,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListEventAttachmentsResponse", list[EventAttachmentSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=EventAttachmentExamples.LIST_EVENT_ATTACHMENTS,
+    )
+    def get(
+        self, request: Request, project, event_id
+    ) -> Response[list[EventAttachmentSerializerResponse]]:
         """
-        Retrieve attachments for an event
-        `````````````````````````````````
+        Retrieve a list of attachments uploaded for a given event.
 
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          issues belong to.
-        :pparam string project_id_or_slug: the id or slug of the project the event
-                                     belongs to.
-        :pparam string event_id: the id of the event.
-        :auth: required
+        Requires the `event-attachments` organization feature.
         """
         if not features.has(
             "organizations:event-attachments", project.organization, actor=request.user

@@ -10,7 +10,7 @@ import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
 export type MetricsResultsMetaMapKey = Widget;
 type ExtractedDataMap = Map<string, boolean | undefined>;
 
-export interface MetricsEnhancedPerformanceDataContext {
+interface MetricsEnhancedPerformanceDataContext {
   setIsMetricsData: (value?: boolean) => void;
   isMetricsData?: boolean;
 }

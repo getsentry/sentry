@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
@@ -34,6 +34,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.repository import Repository
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import (
     query_replay_id_by_prefix,
@@ -136,9 +137,17 @@ def execute_table_query(
     end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     case_insensitive: bool | None = None,
+    span_query: list[str] | None = None,
+    log_query: list[str] | None = None,
+    metric_query: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a query to get table data by calling the events endpoint.
+
+    span_query/log_query/metric_query are optional cross-event (same-trace) filters:
+    when set, results are restricted to the primary dataset's rows whose trace also
+    contains a matching span/log/metric. Forwarded to the events endpoint as repeated
+    spanQuery/logQuery/metricQuery params (read server-side by get_additional_queries).
 
     Arg notes:
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
@@ -185,6 +194,14 @@ def execute_table_query(
     # Add boolean params only if provided.
     if case_insensitive is not None:
         params["caseInsensitive"] = "1" if case_insensitive else "0"
+
+    # Cross-event (same-trace) filters.
+    if span_query:
+        params["spanQuery"] = span_query
+    if log_query:
+        params["logQuery"] = log_query
+    if metric_query:
+        params["metricQuery"] = metric_query
 
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
@@ -1129,6 +1146,54 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 ]
 
 
+class _EventTroubleshootingContext(TypedDict):
+    # These fields are added to the serialized event, which uses camelCase keys.
+    detectionContext: str | None
+    troubleshootingHint: str | None
+
+
+def _get_event_troubleshooting_context(
+    event: Event | GroupEvent,
+) -> _EventTroubleshootingContext:
+    group = event.group
+    if group is None:
+        return {"detectionContext": None, "troubleshootingHint": None}
+
+    if group.type == LowValueSpanConfigurationType.type_id:
+        occurrence = getattr(event, "occurrence", None)
+        evidence_data = occurrence.evidence_data if occurrence else {}
+        span_origin = evidence_data.get("span_origin")
+
+        troubleshooting_hint = (
+            "If the span is manually instrumented, remove the instrumentation that creates "
+            "it. Otherwise, filter the automatically created span before sending, typically "
+            "in Sentry SDK initialization."
+        )
+        if span_origin == "manual":
+            troubleshooting_hint = (
+                "Remove the manually instrumented span code that creates this span."
+            )
+        elif span_origin:
+            troubleshooting_hint = (
+                "Filter this automatically created span before sending, typically in Sentry SDK "
+                "initialization."
+            )
+
+        return {
+            "detectionContext": (
+                "This issue was created by a Sentry detector, not by an exception in the "
+                "application. It reports a high-volume span with low telemetry value so the "
+                "project can reduce noisy telemetry."
+            ),
+            "troubleshootingHint": troubleshooting_hint,
+        }
+
+    return {
+        "detectionContext": None,
+        "troubleshootingHint": None,
+    }
+
+
 def get_issue_and_event_response(
     event: Event | GroupEvent,
     group: Group | None,
@@ -1136,7 +1201,8 @@ def get_issue_and_event_response(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> dict[str, Any]:
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
+    serialized_event.update(_get_event_troubleshooting_context(event))
 
     result = {
         "event": serialized_event,
@@ -1436,7 +1502,8 @@ def get_event_details(
         )
         return None
 
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
+    serialized_event.update(_get_event_troubleshooting_context(event))
 
     return {
         "event": serialized_event,

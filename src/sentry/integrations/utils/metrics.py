@@ -373,6 +373,9 @@ class IntegrationPipelineViewType(StrEnum):
     IDENTITY_LINK = "identity_link"
     TOKEN_EXCHANGE = "token_exchange"
 
+    # Datadog
+    DCR_REGISTRATION = "dcr_registration"
+
     # GitHub
     OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
@@ -453,7 +456,10 @@ class IntegrationWebhookEventType(StrEnum):
     MERGE_REQUEST = "pull_request"
     MERGE_REQUEST_REVIEW = "pull_request_review"
     MERGE_REQUEST_REVIEW_COMMENT = "pull_request_review_comment"
+    MERGE_REQUEST_REVIEW_THREAD = "pull_request_review_thread"
     PUSH = "push"
+
+    CHECK_SUITE = "check_suite"
 
 
 @dataclass

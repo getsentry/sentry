@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {type Widget} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';

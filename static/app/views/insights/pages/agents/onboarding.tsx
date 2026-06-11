@@ -191,6 +191,11 @@ function OnboardingPanel({
                     </li>
                     <li>
                       {t(
+                        'Set a conversation ID for each chat so Sentry can group related spans in Conversations'
+                      )}
+                    </li>
+                    <li>
+                      {t(
                         'Debug failed requests and optimize prompt performance with detailed traces'
                       )}
                     </li>
@@ -327,6 +332,18 @@ export function Onboarding() {
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+      <DescriptionWrapper>
+        <p>
+          {tct(
+            'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the `gen_ai.conversation.id` attribute to group related AI spans.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
+              ),
+            }
+          )}
+        </p>
+      </DescriptionWrapper>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {

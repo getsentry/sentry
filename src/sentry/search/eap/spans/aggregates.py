@@ -666,5 +666,24 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
     ),
+    "any": AggregateDefinition(
+        internal_function=Function.FUNCTION_ANY,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="trace",
+            )
+        ],
+    ),
     "count_unique": count_unique_aggregate_definition(),
 }

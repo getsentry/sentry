@@ -15,6 +15,7 @@ from sentry.analytics.events.suspectcommit_assignment import SuspectCommitAssign
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.ownership.grammar import (
     CODEOWNERS,
     Matcher,
@@ -358,13 +359,14 @@ class ProjectOwnership(Model):
             ):
                 return
 
-            assignment = GroupAssignee.objects.assign(
-                group,
-                owner,
-                create_only=not force_autoassign,
-                extra=activity_details,
-                force_autoassign=force_autoassign,
-            )
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                assignment = GroupAssignee.objects.assign(
+                    group,
+                    owner,
+                    create_only=not force_autoassign,
+                    extra=activity_details,
+                    force_autoassign=force_autoassign,
+                )
 
             if assignment["new_assignment"] or assignment["updated_assignment"]:
                 try:

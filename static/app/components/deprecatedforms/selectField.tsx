@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Select} from '@sentry/scraps/select';
 
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {StyledForm} from './form';
 import {FormField, type FormFieldProps} from './formField';

@@ -1,16 +1,31 @@
 from collections.abc import Sequence
 from functools import partial
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.api.serializers.models.event import (
+    EventSerializerResponse,
+    SimpleEventSerializerResponse,
+)
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.event_examples import EventExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
@@ -25,29 +40,50 @@ from sentry.utils.snuba import raw_query
 
 class GroupHashesResult(TypedDict):
     id: str
-    latestEvent: Any
+    latestEvent: EventSerializerResponse | SimpleEventSerializerResponse | None
     mergedBySeer: bool
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="List an Issue's Hashes",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            # This endpoint defaults `full` to True, unlike the shared
+            # EventParams.FULL_PAYLOAD which siblings use with default=False.
+            OpenApiParameter(
+                name="full",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                default=True,
+                description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+            ),
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("GroupHashesResponse", list[GroupHashesResult]),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=EventExamples.GROUP_HASHES,
+    )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[list[GroupHashesResult]]:
         """
-        List an Issue's Hashes
-        ``````````````````````
-
-        This endpoint lists an issue's hashes, which are the generated
-        checksums used to aggregate individual events.
-
-        :pparam string issue_id: the ID of the issue to retrieve.
-        :pparam bool full: If this is set to true, the event payload will include the full event body, including the stacktrace.
-        :auth: required
+        List the hashes that make up an issue. Each hash represents a grouping
+        signature used to aggregate individual events into this issue.
         """
         full = request.GET.get("full") not in ("0", "false")
 

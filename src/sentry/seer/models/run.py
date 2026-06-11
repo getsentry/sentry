@@ -12,7 +12,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 class SeerRunType(models.TextChoices):
     EXPLORER = "explorer"
-    AUTOFIX = "autofix"
     PR_REVIEW = "pr_review"
     ASSISTED_QUERY = "assisted_query"
 

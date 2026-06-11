@@ -3,6 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
+
 import {UserDetails} from 'admin/views/userDetails';
 
 describe('User Details', () => {
@@ -42,6 +44,8 @@ describe('User Details', () => {
       url: `/users/${mockUser.id}/user-identities/`,
       body: [],
     });
+
+    ConfigStore.set('cells', [{name: 'us', locality_url: 'https://us.sentry.io'}]);
   });
 
   afterEach(() => {

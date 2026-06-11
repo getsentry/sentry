@@ -6,10 +6,10 @@ import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {defined} from 'sentry/utils';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -43,6 +43,7 @@ import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
 } from 'sentry/views/explore/logs/types';
+import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
@@ -100,6 +101,7 @@ function useLogsApiOptions({
   const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
   const [caseInsensitive] = useCaseInsensitivity();
+  const truncate = useLogsQueryTruncate();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -141,6 +143,7 @@ function useLogsApiOptions({
     referrer,
     sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
     caseInsensitive: caseInsensitive ? '1' : undefined,
+    truncate,
   };
 
   const path = {organizationIdOrSlug: organization.slug};

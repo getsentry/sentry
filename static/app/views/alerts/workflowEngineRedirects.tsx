@@ -68,11 +68,7 @@ function withRuleRedirect<P extends Record<string, any>>(
     const organization = useOrganization();
     const {ruleId} = useParams();
 
-    const hasRedirectOptOut = organization.features.includes(
-      'workflow-engine-redirect-opt-out'
-    );
-    const shouldRedirect =
-      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
+    const shouldRedirect = organization.features.includes('workflow-engine-ui');
 
     const {data: alertRuleWorkflow, isPending} = useApiQuery<AlertRuleWorkflow>(
       [
@@ -118,11 +114,7 @@ function withAlertRuleRedirect<P extends Record<string, any>>(
     const organization = useOrganization();
     const {ruleId, detectorId} = useParams();
 
-    const hasRedirectOptOut = organization.features.includes(
-      'workflow-engine-redirect-opt-out'
-    );
-    const shouldRedirect =
-      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
+    const shouldRedirect = organization.features.includes('workflow-engine-ui');
 
     const {data: alertRuleDetector, isPending} = useApiQuery<AlertRuleDetector>(
       [
@@ -203,15 +195,8 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
     const {ruleId, detectorId} = useParams();
     const location = useLocation();
     const alertId = location.query.alert as string | undefined;
-    const notificationUuid = location.query.notification_uuid;
 
-    const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
-    const hasRedirectOptOut = organization.features.includes(
-      'workflow-engine-redirect-opt-out'
-    );
-    // When clicking from a notification, we never want to opt out of the redirect
-    const optOutOfRedirects = hasRedirectOptOut && !notificationUuid;
-    const shouldRedirect = hasWorkflowEngineUI && !optOutOfRedirects;
+    const shouldRedirect = organization.features.includes('workflow-engine-ui');
 
     if (shouldRedirect) {
       if (alertId) {
@@ -346,11 +331,7 @@ export function withDetectorCreateRedirect<P extends Record<string, any>>(
     const organization = useOrganization();
     const {alertType} = useParams();
 
-    const hasRedirectOptOut = organization.features.includes(
-      'workflow-engine-redirect-opt-out'
-    );
-    const shouldRedirect =
-      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
+    const shouldRedirect = organization.features.includes('workflow-engine-ui');
 
     if (shouldRedirect) {
       const detectorType = getDetectionType(alertType);
@@ -373,11 +354,7 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
     const location = useLocation();
     const {alertId} = useParams();
 
-    const hasRedirectOptOut = organization.features.includes(
-      'workflow-engine-redirect-opt-out'
-    );
-    const shouldRedirect =
-      !hasRedirectOptOut && organization.features.includes('workflow-engine-ui');
+    const shouldRedirect = organization.features.includes('workflow-engine-ui');
 
     const {data: incidentGroupOpenPeriod, isPending} =
       useApiQuery<IncidentGroupOpenPeriod>(

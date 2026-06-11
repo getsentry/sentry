@@ -108,20 +108,60 @@ def org_url(organization, path, query=None, fragment=None) -> str:
     return organization.absolute_url(path, query=query, fragment=fragment)
 
 
-@register.simple_tag
-def loading_message():
-    options = [
-        "Loading a <scraps-bleep>$#!%</scraps-bleep>-ton of JavaScript&hellip;",
-        "Escaping <code>node_modules</code> gravity well&hellip;",
-        "Parallelizing webpack builders&hellip;",
-        "Awaiting solution to the halting problem&hellip;",
-        "Collapsing wavefunctions&hellip;",
-        "Reticulating splines&hellip;",
-        "Making it make sense&hellip;",
-        "Deploying swarm of autonomous agents&hellip;",
-        "Installing <code>left-pad</code>&hellip;",
-    ]
+LOADING_MESSAGES = [
+    "Loading a <scraps-bleep>$#!%</scraps-bleep>-ton of JavaScript&hellip;",
+    "Escaping <code>node_modules</code> gravity well&hellip;",
+    "Parallelizing webpack builders&hellip;",
+    "Awaiting solution to the halting problem&hellip;",
+    "Collapsing wavefunctions&hellip;",
+    "Reticulating splines&hellip;",
+    "Making it make sense&hellip;",
+    "Deploying swarm of autonomous agents&hellip;",
+    "Installing <code>left-pad</code>&hellip;",
+]
+
+PRIDE_LOADING_MESSAGES = [
+    "Exceptions belong in code; You belong here.",
+    "You&rsquo;re valid. Your code, however&hellip;",
+    "Making space for everyone&hellip;",
+    "Waving some flags while you wait&hellip;",
+]
+
+
+def _get_organization_from_context(context):
+    org_context = context.get("org_context")
+    if org_context is not None:
+        return getattr(org_context, "organization", None)
+    return None
+
+
+def _is_themed_loader(context) -> bool:
+    organization = _get_organization_from_context(context)
+    if organization is None:
+        return False
+    from sentry import features
+
+    return features.has("organizations:sentry-pride-logo-footer", organization)
+
+
+@register.simple_tag(takes_context=True)
+def loading_message(context):
+    options = list(LOADING_MESSAGES)
+    if _is_themed_loader(context):
+        options.extend(PRIDE_LOADING_MESSAGES)
     return mark_safe(random.choice(options))
+
+
+@register.simple_tag(takes_context=True)
+def loader(context):
+    from django.template.loader import render_to_string
+
+    template_name = (
+        "sentry/partial/loader-pride.html"
+        if _is_themed_loader(context)
+        else "sentry/partial/loader.html"
+    )
+    return mark_safe(render_to_string(template_name, context.flatten()))
 
 
 @register.simple_tag

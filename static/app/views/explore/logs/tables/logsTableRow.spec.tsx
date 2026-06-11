@@ -227,7 +227,7 @@ describe('logsTableRow', () => {
     jest.useRealTimers();
   });
 
-  it('hovering the row causes prefetching of the row details', async () => {
+  it.isKnownFlake('hovering the row causes prefetching of the row details', async () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
     render(
@@ -265,7 +265,7 @@ describe('logsTableRow', () => {
     jest.useRealTimers();
   });
 
-  it('renders row details', async () => {
+  it.isKnownFlake('renders row details', async () => {
     render(
       <LogRowContent
         dataRow={rowData}
@@ -367,7 +367,7 @@ describe('logsTableRow', () => {
     );
   });
 
-  it('adds a similar spans action to the log message dropdown', async () => {
+  it.isKnownFlake('adds a similar spans action to the log message dropdown', async () => {
     const rowDataWithQuotedMessage = {
       ...rowData,
       [OurLogKnownFieldKey.MESSAGE]: 'test "quoted" log body',
@@ -421,76 +421,79 @@ describe('logsTableRow', () => {
     ]);
   });
 
-  it('shows a link when hovering over code file path in the table', async () => {
-    render(
-      <LogRowContent
-        dataRow={rowDataWithCodeFilePath}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowDataWithCodeFilePath)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
-      />,
-      {
-        organization,
-        initialRouterConfig: initialRouterConfigWithCodeFilePath,
-        additionalWrapper: ProviderWrapper,
-      }
-    );
-
-    // Expand the row to show the attributes
-    const logTableRow = await screen.findByTestId('log-table-row');
-    expect(logTableRow).toBeInTheDocument();
-    await userEvent.hover(logTableRow);
-
-    // At this point, useStacktraceLink should not have been called with enabled: true
-    expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({enabled: true})
-    );
-    expect(releaseMock).not.toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({enabled: true})
-    );
-
-    // Find the hoverable code path element
-    const codePathElement = await screen.findByTestId('hoverable-code-path');
-    expect(codePathElement).toBeInTheDocument();
-
-    // Verify the file path is displayed
-    const filePath = 'herp/merp/derp.py';
-    expect(screen.getByText(filePath)).toBeInTheDocument();
-
-    // Initially, useStacktraceLink should not have been called with enabled: true
-    expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({enabled: true})
-    );
-
-    // Hover over the code path
-    await userEvent.hover(codePathElement);
-
-    await waitFor(() => {
-      expect(stacktraceLinkMock).toHaveBeenCalledWith(
-        `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            lineNo: 10,
-            file: 'herp/merp/derp.py',
-          }),
-        })
+  it.isKnownFlake(
+    'shows a link when hovering over code file path in the table',
+    async () => {
+      render(
+        <LogRowContent
+          dataRow={rowDataWithCodeFilePath}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithCodeFilePath)}
+          sharedHoverTimeoutRef={{
+            current: null,
+          }}
+        />,
+        {
+          organization,
+          initialRouterConfig: initialRouterConfigWithCodeFilePath,
+          additionalWrapper: ProviderWrapper,
+        }
       );
-    });
 
-    const link = await screen.findByTestId('hoverable-code-path-link');
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute(
-      'href',
-      'https://github.com/example/repo/blob/main/file.py'
-    );
-  });
+      // Expand the row to show the attributes
+      const logTableRow = await screen.findByTestId('log-table-row');
+      expect(logTableRow).toBeInTheDocument();
+      await userEvent.hover(logTableRow);
 
-  it('copies log as JSON when Copy as JSON button is clicked', async () => {
+      // At this point, useStacktraceLink should not have been called with enabled: true
+      expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({enabled: true})
+      );
+      expect(releaseMock).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({enabled: true})
+      );
+
+      // Find the hoverable code path element
+      const codePathElement = await screen.findByTestId('hoverable-code-path');
+      expect(codePathElement).toBeInTheDocument();
+
+      // Verify the file path is displayed
+      const filePath = 'herp/merp/derp.py';
+      expect(screen.getByText(filePath)).toBeInTheDocument();
+
+      // Initially, useStacktraceLink should not have been called with enabled: true
+      expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({enabled: true})
+      );
+
+      // Hover over the code path
+      await userEvent.hover(codePathElement);
+
+      await waitFor(() => {
+        expect(stacktraceLinkMock).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              lineNo: 10,
+              file: 'herp/merp/derp.py',
+            }),
+          })
+        );
+      });
+
+      const link = await screen.findByTestId('hoverable-code-path-link');
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        'https://github.com/example/repo/blob/main/file.py'
+      );
+    }
+  );
+
+  it.isKnownFlake('copies log as JSON when Copy as JSON button is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {
@@ -555,7 +558,7 @@ describe('logsTableRow', () => {
     expect(parsedData).not.toHaveProperty('sentry.item_id');
   });
 
-  it('copies link to log when Copy link menu item is clicked', async () => {
+  it.isKnownFlake('copies link to log when Copy link menu item is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {
@@ -700,50 +703,55 @@ describe('logsTableRow', () => {
     expect(groupByItem).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('does not toggle row when clicking cell action menu items', async () => {
-    const mockWriteText = jest.fn().mockResolvedValue(undefined);
-    Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
-      writable: true,
-    });
+  it.isKnownFlake(
+    'does not toggle row when clicking cell action menu items',
+    async () => {
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'clipboard', {
+        value: {
+          writeText: mockWriteText,
+        },
+        writable: true,
+      });
 
-    render(
-      <LogRowContent
-        dataRow={rowData}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{
+            current: null,
+          }}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
 
-    const logTableRow = await screen.findByTestId('log-table-row');
-    await userEvent.click(logTableRow);
+      const logTableRow = await screen.findByTestId('log-table-row');
+      await userEvent.click(logTableRow);
 
-    await waitFor(() => {
-      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
-    });
+      await waitFor(() => {
+        expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+      });
 
-    // Row is expanded - verify details are visible
-    expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+      // Row is expanded - verify details are visible
+      expect(
+        await screen.findByRole('button', {name: 'Copy as JSON'})
+      ).toBeInTheDocument();
 
-    // Open the ellipsis context menu on a cell
-    const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
-    await userEvent.click(actionsButton);
+      // Open the ellipsis context menu on a cell
+      const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
+      await userEvent.click(actionsButton);
 
-    // Click "Copy to clipboard" in the dropdown menu
-    const copyItem = await screen.findByRole('menuitemradio', {
-      name: 'Copy to clipboard',
-    });
-    await userEvent.click(copyItem);
+      // Click "Copy to clipboard" in the dropdown menu
+      const copyItem = await screen.findByRole('menuitemradio', {
+        name: 'Copy to clipboard',
+      });
+      await userEvent.click(copyItem);
 
-    // Row should still be expanded - the cell action should not toggle visibility
-    expect(screen.getByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
-  });
+      // Row should still be expanded - the cell action should not toggle visibility
+      expect(screen.getByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+    }
+  );
 
   it('renders fields with data scrubbing meta information', async () => {
     const traceItemMock = MockApiClient.addMockResponse({

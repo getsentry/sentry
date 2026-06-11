@@ -20,12 +20,12 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    AutomationCodingAgent,
+    SeerProjectSettingsUpdate,
     get_org_default_seer_automation_handoff,
     is_seer_seat_based_tier_enabled,
-    write_preference_to_sentry_db,
-)
-from sentry.seer.models import (
-    SeerProjectPreference,
+    update_seer_project_settings,
 )
 from sentry.seer.similarity.types import GroupingVersion
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -575,16 +575,17 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
 
     stopping_point, automation_handoff = get_org_default_seer_automation_handoff(organization)
 
-    preference = SeerProjectPreference(
-        organization_id=organization.id,
-        project_id=project.id,
-        repositories=[],
-        automated_run_stopping_point=stopping_point,
-        automation_handoff=automation_handoff,
-    )
+    update = SeerProjectSettingsUpdate(stopping_point=stopping_point)
+    if automation_handoff is not None:
+        update["agent"] = AutomationCodingAgent(automation_handoff.target)
+        update["integration_id"] = automation_handoff.integration_id
+        update["auto_create_pr"] = automation_handoff.auto_create_pr
+    else:
+        update["agent"] = AutomationCodingAgent.SEER
+        update["auto_create_pr"] = stopping_point == AutofixStoppingPoint.OPEN_PR
 
     try:
-        write_preference_to_sentry_db(project, preference)
+        update_seer_project_settings([project.id], update)
     except Exception as e:
         sentry_sdk.capture_exception(e)
 

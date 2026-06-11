@@ -7,14 +7,20 @@ from collections.abc import Mapping, Sequence
 from operator import attrgetter
 from typing import Any, NoReturn, TypedDict
 
+import orjson
 import sentry_sdk
 from django.conf import settings
+from django.core.signing import BadSignature, SignatureExpired
 from django.db.models import QuerySet
+from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
+from rest_framework import serializers
+from rest_framework.fields import CharField
 
 from sentry import features
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -24,6 +30,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
 from sentry.integrations.jira.tasks import migrate_issues
+from sentry.integrations.jira.views import SALT
 from sentry.integrations.mixins.issues import (
     MAX_CHAR,
     IntegrationSyncTargetNotFound,
@@ -38,7 +45,8 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -55,6 +63,7 @@ from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.signing import unsign
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
@@ -1204,6 +1213,85 @@ class JiraIntegration(IssueSyncIntegration):
             return None
 
 
+# 24 hours to finish installation
+INSTALL_EXPIRATION_TIME = 60 * 60 * 24
+
+
+class JiraInstallParams(TypedDict):
+    """Decoded contents of the `signed_params` blob from a Marketplace install.
+
+    The Jira UI hook (`JiraSentryInstallationView`) signs the integration's
+    `external_id` plus a JSON-encoded `metadata` payload into the configure
+    link. We decode `metadata` back into a dict here so it can be bound to
+    pipeline state and consumed by `build_integration`.
+    """
+
+    external_id: str
+    metadata: dict[str, Any]
+
+
+class JiraInitialDataSerializer(CamelSnakeSerializer):
+    """Initial pipeline data for Jira Cloud Marketplace installs.
+
+    The configure link carries a single `signed_params` blob. We unsign it and
+    bind `external_id` and the decoded `metadata` dict to top-level pipeline
+    state so the confirmation step and `build_integration` can read them.
+    """
+
+    signed_params = CharField(required=True)
+
+    def validate(self, attrs: dict[str, Any]) -> JiraInstallParams:
+        try:
+            decoded = unsign(attrs["signed_params"], max_age=INSTALL_EXPIRATION_TIME, salt=SALT)
+        except SignatureExpired:
+            raise serializers.ValidationError("Installation link expired")
+        except BadSignature:
+            raise serializers.ValidationError("Invalid installation link")
+
+        return {
+            "external_id": decoded["external_id"],
+            "metadata": orjson.loads(decoded["metadata"]),
+        }
+
+
+class JiraConfirmSerializer(CamelSnakeSerializer):
+    state = CharField(required=True)
+
+
+class JiraConfirmInstallStep:
+    """Confirmation step for Jira Cloud Marketplace installs.
+
+    Shows an interactive confirmation screen before completing the install,
+    rather than auto-advancing. A copied install link could otherwise connect
+    an attacker's Jira workspace to a victim's Sentry organization, so we
+    surface the Jira workspace and Sentry organization for the user to verify
+    before they commit.
+    """
+
+    step_name = "jira_confirm_install"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        metadata = pipeline.fetch_state("metadata") or {}
+        return {
+            "baseUrl": metadata.get("base_url", ""),
+            "organization": pipeline.organization.name if pipeline.organization else "",
+            "state": pipeline.signature,
+        }
+
+    def get_serializer_cls(self) -> type:
+        return JiraConfirmSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        if validated_data["state"] != pipeline.signature:
+            return PipelineStepResult.error("An error occurred while validating your request.")
+        return PipelineStepResult.advance()
+
+
 class JiraIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.JIRA.value
     name = "Jira"
@@ -1219,19 +1307,31 @@ class JiraIntegrationProvider(IntegrationProvider):
     )
 
     can_add = False
+    can_add_externally = True
 
     def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return []
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [JiraConfirmInstallStep()]
+
+    def get_initial_data_serializer_cls(self) -> type[JiraInitialDataSerializer]:
+        return JiraInitialDataSerializer
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         # Most information is not available during integration installation,
         # since the integration won't have been fully configured on JIRA's side
         # yet, we can't make API calls for more details like the server name or
         # Icon.
-        # two ways build_integration can be called
-        if state.get(IntegrationProviderSlug.JIRA.value):
-            metadata = state[IntegrationProviderSlug.JIRA.value]["metadata"]
-            external_id = state[IntegrationProviderSlug.JIRA.value]["external_id"]
+        #
+        # build_integration is reached two ways:
+        #  - the API pipeline binds the decoded Marketplace params to top-level
+        #    state (`external_id` + `metadata`),
+        #  - the `installed` webhook passes the raw Atlassian payload
+        #    (`clientKey`, `oauthClientId`, ...).
+        if "external_id" in state and "metadata" in state:
+            external_id = state["external_id"]
+            metadata = state["metadata"]
         else:
             external_id = state["clientKey"]
             metadata = {

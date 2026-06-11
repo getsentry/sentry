@@ -18,13 +18,12 @@ import {
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -47,6 +46,7 @@ import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEven
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
+import {useExploreSchemaHintsRemoval} from 'sentry/views/explore/useExploreSchemaHintsRemoval';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
 function SpansSearchBar({
@@ -75,11 +75,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const setQueryParams = useSetQueryParams();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
   const {selection} = usePageFilters();
-
-  const organization = useOrganization();
-  const hasRawSearchReplacement = organization.features.includes(
-    'search-query-builder-raw-search-replacement'
-  );
 
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
   const hasAbsoluteDateSelection = Boolean(
@@ -127,7 +122,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           : undefined,
       supportedAggregates:
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      replaceRawSearchKeys: ['span.description'],
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
@@ -139,7 +134,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       booleanAttributes,
       caseInsensitive,
       fields,
-      hasRawSearchReplacement,
       mode,
       numberAttributes,
       oldSearch,
@@ -152,6 +146,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
 
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
+
+  const schemaHintsRemoval = useExploreSchemaHintsRemoval();
 
   return (
     <Layout.Main width="full">
@@ -197,7 +193,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   <SpansTabCrossEventSearchBars hasIndependentDateColumn />
                 ) : null}
               </Grid>
-              {hasCrossEvents ? null : (
+              {hasCrossEvents || schemaHintsRemoval ? null : (
                 <ExploreSchemaHintsSection>
                   <SchemaHintsList
                     supportedAggregates={

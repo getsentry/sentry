@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {useTheme, type Theme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -56,6 +56,31 @@ import {
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import type {TraceReducerState} from './traceState';
+
+const traceIssueIconBackgroundStyles = css`
+  &.info {
+    background-color: var(--info);
+  }
+  &.warning {
+    background-color: var(--warning);
+  }
+  &.debug {
+    background-color: var(--debug);
+  }
+  &.error,
+  &.fatal {
+    background-color: var(--error);
+  }
+  &.occurrence {
+    background-color: var(--occurrence);
+  }
+  &.default {
+    background-color: var(--default);
+  }
+  &.unknown {
+    background-color: var(--unknown);
+  }
+`;
 
 function computeNextIndexFromAction(
   current_index: number,
@@ -1170,28 +1195,8 @@ const TraceStylingWrapper = styled('div')`
       justify-content: center;
       z-index: 1;
 
-      &.info {
-        background-color: var(--info);
-      }
-      &.warning {
-        background-color: var(--warning);
-      }
-      &.debug {
-        background-color: var(--debug);
-      }
-      &.error,
-      &.fatal {
-        background-color: var(--error);
-      }
-      &.occurrence {
-        background-color: var(--occurrence);
-      }
-      &.default {
-        background-color: var(--default);
-      }
-      &.unknown {
-        background-color: var(--unknown);
-      }
+      ${traceIssueIconBackgroundStyles}
+
       &.profile {
         background-color: var(--profile);
       }
@@ -1215,6 +1220,67 @@ const TraceStylingWrapper = styled('div')`
           transform: translateY(-1px);
         }
       }
+    }
+
+    .TraceIconGroup {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 18px;
+      min-width: 18px;
+      padding: 0 5px 0 5px;
+      box-sizing: border-box;
+      border-radius: ${p => p.theme.radius.lg};
+      color: ${p => p.theme.colors.white};
+      z-index: 1;
+
+      ${traceIssueIconBackgroundStyles}
+
+      .TraceIconGlyph {
+        flex: 0 0 auto;
+        width: 12px;
+        height: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      svg {
+        width: 12px;
+        height: 12px;
+        fill: currentColor;
+      }
+    }
+
+    .TraceIconGroupStart {
+      transform-origin: left center;
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconGroupEnd {
+      transform-origin: right center;
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconStart {
+      transform-origin: left center;
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconEnd {
+      transform-origin: right center;
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+    }
+
+    .TraceIconCount {
+      min-width: 8px;
+      font-size: ${p => p.theme.font.size.xs};
+      line-height: 18px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
     }
 
     .TracePatternContainer {

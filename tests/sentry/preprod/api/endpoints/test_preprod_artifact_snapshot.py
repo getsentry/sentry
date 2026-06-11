@@ -4,6 +4,9 @@ import orjson
 from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
+from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base import (
+    LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS,
+)
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
@@ -764,6 +767,76 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 200
         assert response.data["comparison_state"] == "waiting_for_base"
         assert response.data["comparison_type"] == "waiting_for_base"
+
+
+class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org, slug="sausage")
+
+    def _get_url(self):
+        return reverse(
+            "sentry-api-0-organization-preprod-snapshots-latest-base",
+            args=[self.org.slug],
+        )
+
+    def _create_base_snapshot(self):
+        images = {
+            "components/button.png": {
+                "content_hash": "hash_button",
+                "display_name": "Button",
+                "width": 375,
+                "height": 812,
+            }
+        }
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id="com.example.app",
+        )
+        manifest_key = f"{self.org.id}/{self.project.id}/{artifact.id}/manifest.json"
+        PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=artifact,
+            image_count=len(images),
+            extras={"manifest_key": manifest_key},
+        )
+        return artifact, manifest_key, orjson.dumps({"images": images})
+
+    def _create_mock_session(self, manifest_json):
+        mock_result = MagicMock()
+        mock_result.payload.read.return_value = manifest_json
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_result
+        return mock_session
+
+    def test_query_params_document_project_slug(self):
+        assert LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS["projectSlug"] == {
+            "type": "string",
+            "required": False,
+            "description": "Project slug to scope the lookup. Use either projectSlug or project when app_id is not unique across projects or project inference is unavailable.",
+        }
+
+    @patch(
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+    )
+    def test_get_latest_base_snapshot_scoped_by_project_slug(self, mock_get_session):
+        artifact, manifest_key, manifest_json = self._create_base_snapshot()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "projectSlug": self.project.slug},
+            )
+
+        assert response.status_code == 200
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["project_slug"] == "sausage"
+        assert response.data["image_count"] == 1
+        assert response.data["images"][0]["image_file_name"] == "components/button.png"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
 
 
 class ProjectPreprodSnapshotDeleteTest(APITestCase):

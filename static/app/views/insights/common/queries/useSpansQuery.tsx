@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType, EventView, MetaType} from 'sentry/utils/discover/eventView';

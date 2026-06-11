@@ -98,6 +98,8 @@ describe('commitRow', () => {
       pullRequest: {
         id: '9',
         title: 'cool pr',
+        message: null,
+        dateCreated: '2022-10-07T19:35:27.370422Z',
         externalUrl: 'https://github.com/getsentry/sentry/pull/1',
         repository: {
           id: '14',

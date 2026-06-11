@@ -1,30 +1,9 @@
 import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
 import type {TSESTree} from '@typescript-eslint/utils';
 
+import {isStyledOrCssTemplate} from './utils/styled';
+
 const CSS_DECLARATION_RE = /[\w-]+\s*:\s*[^;]+;/;
-
-function tagInvolvesName(node: TSESTree.Node, name: string): boolean {
-  if (node.type === AST_NODE_TYPES.Identifier) {
-    return node.name === name;
-  }
-  if (node.type === AST_NODE_TYPES.MemberExpression) {
-    return tagInvolvesName(node.object, name);
-  }
-  if (node.type === AST_NODE_TYPES.CallExpression) {
-    return tagInvolvesName(node.callee, name);
-  }
-  return false;
-}
-
-function isStyledOrCssTemplate(
-  node: TSESTree.Node
-): node is TSESTree.TaggedTemplateExpression {
-  if (node.type !== AST_NODE_TYPES.TaggedTemplateExpression) {
-    return false;
-  }
-  const {tag} = node;
-  return tagInvolvesName(tag, 'styled') || tagInvolvesName(tag, 'css');
-}
 
 function isInsideStyledOrCssTemplate(node: TSESTree.Node): boolean {
   let current = node.parent;

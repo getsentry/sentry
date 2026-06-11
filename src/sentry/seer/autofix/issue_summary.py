@@ -18,10 +18,11 @@ from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
-from sentry.seer.autofix.autofix import _get_trace_tree_for_event
+from sentry.seer.autofix.autofix import get_trace_tree_for_event
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
+    get_autofix_agent_state,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
@@ -32,7 +33,6 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
@@ -386,7 +386,7 @@ def run_automation(
         }
     )
 
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    autofix_state = get_autofix_agent_state(group.organization, group.id)
     if autofix_state:
         return  # already have an autofix on this issue
 
@@ -468,7 +468,7 @@ def _generate_summary(
     trace_tree = None
     if event:
         try:
-            trace_tree = _get_trace_tree_for_event(event, group.project, timeout=3)
+            trace_tree = get_trace_tree_for_event(event, group.project, timeout=3)
         except Exception:
             logger.warning(
                 "Failed to get trace for event in issue summary",

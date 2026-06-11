@@ -98,7 +98,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
           </EventIdWrapper>
           <StyledTimeSince
             tooltipBody={<EventCreatedTooltip event={event} />}
-            tooltipProps={{maxWidth: 300, isHoverable: true}}
+            maxWidth={300}
             date={event.dateCreated ?? event.dateReceived}
             css={grayText}
             aria-label={t('Event timestamp')}

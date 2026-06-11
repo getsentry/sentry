@@ -45,7 +45,7 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
 
 
 @register(DiscoverSavedQuery)
-class DiscoverSavedQueryModelSerializer(Serializer):
+class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
     def partial_serialize_explore_query(self, query: ExploreSavedQuery) -> dict:
         query_keys = [
             "environment",
