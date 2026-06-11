@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.http import HttpResponseRedirect
 
@@ -110,7 +110,9 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
 
     @patch("sentry.identity.pipeline.IdentityPipeline.current_step")
     @patch("sentry.identity.pipeline.IdentityPipeline.initialize")
-    def test_connect_returns_redirect_url(self, mock_initialize, mock_current_step) -> None:
+    def test_connect_returns_redirect_url(
+        self, mock_initialize: MagicMock, mock_current_step: MagicMock
+    ) -> None:
         mock_current_step.return_value = HttpResponseRedirect(
             "https://accounts.google.com/o/oauth2/v2/auth?client_id=test"
         )
@@ -125,7 +127,7 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
     @patch("sentry.identity.pipeline.IdentityPipeline.current_step")
     @patch("sentry.identity.pipeline.IdentityPipeline.initialize")
     def test_connect_gcp_creates_identity_provider(
-        self, mock_initialize, mock_current_step
+        self, mock_initialize: MagicMock, mock_current_step: MagicMock
     ) -> None:
         mock_current_step.return_value = HttpResponseRedirect("https://accounts.google.com/")
 
@@ -143,7 +145,7 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         return_value=None,
     )
     def test_connect_datadog_creates_identity_provider(
-        self, mock_init, mock_initialize, mock_current_step
+        self, mock_init: MagicMock, mock_initialize: MagicMock, mock_current_step: MagicMock
     ) -> None:
         mock_current_step.return_value = HttpResponseRedirect(
             "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"

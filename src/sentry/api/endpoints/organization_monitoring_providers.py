@@ -25,7 +25,7 @@ MONITORING_PROVIDERS: dict[str, dict[str, str]] = {
 MONITORING_PROVIDER_FEATURE = "organizations:seer-infra-telemetry"
 
 
-def _get_pipeline_config(provider_key: str, request_data: dict) -> dict:
+def _get_pipeline_config(provider_key: str, request_data: dict[str, str]) -> dict[str, str]:
     """Build provider-specific pipeline config from request body."""
     config: dict[str, str] = {}
     if provider_key == "datadog":
@@ -36,7 +36,7 @@ def _get_pipeline_config(provider_key: str, request_data: dict) -> dict:
     return config
 
 
-def _get_identity_provider(provider_key: str, config: dict) -> IdentityProvider:
+def _get_identity_provider(provider_key: str, config: dict[str, str]) -> IdentityProvider:
     """
     Get or create the IdentityProvider for a monitoring provider.
 
@@ -62,11 +62,15 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
         if not features.has(MONITORING_PROVIDER_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
+        user_id = request.user.id
+        if user_id is None:
+            return Response(status=401)
+
         connected_identities = {
             identity.idp.type: identity
             for identity in Identity.objects.filter(
                 idp__type__in=MONITORING_PROVIDERS.keys(),
-                user_id=request.user.id,
+                user_id=user_id,
             ).select_related("idp")
         }
 
@@ -140,9 +144,13 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
+        user_id = request.user.id
+        if user_id is None:
+            return Response(status=401)
+
         deleted, _ = Identity.objects.filter(
             idp__type=provider_key,
-            user_id=request.user.id,
+            user_id=user_id,
         ).delete()
 
         if not deleted:
