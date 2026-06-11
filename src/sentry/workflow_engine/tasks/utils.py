@@ -90,7 +90,10 @@ def build_workflow_event_data_from_event(
     if event.project.status != ObjectStatus.ACTIVE:
         raise ProjectNotActiveError(project_id)
 
-    occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
+    timeout = options.get("workflow_engine.nodestore_read_timeout")
+    occurrence = (
+        IssueOccurrence.fetch(occurrence_id, project_id, timeout=timeout) if occurrence_id else None
+    )
 
     group_event = GroupEvent.from_event(event, group)
     group_event.occurrence = occurrence
