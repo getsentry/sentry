@@ -52,8 +52,8 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (IncidentPermission,)
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-index")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List Incidents that a User can access within an Organization

@@ -121,8 +121,8 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
 
         return args, kwargs
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-details")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(
         self,
         request: Request,
