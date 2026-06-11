@@ -156,8 +156,13 @@ class TestDeliverNightShiftResult(TestCase):
         assert results[0].seer_run_id == "42"
         assert results[0].extras["action"] == TriageAction.AUTOFIX.value
 
-    def test_root_cause_only_verdict_uses_root_cause_stopping_point(self) -> None:
-        """ROOT_CAUSE_ONLY verdicts should use ROOT_CAUSE stopping point."""
+    def test_root_cause_only_verdict_is_not_actioned(self) -> None:
+        """ROOT_CAUSE_ONLY verdicts are intentionally ignored.
+
+        We're not getting much value from root-cause-only runs, so only full
+        AUTOFIX verdicts trigger autofix. ROOT_CAUSE_ONLY verdicts should not
+        trigger autofix or persist a result.
+        """
         org = self.create_organization()
         project = self.create_project(organization=org)
         project.update_option(
@@ -188,10 +193,9 @@ class TestDeliverNightShiftResult(TestCase):
                 error=None,
             )
 
-            mock_trigger.assert_called_once()
-            assert (
-                mock_trigger.call_args.kwargs["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
-            )
+            mock_trigger.assert_not_called()
+
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_dry_run_skips_autofix(self) -> None:
         """Dry run mode should not trigger autofix or persist results."""

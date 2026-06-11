@@ -120,12 +120,16 @@ def _process_verdicts(
         if v.action == TriageAction.SKIP and v.group_id in groups_by_id:
             mark_skipped(v.group_id)
 
+    # For now we want to ignore TriageAction.ROOT_CAUSE_ONLY since
+    # we're not getting much value from these. So we only action
+    # full TriageAction.AUTOFIX actions.
+    fixable_actions = (TriageAction.AUTOFIX,)
+
     # Convert verdicts to TriageResult objects for the shared function
     fixable_candidates = [
         TriageResult(group=groups_by_id[v.group_id], action=v.action, reason=v.reason)
         for v in triage_response.verdicts
-        if v.action in (TriageAction.AUTOFIX, TriageAction.ROOT_CAUSE_ONLY)
-        and v.group_id in groups_by_id
+        if v.action in fixable_actions and v.group_id in groups_by_id
     ]
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(fixable_candidates))
