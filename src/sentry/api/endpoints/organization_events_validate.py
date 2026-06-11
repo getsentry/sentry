@@ -242,7 +242,10 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                 stripped_orderby = orderby.lstrip("-")
                 found = False
                 for field in column_validity:
-                    if field.name == stripped_orderby:
+                    if (
+                        field.name == stripped_orderby
+                        or fields.get_function_alias(field.name) == stripped_orderby
+                    ):
                         orderby_validity.append(
                             AttributeValidation(
                                 attrType=field.attrType, error=None, name=orderby, valid=True

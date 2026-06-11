@@ -254,6 +254,22 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
             {"error": None, "name": "p95(span.duration)", "valid": True, "attrType": "number"},
         ]
 
+    def test_valid_orderby_alias(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration", "p95(span.duration)"],
+                "orderby": ["p95_span_duration"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["orderby"] == [
+            {"error": None, "name": "p95_span_duration", "valid": True, "attrType": "number"},
+        ]
+
     def test_invalid_orderby(self) -> None:
         response = self.do_request(
             {
