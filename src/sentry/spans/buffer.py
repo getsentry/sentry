@@ -141,7 +141,6 @@ from sentry.spans.segment_key import (
     segment_key_to_span_id,
 )
 from sentry.utils import metrics, redis
-from sentry.utils.local_cache import LRUCache, ThreadSafeCache
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -149,40 +148,6 @@ logger = logging.getLogger(__name__)
 
 def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
     return redis.redis_clusters.get_binary(settings.SENTRY_SPAN_BUFFER_CLUSTER)
-
-
-_organization_id_cache: ThreadSafeCache[int, int] | None = None
-
-
-def _get_organization_id_cache() -> ThreadSafeCache[int, int]:
-    global _organization_id_cache
-    if _organization_id_cache is None:
-        _organization_id_cache = ThreadSafeCache(LRUCache(maxlen=20_000))
-    return _organization_id_cache
-
-
-def _get_pid_to_oid_map(project_ids: Sequence[int]) -> dict[int, int]:
-    """
-    Resolve project IDs to organization IDs, keeping common projects in a
-    local in-memory cache and bulk-fetching only the missing ones.
-    """
-    cache = _get_organization_id_cache()
-
-    pid_map: dict[int, int] = {}
-    missing_pids = []
-    for project_id in project_ids:
-        organization_id = cache.get(project_id)
-        if organization_id is None:
-            missing_pids.append(project_id)
-        else:
-            pid_map[project_id] = organization_id
-
-    if missing_pids:
-        for project in Project.objects.get_many_from_cache(missing_pids):
-            cache[project.id] = project.organization_id
-            pid_map[project.id] = project.organization_id
-
-    return pid_map
 
 
 def _compute_salt(spans: Sequence[Span]) -> str:
@@ -630,17 +595,20 @@ class SpansBuffer:
                         metrics.incr("spans.buffer.segment_expired_before_flush")
 
         if dropped_by_project:
-            pid_to_oid_map = _get_pid_to_oid_map(list(dropped_by_project.keys()))
+            projects_by_id = {
+                project.id: project
+                for project in Project.objects.get_many_from_cache(list(dropped_by_project.keys()))
+            }
             for project_id, dropped in dropped_by_project.items():
-                organization_id = pid_to_oid_map.get(project_id)
-                if organization_id is None:
+                project = projects_by_id.get(project_id)
+                if project is None:
                     logger.warning(
                         "Project does not exist for segment with dropped spans",
                         extra={"project_id": project_id},
                     )
                     continue
                 track_outcome(
-                    org_id=organization_id,
+                    org_id=project.organization_id,
                     project_id=project_id,
                     key_id=None,
                     outcome=Outcome.INVALID,

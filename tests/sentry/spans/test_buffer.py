@@ -13,7 +13,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
-from sentry.spans.buffer import SpansBuffer, _get_pid_to_oid_map
+from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_types import (
     EvalshaResult,
     FlushCandidate,
@@ -2067,7 +2067,6 @@ def test_record_segment_loss_metrics_records_dropped_spans() -> None:
     with (
         mock.patch("sentry.spans.buffer.Project") as project_model,
         mock.patch("sentry.spans.buffer.track_outcome") as track_outcome,
-        mock.patch("sentry.spans.buffer._organization_id_cache", None),
     ):
         project_model.objects.get_many_from_cache.return_value = [mock_project]
         buffer._record_segment_loss_metrics(
@@ -2090,58 +2089,6 @@ def test_record_segment_loss_metrics_records_dropped_spans() -> None:
     assert outcome_kwargs["reason"] == "segment_too_large"
     assert outcome_kwargs["category"] == DataCategory.SPAN_INDEXED
     assert outcome_kwargs["quantity"] == 2
-
-
-def test_get_pid_to_oid_map_bulk_fetches_and_caches() -> None:
-    project_a = mock.Mock(id=1, organization_id=100)
-    project_b = mock.Mock(id=2, organization_id=200)
-
-    with (
-        mock.patch("sentry.spans.buffer.Project") as project_model,
-        mock.patch("sentry.spans.buffer._organization_id_cache", None),
-    ):
-        project_model.objects.get_many_from_cache.return_value = [project_a, project_b]
-
-        assert _get_pid_to_oid_map([1, 2]) == {1: 100, 2: 200}
-        project_model.objects.get_many_from_cache.assert_called_once_with([1, 2])
-
-        # Second call is served entirely from the local cache.
-        assert _get_pid_to_oid_map([1, 2]) == {1: 100, 2: 200}
-        project_model.objects.get_many_from_cache.assert_called_once()
-
-
-def test_get_pid_to_oid_map_only_fetches_missing_projects() -> None:
-    project_a = mock.Mock(id=1, organization_id=100)
-    project_b = mock.Mock(id=2, organization_id=200)
-
-    with (
-        mock.patch("sentry.spans.buffer.Project") as project_model,
-        mock.patch("sentry.spans.buffer._organization_id_cache", None),
-    ):
-        project_model.objects.get_many_from_cache.return_value = [project_a]
-        assert _get_pid_to_oid_map([1]) == {1: 100}
-
-        project_model.objects.get_many_from_cache.return_value = [project_b]
-        assert _get_pid_to_oid_map([1, 2]) == {1: 100, 2: 200}
-        project_model.objects.get_many_from_cache.assert_called_with([2])
-
-
-def test_get_pid_to_oid_map_omits_nonexistent_projects() -> None:
-    project_a = mock.Mock(id=1, organization_id=100)
-
-    with (
-        mock.patch("sentry.spans.buffer.Project") as project_model,
-        mock.patch("sentry.spans.buffer._organization_id_cache", None),
-    ):
-        project_model.objects.get_many_from_cache.return_value = [project_a]
-
-        assert _get_pid_to_oid_map([1, 999]) == {1: 100}
-        project_model.objects.get_many_from_cache.assert_called_once_with([1, 999])
-
-        # The missing project is not cached, so it is looked up again.
-        project_model.objects.get_many_from_cache.return_value = []
-        assert _get_pid_to_oid_map([999]) == {}
-        project_model.objects.get_many_from_cache.assert_called_with([999])
 
 
 @pytest.mark.parametrize(
