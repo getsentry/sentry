@@ -207,7 +207,7 @@ class QuietBasicAuthentication(BasicAuthentication):
                 scope.set_attribute(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
-                scope.set_attribute(k, v)
+                scope.set_attribute(k, v.decode() if isinstance(v, bytes) else v)
 
         return (user, auth_token)
 
