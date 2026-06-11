@@ -27,6 +27,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
@@ -620,7 +621,9 @@ def project_key_transactions_this_week(ctx, project):
             limit=Limit(3),
         )
         request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-        query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.this_week")
+        query_result = raw_snql_query(
+            request, referrer=Referrer.REPORTS_KEY_TRANSACTIONS_THIS_WEEK.value
+        )
         key_transactions = query_result["data"]
         return key_transactions
 
@@ -647,7 +650,9 @@ def project_key_transactions_last_week(ctx, project, key_transactions):
         groupby=[Column("transaction_name")],
     )
     request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-    query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.last_week")
+    query_result = raw_snql_query(
+        request, referrer=Referrer.REPORTS_KEY_TRANSACTIONS_LAST_WEEK.value
+    )
     return query_result
 
 

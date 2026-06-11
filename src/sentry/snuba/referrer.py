@@ -787,8 +787,8 @@ class Referrer(StrEnum):
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_ERRORS_BATCHED = "reports.key_errors.batched"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
-    REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
-    REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
+    REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "reports.key_transactions.this_week"
+    REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "reports.key_transactions.last_week"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
@@ -940,9 +940,6 @@ class Referrer(StrEnum):
 
     UNKNOWN = "unknown"
     UNMERGE = "unmerge"
-    WEEKLY_REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "weekly_reports.key_transactions.last_week"
-    WEEKLY_REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "weekly_reports.key_transactions.this_week"
-    WEEKLY_REPORTS_OUTCOMES = "weekly_reports.outcomes"
 
     # Referrers used in the migration script for alerts
     ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"
