@@ -240,9 +240,6 @@ class ExampleIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self) -> list:
-        return []
-
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [ExampleSetupApiStep()]
 

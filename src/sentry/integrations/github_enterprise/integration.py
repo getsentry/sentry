@@ -47,7 +47,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -663,9 +663,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             IntegrationFeatures.CODEOWNERS,
         ]
     )
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def _make_oauth_api_step(self) -> OAuth2ApiStep:
         oauth_info = self.pipeline.fetch_state("oauth_config_information")

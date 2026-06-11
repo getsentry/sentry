@@ -32,6 +32,7 @@ from requests.adapters import HTTPAdapter, Retry
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
@@ -523,11 +524,14 @@ def _get_connection(retry_count: int) -> requests.Session:
     if not hasattr(_connections, "lookup"):
         _connections.lookup = {}
 
-    if not _connections.lookup.get(retry_count, None):
-        http = _create_request_session(retry_count)
-        _connections.lookup[retry_count] = http
+    if in_random_rollout("hybridcloud.rpc.use_pooling_rate"):
+        if not _connections.lookup.get(retry_count, None):
+            http = _create_request_session(retry_count)
+            _connections.lookup[retry_count] = http
 
-    return _connections.lookup[retry_count]
+        return _connections.lookup[retry_count]
+
+    return _create_request_session(retry_count)
 
 
 @dataclass(frozen=True)

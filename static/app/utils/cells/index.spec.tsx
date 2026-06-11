@@ -1,6 +1,6 @@
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {getLocalityUrlOptions, getLocalityNameOptions} from 'sentry/utils/regions';
+import {getLocalityUrlOptions, getLocalityNameOptions} from 'sentry/utils/cells';
 
 describe('getLocalityUrlOptions', () => {
   let configstate: Config;

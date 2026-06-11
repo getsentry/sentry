@@ -456,6 +456,54 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert exc_info.value.status_code == 500
 
     @patch("sentry.seer.agent.tools.client.get")
+    def test_spans_timeseries_query_error_handling(self, mock_client_get: Mock) -> None:
+        """400 errors return the detail under a reserved _seer_error_detail key so it can't collide
+        with a group_by value (which becomes a top-level key); non-400 errors are re-raised."""
+        # 400 error with dict body containing detail.
+        error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
+        mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
+
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            y_axes=["count()"],
+            query="invalid_field:value",
+            stats_period="1h",
+        )
+
+        assert result == {"_seer_error_detail": error_detail_msg}
+        # The detail is not exposed under "error", where it could shadow a group value.
+        assert "error" not in result
+
+        # 400 error with a non-dict body falls back to stringifying the whole body.
+        error_body = "Bad request: malformed query syntax"
+        mock_client_get.side_effect = client.ApiError(400, error_body)
+
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            y_axes=["count()"],
+            query="malformed query",
+            stats_period="1h",
+        )
+
+        assert result == {"_seer_error_detail": error_body}
+
+        # Non-400 errors are re-raised.
+        mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
+
+        with pytest.raises(client.ApiError) as exc_info:
+            execute_timeseries_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                y_axes=["count()"],
+                query="",
+                stats_period="1h",
+            )
+
+        assert exc_info.value.status_code == 500
+
+    @patch("sentry.seer.agent.tools.client.get")
     def test_table_query_forwards_cross_event_params(self, mock_client_get: Mock) -> None:
         """Cross-event filters are forwarded to /events/ as repeated spanQuery/logQuery/metricQuery params."""
         mock_resp = Mock()
@@ -1118,8 +1166,6 @@ class _IssueMetadata(BaseModel):
     type: str
     issueType: str
     issueTypeDescription: str  # Extra field added by get_issue_and_event_details.
-    detectionContext: str | None  # Extra field added by get_issue_and_event_details.
-    troubleshootingHint: str | None  # Extra field added by get_issue_and_event_details.
     issueCategory: str
     hasSeen: bool
     project: _Project
@@ -1271,6 +1317,41 @@ class TestGetIssueAndEventDetailsV2(
             assert isinstance(event_dict, dict)
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_on_query_error(self, mock_execute: Mock) -> None:
+        """A _seer_error_detail payload from execute_timeseries_query is treated as no data."""
+        mock_execute.return_value = {"_seer_error_detail": "Invalid query: bad field"}
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_when_no_data(self, mock_execute: Mock) -> None:
+        """A None result from execute_timeseries_query is propagated as None."""
+        mock_execute.return_value = None
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_data_on_success(self, mock_execute: Mock) -> None:
+        """A normal timeseries payload flows through with the selected period and interval."""
+        data: dict[str, Any] = {"count()": {"data": []}}
+        mock_execute.return_value = data
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is not None
+        returned_data, period, interval = result
+        assert returned_data is data
+        assert period
+        assert interval
 
     def test_get_ie_details_from_issue_id_basic(
         self,
@@ -1594,6 +1675,36 @@ class TestGetIssueAndEventDetailsV2(
             assert serialized["value"] == original.value
             assert serialized["important"] == original.important
 
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_low_value_span_event_context(self, mock_get_tags, mock_get_timeseries) -> None:
+        """Troubleshooting context lives on the serialized event, not the issue."""
+        mock_get_timeseries.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_get_tags.return_value = {"tags_overview": []}
+
+        occurrence, _ = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+            type=LowValueSpanConfigurationType.type_id,
+            evidence_data={"span_origin": "manual"},
+        )
+
+        result = get_issue_and_event_details_v2(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            project_slug=self.project.slug,
+            include_issue=True,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert "Sentry detector" in event_dict["detectionContext"]
+        assert "Remove the manually instrumented span" in event_dict["troubleshootingHint"]
+
 
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Tests for get_issue_details — fetching issue-level metadata, timeseries, tags, and activity."""
@@ -1636,8 +1747,6 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
-        assert result["issue"]["detectionContext"] is None
-        assert result["issue"]["troubleshootingHint"] is None
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
@@ -1662,28 +1771,6 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
-
-    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
-    @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_low_value_span_issue_context(self, mock_tags, mock_ts):
-        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
-        mock_tags.return_value = {"tags_overview": []}
-        group = self.create_group(
-            project=self.project,
-            type=LowValueSpanConfigurationType.type_id,
-        )
-
-        result = get_issue_details(
-            organization_id=self.organization.id,
-            issue_id=str(group.id),
-        )
-
-        assert isinstance(result, dict)
-        self._assert_issue_response_shape(result)
-        assert "Sentry detector" in result["issue"]["detectionContext"]
-        assert "low telemetry value" in result["issue"]["detectionContext"]
-        assert "manually instrumented" in result["issue"]["troubleshootingHint"]
-        assert "filter the automatically created span" in result["issue"]["troubleshootingHint"]
 
     # --- timeseries ---
 
@@ -2124,6 +2211,47 @@ class TestGetEventDetails(
         )
 
         assert result is None
+
+    # --- troubleshooting context on the serialized event ---
+
+    def test_low_value_span_event_context(self) -> None:
+        """Low-value-span events surface detector context on the serialized event."""
+        occurrence, _ = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+            type=LowValueSpanConfigurationType.type_id,
+            evidence_data={"span_origin": "manual"},
+        )
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert "Sentry detector" in event_dict["detectionContext"]
+        assert "Remove the manually instrumented span" in event_dict["troubleshootingHint"]
+
+    def test_non_detector_event_has_null_context(self) -> None:
+        """Non-detector events expose the keys with null values."""
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert event_dict["detectionContext"] is None
+        assert event_dict["troubleshootingHint"] is None
 
 
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):

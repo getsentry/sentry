@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from enum import StrEnum
 from functools import partial
 from typing import overload
 
@@ -25,6 +24,7 @@ from sentry.issues.grouptype import (
     get_group_type_by_slug,
 )
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
+from sentry.issues.progress import IssueProgressState
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES
 from sentry.models.organization import Organization
@@ -42,7 +42,6 @@ from sentry.search.utils import (
     parse_user_value,
 )
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
-from sentry.types.activity import ActivityType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -262,30 +261,6 @@ def convert_seer_actionability_value(
             raise InvalidSearchQuery(f"Invalid fixable value of '{fixable}'")
         results.append(fixability_score_threshold.value)
     return results
-
-
-class IssueProgressState(StrEnum):
-    IDENTIFIED = "identified"
-    TRIAGED = "triaged"
-    DIAGNOSED = "diagnosed"
-    FIX_PROPOSED = "fix_proposed"
-    FIX_APPLIED = "fix_applied"
-
-
-ISSUE_PROGRESS_TO_ACTIVITY_TYPES: dict[IssueProgressState, list[int]] = {
-    IssueProgressState.DIAGNOSED: [ActivityType.SEER_RCA_COMPLETED.value],
-    IssueProgressState.FIX_PROPOSED: [
-        ActivityType.SEER_PR_CREATED.value,
-        ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
-    ],
-    IssueProgressState.FIX_APPLIED: [
-        ActivityType.REFERENCED_IN_COMMIT.value,
-        ActivityType.SET_RESOLVED_IN_COMMIT.value,
-        ActivityType.SET_RESOLVED_IN_RELEASE.value,
-        ActivityType.SET_RESOLVED_BY_AGE.value,
-        ActivityType.SET_RESOLVED.value,
-    ],
-}
 
 
 def convert_issue_progress_value(

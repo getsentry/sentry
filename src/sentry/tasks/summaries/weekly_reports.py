@@ -19,7 +19,7 @@ from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -496,6 +496,18 @@ group_status_to_color = {
 }
 
 
+def _pct_change(current: int, previous: int) -> str | None:
+    """Returns a formatted string like '▲ 50%' or '▼ 25%', or None if not meaningful."""
+    if previous == 0:
+        return None
+    change = (current - previous) / previous
+    pct = round(change * 100)
+    if pct == 0:
+        return None
+    arrow = "▲" if change > 0 else "▼"
+    return f"{arrow} {abs(pct)}%"
+
+
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     """
     Returns a tuple of (text, background_color, border_color)
@@ -669,12 +681,21 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     }
                 )
             series.append((to_datetime(t), project_series))
+        prev_week_error = sum(
+            p.prev_week_accepted_error_count for p in projects_associated_with_user
+        )
+        prev_week_transaction = sum(
+            p.prev_week_accepted_transaction_count for p in projects_associated_with_user
+        )
+
         return {
             "legend": legend,
             "series": series,
             "total_error_count": total_error,
             "total_transaction_count": total_transaction,
             "total_replay_count": total_replays,
+            "error_pct_change": _pct_change(total_error, prev_week_error),
+            "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
@@ -783,6 +804,9 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
+        "show_week_over_week_metric": features.has(
+            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        ),
     }
 
 

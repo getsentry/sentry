@@ -176,7 +176,12 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
         "trigger_user": comment_user.get("login"),
         "trigger_user_id": comment_user.get("id"),
         "trigger_comment_id": comment.get("id"),
-        "trigger_comment_type": "issue_comment",
+        # The @sentry review trigger is always a comment on a PR (non-PR issue
+        # comments are filtered out upstream), so it is treated as a review
+        # comment. On GitHub this resolves to the same issue-comment reactions
+        # endpoint; using "pull_request_review_comment" keeps the type correct
+        # for GitLab too, where it must route to the merge-request note endpoint.
+        "trigger_comment_type": "pull_request_review_comment",
         "trigger_at": trigger_at,
     }
 
