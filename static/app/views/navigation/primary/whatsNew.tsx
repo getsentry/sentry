@@ -27,6 +27,7 @@ const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> =
   blog: t('Blog Post'),
   event: t('Event'),
   video: t('Video'),
+  sdk_update: t('SDK Update'),
 };
 
 function BroadcastImage({src, alt}: {alt: string; src: string}) {
