@@ -11,7 +11,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models.project import Project
 from sentry.rules import rules
 from sentry.rules.actions.integrations.create_ticket.base import TicketEventAction
@@ -26,6 +27,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE)
     def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve the list of configuration options for a given project.

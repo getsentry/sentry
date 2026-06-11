@@ -9,7 +9,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import DummyRuleSerializer
+from sentry.constants import ALERTS_API_DEPRECATION_DATE
 from sentry.models.rule import Rule
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.ratelimits.config import RateLimitConfig
@@ -49,6 +51,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         }
     )
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE)
     def post(self, request: Request, project) -> Response:
         """
         Creates a dummy event/group and activates the actions given by request body

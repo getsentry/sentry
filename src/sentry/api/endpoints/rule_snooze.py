@@ -17,9 +17,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import BadRequest
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.api.utils import to_valid_int_id
+from sentry.constants import ALERTS_API_DEPRECATION_DATE
 from sentry.db.models.base import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.alert_rule import AlertRule
@@ -108,6 +110,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
 
         return (args, kwargs)
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE)
     def post(self, request: Request, project: Project, rule: T) -> Response:
         serializer = RuleSnoozeValidator(data=request.data)
         if not serializer.is_valid():
@@ -165,6 +168,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
             status=status.HTTP_201_CREATED,
         )
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE)
     def delete(self, request: Request, project: Project, rule: T) -> Response:
         # find if there is a mute for all that I can remove
         shared_snooze = None
@@ -245,11 +249,13 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     }
     rule_field = "rule"
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE)
     @track_alert_endpoint_execution("POST", "sentry-api-0-rule-snooze")
     def post(self, request: Request, project: Project, rule: Rule) -> Response:
         # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE)
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-rule-snooze")
     def delete(self, request: Request, project: Project, rule: Rule) -> Response:
         # Tracking happens in fetch_rule_list and fetch_instance
@@ -300,11 +306,13 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     }
     rule_field = "alert_rule"
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE)
     @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
     def post(self, request: Request, project: Project, rule: AlertRule) -> Response:
         # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE)
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
     def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:
         # Tracking happens in fetch_rule_list and fetch_instance
