@@ -172,11 +172,10 @@ export function List<Value extends SelectKey>({
   const {
     overlayState,
     search,
-    searchInputValue,
     searchable,
     overlayIsOpen,
     searchMatcher,
-    autoHighlightFirstResult,
+    highlightFirstResult,
   } = useContext(ControlContext);
 
   const {hidden: hiddenOptions, scores} = useMemo(
@@ -292,7 +291,7 @@ export function List<Value extends SelectKey>({
   }, [listState.collection, listState.selectionManager]);
 
   const autoHighlightedKey =
-    autoHighlightFirstResult && overlayIsOpen && searchInputValue.trim().length > 0
+    highlightFirstResult && overlayIsOpen && search.trim().length > 0
       ? firstFocusableKey
       : null;
 

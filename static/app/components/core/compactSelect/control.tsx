@@ -61,7 +61,7 @@ interface ControlContextValue {
   /**
    * Whether to highlight the first visible result while searching.
    */
-  autoHighlightFirstResult: boolean;
+  highlightFirstResult: boolean;
   overlayIsOpen: boolean;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -96,7 +96,7 @@ export const ControlContext = createContext<ControlContextValue>({
   search: '',
   searchInputValue: '',
   searchable: false,
-  autoHighlightFirstResult: false,
+  highlightFirstResult: true,
 });
 
 export interface ControlProps
@@ -264,6 +264,7 @@ export function Control({
   const searchEnabled = normalizedSearch !== undefined;
   const searchFilter =
     typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
+  const highlightFirstResult = !normalizedSearch?.disableHighlightFirstResult;
 
   /**
    * Search/filter value, used to filter out the list of displayed elements
@@ -294,10 +295,7 @@ export function Control({
       // select the auto-highlighted result while keeping typing focus in the input.
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (
-          normalizedSearch?.autoHighlightFirstResult &&
-          searchInputValue.trim().length > 0
-        ) {
+        if (highlightFirstResult && searchInputValue.trim().length > 0) {
           overlayRef.current
             ?.querySelector<HTMLElement>('[data-auto-highlighted="true"]')
             ?.click();
@@ -499,7 +497,7 @@ export function Control({
       search,
       searchInputValue,
       searchable: searchEnabled,
-      autoHighlightFirstResult: normalizedSearch?.autoHighlightFirstResult ?? false,
+      highlightFirstResult,
       size,
       disabled,
       searchMatcher: searchFilter,
@@ -510,7 +508,7 @@ export function Control({
     search,
     searchInputValue,
     searchEnabled,
-    normalizedSearch?.autoHighlightFirstResult,
+    highlightFirstResult,
     size,
     disabled,
     searchFilter,
