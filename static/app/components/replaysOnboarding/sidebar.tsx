@@ -407,11 +407,9 @@ function OnboardingContent({
         platformKey={currentPlatform.id}
         project={currentProject}
         configType={
-          setupMode === 'npm' || // switched to NPM option
-          npmOnlyFramework ||
-          mobilePlatform // even if '?mode=jsLoader', only show npm/default instructions for FE frameworks & mobile platforms
-            ? 'replayOnboarding'
-            : 'replayOnboardingJsLoader'
+          setupMode === 'jsLoader' && !npmOnlyFramework && !mobilePlatform
+            ? 'replayOnboardingJsLoader'
+            : 'replayOnboarding'
         }
       />
     </Fragment>
