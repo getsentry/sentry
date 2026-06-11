@@ -19,6 +19,10 @@ from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_monitoring_providers import (
+    OrganizationMonitoringProviderDetailsEndpoint,
+    OrganizationMonitoringProviderIndexEndpoint,
+)
 from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_plugin_deprecation_info import (
     OrganizationPluginDeprecationInfoEndpoint,
@@ -1900,6 +1904,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-timeseries/$",
         OrganizationIssueTimeSeriesEndpoint.as_view(),
         name="sentry-api-0-organization-issue-timeseries",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/$",
+        OrganizationMonitoringProviderIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-monitoring-providers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/(?P<provider_key>[^/]+)/$",
+        OrganizationMonitoringProviderDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitoring-provider-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/$",
