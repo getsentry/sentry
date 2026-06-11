@@ -605,6 +605,16 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         """
         from sentry.integrations.services.integration import integration_service
 
+        data = dict(data)
+
+        if "p4port" in data:
+            p4port = str(data["p4port"]).strip().rstrip("/")
+            try:
+                validate_p4port_transport(p4port)
+            except InvalidP4Port as e:
+                raise IntegrationError(str(e))
+            data["p4port"] = p4port
+
         # Update integration metadata with new values
         metadata = dict(self.model.metadata)  # Create a mutable copy
         metadata.update(data)  # Only update fields present in data

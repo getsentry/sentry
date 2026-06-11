@@ -60,8 +60,22 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
         # One timing per handler, tagged by the registry key.
         emitted = [(call.args[0], call.args[3]) for call in mock_timing.call_args_list]
         assert emitted == [
-            (DURATION_METRIC, {"handler": "handler_a", "result": "success"}),
-            (DURATION_METRIC, {"handler": "handler_b", "result": "success"}),
+            (
+                DURATION_METRIC,
+                {
+                    "handler": "handler_a",
+                    "result": "success",
+                    "activity_type": "SEER_PR_CREATED",
+                },
+            ),
+            (
+                DURATION_METRIC,
+                {
+                    "handler": "handler_b",
+                    "result": "success",
+                    "activity_type": "SEER_PR_CREATED",
+                },
+            ),
         ]
 
     @mock.patch("sentry.utils.metrics.timing")
@@ -79,7 +93,21 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
         # Failed handlers are still timed, and the loop continues to the next handler.
         emitted = [(call.args[0], call.args[3]) for call in mock_timing.call_args_list]
         assert emitted == [
-            (DURATION_METRIC, {"handler": "handler_a", "result": "failure"}),
-            (DURATION_METRIC, {"handler": "handler_b", "result": "success"}),
+            (
+                DURATION_METRIC,
+                {
+                    "handler": "handler_a",
+                    "result": "failure",
+                    "activity_type": "SEER_PR_CREATED",
+                },
+            ),
+            (
+                DURATION_METRIC,
+                {
+                    "handler": "handler_b",
+                    "result": "success",
+                    "activity_type": "SEER_PR_CREATED",
+                },
+            ),
         ]
         handler_b.assert_called_once_with(self.group, self.activity, None)

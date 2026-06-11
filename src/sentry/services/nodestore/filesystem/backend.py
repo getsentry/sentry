@@ -22,7 +22,7 @@ class FileSystemNodeStorage(NodeStorage):
         else:
             self.path = os.path.abspath(os.path.join(os.path.dirname(__file__), "./nodes"))
 
-    def _get_bytes(self, id: str) -> bytes:
+    def _get_bytes(self, id: str, timeout: float | None = None) -> bytes:
         with open(self.node_path(id), "rb") as file:
             return file.read()
 

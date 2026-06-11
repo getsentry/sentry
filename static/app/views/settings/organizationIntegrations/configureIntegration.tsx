@@ -301,7 +301,6 @@ function ConfigureIntegration() {
         <PagerdutyAddServicesButton
           provider={provider}
           onInstall={onUpdateIntegration}
-          account={integration.domainName}
           organization={organization}
         />
       );
@@ -546,10 +545,8 @@ function ConfigureIntegration() {
 function PagerdutyAddServicesButton({
   provider,
   onInstall,
-  account,
   organization,
 }: {
-  account: string | null;
   onInstall: () => void;
   organization: Organization;
   provider: IntegrationProvider;
@@ -561,7 +558,7 @@ function PagerdutyAddServicesButton({
       variant="primary"
       size="sm"
       icon={<IconAdd />}
-      onClick={() => startFlow({provider, onInstall, account, organization})}
+      onClick={() => startFlow({provider, onInstall, organization})}
     >
       {t('Add Services')}
     </Button>

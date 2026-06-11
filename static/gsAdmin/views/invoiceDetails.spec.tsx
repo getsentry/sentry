@@ -31,14 +31,14 @@ describe('InvoiceDetails', () => {
       })
     );
 
-    ConfigStore.set('regions', [
+    ConfigStore.set('cells', [
       {
         name: 'us',
-        url: 'https://us.sentry.io',
+        locality_url: 'https://us.sentry.io',
       },
       {
         name: 'de',
-        url: 'https://de.sentry.io',
+        locality_url: 'https://de.sentry.io',
       },
     ]);
   });

@@ -1,4 +1,8 @@
-"""Lint: assert decorator's declared `T`s match the method's `Response[T]` annotation.
+"""Lint: enforce typed response annotations on PUBLIC endpoints.
+
+This module runs two checks against every HTTP method in an endpoint class.
+
+## Check 1 — decorator `T` ⊆ annotation `T`s (drift)
 
 For each method decorated with
     @extend_schema(responses={N: inline_sentry_response_serializer("Name", T_decl), ...})
@@ -8,8 +12,8 @@ or, when the endpoint exposes multiple typed response shapes,
     -> Response[T_success] | Response[T_error_400] | ...
 
 this linter asserts that the *set* of `T`s declared by
-`inline_sentry_response_serializer(...)` entries in the decorator equals the set of
-`T`s in the annotation's union arms. Names are compared verbatim — no
+`inline_sentry_response_serializer(...)` entries in the decorator is a subset of
+the `T`s in the annotation's union arms. Names are compared verbatim — no
 normalization, no convention-based pairing. mypy enforces body-vs-annotation;
 this linter enforces decorator-vs-annotation.
 
@@ -17,7 +21,7 @@ The status-code-to-`T` linkage is intentionally not enforced — mypy can't mode
 it, and broad `except APIException` catches would lose the linkage anyway.
 
 Skipped silently (no diagnostic):
-  - Plain `-> Response` annotations (the unmigrated state).
+  - Plain `-> Response` annotations (handled by Check 2 for PUBLIC).
   - Methods with no `@extend_schema` decorator.
   - Decorator entries that aren't `inline_sentry_response_serializer(...)` —
     direct serializer-class references (`MonitorSerializer`),
@@ -27,10 +31,30 @@ Skipped silently (no diagnostic):
     `inline_sentry_response_serializer(...)` or wait for the generic
     `Serializer[T]` refactor.
 
+## Check 2 — PUBLIC endpoints must have typed return annotations
+
+For each HTTP method on an endpoint class whose `publish_status` declares the
+method as `ApiPublishStatus.PUBLIC`, the return annotation must be one of:
+  - `Response[T]` for a concrete TypedDict / type `T`
+  - a `|`-union of `Response[T_i]` arms (and optionally non-`Response` arms
+    for endpoints that legitimately return Django responses, e.g.
+    `Response[Foo] | StreamingHttpResponse`)
+  - a non-`Response` Django response type if the endpoint never returns a
+    DRF `Response` (e.g. `HttpResponseBase`, `StreamingHttpResponse`,
+    `FileResponse`)
+
+The following are diagnostics:
+  - **missing annotation** — PUBLIC methods must explicitly declare what
+    they return so mypy can verify the body and drf-spectacular can
+    document it.
+  - **bare `Response`** — `-> Response` without `[T]` opts the method out of
+    type checking entirely. PUBLIC endpoints are documented in OpenAPI; an
+    untyped body lets the runtime drift from the declared schema.
+
 Invoke as:
     python -m sentry.apidocs._check_response_annotation_matches_schema [paths...]
 
-Exits non-zero on any mismatch.
+Exits non-zero on any diagnostic.
 """
 
 from __future__ import annotations
@@ -55,6 +79,22 @@ DEFAULT_PATHS = (
 )
 
 
+_HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete", "head", "options"})
+
+_PUBLIC_HOW_TO = (
+    "Fix by replacing the annotation with one of:\n"
+    "  -> Response[YourResponseTypedDict]              # single 200 shape\n"
+    "  -> Response[YourResponseTypedDict] | Response[DetailResponse]\n"
+    "                                                  # success + error shape\n"
+    "  -> Response[None]                                # explicit empty body\n"
+    "  -> HttpResponseBase                              # streaming/redirect/non-DRF\n"
+    "If the body shape isn't documented anywhere yet, define a local\n"
+    "TypedDict in the endpoint file (`class _FooResponse(TypedDict): ...`)\n"
+    "and reference it. Standard error shapes (`{'detail': str}`,\n"
+    "`{field: errors}`) live in `sentry.apidocs.response_types`."
+)
+
+
 @dataclass(frozen=True)
 class Mismatch:
     path: Path
@@ -72,6 +112,31 @@ class Mismatch:
             f"{self.path}:{self.line} {self.cls}.{self.method}: "
             f"decorator declares {{{decl}}} but annotation declares {{{annot}}} "
             f"(missing from annotation: {{{missing}}})"
+        )
+
+
+@dataclass(frozen=True)
+class PublicUntyped:
+    """A PUBLIC HTTP method that lacks a usable return annotation."""
+
+    path: Path
+    line: int
+    cls: str
+    method: str
+    reason: str  # "missing" or "bare-Response"
+
+    def __str__(self) -> str:
+        if self.reason == "missing":
+            problem = "is PUBLIC but has no return annotation"
+        else:
+            problem = "is PUBLIC but annotated with bare `Response` (no `[T]`)"
+        return (
+            f"{self.path}:{self.line} {self.cls}.{self.method}: {problem}.\n"
+            "Why: PUBLIC endpoints are documented in the OpenAPI spec and\n"
+            "consumed by SDK generators and external clients. An untyped\n"
+            "return lets the runtime body drift from the declared schema\n"
+            "without anyone noticing (mypy can't verify what isn't typed).\n"
+            f"{_PUBLIC_HOW_TO}"
         )
 
 
@@ -188,6 +253,142 @@ def _iter_methods(tree: ast.Module) -> Iterator[tuple[str, ast.FunctionDef | ast
                 yield node.name, item
 
 
+def _iter_classes(tree: ast.Module) -> Iterator[ast.ClassDef]:
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            yield node
+
+
+def _publish_status(cls: ast.ClassDef) -> dict[str, str]:
+    """Return `{HTTP_METHOD: ApiPublishStatus_attr_name}` parsed from
+    `publish_status = {"GET": ApiPublishStatus.PUBLIC, ...}` on the class
+    body. Also handles the annotated form
+    `publish_status: dict[str, ApiPublishStatus] = {...}`. Returns `{}`
+    when the class has no such assignment or the value doesn't statically
+    match the expected literal-dict shape."""
+    for item in cls.body:
+        value: ast.expr | None = None
+        if (
+            isinstance(item, ast.Assign)
+            and len(item.targets) == 1
+            and isinstance(item.targets[0], ast.Name)
+            and item.targets[0].id == "publish_status"
+        ):
+            value = item.value
+        elif (
+            isinstance(item, ast.AnnAssign)
+            and isinstance(item.target, ast.Name)
+            and item.target.id == "publish_status"
+            and item.value is not None
+        ):
+            value = item.value
+        if not isinstance(value, ast.Dict):
+            continue
+        out: dict[str, str] = {}
+        for k, v in zip(value.keys, value.values):
+            if (
+                isinstance(k, ast.Constant)
+                and isinstance(k.value, str)
+                and isinstance(v, ast.Attribute)
+            ):
+                out[k.value] = v.attr
+        return out
+    return {}
+
+
+_UNION_NAMES = frozenset({"Union", "Optional"})
+
+
+def _is_union_subscript(node: ast.expr) -> ast.expr | None:
+    """If `node` is `Union[a, b, ...]`, `Optional[a]`, or the `typing.`-prefixed
+    forms, return the slice expression (a `Tuple` of arms for `Union`, or a
+    single arm for `Optional`/`Union[X]`). Otherwise return None.
+
+    `Optional[X]` is `Union[X, None]` semantically — the `None` arm has no
+    way to encode a bare `Response`, so unwrapping just the `X` is enough."""
+    if not isinstance(node, ast.Subscript):
+        return None
+    val = node.value
+    if isinstance(val, ast.Name) and val.id in _UNION_NAMES:
+        return node.slice
+    if isinstance(val, ast.Attribute) and val.attr in _UNION_NAMES:
+        return node.slice
+    return None
+
+
+def _annotation_has_bare_response(returns: ast.expr) -> bool:
+    """Walk a return annotation's union arms; return True iff any arm is the
+    bare `Response` name (no `[T]` subscript). Handles both `X | Y` and
+    `Union[X, Y]` union forms."""
+    pending: list[ast.expr] = [returns]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+            pending.append(node.left)
+            pending.append(node.right)
+            continue
+        union_slice = _is_union_subscript(node)
+        if union_slice is not None:
+            if isinstance(union_slice, ast.Tuple):
+                pending.extend(union_slice.elts)
+            else:
+                pending.append(union_slice)
+            continue
+        if isinstance(node, ast.Name) and node.id == "Response":
+            return True
+        if isinstance(node, ast.Attribute) and node.attr == "Response":
+            # `rest_framework.response.Response` — bare attribute form
+            return True
+    return False
+
+
+def check_file_public_typed(path: Path) -> list[PublicUntyped]:
+    """Diagnose PUBLIC methods that lack a usable return annotation."""
+    try:
+        source = path.read_text()
+    except OSError:
+        return []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+
+    out: list[PublicUntyped] = []
+    for cls in _iter_classes(tree):
+        ps = _publish_status(cls)
+        if not ps:
+            continue
+        for item in cls.body:
+            if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if item.name not in _HTTP_METHODS:
+                continue
+            if ps.get(item.name.upper()) != "PUBLIC":
+                continue
+            if item.returns is None:
+                out.append(
+                    PublicUntyped(
+                        path=path,
+                        line=item.lineno,
+                        cls=cls.name,
+                        method=item.name,
+                        reason="missing",
+                    )
+                )
+                continue
+            if _annotation_has_bare_response(item.returns):
+                out.append(
+                    PublicUntyped(
+                        path=path,
+                        line=item.lineno,
+                        cls=cls.name,
+                        method=item.name,
+                        reason="bare-Response",
+                    )
+                )
+    return out
+
+
 def check_file(path: Path) -> list[Mismatch]:
     try:
         source = path.read_text()
@@ -248,18 +449,32 @@ def iter_files(roots: Iterable[str]) -> Iterator[Path]:
 def main(argv: list[str]) -> int:
     roots = argv[1:] if len(argv) > 1 else list(DEFAULT_PATHS)
     all_mismatches: list[Mismatch] = []
+    all_untyped: list[PublicUntyped] = []
     for path in iter_files(roots):
         all_mismatches.extend(check_file(path))
+        all_untyped.extend(check_file_public_typed(path))
+
     for m in all_mismatches:
         sys.stdout.write(f"{m}\n")
+    for u in all_untyped:
+        sys.stdout.write(f"{u}\n")
+
     if all_mismatches:
         sys.stderr.write(
-            f"\n{len(all_mismatches)} mismatch(es) — every `T` declared by "
-            "`inline_sentry_response_serializer(...)` in `@extend_schema` must "
-            "appear in the `Response[T]` (or union) annotation. The annotation "
-            "MAY declare additional arms (e.g. local error TypedDicts) that the "
-            "decorator does not expose.\n",
+            f"\n{len(all_mismatches)} decorator/annotation mismatch(es) — every "
+            "`T` declared by `inline_sentry_response_serializer(...)` in "
+            "`@extend_schema` must appear in the `Response[T]` (or union) "
+            "annotation. The annotation MAY declare additional arms (e.g. "
+            "local error TypedDicts) that the decorator does not expose.\n",
         )
+    if all_untyped:
+        sys.stderr.write(
+            f"\n{len(all_untyped)} PUBLIC method(s) without a typed return "
+            "annotation. PUBLIC endpoints are documented in OpenAPI and must "
+            "declare the runtime response shape statically so mypy + the "
+            "OpenAPI generator can keep the spec honest.\n"
+        )
+    if all_mismatches or all_untyped:
         return 1
     return 0
 

@@ -116,11 +116,11 @@ class BigtableKVStorage(KVStorage[str, bytes]):
                     )
             return table
 
-    def get(self, key: str) -> bytes | None:
+    def get(self, key: str, timeout: float | None = None) -> bytes | None:
         with sentry_sdk.start_span(op="bigtable.get"):
             # Default timeout is 60 seconds, much too long for our ingestion pipeline
             # Modify retry based on https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout#configuring-retries
-            modified_retry = DEFAULT_RETRY_READ_ROWS.with_timeout(5.0)
+            modified_retry = DEFAULT_RETRY_READ_ROWS.with_timeout(timeout or 5.0)
             row = self._get_table().read_row(key, retry=modified_retry)
         if row is None:
             return None
