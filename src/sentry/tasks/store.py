@@ -402,37 +402,41 @@ def do_process_event(
             data = new_data
 
     # Default event processors.
-    if features.has("organizations:event-preprocessors-without-plugins", project.organization):
+    use_new_preprocessors = features.has(
+        "organizations:event-preprocessors-without-plugins", project.organization
+    )
+    if use_new_preprocessors:
         event_preprocessor = get_event_preprocessor(data)
-        if event_preprocessor is not None:
-            with sentry_sdk.start_span(op="task.store.process_event.preprocessors"):
-                try:
-                    result = event_preprocessor(data)
-                except Exception:
-                    error_logger.exception("tasks.store.preprocessors.error")
-                    data.setdefault("_metrics", {})["flag.processing.error"] = True
-                    has_changed = True
-                else:
-                    if result:
-                        data = result
-                        has_changed = True
+        preprocessors = [event_preprocessor] if event_preprocessor is not None else []
     else:
+        preprocessors = []
         for plugin in plugins.all(version=2):
-            with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-                span.set_data("plugin", plugin.slug)
-                span.set_data("from_symbolicate", from_symbolicate)
-                processors = safe_execute(plugin.get_event_preprocessors, data=data)
-                for processor in processors or ():
-                    try:
-                        result = processor(data)
-                    except Exception:
-                        error_logger.exception("tasks.store.preprocessors.error")
-                        data.setdefault("_metrics", {})["flag.processing.error"] = True
-                        has_changed = True
-                    else:
-                        if result:
-                            data = result
-                            has_changed = True
+            preprocessors.extend(safe_execute(plugin.get_event_preprocessors, data=data) or ())
+
+    preprocessor_span_op = (
+        "task.store.process_event.new_preprocessors"
+        if use_new_preprocessors
+        else "task.store.process_event.preprocessors"
+    )
+    preprocessor_log_msg = (
+        "tasks.store.new_preprocessors.error"
+        if use_new_preprocessors
+        else "tasks.store.preprocessors.error"
+    )
+
+    with sentry_sdk.start_span(op=preprocessor_span_op) as span:
+        span.set_data("from_symbolicate", from_symbolicate)
+        for processor in preprocessors:
+            try:
+                result = processor(data)
+            except Exception:
+                error_logger.exception(preprocessor_log_msg)
+                data.setdefault("_metrics", {})["flag.processing.error"] = True
+                has_changed = True
+            else:
+                if result:
+                    data = result
+                    has_changed = True
 
     assert data["project"] == project_id, "Project cannot be mutated by plugins"
 
