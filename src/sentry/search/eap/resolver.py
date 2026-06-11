@@ -257,8 +257,10 @@ class SearchResolver:
                     organization_id=self.params.organization_id,
                     short_ids_raw=list(collected),
                     # Scope to the projects the query is restricted to so a short id for a
-                    # project outside the search scope does not resolve.
-                    project_ids=self.params.project_ids,
+                    # project outside the search scope does not resolve. Fall back to None
+                    # (no pre-filter) when there is no project scope, so an organization-wide
+                    # query still resolves; the downstream Snuba query enforces the projects.
+                    project_ids=self.params.project_ids or None,
                 )
             )
         except Group.DoesNotExist:
