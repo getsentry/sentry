@@ -10,6 +10,7 @@ import {
   ListLabel,
   ListSeparator,
   ListWrap,
+  type SelectKey,
   SelectFilterContext,
   SizeLimitMessage,
   useVirtualizedItems,
@@ -50,6 +51,7 @@ interface GridListProps<T extends ListItemBase>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  searchFocusedKey?: SelectKey | null;
   size?: GridListOptionProps<ListItemBase>['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
@@ -78,6 +80,7 @@ function GridList<T extends ListItemBase>({
   sizeLimitMessage,
   keyDownHandler,
   virtualized,
+  searchFocusedKey,
   ...props
 }: GridListProps<T>) {
   const ref = useRef<HTMLUListElement>(null);
@@ -143,6 +146,7 @@ function GridList<T extends ListItemBase>({
                       key={item.key}
                       node={item}
                       listState={listState}
+                      searchFocusedKey={searchFocusedKey}
                       size={size}
                     />
                   );
@@ -155,6 +159,7 @@ function GridList<T extends ListItemBase>({
                     node={item}
                     listState={listState}
                     size={size}
+                    forceFocused={item.key === searchFocusedKey}
                   />
                 );
               })}

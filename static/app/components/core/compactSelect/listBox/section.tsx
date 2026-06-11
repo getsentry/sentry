@@ -26,6 +26,7 @@ interface ListBoxSectionProps<T extends ListItemBase> extends AriaListBoxSection
   size: ListBoxOptionProps['size'];
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
+  searchFocusedKey?: SelectKey | null;
   showDetails?: boolean;
 }
 
@@ -38,6 +39,7 @@ export function ListBoxSection<T extends ListItemBase>({
   listState,
   size,
   hiddenOptions,
+  searchFocusedKey,
   showSectionHeaders,
   showDetails = true,
   ref,
@@ -78,6 +80,7 @@ export function ListBoxSection<T extends ListItemBase>({
               item={child}
               listState={listState}
               size={size}
+              forceFocused={child.key === searchFocusedKey}
               showDetails={showDetails}
             />
           ))}

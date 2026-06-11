@@ -1,9 +1,19 @@
-import {createContext, Fragment, useContext, useId, useMemo} from 'react';
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
-import type {ListProps} from '@react-stately/list';
+import type {ListProps, ListState} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
+import type {Key} from '@react-types/shared';
 
 import {defined} from 'sentry/utils/defined';
 import type {FormSize} from 'sentry/utils/theme';
@@ -29,6 +39,36 @@ import {
 } from './utils';
 
 export const SelectFilterContext = createContext(new Set<SelectKey>());
+
+function getFirstVisibleEnabledKey<T extends ListItemBase>(
+  listState: ListState<T>,
+  hiddenOptions: Set<SelectKey>
+): SelectKey | null {
+  const isVisibleAndEnabled = (key: Key) => {
+    if (typeof key !== 'string' && typeof key !== 'number') {
+      return false;
+    }
+
+    return !hiddenOptions.has(key) && !listState.selectionManager.isDisabled(key);
+  };
+
+  for (const item of listState.collection) {
+    if (item.type === 'section') {
+      for (const child of item.childNodes) {
+        if (isVisibleAndEnabled(child.key)) {
+          return child.key;
+        }
+      }
+      continue;
+    }
+
+    if (isVisibleAndEnabled(item.key)) {
+      return item.key;
+    }
+  }
+
+  return null;
+}
 
 interface BaseListProps<Value extends SelectKey>
   extends
@@ -169,8 +209,15 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
-    useContext(ControlContext);
+  const {
+    overlayState,
+    search,
+    searchable,
+    overlayIsOpen,
+    searchMatcher,
+    focusFirstSearchResult,
+    registerSearchResultList,
+  } = useContext(ControlContext);
 
   const {hidden: hiddenOptions, scores} = useMemo(
     () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
@@ -253,6 +300,56 @@ export function List<Value extends SelectKey>({
     ...listStateProps,
     items: sortedItems,
   });
+
+  const firstVisibleEnabledKey = useMemo(
+    () => getFirstVisibleEnabledKey(listState, hiddenOptions),
+    [listState, hiddenOptions]
+  );
+
+  const [searchFocusedKey, setSearchFocusedKey] = useState<SelectKey | null>(null);
+  const listStateRef = useRef(listState);
+  listStateRef.current = listState;
+  const firstVisibleEnabledKeyRef = useRef(firstVisibleEnabledKey);
+  firstVisibleEnabledKeyRef.current = firstVisibleEnabledKey;
+  const hiddenOptionsRef = useRef(hiddenOptions);
+  hiddenOptionsRef.current = hiddenOptions;
+  const searchFocusedKeyRef = useRef(searchFocusedKey);
+  searchFocusedKeyRef.current = searchFocusedKey;
+
+  const searchResultListController = useMemo(
+    () => ({
+      clearFocusedKey: () => {
+        setSearchFocusedKey(null);
+      },
+      getFirstVisibleEnabledKey: () => firstVisibleEnabledKeyRef.current,
+      selectFocusedKey: () => {
+        const selectionManager = listStateRef.current.selectionManager;
+        const focusedKey = searchFocusedKeyRef.current;
+        if (
+          focusedKey === null ||
+          hiddenOptionsRef.current.has(focusedKey) ||
+          selectionManager.isDisabled(focusedKey)
+        ) {
+          return false;
+        }
+
+        selectionManager.select(focusedKey);
+        return true;
+      },
+      setFocusedKey: (key: SelectKey) => {
+        setSearchFocusedKey(key);
+      },
+    }),
+    []
+  );
+
+  useEffect(() => {
+    return registerSearchResultList?.(searchResultListController);
+  }, [registerSearchResultList, searchResultListController]);
+
+  useEffect(() => {
+    focusFirstSearchResult?.();
+  }, [firstVisibleEnabledKey, focusFirstSearchResult]);
 
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed
@@ -355,6 +452,7 @@ export function List<Value extends SelectKey>({
             {...props}
             id={listId}
             listState={listState}
+            searchFocusedKey={searchFocusedKey}
             sizeLimitMessage={sizeLimitMessage}
             keyDownHandler={keyDownHandler}
           />
@@ -367,6 +465,7 @@ export function List<Value extends SelectKey>({
           hiddenOptions={hiddenOptions}
           id={listId}
           listState={listState}
+          searchFocusedKey={searchFocusedKey}
           shouldFocusWrap={shouldFocusWrap}
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}

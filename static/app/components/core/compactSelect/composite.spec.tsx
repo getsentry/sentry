@@ -291,6 +291,50 @@ describe('CompositeSelect', () => {
     expect(screen.queryByRole('Region 2')).not.toBeInTheDocument();
   });
 
+  it('selects the first search result across all regions on Enter', async () => {
+    const region1Mock = jest.fn();
+    const region2Mock = jest.fn();
+
+    render(
+      <CompositeSelect
+        search={{placeholder: 'Search placeholder…'}}
+        trigger={props => (
+          <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
+        )}
+      >
+        <CompositeSelect.Region
+          label="Region 1"
+          onChange={region1Mock}
+          value={undefined}
+          options={[
+            {value: 'choice_one', label: 'Choice One'},
+            {value: 'choice_two', label: 'Choice Two'},
+          ]}
+        />
+        <CompositeSelect.Region
+          multiple
+          label="Region 2"
+          onChange={region2Mock}
+          value={undefined}
+          options={[
+            {value: 'choice_three', label: 'Choice Three'},
+            {value: 'choice_four', label: 'Choice Four'},
+          ]}
+        />
+      </CompositeSelect>
+    );
+
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.type(screen.getByPlaceholderText('Search placeholder…'), 'Choice');
+    await userEvent.keyboard('{Enter}');
+
+    expect(region1Mock).toHaveBeenCalledWith({
+      value: 'choice_one',
+      label: 'Choice One',
+    });
+    expect(region2Mock).not.toHaveBeenCalled();
+  });
+
   it('works with grid lists', async () => {
     function Component() {
       const [region1, setRegion1] = useState('choice_one');

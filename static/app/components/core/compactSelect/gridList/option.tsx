@@ -25,6 +25,7 @@ export interface GridListOptionProps<
   listState: ListState<T>;
   node: Node<T>;
   size: FormSize;
+  forceFocused?: boolean;
 }
 
 /**
@@ -35,6 +36,7 @@ export function GridListOption<T extends ListItemBase>({
   node,
   listState,
   size,
+  forceFocused = false,
 }: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -124,7 +126,7 @@ export function GridListOption<T extends ListItemBase>({
       disabled={isDisabled}
       isSelected={isSelected}
       isPressed={isPressed}
-      isFocused={isFocusWithin}
+      isFocused={forceFocused || isFocusWithin}
       priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
       innerWrapProps={gridCellProps}
       labelProps={labelPropsMemo}

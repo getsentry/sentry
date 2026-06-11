@@ -235,7 +235,7 @@ const [values, setValues] = useState(['2', '4']);
 
 ## Searchable
 
-Enable `search` to allow users to filter options by typing. Essential for lists with many options. Pass `true` for default behavior, or a `SearchConfig` object to customize placeholder, filtering, or the onChange callback.
+Enable `search` to allow users to filter options by typing. Essential for lists with many options. Pass `true` for default behavior, or a `SearchConfig` object to customize placeholder, filtering, the onChange callback, or `autoFocusFirstResult`. By default, searching makes the first visible enabled result active while keeping focus in the search input, so pressing Enter selects that result.
 
 export function SearchDemo() {
   const [value, setValue] = useState('US');

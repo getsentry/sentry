@@ -76,6 +76,10 @@ interface ListBoxProps<T extends ListItemBase>
    */
   scrollContainerRef?: React.Ref<HTMLDivElement>;
   /**
+   * Search result key to display as focused while DOM focus remains on the search input.
+   */
+  searchFocusedKey?: SelectKey | null;
+  /**
    * Whether the select has a search input field.
    */
   searchable?: boolean;
@@ -138,6 +142,7 @@ export function ListBox<T extends ListItemBase>({
   virtualized,
   virtualizedListPadding = listPaddingVertical,
   scrollContainerRef,
+  searchFocusedKey,
   className,
   ...props
 }: ListBoxProps<T>) {
@@ -251,6 +256,7 @@ export function ListBox<T extends ListItemBase>({
                       item={item}
                       listState={listState}
                       hiddenOptions={hiddenOptions}
+                      searchFocusedKey={searchFocusedKey}
                       size={size}
                       showSectionHeaders={showSectionHeaders}
                       showDetails={showDetails}
@@ -265,6 +271,7 @@ export function ListBox<T extends ListItemBase>({
                     item={item}
                     listState={listState}
                     size={size}
+                    forceFocused={item.key === searchFocusedKey}
                     showDetails={showDetails}
                   />
                 );

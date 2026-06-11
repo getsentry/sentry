@@ -447,6 +447,54 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('selects the first search result on Enter without moving focus from the search input', async () => {
+      const mock = jest.fn();
+
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={mock}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search here…');
+      await userEvent.type(searchInput, 'Two');
+
+      expect(searchInput).toHaveFocus();
+
+      await userEvent.keyboard('{Enter}');
+
+      expect(mock).toHaveBeenCalledWith({value: 'opt_two', label: 'Option Two'});
+    });
+
+    it('does not select the first search result when autoFocusFirstResult is false', async () => {
+      const mock = jest.fn();
+
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…', autoFocusFirstResult: false}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={mock}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.type(screen.getByPlaceholderText('Search here…'), 'Two');
+      await userEvent.keyboard('{Enter}');
+
+      expect(mock).not.toHaveBeenCalled();
+    });
+
     it('restores full list when search query is cleared', async () => {
       render(
         <CompactSelect
