@@ -1,7 +1,6 @@
 from sentry.issues.action_log.base import (
     ActionContext,
     ActionSource,
-    DuplicateActionError,
     action_context_scope,
     get_action_context,
     publish_action,
@@ -13,7 +12,6 @@ from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
 __all__ = [
     "ActionContext",
     "ActionSource",
-    "DuplicateActionError",
     "GroupActionActor",
     "SYSTEM_ACTOR",
     "action_context_scope",
