@@ -1,48 +1,55 @@
 import {Fragment, useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriod} from 'sentry/types/group';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
+import type {Project} from 'sentry/types/project';
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleThresholdType,
+  TimePeriod,
+  TimeWindow,
+} from 'sentry/views/alerts/rules/metric/types';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
-export function useMetricIssueAlertId({groupId}: {groupId: string}): string | undefined {
-  /**
-   * This should be removed once the metric alert rule ID is set on the issue.
-   * This will fetch an event from the max range if the detector details
-   * are not available (e.g. time range has changed and page refreshed)
-   */
-  const user = useUser();
-  const organization = useOrganization();
+export function useMetricIssueDetectorId(): string | undefined {
   const {detectorDetails} = useIssueDetails();
   const {detectorId, detectorType} = detectorDetails;
+  return detectorType === 'metric_alert' ? detectorId : undefined;
+}
 
-  const hasMetricDetector = detectorId && detectorType === 'metric_alert';
+/**
+ * Adapts a metric detector into the legacy `MetricRule` shape consumed by the
+ * correlated issues/transactions views. Only the fields those views read are
+ * populated with real values; the remaining required fields are filled with
+ * inert defaults.
+ */
+export function getMetricRuleFromDetector(
+  detector: MetricDetector,
+  project: Project
+): MetricRule {
+  const {aggregate, dataset, query, environment, eventTypes, timeWindow} =
+    detector.dataSources[0].queryObj.snubaQuery;
 
-  const {data: event} = useQuery({
-    ...groupEventApiOptions({
-      orgSlug: organization.slug,
-      groupId,
-      eventId: user.options.defaultIssueEvent,
-      environments: [],
-    }),
-    staleTime: Infinity,
-    enabled: !hasMetricDetector,
-    retry: false,
-  });
-
-  // Fall back to the fetched event in case the provider doesn't have the detector details
-  const fallback =
-    event?.occurrence?.evidenceData?.alertId ||
-    event?.contexts?.metric_alert?.alert_rule_id;
-  return hasMetricDetector ? detectorId : fallback;
+  return {
+    aggregate,
+    dataset,
+    query,
+    eventTypes,
+    environment: environment ?? null,
+    projects: [project.slug],
+    detectionType: detector.config.detectionType,
+    // snubaQuery time windows are in seconds; MetricRule expects minutes
+    timeWindow: (timeWindow / 60) as TimeWindow,
+    resolveThreshold: null,
+    thresholdPeriod: null,
+    thresholdType: AlertRuleThresholdType.ABOVE,
+    triggers: [],
+  };
 }
 
 interface UseMetricTimePeriodParams {

@@ -4,18 +4,20 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RelatedIssues} from 'sentry/views/alerts/rules/metric/details/relatedIssues';
 import {RelatedTransactions} from 'sentry/views/alerts/rules/metric/details/relatedTransactions';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
-import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
-  useMetricIssueAlertId,
+  getMetricRuleFromDetector,
+  useMetricIssueDetectorId,
   useMetricTimePeriod,
 } from 'sentry/views/issueDetails/metricIssues/utils';
 
@@ -32,28 +34,20 @@ export function MetricIssuesSection({
 }: MetricIssuesSectionProps) {
   const location = useLocation();
 
-  const ruleId = useMetricIssueAlertId({groupId: group.id});
-  const {data: rule} = useMetricRule(
-    {
-      orgSlug: organization.slug,
-      ruleId: ruleId ?? '',
-      query: {
-        expand: 'latestIncident',
-      },
-    },
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: !!ruleId,
-    }
-  );
+  const detectorId = useMetricIssueDetectorId();
+  const {data: detector} = useDetectorQuery<MetricDetector>(detectorId ?? '', {
+    staleTime: Infinity,
+    retry: false,
+    enabled: !!detectorId,
+  });
   const {data: openPeriods} = useOpenPeriods({groupId: group.id});
   const timePeriod = useMetricTimePeriod({openPeriod: openPeriods?.[0]});
 
-  if (!rule || !timePeriod) {
+  if (!detector || !timePeriod) {
     return null;
   }
 
+  const rule = getMetricRuleFromDetector(detector, project);
   const {dataset, query} = rule;
 
   if ([Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset)) {
