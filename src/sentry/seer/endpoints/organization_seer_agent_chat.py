@@ -24,6 +24,7 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -162,7 +163,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSeerAgentChatPermission,)
 
     def get(
-        self, request: Request, organization: Organization, run_id: int | None = None
+        self, request: Request, organization: Organization, run_id: str | None = None
     ) -> Response:
         """
         Get the current state of a Seer Agent session.
@@ -180,9 +181,13 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         if not run_id:
             return Response({"session": None}, status=404)
 
+        resolved = resolve_seer_run(run_id, organization)
+        if isinstance(resolved, Response):
+            return resolved
+
         try:
             client = SeerAgentClient(organization, request.user)
-            state = client.get_run(run_id=int(run_id))
+            state = client.get_run(run_id=resolved.seer_run_state_id)
             return Response({"session": state.dict()})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
@@ -199,7 +204,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             return Response({"session": None}, status=404)
 
     def post(
-        self, request: Request, organization: Organization, run_id: int | None = None
+        self, request: Request, organization: Organization, run_id: str | None = None
     ) -> Response:
         """
         Start a new chat session or continue an existing one.
@@ -211,7 +216,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         - on_page_context: Optional context from the user's screen.
 
         Returns:
-        - run_id: The run ID.
+        - run_id: The numeric Seer run id.
+        - sentry_run_id: The run's UUID (when a mirror row exists).
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
@@ -279,9 +285,12 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 reasoning_effort="medium",
             )
             if run_id:
+                resolved = resolve_seer_run(run_id, organization, for_continue=True)
+                if isinstance(resolved, Response):
+                    return resolved
                 # Continue existing conversation
-                result_run_id = client.continue_run(
-                    run_id=int(run_id),
+                client.continue_run(
+                    run_id=resolved.seer_run_state_id,
                     prompt=query,
                     insert_index=insert_index,
                     on_page_context=on_page_context,
@@ -289,18 +298,20 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     request=request,
                 )
-            else:
-                # Start new conversation
-                result_run_id = client.start_run(
-                    prompt=query,
-                    on_page_context=on_page_context,
-                    page_name=page_name,
-                    ui_tools=ui_tools,
-                    override_ce_enable=override_ce_enable,
-                    request=request,
-                ).seer_run_state_id
+                return Response(
+                    {"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid}
+                )
 
-            return Response({"run_id": result_run_id})
+            # Start new conversation
+            run = client.start_run(
+                prompt=query,
+                on_page_context=on_page_context,
+                page_name=page_name,
+                ui_tools=ui_tools,
+                override_ce_enable=override_ce_enable,
+                request=request,
+            )
+            return Response({"run_id": run.seer_run_state_id, "sentry_run_id": str(run.uuid)})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError as e:
