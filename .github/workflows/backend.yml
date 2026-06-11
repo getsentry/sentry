@@ -230,6 +230,8 @@ jobs:
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
+      # DO NOT MERGE: hang-repro telemetry for SingletonProducer future-deque depth
+      SENTRY_SP_DEBUG: '1'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -293,7 +295,15 @@ jobs:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+            # DO NOT MERGE: hang-repro - dump all-thread stacks when any single test exceeds 120s
+            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile -o faulthandler_timeout=120"
+            if [ -n "${KAFKA_PAUSE_AT:-}" ]; then
+              (
+                sleep "${KAFKA_PAUSE_AT}"
+                echo "hang-repro: pausing kafka container(s) now: $(docker ps --format '{{.Names}}' | grep -i kafka | tr '\n' ' ')"
+                docker ps --format '{{.Names}}' | grep -i kafka | xargs -r docker pause || true
+              ) &
+            fi
             timeout 1200 make test-python-ci || {
               rc=$?
               if [ "$rc" -eq 124 ]; then
@@ -304,6 +314,11 @@ jobs:
           else
             make test-python-ci
           fi
+
+      - name: Dump producer telemetry (hang-repro)
+        if: ${{ !cancelled() }}
+        run: |
+          tail -n +1 /tmp/sp-debug-*.log 2>/dev/null || echo "no sp-debug logs found"
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import atexit
+import os
+import time
+import traceback
 from collections import deque
 from collections.abc import Callable
 
@@ -13,6 +16,17 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 _ProducerFuture = ProducerFuture[BrokerValue[KafkaPayload]]
+
+# DO NOT MERGE: CI-hang repro telemetry, written to files because pytest captures worker stderr
+_SP_DEBUG = os.environ.get("SENTRY_SP_DEBUG") == "1"
+
+
+def _sp_log(msg: str) -> None:
+    try:
+        with open(f"/tmp/sp-debug-{os.getpid()}.log", "a") as f:
+            f.write(f"{time.strftime('%H:%M:%S')} pid={os.getpid()} {msg}\n")
+    except OSError:
+        pass
 
 
 class SingletonProducer:
@@ -30,7 +44,10 @@ class SingletonProducer:
         self._producer: KafkaProducer | None = None
         self._factory = kafka_producer_factory
         self._futures: deque[_ProducerFuture] = deque()
-        self.max_futures = max_futures
+        # DO NOT MERGE: repro override so the pop threshold engages at realistic CI volumes;
+        # only applies to default-sized instances so explicit max_futures (incl. unit tests) keep theirs
+        env_max = os.environ.get("SENTRY_SP_MAX_FUTURES")
+        self.max_futures = int(env_max) if env_max and max_futures == 1000 else max_futures
 
     def produce(
         self, destination: ArroyoTopic | Partition, payload: KafkaPayload
@@ -42,19 +59,41 @@ class SingletonProducer:
     def _get(self) -> KafkaProducer:
         if self._producer is None:
             self._producer = self._factory()
+            if _SP_DEBUG:
+                caller = " <- ".join(
+                    f"{os.path.basename(f.filename)}:{f.lineno}"
+                    for f in traceback.extract_stack()[-7:-2]
+                )
+                _sp_log(f"producer={id(self):x} CREATED via {caller}")
             atexit.register(self._shutdown)
 
         return self._producer
 
     def _track_futures(self, future: _ProducerFuture) -> None:
         self._futures.append(future)
+        if _SP_DEBUG and len(self._futures) % 25 == 0:
+            _sp_log(f"producer={id(self):x} depth={len(self._futures)} max={self.max_futures}")
         if len(self._futures) >= self.max_futures:
             try:
                 future = self._futures.popleft()
             except IndexError:
                 return
             else:
-                future.result()
+                if _SP_DEBUG:
+                    start = time.monotonic()
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        _sp_log(
+                            f"producer={id(self):x} pop BLOCKED {time.monotonic() - start:.1f}s "
+                            f"-> raised {type(exc).__name__}"
+                        )
+                        raise
+                    elapsed = time.monotonic() - start
+                    if elapsed > 5:
+                        _sp_log(f"producer={id(self):x} pop blocked {elapsed:.1f}s (resolved ok)")
+                else:
+                    future.result()
 
     def _shutdown(self) -> None:
         for future in self._futures:
