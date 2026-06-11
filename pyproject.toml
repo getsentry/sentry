@@ -1986,7 +1986,6 @@ module = [
     "tests.sentry.integrations.utils.*",
     "tests.sentry.integrations.vercel.*",
     "tests.sentry.integrations.vsts.*",
-    "tests.sentry.integrations.web.*",
     "tests.sentry.issues.related.*",
     "tests.sentry.issues.test_group",
     "tests.sentry.issues.test_ingest_incident_integration",

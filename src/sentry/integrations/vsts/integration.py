@@ -51,7 +51,7 @@ from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -571,8 +571,6 @@ class VstsIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    setup_dialog_config = {"width": 600, "height": 800}
-
     VSTS_ACCOUNT_LOOKUP_URL = "https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1"
 
     def post_install(
@@ -604,9 +602,6 @@ class VstsIntegrationProvider(IntegrationProvider):
             extra={"organization_id": self.pipeline.organization.id},
         )
         return VstsIntegrationProvider.NEW_SCOPES
-
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [

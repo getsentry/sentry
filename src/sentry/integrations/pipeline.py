@@ -141,7 +141,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
     ) -> Sequence[
         PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
     ]:
-        return self.provider.get_pipeline_views()
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline] | None:
         return self.provider.get_pipeline_api_steps()
