@@ -942,7 +942,8 @@ def compare_snapshots(
                 )
                 _fail_comparison(
                     PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                    "No complete base snapshot exists in the ancestry chain.",
+                    reconstruction.error_message
+                    or "No complete base snapshot exists in the ancestry chain.",
                 )
                 return
 

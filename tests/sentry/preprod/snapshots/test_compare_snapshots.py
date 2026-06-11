@@ -1175,6 +1175,54 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         ]
         assert len(failure_calls) == 1  # failure posted
 
+    def test_corrupt_ancestor_fails_immediately_not_deferred(self):
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
+        # main (the deepest ancestor) has a corrupt manifest -> reconstruction is
+        # unresolvable, so the comparison must fail IMMEDIATELY (not defer for 600s).
+        manifests = {
+            "k_main": b"not-valid-json{{{",
+            "k_pr1": orjson.dumps(
+                SnapshotManifest(
+                    images={"b": ImageMetadata(content_hash="b1", width=10, height=10)},
+                    selective=True,
+                ).dict()
+            ),
+            "k_head": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v1", width=10, height=10)}
+                ).dict()
+            ),
+        }
+        session = _mock_session_with_manifests(manifests)
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        # INTERNAL_ERROR (not TIMEOUT) and an accurate message — corrupt != "missing base".
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR
+        assert comparison.error_message is not None
+        assert "corrupt" in comparison.error_message.lower()
+        assert reschedule.call_count == 0  # terminal immediately, never deferred
+
 
 @cell_silo_test
 class EndToEndFanoutTest(TestCase):

@@ -178,8 +178,10 @@ class ReconstructBaseManifestTest(TestCase):
         assert result.manifest is not None
         assert {n: m.content_hash for n, m in result.manifest.images.items()} == {"a": "v1"}
 
-    def test_corrupt_ancestor_manifest_is_incomplete(self):
-        # A corrupt ancestor manifest must be treated as unavailable (defer), not crash.
+    def test_corrupt_ancestor_manifest_is_unresolvable(self):
+        # A corrupt ancestor manifest is permanent — it will never become valid by waiting,
+        # so it must terminate (unresolvable) immediately rather than deferring through the
+        # whole grace window and failing as a misleading TIMEOUT.
         a_main, k_main, b_main = self._build(
             "h_main", None, {"a": "v0"}, selective=False, key="k_main"
         )
@@ -188,5 +190,36 @@ class ReconstructBaseManifestTest(TestCase):
         )
         session = _session({k_main: b"not-valid-json{{{", k_pr1: b_pr1})
         result = reconstruct_base_manifest(a_pr1, session)
-        assert result.incomplete is True
+        assert result.unresolvable is True
+        assert result.incomplete is False
         assert result.manifest is None
+        assert result.error_message is not None
+
+    def test_completeness_uses_manifest_flag_not_db_flag(self):
+        # The manifest is the single source of truth for "is this a complete anchor".
+        # Here the DB flag (is_selective=False) DISAGREES with the manifest
+        # (selective=True). The walk must trust the manifest and fold this build as a
+        # selective layer onto main, NOT treat its partial manifest as the complete base.
+        a_main, k_main, b_main = self._build(
+            "h_main", None, {"x": "v0", "y": "v0"}, selective=False, key="k_main"
+        )
+        cc = self._commit("h_x", "h_main")
+        a_x = self.create_preprod_artifact(
+            project=self.project, app_id="com.x", commit_comparison=cc
+        )
+        # DB says full (drift), manifest says selective (the truth: only "x" uploaded).
+        m_x = self.create_preprod_snapshot_metrics(a_x, is_selective=False)
+        m_x.extras = {"manifest_key": "k_x"}
+        m_x.save()
+        b_x = orjson.dumps(_m({"x": "v1"}, selective=True).dict())
+
+        result = reconstruct_base_manifest(a_x, _session({k_main: b_main, "k_x": b_x}))
+
+        assert result.incomplete is False and result.unresolvable is False
+        assert result.manifest is not None
+        # Folded onto main: x overlaid (v1), y inherited (v0). If the walk had trusted the
+        # DB flag it would have returned only {"x": "v1"} (the partial manifest as-is).
+        assert {n: m.content_hash for n, m in result.manifest.images.items()} == {
+            "x": "v1",
+            "y": "v0",
+        }

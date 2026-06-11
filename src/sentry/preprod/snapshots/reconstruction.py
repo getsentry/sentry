@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import NamedTuple
 
 import orjson
 from objectstore_client import RequestError, Session
@@ -43,27 +44,33 @@ def fold_child_onto_parent(
 class ReconstructionResult:
     manifest: SnapshotManifest | None = None
     incomplete: bool = False  # an ancestor manifest is not uploaded yet -> defer
-    unresolvable: bool = False  # no complete ancestor / cycle / depth cap -> terminal
+    unresolvable: bool = False  # no complete ancestor / cycle / depth cap / corrupt -> terminal
+    error_message: str | None = None  # accurate detail for the terminal (unresolvable) case
 
 
-def _read_manifest(session: Session, artifact: PreprodArtifact) -> SnapshotManifest | None:
+class _ManifestRead(NamedTuple):
+    manifest: SnapshotManifest | None
+    corrupt: bool = False  # the object exists but is malformed -> permanent (terminal)
+
+
+def _read_manifest(session: Session, artifact: PreprodArtifact) -> _ManifestRead:
     metrics = getattr(artifact, "preprodsnapshotmetrics", None)
     if metrics is None:
-        return None
+        return _ManifestRead(None)
     key = (metrics.extras or {}).get("manifest_key")
     if not key:
-        return None
+        return _ManifestRead(None)
     try:
         payload = session.get(key).payload.read()
     except RequestError:
-        return None
+        # Object not found / transient objectstore error: may still arrive -> defer.
+        return _ManifestRead(None)
     try:
-        return SnapshotManifest(**orjson.loads(payload))
+        return _ManifestRead(SnapshotManifest(**orjson.loads(payload)))
     except (orjson.JSONDecodeError, ValidationError, TypeError):
-        # Corrupt/invalid ancestor manifest: treat as unavailable (defer within the
-        # grace window) rather than letting the exception escape and bypass the
-        # structured reconstruction-incomplete path.
-        return None
+        # The object exists but is malformed: this never self-heals by waiting, so flag
+        # it as corrupt and let the walk terminate instead of burning the grace window.
+        return _ManifestRead(None, corrupt=True)
 
 
 def _resolve_ancestor(artifact: PreprodArtifact) -> PreprodArtifact | None:
@@ -104,12 +111,21 @@ def reconstruct_base_manifest(
             return ReconstructionResult(unresolvable=True)
         visited.add(current.id)
 
-        manifest = _read_manifest(session, current)
+        read = _read_manifest(session, current)
+        if read.corrupt:
+            return ReconstructionResult(
+                unresolvable=True,
+                error_message="A base snapshot manifest in the ancestry chain is corrupt or unreadable.",
+            )
+        manifest = read.manifest
         if manifest is None:
             return ReconstructionResult(incomplete=True)
 
-        metrics = getattr(current, "preprodsnapshotmetrics", None)
-        if metrics is not None and not metrics.is_selective:
+        # The manifest is the single source of truth for completeness. categorize_image_sets
+        # (used by the fold) keys off these same manifest flags, so the walk and the fold can
+        # never disagree about whether a build is a complete anchor vs a selective layer.
+        # (Don't consult the DB is_selective flag here — it could drift from the manifest.)
+        if not manifest.selective and manifest.all_image_file_names is None:
             complete = manifest
             for layer in reversed(selective_layers):
                 complete = fold_child_onto_parent(layer, complete)
