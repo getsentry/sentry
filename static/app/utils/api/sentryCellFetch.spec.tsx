@@ -137,17 +137,17 @@ describe('sentryCellFetch', () => {
   });
 
   describe('error handlers', () => {
-    it('calls onAuthError for 401 responses', async () => {
+    it('calls onAuthError for 401 responses and throws', async () => {
       const onAuthError = jest.fn().mockReturnValue(true);
       configureSentryCellFetch({errorHandlers: {onAuthError}});
       fetchSpy.mockImplementation(
         mockFetchResponse({detail: 'Unauthorized'}, {status: 401})
       );
 
-      const result = await sentryCellFetch(makeContext([url('/projects/')]));
-
+      await expect(sentryCellFetch(makeContext([url('/projects/')]))).rejects.toThrow(
+        RequestError
+      );
       expect(onAuthError).toHaveBeenCalled();
-      expect(result.json).toBeUndefined();
     });
 
     it('throws when onAuthError returns false', async () => {
@@ -201,7 +201,7 @@ describe('sentryCellFetch', () => {
       expect(onSudoRequired).toHaveBeenCalledTimes(1);
     });
 
-    it('calls onProjectRenamed for project-moved errors', async () => {
+    it('calls onProjectRenamed for project-moved errors and throws', async () => {
       const onProjectRenamed = jest.fn().mockReturnValue(true);
       configureSentryCellFetch({errorHandlers: {onProjectRenamed}});
       fetchSpy.mockImplementation(
@@ -211,23 +211,23 @@ describe('sentryCellFetch', () => {
         )
       );
 
-      const result = await sentryCellFetch(makeContext([url('/projects/old-slug/')]));
-
+      await expect(
+        sentryCellFetch(makeContext([url('/projects/old-slug/')]))
+      ).rejects.toThrow(RequestError);
       expect(onProjectRenamed).toHaveBeenCalled();
-      expect(result.json).toBeUndefined();
     });
 
-    it('calls onError as catch-all for unhandled errors', async () => {
+    it('calls onError as catch-all for unhandled errors and throws', async () => {
       const onError = jest.fn().mockReturnValue(true);
       configureSentryCellFetch({errorHandlers: {onError}});
       fetchSpy.mockImplementation(
         mockFetchResponse({detail: 'Server error'}, {status: 500})
       );
 
-      const result = await sentryCellFetch(makeContext([url('/projects/')]));
-
+      await expect(sentryCellFetch(makeContext([url('/projects/')]))).rejects.toThrow(
+        RequestError
+      );
       expect(onError).toHaveBeenCalled();
-      expect(result.json).toBeUndefined();
     });
 
     it('does not call onAuthError for non-401 errors', async () => {
@@ -238,8 +238,9 @@ describe('sentryCellFetch', () => {
         mockFetchResponse({detail: 'Forbidden'}, {status: 403})
       );
 
-      await sentryCellFetch(makeContext([url('/projects/')]));
-
+      await expect(sentryCellFetch(makeContext([url('/projects/')]))).rejects.toThrow(
+        RequestError
+      );
       expect(onAuthError).not.toHaveBeenCalled();
       expect(onError).toHaveBeenCalled();
     });
@@ -252,8 +253,9 @@ describe('sentryCellFetch', () => {
         mockFetchResponse({detail: 'Unauthorized'}, {status: 401})
       );
 
-      await sentryCellFetch(makeContext([url('/projects/')]));
-
+      await expect(sentryCellFetch(makeContext([url('/projects/')]))).rejects.toThrow(
+        RequestError
+      );
       expect(onAuthError).toHaveBeenCalled();
       expect(onError).not.toHaveBeenCalled();
     });

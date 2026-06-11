@@ -258,14 +258,11 @@ describe.each<{createFetch: () => FetchFn; name: string}>([
 // Both paths have error handlers configured. Tests verify that the same
 // side-effect functions are called with the same arguments.
 //
-// Architectural differences that affect promise resolution:
-//   Old path: globalErrorHandlers + handleRequestError + hasProjectBeenRenamed
-//     are baked into Client.request(). The requestPromise promise hangs when
-//     a handler claims the error. Navigation uses window.location directly,
-//     which throws in jsdom.
-//   New path: all handlers are injectable via configureSentryCellFetch.
-//     The promise always resolves or throws. Navigation uses
-//     testableWindowLocation (mocked in test setup).
+// Key invariant: when a handler suppresses an error (auth redirect, project
+// rename), the promise must NOT resolve successfully — otherwise React Query
+// caches undefined as data and skips retries.
+//   Old path: promise hangs (never settles).
+//   New path: rejects with RequestError after the handler runs its side effect.
 //
 // Jest module boundary note:
 //   jest.unmock('sentry/api') loads the real api.tsx, but its internal imports
@@ -337,11 +334,10 @@ describe.each<{createFetch: () => FetchFn; name: string; setupHandlers: () => vo
         )
         .mockImplementationOnce(mockFetchResponse(retryBody));
 
-      // New path: mock fires, retry resolves, promise resolves with retry body.
-      // Old path: api.tsx's openSudo is a different mock instance (see module
-      //   boundary note above), so the mock implementation never fires. The
-      //   bare auto-mock returns undefined, no retry happens, and the original
-      //   requestPromise hangs — proving the error WAS intercepted.
+      // Both paths intercept sudo-required and do not resolve successfully
+      // without a retry. Old path: the mock identity boundary means
+      // openSudo's retryRequest never fires, so the promise hangs.
+      // New path: openSudo fires, retry resolves with retry body.
       const result = await settleOrTimeout(fetchFn(makeContext([url('/admin/')])));
 
       if (result.type === 'resolved') {
@@ -381,7 +377,7 @@ describe.each<{createFetch: () => FetchFn; name: string; setupHandlers: () => vo
   });
 
   describe('project renamed', () => {
-    it('intercepts PROJECT_MOVED and redirects', async () => {
+    it('intercepts PROJECT_MOVED and redirects without resolving', async () => {
       fetchSpy.mockImplementation(
         mockFetchResponse(
           {detail: {code: PROJECT_MOVED, extra: {slug: 'new-slug'}}},
@@ -389,20 +385,23 @@ describe.each<{createFetch: () => FetchFn; name: string; setupHandlers: () => vo
         )
       );
 
-      // Both paths intercept the error. Old path: promise hangs
-      // (hasProjectBeenRenamed swallows the callback). New path: resolves.
+      // Both paths intercept the error and never resolve successfully.
+      // Old path: promise hangs (timeout). New path: rejects with RequestError.
       const result = await settleOrTimeout(fetchFn(makeContext([url('/old-slug/')])));
 
-      expect(result.type).not.toBe('rejected');
+      expect(result.type).not.toBe('resolved');
 
-      if (result.type === 'resolved') {
+      // Old path: redirectToProject mock identity is different (see module
+      // boundary note), so we can only verify interception via timeout.
+      // New path: the mock is the same instance, so we can verify the call.
+      if (result.type === 'rejected') {
         expect(redirectToProject).toHaveBeenCalledWith('new-slug');
       }
     });
   });
 
   describe('auth 401', () => {
-    it('sets session_expired cookie on generic 401', async () => {
+    it('sets session_expired cookie on generic 401 without resolving', async () => {
       const cookieSpy = jest.spyOn(Cookies, 'set');
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -410,8 +409,10 @@ describe.each<{createFetch: () => FetchFn; name: string; setupHandlers: () => vo
         mockFetchResponse({detail: 'Unauthorized'}, {status: 401})
       );
 
-      await settleOrTimeout(fetchFn(makeContext([url('/projects/')])));
+      // Both paths intercept the error and never resolve successfully.
+      const result = await settleOrTimeout(fetchFn(makeContext([url('/projects/')])));
 
+      expect(result.type).not.toBe('resolved');
       expect(cookieSpy).toHaveBeenCalledWith('session_expired', '1');
       cookieSpy.mockRestore();
       consoleSpy.mockRestore();
@@ -445,7 +446,7 @@ describe.each<{createFetch: () => FetchFn; name: string; setupHandlers: () => vo
       cookieSpy.mockRestore();
     });
 
-    it('navigates for member-disabled-over-limit', async () => {
+    it('navigates for member-disabled-over-limit without resolving', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       fetchSpy.mockImplementation(
         mockFetchResponse(
@@ -454,8 +455,10 @@ describe.each<{createFetch: () => FetchFn; name: string; setupHandlers: () => vo
         )
       );
 
-      await settleOrTimeout(fetchFn(makeContext([url('/projects/')])));
+      // Both paths intercept the error and never resolve successfully.
+      const result = await settleOrTimeout(fetchFn(makeContext([url('/projects/')])));
 
+      expect(result.type).not.toBe('resolved');
       expect(navigate).toHaveBeenCalledWith('/disabled/', {replace: true});
       consoleSpy.mockRestore();
     });

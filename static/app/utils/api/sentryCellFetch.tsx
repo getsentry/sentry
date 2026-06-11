@@ -180,7 +180,7 @@ async function executeFetch(
   };
 
   if (!ok) {
-    return handleErrorResponse(responseMeta, options, response, fullUrl);
+    return handleErrorResponse(responseMeta, options, fullUrl);
   }
 
   const responseData = isResponseJSON ? responseJSON : responseText;
@@ -193,7 +193,6 @@ async function executeFetch(
 async function handleErrorResponse(
   responseMeta: ResponseMeta,
   options: QueryKeyEndpointOptions,
-  response: Response,
   fullUrl: string
 ): Promise<ApiResponse> {
   const errorHandlers = currentConfig.errorHandlers;
@@ -212,7 +211,7 @@ async function handleErrorResponse(
 
   // 2. Project renamed — handler does the redirect
   if (code === PROJECT_MOVED && errorHandlers?.onProjectRenamed?.(responseMeta)) {
-    return {headers: buildResponseHeaders(response), json: undefined as unknown};
+    throw new RequestError(method, fullUrl, new Error('Project renamed'), responseMeta);
   }
 
   // 3. Auth error (401) — handler does the redirect
@@ -220,22 +219,16 @@ async function handleErrorResponse(
     responseMeta.status === 401 &&
     errorHandlers?.onAuthError?.(responseMeta, options)
   ) {
-    return {headers: buildResponseHeaders(response), json: undefined as unknown};
+    throw new RequestError(method, fullUrl, new Error('Auth redirect'), responseMeta);
   }
 
   // 4. Generic catch-all
   if (errorHandlers?.onError?.(responseMeta, options)) {
-    return {headers: buildResponseHeaders(response), json: undefined as unknown};
+    throw new RequestError(method, fullUrl, new Error('Request failed'), responseMeta);
   }
 
   // 5. Nothing handled it — throw
-  const error = new RequestError(
-    method,
-    fullUrl,
-    new Error('Request failed'),
-    responseMeta
-  );
-  throw error;
+  throw new RequestError(method, fullUrl, new Error('Request failed'), responseMeta);
 }
 
 async function fetchWithUrl<TQueryFnData = unknown>(
