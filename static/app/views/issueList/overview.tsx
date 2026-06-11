@@ -119,10 +119,7 @@ function useIssuesINPObserver() {
 }
 
 const parsePageQueryParam = (location: Location, defaultPage = 0) => {
-  const page = location.query.page;
-  const pageInt = Array.isArray(page)
-    ? parseInt(page[0] ?? '', 10)
-    : parseInt(page ?? '', 10);
+  const pageInt = parseInt(decodeScalar(location.query.page, ''), 10);
 
   if (isNaN(pageInt)) {
     return defaultPage;
@@ -210,21 +207,17 @@ function IssueListOverviewInner({
     });
   }, [onRealtimePoll, pageLinks]);
 
-  const query = defined(location.query.query)
-    ? (location.query.query as string)
-    : initialQuery;
+  const query = decodeScalar(location.query.query, initialQuery);
   const sort = decodeScalar(
     location.query.sort,
     DEFAULT_ISSUE_STREAM_SORT
   ) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
-    let currentPeriod: string;
-    if (typeof location.query?.groupStatsPeriod === 'string') {
-      currentPeriod = location.query.groupStatsPeriod;
-    } else {
-      currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
-    }
+    const currentPeriod = decodeScalar(
+      location.query?.groupStatsPeriod,
+      DEFAULT_GRAPH_STATS_PERIOD
+    );
 
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
@@ -270,9 +263,9 @@ function IssueListOverviewInner({
       shortIdLookup: 1,
     };
 
-    const currentQuery = location.query || {};
-    if ('cursor' in currentQuery) {
-      params.cursor = currentQuery.cursor;
+    const cursor = decodeScalar(location.query.cursor);
+    if (cursor) {
+      params.cursor = cursor;
     }
 
     // If no stats period values are set, use default
@@ -693,9 +686,7 @@ function IssueListOverviewInner({
   };
 
   const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
-    const queryPageInt = Array.isArray(location.query.page)
-      ? NaN
-      : parseInt(location.query.page?.toString() ?? '', 10);
+    const queryPageInt = parsePageQueryParam(location, NaN);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
     let cursor = nextCursor;
@@ -713,11 +704,9 @@ function IssueListOverviewInner({
 
   const onSelectStatsPeriod = (period: string) => {
     if (period !== getGroupStatsPeriod()) {
-      const cursor = Array.isArray(location.query.cursor)
-        ? location.query.cursor[0]
-        : (location.query.cursor ?? undefined);
+      const cursor = decodeScalar(location.query.cursor);
       const queryPageInt = parsePageQueryParam(location, 0);
-      const page = location.query.cursor ? queryPageInt : 0;
+      const page = cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };
