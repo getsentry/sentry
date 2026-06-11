@@ -153,7 +153,7 @@ class TestSpansTask(TestCase):
             name="a" * 64,
         )
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({"spans.process-segments.detect-performance-problems.sample_rate": 1.0})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
         spans = self.generate_n_plus_one_spans()
@@ -173,7 +173,7 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({"spans.process-segments.detect-performance-problems.sample_rate": 1.0})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(
