@@ -326,9 +326,6 @@ export function List<Value extends SelectKey>({
   firstVisibleEnabledSearchResultRef.current = firstVisibleEnabledSearchResult;
   const hiddenOptionsRef = useRef(hiddenOptions);
   hiddenOptionsRef.current = hiddenOptions;
-  const searchFocusedKeyRef = useRef(searchFocusedKey);
-  searchFocusedKeyRef.current = searchFocusedKey;
-
   const searchResultListController = useMemo(
     () => ({
       clearFocusedKey: () => {
@@ -336,11 +333,9 @@ export function List<Value extends SelectKey>({
       },
       getFirstVisibleEnabledSearchResult: () =>
         firstVisibleEnabledSearchResultRef.current,
-      selectFocusedKey: () => {
+      selectFocusedKey: (focusedKey: SelectKey) => {
         const selectionManager = listStateRef.current.selectionManager;
-        const focusedKey = searchFocusedKeyRef.current;
         if (
-          focusedKey === null ||
           hiddenOptionsRef.current.has(focusedKey) ||
           selectionManager.isDisabled(focusedKey)
         ) {

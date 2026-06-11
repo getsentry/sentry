@@ -503,6 +503,46 @@ describe('CompactSelect', () => {
       expect(searchInput).not.toHaveAttribute('aria-activedescendant');
     });
 
+    it('selects the current first search result when Enter follows a query update', async () => {
+      const mock = jest.fn();
+
+      render(
+        <CompactSelect
+          search={{
+            placeholder: 'Search here…',
+            filter: (option, search) => {
+              if (search === 'a') {
+                return {score: option.value === 'alpha' ? 2 : 1};
+              }
+              if (search === 'ab') {
+                return {score: option.value === 'beta' ? 2 : 1};
+              }
+              return {score: 0};
+            },
+          }}
+          options={[
+            {value: 'alpha', label: 'Alpha'},
+            {value: 'beta', label: 'Beta'},
+          ]}
+          value={undefined}
+          onChange={mock}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search here…');
+      await userEvent.type(searchInput, 'a');
+
+      expect(searchInput).toHaveAttribute(
+        'aria-activedescendant',
+        screen.getByRole('option', {name: 'Alpha'}).id
+      );
+
+      await userEvent.keyboard('b{Enter}');
+
+      expect(mock).toHaveBeenCalledWith({value: 'beta', label: 'Beta'});
+    });
+
     it('does not select the first search result when autoFocusFirstResult is false', async () => {
       const mock = jest.fn();
 

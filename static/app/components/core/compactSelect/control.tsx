@@ -65,8 +65,13 @@ interface SearchResult {
 interface SearchResultListController {
   clearFocusedKey: () => void;
   getFirstVisibleEnabledSearchResult: () => SearchResult | null;
-  selectFocusedKey: () => boolean;
+  selectFocusedKey: (key: SelectKey) => boolean;
   setFocusedKey: (key: SelectKey) => void;
+}
+
+interface SearchResultTarget {
+  controller: SearchResultListController;
+  searchResult: SearchResult;
 }
 
 interface ControlContextValue {
@@ -292,30 +297,44 @@ export function Control({
     }
   }, []);
 
+  const getFirstVisibleEnabledSearchResultTarget = useCallback(() => {
+    for (const controller of searchResultListControllersRef.current) {
+      const searchResult = controller.getFirstVisibleEnabledSearchResult();
+      if (searchResult !== null) {
+        return {controller, searchResult};
+      }
+    }
+    return null;
+  }, []);
+
+  const focusSearchResultTarget = useCallback((target: SearchResultTarget | null) => {
+    activeSearchResultListControllerRef.current = target?.controller ?? null;
+    setActiveSearchResultId(target?.searchResult.id);
+
+    for (const controller of searchResultListControllersRef.current) {
+      if (controller === target?.controller) {
+        controller.setFocusedKey(target.searchResult.key);
+      } else {
+        controller.clearFocusedKey();
+      }
+    }
+  }, []);
+
   const focusFirstSearchResult = useCallback(() => {
     if (!searchEnabled || !autoFocusFirstResult || !searchInputValue) {
       clearFocusedSearchResult();
       return;
     }
 
-    const target = searchResultListControllersRef.current
-      .map(controller => ({
-        controller,
-        searchResult: controller.getFirstVisibleEnabledSearchResult(),
-      }))
-      .find(({searchResult}) => searchResult !== null);
-
-    activeSearchResultListControllerRef.current = target?.controller ?? null;
-    setActiveSearchResultId(target?.searchResult?.id);
-
-    for (const controller of searchResultListControllersRef.current) {
-      if (controller === target?.controller && target.searchResult !== null) {
-        controller.setFocusedKey(target.searchResult.key);
-      } else {
-        controller.clearFocusedKey();
-      }
-    }
-  }, [autoFocusFirstResult, clearFocusedSearchResult, searchEnabled, searchInputValue]);
+    focusSearchResultTarget(getFirstVisibleEnabledSearchResultTarget());
+  }, [
+    autoFocusFirstResult,
+    clearFocusedSearchResult,
+    focusSearchResultTarget,
+    getFirstVisibleEnabledSearchResultTarget,
+    searchEnabled,
+    searchInputValue,
+  ]);
 
   const registerSearchResultList = useCallback(
     (controller: SearchResultListController) => {
@@ -341,14 +360,22 @@ export function Control({
       return false;
     }
 
-    if (activeSearchResultListControllerRef.current?.selectFocusedKey()) {
-      return true;
+    const target = getFirstVisibleEnabledSearchResultTarget();
+    if (target === null) {
+      clearFocusedSearchResult();
+      return false;
     }
 
-    return searchResultListControllersRef.current.some(controller =>
-      controller.selectFocusedKey()
-    );
-  }, [autoFocusFirstResult, searchEnabled, searchInputValue]);
+    focusSearchResultTarget(target);
+    return target.controller.selectFocusedKey(target.searchResult.key);
+  }, [
+    autoFocusFirstResult,
+    clearFocusedSearchResult,
+    focusSearchResultTarget,
+    getFirstVisibleEnabledSearchResultTarget,
+    searchEnabled,
+    searchInputValue,
+  ]);
 
   const updateSearch = (newValue: string) => {
     normalizedSearch?.onChange?.(newValue);
