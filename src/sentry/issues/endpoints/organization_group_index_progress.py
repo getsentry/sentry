@@ -1,4 +1,5 @@
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,6 +18,15 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+
+class GroupProgressQuerySerializer(serializers.Serializer):
+    groups = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        min_length=1,
+        max_length=100,
+    )
 
 
 @cell_silo_endpoint
@@ -64,18 +74,11 @@ class OrganizationGroupIndexProgressEndpoint(OrganizationEndpoint):
         ):
             raise ResourceDoesNotExist
 
-        try:
-            group_ids = set(map(int, request.GET.getlist("groups")))
-        except ValueError:
-            raise ParseError(detail="Group ids must be integers")
+        serializer = GroupProgressQuerySerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        if not group_ids:
-            raise ParseError(
-                detail="You should include `groups` with your request. (i.e. groups=1,2,3)"
-            )
-
-        if len(group_ids) > 100:
-            raise ParseError(detail="Too many groups requested.")
+        group_ids = set(serializer.validated_data["groups"])
 
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
