@@ -8,6 +8,22 @@ function getWorkerUrl(): string {
   return `${distPrefix}entrypoints/worker.js`;
 }
 
+function connectIntegration(worker: ServiceWorker): void {
+  addIntegration(webWorkerIntegration({worker: worker as unknown as Worker}));
+}
+
+function waitForActivation(worker: ServiceWorker): void {
+  if (worker.state === 'activated') {
+    connectIntegration(worker);
+    return;
+  }
+  worker.addEventListener('statechange', () => {
+    if (worker.state === 'activated') {
+      connectIntegration(worker);
+    }
+  });
+}
+
 export function registerWorker(): void {
   if (!('serviceWorker' in navigator)) {
     return;
@@ -16,11 +32,18 @@ export function registerWorker(): void {
   navigator.serviceWorker
     .register(getWorkerUrl(), {scope: '/'})
     .then(registration => {
-      const worker =
-        registration.active ?? registration.waiting ?? registration.installing;
-      if (worker) {
-        addIntegration(webWorkerIntegration({worker: worker as unknown as Worker}));
+      const incoming = registration.installing ?? registration.waiting;
+      if (incoming) {
+        waitForActivation(incoming);
+      } else if (registration.active) {
+        connectIntegration(registration.active);
       }
+
+      registration.addEventListener('updatefound', () => {
+        if (registration.installing) {
+          waitForActivation(registration.installing);
+        }
+      });
     })
     .catch(() => {
       // Registration failed — not critical, silently ignore
