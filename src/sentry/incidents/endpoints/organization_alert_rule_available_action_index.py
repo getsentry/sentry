@@ -95,7 +95,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization

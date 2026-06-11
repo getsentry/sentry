@@ -51,7 +51,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         }
     )
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def post(self, request: Request, project) -> Response:
         """
         Creates a dummy event/group and activates the actions given by request body

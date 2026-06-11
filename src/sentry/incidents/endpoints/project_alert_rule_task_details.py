@@ -26,7 +26,7 @@ class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def get(self, request: Request, project: Project, task_uuid: str) -> Response:
         """
         Retrieve the status of the async task

@@ -52,7 +52,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (IncidentPermission,)
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-index")
     def get(self, request: Request, organization: Organization) -> Response:
         """

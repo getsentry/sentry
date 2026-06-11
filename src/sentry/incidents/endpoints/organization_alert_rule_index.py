@@ -267,7 +267,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns the total number of on-demand alert rules for a project, along with
@@ -522,7 +522,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         return response
 
     @deprecated(
-        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key="api.deprecation.alerts",
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     def get(self, request: Request, organization: Organization) -> Response:
@@ -724,7 +726,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     @deprecated(
-        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key="api.deprecation.alerts",
     )
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
@@ -749,7 +753,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     @deprecated(
-        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key="api.deprecation.alerts",
     )
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """

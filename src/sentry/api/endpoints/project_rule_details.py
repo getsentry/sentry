@@ -127,6 +127,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
+        key="api.deprecation.alerts",
     )
     def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
@@ -183,6 +184,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
+        key="api.deprecation.alerts",
     )
     def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
@@ -367,6 +369,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
+        key="api.deprecation.alerts",
     )
     def delete(self, request: Request, project: Project, rule: Workflow) -> Response:
         """

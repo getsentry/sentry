@@ -289,6 +289,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
+        key="api.deprecation.alerts",
     )
     @_check_project_access
     def get(
@@ -317,6 +318,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
+        key="api.deprecation.alerts",
     )
     @_check_project_access
     def put(
@@ -350,6 +352,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
+        key="api.deprecation.alerts",
     )
     @_check_project_access
     def delete(

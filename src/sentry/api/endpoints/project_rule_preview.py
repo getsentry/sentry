@@ -32,7 +32,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     # a post endpoint because it's too hard to pass a list of objects from the frontend
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def post(self, request: Request, project) -> Response:
         """
         Get a list of alert triggers in past 2 weeks for given rules

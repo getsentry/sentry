@@ -25,7 +25,7 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-task-details")
     def get(self, request: Request, project, task_uuid) -> Response:
         """

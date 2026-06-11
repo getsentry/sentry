@@ -27,7 +27,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
