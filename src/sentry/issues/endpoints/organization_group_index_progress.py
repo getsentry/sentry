@@ -20,7 +20,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class GroupProgressQuerySerializer(serializers.Serializer):
+class GroupProgressQuerySerializer(serializers.Serializer[None]):
     groups = serializers.ListField(
         child=serializers.IntegerField(),
         required=True,
