@@ -30,8 +30,16 @@ class IssueLinkCreator:
         with transaction.atomic(using=router.db_for_write(PlatformExternalIssue)):
             self._verify_action()
             response = self._make_external_request()
-            external_issue = self._create_external_issue(response=response)
-            return external_issue
+            external_issue, created, external_issue_creator = self._create_external_issue(
+                response=response
+            )
+
+        if created:
+            external_issue_creator.create_issue_activity(
+                external_issue, new=self.action == IssueRequestActionType.CREATE
+            )
+
+        return external_issue
 
     def _verify_action(self) -> None:
         try:
@@ -52,14 +60,17 @@ class IssueLinkCreator:
         ).run()
         return response
 
-    def _create_external_issue(self, response: dict[str, Any]) -> PlatformExternalIssue:
-        external_issue = ExternalIssueCreator(
+    def _create_external_issue(
+        self, response: dict[str, Any]
+    ) -> tuple[PlatformExternalIssue, bool, ExternalIssueCreator]:
+        external_issue_creator = ExternalIssueCreator(
             install=self.install,
             group=self.group,
             web_url=response["webUrl"],
             project=response["project"],
             identifier=response["identifier"],
             user_id=self.user.id,
-        ).run()
+        )
+        external_issue, created = external_issue_creator.run()
 
-        return external_issue
+        return external_issue, created, external_issue_creator

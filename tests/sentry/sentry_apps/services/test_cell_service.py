@@ -143,6 +143,49 @@ class TestSentryAppCellService(TestCase):
         }
 
     @responses.activate
+    def test_create_issue_link_records_link_activity(self) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issue",
+            json={
+                "project": "Projectname",
+                "webUrl": "https://example.com/project/issue-id",
+                "identifier": "issue-1",
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+        result = sentry_app_cell_service.create_issue_link(
+            organization_id=self.org.id,
+            installation=self.rpc_installation,
+            group_id=self.group.id,
+            action="link",
+            fields={"issue": "issue-1"},
+            uri="/link-issue",
+            user=serialize_rpc_user(self.user),
+        )
+
+        assert result.error is None
+        assert result.external_issue is not None
+        assert result.external_issue.group_id == self.group.id
+
+        with assume_test_silo_mode_of(Activity):
+            activity = Activity.objects.get(
+                group_id=self.group.id,
+                type=ActivityType.CREATE_ISSUE.value,
+            )
+        assert activity.project_id == self.project.id
+        assert activity.user_id == self.user.id
+        assert activity.data == {
+            "title": "Projectname#issue-1",
+            "provider": self.sentry_app.name,
+            "location": "https://example.com/project/issue-id",
+            "label": "Projectname#issue-1",
+            "new": False,
+        }
+
+    @responses.activate
     def test_create_issue_link_error(self) -> None:
         responses.add(
             method=responses.POST,

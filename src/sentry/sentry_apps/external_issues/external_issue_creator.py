@@ -23,7 +23,7 @@ class ExternalIssueCreator:
     identifier: str
     user_id: int | None = None
 
-    def run(self) -> PlatformExternalIssue:
+    def run(self) -> tuple[PlatformExternalIssue, bool]:
         try:
             with transaction.atomic(using=router.db_for_write(PlatformExternalIssue)):
                 display_name = f"{escape(self.project)}#{escape(self.identifier)}"
@@ -37,10 +37,7 @@ class ExternalIssueCreator:
                     service_type=self.install.sentry_app.slug,
                 )
 
-                if created:
-                    self._create_issue_activity(external_issue)
-
-                return external_issue
+                return external_issue, created
         except Exception as e:
             logger.info(
                 "platform-external-issue.create-failed",
@@ -55,17 +52,18 @@ class ExternalIssueCreator:
                 message="Failed to create external issue obj",
             ) from e
 
-    def _create_issue_activity(self, external_issue: PlatformExternalIssue) -> None:
-        Activity.objects.create(
-            project=self.group.project,
+    def create_issue_activity(
+        self, external_issue: PlatformExternalIssue, *, new: bool = True
+    ) -> None:
+        Activity.objects.create_group_activity(
             group=self.group,
-            type=ActivityType.CREATE_ISSUE.value,
+            type=ActivityType.CREATE_ISSUE,
             user_id=self.user_id,
             data={
                 "title": external_issue.display_name,
                 "provider": self.install.sentry_app.name,
                 "location": external_issue.web_url,
                 "label": external_issue.display_name,
-                "new": True,
+                "new": new,
             },
         )

@@ -74,10 +74,9 @@ def create_link(
         data={"provider": integration.provider},
     )
     issue_url = response.get("url") or installation.get_issue_url(external_issue.key)
-    Activity.objects.create(
-        project=event.group.project,
+    Activity.objects.create_group_activity(
         group=event.group,
-        type=ActivityType.CREATE_ISSUE.value,
+        type=ActivityType.CREATE_ISSUE,
         data={
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,
