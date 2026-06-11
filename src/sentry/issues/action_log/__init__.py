@@ -7,6 +7,7 @@ from sentry.issues.action_log.base import (
     publish_action,
     publish_action_from_context,
     resolve_action_source,
+    sanitize_mcp_client_family,
 )
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
 
@@ -21,4 +22,5 @@ __all__ = [
     "publish_action",
     "publish_action_from_context",
     "resolve_action_source",
+    "sanitize_mcp_client_family",
 ]

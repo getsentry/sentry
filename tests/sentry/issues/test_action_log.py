@@ -20,6 +20,7 @@ from sentry.issues.action_log import (
     get_action_context,
     publish_action,
     resolve_action_source,
+    sanitize_mcp_client_family,
 )
 from sentry.issues.action_log.base import ActionSource
 from sentry.issues.action_log.types import (
@@ -62,6 +63,38 @@ def _make_request(
 
 
 MCP_USER_AGENT = "sentry-mcp/0.18.0 (https://mcp.sentry.dev)"
+
+
+class TestSanitizeMcpClientFamily(TestCase):
+    def test_known_family(self) -> None:
+        assert sanitize_mcp_client_family("claude-code") == "claude-code"
+        assert sanitize_mcp_client_family("cursor") == "cursor"
+        assert sanitize_mcp_client_family("copilot") == "copilot"
+
+    def test_strips_whitespace_and_lowercases(self) -> None:
+        assert sanitize_mcp_client_family("  Claude-Code  ") == "claude-code"
+        assert sanitize_mcp_client_family("CURSOR") == "cursor"
+
+    def test_none_returns_unknown(self) -> None:
+        assert sanitize_mcp_client_family(None) == "unknown"
+
+    def test_empty_string_returns_unknown(self) -> None:
+        assert sanitize_mcp_client_family("") == "unknown"
+
+    def test_catchall_returns_unknown(self) -> None:
+        assert sanitize_mcp_client_family("unknown") == "unknown"
+        assert sanitize_mcp_client_family("other") == "unknown"
+
+    def test_unrecognized_logs_warning_and_returns_unknown(self) -> None:
+        with self.assertLogs("sentry.issues.action_log", level="WARNING") as logs:
+            result = sanitize_mcp_client_family("some-new-editor")
+        assert result == "unknown"
+        assert any(getattr(r, "client_family", None) == "some-new-editor" for r in logs.records)
+
+    def test_catchall_does_not_log_warning(self) -> None:
+        with self.assertNoLogs("sentry.issues.action_log", level="WARNING"):
+            sanitize_mcp_client_family("other")
+            sanitize_mcp_client_family("unknown")
 
 
 class TestResolveActionSource(TestCase):

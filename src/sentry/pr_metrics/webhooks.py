@@ -21,11 +21,14 @@ from dataclasses import asdict
 from typing import Any
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
 
 from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.issues.constants import cache_key_for_issue_view
+from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -130,6 +133,7 @@ def handle_attribution(
         return
 
     _write_author_attribution(pr, github_user)
+    _write_mcp_attribution(pr)
 
 
 def handle_emission(
@@ -487,6 +491,33 @@ def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> N
         pull_request=pr,
         signal_type=signal_type,
         source=PullRequestAttributionSource.WEBHOOK_DATA,
+    )
+
+
+def _write_mcp_attribution(pr: PullRequest) -> None:
+    group_ids = list(
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pr.id,
+        ).values_list("group_id", flat=True)
+    )
+    if not group_ids:
+        return
+
+    key_to_group_id = {cache_key_for_issue_view(gid, "mcp"): gid for gid in group_ids}
+    hits = cache.get_many(key_to_group_id.keys())
+    if not hits:
+        return
+
+    matched_groups = {
+        str(key_to_group_id[key]): client_family for key, client_family in hits.items()
+    }
+    record_attribution_signal(
+        pull_request=pr,
+        signal_type=PullRequestAttributionSignalType.MCP,
+        source=PullRequestAttributionSource.WEBHOOK_DATA,
+        signal_details={"group_ids": matched_groups},
     )
 
 

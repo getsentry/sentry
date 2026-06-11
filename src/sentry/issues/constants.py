@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from sentry.issues.grouptype import GroupCategory
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
@@ -36,3 +38,7 @@ def get_dataset_column_name(tsdb_model: TSDBModel, column_name: str) -> str | No
     col_mapping = DATASETS[dataset]
 
     return col_mapping.get(column_name)
+
+
+def cache_key_for_issue_view(group_id: int, use_case: Literal["mcp"]) -> str:
+    return f"issue.viewed.{use_case}:{group_id}"

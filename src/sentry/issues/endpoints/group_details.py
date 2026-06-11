@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any, cast
 
+from django.core.cache import cache
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -47,9 +48,10 @@ from sentry.issues.action_log import (
     GroupActionActor,
     publish_action,
     resolve_action_source,
+    sanitize_mcp_client_family,
 )
 from sentry.issues.action_log.types import ViewAction
-from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.constants import cache_key_for_issue_view, get_issue_tsdb_group_model
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models.activity import Activity
@@ -506,13 +508,21 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
 
     user_agent = request.META.get("HTTP_USER_AGENT", "")
     if isinstance(user_agent, str) and user_agent.startswith("sentry-mcp/"):
-        client_family = request.headers.get("x-sentry-mcp-client-family")
+        client_family = sanitize_mcp_client_family(
+            request.headers.get("x-sentry-mcp-client-family")
+        )
         analytics.record(
             IssueViewedEvent(
                 organization_id=group.project.organization_id,
                 project_id=group.project.id,
                 group_id=group.id,
-                client=f"mcp - {client_family or 'unknown'}",
+                client=f"mcp - {client_family}",
                 user_id=request.user.id,
             )
         )
+        if features.has("organizations:mcp-issue-view-attribution", group.project.organization):
+            cache.set(
+                cache_key_for_issue_view(group.id, "mcp"),
+                client_family,
+                int(timedelta(days=1).total_seconds()),
+            )
