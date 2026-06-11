@@ -135,7 +135,7 @@ def handle_attribution(
         return
 
     _write_author_attribution(pr, github_user)
-    if has_seer_access(organization):
+    if pull_request is not None and has_seer_access(organization):
         provider_hint = _is_delegated_agent_candidate(pull_request, github_user)
         if provider_hint is not None:
             if resolved_group_ids(pr):
