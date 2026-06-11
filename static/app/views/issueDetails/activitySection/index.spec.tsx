@@ -279,9 +279,36 @@ describe('ActivitySection', () => {
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
   });
 
-  it('renders create issue activity details in two-column layout', async () => {
+  it('renders provider-specific icon for create issue in two-column layout', async () => {
     const createIssueGroup = GroupFixture({
       id: '1345',
+      activity: [
+        {
+          type: GroupActivityType.CREATE_ISSUE,
+          id: 'create-issue-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            provider: 'GitHub',
+            location: 'https://github.com/org/repo/issues/1',
+            title: 'Test Issue',
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={createIssueGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+
+    expect(await screen.findByText('Test Issue')).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-add')).not.toBeInTheDocument();
+  });
+
+  it('renders create issue title based on whether the external issue is new', async () => {
+    const createIssueGroup = GroupFixture({
+      id: '1346',
       activity: [
         {
           type: GroupActivityType.CREATE_ISSUE,
@@ -311,15 +338,12 @@ describe('ActivitySection', () => {
       project,
     });
 
-    render(<ActivitySection group={createIssueGroup} />, {
-      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-    });
+    render(<ActivitySection group={createIssueGroup} />);
 
     expect(await screen.findByText('Created Issue')).toBeInTheDocument();
     expect(screen.getByText('Created external issue')).toBeInTheDocument();
     expect(screen.getByText('Linked Issue')).toBeInTheDocument();
     expect(screen.getByText('Linked external issue')).toBeInTheDocument();
-    expect(screen.queryByTestId('icon-add')).not.toBeInTheDocument();
   });
 
   it('renders note and allows for edit', async () => {
