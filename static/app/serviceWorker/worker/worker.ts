@@ -1,10 +1,12 @@
 import {init, isInitialized} from '@sentry/browser';
 import {
+  captureException,
   dedupeIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   setTag,
+  startSpan,
 } from '@sentry/core';
 
 import type {InitSentryMessage, WorkerMessage} from 'sentry/serviceWorker/types';
@@ -118,11 +120,29 @@ function handleMessage(event: ExtendableMessageEvent): void {
 }
 
 sw.addEventListener('install', () => {
-  sw.skipWaiting();
+  startSpan({name: 'service-worker.install', op: 'sw.lifecycle'}, () => {
+    sw.skipWaiting();
+  });
 });
 
 sw.addEventListener('activate', event => {
-  event.waitUntil(Promise.all([sw.clients.claim(), restoreSentry()]));
+  event.waitUntil(
+    startSpan({name: 'service-worker.activate', op: 'sw.lifecycle'}, () =>
+      Promise.all([sw.clients.claim(), restoreSentry()])
+    )
+  );
 });
 
-sw.addEventListener('message', handleMessage);
+sw.addEventListener('message', event => {
+  startSpan(
+    {
+      name: `service-worker.message.${(event.data as WorkerMessage).type}`,
+      op: 'sw.message',
+    },
+    () => handleMessage(event)
+  );
+});
+
+sw.addEventListener('unhandledrejection', event => {
+  captureException(event.reason);
+});
