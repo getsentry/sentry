@@ -369,8 +369,13 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const keyName = getKeyName(token.key);
-  const {getFieldDefinition, getTagKeys, getTagValues, filterKeys} =
-    useSearchQueryBuilderConfig();
+  const {
+    filterKeyRegistryQueryKey,
+    filterKeys,
+    getFieldDefinition,
+    getTagKeys,
+    getTagValues,
+  } = useSearchQueryBuilderConfig();
   const key = filterKeys[keyName];
   const fieldDefinition = getFieldDefinition(keyName);
   const valueType = getFilterValueType(token, fieldDefinition);
@@ -420,8 +425,9 @@ function useFilterSuggestions({
   const isDebouncing = baseQueryKey !== queryKey;
 
   const tagKeysBaseQueryKey = useMemo(
-    () => ['search-query-builder-tag-keys', filterValue] as const,
-    [filterValue]
+    () =>
+      ['search-query-builder-tag-keys', filterKeyRegistryQueryKey, filterValue] as const,
+    [filterKeyRegistryQueryKey, filterValue]
   );
   const tagKeysQueryKey = useDebouncedValue(tagKeysBaseQueryKey);
   const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
@@ -440,7 +446,10 @@ function useFilterSuggestions({
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isFetching: isFetchingTagKeys} = useQuery({
     queryKey: tagKeysQueryKey,
-    queryFn: ctx => getTagKeys?.(ctx.queryKey[1] ?? '') ?? [],
+    queryFn: ctx => {
+      const searchQuery = ctx.queryKey[2];
+      return getTagKeys?.(typeof searchQuery === 'string' ? searchQuery : '') ?? [];
+    },
     placeholderData: keepPreviousData,
     enabled: shouldFetchTagKeys,
   });

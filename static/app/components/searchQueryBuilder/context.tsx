@@ -61,6 +61,7 @@ interface SearchQueryBuilderConfigContextData {
   disallowLogicalOperators: boolean;
   disallowWildcard: boolean;
   filterKeyAliases: TagCollection | undefined;
+  filterKeyRegistryQueryKey: QueryKey;
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   getFieldDefinition: FieldDefinitionGetter;
@@ -245,13 +246,13 @@ export function SearchQueryBuilderProvider({
   );
 
   const registerFilterKeys = useCallback(
-    (tags: Tag[]) => {
+    (tags: Tag[], registryQueryKey: QueryKey) => {
       if (!tags.length) {
         return;
       }
 
       queryClient.setQueryData(
-        filterKeyRegistryQueryOptions.queryKey,
+        registryQueryKey,
         (current: TagCollection | undefined): TagCollection => {
           const next = {...current};
           let changed = false;
@@ -274,7 +275,7 @@ export function SearchQueryBuilderProvider({
         }
       );
     },
-    [filterKeyRegistryQueryOptions.queryKey, queryClient]
+    [queryClient]
   );
 
   const registeredGetTagKeys = useCallback<GetTagKeys>(
@@ -283,11 +284,12 @@ export function SearchQueryBuilderProvider({
         return [];
       }
 
+      const registryQueryKey = filterKeyRegistryQueryOptions.queryKey;
       const tags = await getTagKeys(searchQuery);
-      registerFilterKeys(tags);
+      registerFilterKeys(tags, registryQueryKey);
       return tags;
     },
-    [getTagKeys, registerFilterKeys]
+    [filterKeyRegistryQueryOptions.queryKey, getTagKeys, registerFilterKeys]
   );
 
   const mergedFilterKeys = useMemo(() => {
@@ -444,6 +446,7 @@ export function SearchQueryBuilderProvider({
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
       disallowWildcard: Boolean(disallowWildcard),
       filterKeyAliases,
+      filterKeyRegistryQueryKey: filterKeyRegistryQueryOptions.queryKey,
       filterKeySections: filterKeySections ?? [],
       filterKeys: mergedFilterKeys,
       getFieldDefinition: getFieldDefinitionWithTagMetadata,
@@ -466,6 +469,7 @@ export function SearchQueryBuilderProvider({
     disallowLogicalOperators,
     disallowWildcard,
     filterKeyAliases,
+    filterKeyRegistryQueryOptions.queryKey,
     filterKeySections,
     getTagKeys,
     registeredGetTagKeys,

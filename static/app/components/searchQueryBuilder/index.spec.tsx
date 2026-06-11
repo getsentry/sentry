@@ -145,6 +145,15 @@ function getLastInput() {
   return input!;
 }
 
+function makeDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(next => {
+    resolve = next;
+  });
+
+  return {promise, resolve};
+}
+
 describe('SearchQueryBuilder', () => {
   beforeEach(() => {
     // `useDimensions` is used to hide things when the component is too small, so we need to mock a large width
@@ -6677,6 +6686,51 @@ describe('SearchQueryBuilder', () => {
       expect(
         await screen.findByRole('row', {name: 'app.vitals.start.warm.value:>100'})
       ).toBeInTheDocument();
+    });
+
+    it('scopes in-flight async key responses to the active registry query key', async () => {
+      const staleRequest = makeDeferred<typeof asyncTags>();
+      const staleGetTagKeys = jest.fn(() => staleRequest.promise);
+      const currentGetTagKeys = jest.fn().mockResolvedValue([]);
+
+      const {rerender} = render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          asyncFilterKeyRegistryQueryKey={['filter-key-registry', 'old-scope']}
+          getTagKeys={staleGetTagKeys}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      await waitFor(() => {
+        expect(staleGetTagKeys).toHaveBeenCalledWith('async');
+      });
+
+      rerender(
+        <SearchQueryBuilder
+          {...defaultProps}
+          asyncFilterKeyRegistryQueryKey={['filter-key-registry', 'new-scope']}
+          getTagKeys={currentGetTagKeys}
+        />
+      );
+
+      await waitFor(() => {
+        expect(currentGetTagKeys).toHaveBeenCalledWith('async');
+      });
+
+      await act(async () => {
+        staleRequest.resolve(asyncTags);
+        await staleRequest.promise;
+      });
+
+      expect(
+        screen.queryByRole('option', {name: 'async_tag_one'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'async_tag_two'})
+      ).not.toBeInTheDocument();
     });
 
     it('normalizes typed pretty tag keys using loaded async explicit keys', async () => {
