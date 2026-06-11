@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -79,6 +79,7 @@ import {
   prettifyTagKey,
   type FieldDefinition,
 } from 'sentry/utils/fields';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -459,16 +460,24 @@ function useFilterSuggestions({
         hideCheck: true,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
         trailingItems: ({isFocused, disabled}: any) => {
+          const count =
+            suggestion.count === undefined ? null : (
+              <ValueCount>{formatAbbreviatedNumber(suggestion.count)}</ValueCount>
+            );
+
           if (!canSelectMultipleValues) {
-            return null;
+            return count;
           }
 
           return (
-            <ItemCheckbox
-              isFocused={isFocused}
-              disabled={disabled}
-              value={suggestion.value}
-            />
+            <Fragment>
+              {count}
+              <ItemCheckbox
+                isFocused={isFocused}
+                disabled={disabled}
+                value={suggestion.value}
+              />
+            </Fragment>
           );
         },
       };
@@ -486,9 +495,12 @@ function useFilterSuggestions({
         })) ?? [];
       groups = [{sectionText: '', suggestions}];
     } else if (shouldFetchValues) {
-      const suggestions = data?.map(value => {
+      const suggestions = data?.map(item => {
+        const value = typeof item === 'string' ? item : item.value;
+        const count = typeof item === 'string' ? undefined : item.count;
         return {
           value,
+          count,
           description:
             // When the key is device, we can help users by displaying the readable name
             key?.key === FieldKey.DEVICE ? (
@@ -1119,6 +1131,11 @@ const TrailingWrap = styled('div')`
   grid-auto-flow: column;
   align-items: center;
   gap: ${p => p.theme.space.md};
+`;
+
+const ValueCount = styled('span')`
+  font-variant-numeric: tabular-nums;
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const CheckWrap = styled('div')<{visible: boolean}>`

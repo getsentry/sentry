@@ -4,6 +4,7 @@ import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
 export type SuggestionItem = {
   value: string;
+  count?: number;
   description?: ReactNode;
   label?: ReactNode;
 };
