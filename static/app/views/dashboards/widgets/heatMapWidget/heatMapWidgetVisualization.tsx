@@ -17,6 +17,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -62,6 +63,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
+  const timezone = utc ? 'UTC' : getUserTimezone();
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   // yes i am aware that this is UGLY but it's a hack so that we can use proper react routing.
@@ -318,9 +320,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           axisLabel: {
             formatter: value => {
               // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
-              return formatXAxisTimestamp(parseFloat(value), {
-                utc: utc ?? undefined,
-              });
+              return formatXAxisTimestamp(parseFloat(value), timezone);
             },
           },
           axisPointer: {
