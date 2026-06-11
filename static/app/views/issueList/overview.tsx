@@ -496,6 +496,20 @@ function IssueListOverviewInner({
         setError(parseApiError(err));
         setIssuesLoading(false);
         setIssuesSuccessfullyLoaded(false);
+
+        // AI query analytics
+        const aiQueryRunId = getRunIdForAnalytics();
+        if (aiQueryRunId !== null) {
+          trackAiQueryOutcome({
+            dataset: 'issues',
+            mode: 'samples',
+            referrer: 'issues',
+            resultCount: 0,
+            orgSlug: organization.slug,
+            runId: aiQueryRunId,
+            error: parseApiError(err),
+          });
+        }
       },
       complete: () => {
         resumePolling();

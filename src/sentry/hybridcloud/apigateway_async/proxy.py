@@ -15,7 +15,6 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
-from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import get_raw_body_async
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
@@ -181,12 +180,17 @@ async def proxy_cell_request(
             except httpx.TimeoutException:
                 metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
                 circuitbreaker.incr_failures()
-                # remote silo timeout. Use DRF timeout instead
-                raise RequestTimeout()
+                return JsonResponse(
+                    {"error": "apigateway", "detail": "Proxied request timed out"},
+                    status=500,
+                )
             except httpx.RequestError:
                 metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                 circuitbreaker.incr_failures()
-                raise
+                return JsonResponse(
+                    {"error": "apigateway", "detail": "Downstream service unavailable"},
+                    status=500,
+                )
     except CircuitBreakerOverflow:
         metrics.incr("apigateway.proxy.circuit_breaker.overflow", tags=metric_tags)
         return JsonResponse(

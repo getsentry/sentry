@@ -10,8 +10,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getCells} from 'sentry/utils/cells';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {getCells} from 'sentry/utils/regions';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
