@@ -7,6 +7,8 @@ class AutofixPostResponse(TypedDict):
     """Response type for the POST endpoint"""
 
     run_id: int
+    # None for legacy runs predating SeerRun mirroring, which have no mirror row.
+    sentry_run_id: str | None
 
 
 class AutofixStateResponse(TypedDict):
