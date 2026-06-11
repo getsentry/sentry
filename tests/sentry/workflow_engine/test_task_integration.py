@@ -40,11 +40,16 @@ class IssuePlatformIntegrationTests(TestCase):
         )
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
-            _process_message(message)
+            with self.tasks():
+                _process_message(message)
 
             mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )
 
     def test_handler_invoked__when_resolved(self) -> None:
@@ -63,10 +68,15 @@ class IssuePlatformIntegrationTests(TestCase):
         )
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
-            update_status(self.group, message)
+            with self.tasks():
+                update_status(self.group, message)
             mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )
 
     def _resolved_message(self) -> StatusChangeMessageData:

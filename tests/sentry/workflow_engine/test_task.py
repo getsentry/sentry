@@ -240,20 +240,6 @@ class TestProcessWorkflowActivity(TestCase):
         with self.tasks():
             update_status(self.group, self.message)
 
-            # Issue platform is forwarding the activity update
-            mock_incr.assert_any_call(
-                "workflow_engine.issue_platform.status_change_handler",
-                amount=1,
-                tags={"activity_type": self.activity.type},
-                sample_rate=1.0,
-            )
-
-            # Workflow engine is correctly registered for the activity update
-            mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": self.activity.type},
-            )
-
             # Workflow engine evaluated activity update in process_workflows
             mock_incr.assert_any_call(
                 "workflow_engine.tasks.process_workflows.activity_update.executed",
@@ -295,20 +281,6 @@ class TestProcessWorkflowActivity(TestCase):
             ) as txn,
         ):
             process_status_change_message(self.message, txn)
-
-            # Issue platform is forwarding the activity update
-            mock_incr.assert_any_call(
-                "workflow_engine.issue_platform.status_change_handler",
-                amount=1,
-                tags={"activity_type": self.activity.type},
-                sample_rate=1.0,
-            )
-
-            # Workflow engine is correctly registered for the activity update
-            mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": self.activity.type},
-            )
 
             # Workflow engine evaluated activity update in process_workflows
             mock_incr.assert_any_call(
