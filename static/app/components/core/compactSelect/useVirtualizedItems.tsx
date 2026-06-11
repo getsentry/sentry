@@ -50,6 +50,9 @@ export function useVirtualizedItems<T extends ObjectLike>({
     const virtualizedItems = virtualizer.getVirtualItems();
     return {
       items: virtualizedItems,
+      scrollToIndex: (index: number) => {
+        virtualizer.scrollToIndex(index, {align: 'auto'});
+      },
       scrollElementRef,
       itemProps: (index: number) => ({
         ref: virtualizer.measureElement,
@@ -75,6 +78,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
 
   return {
     items: listItems.map((_, index) => ({index, start: 0})),
+    scrollToIndex: () => {},
     scrollElementRef: undefined,
     itemProps: () => {},
     wrapperProps: {

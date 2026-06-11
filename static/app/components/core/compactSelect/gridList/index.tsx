@@ -1,4 +1,4 @@
-import {Fragment, useContext, useId, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useId, useMemo, useRef} from 'react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -120,6 +120,27 @@ function GridList<T extends ListItemBase>({
     virtualized,
     size,
   });
+
+  // Keep the virtually focused row mounted. When focus stays in the search input,
+  // `searchFocusedKey` drives aria-activedescendant and the referenced row must be
+  // rendered even if the user previously scrolled it out of the virtualized range.
+  useEffect(() => {
+    const focusedKey = searchFocusedKey ?? listState.selectionManager.focusedKey;
+    if (!virtualized || focusedKey === null) {
+      return;
+    }
+
+    const focusedIndex = listItems.findIndex(item => item.key === focusedKey);
+    if (focusedIndex !== -1) {
+      virtualizer.scrollToIndex(focusedIndex);
+    }
+  }, [
+    virtualized,
+    listItems,
+    listState.selectionManager.focusedKey,
+    searchFocusedKey,
+    virtualizer,
+  ]);
 
   const mergedProps = mergeProps(gridProps, props);
 

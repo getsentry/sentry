@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import {expectTypeOf} from 'expect-type';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -549,6 +549,72 @@ describe('CompactSelect', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(mock).not.toHaveBeenCalled();
+    });
+
+    it('keeps the active search result mounted in virtualized lists', async () => {
+      const getBoundingClientRect = jest
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockReturnValue({
+          bottom: 100,
+          height: 100,
+          left: 0,
+          right: 200,
+          top: 0,
+          width: 200,
+          x: 0,
+          y: 0,
+          toJSON: () => {},
+        } as DOMRect);
+      const clientHeight = jest
+        .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
+        .mockReturnValue(100);
+      const clientWidth = jest
+        .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+        .mockReturnValue(200);
+      const scrollHeight = jest
+        .spyOn(HTMLElement.prototype, 'scrollHeight', 'get')
+        .mockReturnValue(8000);
+
+      try {
+        render(
+          <CompactSelect
+            search={{placeholder: 'Search here…'}}
+            virtualizeThreshold={0}
+            menuWidth={200}
+            menuHeight={100}
+            options={Array.from({length: 200}, (_, index) => ({
+              value: `opt_${index}`,
+              label: `Option ${index}`,
+            }))}
+            value={undefined}
+            onChange={jest.fn()}
+          />
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+        const virtualizerWrap = document.querySelector('[data-is-virtualized="true"]');
+        const scrollContainer = virtualizerWrap?.parentElement;
+        expect(scrollContainer).toBeTruthy();
+
+        act(() => {
+          scrollContainer!.scrollTop = 4000;
+          scrollContainer!.dispatchEvent(new Event('scroll'));
+        });
+
+        const searchInput = screen.getByPlaceholderText('Search here…');
+        await userEvent.type(searchInput, 'Option 199');
+
+        await waitFor(() => {
+          const activeDescendant = searchInput.getAttribute('aria-activedescendant');
+          expect(activeDescendant).toBeTruthy();
+          expect(document.getElementById(activeDescendant!)).toBeInTheDocument();
+        });
+      } finally {
+        getBoundingClientRect.mockRestore();
+        clientHeight.mockRestore();
+        clientWidth.mockRestore();
+        scrollHeight.mockRestore();
+      }
     });
 
     it('restores full list when search query is cleared', async () => {

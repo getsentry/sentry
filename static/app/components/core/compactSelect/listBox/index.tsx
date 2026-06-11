@@ -202,18 +202,26 @@ export function ListBox<T extends ListItemBase>({
     listPadding: virtualizedListPadding,
   });
 
+  // Keep the virtually focused option mounted. When focus stays in the search input,
+  // `searchFocusedKey` drives aria-activedescendant and the referenced option must be
+  // rendered even if the user previously scrolled it out of the virtualized range.
   useEffect(() => {
-    if (!virtualized || listState.selectionManager.focusedKey === null) {
+    const focusedKey = searchFocusedKey ?? listState.selectionManager.focusedKey;
+    if (!virtualized || focusedKey === null) {
       return;
     }
 
-    const focusedIndex = listItems.findIndex(
-      item => item.key === listState.selectionManager.focusedKey
-    );
+    const focusedIndex = listItems.findIndex(item => item.key === focusedKey);
     if (focusedIndex !== -1) {
       virtualizer.scrollToIndex(focusedIndex);
     }
-  }, [virtualized, listItems, listState.selectionManager.focusedKey, virtualizer]);
+  }, [
+    virtualized,
+    listItems,
+    listState.selectionManager.focusedKey,
+    searchFocusedKey,
+    virtualizer,
+  ]);
 
   const refs = useMemo(() => {
     const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
