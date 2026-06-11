@@ -700,7 +700,7 @@ function SentryApplicationForm({
             <field.Layout.Row
               label={t('Webhook Headers')}
               hintText={t(
-                'Custom headers to include with every webhook request. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
+                'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
               )}
             >
               <field.TextArea
