@@ -606,9 +606,6 @@ def _schedule_task(
 ) -> None:
     payload = _build_payload(action, event, organization, repo, target_commit_sha, review_trigger)
 
-    # The scm-platform rollout for code review is at 100%, so the /v1/code_review/*
-    # endpoints now route every provider (including GitLab) through ScmRepoClient,
-    # making them functionally equivalent to the /v1/scm_code_review/* counterparts.
     is_closed = action in CLOSE_ACTIONS
     seer_path = (
         SeerEndpoint.CODE_REVIEW_PR_CLOSED.value
