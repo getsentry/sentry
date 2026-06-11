@@ -682,12 +682,13 @@ export function getGroupActivityItem(
         };
       }
       case GroupActivityType.AUTO_SET_ONGOING: {
+        const afterDays = activity.data?.after_days;
         return {
           title: t('Marked as Ongoing'),
-          message: activity.data?.afterDays
+          message: afterDays
             ? tct('automatically by [author] after [afterDays] days', {
                 author,
-                afterDays: activity.data.afterDays,
+                afterDays,
               })
             : tct('automatically by [author]', {
                 author,
