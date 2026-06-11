@@ -115,6 +115,12 @@ class ResolveSeerRunTest(TestCase):
         assert result.status_code == status.HTTP_404_NOT_FOUND
         assert result.data == {"session": None}
 
+    def test_oversized_numeric_id_returns_400(self) -> None:
+        result = resolve_seer_run("99999999999999999999", self.organization)
+
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_garbage_id_returns_400(self) -> None:
         result = resolve_seer_run("not-a-real-id", self.organization)
 

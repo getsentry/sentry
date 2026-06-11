@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
+from sentry.utils.numbers import validate_bigint
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -37,6 +38,8 @@ def resolve_seer_run(
         seer_run_state_id = None
 
     if seer_run_state_id is not None:
+        if not validate_bigint(seer_run_state_id):
+            return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
         run = SeerRun.objects.filter(
             seer_run_state_id=seer_run_state_id, organization=organization
         ).first()
