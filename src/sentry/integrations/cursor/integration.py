@@ -90,9 +90,6 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     # parent class's flag check rather than rely on a removed registration.
     requires_feature_flag = False
 
-    def get_pipeline_views(self):
-        return []
-
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [CursorApiKeyApiStep()]
 

@@ -1,6 +1,5 @@
 import os
 
-from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
@@ -46,10 +45,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
-# Read internally via the SENTRY_LOGGING_FORMAT Django setting, which
-# options_mapper populates from this option (see sentry.runner.initializer).
-# Registration supplies the default that gets promoted into the setting.
-register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -807,6 +802,10 @@ register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# GCP MCP Integration
+register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1168,6 +1167,18 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.severity.cpu-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.fixability.cpu-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.night_shift.enable",
     type=Bool,
     default=False,
@@ -1177,12 +1188,6 @@ register(
     "seer.night_shift.issues_per_org",
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.night_shift.use_feature_delivery",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -2093,6 +2098,13 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
 # there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
@@ -2822,6 +2834,13 @@ register(
     "spans.process-spans.profiling.rate",
     type=Float,
     default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Skip the script_exists check in ensure_script and trust the cached SHA.
+register(
+    "spans.buffer.ensure-script.skip-exists-check",
+    type=Bool,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Timeout for stale segments without a root span to be flushed.
@@ -3667,8 +3686,8 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TODO(cells): Routes the org listing through the control silo endpoint instead of
-# fanning out across cells. Remove once the cell fan-out path is deleted.
+# TODO(cells): Fully rolled out and no longer read anywhere. Unregister once the
+# value is removed from sentry-options-automator.
 register(
     "cells.use-control-org-listing",
     type=Bool,
@@ -3730,6 +3749,22 @@ register(
 # Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
 register(
     "tasks.producer.occurrences.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to the clock_pulse task
+register(
+    "tasks.producer.clock-pulse.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_snapshot_to_kafka from within taskworkers
+register(
+    "tasks.producer.snapshots.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

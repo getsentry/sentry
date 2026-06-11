@@ -303,6 +303,7 @@ from sentry.issues.endpoints import (
     GroupTombstoneEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
+    OrganizationGroupIndexProgressEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewDetailsStarredEndpoint,
@@ -789,7 +790,6 @@ from .endpoints.organization_search_details import OrganizationSearchDetailsEndp
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
-    OrganizationSpansFieldValuesEndpoint,
 )
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
@@ -1735,11 +1735,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-spans-fields",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/spans/fields/(?P<key>[^/]+)/values/$",
-        OrganizationSpansFieldValuesEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-fields-values",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics-estimation-stats/$",
         OrganizationOnDemandMetricsEstimationStatsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-estimation-stats",
@@ -1885,6 +1880,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-stats/$",
         OrganizationGroupIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-group-index-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issues-progress/$",
+        OrganizationGroupIndexProgressEndpoint.as_view(),
+        name="sentry-api-0-organization-group-index-progress",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-with-supergroups/$",

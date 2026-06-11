@@ -15,6 +15,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerAgentRun
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
 
@@ -71,14 +72,22 @@ class TestSeerAgentClient(TestCase):
         mock_response.status = 200
         mock_post.return_value = mock_response
 
-        client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Test query").seer_run_state_id
+        project = self.create_project(organization=self.organization)
+        group = self.create_group(project=project)
 
-        assert run_id == 123
+        client = SeerAgentClient(self.organization, self.user, project=project, group=group)
+        run = client.start_run("Test query")
+
+        assert run.seer_run_state_id == 123
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=None)
         assert mock_post.called
         body = mock_post.call_args[0][0]
         assert "enable_frontend_code_search" not in body["agent_run_options"]
+        assert body["metadata"]["group_id"] == group.id
+
+        agent_run = SeerAgentRun.objects.get(run=run)
+        assert agent_run.project_id == project.id
+        assert agent_run.group_id == group.id
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")

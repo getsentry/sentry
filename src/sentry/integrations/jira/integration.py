@@ -46,7 +46,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -1308,9 +1308,6 @@ class JiraIntegrationProvider(IntegrationProvider):
 
     can_add = False
     can_add_externally = True
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [JiraConfirmInstallStep()]

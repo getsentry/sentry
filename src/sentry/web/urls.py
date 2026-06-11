@@ -14,7 +14,6 @@ from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.feedback.endpoints.error_page_embed import ErrorPageEmbedView
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
-from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.toolbar.views.iframe_view import IframeView
 from sentry.toolbar.views.login_success_view import LoginSuccessView
@@ -1118,11 +1117,6 @@ urlpatterns += [
                     r"^(?P<organization_slug>[^/]+)/auth/configure/$",
                     OrganizationAuthSettingsView.as_view(),
                     name="sentry-organization-auth-provider-settings",
-                ),
-                re_path(
-                    r"^(?P<organization_slug>[^/]+)/integrations/(?P<provider_id>[^/]+)/setup/$",
-                    OrganizationIntegrationSetupView.as_view(),
-                    name="sentry-organization-integrations-setup",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/members/$",

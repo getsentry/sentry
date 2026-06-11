@@ -24,6 +24,7 @@ import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
+  const tenMinutesAgo = () => new Date(Date.now() - 10 * 60 * 1000).toISOString();
   user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
@@ -183,7 +184,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.NOTE,
           id: 'note-1',
           data: {text: '**Bold Note** and [docs](https://docs.sentry.io/)'},
-          dateCreated: '2020-01-01T00:00:00',
+          dateCreated: tenMinutesAgo(),
           user,
         },
       ],
@@ -199,6 +200,7 @@ describe('ActivitySection', () => {
       'href',
       'https://docs.sentry.io/'
     );
+    expect(screen.getByText('10m ago')).toBeInTheDocument();
   });
 
   it('renders activity actor markers', async () => {
@@ -302,6 +304,46 @@ describe('ActivitySection', () => {
 
     expect(await screen.findByText('Test Issue')).toBeInTheDocument();
     expect(screen.queryByTestId('icon-add')).not.toBeInTheDocument();
+  });
+
+  it('renders create issue title based on whether the external issue is new', async () => {
+    const createIssueGroup = GroupFixture({
+      id: '1346',
+      activity: [
+        {
+          type: GroupActivityType.CREATE_ISSUE,
+          id: 'create-issue-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            provider: 'GitHub',
+            location: 'https://github.com/org/repo/issues/1',
+            title: 'Created external issue',
+            new: true,
+          },
+          user,
+        },
+        {
+          type: GroupActivityType.CREATE_ISSUE,
+          id: 'link-issue-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            provider: 'GitHub',
+            location: 'https://github.com/org/repo/issues/2',
+            title: 'Linked external issue',
+            new: false,
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={createIssueGroup} />);
+
+    expect(await screen.findByText('Created Issue')).toBeInTheDocument();
+    expect(screen.getByText('Created external issue')).toBeInTheDocument();
+    expect(screen.getByText('Linked Issue')).toBeInTheDocument();
+    expect(screen.getByText('Linked external issue')).toBeInTheDocument();
   });
 
   it('renders note and allows for edit', async () => {
@@ -440,7 +482,7 @@ describe('ActivitySection', () => {
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
-      dateCreated: '2020-01-01T00:00:00',
+      dateCreated: tenMinutesAgo(),
       user: UserFixture({id: '2'}),
       project,
     }));
@@ -462,6 +504,8 @@ describe('ActivitySection', () => {
     }
 
     expect(screen.queryByText('View 4 more')).not.toBeInTheDocument();
+    expect(screen.getAllByText('10 minutes ago')).toHaveLength(7);
+    expect(screen.queryByText('10m ago')).not.toBeInTheDocument();
   });
 
   it('filters comments correctly', async () => {

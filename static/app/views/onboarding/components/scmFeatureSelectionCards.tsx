@@ -15,6 +15,7 @@ interface ScmFeatureSelectionCardsProps {
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
   isVolumeLoading?: boolean;
+  showVolume?: boolean;
 }
 
 export function ScmFeatureSelectionCards({
@@ -24,6 +25,7 @@ export function ScmFeatureSelectionCards({
   onToggleFeature,
   featureMeta,
   isVolumeLoading,
+  showVolume = true,
 }: ScmFeatureSelectionCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
@@ -57,6 +59,7 @@ export function ScmFeatureSelectionCards({
               volume={meta.volume}
               volumeTooltip={meta.volumeTooltip}
               isVolumeLoading={isVolumeLoading}
+              showVolume={showVolume}
             />
           );
         })}

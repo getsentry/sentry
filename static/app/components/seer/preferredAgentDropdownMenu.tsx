@@ -1,9 +1,11 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {Link} from '@sentry/scraps/link';
 
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {t} from 'sentry/locale';
-import {useSeerAgentSelectOptions} from 'sentry/utils/seer/preferredAgent';
+import {seerAgentIntegrationsSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -17,7 +19,9 @@ export function PreferredAgentDropdownMenu({
   size?: DropdownMenuProps['size'];
 }) {
   const organization = useOrganization();
-  const agentOptions = useSeerAgentSelectOptions();
+  const {data: agentOptions = []} = useQuery(
+    seerAgentIntegrationsSelectQueryOptions({organization})
+  );
 
   return (
     <DropdownMenu

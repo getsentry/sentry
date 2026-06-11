@@ -45,6 +45,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
     "spans.buffer.flusher.flush-lock-ttl": 0,
+    "spans.buffer.ensure-script.skip-exists-check": True,
     "spans.buffer.flusher-cumulative-logger-enabled": False,
     "spans.buffer.flusher.log-flushed-segments": False,
     "spans.buffer.compression.level": 0,

@@ -268,6 +268,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.errors.size > 0;
   }
 
+  get hasHttpError(): boolean {
+    return false;
+  }
+
   get hasProfiles(): boolean {
     return !!(this.profileId || this.profilerId);
   }

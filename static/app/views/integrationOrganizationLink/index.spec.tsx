@@ -1,5 +1,7 @@
+import * as Sentry from '@sentry/react';
 import pick from 'lodash/pick';
 import {ConfigFixture} from 'sentry-fixture/config';
+import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {VercelProviderFixture} from 'sentry-fixture/vercelIntegration';
 
@@ -120,5 +122,51 @@ describe('IntegrationOrganizationLink', () => {
     expect(screen.getByRole('button', {name: 'Install Vercel'})).toBeEnabled();
     expect(getProviderMock).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalled();
+  });
+
+  it('shows an error and reports to Sentry when the provider has no pipeline', async () => {
+    setupConfigStore(org2);
+
+    const captureException = jest.spyOn(Sentry, 'captureException');
+
+    const provider = IntegrationProviderFixture({
+      key: 'generic-provider',
+      name: 'Generic Provider',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/config/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'generic-provider'})],
+      body: {providers: [provider]},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/`,
+      match: [MockApiClient.matchQuery({include_feature_flags: 1})],
+      body: org2,
+    });
+
+    render(<IntegrationOrganizationLink />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/extensions/generic-provider/link/',
+        },
+        route: '/extensions/:integrationSlug/link/',
+      },
+    });
+
+    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+
+    expect(
+      await screen.findByText(/Sentry does not support installing/)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Install Generic Provider'})
+    ).not.toBeInTheDocument();
+    expect(captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'No integration pipeline registered for generic-provider',
+      })
+    );
   });
 });
