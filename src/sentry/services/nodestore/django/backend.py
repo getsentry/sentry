@@ -37,7 +37,7 @@ class DjangoNodeStorage(NodeStorage):
             logger.exception(str(e))
             return {}
 
-    def _get_bytes(self, id: str) -> bytes | None:
+    def _get_bytes(self, id: str, timeout: float | None = None) -> bytes | None:
         try:
             data = Node.objects.get(id=id).data
             return decompress(data)

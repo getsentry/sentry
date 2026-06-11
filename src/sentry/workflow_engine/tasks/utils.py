@@ -1,6 +1,6 @@
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
-from sentry import nodestore
+from sentry import nodestore, options
 from sentry.constants import ObjectStatus
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -36,8 +36,9 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     fetch_retry_policy = ConditionalRetryPolicy(
         _should_retry_nodestore_fetch, exponential_delay(1.00)
     )
+    timeout = options.get("workflow_engine.nodestore_read_timeout")
     with metrics.timer("workflow_engine.process_workflows.fetch_from_nodestore"):
-        data = fetch_retry_policy(lambda: nodestore.backend.get(node_id))
+        data = fetch_retry_policy(lambda: nodestore.backend.get(node_id, timeout=timeout))
     if data is None:
         return None
     evt = Event(
