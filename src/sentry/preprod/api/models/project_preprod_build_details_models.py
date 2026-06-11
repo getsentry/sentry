@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
+from sentry import features
 from sentry.preprod.api.models.snapshots.snapshot_status import (
     ApprovalStatusLiteral,
     ComparisonStateLiteral,
@@ -320,6 +321,10 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
                     app_id=head_artifact.app_id,
                     artifact_type=head_artifact.artifact_type,
                     build_configuration=head_artifact.build_configuration,
+                    allow_selective=features.has(
+                        "organizations:preprod-selective-base-snapshots",
+                        head_artifact.project.organization,
+                    ),
                 )
                 is not None
             )

@@ -463,7 +463,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         },
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def delete(self, request: Request, group: Group) -> Response:
+    def delete(self, request: Request, group: Group) -> Response[None]:
         """
         Asynchronously queue an individual issue for deletion.
         """

@@ -133,9 +133,13 @@ function getAISpanAttributes({
   }
 
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
-  const cachedTokens = attributes['gen_ai.usage.input_tokens.cached'];
+  const cachedTokens =
+    attributes['gen_ai.usage.cache_read.input_tokens'] ??
+    attributes['gen_ai.usage.input_tokens.cached'];
   const outputTokens = attributes['gen_ai.usage.output_tokens'];
-  const reasoningTokens = attributes['gen_ai.usage.output_tokens.reasoning'];
+  const reasoningTokens =
+    attributes['gen_ai.usage.reasoning.output_tokens'] ??
+    attributes['gen_ai.usage.output_tokens.reasoning'];
   const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
   if (inputTokens && outputTokens && totalTokens && Number(totalTokens) !== 0) {

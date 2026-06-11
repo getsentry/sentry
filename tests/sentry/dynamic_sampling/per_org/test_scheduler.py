@@ -216,7 +216,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
@@ -306,7 +306,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         _assert_called_once_with_config(get_transaction_volumes, org.id)
 
@@ -422,7 +422,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
@@ -511,7 +511,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(

@@ -176,7 +176,7 @@ describe('DetectorSection', () => {
     );
 
     expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();
-    const link = screen.getByRole('button', {name: 'View alert details'});
+    const link = screen.getByRole('button', {name: 'View monitor details'});
     expect(link).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/alerts/rules/uptime/${project.slug}/${detectorId}/details/`

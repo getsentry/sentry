@@ -11,9 +11,10 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+import {DashboardChatBlock} from './dashboardChatBlock';
 
 const MAX_CHAT_HISTORY_HEIGHT = 500;
 
@@ -202,7 +203,7 @@ const ChatHistory = memo(function ChatHistoryInner({
     >
       <Stack>
         {blocks.map((block, index) => (
-          <BlockComponent key={block.id} block={block} blockIndex={index} />
+          <DashboardChatBlock key={block.id} block={block} blockIndex={index} />
         ))}
         {pendingUserInput && pendingUserInput.data.questions?.length > 0 && (
           <ChatMessageContainer padding="xl">
