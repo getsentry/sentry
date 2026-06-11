@@ -553,6 +553,16 @@ class SpansBuffer:
         redis_ttl = options.get("spans.buffer.redis-ttl")
         root_timeout = options.get("spans.buffer.root-timeout")
 
+        # Pipeline deadline lookups for the segments that need them below.
+        deadlines = self.store.get_current_queue_deadlines(
+            [
+                loaded_segment
+                for loaded_segment in loaded_segments
+                if loaded_segment.ingest_metadata.ingested_count is None
+                and not loaded_segment.payloads
+            ]
+        )
+
         for loaded_segment in loaded_segments:
             ingest_metadata = loaded_segment.ingest_metadata
 
@@ -596,7 +606,7 @@ class SpansBuffer:
                 # 1. TTL expiration (segment sat in queue for >1 hour) - TRUE DATA LOSS
                 # 2. Race condition (another consumer flushed between load and metadata fetch)
                 # Only increment metric if segment is old enough to have actually expired.
-                deadline = self.store.get_current_queue_deadline(loaded_segment)
+                deadline = deadlines.get(loaded_segment.segment_key)
                 if deadline is not None:
                     time_past_deadline = now - deadline
                     # Estimate segment age: deadline = creation_time + timeout
