@@ -568,7 +568,7 @@ export function getGroupActivityItem(
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
         let title = t('Created Issue');
-        if (data.new === true) {
+        if (data.new === false) {
           title = t('Linked Issue');
         }
 
