@@ -36,7 +36,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {MemberTeamFields} from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
 
 interface FieldProps {
   data: Props['data'];

@@ -27,7 +27,7 @@ import {useApi} from 'sentry/utils/useApi';
 const hasValue = (value: unknown) => !!value || value === 0;
 
 // See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
-type FieldFromSchema = {
+export type FieldFromSchema = {
   label: string;
   name: string;
   type: 'select' | 'textarea' | 'text';
@@ -46,7 +46,7 @@ type FieldFromSchema = {
   uri?: string;
 };
 
-type SchemaFormConfig = {
+export type SchemaFormConfig = {
   uri: string;
   description?: string;
   optional_fields?: FieldFromSchema[];

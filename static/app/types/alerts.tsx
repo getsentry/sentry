@@ -1,4 +1,4 @@
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
 
 import type {IssueConfigField} from './integrations';
 
