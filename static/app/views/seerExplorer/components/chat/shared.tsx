@@ -108,10 +108,25 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
 
 const IsInsideLinkContext = createContext(false);
 
+function toRelativeHref(href: string): string {
+  if (!/^https?:\/\//.test(href)) {
+    return href;
+  }
+  try {
+    const url = new URL(href);
+    if (url.origin === window.location.origin) {
+      return url.pathname + url.search + url.hash;
+    }
+  } catch {
+    // Invalid URL, use as-is
+  }
+  return href;
+}
+
 const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
   Link: ({children, Default, href, title}) => (
     <IsInsideLinkContext.Provider value>
-      <Default href={href} title={title}>
+      <Default href={toRelativeHref(href)} title={title}>
         {children}
       </Default>
     </IsInsideLinkContext.Provider>
