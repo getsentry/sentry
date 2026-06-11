@@ -793,14 +793,15 @@ export function getGroupActivityItem(
   return renderContent();
 }
 
-function formatAutoResolveAge(age: number | undefined) {
-  if (!age) {
+function formatAutoResolveAge(age: number | string | undefined) {
+  const resolveAge = Number(age);
+  if (!Number.isFinite(resolveAge) || resolveAge <= 0) {
     return null;
   }
 
-  const precision = age > 23 && age % 24 === 0 ? 'day' : 'hour';
+  const precision = resolveAge > 23 && resolveAge % 24 === 0 ? 'day' : 'hour';
   const count = Number(
-    formatDuration({duration: [age, 'hour'], precision, style: 'count'})
+    formatDuration({duration: [resolveAge, 'hour'], precision, style: 'count'})
   );
 
   return precision === 'day'

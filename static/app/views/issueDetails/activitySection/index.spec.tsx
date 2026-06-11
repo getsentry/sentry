@@ -371,6 +371,13 @@ describe('ActivitySection', () => {
           data: {age: 30},
           user: null,
         },
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-4',
+          dateCreated: '2020-01-04T00:00:00',
+          data: {age: '48'},
+          user: null,
+        },
       ],
       project,
     });
@@ -380,6 +387,7 @@ describe('ActivitySection', () => {
     expect(await screen.findByText(/after 21 days of inactivity/)).toBeInTheDocument();
     expect(screen.getByText(/after 11 hours of inactivity/)).toBeInTheDocument();
     expect(screen.getByText(/after 30 hours of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
   });
 
   it('renders note and allows for edit', async () => {

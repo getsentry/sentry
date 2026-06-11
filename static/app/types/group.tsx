@@ -701,7 +701,7 @@ interface GroupActivitySetPrivate extends GroupActivityBase {
 
 interface GroupActivitySetByAge extends GroupActivityBase {
   data: {
-    age?: number;
+    age?: number | string;
   };
   type: GroupActivityType.SET_RESOLVED_BY_AGE;
 }
