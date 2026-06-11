@@ -137,25 +137,13 @@ class EnvironmentParams:
 
 
 class OrganizationParams:
-    PROJECT_SLUG = OpenApiParameter(
-        name="projectSlug",
-        location="query",
-        required=False,
-        many=True,
-        type=str,
-        description="""The project slugs to filter by. This legacy parameter takes precedence over `project` if both are provided. Omit this parameter to include all accessible projects. `$all` is also accepted. For example, the following are valid parameters:
-- `/?projectSlug=$all`
-- `/?projectSlug=android&projectSlug=javascript-react`
-""",
-    )
-    PROJECT_ID_OR_SLUG = PROJECT_SLUG
     PROJECT = OpenApiParameter(
         name="project",
         location="query",
         required=False,
         many=True,
         type=str,
-        description="""The IDs or slugs of projects to filter by. Project slugs are unique within each organization. Omit this parameter to include all accessible projects. `-1` is also accepted.
+        description="""The IDs or slugs of projects to filter by. Project slugs are unique within each organization. Omit this parameter to include all accessible projects. `-1` is also accepted to include all accessible projects.
 For example, the following are valid parameters:
 - `/?project=1234&project=56789`
 - `/?project=android&project=javascript-react`

@@ -62,7 +62,6 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
-            OrganizationParams.PROJECT_ID_OR_SLUG,
             NotificationParams.TRIGGER_TYPE,
         ],
         responses={
