@@ -16,8 +16,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
-import type {Region} from 'sentry/types/system';
-import {getRegions} from 'sentry/utils/regions';
+import type {Cell} from 'sentry/types/system';
+import {getCells} from 'sentry/utils/cells';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -215,7 +215,7 @@ interface ResultGridProps {
   /**
    * Translates the data object from the request into rows
    */
-  rowsFromData?: (data: any, region: Region | undefined) => any[];
+  rowsFromData?: (data: any, cell: Cell | undefined) => any[];
   /**
    * Allowed sorting options
    */
@@ -227,13 +227,13 @@ interface ResultGridProps {
 }
 
 export type State = {
+  cell: Cell | undefined;
   cursor: string;
   error: boolean;
   filters: Location['query'];
   loading: boolean;
   pageLinks: string | null;
   query: string;
-  region: Region | undefined;
   rows: any[];
   sortBy: string;
 };
@@ -267,11 +267,11 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   constructor(props: any) {
     super(props);
     const queryParams = this.props.location?.query ?? {};
+    // In this context regionUrl == cell.locality_url
     const {cursor, query, sortBy, regionUrl} = queryParams;
 
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
-    // TODO(cells) We need cells here
-    const regions = getRegions();
+    const cells = getCells();
 
     this.state = {
       rows: [],
@@ -280,10 +280,10 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       pageLinks: null,
       cursor: extractQuery(cursor),
       query: extractQuery(query),
-      region: needsRegion
+      cell: needsRegion
         ? regionUrl
-          ? regions.find((r: any) => r.url === extractQuery(regionUrl))
-          : regions[0]
+          ? cells.find(c => c.locality_url === extractQuery(regionUrl))
+          : cells[0]
         : undefined,
       sortBy: extractQuery(sortBy, this.props.defaultSort),
       filters: Object.assign({}, queryParams),
@@ -348,19 +348,19 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // Currently using region.name (e.g., "us", "de") as the cell_id.
     // In the future when there's a cell selector, we would use the actual cell ID instead.
     const endpoint =
-      this.props.isCellScoped && this.state.region
-        ? `/_admin/cells/${this.state.region.name}${this.props.endpoint}`
+      this.props.isCellScoped && this.state.cell
+        ? `/_admin/cells/${this.state.cell.name}${this.props.endpoint}`
         : this.props.endpoint;
 
     this.props.api.request(endpoint, {
       method: this.props.method,
-      host: this.state.region ? this.state.region.url : undefined,
+      host: this.state.cell ? this.state.cell.locality_url : undefined,
       data: queryParams,
       success: (data, _, resp) => {
         this.setState({
           loading: false,
           error: false,
-          rows: this.props.rowsFromData?.(data, this.state.region) ?? data,
+          rows: this.props.rowsFromData?.(data, this.state.cell) ?? data,
           pageLinks: resp?.getResponseHeader('Link') ?? '',
         });
         if (this.props.onLoad) {
@@ -533,8 +533,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       resultTable
     );
 
-    // TODO(cells) We need cells here.
-    const regions = getRegions();
+    const cells = getCells();
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
     return (
@@ -545,19 +544,19 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} prefix="Region" />
               )}
-              value={this.state.region ? this.state.region.url : undefined}
-              options={regions.map((r: any) => ({
-                label: r.name,
-                value: r.url,
+              value={this.state.cell ? this.state.cell.locality_url : undefined}
+              options={cells.map(c => ({
+                label: c.name,
+                value: c.locality_url,
               }))}
               onChange={opt => {
-                const region = regions.find((r: any) => r.url === opt.value);
-                if (region === undefined) {
+                const cellOption = cells.find(c => c.locality_url === opt.value);
+                if (cellOption === undefined) {
                   return;
                 }
                 this.setState(
                   {
-                    region,
+                    cell: cellOption,
                   },
                   this.fetchData
                 );

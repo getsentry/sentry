@@ -1,4 +1,5 @@
-from typing import Literal, TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from django.db.models import Exists, OuterRef
@@ -18,6 +19,7 @@ from sentry.apidocs.examples.source_map_debug_examples import SourceMapDebugExam
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
@@ -299,9 +301,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
 
 def get_scraping_data_for_frame(
-    scraping_attempt_map, raw_frame, raw_frame_index, stacktrace_frames
-):
-    scraping_data = {"source_file": None, "source_map": None}
+    scraping_attempt_map: Mapping[str, Any],
+    raw_frame: Mapping[str, Any],
+    raw_frame_index: int,
+    stacktrace_frames: Sequence[Any] | None,
+) -> SourceMapScrapingProcessResult:
+    scraping_data: SourceMapScrapingProcessResult = {"source_file": None, "source_map": None}
 
     abs_path = get_path(raw_frame, "abs_path")
     if abs_path is None:
@@ -324,7 +329,9 @@ def get_scraping_data_for_frame(
 
 
 class ReleaseLookupData:
-    def __init__(self, abs_path: str, project: Project, release: Release, event):
+    def __init__(
+        self, abs_path: str, project: Project, release: Release, event: Event | GroupEvent
+    ) -> None:
         self.abs_path = abs_path
         self.project = project
         self.release = release
@@ -369,7 +376,7 @@ class ReleaseLookupData:
                 self._find_source_map_in_artifact_indexes(matching_source_map_name)
                 self._find_source_map_in_artifact_bundles(matching_source_map_name)
 
-    def to_dict(self):
+    def to_dict(self) -> SourceMapReleaseProcessResult:
         return {
             "abs_path": self.abs_path,
             "matching_source_file_names": self.matching_source_file_names,
@@ -425,7 +432,7 @@ class ReleaseLookupData:
                     pass
                 return
 
-    def _find_source_file_in_artifact_indexes(self):
+    def _find_source_file_in_artifact_indexes(self) -> None:
         if self.source_file_lookup_result == "found":
             return
 
@@ -478,7 +485,7 @@ class ReleaseLookupData:
                     self.source_file_lookup_result = "wrong-dist"
                     return
 
-    def _find_source_file_in_artifact_bundles(self):
+    def _find_source_file_in_artifact_bundles(self) -> None:
         if self.source_file_lookup_result == "found":
             return
 
@@ -524,7 +531,7 @@ class ReleaseLookupData:
                                 pass
                             return
 
-    def _find_source_map_in_basic_uploaded_files(self, matching_source_map_name: str):
+    def _find_source_map_in_basic_uploaded_files(self, matching_source_map_name: str) -> None:
         if self.source_map_lookup_result == "found":
             return
 
@@ -547,7 +554,7 @@ class ReleaseLookupData:
                 self.source_map_lookup_result = "found"
                 return
 
-    def _find_source_map_in_artifact_indexes(self, matching_source_map_name: str):
+    def _find_source_map_in_artifact_indexes(self, matching_source_map_name: str) -> None:
         if self.source_map_lookup_result == "found":
             return
 
@@ -568,7 +575,7 @@ class ReleaseLookupData:
                 self.source_map_lookup_result = "wrong-dist"
                 return
 
-    def _find_source_map_in_artifact_bundles(self, matching_source_map_name: str):
+    def _find_source_map_in_artifact_bundles(self, matching_source_map_name: str) -> None:
         if self.source_map_lookup_result == "found":
             return
 
@@ -602,7 +609,7 @@ class ReleaseLookupData:
 
         return self.artifact_index_release_files
 
-    def _get_dist_matched_artifact_index_release_file(self):
+    def _get_dist_matched_artifact_index_release_file(self) -> ReleaseFile | None:
         # Cache result
         if self.dist_matched_artifact_index_release_file is not None:
             return self.dist_matched_artifact_index_release_file
@@ -623,11 +630,11 @@ class ReleaseLookupData:
         return self.dist_matched_artifact_index_release_file
 
 
-def get_matching_source_map_location(source_file_path, source_map_reference):
+def get_matching_source_map_location(source_file_path: str, source_map_reference: str) -> str:
     return non_standard_url_join(force_str(source_file_path), force_str(source_map_reference))
 
 
-def event_has_debug_ids(event_data):
+def event_has_debug_ids(event_data: Mapping[str, Any]) -> bool:
     debug_images = get_path(event_data, "debug_meta", "images")
     if debug_images is None:
         return False
@@ -638,7 +645,9 @@ def event_has_debug_ids(event_data):
         return False
 
 
-def get_sdk_debug_id_support(event_data):
+def get_sdk_debug_id_support(
+    event_data: Mapping[str, Any],
+) -> tuple[Literal["not-supported", "unofficial-sdk", "needs-upgrade", "full"], str | None]:
     sdk_name = get_path(event_data, "sdk", "name")
 
     official_sdks = None
@@ -726,8 +735,8 @@ def get_sdk_debug_id_support(event_data):
     )
 
 
-def get_abs_paths_in_event(event_data):
-    abs_paths = set()
+def get_abs_paths_in_event(event_data: Mapping[str, Any]) -> set[str]:
+    abs_paths: set[str] = set()
     exception_values = get_path(event_data, "exception", "values")
     if exception_values is not None:
         for exception_value in exception_values:
@@ -740,8 +749,8 @@ def get_abs_paths_in_event(event_data):
     return abs_paths
 
 
-def get_scraping_attempt_map(event_data):
-    scraping_attempt_map = {}  # maps from url to attempt
+def get_scraping_attempt_map(event_data: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    scraping_attempt_map: dict[str, dict[str, Any]] = {}  # maps from url to attempt
     scraping_attempts = event_data.get("scraping_attempts") or []
     for scraping_attempt in scraping_attempts:
         attempt_data = {"status": scraping_attempt["status"], "url": scraping_attempt["url"]}

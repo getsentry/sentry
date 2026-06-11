@@ -229,9 +229,6 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
-        # TODO(cells): Temporary, remove once rollout complete
-        if options.get("cells.use-control-org-listing"):
-            yield "organizations:use-control-org-listing"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -435,8 +432,9 @@ class _ClientConfig:
         ):
             return []
 
-        def cell_display_order(cell: Cell) -> tuple[bool, bool, str]:
+        def cell_display_order(cell: Cell) -> tuple[bool, bool, bool, str]:
             return (
+                cell.name != settings.SENTRY_MONOLITH_REGION,  # default historical cell comes first
                 cell.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
                 not cell.visible,  # visible cells first
                 cell.name,  # then sort alphabetically

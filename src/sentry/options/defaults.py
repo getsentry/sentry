@@ -807,6 +807,10 @@ register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# GCP MCP Integration
+register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1163,6 +1167,18 @@ register(
 )
 register(
     "seer.explorer.context-engine-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.severity.cpu-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.fixability.cpu-rollout",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2831,6 +2847,13 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Skip the script_exists check in ensure_script and trust the cached SHA.
+register(
+    "spans.buffer.ensure-script.skip-exists-check",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Timeout for stale segments without a root span to be flushed.
 register(
     "spans.buffer.timeout",
@@ -3674,8 +3697,8 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TODO(cells): Routes the org listing through the control silo endpoint instead of
-# fanning out across cells. Remove once the cell fan-out path is deleted.
+# TODO(cells): Fully rolled out and no longer read anywhere. Unregister once the
+# value is removed from sentry-options-automator.
 register(
     "cells.use-control-org-listing",
     type=Bool,
@@ -3745,6 +3768,14 @@ register(
 # Rolls out the new TaskProducer to the clock_pulse task
 register(
     "tasks.producer.clock-pulse.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_snapshot_to_kafka from within taskworkers
+register(
+    "tasks.producer.snapshots.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

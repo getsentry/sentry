@@ -22,7 +22,6 @@ from requests.cookies import RequestsCookieJar
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
-from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
@@ -220,14 +219,19 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        # remote silo timeout. Use DRF timeout instead
-        raise RequestTimeout()
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Proxied request timed out"},
+            status=500,
+        )
     except ConnectionError:
         metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        raise
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Downstream service unavailable"},
+            status=500,
+        )
 
     if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)

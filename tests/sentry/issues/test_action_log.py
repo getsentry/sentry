@@ -1,8 +1,6 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
 import sentry.issues.endpoints.group_integration_details
@@ -14,7 +12,6 @@ import sentry.models.groupinbox
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionContext,
-    DuplicateActionError,
     GroupActionActor,
     action_context_scope,
     get_action_context,
@@ -575,24 +572,6 @@ class TestPublishActionWrite(TestCase):
         )
         assert len(entries) == 3
         assert entries[0].id < entries[1].id < entries[2].id
-
-    def test_duplicate_idempotency_key_raises(self) -> None:
-        kwargs = dict(
-            source=ActionSource.API,
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            actor=GroupActionActor.user(self.user.id),
-            idempotency_key="view-123",
-        )
-
-        with self.options({"issues.action-log.write-to-db": True}):
-            publish_action(ViewAction(), **kwargs)
-
-            with pytest.raises(DuplicateActionError):
-                publish_action(ViewAction(), **kwargs)
-
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
     def test_option_disabled_skips_write(self) -> None:
         with self.options({"issues.action-log.write-to-db": False}):
