@@ -479,7 +479,7 @@ class SeerAgentClient:
             run.save(update_fields=["mirror_status"])
             raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
         run.refresh_from_db()
-        if run.mirror_status != SeerRunMirrorStatus.LIVE:
+        if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
             if run.mirror_status == SeerRunMirrorStatus.FAILED:
                 detail = "Seer run failed during outbox drain"
             elif run.seer_run_state_id is None:
