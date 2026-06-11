@@ -246,6 +246,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
  */
 
 const appConfig: Configuration = {
+  name: 'app',
   mode: WEBPACK_MODE,
   target: 'browserslist',
   // Fail on first error instead of continuing to build
@@ -461,6 +462,7 @@ const appConfig: Configuration = {
                   '**/*.spec.*',
                   '**/*.snapshots.*',
                   'static/eslint/**/*',
+                  'static/app/serviceWorker/worker/**/*',
                   'scripts/**/*',
                 ],
               },
@@ -770,6 +772,7 @@ if (IS_UI_DEV_ONLY) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
+      'Service-Worker-Allowed': '/',
     },
     static: {
       publicPath: '/_assets/',
@@ -921,4 +924,52 @@ if (env.WEBPACK_CACHE_PATH) {
   };
 }
 
-export default appConfig;
+/**
+ * Separate config for the service worker entry point.
+ */
+const workerConfig: Configuration = {
+  name: 'worker',
+  dependencies: ['app'],
+  mode: WEBPACK_MODE,
+  target: 'webworker',
+  bail: IS_PRODUCTION,
+  entry: {
+    worker: 'sentry/serviceWorker/worker/worker',
+  },
+  context: staticPrefix,
+  resolve: {
+    alias: appConfig.resolve!.alias,
+    extensions: ['.ts', '.js', '.json'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            targets:
+              'last 2 Chrome versions, last 2 Firefox versions, last 2 Safari versions, last 2 Edge versions',
+          },
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+              tsx: false,
+            },
+          },
+          isModule: 'unknown',
+        } satisfies SwcLoaderOptions,
+      },
+    ],
+  },
+  output: {
+    clean: false,
+    path: distPath,
+    publicPath: appConfig.output!.publicPath as string,
+    filename: 'entrypoints/[name].js',
+  },
+  devtool: IS_PRODUCTION ? 'source-map' : 'eval',
+};
+
+const configs = [appConfig, workerConfig];
+export default configs;

@@ -9,7 +9,7 @@
   },
   "type": "module",
   "scripts": {
-    "typecheck": "tsgo -p tsconfig.json",
+    "typecheck": "tsgo -p tsconfig.json && tsgo -p static/app/serviceWorker/worker/tsconfig.json",
     "typecheck:mdx": "node build-utils/mdx-typecheck.ts",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
