@@ -1044,7 +1044,7 @@ describe('useStagedCompactSelect', () => {
       await userEvent.keyboard('{/Control}');
 
       // Type in the search box — this should clear the shift-click anchor
-      await userEvent.type(screen.getByRole('textbox'), 'Three');
+      await userEvent.type(screen.getByRole('combobox'), 'Three');
 
       // Shift-click Option Three — anchor was cleared so this acts as a single select
       await userEvent.keyboard('{Shift>}');
@@ -1179,7 +1179,7 @@ describe('useStagedCompactSelect', () => {
       await userEvent.click(screen.getByRole('button', {expanded: false}));
 
       // Search 'e' — matches 'Option One' and 'Option Three', but not 'Option Two'
-      await userEvent.type(screen.getByRole('textbox'), 'e');
+      await userEvent.type(screen.getByRole('combobox'), 'e');
 
       // Ctrl-click Option One to set the anchor within the filtered list
       await userEvent.keyboard('{Control>}');

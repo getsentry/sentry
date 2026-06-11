@@ -479,6 +479,44 @@ describe('CompactSelect', () => {
       expect(mock).toHaveBeenCalledWith({value: 'opt_two', label: 'Option Two'});
     });
 
+    it('wires the search input as a combobox that controls the listbox', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      const searchInput = screen.getByRole('combobox');
+      expect(searchInput).toBe(screen.getByPlaceholderText('Search here…'));
+      expect(searchInput).toHaveAttribute('aria-expanded', 'true');
+
+      // The combobox must declare the listbox it controls, otherwise screen readers
+      // will not expose the active option referenced by aria-activedescendant.
+      const listbox = screen.getByRole('listbox');
+      expect(searchInput.getAttribute('aria-controls')?.split(' ')).toContain(listbox.id);
+
+      await userEvent.click(searchInput);
+      await userEvent.keyboard('Two');
+
+      const highlightedOption = screen.getByRole('option', {name: 'Option Two'});
+      await waitFor(() => {
+        expect(searchInput).toHaveAttribute(
+          'aria-activedescendant',
+          highlightedOption.id
+        );
+      });
+      // The active option must live inside the controlled listbox.
+      expect(listbox).toContainElement(highlightedOption);
+    });
+
     it('does not auto-highlight when client-side filtering is disabled', async () => {
       const mock = jest.fn();
 

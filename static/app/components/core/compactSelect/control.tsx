@@ -86,6 +86,11 @@ interface ControlContextValue {
    */
   overlayState?: OverlayTriggerState;
   /**
+   * Registers a child list's id so the search input (a combobox) can reference the
+   * list(s) it controls via `aria-controls`. Lists unregister on unmount.
+   */
+  registerListId?: (id: string) => void;
+  /**
    * Custom function to determine whether an option matches the search query.
    */
   searchMatcher?: (
@@ -98,6 +103,7 @@ interface ControlContextValue {
   selectAutoHighlightedOptionRef?: React.RefObject<(() => void) | undefined>;
   setAutoHighlightedOptionId?: React.Dispatch<React.SetStateAction<string | undefined>>;
   size?: FormSize;
+  unregisterListId?: (id: string) => void;
 }
 
 export const ControlContext = createContext<ControlContextValue>({
@@ -276,6 +282,20 @@ export function Control({
   const highlightFirstResult = !normalizedSearch?.disableHighlightFirstResult;
   const [autoHighlightedOptionId, setAutoHighlightedOptionId] = useState<string>();
   const selectAutoHighlightedOptionRef = useRef<(() => void) | undefined>(undefined);
+
+  // Child lists register their ids here so the search input (a combobox) can declare
+  // the listbox(es) it controls via `aria-controls`. This is required for
+  // `aria-activedescendant` to be exposed to assistive technology, since the active
+  // option lives in a separate subtree from the input.
+  const [controlledListIds, setControlledListIds] = useState<string[]>([]);
+  const registerListId = useCallback((id: string) => {
+    setControlledListIds(prev => (prev.includes(id) ? prev : [...prev, id]));
+  }, []);
+  const unregisterListId = useCallback((id: string) => {
+    setControlledListIds(prev => prev.filter(existing => existing !== id));
+  }, []);
+  const listboxControlsId =
+    controlledListIds.length > 0 ? controlledListIds.join(' ') : undefined;
 
   /**
    * Search/filter value, used to filter out the list of displayed elements
@@ -506,6 +526,8 @@ export function Control({
       autoHighlightedOptionId,
       selectAutoHighlightedOptionRef,
       setAutoHighlightedOptionId,
+      registerListId,
+      unregisterListId,
       search,
       searchInputValue,
       searchable: searchEnabled,
@@ -520,6 +542,8 @@ export function Control({
     autoHighlightedOptionId,
     selectAutoHighlightedOptionRef,
     setAutoHighlightedOptionId,
+    registerListId,
+    unregisterListId,
     search,
     searchInputValue,
     searchEnabled,
@@ -605,6 +629,11 @@ export function Control({
                     </InputGroup.LeadingItems>
                     <SearchInput
                       ref={searchRef}
+                      role="combobox"
+                      aria-expanded={overlayIsOpen}
+                      aria-haspopup={grid ? 'grid' : 'listbox'}
+                      aria-controls={listboxControlsId}
+                      aria-autocomplete="list"
                       placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                       value={searchInputValue}
                       aria-activedescendant={autoHighlightedOptionId}

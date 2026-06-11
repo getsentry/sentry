@@ -186,6 +186,8 @@ export function List<Value extends SelectKey>({
     highlightFirstResult,
     setAutoHighlightedOptionId,
     selectAutoHighlightedOptionRef,
+    registerListId,
+    unregisterListId,
   } = useContext(ControlContext);
 
   const {hidden: hiddenOptions, scores} = useMemo(
@@ -354,6 +356,18 @@ export function List<Value extends SelectKey>({
       }
     };
   }, [selectAutoHighlightedOption, selectAutoHighlightedOptionRef]);
+
+  // Register this list's id so the search combobox can reference it via `aria-controls`.
+  // Only relevant when search is enabled, since that is the only time the input renders.
+  useEffect(() => {
+    if (!searchable) {
+      return;
+    }
+
+    registerListId?.(listId);
+
+    return () => unregisterListId?.(listId);
+  }, [searchable, listId, registerListId, unregisterListId]);
 
   /**
    * Keyboard event handler to seamlessly move focus from one composite list to another
