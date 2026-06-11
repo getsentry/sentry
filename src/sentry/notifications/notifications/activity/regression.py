@@ -34,7 +34,7 @@ class RegressionActivityNotification(GroupActivityNotification):
         event_metadata = self.activity.data.get("event_metadata")
         if event_metadata is None:
             return
-        group_data = {**self.group.data}
+        group_data = {**(self.group.data or {})}
         group_data["metadata"] = event_metadata
         if "event_title" in self.activity.data:
             group_data["title"] = self.activity.data["event_title"]
