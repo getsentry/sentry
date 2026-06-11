@@ -8,6 +8,7 @@ from django.conf import settings
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestActivity,
     PullRequestActivityType,
@@ -1208,6 +1209,14 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             organization_id=self.organization.id,
             key="42",
         )
+        self.group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group=self.group,
+            project=self.project,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
 
     def _call(
         self,
@@ -1280,8 +1289,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         for action in ("synchronize", "closed", "reopened", "edited", "labeled"):
             with self._mock_incr() as mock_incr:
                 self._call(action=action, head_ref="claude/fix")
-
-            mock_incr.assert_not_called()
+                mock_incr.assert_not_called()
 
     # --- Gating ---
 
@@ -1311,5 +1319,16 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         # Candidate gate passes, but no PullRequest row exists for this number.
         with self._mock_incr() as mock_incr:
             self._call(head_ref="claude/fix", number=9999)
+
+        mock_incr.assert_not_called()
+
+    def test_no_linked_groups_does_not_detect(self) -> None:
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=self.pr.id,
+        ).delete()
+
+        with self._mock_incr() as mock_incr:
+            self._call(head_ref="claude/fix")
 
         mock_incr.assert_not_called()
