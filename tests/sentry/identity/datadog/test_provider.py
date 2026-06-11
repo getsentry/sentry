@@ -495,14 +495,33 @@ class DatadogIdentityProviderTest(TestCase):
     @patch("sentry.identity.datadog.provider.get_user_info")
     def test_build_identity_missing_access_token(self, mock_get_user_info: MagicMock) -> None:
         with pytest.raises(ValueError, match="did not return an access_token"):
-            self.provider.build_identity({"data": {}})
+            self.provider.build_identity(
+                {
+                    "data": {},
+                    "dcr_client_id": "dcr-id",
+                    "dcr_client_secret": "dcr-secret",
+                }
+            )
         mock_get_user_info.assert_not_called()
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_dcr_credentials(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {"user_uuid": "dd-user-456"}
+
+        with pytest.raises(IdentityNotValid, match="Missing DCR credentials"):
+            self.provider.build_identity({"data": {"access_token": "token"}})
 
     @patch("sentry.identity.datadog.provider.get_user_info")
     def test_build_identity_missing_user_attributes(self, mock_get_user_info: MagicMock) -> None:
         mock_get_user_info.return_value = {"user_uuid": "dd-user-456"}
 
-        result = self.provider.build_identity({"data": {"access_token": "token"}})
+        result = self.provider.build_identity(
+            {
+                "data": {"access_token": "token"},
+                "dcr_client_id": "dcr-id",
+                "dcr_client_secret": "dcr-secret",
+            }
+        )
 
         assert result["id"] == "dd-user-456"
         assert result["email"] is None
@@ -514,12 +533,18 @@ class DatadogIdentityProviderTest(TestCase):
             responses.POST,
             MCP_URL,
             json={"jsonrpc": "2.0", "id": 1, "result": {}},
-            headers={"mcp-session-id": "sess-abc"},
+            headers={"mcp-session-id": "session-id"},
         )
         responses.add(responses.POST, MCP_URL, body="not json", status=200)
 
         with pytest.raises(IdentityNotValid, match="unexpected response"):
-            self.provider.build_identity({"data": {"access_token": "token"}})
+            self.provider.build_identity(
+                {
+                    "data": {"access_token": "token"},
+                    "dcr_client_id": "dcr-id",
+                    "dcr_client_secret": "dcr-secret",
+                }
+            )
 
     def _make_identity(self, **data_overrides: Any) -> Identity:
         data = {

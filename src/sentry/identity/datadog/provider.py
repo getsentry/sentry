@@ -298,9 +298,14 @@ class DatadogIdentityProvider(OAuth2Provider):
         user = get_user_info(access_token, self._get_oauth_parameter("site"))
 
         oauth_data = self.get_oauth_data(token_data)
+
         # Persist DCR credentials and site so refresh_identity can access them outside a pipeline context.
-        oauth_data["client_id"] = data["dcr_client_id"]
-        oauth_data["client_secret"] = data["dcr_client_secret"]
+        client_id = data.get("dcr_client_id")
+        client_secret = data.get("dcr_client_secret")
+        if not client_id or not client_secret:
+            raise IdentityNotValid("Missing DCR credentials")
+        oauth_data["client_id"] = client_id
+        oauth_data["client_secret"] = client_secret
         oauth_data["site"] = self._get_oauth_parameter("site")
 
         return {
