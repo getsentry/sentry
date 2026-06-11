@@ -11,9 +11,12 @@ from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActionActor
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -117,30 +120,31 @@ def resolve_action_actor(request: Request) -> GroupActionActor:
     an integration (Sentry App) acting, and everything else authenticated is the user. Falls back
     to SYSTEM_ACTOR when there is no authenticated caller.
     """
-    auth = getattr(request, "auth", None)
-    kind = getattr(auth, "kind", None)
+    auth = request.auth
+    if isinstance(auth, AuthenticatedToken):
+        if auth.kind in ("org_auth_token", "api_key"):
+            if auth.organization_id is not None:
+                return GroupActionActor.org(auth.organization_id)
+        elif auth.kind == "api_token":
+            user = request.user
+            # Gate on is_sentry_app (the app's proxy user), not application_id: an OAuth client
+            # acting for a user (e.g. the MCP) also has an application_id but stays USER.
+            if (
+                isinstance(user, (User, RpcUser))
+                and user.is_sentry_app
+                and auth.application_id is not None
+            ):
+                # Imported here, not at module load, to avoid a circular import.
+                from sentry.sentry_apps.services.app import app_service
 
-    if kind in ("org_auth_token", "api_key"):
-        organization_id = getattr(auth, "organization_id", None)
-        if organization_id is not None:
-            return GroupActionActor.org(organization_id)
-    elif kind == "api_token":
-        user = getattr(request, "user", None)
-        application_id = getattr(auth, "application_id", None)
-        # Gate on is_sentry_app (the app's proxy user), not application_id: an OAuth client
-        # acting for a user (e.g. the MCP) also has an application_id but stays USER.
-        if getattr(user, "is_sentry_app", False) and application_id is not None:
-            from sentry.sentry_apps.services.app import app_service
+                sentry_app = app_service.get_by_application_id(application_id=auth.application_id)
+                if sentry_app is not None:
+                    return GroupActionActor.sentry_app(sentry_app.id)
+            if auth.user_id is not None:
+                return GroupActionActor.user(auth.user_id)
 
-            sentry_app = app_service.get_by_application_id(application_id=application_id)
-            if sentry_app is not None:
-                return GroupActionActor.sentry_app(sentry_app.id)
-        user_id = getattr(auth, "user_id", None)
-        if user_id is not None:
-            return GroupActionActor.user(user_id)
-
-    user = getattr(request, "user", None)
-    if user is not None and getattr(user, "is_authenticated", False):
+    user = request.user
+    if isinstance(user, (User, RpcUser)):
         return GroupActionActor.user(user.id)
 
     return SYSTEM_ACTOR
