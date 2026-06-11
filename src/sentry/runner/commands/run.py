@@ -271,6 +271,7 @@ def run_taskworker(
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
+                update_in_batches=True,
             )
         else:
             worker = TaskWorker(
