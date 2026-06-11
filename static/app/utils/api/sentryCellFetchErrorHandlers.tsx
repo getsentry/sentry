@@ -26,7 +26,7 @@ const CODES_TO_SKIP = [
   'app-connect-authentication-error',
 ];
 
-export interface DefaultErrorHandlerOptions {
+interface DefaultErrorHandlerOptions {
   navigate: ReactRouter3Navigate;
 }
 

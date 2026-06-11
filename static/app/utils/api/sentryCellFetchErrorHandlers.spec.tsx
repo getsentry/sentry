@@ -4,7 +4,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import type {ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';

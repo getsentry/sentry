@@ -1,12 +1,12 @@
 import type {QueryFunctionContext} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
-import type {ResponseMeta} from 'sentry/api';
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {
   ApiQueryKey,
   InfiniteApiQueryKey,
@@ -238,7 +238,7 @@ async function handleErrorResponse(
   throw error;
 }
 
-export async function fetchWithUrl<TQueryFnData = unknown>(
+async function fetchWithUrl<TQueryFnData = unknown>(
   url: string,
   options: QueryKeyEndpointOptions = {},
   signal?: AbortSignal
