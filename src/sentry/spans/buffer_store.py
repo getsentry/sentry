@@ -87,9 +87,11 @@ class SpansBufferStore:
         """
         Ensures the Lua script is loaded in Redis and returns its SHA.
         """
-        if not self.add_buffer_sha or not self.client.script_exists(self.add_buffer_sha)[0]:
-            self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
+        if self.add_buffer_sha:
+            return self.add_buffer_sha
 
+        if not self.client.script_exists(self.add_buffer_sha)[0]:
+            self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
         return self.add_buffer_sha
 
     def store_payloads(
