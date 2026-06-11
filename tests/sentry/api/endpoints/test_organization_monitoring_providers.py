@@ -166,7 +166,7 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
             response = self.get_response(self.organization.slug, "datadog")
 
         assert response.status_code == 400
-        assert "site" in response.data["detail"]
+        assert "Invalid provider configuration" in response.data["detail"]
 
     def test_connect_unknown_provider(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):

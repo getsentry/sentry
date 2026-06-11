@@ -43,9 +43,9 @@ def _get_identity_provider(provider_key: str, config: dict[str, str]) -> Identit
     Datadog uses per-site providers (external_id=site). GCP uses a single global provider.
     """
     if provider_key == "datadog":
-        external_id = config.get("site")
+        external_id = config.get("site", "")
     else:
-        external_id = None
+        external_id = ""
 
     idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id=external_id)
     return idp
@@ -110,8 +110,8 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         try:
             config = _get_pipeline_config(provider_key, request.data)
-        except ValueError as e:
-            return Response({"detail": str(e)}, status=400)
+        except ValueError:
+            return Response({"detail": "Invalid provider configuration."}, status=400)
 
         idp = _get_identity_provider(provider_key, config)
 
@@ -148,12 +148,17 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if user_id is None:
             return Response(status=401)
 
-        deleted, _ = Identity.objects.filter(
-            idp__type=provider_key,
-            user_id=user_id,
-        ).delete()
+        identities = list(
+            Identity.objects.filter(
+                idp__type=provider_key,
+                user_id=user_id,
+            )
+        )
 
-        if not deleted:
+        if not identities:
             return Response({"detail": "Not connected to this provider."}, status=404)
+
+        for identity in identities:
+            identity.delete()
 
         return Response(status=204)
