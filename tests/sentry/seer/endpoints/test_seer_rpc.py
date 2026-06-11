@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from time import time
 from typing import Any
 from unittest.mock import patch
 
@@ -24,15 +25,18 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_monitoring_provider_token,
     get_organization_features,
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
+    refresh_monitoring_provider_token,
     validate_repo,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
@@ -1676,3 +1680,140 @@ class TestGetOrganizationFeatures(APITestCase):
         with self.feature("organizations:seer-agent-source-code-search"):
             result = get_organization_features(org_id=self.organization.id, user_id=0)
         assert result == {"features": ["seer-agent-source-code-search"]}
+
+
+class TestGetMonitoringProviderToken(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.idp = self.create_identity_provider(type="datadog", external_id="datadog-ext")
+        self.identity = self.create_identity(
+            user=self.user,
+            identity_provider=self.idp,
+            external_id="dd-user-uuid",
+            data={
+                "access_token": "access-token",
+                "refresh_token": "refresh-token",
+                "client_id": "dcr-client-id",
+                "client_secret": "dcr-client-secret",
+                "site": "datadoghq.com",
+                "expires": int(time()) + 3600,
+            },
+        )
+
+    def _save_identity(self) -> None:
+        with assume_test_silo_mode_of(Identity):
+            self.identity.save()
+
+    def test_success(self) -> None:
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result["access_token"] == "access-token"
+        assert result["identity_id"] == self.identity.id
+        assert result["expires"] is not None
+        assert result["site"] == "datadoghq.com"
+
+    def test_identity_not_found(self) -> None:
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="nonexistent")
+
+        assert result == {"error": "identity_not_found"}
+
+    def test_missing_access_token(self) -> None:
+        self.identity.data = {"refresh_token": "refresh-token"}
+        self._save_identity()
+
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result == {"error": "identity_data_missing"}
+
+    def test_no_expires_skips_refresh(self) -> None:
+        self.identity.data = {"access_token": "access-token", "refresh_token": "refresh-token"}
+        self._save_identity()
+
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result["access_token"] == "access-token"
+        assert result["expires"] is None
+
+    @responses.activate
+    def test_refresh_on_expired_token(self) -> None:
+        self.identity.data["expires"] = int(time()) - 100
+        self._save_identity()
+
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={
+                "access_token": "new-access-token",
+                "refresh_token": "refresh-token",
+                "expires_in": 3600,
+            },
+        )
+
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result["access_token"] == "new-access-token"
+        assert len(responses.calls) == 1
+
+    def test_refresh_identity_not_valid(self) -> None:
+        self.identity.data["expires"] = int(time()) - 100
+        self.identity.data.pop("refresh_token", None)
+        self._save_identity()
+
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result["error"] == "identity_not_valid"
+        assert result["identity_id"] == self.identity.id
+
+
+class TestRefreshMonitoringProviderToken(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.idp = self.create_identity_provider(type="datadog", external_id="datadog-ext-r")
+        self.identity = self.create_identity(
+            user=self.user,
+            identity_provider=self.idp,
+            external_id="dd-user-uuid",
+            data={
+                "access_token": "old-tok",
+                "refresh_token": "ref-456",
+                "client_id": "dcr-cid",
+                "client_secret": "dcr-csec",
+                "site": "datadoghq.com",
+                "expires": int(time()) + 3600,
+            },
+        )
+
+    def _save_identity(self) -> None:
+        with assume_test_silo_mode_of(Identity):
+            self.identity.save()
+
+    @responses.activate
+    def test_success(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={
+                "access_token": "new-access-token",
+                "refresh_token": "refresh-token",
+                "expires_in": 3600,
+            },
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result["access_token"] == "new-access-token"
+        assert result["expires"] is not None
+        assert len(responses.calls) == 1
+
+    def test_identity_not_found(self) -> None:
+        result = refresh_monitoring_provider_token(identity_id=999999)
+
+        assert result == {"error": "identity_not_found"}
+
+    def test_identity_not_valid_missing_refresh_token(self) -> None:
+        self.identity.data.pop("refresh_token", None)
+        self._save_identity()
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "identity_not_valid"}
