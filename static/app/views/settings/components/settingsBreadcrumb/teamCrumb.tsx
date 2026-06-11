@@ -14,7 +14,7 @@ import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/set
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {CrumbLink} from '.';
 
-export function TeamCrumb({route, ...props}: SettingsBreadcrumbProps) {
+export function TeamCrumb({routeIndex: _routeIndex, ...props}: SettingsBreadcrumbProps) {
   const matches = useMatches();
   const navigate = useNavigate();
   const {teams, onSearch, fetching} = useTeams();
@@ -49,7 +49,6 @@ export function TeamCrumb({route, ...props}: SettingsBreadcrumbProps) {
         }
       }}
       hasMenu={hasMenu}
-      route={route}
       value={team.slug}
       search={{placeholder: t('Search Teams'), onChange: onSearch}}
       options={teams.map(teamItem => ({

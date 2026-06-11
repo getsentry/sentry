@@ -56,12 +56,7 @@ export function SettingsBreadcrumb({className, params}: Props) {
 
         if (hasMenu) {
           return (
-            <Menu
-              key={`${route.name}:${route.path}`}
-              routes={routes}
-              route={route}
-              isLast={isLast}
-            />
+            <Menu key={`${route.name}:${route.path}`} routeIndex={i} isLast={isLast} />
           );
         }
         if (isLast) {

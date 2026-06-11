@@ -6,34 +6,31 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {matchesToRoutes, recreateRoute} from 'sentry/utils/recreateRoute';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+import type {
+  RouteWithName,
+  SettingsBreadcrumbProps,
+} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
 import {CrumbLink} from '.';
 
-export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
+export function ProjectCrumb({routeIndex, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const matches = useMatches();
+  const routes = matchesToRoutes(matches);
+  const route = routes[routeIndex] as RouteWithName;
   const {projects, onSearch} = useProjects();
   const organization = useOrganization();
   const params = useParams();
   const handleSelect = (projectSlug: string) => {
-    // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
-    // Since these models are project specific, we need to traverse up a route when switching projects
-    //
-    // we manipulate `routes` so that it doesn't include the current project's route
-    // which, unlike the org version, does not start with a route param
-    const returnTo = findFirstRouteWithoutRouteParam(
-      routes.slice(routes.indexOf(route) + 1),
-      route
-    );
+    const returnTo = findFirstRouteWithoutRouteParam(routes.slice(routeIndex + 1), route);
 
     if (returnTo === undefined) {
       return;
@@ -52,7 +49,7 @@ export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps)
   return (
     <BreadcrumbDropdown
       hasMenu={projects && projects.length > 1}
-      route={route}
+      routeName={route.name}
       name={
         <ProjectName>
           {activeProject ? (

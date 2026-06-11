@@ -11,7 +11,7 @@ describe('Settings Breadcrumb Dropdown', () => {
     return render(
       <BreadcrumbDropdown
         value={undefined}
-        route={{path: '/', name: 'root'}}
+        routeName="root"
         options={[
           {value: '1', label: 'foo'},
           {value: '2', label: 'bar'},
@@ -76,7 +76,7 @@ describe('Settings Breadcrumb Dropdown', () => {
       <Fragment>
         <BreadcrumbDropdown
           value={undefined}
-          route={{path: '/', name: 'root'}}
+          routeName="root"
           options={[
             {value: '1', label: 'foo'},
             {value: '2', label: 'bar'},
@@ -87,7 +87,7 @@ describe('Settings Breadcrumb Dropdown', () => {
         />
         <BreadcrumbDropdown
           value={undefined}
-          route={{path: '/', name: 'root'}}
+          routeName="root"
           options={[
             {value: '1', label: 'baz'},
             {value: '2', label: 'buzz'},
