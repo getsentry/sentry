@@ -287,13 +287,20 @@ export function getGroupActivityItem(
           message: resolvedMessage,
         };
       }
-      case GroupActivityType.SET_RESOLVED_BY_AGE:
+      case GroupActivityType.SET_RESOLVED_BY_AGE: {
+        const age = activity.data.age;
         return {
           title: t('Resolved'),
-          message: tct('by [author] due to inactivity', {
-            author,
-          }),
+          message: age
+            ? tct('by [author] after [duration] of inactivity', {
+                author,
+                duration: <Duration seconds={age * 60 * 60} />,
+              })
+            : tct('by [author] due to inactivity', {
+                author,
+              }),
         };
+      }
       case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
         const hasIntegration =
           'integration_id' in activity.data && activity.data.integration_id;

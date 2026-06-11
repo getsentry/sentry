@@ -346,6 +346,28 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Linked external issue')).toBeInTheDocument();
   });
 
+  it('renders auto-resolved activity age as an inactivity duration', async () => {
+    const autoResolvedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {age: 504},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={autoResolvedGroup} />);
+
+    expect(await screen.findByText('Resolved')).toBeInTheDocument();
+    expect(screen.getByText('3 weeks')).toBeInTheDocument();
+    expect(screen.getByText(/of inactivity/)).toBeInTheDocument();
+  });
+
   it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
