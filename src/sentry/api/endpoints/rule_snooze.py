@@ -247,14 +247,14 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     }
     rule_field = "rule"
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     @track_alert_endpoint_execution("POST", "sentry-api-0-rule-snooze")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def post(self, request: Request, project: Project, rule: Rule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-rule-snooze")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def delete(self, request: Request, project: Project, rule: Rule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list and fetch_instance
         return super().delete(request, project, rule)
@@ -304,14 +304,14 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     }
     rule_field = "alert_rule"
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def post(self, request: Request, project: Project, rule: AlertRule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
     def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list and fetch_instance
         return super().delete(request, project, rule)
