@@ -18,6 +18,7 @@ import {
   type ConfigType,
   type Docs,
   type DocsParams,
+  type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {injectCopyDsnButtonIntoFirstConfigureStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
@@ -125,12 +126,22 @@ export function OnboardingLayout({
       replayOptions: {block: true, mask: true},
     };
 
+    const safeCall = (
+      fn: ((p: DocsParams<any>) => unknown) | undefined
+    ): OnboardingStep[] => {
+      if (typeof fn !== 'function') {
+        return [];
+      }
+      const result = fn(docParams);
+      return Array.isArray(result) ? (result as OnboardingStep[]) : [];
+    };
+
     return {
       introduction: doc.introduction?.(docParams),
       steps: [
-        ...doc.install(docParams),
+        ...safeCall(doc.install),
         ...injectCopyDsnButtonIntoFirstConfigureStep({
-          configureSteps: doc.configure(docParams),
+          configureSteps: safeCall(doc.configure),
           dsn,
           onCopyDsn: () => {
             trackAnalytics(
@@ -142,7 +153,7 @@ export function OnboardingLayout({
             );
           },
         }),
-        ...doc.verify(docParams),
+        ...safeCall(doc.verify),
       ],
       nextSteps: doc.nextSteps?.(docParams) || [],
       onPlatformOptionsChange: doc.onPlatformOptionsChange?.(docParams),
@@ -209,6 +220,16 @@ export function OnboardingLayout({
           <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {
+              // Defensive guard: skip steps that don't match the expected
+              // shape so an accidental object (e.g. the full Docs config)
+              // doesn't get spread into <StyledStep /> and crash React.
+              if (
+                !step ||
+                typeof step !== 'object' ||
+                (typeof step.title !== 'string' && typeof step.type !== 'string')
+              ) {
+                return null;
+              }
               const showCopy = copyEnabled && index === 0 && !hideInstructionsCopy;
               const copyButton = showCopy ? (
                 <OnboardingCopyMarkdownButton

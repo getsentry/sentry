@@ -12,14 +12,21 @@ export function renderBlocks(
   contentBlocks: Array<ContentBlock | null | undefined>,
   renderers: BlockRenderers
 ) {
+  if (!Array.isArray(contentBlocks)) {
+    return null;
+  }
   return contentBlocks.map((block, index) => {
-    if (!block) {
+    if (!block || typeof block !== 'object' || typeof block.type !== 'string') {
       return null;
     }
     // Need to cast here as ts bugs out on the return type and does not allow assigning the key prop
     const RendererComponent = renderers[block.type] as (
       block: ContentBlock
     ) => React.ReactNode;
+
+    if (typeof RendererComponent !== 'function') {
+      return null;
+    }
 
     // The index actually works well as a key here
     // as long as the conditional block is used instead of JS logic to edit the blocks array
