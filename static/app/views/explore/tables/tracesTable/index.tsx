@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Pagination} from '@sentry/scraps/pagination';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -26,7 +26,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
-import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsQuery,
+  useSetQueryParamsCursor,
+} from 'sentry/views/explore/queryParams/context';
 import {
   Description,
   ProjectBadgeWrapper,
@@ -52,6 +55,7 @@ interface TracesTableProps {
 
 export function TracesTable({tracesTableResult}: TracesTableProps) {
   const query = useQueryParamsQuery();
+  const setCursor = useSetQueryParamsCursor();
 
   const {result} = tracesTableResult;
   const {isPending, isError} = result;
@@ -64,6 +68,8 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
     'traces',
     data?.data?.length ?? 0
   );
+
+  const cursorHandler: CursorHandler = cursor => setCursor(cursor);
 
   return (
     <Fragment>
@@ -139,6 +145,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
       <Pagination
         pageLinks={result.data?.headers.Link}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
+        onCursor={cursorHandler}
       />
     </Fragment>
   );

@@ -7,6 +7,8 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
+export type ExploreTable = 'span' | 'trace' | 'attribute_breakdowns';
+
 export interface ReadableQueryParamsOptions {
   readonly aggregateCursor: string;
   readonly aggregateFields: readonly AggregateField[];
@@ -19,6 +21,8 @@ export interface ReadableQueryParamsOptions {
   readonly sortBys: Sort[];
   readonly crossEvents?: CrossEvent[];
   readonly id?: string;
+  readonly interval?: string;
+  readonly table?: ExploreTable;
   readonly title?: string;
 }
 
@@ -39,6 +43,8 @@ export class ReadableQueryParams {
   readonly visualizes: readonly Visualize[];
 
   readonly id?: string;
+  readonly interval?: string;
+  readonly table?: ExploreTable;
   readonly title?: string;
 
   readonly crossEvents?: CrossEvent[];
@@ -61,6 +67,8 @@ export class ReadableQueryParams {
     this.visualizes = this.aggregateFields.filter(isVisualize);
 
     this.id = options.id;
+    this.interval = options.interval;
+    this.table = options.table;
     this.title = options.title;
 
     this.crossEvents = options.crossEvents;
@@ -78,8 +86,10 @@ export class ReadableQueryParams {
       query: options.query ?? this.query,
       sortBys: options.sortBys ?? this.sortBys,
       id: options.id ?? this.id,
+      interval: 'interval' in options ? options.interval : this.interval,
+      table: 'table' in options ? options.table : this.table,
       title: options.title ?? this.title,
-      crossEvents: options.crossEvents ?? this.crossEvents,
+      crossEvents: 'crossEvents' in options ? options.crossEvents : this.crossEvents,
     });
   }
 }

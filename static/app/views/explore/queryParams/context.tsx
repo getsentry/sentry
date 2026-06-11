@@ -136,6 +136,7 @@ function shouldResetCursors(queryParams: WritableQueryParams): boolean {
   return (
     defined(queryParams.aggregateFields) ||
     defined(queryParams.aggregateSortBys) ||
+    defined(queryParams.crossEvents) ||
     defined(queryParams.fields) ||
     defined(queryParams.query) ||
     defined(queryParams.sortBys)
@@ -429,6 +430,38 @@ export function useSetQueryParamsAggregateCursor() {
 export function useQueryParamsCursor(): string {
   const queryParams = useQueryParams();
   return queryParams.cursor;
+}
+
+export function useSetQueryParamsCursor() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (cursor: string | undefined) => {
+      setQueryParams({cursor});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsInterval(): string | undefined {
+  const queryParams = useQueryParams();
+  return queryParams.interval;
+}
+
+export function useSetQueryParamsInterval() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (interval: string | undefined) => {
+      setQueryParams({interval});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsTable() {
+  const queryParams = useQueryParams();
+  return queryParams.table;
 }
 
 export function useQueryParamsExtrapolate() {

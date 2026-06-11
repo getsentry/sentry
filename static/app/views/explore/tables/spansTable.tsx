@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 
-import {Pagination} from '@sentry/scraps/pagination';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -29,6 +29,7 @@ import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttr
 import {
   useQueryParamsFields,
   useQueryParamsSortBys,
+  useSetQueryParamsCursor,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 
@@ -41,6 +42,7 @@ interface SpansTableProps {
 export function SpansTable({spansTableResult}: SpansTableProps) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
+  const setCursor = useSetQueryParamsCursor();
   const setSortBys = useSetQueryParamsSortBys();
 
   const visibleFields = useMemo(
@@ -69,6 +71,8 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
     'samples',
     result.data?.length ?? 0
   );
+
+  const cursorHandler: CursorHandler = cursor => setCursor(cursor);
 
   return (
     <Fragment>
@@ -167,6 +171,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
+        onCursor={cursorHandler}
       />
     </Fragment>
   );
