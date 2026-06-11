@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -174,15 +174,19 @@ def get_by_short_id(
     organization_id: int,
     is_short_id_lookup: str,
     query: str,
+    project_ids: Collection[int] | None = None,
 ) -> Group | None:
     if is_short_id_lookup != "1":
         return None
     # A short id token anywhere in the query is treated as a direct hit,
-    # so it composes with filters.
+    # so it composes with filters. When project_ids is provided, the lookup is scoped to
+    # those projects so a short id for a project the caller cannot access does not resolve.
     for token in query.split():
         if looks_like_short_id(token):
             try:
-                return Group.objects.by_qualified_short_id(organization_id, token)
+                return Group.objects.by_qualified_short_id(
+                    organization_id, token, project_ids=project_ids
+                )
             except Group.DoesNotExist:
                 continue
     return None

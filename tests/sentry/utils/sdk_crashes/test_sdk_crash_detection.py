@@ -51,6 +51,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             assert reported_event_data["contexts"]["sdk_crash_detection"] == {
                 "original_project_id": event.project_id,
                 "original_event_id": event.event_id,
+                "original_trace_id": event.trace_id,
             }
             assert reported_event_data["user"] == {
                 "id": event.project_id,
