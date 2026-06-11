@@ -8,17 +8,9 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, TypedDict
 
-# Tell P4 to look for a ".p4config" file when resolving per-connection
-# settings like P4TRUST and P4TICKETS. Each _connect() call creates a temp
-# directory with its own .p4config and sets p4.cwd to that directory.
-# P4 walks upward from cwd to find the config file, so each P4 instance
-# reads its own isolated config — no global state, no locks needed.
-os.environ.setdefault("P4CONFIG", ".p4config")
-
-from P4 import P4, P4Exception
-
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.perforce.p4protocol import P4, P4Exception
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
@@ -31,6 +23,10 @@ from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.net.socket import is_safe_hostname
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+
+# Names the per-connection P4CONFIG file that _connect() writes (P4TRUST,
+# P4TICKETS, P4CLIENTPATH) and that the client resolves relative to its cwd.
+os.environ.setdefault("P4CONFIG", ".p4config")
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +134,8 @@ class P4DepotPath:
 class PerforceClient(RepositoryClient, CommitContextClient):
     """
     Client for interacting with Perforce server.
-    Uses P4Python library to execute P4 commands.
+    Uses the in-tree pure-Python Perforce protocol client (``p4protocol``) to
+    execute P4 commands.
 
     Supports both plaintext and SSL connections. For production use over
     public internet, SSL is strongly recommended.
@@ -184,20 +181,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Context manager for P4 connections with automatic cleanup.
 
         Yields a connected P4 instance and ensures disconnection on exit.
-        Creates a temporary directory with a P4CONFIG file to isolate
-        P4TRUST and P4TICKETS per connection. This prevents lock contention
-        when multiple tenants connect concurrently.
-
-        P4Python's set_env("P4TRUST", ...) only works on Windows/macOS — on
-        Linux it raises and does NOT set the value. Instead we use the
-        P4CONFIG mechanism: a per-directory config file that P4 discovers
-        via p4.cwd. Each connection gets its own temp dir with its own
-        .p4config, so no global state or locks are needed.
-
-        Uses P4Python API:
-        - p4.connect(): https://www.perforce.com/manuals/p4python/Content/P4Python/python.programming.html#python.programming.connecting
-        - p4.run_trust(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_trust.html
-        - p4.run_login(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_login.html
+        Creates a temporary directory with a P4CONFIG file (P4TRUST, P4TICKETS
+        and P4CLIENTPATH) isolated per connection, so concurrent tenants never
+        share trust/ticket state.
 
         Example:
             with self._connect() as p4:

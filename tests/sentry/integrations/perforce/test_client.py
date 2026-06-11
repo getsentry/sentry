@@ -188,7 +188,7 @@ class PerforceClientTest(TestCase):
     @mock.patch("sentry.integrations.perforce.client.logger")
     def test_get_blame_for_files_p4_exception(self, mock_logger, mock_p4_class):
         """Test get_blame_for_files handles P4 exceptions gracefully"""
-        from P4 import P4Exception
+        from sentry.integrations.perforce.p4protocol import P4Exception
 
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
@@ -546,7 +546,7 @@ class PerforceClientTest(TestCase):
         mock_p4_class.return_value = mock_p4
 
         # Mock P4Exception for non-existent file
-        from P4 import P4Exception
+        from sentry.integrations.perforce.p4protocol import P4Exception
 
         mock_p4.run.side_effect = P4Exception("File not found")
 
@@ -699,7 +699,7 @@ class PerforceClientTest(TestCase):
         import shutil
         import tempfile
 
-        from P4 import P4
+        from sentry.integrations.perforce.p4protocol import P4
 
         os.environ.setdefault("P4CONFIG", ".p4config")
 
@@ -800,8 +800,7 @@ class PerforceClientTest(TestCase):
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_connect_translates_unicode_server_error(self, mock_p4_class):
         """Connecting to a Unicode server without a charset must surface an actionable error."""
-        from P4 import P4Exception
-
+        from sentry.integrations.perforce.p4protocol import P4Exception
         from sentry.shared_integrations.exceptions import ApiError
 
         mock_p4 = mock.Mock()
