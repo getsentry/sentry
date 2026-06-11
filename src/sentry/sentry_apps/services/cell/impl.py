@@ -220,6 +220,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 web_url=web_url,
                 project=project,
                 identifier=identifier,
+                user_id=user.id if user is not None else None,
             ).run()
         except SentryAppSentryError as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))

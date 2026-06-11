@@ -59,6 +59,7 @@ class IssueLinkCreator:
             web_url=response["webUrl"],
             project=response["project"],
             identifier=response["identifier"],
+            user_id=self.user.id,
         ).run()
 
         return external_issue

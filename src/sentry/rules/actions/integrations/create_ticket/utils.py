@@ -16,6 +16,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import GroupEvent
@@ -27,6 +28,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import cell_silo_function
+from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
@@ -70,6 +72,18 @@ def create_link(
         linked_id=external_issue.id,
         relationship=GroupLink.Relationship.references,
         data={"provider": integration.provider},
+    )
+    Activity.objects.create(
+        project=event.group.project,
+        group=event.group,
+        type=ActivityType.CREATE_ISSUE.value,
+        data={
+            "title": external_issue.title,
+            "provider": installation.model.get_provider().name,
+            "location": installation.get_issue_url(external_issue.key),
+            "label": installation.get_issue_display_name(external_issue) or external_issue.key,
+            "new": True,
+        },
     )
 
 

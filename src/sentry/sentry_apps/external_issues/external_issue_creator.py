@@ -4,10 +4,12 @@ from html import escape
 
 from django.db import router, transaction
 
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.types.activity import ActivityType
 
 logger = logging.getLogger("sentry.sentry_apps.external_issues")
 
@@ -19,12 +21,13 @@ class ExternalIssueCreator:
     web_url: str
     project: str
     identifier: str
+    user_id: int | None = None
 
     def run(self) -> PlatformExternalIssue:
         try:
             with transaction.atomic(using=router.db_for_write(PlatformExternalIssue)):
                 display_name = f"{escape(self.project)}#{escape(self.identifier)}"
-                self.external_issue = PlatformExternalIssue.objects.update_or_create(
+                external_issue, created = PlatformExternalIssue.objects.update_or_create(
                     defaults={
                         "project_id": self.group.project_id,
                         "display_name": display_name,
@@ -34,8 +37,10 @@ class ExternalIssueCreator:
                     service_type=self.install.sentry_app.slug,
                 )
 
-                # Return only the external issue, of the tuple (external_issue, created) from update_or_create
-                return self.external_issue[0]
+                if created:
+                    self._create_issue_activity(external_issue)
+
+                return external_issue
         except Exception as e:
             logger.info(
                 "platform-external-issue.create-failed",
@@ -49,3 +54,18 @@ class ExternalIssueCreator:
             raise SentryAppSentryError(
                 message="Failed to create external issue obj",
             ) from e
+
+    def _create_issue_activity(self, external_issue: PlatformExternalIssue) -> None:
+        Activity.objects.create(
+            project=self.group.project,
+            group=self.group,
+            type=ActivityType.CREATE_ISSUE.value,
+            user_id=self.user_id,
+            data={
+                "title": external_issue.display_name,
+                "provider": self.install.sentry_app.name,
+                "location": external_issue.web_url,
+                "label": external_issue.display_name,
+                "new": True,
+            },
+        )
