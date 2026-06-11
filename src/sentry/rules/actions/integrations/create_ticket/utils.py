@@ -73,6 +73,7 @@ def create_link(
         relationship=GroupLink.Relationship.references,
         data={"provider": integration.provider},
     )
+    issue_url = response.get("url") or installation.get_issue_url(external_issue.key)
     Activity.objects.create(
         project=event.group.project,
         group=event.group,
@@ -80,7 +81,7 @@ def create_link(
         data={
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,
-            "location": installation.get_issue_url(external_issue.key),
+            "location": issue_url,
             "label": installation.get_issue_display_name(external_issue) or external_issue.key,
             "new": True,
         },
