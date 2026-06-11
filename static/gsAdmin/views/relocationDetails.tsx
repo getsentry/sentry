@@ -18,8 +18,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Truncate} from 'sentry/components/truncate';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {getRegions} from 'sentry/utils/regions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -181,10 +181,9 @@ export function RelocationDetails() {
   const [artifactsState, setArtifactsState] = useState(ArtifactsState.DISABLED);
   const navigate = useNavigate();
 
-  // TODO(cells) This needs to be a list of cells.
-  const regions = getRegions();
-  const region = regions.find((r: any) => r.name === regionName);
-  const regionClient = new Client({baseUrl: `${region?.url || ''}/api/0`});
+  const localities = getLocalities();
+  const locality = localities.find(l => l.name === regionName);
+  const regionClient = new Client({baseUrl: `${locality?.url || ''}/api/0`});
   const regionApi = useApi({api: regionClient});
 
   const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
@@ -192,7 +191,7 @@ export function RelocationDetails() {
       getApiUrl('/relocations/$relocationUuid/', {
         path: {relocationUuid},
       }),
-      {host: region ? region.url : ''},
+      {host: locality ? locality.url : ''},
     ],
     {
       staleTime: 0,
@@ -209,7 +208,7 @@ export function RelocationDetails() {
 
   const relocationData = {
     ...data,
-    region: regions.find((r: any) => r.name === regionName) || {
+    region: localities.find(l => l.name === regionName) || {
       name: regionName,
       url: '',
     },

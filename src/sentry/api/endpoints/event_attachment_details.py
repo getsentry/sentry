@@ -15,6 +15,7 @@ from sentry.api.serializers.models.eventattachment import EventAttachmentSeriali
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -111,7 +112,12 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     )
     def get(
         self, request: Request, project, event_id, attachment_id
-    ) -> Response | StreamingHttpResponse:
+    ) -> (
+        Response[EventAttachmentSerializerResponse]
+        | Response[None]
+        | Response[DetailResponse]
+        | StreamingHttpResponse
+    ):
         """
         Retrieve metadata for a single attachment on an event.
 

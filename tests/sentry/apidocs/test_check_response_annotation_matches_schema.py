@@ -7,9 +7,21 @@ import pytest
 
 from sentry.apidocs._check_response_annotation_matches_schema import (
     Mismatch,
+    PublicUntyped,
     check_file,
+    check_file_public_typed,
     main,
 )
+
+
+def _run_public(source: str) -> list[PublicUntyped]:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(source)
+        path = Path(f.name)
+    try:
+        return check_file_public_typed(path)
+    finally:
+        path.unlink()
 
 
 def _run(source: str) -> list[Mismatch]:
@@ -512,3 +524,303 @@ class FooEndpoint:
     # Critically: the linter passes NOT because it special-cases DetailResponse,
     # but because the subset rule accepts any extra annotation arm.
     assert _run(source) == []
+
+
+# ---------------------------------------------------------------------------
+# PUBLIC-must-be-typed check
+# ---------------------------------------------------------------------------
+
+
+def test_public_bare_response_fires() -> None:
+    source = """
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response:
+        return Response()
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].method == "get"
+    assert diags[0].reason == "bare-Response"
+    assert "PUBLIC but annotated with bare `Response`" in str(diags[0])
+    assert "Fix by replacing the annotation with one of" in str(diags[0])
+
+
+def test_public_missing_annotation_fires() -> None:
+    source = """
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+    def post(self):
+        return Response()
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].method == "post"
+    assert diags[0].reason == "missing"
+    assert "PUBLIC but has no return annotation" in str(diags[0])
+
+
+def test_public_response_t_passes() -> None:
+    source = """
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response[FooResponse]:
+        return Response({"x": 1})
+"""
+    assert _run_public(source) == []
+
+
+def test_public_union_with_response_arms_passes() -> None:
+    source = """
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response[FooResponse] | Response[DetailResponse]:
+        return Response({"x": 1})
+"""
+    assert _run_public(source) == []
+
+
+def test_public_non_drf_response_annotation_passes() -> None:
+    """Endpoints that legitimately return a Django HttpResponse subclass
+    (e.g. StreamingHttpResponse, FileResponse, or `http_method_not_allowed`)
+    don't have a DRF `Response[T]` to type — the explicit non-`Response`
+    annotation is the documented return shape."""
+    source = """
+from django.http.response import HttpResponseBase
+
+class FooEndpoint:
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+    def put(self) -> HttpResponseBase:
+        return self.http_method_not_allowed(None)
+"""
+    assert _run_public(source) == []
+
+
+def test_public_response_t_with_streaming_arm_passes() -> None:
+    """Mixed unions of Response[T] arms with non-`Response` arms (e.g. the
+    `?download` paths that stream a binary body) are accepted — what matters
+    is that no bare `Response` arm appears."""
+    source = """
+from typing import TypedDict
+from django.http import StreamingHttpResponse
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response[FooResponse] | StreamingHttpResponse:
+        return Response({"x": 1})
+"""
+    assert _run_public(source) == []
+
+
+def test_private_bare_response_does_not_fire() -> None:
+    """Only PUBLIC methods are linted — PRIVATE/EXPERIMENTAL endpoints stay
+    in the unmigrated state without diagnostic."""
+    source = """
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    def get(self) -> Response:
+        return Response()
+"""
+    assert _run_public(source) == []
+
+
+def test_method_outside_publish_status_does_not_fire() -> None:
+    """`publish_status` only declares some methods; ones not in the dict
+    (e.g. helper methods that share an HTTP-method name on a non-endpoint
+    class) aren't linted."""
+    source = """
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response[dict]:
+        return Response({})
+    def post(self) -> Response:
+        return Response()
+"""
+    # `post` isn't in publish_status — skipped.
+    assert _run_public(source) == []
+
+
+def test_class_without_publish_status_skipped() -> None:
+    """Non-endpoint classes (helpers, mixins, validators) don't have a
+    `publish_status` dict — they're not checked."""
+    source = """
+from rest_framework.response import Response
+
+class SomeMixin:
+    def get(self) -> Response:
+        return Response()
+"""
+    assert _run_public(source) == []
+
+
+def test_public_publish_status_annotated_assign_detected() -> None:
+    """`publish_status: dict[str, ApiPublishStatus] = {...}` (annotated
+    assignment) is read the same as the plain-assignment form."""
+    source = """
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status: dict[str, ApiPublishStatus] = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response:
+        return Response()
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].reason == "bare-Response"
+
+
+def test_public_bare_response_in_typing_union_fires() -> None:
+    """`-> Union[Response, Response[Foo]]` is just as bad as `Response`
+    alone — the bare arm opts that path out of body-vs-schema verification."""
+    source = """
+from typing import TypedDict, Union
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Union[Response, Response[FooResponse]]:
+        return Response({"x": 1})
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].reason == "bare-Response"
+
+
+def test_public_bare_response_in_optional_fires() -> None:
+    """`Optional[Response]` is `Union[Response, None]` — the bare `Response`
+    arm is still detected."""
+    source = """
+from typing import Optional
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Optional[Response]:
+        return Response()
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].reason == "bare-Response"
+
+
+def test_public_optional_of_typed_response_passes() -> None:
+    """`Optional[Response[T]]` is accepted — the `Response[T]` arm is typed
+    and the implicit `None` arm doesn't introduce a bare `Response`."""
+    source = """
+from typing import TypedDict, Optional
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Optional[Response[FooResponse]]:
+        return Response({"x": 1})
+"""
+    assert _run_public(source) == []
+
+
+def test_public_typing_union_of_typed_response_passes() -> None:
+    """`Union[Response[A], Response[B]]` is equivalent to the `|` form and
+    is accepted."""
+    source = """
+from typing import TypedDict, Union
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Union[Response[FooResponse], Response[DetailResponse]]:
+        return Response({"x": 1})
+"""
+    assert _run_public(source) == []
+
+
+def test_public_bare_response_under_future_annotations_fires() -> None:
+    """`from __future__ import annotations` (PEP 563) defers annotation
+    evaluation *at runtime* — `__annotations__` stores strings instead of
+    resolved types — but `ast.parse()` still produces full expression nodes
+    for them. The bare-`Response` check walks the AST, not runtime
+    `__annotations__`, so the future import is a no-op for this linter."""
+    source = """
+from __future__ import annotations
+from rest_framework.response import Response
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    def get(self) -> Response:
+        return Response()
+"""
+    diags = _run_public(source)
+    assert len(diags) == 1
+    assert diags[0].reason == "bare-Response"
+
+
+def test_main_emits_both_diagnostics(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """The unified `main` runs both checks and exit-codes non-zero on either."""
+    src = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(
+        responses={200: inline_sentry_response_serializer("Foo", FooResponse)},
+    )
+    def get(self) -> Response:
+        return Response({"x": 1})
+
+    def post(self) -> Response[FooResponse]:
+        return Response({"x": 1})
+"""
+    path = tmp_path / "endpoints.py"
+    path.write_text(src)
+    rc = main(["check", str(path)])
+    assert rc == 1
+    captured = capsys.readouterr()
+    # The PUBLIC-untyped diagnostic for `get` should appear.
+    assert "FooEndpoint.get: is PUBLIC but annotated with bare `Response`" in captured.out
+    # `post` is correctly typed → no diagnostic for it.
+    assert "FooEndpoint.post:" not in captured.out

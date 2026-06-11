@@ -92,7 +92,8 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
 
     @handled_snuba_exceptions
     @extend_schema(
-        operation_id="List an Organization's Selectors",
+        operation_id="listOrganizationReplaySelectors",
+        summary="List an Organization's Selectors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,

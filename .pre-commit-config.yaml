@@ -44,7 +44,7 @@ repos:
         require_serial: true
       - id: mypy
         name: mypy
-        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec .venv/bin/mypy --show-traceback "$@"; fi' --
+        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec .venv/bin/mypy --no-warn-unused-configs "$@"; fi' --
         language: system
         stages: [pre-push]
         types: [python]
