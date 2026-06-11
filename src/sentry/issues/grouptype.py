@@ -786,6 +786,161 @@ class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     released = True
 
 
+# Span-first versions of all of the issue detection group types above. (All type ids are the
+# original id + 800.) Once the new span-first detectors are tested, they can be switched to
+# producing the real group types, and these can be removed. (The current plan is to never actually
+# create issues with these types, just use them for in-memory comparison purposes.)
+#
+# Note: `PerformanceP95EndpointRegressionGroupType` has no analog here, as it's not span-based.
+# `PerformanceMNPlusOneDBQueriesGroupType` also has no analog, as it is only used for its `type_id`
+# value, not for actually creating groups.
+@dataclass(frozen=True)
+class SpanFirstPerformanceSlowDBQueryGroupType(GroupType):
+    type_id = 1801
+    slug = "span_first_performance_slow_db_query"
+    description = "Slow DB Query (span first)"
+    category = GroupCategory.DB_QUERY.value
+    noise_config = NoiseConfig(ignore_limit=100)
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceRenderBlockingAssetSpanGroupType(GroupType):
+    type_id = 1804
+    slug = "span_first_performance_render_blocking_asset_span"
+    description = "Large Render Blocking Asset (span first)"
+    category = GroupCategory.FRONTEND.value
+    noise_config = NoiseConfig()
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceNPlusOneGroupType(GroupType):
+    type_id = 1806
+    slug = "span_first_performance_n_plus_one_db_queries"
+    description = "N+1 Query (span first)"
+    category = GroupCategory.DB_QUERY.value
+    noise_config = NoiseConfig()
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceConsecutiveDBQueriesGroupType(GroupType):
+    type_id = 1807
+    slug = "span_first_performance_consecutive_db_queries"
+    description = "Consecutive DB Queries (span first)"
+    category = GroupCategory.DB_QUERY.value
+    noise_config = NoiseConfig(ignore_limit=15)
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceFileIOMainThreadGroupType(GroupType):
+    type_id = 1808
+    slug = "span_first_performance_file_io_main_thread"
+    description = "File IO on Main Thread (span first)"
+    category = GroupCategory.MOBILE.value
+    noise_config = NoiseConfig()
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceConsecutiveHTTPQueriesGroupType(GroupType):
+    type_id = 1809
+    slug = "span_first_performance_consecutive_http"
+    description = "Consecutive HTTP (span first)"
+    category = GroupCategory.HTTP_CLIENT.value
+    noise_config = NoiseConfig(ignore_limit=5)
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceNPlusOneAPICallsGroupType(GroupType):
+    type_id = 1810
+    slug = "span_first_performance_n_plus_one_api_calls"
+    description = "N+1 API Call (span first)"
+    category = GroupCategory.HTTP_CLIENT.value
+    noise_config = NoiseConfig()
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceUncompressedAssetsGroupType(GroupType):
+    type_id = 1812
+    slug = "span_first_performance_uncompressed_assets"
+    description = "Uncompressed Asset (span first)"
+    category = GroupCategory.FRONTEND.value
+    noise_config = NoiseConfig(ignore_limit=100)
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceDBMainThreadGroupType(GroupType):
+    type_id = 1813
+    slug = "span_first_performance_db_main_thread"
+    description = "DB on Main Thread (span first)"
+    category = GroupCategory.MOBILE.value
+    noise_config = NoiseConfig()
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceLargeHTTPPayloadGroupType(GroupType):
+    type_id = 1815
+    slug = "span_first_performance_large_http_payload"
+    description = "Large HTTP payload (span first)"
+    category = GroupCategory.HTTP_CLIENT.value
+    noise_config = NoiseConfig()
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstPerformanceHTTPOverheadGroupType(GroupType):
+    type_id = 1816
+    slug = "span_first_performance_http_overhead"
+    description = "HTTP/1.1 Overhead (span first)"
+    noise_config = NoiseConfig(ignore_limit=20)
+    category = GroupCategory.HTTP_CLIENT.value
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstDBQueryInjectionVulnerabilityGroupType(GroupType):
+    type_id = 1820
+    slug = "span_first_db_query_injection_vulnerability"
+    description = "Potential Database Query Injection Vulnerability (span first)"
+    category = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    noise_config = NoiseConfig(ignore_limit=5)
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+
+
+@dataclass(frozen=True)
+class SpanFirstQueryInjectionVulnerabilityGroupType(GroupType):
+    type_id = 1821
+    slug = "span_first_query_injection_vulnerability"
+    description = "Potential Query Injection Vulnerability (span first)"
+    category = GroupCategory.DB_QUERY.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    noise_config = NoiseConfig(ignore_limit=10)
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+
+
 def should_create_group(
     grouptype: type[GroupType],
     client: RedisCluster | StrictRedis,
