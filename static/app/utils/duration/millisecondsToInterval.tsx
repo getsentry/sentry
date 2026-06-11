@@ -43,9 +43,13 @@ export function millisecondsToClosestInterval(
       );
       range.max = intervalToMilliseconds(sortedIntervals[i]!) + halfIntervalDifference;
       intervalRanges.push(range);
-    } else {
+    } else if (sortedIntervals.length > 1) {
       // last interval should cover all values close to and greater than the last interval
-      range.min = intervalRanges[i - 1]!.max;
+      range.min = intervalRanges[i - 1]?.max ?? 0;
+      range.max = Infinity;
+      intervalRanges.push(range);
+    } else {
+      range.min = 0;
       range.max = Infinity;
       intervalRanges.push(range);
     }
