@@ -772,6 +772,10 @@ def format_search_filter(
                 groups = Group.objects.by_qualified_short_id_bulk(
                     params["organization_id"],
                     group_short_ids,
+                    # Scope to the projects the query is restricted to so a short id for a
+                    # project outside the search scope does not resolve. ``project_id`` may be
+                    # absent (None) for organization-wide queries.
+                    project_ids=params.get("project_id"),
                 )
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")

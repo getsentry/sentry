@@ -254,7 +254,11 @@ class SearchResolver:
         try:
             groups = list(
                 Group.objects.by_qualified_short_id_bulk(
-                    organization_id=self.params.organization_id, short_ids_raw=list(collected)
+                    organization_id=self.params.organization_id,
+                    short_ids_raw=list(collected),
+                    # Scope to the projects the query is restricted to so a short id for a
+                    # project outside the search scope does not resolve.
+                    project_ids=self.params.project_ids,
                 )
             )
         except Group.DoesNotExist:

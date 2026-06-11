@@ -1702,6 +1702,9 @@ class DiscoverDatasetConfig(DatasetConfig):
                 groups = Group.objects.by_qualified_short_id_bulk(
                     self.builder.params.organization.id,
                     group_short_ids,
+                    # Scope to the projects the query is restricted to so a short id for a
+                    # project outside the search scope does not resolve.
+                    project_ids=self.builder.params.project_ids,
                 )
             except Group.DoesNotExist:
                 raise InvalidIssueSearchQuery(group_short_ids)
