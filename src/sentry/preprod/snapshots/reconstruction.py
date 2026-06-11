@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import as_completed
 from dataclasses import dataclass
 from typing import NamedTuple
 
@@ -10,8 +11,10 @@ from pydantic import ValidationError
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.categorize import categorize_image_sets
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 MAX_CHAIN_DEPTH = 50
+MANIFEST_FETCH_MAX_WORKERS = 16
 
 
 def fold_child_onto_parent(
@@ -53,13 +56,16 @@ class _ManifestRead(NamedTuple):
     corrupt: bool = False  # the object exists but is malformed -> permanent (terminal)
 
 
-def _read_manifest(session: Session, artifact: PreprodArtifact) -> _ManifestRead:
+def _manifest_key(artifact: PreprodArtifact) -> str | None:
     metrics = getattr(artifact, "preprodsnapshotmetrics", None)
     if metrics is None:
-        return _ManifestRead(None)
-    key = (metrics.extras or {}).get("manifest_key")
-    if not key:
-        return _ManifestRead(None)
+        return None
+    return (metrics.extras or {}).get("manifest_key")
+
+
+def _read_manifest_by_key(session: Session, key: str) -> _ManifestRead:
+    """Fetch and parse a manifest. Pure objectstore I/O — no ORM access, so this is safe to
+    run from a worker thread (see _fetch_manifests)."""
     try:
         payload = session.get(key).payload.read()
     except RequestError:
@@ -94,24 +100,87 @@ def _resolve_ancestor(artifact: PreprodArtifact) -> PreprodArtifact | None:
     )
 
 
+def _collect_chain(base_artifact: PreprodArtifact) -> tuple[list[PreprodArtifact], bool]:
+    """Walk the commit-ancestry chain from base to its natural terminus using only the
+    normalized CommitComparison links — no manifest I/O. Returns (chain, ancestor_missing),
+    where chain is [base, ..., deepest ancestor] and ancestor_missing is True iff the deepest
+    build references a base_sha whose ancestor build has not been uploaded yet.
+
+    Discovery is kept separate from manifest reads so the reads can be issued in parallel
+    (see _fetch_manifests). Completeness is still decided from the manifests themselves
+    (in reconstruct_base_manifest), so this never consults the drift-prone is_selective flag.
+    """
+    chain: list[PreprodArtifact] = []
+    visited: set[int] = set()
+    current: PreprodArtifact | None = base_artifact
+
+    while current is not None:
+        if current.id in visited or len(chain) >= MAX_CHAIN_DEPTH:
+            return chain, False
+        visited.add(current.id)
+        chain.append(current)
+
+        ancestor = _resolve_ancestor(current)
+        if ancestor is None:
+            cc = current.commit_comparison
+            return chain, cc is not None and bool(cc.base_sha)
+        current = ancestor
+
+    return chain, False
+
+
+def _fetch_manifests(
+    session: Session, artifacts: list[PreprodArtifact]
+) -> dict[int, _ManifestRead]:
+    """Read each artifact's manifest, fanning the objectstore gets across a thread pool.
+
+    Manifest keys are resolved here in the calling thread (ORM access); the worker threads do
+    pure objectstore I/O only. Concurrent gets on a shared Session are safe (urllib3
+    connection pool); this mirrors the fan-out in zip_builder.py.
+    """
+    keys = {artifact.id: _manifest_key(artifact) for artifact in artifacts}
+    results: dict[int, _ManifestRead] = {
+        artifact_id: _ManifestRead(None) for artifact_id, key in keys.items() if not key
+    }
+    pending = {artifact_id: key for artifact_id, key in keys.items() if key}
+
+    if len(pending) <= 1:
+        for artifact_id, key in pending.items():
+            results[artifact_id] = _read_manifest_by_key(session, key)
+        return results
+
+    executor = ContextPropagatingThreadPoolExecutor(max_workers=MANIFEST_FETCH_MAX_WORKERS)
+    try:
+        futures = {
+            executor.submit(_read_manifest_by_key, session, key): artifact_id
+            for artifact_id, key in pending.items()
+        }
+        for future in as_completed(futures):
+            results[futures[future]] = future.result()
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
+    return results
+
+
 def reconstruct_base_manifest(
     base_artifact: PreprodArtifact, session: Session
 ) -> ReconstructionResult:
     """Reconstruct the complete manifest for base_artifact by folding the ancestry chain.
 
     Walks down to the nearest non-selective (complete) ancestor collecting selective layers,
-    then folds them back up onto that complete manifest.
+    then folds them back up onto that complete manifest. Chain discovery (cheap CommitComparison
+    lookups) and manifest reads (objectstore I/O) are split into two phases so the reads run
+    in parallel instead of one sequential round-trip per level.
     """
+    chain, ancestor_missing = _collect_chain(base_artifact)
+    if not chain:
+        return ReconstructionResult(unresolvable=True)
+
+    manifests = _fetch_manifests(session, chain)
+
     selective_layers: list[SnapshotManifest] = []
-    current: PreprodArtifact | None = base_artifact
-    visited: set[int] = set()
-
-    while current is not None:
-        if current.id in visited or len(visited) >= MAX_CHAIN_DEPTH:
-            return ReconstructionResult(unresolvable=True)
-        visited.add(current.id)
-
-        read = _read_manifest(session, current)
+    for artifact in chain:
+        read = manifests[artifact.id]
         if read.corrupt:
             return ReconstructionResult(
                 unresolvable=True,
@@ -132,14 +201,10 @@ def reconstruct_base_manifest(
             return ReconstructionResult(manifest=complete)
 
         selective_layers.append(manifest)
-        ancestor = _resolve_ancestor(current)
-        if ancestor is None:
-            cc = current.commit_comparison
-            if cc is not None and cc.base_sha:
-                # The ancestor build hasn't been uploaded yet; it may still arrive.
-                return ReconstructionResult(incomplete=True)
-            # Selective build with no base to anchor on -> no complete reference exists.
-            return ReconstructionResult(unresolvable=True)
-        current = ancestor
 
+    # The whole chain was selective with no complete anchor. If the deepest build's ancestor
+    # simply hasn't been uploaded yet it may still arrive (defer); otherwise no complete
+    # reference can ever exist (terminal).
+    if ancestor_missing:
+        return ReconstructionResult(incomplete=True)
     return ReconstructionResult(unresolvable=True)

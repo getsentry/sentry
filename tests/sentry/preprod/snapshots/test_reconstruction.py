@@ -195,6 +195,40 @@ class ReconstructBaseManifestTest(TestCase):
         assert result.manifest is None
         assert result.error_message is not None
 
+    def test_manifests_fetched_in_parallel(self):
+        import threading
+
+        # A 3-deep chain requires reading 3 manifests. If the reads run sequentially the
+        # barrier never reaches its party count and the first get blocks until it breaks;
+        # only genuinely concurrent reads let all three pass and the reconstruction succeed.
+        a_main, k_main, b_main = self._build(
+            "h_main", None, {"a": "v0"}, selective=False, key="k_main"
+        )
+        a_pr1, k_pr1, b_pr1 = self._build(
+            "h_pr1", "h_main", {"a": "v1"}, selective=True, key="k_pr1"
+        )
+        a_pr2, k_pr2, b_pr2 = self._build(
+            "h_pr2", "h_pr1", {"a": "v2"}, selective=True, key="k_pr2"
+        )
+        blobs = {k_main: b_main, k_pr1: b_pr1, k_pr2: b_pr2}
+        barrier = threading.Barrier(3, timeout=5)
+
+        session = MagicMock()
+
+        def _get(key):
+            barrier.wait()
+            result = MagicMock()
+            result.payload.read.return_value = blobs[key]
+            return result
+
+        session.get.side_effect = _get
+
+        result = reconstruct_base_manifest(a_pr2, session)
+
+        assert result.incomplete is False and result.unresolvable is False
+        assert result.manifest is not None
+        assert {n: m.content_hash for n, m in result.manifest.images.items()} == {"a": "v2"}
+
     def test_completeness_uses_manifest_flag_not_db_flag(self):
         # The manifest is the single source of truth for "is this a complete anchor".
         # Here the DB flag (is_selective=False) DISAGREES with the manifest
