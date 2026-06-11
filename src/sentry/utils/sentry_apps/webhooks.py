@@ -298,7 +298,9 @@ def send_and_save_webhook_request(
                 org_id=org_id,
                 event=event,
                 url=url,
-                headers=app_platform_event.headers,
+                # Log Sentry's headers plus masked custom headers: custom header
+                # values may contain secrets and must never be persisted.
+                headers=app_platform_event.loggable_headers,
             )
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
@@ -329,7 +331,9 @@ def send_and_save_webhook_request(
             error_id=response.headers.get("Sentry-Hook-Error"),
             project_id=project_id,
             response=response,
-            headers=app_platform_event.headers,
+            # Log Sentry's headers plus masked custom headers: custom header
+            # values may contain secrets and must never be persisted.
+            headers=app_platform_event.loggable_headers,
         )
 
         debug_logging_enabled = (
