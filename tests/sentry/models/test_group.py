@@ -174,6 +174,72 @@ class GroupTest(TestCase, SnubaTestCase):
                 group.organization.id, [group_short_id, group_2_short_id]
             )
 
+    def test_by_qualified_short_id_bulk_missing_id_colliding_short_id_across_projects(
+        self,
+    ) -> None:
+        # short ids are only unique per project, so two projects can share the integer
+        # short_id 1 (PROJ-A-1 and PROJ-B-1). A requested short id that does not resolve must
+        # raise even when another project owns the same integer short_id.
+        project_a = self.create_project(name="proj a")
+        project_b = self.create_project(name="proj b")
+        group_a = self.create_group(project=project_a, short_id=project_a.next_short_id())
+        group_b = self.create_group(project=project_b, short_id=project_b.next_short_id())
+        assert group_a.short_id == group_b.short_id  # both 1
+        org_id = self.organization.id
+
+        a_short_id = group_a.qualified_short_id
+        b_short_id = group_b.qualified_short_id
+
+        # Make PROJ-B-1 unresolvable while PROJ-A-1 still resolves to the colliding short_id.
+        group_b.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id_bulk(org_id, [a_short_id, b_short_id])
+
+    def test_by_qualified_short_id_scoped_to_projects(self) -> None:
+        project_a = self.create_project(name="proj a")
+        project_b = self.create_project(name="proj b")
+        group_a = self.create_group(project=project_a, short_id=project_a.next_short_id())
+        group_b = self.create_group(project=project_b, short_id=project_b.next_short_id())
+        org_id = self.organization.id
+
+        # In-scope short id resolves.
+        assert (
+            Group.objects.by_qualified_short_id(
+                org_id, group_a.qualified_short_id, project_ids=[project_a.id]
+            )
+            == group_a
+        )
+
+        # Out-of-scope short id does not resolve.
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id(
+                org_id, group_b.qualified_short_id, project_ids=[project_a.id]
+            )
+
+        # An empty collection restricts to no projects (distinct from None = no restriction).
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id(org_id, group_a.qualified_short_id, project_ids=[])
+
+    def test_by_qualified_short_id_bulk_scoped_to_projects(self) -> None:
+        project_a = self.create_project(name="proj a")
+        project_b = self.create_project(name="proj b")
+        group_a = self.create_group(project=project_a, short_id=project_a.next_short_id())
+        group_b = self.create_group(project=project_b, short_id=project_b.next_short_id())
+        org_id = self.organization.id
+
+        assert Group.objects.by_qualified_short_id_bulk(
+            org_id, [group_a.qualified_short_id], project_ids=[project_a.id]
+        ) == [group_a]
+
+        # If any requested short id falls outside the project scope, the bulk lookup raises.
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id_bulk(
+                org_id,
+                [group_a.qualified_short_id, group_b.qualified_short_id],
+                project_ids=[project_a.id],
+            )
+
     def test_by_qualified_short_id_bulk_case_insensitive_project_slug(self) -> None:
         project = self.create_project(slug="mixedcaseslug")
         group = self.create_group(project=project, short_id=project.next_short_id())

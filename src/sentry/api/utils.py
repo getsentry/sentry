@@ -17,6 +17,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
 from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
+from snuba_sdk.column import InvalidColumnError
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
 from sentry import options, quotas
@@ -368,6 +369,10 @@ def get_auth_api_token_type(auth: object) -> str | None:
 def handle_query_errors() -> Generator[None]:
     try:
         yield
+    except InvalidColumnError as error:
+        message = str(error)
+        sentry_sdk.set_tag("query.error_reason", message)
+        raise ParseError(detail=message)
     except InvalidSearchQuery as error:
         message = original_error = str(error)
         # Special case the project message since it has so many variants so tagging is messy otherwise

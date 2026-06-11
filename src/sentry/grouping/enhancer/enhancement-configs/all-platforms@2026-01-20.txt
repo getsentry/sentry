@@ -402,8 +402,8 @@ family:native stack.abs_path:dart:*/** -app
 family:native stack.abs_path:third_party/dart/sdk/** -app
 family:native package:**/Frameworks/FlutterMacOS.framework/** -app
 family:native package:**/Frameworks/Flutter.framework/** -app
-family:native function:"stub InvokeDartCode" -app
-family:native function:"stub CallBootstrapNative" -app
+family:native function:"InvokeDartCode" -app
+family:native function:"CallBootstrapNative" -app
 
 # sentry-dart SDK frames are not in app
 stack.abs_path:package:sentry/** -app -group

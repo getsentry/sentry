@@ -31,6 +31,11 @@ class PrCloseMetricsEvent(analytics.Event):
     opened_at: str | None = None
     # Null for a closed-but-unmerged PR (no merge commit / merge time).
     merge_commit_sha: str | None = None
+    # Sentry Commit.id for the merge commit, resolved from merge_commit_sha via
+    # the (repository_id, key) unique key. Null when the PR wasn't merged or
+    # Sentry never recorded the landed commit (release tracking, not pr_metrics,
+    # populates Commit rows).
+    merge_commit_id: int | None = None
     merged_at: str | None = None
     draft: bool = False
     # Structural counters read straight from the close/merge webhook payload (no
@@ -46,6 +51,9 @@ class PrCloseMetricsEvent(analytics.Event):
     # the active (is_valid=True) attributions, each {signal_type, source,
     # signal_details}, ordered by attribution priority (highest-confidence first).
     attributions: str = "[]"
+    # The Seer judge verdict (one of ``PullRequestVerdict``). Null on the no-judge
+    # path and until the judge callback lands a result for a forwarded PR.
+    verdict: str | None = None
 
 
 analytics.register(PrCloseMetricsEvent)

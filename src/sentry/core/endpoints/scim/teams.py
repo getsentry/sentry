@@ -558,7 +558,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def patch(self, request: Request, organization, team):
+    def patch(
+        self, request: Request, organization, team
+    ) -> Response[None] | Response[ValidationErrorResponse]:
         """
         Update a team's attributes with a SCIM Group PATCH Request.
         """
@@ -606,9 +608,18 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                             user_ids_to_revoke_privileges.extend(revoked_users)
 
         except ParseError as e:
-            return Response(e.detail, status=400)
+            # Callers in this scope raise ParseError with a SCIM-shaped dict
+            # detail (`{"schemas": [...], "detail": str, "scimType"?: str}`).
+            # Coerce the rare non-dict branch so the union arm typechecks.
+            parse_detail: ValidationErrorResponse = (
+                dict(e.detail) if isinstance(e.detail, dict) else {"detail": str(e.detail)}
+            )
+            return Response(parse_detail, status=400)
         except UnsupportedAttributeError as e:
-            return Response(e.detail, status=400)
+            unsupported_detail: ValidationErrorResponse = (
+                dict(e.detail) if isinstance(e.detail, dict) else {"detail": str(e.detail)}
+            )
+            return Response(unsupported_detail, status=400)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist(detail=SCIM_404_USER_RES)
         except IntegrityError as e:
@@ -662,7 +673,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         metrics.incr("sentry.scim.team.delete")
         return super().delete(request, team)
 
-    def put(self, request: Request, organization: Organization, team: Team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
+    def put(self, request: Request, organization: Organization, team: Team) -> HttpResponseBase:  # type: ignore[override]  # convert_args changed shape from baseclass
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)

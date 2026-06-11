@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Callable
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
@@ -35,6 +35,7 @@ from sentry.seer.autofix.prompts import (
     root_cause_prompt,
     solution_prompt,
 )
+from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     read_preference_from_sentry_db,
@@ -197,6 +198,7 @@ def get_autofix_agent_client(
     return SeerAgentClient(
         organization=group.organization,
         project=group.project,
+        group=group,
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),
@@ -321,7 +323,7 @@ def trigger_autofix_agent(
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"group_id": group.id, "referrer": referrer.value}
+        metadata = {"referrer": referrer.value}
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
@@ -535,7 +537,7 @@ def trigger_coding_agent_handoff(
     provider: str | None = None,
     user_id: int | None = None,
     auto_create_pr: bool | None = None,
-) -> dict[str, list]:
+) -> AutofixHandoffResponse:
     """
     Trigger a coding agent handoff for an existing agent-based autofix run.
 
@@ -613,7 +615,10 @@ def trigger_coding_agent_handoff(
         },
     )
 
-    return coding_agents
+    # cast() sanctioned: `client.launch_coding_agents` returns loose
+    # dict[str, list]; the runtime shape is the `{successes, failures}`
+    # envelope captured by AutofixHandoffResponse.
+    return cast(AutofixHandoffResponse, coding_agents)
 
 
 def trigger_push_changes(

@@ -189,6 +189,40 @@ class PrMetricsEmissionTest(TestCase):
         assert row.head_commit_sha == HEAD_SHA
         assert row.closed_at == CLOSED_AT.isoformat()
 
+    def test_build_row_resolves_merge_commit_id(self) -> None:
+        # When Sentry tracks the landed commit, the row carries its Commit.id.
+        commit = self.create_commit(repo=self.repo, key=MERGE_SHA)
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.merge_commit_id == commit.id
+
+    def test_build_row_merge_commit_id_null_when_commit_untracked(self) -> None:
+        # No Commit row matches the merge sha (pr_metrics never creates them), so
+        # the id resolves to null rather than erroring.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.merge_commit_id is None
+
+    def test_build_row_merge_commit_id_null_when_unmerged(self) -> None:
+        # A closed-but-unmerged PR has no merge commit sha, so no id to resolve.
+        self.pull_request.merge_commit_sha = None
+        self.pull_request.merged_at = None
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="closed",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.merge_commit_id is None
+
     def test_active_attributions_only_includes_valid_signals(self) -> None:
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
         self._track(
@@ -240,19 +274,13 @@ class PrMetricsEmissionTest(TestCase):
     def test_emit_carries_resolved_group_ids(self, mock_record: Any) -> None:
         self._track()
         group_ids = sorted([self._link_group(), self._link_group()])
-        emit_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-        )
+        emit_pr_metrics_row(pull_request=self.pull_request)
         assert mock_record.call_args[0][0].group_ids == group_ids
 
     @patch("sentry.analytics.record")
     def test_emit_records_for_tracked_pr(self, mock_record: Any) -> None:
         self._track()
-        emitted = emit_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-        )
+        emitted = emit_pr_metrics_row(pull_request=self.pull_request)
         assert emitted is True
         assert_last_analytics_event(
             mock_record,
@@ -282,9 +310,6 @@ class PrMetricsEmissionTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_emit_skips_untracked_pr(self, mock_record: Any) -> None:
-        emitted = emit_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-        )
+        emitted = emit_pr_metrics_row(pull_request=self.pull_request)
         assert emitted is False
         assert mock_record.call_count == 0
