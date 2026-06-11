@@ -26,12 +26,12 @@ import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
-  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useLogsSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useQueryParamsId} from 'sentry/views/explore/queryParams/context';
@@ -168,6 +168,7 @@ export function useSaveAsItems({
 
   const saveAsDashboard = useMemo(() => {
     const dashboardsUrls = aggregates.map((yAxis: string, index: number) => {
+      const visualize = visualizes[index];
       const func = parseFunction(yAxis);
       const label = func ? prettifyParsedFunction(func) : yAxis;
 
@@ -206,8 +207,9 @@ export function useSaveAsItems({
             discoverQuery,
             pageFilters.selection
           );
-          // the chart currently track the chart type internally so force bar type for now
-          eventView.display = DisplayType.BAR;
+          if (visualize) {
+            eventView.display = CHART_TYPE_TO_DISPLAY_TYPE[visualize.chartType];
+          }
 
           handleAddQueryToDashboard({
             organization,
@@ -237,7 +239,17 @@ export function useSaveAsItems({
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       isSubmenu: true,
     };
-  }, [aggregates, groupBys, mode, organization, pageFilters, search, sortBys, location]);
+  }, [
+    aggregates,
+    groupBys,
+    mode,
+    organization,
+    pageFilters,
+    search,
+    sortBys,
+    location,
+    visualizes,
+  ]);
 
   return useMemo(() => {
     const saveAs = [];
