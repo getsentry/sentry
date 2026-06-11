@@ -146,6 +146,14 @@ def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
     exactly one delivery claim the event and write ``verdict``, even under
     concurrent redeliveries. Returns True if this call won the claim.
 
+    The verdict is never cleared, so the guard coalesces *every* repeat terminal
+    event to that one claim — not just GitHub redeliveries but also a reopen
+    followed by another close/merge. That's deliberate: we emit one analytics row
+    per PR (its first terminal state is authoritative), since multiple emissions
+    have meant costly dedup downstream for little benefit. A PR reopened after a
+    close and later merged is thus recorded by its first close — an accepted loss
+    on the rare reopened PR.
+
     Only called once a deterministic ``verdict`` is in hand. A PR that needs a
     judge is guarded the same way once the forward path lands — it claims the
     event with a sentinel verdict before forwarding — but that isn't wired yet.
