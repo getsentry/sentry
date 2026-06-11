@@ -456,7 +456,10 @@ def post_snapshot_status_check_task(
         superseded = (
             PreprodArtifact.objects.filter(
                 commit_comparison_id=preprod_artifact.commit_comparison_id,
-                project__organization_id=preprod_artifact.project.organization_id,
+                # commit_comparison is org-scoped (shared across projects building the same
+                # repo/SHA), so scope to this project too — a success in a sibling project
+                # must not suppress this project's failure check.
+                project_id=preprod_artifact.project_id,
                 app_id=preprod_artifact.app_id,
                 artifact_type=preprod_artifact.artifact_type,
                 build_configuration_id=preprod_artifact.build_configuration_id,

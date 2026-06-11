@@ -785,6 +785,7 @@ def compare_snapshots(
             return
         created = False
 
+    prior_state = None if created else comparison.state
     if not created:
         logger.info(
             "compare_snapshots: existing comparison found (id=%d, state=%s)",
@@ -826,11 +827,16 @@ def compare_snapshots(
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
 
-    update_preprod_snapshot_vcs(
-        preprod_artifact_id=head_artifact_id,
-        caller="compare_start",
-        update_pr_comment=False,
-    )
+    # Skip re-posting the start status when resuming a self-parked PENDING comparison: the
+    # deferral loop reschedules every 60s for up to the grace window, and the start was
+    # already posted on the first attempt. Re-running the full status recompute (~6 queries)
+    # and re-posting IN_PROGRESS on each cycle would burn GitHub rate limits for no change.
+    if prior_state != PreprodSnapshotComparison.State.PENDING:
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=head_artifact_id,
+            caller="compare_start",
+            update_pr_comment=False,
+        )
 
     def _fail_comparison(error_code: PreprodSnapshotComparison.ErrorCode, message: str) -> None:
         failed = PreprodSnapshotComparison.objects.filter(
@@ -886,13 +892,26 @@ def compare_snapshots(
         # Not flag-gated here: a selective base only reaches this task when the
         # feature flag was on at dispatch (find_base_snapshot_artifact/fan-out are gated),
         # or via staff recompare. An in-flight comparison should finish correctly.
-        if base_metrics.is_selective:
+        #
+        # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of
+        # truth (reconstruct_base_manifest distrusts the DB flag because it can drift). If the
+        # DB flag drifts to False while the manifest is selective, the DB gate would skip
+        # reconstruction and silently diff against the partial base. This mirrors the
+        # completeness check in reconstruct_base_manifest.
+        if base_manifest.selective or base_manifest.all_image_file_names is not None:
             reconstruction = reconstruct_base_manifest(base_artifact, session)
             if reconstruction.manifest is not None:
                 base_manifest = reconstruction.manifest
             elif reconstruction.incomplete:
-                head_age = (timezone.now() - head_artifact.date_added).total_seconds()
-                if head_age <= MISSING_BASE_GRACE_PERIOD_SECONDS:
+                # Anchor the grace window to the comparison, not the head build. The head can
+                # be arbitrarily old by the time the comparison is dispatched (out-of-order
+                # fan-out, staff recompare, janitor-resurrected retries) — anchoring to its
+                # age would burn the entire retry budget before the first attempt runs.
+                # comparison.date_added is set once at creation and never reset (deferral only
+                # bumps date_updated), so this measures "how long this comparison has been
+                # waiting for the chain to complete."
+                comparison_age = (timezone.now() - comparison.date_added).total_seconds()
+                if comparison_age <= MISSING_BASE_GRACE_PERIOD_SECONDS:
                     logger.info(
                         "compare_snapshots: base chain incomplete, deferring",
                         extra={

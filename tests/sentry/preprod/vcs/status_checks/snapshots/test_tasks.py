@@ -579,6 +579,48 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
         # attempt swallowing this failure forever.
         mock_provider.create_status_check.assert_called_once()
 
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_failure_posted_when_newer_success_is_in_different_project(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_cross_project"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        # CommitComparison is org-scoped (no project column), so a different project in the
+        # same org building the same repo/SHA shares this commit_comparison. A success there
+        # must NOT suppress THIS project's legitimate failure check.
+        other_project = self.create_project(organization=self.organization)
+        newer_artifact = self.create_preprod_artifact(
+            project=other_project,
+            commit_comparison=self.commit_comparison,
+            app_id=self.artifact.app_id,
+            build_configuration=self.artifact.build_configuration,
+        )
+        newer_head = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_artifact, image_count=10
+        )
+        newer_base_artifact = self.create_preprod_artifact(
+            project=other_project, commit_comparison=self.commit_comparison
+        )
+        newer_base = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=newer_head,
+            base_snapshot_metrics=newer_base,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_changed=0,
+            images_unchanged=10,
+        )
+
+        self._call_task(status=StatusCheckStatus.FAILURE.value)
+
+        # Cross-project success is not a supersede: this project's failure must still post.
+        mock_provider.create_status_check.assert_called_once()
+
 
 @cell_silo_test
 class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):

@@ -1075,6 +1075,143 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         # base lacks "a", so "a" would be an add with zero diff chunks.
         assert comparison.chunks_total == 1
 
+    def test_reconstruction_gated_on_manifest_not_db_flag(self):
+        import orjson
+
+        from sentry.preprod.models import PreprodSnapshotMetrics
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
+        # Inverse drift: the DB is_selective flag has desynced to False while the base
+        # manifest is genuinely selective. The reconstruction gate must trust the manifest
+        # (the module's source of truth), not the stale DB flag — otherwise we'd silently
+        # diff against the partial base.
+        PreprodSnapshotMetrics.objects.filter(preprod_artifact=base_artifact).update(
+            is_selective=False
+        )
+        manifests = {
+            "k_main": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v0", width=10, height=10)}
+                ).dict()
+            ),
+            "k_pr1": orjson.dumps(
+                SnapshotManifest(
+                    images={"b": ImageMetadata(content_hash="b1", width=10, height=10)},
+                    selective=True,
+                ).dict()
+            ),
+            "k_head": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v1", width=10, height=10)}
+                ).dict()
+            ),
+        }
+        session = _mock_session_with_manifests(manifests)
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+        # Reconstruction ran despite is_selective=False: "a" is matched-and-changed against
+        # main's inherited v0, yielding one diff chunk. The DB-flag gate would skip it and
+        # treat "a" as an add (zero chunks).
+        assert comparison.chunks_total == 1
+
+    def _complete_chain_manifests(self):
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+
+        return {
+            "k_main": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v0", width=10, height=10)}
+                ).dict()
+            ),
+            "k_pr1": orjson.dumps(
+                SnapshotManifest(
+                    images={"b": ImageMetadata(content_hash="b1", width=10, height=10)},
+                    selective=True,
+                ).dict()
+            ),
+            "k_head": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v1", width=10, height=10)}
+                ).dict()
+            ),
+        }
+
+    def test_resume_from_pending_skips_compare_start_vcs(self):
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
+        # A self-parked comparison being resumed by the deferral loop. The start status was
+        # already posted on the first attempt; resuming must not re-post IN_PROGRESS (each
+        # 60s cycle would otherwise re-run the status recompute and hit GitHub rate limits).
+        self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_artifact.preprodsnapshotmetrics,
+            base_snapshot_metrics=base_artifact.preprodsnapshotmetrics,
+            state=PreprodSnapshotComparison.State.PENDING,
+        )
+        session = _mock_session_with_manifests(self._complete_chain_manifests())
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+        start_calls = [c for c in vcs.call_args_list if c.kwargs.get("caller") == "compare_start"]
+        assert start_calls == []
+
+    def test_fresh_start_posts_compare_start_vcs(self):
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
+        session = _mock_session_with_manifests(self._complete_chain_manifests())
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        start_calls = [c for c in vcs.call_args_list if c.kwargs.get("caller") == "compare_start"]
+        assert len(start_calls) == 1
+
     def test_incomplete_chain_within_window_defers_to_pending(self):
         import orjson
 
@@ -1121,7 +1258,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert reschedule_kwargs["head_artifact_id"] == head_artifact.id
         assert reschedule_kwargs["base_artifact_id"] == base_artifact.id
 
-    def test_incomplete_chain_past_window_fails(self):
+    def test_old_head_with_fresh_comparison_within_window_defers(self):
         from datetime import timedelta
 
         import orjson
@@ -1132,8 +1269,67 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         from sentry.preprod.snapshots.tasks import compare_snapshots
 
         head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
-        # Age the head beyond the 600s grace window so deferral gives way to terminal failure.
+        # Out-of-order fan-out / staff recompare: the head build is old, but THIS comparison
+        # was just dispatched. The grace window must measure the comparison's age, not the
+        # head's, so an incomplete chain still gets its retry budget instead of dying on the
+        # first attempt.
         PreprodArtifact.objects.filter(id=head_artifact.id).update(
+            date_added=timezone.now() - timedelta(seconds=601)
+        )
+        # main's manifest (k_main) intentionally absent -> reconstruction incomplete.
+        manifests = {
+            "k_pr1": orjson.dumps(
+                SnapshotManifest(
+                    images={"b": ImageMetadata(content_hash="b1", width=10, height=10)},
+                    selective=True,
+                ).dict()
+            ),
+            "k_head": orjson.dumps(
+                SnapshotManifest(
+                    images={"a": ImageMetadata(content_hash="v1", width=10, height=10)}
+                ).dict()
+            ),
+        }
+        session = _mock_session_with_manifests(manifests)
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as reschedule,
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PENDING
+        assert reschedule.call_count == 1
+
+    def test_incomplete_chain_past_window_fails(self):
+        from datetime import timedelta
+
+        import orjson
+        from django.utils import timezone
+
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact, main_artifact = self._setup_selective_chain()
+        # A comparison that has been deferring since before the grace window: age the
+        # comparison row (not the head), then let the task resume it. The window is anchored
+        # to comparison.date_added, so deferral gives way to terminal failure.
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_artifact.preprodsnapshotmetrics,
+            base_snapshot_metrics=base_artifact.preprodsnapshotmetrics,
+            state=PreprodSnapshotComparison.State.PENDING,
+        )
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
             date_added=timezone.now() - timedelta(seconds=601)
         )
         manifests = {
