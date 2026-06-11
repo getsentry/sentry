@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -52,12 +53,29 @@ const CREATE_FAILED_EVENT = {
   'project-creation': 'project_creation.scm_project_details_create_failed',
 } as const;
 
+export interface ScmProjectDetailsCompletion {
+  /** The created project, or the reused one on the unchanged back-nav path. */
+  project: Project;
+  /** The form state the project was created with. */
+  projectDetailsForm: ProjectDetailsFormState;
+}
+
 interface UseScmProjectDetailsOptions {
   analyticsFlow: ScmAnalyticsFlow;
-  /** Called after a project is created (or an unchanged one reused). */
-  onComplete: () => void;
-  onProjectCreated: (slug: string | undefined) => void;
+  /**
+   * Called once the step is done: a project was created (or an unchanged one
+   * reused on the back-nav path) and the repo link attempted. Receives the
+   * project and the submitted form state together so the host can persist
+   * both and advance in one place.
+   */
+  onComplete: (completion: ScmProjectDetailsCompletion) => void;
+  /**
+   * Live form state, owned by the host. Fields absent from the form derive
+   * their defaults (platform-based name, first admin team, default alert
+   * config), so the host clearing the form makes the fields re-derive.
+   */
   onProjectDetailsFormChange: (form: ProjectDetailsFormState) => void;
+  projectDetailsForm: ProjectDetailsFormState | undefined;
   selectedPlatform: OnboardingSelectedSDK | undefined;
   selectedRepository: Repository | undefined;
   /**
@@ -68,7 +86,6 @@ interface UseScmProjectDetailsOptions {
   allowMemberWithoutTeam?: boolean;
   /** Slug of an already-created project, used for the back-nav reuse check. */
   createdProjectSlug?: string;
-  projectDetailsForm?: ProjectDetailsFormState;
 }
 
 interface ScmProjectDetailsForm {
@@ -97,21 +114,22 @@ interface ScmProjectDetailsForm {
 }
 
 /**
- * Owns the SCM project-details form state, the create-project + repo-link flow,
- * and the field/create analytics (routed by `analyticsFlow`). Returned to the
- * host so it can render the presentational `ScmProjectDetailsCore` form and
- * place its own Create button (onboarding's fixed footer, project creation's
- * page-level footer) independent of where the form fields render.
+ * Drives the SCM project-details form (state owned by the host via
+ * `projectDetailsForm`/`onProjectDetailsFormChange`), the create-project +
+ * repo-link flow, and the field/create analytics (routed by `analyticsFlow`).
+ * Returned to the host so it can render the presentational
+ * `ScmProjectDetailsCore` form and place its own Create button (onboarding's
+ * fixed footer, project creation's page-level footer) independent of where
+ * the form fields render.
  */
 export function useScmProjectDetails({
   analyticsFlow,
   onComplete,
-  onProjectCreated,
   onProjectDetailsFormChange,
+  projectDetailsForm,
   selectedPlatform,
   selectedRepository,
   createdProjectSlug,
-  projectDetailsForm,
   allowMemberWithoutTeam,
 }: UseScmProjectDetailsOptions): ScmProjectDetailsForm {
   const organization = useOrganization();
@@ -130,41 +148,48 @@ export function useScmProjectDetails({
     !organization.access.includes('project:admin');
   const defaultName = slugify(selectedPlatform?.key ?? '');
 
-  // State tracks user edits. When the host restores a persisted
-  // projectDetailsForm (e.g. back-navigation in onboarding) it seeds the inputs.
-  const [projectName, setProjectName] = useState(projectDetailsForm?.projectName ?? null);
-  const [teamSlug, setTeamSlug] = useState(projectDetailsForm?.teamSlug ?? null);
-  const [alertRuleConfig, setAlertRuleConfig] = useState(
-    projectDetailsForm?.alertRuleConfig ?? DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
+  // Fields absent from the host-owned form fall back to derived defaults, so
+  // a host clearing the form (e.g. on a platform change) re-derives them.
+  const projectNameResolved = projectDetailsForm?.projectName ?? defaultName;
+  const teamSlugResolved = projectDetailsForm?.teamSlug ?? firstAdminTeam?.slug ?? '';
+  const alertRuleConfig =
+    projectDetailsForm?.alertRuleConfig ?? DEFAULT_ISSUE_ALERT_OPTIONS_VALUES;
+
+  // Baseline for the unchanged-return (reuse) check below: the form as it was
+  // when this step mounted, i.e. a restored session's saved values. Live edits
+  // flow through the controlled form, so the prop can't be its own baseline.
+  const savedFormRef = useRef(projectDetailsForm);
+
+  const onProjectNameChange = useCallback(
+    (value: string) => {
+      onProjectDetailsFormChange({...projectDetailsForm, projectName: slugify(value)});
+    },
+    [onProjectDetailsFormChange, projectDetailsForm]
   );
 
-  const projectNameResolved = projectName ?? defaultName;
-  const teamSlugResolved = teamSlug ?? firstAdminTeam?.slug ?? '';
-
-  const onProjectNameChange = useCallback((value: string) => {
-    setProjectName(slugify(value));
-  }, []);
-
   const onProjectNameBlur = useCallback(() => {
-    if (projectName !== null) {
+    if (projectDetailsForm?.projectName !== undefined) {
       trackAnalytics(NAME_EDITED_EVENT[analyticsFlow], {
         organization,
-        custom: projectName !== defaultName,
+        custom: projectDetailsForm.projectName !== defaultName,
       });
     }
-  }, [projectName, defaultName, organization, analyticsFlow]);
+  }, [projectDetailsForm?.projectName, defaultName, organization, analyticsFlow]);
 
   const onTeamChange = useCallback(
     ({value}: {value: string}) => {
-      setTeamSlug(value);
+      onProjectDetailsFormChange({...projectDetailsForm, teamSlug: value});
       trackAnalytics(TEAM_SELECTED_EVENT[analyticsFlow], {organization, team: value});
     },
-    [organization, analyticsFlow]
+    [onProjectDetailsFormChange, projectDetailsForm, organization, analyticsFlow]
   );
 
   const onAlertChange = useCallback(
     <K extends keyof AlertRuleOptions>(key: K, value: AlertRuleOptions[K]) => {
-      setAlertRuleConfig(prev => ({...prev, [key]: value}));
+      onProjectDetailsFormChange({
+        ...projectDetailsForm,
+        alertRuleConfig: {...alertRuleConfig, [key]: value},
+      });
       if (key === 'alertSetting') {
         const optionMap: Record<number, string> = {
           [RuleAction.DEFAULT_ALERT]: 'high_priority',
@@ -177,7 +202,13 @@ export function useScmProjectDetails({
         });
       }
     },
-    [organization, analyticsFlow]
+    [
+      onProjectDetailsFormChange,
+      projectDetailsForm,
+      alertRuleConfig,
+      organization,
+      analyticsFlow,
+    ]
   );
 
   // Block submission until teams and the projects store have loaded so the
@@ -198,12 +229,13 @@ export function useScmProjectDetails({
   // snapshot because the Project model tracks it; alert fields are not on the
   // Project record so we compare those against the context snapshot.
   const samePlatform = existingProject?.platform === selectedPlatform?.key;
-  const savedAlert = projectDetailsForm?.alertRuleConfig;
+  const savedForm = savedFormRef.current;
+  const savedAlert = savedForm?.alertRuleConfig;
   const nothingChanged =
     samePlatform &&
-    !!projectDetailsForm &&
-    projectNameResolved === projectDetailsForm.projectName &&
-    teamSlugResolved === projectDetailsForm.teamSlug &&
+    !!savedForm &&
+    projectNameResolved === savedForm.projectName &&
+    teamSlugResolved === savedForm.teamSlug &&
     alertRuleConfig.alertSetting === savedAlert?.alertSetting &&
     alertRuleConfig.interval === savedAlert?.interval &&
     alertRuleConfig.metric === savedAlert?.metric &&
@@ -216,6 +248,12 @@ export function useScmProjectDetails({
 
     trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
 
+    const submittedForm = {
+      projectName: projectNameResolved,
+      teamSlug: teamSlugResolved,
+      alertRuleConfig,
+    };
+
     // User navigated back and clicked Create without changing anything; skip
     // to completion without creating a duplicate. Any actual change abandons
     // the previous project and creates a new one, matching legacy onboarding.
@@ -224,7 +262,7 @@ export function useScmProjectDetails({
         organization,
         project_slug: existingProject.slug,
       });
-      onComplete();
+      onComplete({project: existingProject, projectDetailsForm: submittedForm});
       return;
     }
 
@@ -236,10 +274,6 @@ export function useScmProjectDetails({
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
         createNotificationAction: () => {},
       });
-
-      // Store the project slug separately so the host can find the project
-      // without corrupting selectedPlatform.key.
-      onProjectCreated(project.slug);
 
       if (selectedRepository?.id) {
         try {
@@ -253,18 +287,12 @@ export function useScmProjectDetails({
         }
       }
 
-      onProjectDetailsFormChange({
-        projectName: projectNameResolved,
-        teamSlug: teamSlugResolved,
-        alertRuleConfig,
-      });
-
       trackAnalytics(CREATE_SUCCEEDED_EVENT[analyticsFlow], {
         organization,
         project_slug: project.slug,
       });
 
-      onComplete();
+      onComplete({project, projectDetailsForm: submittedForm});
     } catch (error) {
       trackAnalytics(CREATE_FAILED_EVENT[analyticsFlow], {organization});
       addErrorMessage(t('Failed to create project'));
@@ -279,8 +307,6 @@ export function useScmProjectDetails({
     isOrgMemberWithNoAccess,
     nothingChanged,
     onComplete,
-    onProjectCreated,
-    onProjectDetailsFormChange,
     organization,
     projectNameResolved,
     selectedPlatform,

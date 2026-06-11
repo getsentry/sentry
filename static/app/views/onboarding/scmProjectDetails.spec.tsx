@@ -3,7 +3,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
@@ -12,6 +18,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
+import {useScmProjectDetails} from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {MetricValues, RuleAction} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmProjectDetails} from './scmProjectDetails';
@@ -110,6 +117,32 @@ describe('ScmProjectDetails', () => {
     expect(await screen.findByText('High priority issues')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
     expect(screen.getByText("I'll create my own alerts later")).toBeInTheDocument();
+  });
+
+  it('re-derives the fields when the host clears the form', () => {
+    const hookProps: Parameters<typeof useScmProjectDetails>[0] = {
+      analyticsFlow: 'onboarding',
+      selectedPlatform: mockPlatform,
+      selectedRepository: undefined,
+      createdProjectSlug: undefined,
+      projectDetailsForm: {
+        projectName: 'restored-name',
+        teamSlug: teamWithAccess.slug,
+      },
+      onProjectDetailsFormChange: jest.fn(),
+      onComplete: jest.fn(),
+    };
+    const {result, rerender} = renderHookWithProviders(useScmProjectDetails, {
+      organization,
+      initialProps: hookProps,
+    });
+
+    expect(result.current.projectName).toBe('restored-name');
+
+    // The host clears the form (platform or repo change in the single-view
+    // flow); the name falls back to the platform default.
+    rerender({...hookProps, projectDetailsForm: undefined});
+    expect(result.current.projectName).toBe('javascript-nextjs');
   });
 
   it('create project button is disabled without platform', async () => {

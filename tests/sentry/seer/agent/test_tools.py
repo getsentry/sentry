@@ -456,6 +456,54 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert exc_info.value.status_code == 500
 
     @patch("sentry.seer.agent.tools.client.get")
+    def test_spans_timeseries_query_error_handling(self, mock_client_get: Mock) -> None:
+        """400 errors return the detail under a reserved _seer_error_detail key so it can't collide
+        with a group_by value (which becomes a top-level key); non-400 errors are re-raised."""
+        # 400 error with dict body containing detail.
+        error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
+        mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
+
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            y_axes=["count()"],
+            query="invalid_field:value",
+            stats_period="1h",
+        )
+
+        assert result == {"_seer_error_detail": error_detail_msg}
+        # The detail is not exposed under "error", where it could shadow a group value.
+        assert "error" not in result
+
+        # 400 error with a non-dict body falls back to stringifying the whole body.
+        error_body = "Bad request: malformed query syntax"
+        mock_client_get.side_effect = client.ApiError(400, error_body)
+
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            y_axes=["count()"],
+            query="malformed query",
+            stats_period="1h",
+        )
+
+        assert result == {"_seer_error_detail": error_body}
+
+        # Non-400 errors are re-raised.
+        mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
+
+        with pytest.raises(client.ApiError) as exc_info:
+            execute_timeseries_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                y_axes=["count()"],
+                query="",
+                stats_period="1h",
+            )
+
+        assert exc_info.value.status_code == 500
+
+    @patch("sentry.seer.agent.tools.client.get")
     def test_table_query_forwards_cross_event_params(self, mock_client_get: Mock) -> None:
         """Cross-event filters are forwarded to /events/ as repeated spanQuery/logQuery/metricQuery params."""
         mock_resp = Mock()
@@ -1269,6 +1317,41 @@ class TestGetIssueAndEventDetailsV2(
             assert isinstance(event_dict, dict)
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_on_query_error(self, mock_execute: Mock) -> None:
+        """A _seer_error_detail payload from execute_timeseries_query is treated as no data."""
+        mock_execute.return_value = {"_seer_error_detail": "Invalid query: bad field"}
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_when_no_data(self, mock_execute: Mock) -> None:
+        """A None result from execute_timeseries_query is propagated as None."""
+        mock_execute.return_value = None
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_data_on_success(self, mock_execute: Mock) -> None:
+        """A normal timeseries payload flows through with the selected period and interval."""
+        data: dict[str, Any] = {"count()": {"data": []}}
+        mock_execute.return_value = data
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is not None
+        returned_data, period, interval = result
+        assert returned_data is data
+        assert period
+        assert interval
 
     def test_get_ie_details_from_issue_id_basic(
         self,
