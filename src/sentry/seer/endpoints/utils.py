@@ -19,19 +19,17 @@ class ResolvedSeerRun(NamedTuple):
     uuid: str | None
 
 
-def resolve_seer_run(run_id: str | int, organization: Organization) -> ResolvedSeerRun | Response:
-    """Resolve a client-facing run id (numeric ``seer_run_state_id`` or a
-    ``SeerRun.uuid``) to its :class:`SeerRun`, scoped to ``organization``.
-
-    Returns a :class:`ResolvedSeerRun` (the Seer-side id and the run's UUID) in
-    a single lookup, or an error ``Response`` following the ``{"session": ...}``
-    poll contract: 400 for an unparseable id, 404 for an unknown run, and a
-    ``processing`` / ``error`` session status while the run's Seer id isn't
-    mirrored yet or its mirror failed. Callers narrow with
-    ``isinstance(result, Response)``.
-
-    A numeric id with no mirror row falls back to a bare passthrough (UUID
-    ``None``) so runs predating mirroring still resolve.
+def resolve_seer_run(
+    run_id: str | int,
+    organization: Organization,
+    *,
+    for_continue: bool = False,
+) -> ResolvedSeerRun | Response:
+    """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
+    ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
+    (narrow with ``isinstance``). For a not-ready run, a poll gets the 200
+    ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
+    (still mirroring) or 422 (mirror failed).
     """
     try:
         seer_run_state_id = int(run_id)
@@ -53,8 +51,18 @@ def resolve_seer_run(run_id: str | int, organization: Organization) -> ResolvedS
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
+        if for_continue:
+            return Response(
+                {"detail": "This run failed to start and cannot be continued."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
         return Response({"session": {"status": "error"}})
     if run.seer_run_state_id is None:
+        if for_continue:
+            return Response(
+                {"detail": "This run is still being created; retry shortly."},
+                status=status.HTTP_409_CONFLICT,
+            )
         return Response({"session": {"status": "processing"}})
     return ResolvedSeerRun(run.seer_run_state_id, str(run.uuid))
 

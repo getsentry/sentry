@@ -261,7 +261,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 reasoning_effort="medium",
             )
             if run_id:
-                resolved = resolve_seer_run(run_id, organization)
+                resolved = resolve_seer_run(run_id, organization, for_continue=True)
                 if isinstance(resolved, Response):
                     return resolved
                 # Continue existing conversation

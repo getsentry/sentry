@@ -75,6 +75,29 @@ class ResolveSeerRunTest(TestCase):
         assert isinstance(result, Response)
         assert result.data == {"session": {"status": "processing"}}
 
+    def test_uuid_pending_mirror_for_continue_returns_409(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=None,
+            mirror_status=SeerRunMirrorStatus.PENDING,
+        )
+
+        result = resolve_seer_run(str(run.uuid), self.organization, for_continue=True)
+
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_409_CONFLICT
+
+    def test_uuid_failed_mirror_for_continue_returns_422(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            mirror_status=SeerRunMirrorStatus.FAILED,
+        )
+
+        result = resolve_seer_run(str(run.uuid), self.organization, for_continue=True)
+
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
     def test_unknown_uuid_returns_404(self) -> None:
         result = resolve_seer_run(str(uuid.uuid4()), self.organization)
 
