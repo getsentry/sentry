@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 
@@ -240,7 +241,7 @@ _KEY_ERRORS_CHUNK_SIZE = 100
 
 def _org_key_errors_snuba(
     ctx: OrganizationReportContext,
-    project_ids: list[int],
+    project_ids: Sequence[int],
     referrer: str,
     per_project_limit: int = 3,
 ) -> dict[int, list[dict[str, Any]]]:
@@ -258,7 +259,7 @@ def _org_key_errors_snuba(
 
 def _org_key_errors_snuba_chunk(
     ctx: OrganizationReportContext,
-    project_ids: list[int],
+    project_ids: Sequence[int],
     referrer: str,
     per_project_limit: int,
 ) -> dict[int, list[dict[str, Any]]]:
@@ -334,38 +335,7 @@ def org_key_errors(
         if not project_ids:
             return {}
 
-        snuba_results = _org_key_errors_snuba(ctx=ctx, project_ids=project_ids, referrer=referrer)
-
-        callsite = "tasks.summaries.project_key_errors"
-        if EAPOccurrencesComparator.should_check_experiment(callsite):
-            for pid in project_ids:
-                project = ctx.projects_context_map[pid].project
-                snuba_rows = snuba_results.get(pid, [])
-                eap_rows = _project_key_errors_eap(
-                    ctx=ctx,
-                    project=project,
-                    referrer=referrer,
-                )
-                chosen = EAPOccurrencesComparator.check_and_choose(
-                    snuba_rows,
-                    eap_rows,
-                    callsite,
-                    is_experimental_data_nullish=len(eap_rows) == 0,
-                    reasonable_match_comparator=lambda snuba, eap: keyed_counts_subset_match(
-                        snuba,
-                        eap,
-                        key_fn=lambda row: int(row["events.group_id"]),
-                    ),
-                    debug_context={
-                        "organization_id": ctx.organization.id,
-                        "project_id": pid,
-                        "start": ctx.start.isoformat(),
-                        "end": (ctx.end + timedelta(days=1)).isoformat(),
-                    },
-                )
-                snuba_results[pid] = chosen
-
-        return snuba_results
+        return _org_key_errors_snuba(ctx=ctx, project_ids=project_ids, referrer=referrer)
 
 
 def _project_key_errors_eap(

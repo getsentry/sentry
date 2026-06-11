@@ -203,6 +203,7 @@ class OrganizationReportContextFactory:
                     query_result = project_key_transactions_last_week(
                         ctx, project, key_transactions_this_week
                     )
+                    # Join last week's transaction counts and p95s to this week's key transactions for week-over-week comparison
                     last_week_data = {
                         i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
                     }
