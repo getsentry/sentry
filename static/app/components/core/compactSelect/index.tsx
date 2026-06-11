@@ -42,7 +42,6 @@ export {
   itemIsSectionWithKey,
   SectionToggle,
   getEscapedKey,
-  getSearchResultOptionId,
 } from './utils';
 
 export {useVirtualizedItems} from './useVirtualizedItems';
