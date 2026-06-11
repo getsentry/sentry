@@ -60,7 +60,6 @@ dependencies = [
   "objectstore-client>=0.1.10",
   "openai>=1.3.5",
   "orjson>=3.10.10",
-  "p4python>=2025.1.2767466",
   "packaging>=24.1",
   "parsimonious>=0.10.0",
   "petname>=2.6",
