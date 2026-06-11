@@ -112,13 +112,9 @@ function toRelativeHref(href: string): string {
   if (!/^https?:\/\//.test(href)) {
     return href;
   }
-  try {
-    const url = new URL(href);
-    if (url.origin === window.location.origin) {
-      return url.pathname + url.search + url.hash;
-    }
-  } catch {
-    // Invalid URL, use as-is
+  const {origin} = window.location;
+  if (href === origin || href.startsWith(`${origin}/`)) {
+    return href.slice(origin.length) || '/';
   }
   return href;
 }
