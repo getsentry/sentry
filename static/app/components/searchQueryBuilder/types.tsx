@@ -19,13 +19,9 @@ export type FocusOverride = {
   part?: 'value' | 'key' | 'op';
 };
 
-export type FieldDefinitionGetterOptions = {
-  kind?: FieldKind;
-};
-
 export type FieldDefinitionGetter = (
   key: string,
-  options?: FieldDefinitionGetterOptions
+  options?: {kind?: FieldKind}
 ) => FieldDefinition | null;
 
 export type CallbackSearchState = {
