@@ -973,7 +973,7 @@ def _get_issue_event_timeseries(
         partial=True,
     )
 
-    if data is None:
+    if data is None or data.get("_seer_error_detail"):
         return None
     return data, selected_period, interval
 

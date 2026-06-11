@@ -1320,6 +1320,41 @@ class TestGetIssueAndEventDetailsV2(
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_on_query_error(self, mock_execute: Mock) -> None:
+        """A _seer_error_detail payload from execute_timeseries_query is treated as no data."""
+        mock_execute.return_value = {"_seer_error_detail": "Invalid query: bad field"}
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_when_no_data(self, mock_execute: Mock) -> None:
+        """A None result from execute_timeseries_query is propagated as None."""
+        mock_execute.return_value = None
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_data_on_success(self, mock_execute: Mock) -> None:
+        """A normal timeseries payload flows through with the selected period and interval."""
+        data: dict[str, Any] = {"count()": {"data": []}}
+        mock_execute.return_value = data
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is not None
+        returned_data, period, interval = result
+        assert returned_data is data
+        assert period
+        assert interval
+
     def test_get_ie_details_from_issue_id_basic(
         self,
     ):
