@@ -589,6 +589,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             role = organization.default_role
             idp_role_restricted = False
         scope.set_tag("role_restricted", idp_role_restricted)
+        scope.set_attribute("role_restricted", idp_role_restricted)
 
         # Allow any role as long as it doesn't have `org:admin` permissions
         allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
@@ -597,9 +598,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         # TODO: move this to the serializer verification
         if role not in {role.id for role in allowed_roles}:
             scope.set_tag("invalid_role_selection", True)
+            scope.set_attribute("invalid_role_selection", True)
             raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
         scope.set_tag("invalid_role_selection", False)
+        scope.set_attribute("invalid_role_selection", False)
         serializer = OrganizationMemberRequestSerializer(
             data={
                 "email": request.data.get("userName"),
