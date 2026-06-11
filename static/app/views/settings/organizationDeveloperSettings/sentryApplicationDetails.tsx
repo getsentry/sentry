@@ -700,16 +700,14 @@ function SentryApplicationForm({
             <field.Layout.Row
               label={t('Webhook Headers')}
               hintText={t(
-                'Custom headers to include with every webhook request. Enter one header per line in the format: Header-Name: value'
+                'Custom headers to include with every webhook request. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
               )}
             >
               <field.TextArea
                 autosize
                 value={field.state.value}
                 onChange={field.handleChange}
-                placeholder={
-                  'anthropic-version: 2023-06-01\nauthorization: Bearer token123'
-                }
+                placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
               />
             </field.Layout.Row>
           )}
