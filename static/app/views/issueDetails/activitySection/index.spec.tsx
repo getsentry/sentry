@@ -24,6 +24,7 @@ import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
+  const tenMinutesAgo = () => new Date(Date.now() - 10 * 60 * 1000).toISOString();
   user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
@@ -183,7 +184,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.NOTE,
           id: 'note-1',
           data: {text: '**Bold Note** and [docs](https://docs.sentry.io/)'},
-          dateCreated: '2020-01-01T00:00:00',
+          dateCreated: tenMinutesAgo(),
           user,
         },
       ],
@@ -199,6 +200,7 @@ describe('ActivitySection', () => {
       'href',
       'https://docs.sentry.io/'
     );
+    expect(screen.getByText('10m ago')).toBeInTheDocument();
   });
 
   it('renders activity actor markers', async () => {
@@ -440,7 +442,7 @@ describe('ActivitySection', () => {
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
-      dateCreated: '2020-01-01T00:00:00',
+      dateCreated: tenMinutesAgo(),
       user: UserFixture({id: '2'}),
       project,
     }));
@@ -462,6 +464,8 @@ describe('ActivitySection', () => {
     }
 
     expect(screen.queryByText('View 4 more')).not.toBeInTheDocument();
+    expect(screen.getAllByText('10 minutes ago')).toHaveLength(7);
+    expect(screen.queryByText('10m ago')).not.toBeInTheDocument();
   });
 
   it('filters comments correctly', async () => {
