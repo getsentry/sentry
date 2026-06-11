@@ -1546,7 +1546,7 @@ register(
 # 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
 register(
     "api.deprecation.alerts-cron",
-    default="0 0,4,8,12,16,20 * * *",
+    default="0 */4 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
