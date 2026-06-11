@@ -1,14 +1,9 @@
 import type {UIMatch} from 'react-router-dom';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {matchesToRoutes, recreateRoute} from 'sentry/utils/recreateRoute';
 
 jest.unmock('sentry/utils/recreateRoute');
-
-function matchesToRoutes(ms: UIMatch[]): PlainRoute[] {
-  return ms.map(m => ({...(m.handle as any)}));
-}
 
 function makeMatch(
   pathname: string,

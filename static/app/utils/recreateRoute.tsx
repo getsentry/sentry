@@ -4,6 +4,10 @@ import type {Location} from 'history';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 
+export function matchesToRoutes(matches: UIMatch[]): PlainRoute[] {
+  return matches.map(m => ({...(m.handle as any)}));
+}
+
 type Options = {
   matches: UIMatch[];
 
@@ -11,9 +15,8 @@ type Options = {
   // params should have `{orgId: slug}`
   params: Record<string, string | undefined>;
 
-  routes: PlainRoute[];
-
   location?: Location;
+  routes?: PlainRoute[];
   /**
    * The number of routes to pop off of `routes
    * Must be < 0
@@ -30,7 +33,8 @@ type Options = {
  * See tests for examples
  */
 export function recreateRoute(to: string | PlainRoute, options: Options): string {
-  const {routes, params, location, stepBack} = options;
+  const {matches, params, location, stepBack} = options;
+  const routes = options.routes ?? matchesToRoutes(matches);
   const paths = routes.map(({path}) => {
     path = path || '';
     if (path.length > 0 && !path.endsWith('/')) {
