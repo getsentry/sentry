@@ -87,8 +87,7 @@ export function getLocalityUrlOptions(
     .filter(locality => {
       if (
         excludedRegionNames.includes(locality.name) ||
-        (only.length > 0 && !only.includes(locality.name)) ||
-        CUSTOMER_HIDDEN_REGIONS.has(locality.name)
+        (only.length > 0 && !only.includes(locality.name))
       ) {
         return false;
       }
@@ -98,13 +97,11 @@ export function getLocalityUrlOptions(
       const {url} = locality;
       return {
         value: url,
-        label: `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`,
+        label:
+          `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`.trim(),
       };
     });
 }
-
-// TODO(cells) Rework/remove this once Region -> Locality config changes are completed.
-const CUSTOMER_HIDDEN_REGIONS = new Set(['us2']);
 
 /**
  * Create a list of option objects with {label: displayName, value: name}
@@ -112,14 +109,13 @@ const CUSTOMER_HIDDEN_REGIONS = new Set(['us2']);
 export function getLocalityNameOptions(): Array<SelectValue<string>> {
   const localities = getLocalities();
 
-  return localities
-    .filter(locality => !CUSTOMER_HIDDEN_REGIONS.has(locality.name))
-    .map(locality => {
-      return {
-        value: locality.name,
-        label: `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`,
-      };
-    });
+  return localities.map(locality => {
+    return {
+      value: locality.name,
+      label:
+        `${getLocalityFlagIndicator(locality)} ${getLocalityDisplayName(locality)}`.trim(),
+    };
+  });
 }
 
 export function shouldDisplayLocalities(): boolean {
