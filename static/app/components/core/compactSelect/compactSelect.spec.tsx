@@ -525,6 +525,32 @@ describe('CompactSelect', () => {
       expect(mock).not.toHaveBeenCalled();
     });
 
+    it('does not select stale results on Enter when client-side filtering is disabled', async () => {
+      const mock = jest.fn();
+
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…', filter: false}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={mock}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search here…');
+      await userEvent.type(searchInput, 'Two');
+
+      expect(searchInput).not.toHaveAttribute('aria-activedescendant');
+
+      await userEvent.keyboard('{Enter}');
+
+      expect(mock).not.toHaveBeenCalled();
+    });
+
     it('restores full list when search query is cleared', async () => {
       render(
         <CompactSelect

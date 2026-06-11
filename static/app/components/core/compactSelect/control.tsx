@@ -267,7 +267,8 @@ export function Control({
 
   const normalizedSearch = getSearchConfig(searchConfig);
   const searchEnabled = normalizedSearch !== undefined;
-  const autoFocusFirstResult = normalizedSearch?.autoFocusFirstResult ?? true;
+  const autoFocusFirstResult =
+    normalizedSearch?.autoFocusFirstResult ?? normalizedSearch?.filter !== false;
   const searchFilter =
     typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
 
