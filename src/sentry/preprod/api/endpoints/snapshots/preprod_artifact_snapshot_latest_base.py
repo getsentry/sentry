@@ -73,7 +73,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Retrieve latest base Snapshot",
+        operation_id="getOrganizationPreprodArtifactSnapshotLatestBase",
+        summary="Retrieve latest base Snapshot",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(

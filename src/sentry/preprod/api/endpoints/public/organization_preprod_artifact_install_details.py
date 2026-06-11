@@ -39,7 +39,8 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
     )
 
     @extend_schema(
-        operation_id="Retrieve install info for a given artifact",
+        operation_id="getOrganizationPreprodArtifactInstallDetails",
+        summary="Retrieve install info for a given artifact",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(

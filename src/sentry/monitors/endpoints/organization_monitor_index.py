@@ -89,7 +89,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
-        operation_id="Retrieve Monitors for an Organization",
+        operation_id="listOrganizationMonitors",
+        summary="Retrieve Monitors for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -270,7 +271,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Monitor",
+        operation_id="createOrganizationMonitor",
+        summary="Create a Monitor",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=MonitorValidator,
         responses={

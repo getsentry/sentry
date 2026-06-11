@@ -168,7 +168,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
     )
 
     @extend_schema(
-        operation_id="Start Seer Issue Fix",
+        operation_id="startOrganizationIssueAutofix",
+        summary="Start Seer Issue Fix",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -304,7 +305,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             raise PermissionDenied(SEER_PERMISSION_DENIED)
 
     @extend_schema(
-        operation_id="Retrieve Seer Issue Fix State",
+        operation_id="getOrganizationIssueAutofixState",
+        summary="Retrieve Seer Issue Fix State",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,

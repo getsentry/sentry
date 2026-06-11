@@ -36,7 +36,8 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
     }
 
     @extend_schema(
-        operation_id="Delete an External Issue",
+        operation_id="deleteSentryAppInstallationExternalIssue",
+        summary="Delete an External Issue",
         parameters=[SentryAppParams.INSTALLATION_UUID, _EXTERNAL_ISSUE_ID_PARAM],
         responses={
             204: RESPONSE_NO_CONTENT,
