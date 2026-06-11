@@ -1,4 +1,5 @@
 import {registerWebWorker} from '@sentry/browser';
+import {startSpan} from '@sentry/core';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
@@ -9,9 +10,21 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 registerWebWorker({self: sw as any});
 
 sw.addEventListener('install', () => {
-  sw.skipWaiting();
+  startSpan({name: 'service-worker.install', op: 'sw.lifecycle'}, () => {
+    sw.skipWaiting();
+  });
 });
 
 sw.addEventListener('activate', event => {
-  event.waitUntil(sw.clients.claim());
+  event.waitUntil(
+    startSpan({name: 'service-worker.activate', op: 'sw.lifecycle'}, () =>
+      sw.clients.claim()
+    )
+  );
+});
+
+sw.addEventListener('message', _event => {
+  startSpan({name: 'service-worker.message', op: 'sw.message'}, () => {
+    // No custom message handlers yet
+  });
 });
