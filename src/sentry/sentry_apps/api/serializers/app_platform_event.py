@@ -5,6 +5,7 @@ from time import time
 from typing import Any, TypedDict
 from uuid import uuid4
 
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.webhooks import SentryAppActionType, SentryAppResourceType
@@ -94,9 +95,6 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
     def sentry_headers(self) -> dict[str, str]:
         """Headers Sentry sets on every webhook request.
 
-        These are the only headers recorded in the request buffer / debug UI:
-        custom webhook headers may carry secrets and must never be logged there.
-
         Cached so the Request-ID, timestamp, and signature are computed once and
         stay consistent between the sent request and the logged buffer entry.
         """
@@ -125,3 +123,23 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         # Sentry's headers are merged last so they always win: a custom header
         # can never override the signature and spoof payload integrity.
         return {**self.custom_headers, **self.sentry_headers}
+
+    @property
+    def masked_custom_headers(self) -> dict[str, str]:
+        """Custom header names with their values replaced by MASKED_VALUE.
+
+        Custom header values may carry secrets (e.g. bearer tokens), so they are
+        never persisted to the request buffer. The names are kept so the debug UI
+        can show which custom headers were sent without leaking the values.
+        """
+        return {name: MASKED_VALUE for name in self.custom_headers}
+
+    @property
+    def loggable_headers(self) -> dict[str, str]:
+        """Headers safe to record in the request buffer / debug UI.
+
+        Sentry's own headers in the clear, plus custom headers with masked values.
+        Sentry's headers are merged last so the buffer mirrors the precedence of
+        what was actually sent (see ``headers``).
+        """
+        return {**self.masked_custom_headers, **self.sentry_headers}
