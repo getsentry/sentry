@@ -121,10 +121,12 @@ class IssueLinkRequester:
                     extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
                 )
 
+                status_code = e.response.status_code if e.response is not None else 500
+
                 raise SentryAppIntegratorError(
                     message=f"Issue occurred while trying to contact {self.sentry_app.slug} to link issue",
                     webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
-                    status_code=500,
+                    status_code=status_code,
                 )
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e, extra={**extras})
