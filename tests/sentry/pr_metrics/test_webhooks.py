@@ -185,6 +185,7 @@ CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
 @with_feature("organizations:pr-metrics-emit")
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
@@ -288,6 +289,16 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         with self.feature({"organizations:pr-metrics-emit": False}):
             self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+    @patch("sentry.analytics.record")
+    def test_skips_emit_when_activity_tracking_disabled(self, mock_record: MagicMock) -> None:
+        # Without activity tracking the commits-after-open signal is absent, so the
+        # verdict can't be settled deterministically — defer rather than emit a
+        # possibly-wrong merged_unchanged. No verdict is claimed either.
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
     @patch("sentry.analytics.record")
     def test_skips_untracked_pr(self, mock_record: MagicMock) -> None:

@@ -23,6 +23,7 @@ from sentry.pr_metrics.emit import (
     select_verdict,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils import json
@@ -53,6 +54,7 @@ METRICS = {
 
 
 @cell_silo_test
+@with_feature("organizations:pr-metrics-activity")
 class PrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -113,30 +115,36 @@ class PrMetricsEmissionTest(TestCase):
 
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         # Merged with no SYNCHRONIZED activity: merge head == opened head.
-        assert select_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED
+        assert (
+            select_verdict(self.pull_request, self.organization)
+            == PullRequestVerdict.MERGED_UNCHANGED
+        )
 
     def test_select_verdict_merged_with_later_commits_needs_judge(self) -> None:
         self._add_synchronize()
-        assert select_verdict(self.pull_request) is None
+        assert select_verdict(self.pull_request, self.organization) is None
 
     def test_select_verdict_closed_without_engagement_is_unmerged(self) -> None:
         self.pull_request.merged_at = None
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).update(
             comments_count=0, review_comments_count=0
         )
-        assert select_verdict(self.pull_request) == PullRequestVerdict.CLOSED_UNMERGED
+        assert (
+            select_verdict(self.pull_request, self.organization)
+            == PullRequestVerdict.CLOSED_UNMERGED
+        )
 
     def test_select_verdict_closed_with_comments_needs_judge(self) -> None:
         # setUp's metrics row carries comments_count=5, i.e. engagement to analyze.
         self.pull_request.merged_at = None
-        assert select_verdict(self.pull_request) is None
+        assert select_verdict(self.pull_request, self.organization) is None
 
     def test_select_verdict_merged_without_metrics_row_needs_judge(self) -> None:
         # A missing row is an error state for a merge too: defer rather than emit a
         # row with zeroed counters.
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
         with patch("sentry.pr_metrics.emit.logger") as mock_logger:
-            assert select_verdict(self.pull_request) is None
+            assert select_verdict(self.pull_request, self.organization) is None
         mock_logger.warning.assert_called_once_with(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
@@ -151,7 +159,7 @@ class PrMetricsEmissionTest(TestCase):
         self.pull_request.merged_at = None
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
         with patch("sentry.pr_metrics.emit.logger") as mock_logger:
-            assert select_verdict(self.pull_request) is None
+            assert select_verdict(self.pull_request, self.organization) is None
         mock_logger.warning.assert_called_once_with(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
@@ -166,7 +174,15 @@ class PrMetricsEmissionTest(TestCase):
             comments_count=0, review_comments_count=0
         )
         self._add_synchronize()
-        assert select_verdict(self.pull_request) is None
+        assert select_verdict(self.pull_request, self.organization) is None
+
+    def test_select_verdict_needs_judge_when_activity_tracking_disabled(self) -> None:
+        # The commits-after-open signal comes from activity rows the org isn't
+        # recording, so an otherwise-clean merge can't be settled deterministically.
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            with patch("sentry.pr_metrics.emit.metrics") as mock_metrics:
+                assert select_verdict(self.pull_request, self.organization) is None
+        mock_metrics.incr.assert_called_once_with("pr_metrics.select_verdict.activity_disabled")
 
     def test_build_row_for_merge(self) -> None:
         row = build_pr_metrics_row(

@@ -11,9 +11,10 @@ import logging
 from datetime import datetime
 from typing import Any, Final, Literal
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
@@ -40,7 +41,9 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
-def select_verdict(pull_request: PullRequest) -> PullRequestVerdict | None:
+def select_verdict(
+    pull_request: PullRequest, organization: Organization
+) -> PullRequestVerdict | None:
     """The terminal verdict Sentry can decide on its own, or ``None`` for a judge.
 
     A judge is needed whenever the outcome can't be settled deterministically from
@@ -56,11 +59,19 @@ def select_verdict(pull_request: PullRequest) -> PullRequestVerdict | None:
       engagement needs the comment judge to decide why it was closed.
 
     The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
-    to the PR branch after it opened. A missing ``PullRequestMetrics`` row is an
-    error state — ``handle_metrics`` persists it before emission under the same
-    flag, so its absence means it failed — and we defer to a judge for both
-    outcomes rather than emit zeroed counters (merge) or guess abandoned (close).
+    to the PR branch after it opened. Those rows are only written under
+    ``pr-metrics-activity``, which is flagged independently of emission; without it
+    a clean merge is indistinguishable from one with later commits, so we defer
+    every outcome to a judge rather than read its absence as "no later commits". A
+    missing ``PullRequestMetrics`` row is an error state — ``handle_metrics``
+    persists it before emission under the same flag, so its absence means it
+    failed — and we defer to a judge for both outcomes rather than emit zeroed
+    counters (merge) or guess abandoned (close).
     """
+    if not features.has("organizations:pr-metrics-activity", organization):
+        metrics.incr("pr_metrics.select_verdict.activity_disabled")
+        return None
+
     metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
     if metrics_row is None:
         logger.warning(

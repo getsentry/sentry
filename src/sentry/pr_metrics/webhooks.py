@@ -185,7 +185,7 @@ def handle_emission(
     if pr is None:
         return
 
-    verdict = select_verdict(pr)
+    verdict = select_verdict(pr, organization)
     if verdict is None:
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
         logger.info(
