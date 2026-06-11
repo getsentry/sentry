@@ -221,7 +221,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
         return JsonResponse(
             {"error": "apigateway", "detail": "Proxied request timed out"},
-            status=504,
+            status=500,
         )
     except ConnectionError:
         metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
@@ -230,7 +230,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
         return JsonResponse(
             {"error": "apigateway", "detail": "Downstream service unavailable"},
-            status=502,
+            status=500,
         )
 
     if resp.status_code >= 502:

@@ -342,7 +342,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert not any([header in resp for header in INVALID_OUTBOUND_HEADERS])
 
     @responses.activate
-    def test_sync_connect_timeout_returns_504(self) -> None:
+    def test_sync_connect_timeout_returns_500(self) -> None:
         responses.add(
             responses.GET,
             "http://us.internal.sentry.io/unreachable",
@@ -350,12 +350,12 @@ class ProxyTestCase(ApiGatewayTestCase):
         )
         request = RequestFactory().get("http://sentry.io/unreachable")
         resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
-        assert resp.status_code == 504
+        assert resp.status_code == 500
         assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Proxied request timed out"
 
     @responses.activate
-    def test_sync_connection_error_returns_502(self) -> None:
+    def test_sync_connection_error_returns_500(self) -> None:
         responses.add(
             responses.GET,
             "http://us.internal.sentry.io/unreachable",
@@ -363,11 +363,11 @@ class ProxyTestCase(ApiGatewayTestCase):
         )
         request = RequestFactory().get("http://sentry.io/unreachable")
         resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
-        assert resp.status_code == 502
+        assert resp.status_code == 500
         assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
 
-    def test_async_timeout_returns_504(self) -> None:
+    def test_async_timeout_returns_500(self) -> None:
         def raise_timeout(request: httpx.Request) -> NoReturn:
             raise httpx.ConnectTimeout("connection timed out", request=request)
 
@@ -377,11 +377,11 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         request = RequestFactory().get("http://sentry.io/unreachable")
         resp = proxy_request(request, self.organization.slug, url_name)
-        assert resp.status_code == 504
+        assert resp.status_code == 500
         assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Proxied request timed out"
 
-    def test_async_connection_error_returns_502(self) -> None:
+    def test_async_connection_error_returns_500(self) -> None:
         def raise_connect_error(request: httpx.Request) -> NoReturn:
             raise httpx.ConnectError("connection refused", request=request)
 
@@ -391,7 +391,7 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         request = RequestFactory().get("http://sentry.io/unreachable")
         resp = proxy_request(request, self.organization.slug, url_name)
-        assert resp.status_code == 502
+        assert resp.status_code == 500
         assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
 

@@ -182,14 +182,14 @@ async def proxy_cell_request(
                 circuitbreaker.incr_failures()
                 return JsonResponse(
                     {"error": "apigateway", "detail": "Proxied request timed out"},
-                    status=504,
+                    status=500,
                 )
             except httpx.RequestError:
                 metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                 circuitbreaker.incr_failures()
                 return JsonResponse(
                     {"error": "apigateway", "detail": "Downstream service unavailable"},
-                    status=502,
+                    status=500,
                 )
     except CircuitBreakerOverflow:
         metrics.incr("apigateway.proxy.circuit_breaker.overflow", tags=metric_tags)
