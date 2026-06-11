@@ -31,14 +31,17 @@ def get_group_list(
             ).select_related("project")
         )
     else:
-        project_ids = {p.id for p in projects}
+        project_ids = [p.id for p in projects]
         for group_id in group_ids:
             if isinstance(group_id, str):
                 try:
-                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
+                    # Scope the short id lookup to the authorized projects so a short id
+                    # referencing a project the caller cannot access does not resolve.
+                    group = Group.objects.by_qualified_short_id(
+                        organization_id, group_id, project_ids=project_ids
+                    )
                 except Group.DoesNotExist:
                     continue
-                if group.project_id in project_ids:
-                    groups.append(group)
+                groups.append(group)
 
     return groups
