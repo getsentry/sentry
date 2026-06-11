@@ -56,7 +56,10 @@ import {
   cleanFilterValue,
   getValueSuggestions,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/utils';
-import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  getDefaultFilterValue,
+  resolveFilterKey,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
   isDateToken,
   isNumericFilterToken,
@@ -454,6 +457,7 @@ function useFilterSuggestions({
             label
           ),
         value: suggestion.value,
+        tag: suggestion.tag,
         details: suggestion.description,
         textValue: typeof label === 'string' ? label : suggestion.value,
         hideCheck: true,
@@ -483,6 +487,7 @@ function useFilterSuggestions({
         asyncKeys?.map(tag => ({
           label: prettifyTagKey(tag.key),
           value: tag.key,
+          tag,
         })) ?? [];
       groups = [{sectionText: '', suggestions}];
     } else if (shouldFetchValues) {
@@ -821,7 +826,12 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
-          value: getSuggestedFilterKey(value) ?? value,
+          value: resolveFilterKey({
+            key: value,
+            filterKeys,
+            getSuggestedFilterKey,
+            loadedItems: items,
+          }),
         });
         onCommit();
         return true;
@@ -906,6 +916,8 @@ export function SearchQueryBuilderValueCombobox({
       fieldDefinition,
       valueType,
       getSuggestedFilterKey,
+      filterKeys,
+      items,
       canSelectMultipleValues,
       analyticsData,
       selectedValues,

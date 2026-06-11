@@ -210,7 +210,7 @@ export function SearchQueryBuilderProvider({
 
   const stableGetSuggestedFilterKey = useCallback(
     (key: string) => {
-      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : key;
+      return getSuggestedFilterKey ? getSuggestedFilterKey(key) : null;
     },
     [getSuggestedFilterKey]
   );

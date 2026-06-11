@@ -5,10 +5,13 @@ import type {
   SelectSectionWithKey,
 } from '@sentry/scraps/compactSelect';
 
+import type {Tag} from 'sentry/types/group';
+
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
   hideCheck: boolean;
   showDetailsInOverlay: boolean;
+  tag: Tag;
   textValue: string;
   type: 'item';
   value: string;
