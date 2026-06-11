@@ -1,4 +1,4 @@
-import {Children, useMemo} from 'react';
+import {Children, isValidElement, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
@@ -8,13 +8,18 @@ import {type ButtonProps} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 
-import {ClearButton, Control} from './control';
+import {ClearButton, Control, ControlContext} from './control';
 import type {ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
 import {EmptyMessage} from './styles';
 import type {SelectKey, SelectOption} from './types';
-import {getItemsWithKeys} from './utils';
+import {
+  getDisabledOptions,
+  getHiddenOptions,
+  getItemsWithKeys,
+  getSortedItems,
+} from './utils';
 
 interface BaseCompositeSelectRegion<Value extends SelectKey> {
   options: Array<SelectOption<Value>>;
@@ -30,7 +35,10 @@ interface BaseCompositeSelectRegion<Value extends SelectKey> {
  */
 type SingleCompositeSelectRegion<Value extends SelectKey> =
   BaseCompositeSelectRegion<Value> &
-    DistributedOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
+    DistributedOmit<
+      SingleListProps<Value>,
+      'children' | 'items' | 'grid' | 'size' | 'autoHighlightFirstResult'
+    >;
 
 /**
  * A multiple-selection (multiple options can be selected at the same time) "region"
@@ -40,7 +48,10 @@ type SingleCompositeSelectRegion<Value extends SelectKey> =
  */
 type MultipleCompositeSelectRegion<Value extends SelectKey> =
   BaseCompositeSelectRegion<Value> &
-    DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
+    DistributedOmit<
+      MultipleListProps<Value>,
+      'children' | 'items' | 'grid' | 'size' | 'autoHighlightFirstResult'
+    >;
 
 /**
  * A "region" inside a composite select. Each "region" is a separated, self-contained
@@ -88,21 +99,58 @@ function CompositeSelect({
 }: CompositeSelectProps) {
   return (
     <Control {...controlProps} grid={grid} size={size} disabled={disabled}>
-      <FocusScope>
-        <RegionsWrap>
-          {Children.map(children, child => {
-            if (!child) {
-              return null;
-            }
-
-            return <Region {...child.props} grid={grid} size={size} />;
-          })}
-
-          {/* Only displayed when all lists (regions) are empty */}
-          <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
-        </RegionsWrap>
-      </FocusScope>
+      <CompositeRegions grid={grid} size={size} emptyMessage={emptyMessage}>
+        {children}
+      </CompositeRegions>
     </Control>
+  );
+}
+
+type CompositeRegionsProps = Pick<CompositeSelectProps, 'children' | 'emptyMessage'> & {
+  grid: CompositeSelectProps['grid'];
+  size: NonNullable<CompositeSelectProps['size']>;
+};
+
+function CompositeRegions({children, grid, size, emptyMessage}: CompositeRegionsProps) {
+  const {highlightFirstResult, overlayIsOpen, search, searchMatcher} =
+    useContext(ControlContext);
+
+  const regionChildren = useMemo(
+    () =>
+      Children.toArray(children).filter(
+        (child): child is React.ReactElement<CompositeSelectRegion<SelectKey>> =>
+          isValidElement<CompositeSelectRegion<SelectKey>>(child)
+      ),
+    [children]
+  );
+
+  const autoHighlightedRegionIndex = useMemo(() => {
+    if (!highlightFirstResult || !overlayIsOpen || search.trim().length === 0) {
+      return -1;
+    }
+
+    return regionChildren.findIndex(
+      child => getFirstFocusableOptionKey(child.props, search, searchMatcher) !== null
+    );
+  }, [highlightFirstResult, overlayIsOpen, regionChildren, search, searchMatcher]);
+
+  return (
+    <FocusScope>
+      <RegionsWrap>
+        {regionChildren.map((child, index) => (
+          <Region
+            {...child.props}
+            key={child.key ?? undefined}
+            grid={grid}
+            size={size}
+            autoHighlightFirstResult={index === autoHighlightedRegionIndex}
+          />
+        ))}
+
+        {/* Only displayed when all lists (regions) are empty */}
+        <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
+      </RegionsWrap>
+    </FocusScope>
   );
 }
 
@@ -133,6 +181,9 @@ CompositeSelect.ClearButton = function CompositeSelectClearButton(
 export {CompositeSelect};
 
 type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
+  autoHighlightFirstResult: NonNullable<
+    SingleListProps<Value>['autoHighlightFirstResult']
+  >;
   grid: SingleListProps<Value>['grid'];
   size: SingleListProps<Value>['size'];
 };
@@ -142,6 +193,7 @@ function Region<Value extends SelectKey>({
   isOptionDisabled,
   size,
   label,
+  autoHighlightFirstResult,
   ...props
 }: RegionProps<Value>) {
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
@@ -154,6 +206,7 @@ function Region<Value extends SelectKey>({
       shouldFocusWrap={false}
       size={size}
       label={label}
+      autoHighlightFirstResult={autoHighlightFirstResult}
     >
       {(opt: (typeof itemsWithKey)[number]) => (
         <Item {...opt} key={opt.key}>
@@ -162,6 +215,28 @@ function Region<Value extends SelectKey>({
       )}
     </List>
   );
+}
+
+function getFirstFocusableOptionKey<Value extends SelectKey>(
+  {options, isOptionDisabled, sizeLimit}: CompositeSelectRegion<Value>,
+  search: string,
+  searchMatcher: React.ContextType<typeof ControlContext>['searchMatcher']
+) {
+  const itemsWithKey = getItemsWithKeys(options);
+  const {hidden: hiddenOptions, scores} = getHiddenOptions(
+    itemsWithKey,
+    search,
+    sizeLimit,
+    searchMatcher
+  );
+  const sortedItems =
+    scores.size > 0 ? getSortedItems(itemsWithKey, scores) : itemsWithKey;
+  const disabledKeys = new Set([
+    ...hiddenOptions,
+    ...getDisabledOptions(itemsWithKey, isOptionDisabled),
+  ]);
+
+  return sortedItems.find(item => !disabledKeys.has(item.key))?.key ?? null;
 }
 
 const RegionsWrap = styled('div')`

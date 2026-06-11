@@ -291,6 +291,57 @@ describe('CompositeSelect', () => {
     expect(screen.queryByRole('Region 2')).not.toBeInTheDocument();
   });
 
+  it('only auto-highlights the first composite search result', async () => {
+    const region1Mock = jest.fn();
+    const region2Mock = jest.fn();
+
+    render(
+      <CompositeSelect
+        search={{placeholder: 'Search placeholder…'}}
+        trigger={props => (
+          <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
+        )}
+      >
+        <CompositeSelect.Region
+          label="Region 1"
+          onChange={region1Mock}
+          value={undefined}
+          options={[
+            {value: 'choice_one', label: 'Choice One'},
+            {value: 'choice_two', label: 'Choice Two'},
+          ]}
+        />
+        <CompositeSelect.Region
+          multiple
+          label="Region 2"
+          onChange={region2Mock}
+          value={undefined}
+          options={[
+            {value: 'choice_three', label: 'Choice Three'},
+            {value: 'choice_four', label: 'Choice Four'},
+          ]}
+        />
+      </CompositeSelect>
+    );
+
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByPlaceholderText('Search placeholder…'));
+    await userEvent.keyboard('Choice');
+
+    expect(screen.getByRole('option', {name: 'Choice One'})).toHaveAttribute(
+      'data-auto-highlighted',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Choice Three'})).not.toHaveAttribute(
+      'data-auto-highlighted'
+    );
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(region1Mock).toHaveBeenCalledWith({value: 'choice_one', label: 'Choice One'});
+    expect(region2Mock).not.toHaveBeenCalled();
+  });
+
   it('works with grid lists', async () => {
     function Component() {
       const [region1, setRegion1] = useState('choice_one');
