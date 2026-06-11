@@ -207,7 +207,9 @@ function IssueListOverviewInner({
     });
   }, [onRealtimePoll, pageLinks]);
 
-  const query = decodeScalar(location.query.query, initialQuery);
+  const query = defined(location.query.query)
+    ? (decodeScalar(location.query.query) ?? '')
+    : initialQuery;
   const sort = decodeScalar(
     location.query.sort,
     DEFAULT_ISSUE_STREAM_SORT
