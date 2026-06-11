@@ -17,7 +17,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
 import type {Cell} from 'sentry/types/system';
-import {getCells} from 'sentry/utils/regions';
+import {getCells} from 'sentry/utils/cells';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';

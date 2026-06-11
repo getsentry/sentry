@@ -65,11 +65,11 @@ class BigtableNodeStorage(NodeStorage):
         self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
     @sentry_sdk.tracing.trace
-    def _get_bytes(self, id: str, timeout: float | None = None) -> bytes | None:
+    def _get_bytes(self, id: str) -> bytes | None:
         # Note: This metric encapsulates any decompression performed by `self.store.get()`. Other
         # instances of this metric stop measuring before decompression happens.
         with measure_storage_operation("get", "nodestore") as metric_emitter:
-            result = self.store.get(id, timeout=timeout)
+            result = self.store.get(id)
             if result:
                 metric_emitter.record_uncompressed_size(len(result))
             return result
