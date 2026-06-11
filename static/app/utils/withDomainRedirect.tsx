@@ -9,7 +9,6 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {useOrganization} from './useOrganization';
 
@@ -40,7 +39,6 @@ export function withDomainRedirect(WrappedComponent: React.ComponentType<any>) {
     const currentOrganization = useOrganization({allowNull: true});
     const params = useParams();
     const matches = useMatches();
-    const routes = useRoutes();
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
@@ -64,7 +62,7 @@ export function withDomainRedirect(WrappedComponent: React.ComponentType<any>) {
       Object.keys(params).forEach(param => {
         newParams[param] = `:${param}`;
       });
-      const fullRoute = recreateRoute('', {matches, routes, params: newParams});
+      const fullRoute = recreateRoute('', {matches, params: newParams});
       const orglessSlugRoute = normalizeUrl(fullRoute, {forceCustomerDomain: true});
 
       if (orglessSlugRoute === fullRoute) {

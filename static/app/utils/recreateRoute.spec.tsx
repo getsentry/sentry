@@ -69,22 +69,17 @@ const location = {
 
 describe('recreateRoute', () => {
   it('returns correct path to a route object', () => {
-    expect(recreateRoute(routes[0]!, {routes, matches, params})).toBe('/');
-    expect(recreateRoute(routes[1]!, {routes, matches, params})).toBe('/');
-    expect(recreateRoute(routes[2]!, {routes, matches, params})).toBe('/settings/');
-    expect(recreateRoute(routes[3]!, {routes, matches, params})).toBe(
-      '/settings/org-slug/'
-    );
-    expect(recreateRoute(routes[4]!, {routes, matches, params})).toBe(
-      '/settings/org-slug/'
-    );
-    expect(recreateRoute(routes[5]!, {routes, matches, params})).toBe(
+    expect(recreateRoute(routes[0]!, {matches, params})).toBe('/');
+    expect(recreateRoute(routes[1]!, {matches, params})).toBe('/');
+    expect(recreateRoute(routes[2]!, {matches, params})).toBe('/settings/');
+    expect(recreateRoute(routes[3]!, {matches, params})).toBe('/settings/org-slug/');
+    expect(recreateRoute(routes[4]!, {matches, params})).toBe('/settings/org-slug/');
+    expect(recreateRoute(routes[5]!, {matches, params})).toBe(
       '/settings/org-slug/api-keys/'
     );
 
     expect(
       recreateRoute(projectRoutes[5]!, {
-        routes: projectRoutes,
         matches: projectMatches,
         location,
         params,
@@ -114,25 +109,24 @@ describe('recreateRoute', () => {
     ];
     const r = matchesToRoutes(m);
 
-    expect(recreateRoute(r[4]!, {routes: r, matches: m, params})).toBe('/foo/bar/');
+    expect(recreateRoute(r[4]!, {matches: m, params})).toBe('/foo/bar/');
   });
 
   it('returns correct path to a string (at the end of the routes)', () => {
-    expect(recreateRoute('test/', {routes, matches, location, params})).toBe(
+    expect(recreateRoute('test/', {matches, location, params})).toBe(
       '/settings/org-slug/api-keys/test/'
     );
   });
 
   it('returns correct path to a string after the 2nd to last route', () => {
-    expect(
-      recreateRoute('test/', {routes, matches, location, params, stepBack: -2})
-    ).toBe('/settings/org-slug/test/');
+    expect(recreateRoute('test/', {matches, location, params, stepBack: -2})).toBe(
+      '/settings/org-slug/test/'
+    );
   });
 
   it('switches to new org but keeps current route', () => {
     expect(
       recreateRoute(routes[5]!, {
-        routes,
         matches,
         location,
         params: {orgId: 'new-org'},
@@ -146,8 +140,8 @@ describe('recreateRoute', () => {
       search: '?key1=foo&key2=bar',
     };
 
-    expect(
-      recreateRoute(routes[5]!, {routes, matches, params, location: withSearch})
-    ).toBe('/settings/org-slug/api-keys/?key1=foo&key2=bar');
+    expect(recreateRoute(routes[5]!, {matches, params, location: withSearch})).toBe(
+      '/settings/org-slug/api-keys/?key1=foo&key2=bar'
+    );
   });
 });

@@ -8,7 +8,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {GroupTombstones} from 'sentry/views/settings/project/projectFilters/groupTombstones';
 import {ProjectFiltersChart} from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
@@ -18,7 +17,6 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 export default function ProjectFilters() {
   const matches = useMatches();
-  const routes = useRoutes();
   const params = useParams<{filterType: string; projectId: string}>();
   const {projectId, filterType} = params;
   const {project} = useProjectSettingsOutlet();
@@ -52,7 +50,6 @@ export default function ProjectFilters() {
                   key="data-filters"
                   to={recreateRoute('data-filters/', {
                     matches,
-                    routes,
                     params,
                     stepBack: -1,
                   })}
@@ -63,7 +60,6 @@ export default function ProjectFilters() {
                   key="discarded-groups"
                   to={recreateRoute('discarded-groups/', {
                     matches,
-                    routes,
                     params,
                     stepBack: -1,
                   })}

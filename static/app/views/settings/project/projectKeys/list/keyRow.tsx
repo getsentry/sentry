@@ -15,7 +15,6 @@ import type {Project, ProjectKey} from 'sentry/types/project';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 
@@ -32,11 +31,10 @@ export function KeyRow({data, onRemove, onToggle, hasWriteAccess, project}: Prop
   const location = useLocation();
   const matches = useMatches();
   const params = useParams<{projectId: string}>();
-  const routes = useRoutes();
   const handleEnable = () => onToggle(true, data);
   const handleDisable = () => onToggle(false, data);
 
-  const editUrl = recreateRoute(`${data.id}/`, {matches, routes, params, location});
+  const editUrl = recreateRoute(`${data.id}/`, {matches, params, location});
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');

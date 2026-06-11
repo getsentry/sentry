@@ -584,7 +584,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       addSuccessMessage(t('Deleted alert rule'));
       this.props.navigate(
         recreateRoute('', {
-          ...this.props,
+          matches: this.props.matches,
           params: {...this.props.params, orgId: organization.slug},
           stepBack: -2,
         }),

@@ -16,7 +16,6 @@ type Options = {
   params: Record<string, string | undefined>;
 
   location?: Location;
-  routes?: PlainRoute[];
   /**
    * The number of routes to pop off of `routes
    * Must be < 0
@@ -26,6 +25,21 @@ type Options = {
   stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
 };
 
+function findRouteInMatches(to: PlainRoute, matches: UIMatch[]): number {
+  return matches.findIndex(m => {
+    const handle = m.handle;
+    if (!handle || typeof handle !== 'object') {
+      return false;
+    }
+    const toKeys = Object.keys(to);
+    const handleKeys = Object.keys(handle);
+    if (toKeys.length !== handleKeys.length) {
+      return false;
+    }
+    return toKeys.every(k => (to as any)[k] === (handle as any)[k]);
+  });
+}
+
 /**
  * Given a route object or a string and a list of routes + params from router, this will attempt to recreate a location string while replacing url params.
  * Can additionally specify the number of routes to move back
@@ -34,7 +48,7 @@ type Options = {
  */
 export function recreateRoute(to: string | PlainRoute, options: Options): string {
   const {matches, params, location, stepBack} = options;
-  const routes = options.routes ?? matchesToRoutes(matches);
+  const routes = matchesToRoutes(matches);
   const paths = routes.map(({path}) => {
     path = path || '';
     if (path.length > 0 && !path.endsWith('/')) {
@@ -45,11 +59,10 @@ export function recreateRoute(to: string | PlainRoute, options: Options): string
   let lastRootIndex: number;
   let routeIndex: number | undefined;
 
-  // TODO(ts): typescript things
   if (typeof to === 'string') {
     lastRootIndex = paths.findLastIndex((path: any) => path[0] === '/');
   } else {
-    routeIndex = routes.indexOf(to) + 1;
+    routeIndex = findRouteInMatches(to, matches) + 1;
     lastRootIndex = paths
       .slice(0, routeIndex)
       .findLastIndex((path: any) => path[0] === '/');

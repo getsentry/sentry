@@ -11,7 +11,6 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface Props extends ModalRenderProps {
   slug: string;
@@ -19,7 +18,6 @@ interface Props extends ModalRenderProps {
 
 function RedirectToProjectModal({slug, Header, Body}: Props) {
   const matches = useMatches();
-  const routes = useRoutes();
   const params = useParams();
   const location = useLocation();
 
@@ -27,7 +25,6 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
 
   const newPath = recreateRoute('', {
     matches,
-    routes,
     location,
     params: {...params, projectId: slug},
   });

@@ -10,7 +10,6 @@ import type {ProjectKey} from 'sentry/types/project';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 type Props = {
   projectKey: ProjectKey;
@@ -20,10 +19,9 @@ export function LoaderScript({projectKey}: Props) {
   const location = useLocation();
   const matches = useMatches();
   const params = useParams<{projectId: string}>();
-  const routes = useRoutes();
   const loaderLink = projectKey.dsn.cdn;
 
-  const editUrl = recreateRoute(`${projectKey.id}/`, {matches, routes, params, location});
+  const editUrl = recreateRoute(`${projectKey.id}/`, {matches, params, location});
 
   return (
     <Stack padding="xl" gap="md">

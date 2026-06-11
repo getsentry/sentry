@@ -42,7 +42,6 @@ export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps)
     navigate(
       recreateRoute(returnTo, {
         matches,
-        routes,
         params: {...params, projectId: projectSlug},
       })
     );

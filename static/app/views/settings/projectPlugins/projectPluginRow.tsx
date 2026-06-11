@@ -14,7 +14,6 @@ import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 const grayText = css`
   color: #979ba0;
@@ -39,7 +38,6 @@ export function ProjectPluginRow({
 }: Props) {
   const matches = useMatches();
   const {projectId} = useParams<{projectId: string}>();
-  const routes = useRoutes();
   const organization = useOrganization();
 
   const handleChange = () => {
@@ -55,7 +53,6 @@ export function ProjectPluginRow({
 
   const configureUrl = recreateRoute(id, {
     matches,
-    routes,
     params: {projectId, orgId: organization.slug},
   });
   return (
