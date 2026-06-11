@@ -1,0 +1,43 @@
+name: '[NOT REQUIRED] stories preview links'
+
+# When Vercel finishes deploying a PR's preview, post (or update) a comment
+# linking directly to the stories that changed in that PR.
+#
+# Runs on `deployment_status` so it fires exactly when the preview is live, and
+# so it executes from the default branch with write permissions (fork PRs
+# included), the same trust model as `pull_request_target`.
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  stories-preview:
+    name: post stories preview links
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    # Only the successful Vercel preview deployment. Production deploys land on
+    # master and have no associated *open* PR, so they're filtered out below.
+    if: >
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.creator.login == 'vercel[bot]'
+    steps:
+      # deployment_status checks out the deployment (PR head) SHA by default,
+      # which is untrusted fork code. Pin to the default branch so we only ever
+      # execute the trusted version of the comment script.
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      # Posts, updates, or deletes the preview comment via the GitHub API.
+      - name: Sync stories preview comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { syncStoriesPreviewComment } = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/stories-preview-comment.ts`
+            );
+            await syncStoriesPreviewComment({github, context, core});
