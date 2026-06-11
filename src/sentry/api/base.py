@@ -383,6 +383,9 @@ class Endpoint(APIView):
 
         if request.META.get("HTTP_REFERER"):
             sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER"))
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "http.referer", request.META.get("HTTP_REFERER", "")
+            )
 
         start_time = time.time()
 
