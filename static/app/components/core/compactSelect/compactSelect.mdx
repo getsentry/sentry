@@ -235,7 +235,7 @@ const [values, setValues] = useState(['2', '4']);
 
 ## Searchable
 
-Enable `search` to allow users to filter options by typing. Essential for lists with many options. Pass `true` for default behavior, or a `SearchConfig` object to customize placeholder, filtering, or the onChange callback.
+Enable `search` to allow users to filter options by typing. Essential for lists with many options. Pass `true` for default behavior, or a `SearchConfig` object to customize placeholder, filtering, the onChange callback, or `autoHighlightFirstResult`.
 
 export function SearchDemo() {
   const [value, setValue] = useState('US');
@@ -263,6 +263,7 @@ export function SearchDemo() {
 
 ```jsx
 <CompactSelect search options={options} />
+<CompactSelect search={{autoHighlightFirstResult: true}} options={options} />
 ```
 
 ## Clearable

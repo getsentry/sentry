@@ -169,8 +169,15 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
-    useContext(ControlContext);
+  const {
+    overlayState,
+    search,
+    searchInputValue,
+    searchable,
+    overlayIsOpen,
+    searchMatcher,
+    autoHighlightFirstResult,
+  } = useContext(ControlContext);
 
   const {hidden: hiddenOptions, scores} = useMemo(
     () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
@@ -284,6 +291,11 @@ export function List<Value extends SelectKey>({
     return lastKey;
   }, [listState.collection, listState.selectionManager]);
 
+  const autoHighlightedKey =
+    autoHighlightFirstResult && overlayIsOpen && searchInputValue.trim().length > 0
+      ? firstFocusableKey
+      : null;
+
   /**
    * Keyboard event handler to seamlessly move focus from one composite list to another
    * when an arrow key is pressed. Returns a boolean indicating whether the keyboard
@@ -357,6 +369,7 @@ export function List<Value extends SelectKey>({
             listState={listState}
             sizeLimitMessage={sizeLimitMessage}
             keyDownHandler={keyDownHandler}
+            autoHighlightedKey={autoHighlightedKey}
           />
         </SelectFilterContext>
       ) : (
@@ -371,6 +384,7 @@ export function List<Value extends SelectKey>({
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
+          autoHighlightedKey={autoHighlightedKey}
         />
       )}
       {multiple &&

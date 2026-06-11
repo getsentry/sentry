@@ -44,6 +44,11 @@ interface ListBoxProps<T extends ListItemBase>
    * `useListBox()`.
    */
   listState: ListState<T>;
+  /**
+   * Key of the first search result to visually highlight while focus remains in the
+   * search input.
+   */
+  autoHighlightedKey?: SelectKey | null;
   children?: CollectionChildren<T>;
   /**
    * Whether the list is filtered by search query or not.
@@ -139,6 +144,7 @@ export function ListBox<T extends ListItemBase>({
   virtualizedListPadding = listPaddingVertical,
   scrollContainerRef,
   className,
+  autoHighlightedKey,
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -266,6 +272,7 @@ export function ListBox<T extends ListItemBase>({
                     listState={listState}
                     size={size}
                     showDetails={showDetails}
+                    autoHighlighted={autoHighlightedKey === item.key}
                   />
                 );
               })}

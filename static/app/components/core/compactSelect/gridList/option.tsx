@@ -25,6 +25,7 @@ export interface GridListOptionProps<
   listState: ListState<T>;
   node: Node<T>;
   size: FormSize;
+  autoHighlighted?: boolean;
 }
 
 /**
@@ -35,6 +36,7 @@ export function GridListOption<T extends ListItemBase>({
   node,
   listState,
   size,
+  autoHighlighted = false,
 }: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -51,8 +53,11 @@ export function GridListOption<T extends ListItemBase>({
     ? selectionMode === 'multiple'
     : listState.selectionManager.selectionMode === 'multiple';
 
-  const {rowProps, gridCellProps, isSelected, isDisabled, isPressed, isFocused} =
-    useGridListItem({node, shouldSelectOnPressUp: true}, listState, ref);
+  const {rowProps, gridCellProps, isSelected, isDisabled, isPressed} = useGridListItem(
+    {node, shouldSelectOnPressUp: true},
+    listState,
+    ref
+  );
 
   const {
     checkboxProps: {
@@ -75,6 +80,11 @@ export function GridListOption<T extends ListItemBase>({
 
   const rowPropsMerged = mergeProps(rowProps, hoverProps, focusWithinProps);
 
+  const isAutoHighlighted =
+    autoHighlighted &&
+    !(listState.selectionManager.isFocused && listState.selectionManager.focusedKey);
+  const optionIsFocused = isFocusWithin || isAutoHighlighted;
+
   const labelPropsMemo = useMemo(
     () => ({as: typeof label === 'string' ? 'p' : 'div'}) as const,
     [label]
@@ -86,7 +96,7 @@ export function GridListOption<T extends ListItemBase>({
 
     const leading =
       typeof leadingItems === 'function'
-        ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+        ? leadingItems({disabled: isDisabled, isFocused: optionIsFocused, isSelected})
         : leadingItems;
 
     if (hideCheck) {
@@ -112,11 +122,12 @@ export function GridListOption<T extends ListItemBase>({
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
+  }, [multiple, isSelected, isDisabled, optionIsFocused, size, leadingItems, hideCheck]);
 
   return (
     <StyledMenuListItem
       {...rowPropsMerged}
+      data-auto-highlighted={isAutoHighlighted ? 'true' : undefined}
       ref={ref}
       size={size}
       label={label}
@@ -124,7 +135,7 @@ export function GridListOption<T extends ListItemBase>({
       disabled={isDisabled}
       isSelected={isSelected}
       isPressed={isPressed}
-      isFocused={isFocusWithin}
+      isFocused={optionIsFocused}
       priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
       innerWrapProps={gridCellProps}
       labelProps={labelPropsMemo}

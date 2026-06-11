@@ -61,6 +61,11 @@ export interface SearchMatchResult {
  */
 export interface SearchConfig<Value extends SelectKey> {
   /**
+   * When true, highlights the first visible result while the user is searching.
+   * Pressing Enter in the search input selects the highlighted result.
+   */
+  autoHighlightFirstResult?: boolean;
+  /**
    * Controls client-side option filtering:
    * - Omitted: default fuzzy (fzf) filter, results sorted by match score
    * - Function: custom matcher (receives option + search string, returns SearchMatchResult)

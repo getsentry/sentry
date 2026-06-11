@@ -447,6 +447,34 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('auto-highlights and selects the first search result when configured', async () => {
+      const mock = jest.fn();
+
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…', autoHighlightFirstResult: true}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={mock}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
+
+      expect(screen.getByRole('option', {name: 'Option Two'})).toHaveAttribute(
+        'data-auto-highlighted',
+        'true'
+      );
+
+      await userEvent.keyboard('{Enter}');
+      expect(mock).toHaveBeenCalledWith({value: 'opt_two', label: 'Option Two'});
+    });
+
     it('restores full list when search query is cleared', async () => {
       render(
         <CompactSelect
@@ -1168,6 +1196,35 @@ describe('CompactSelect', () => {
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('row', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('row', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('auto-highlights and selects the first grid search result when configured', async () => {
+      const mock = jest.fn();
+
+      render(
+        <CompactSelect
+          grid
+          search={{placeholder: 'Search here…', autoHighlightFirstResult: true}}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={mock}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
+
+      expect(screen.getByRole('row', {name: 'Option Two'})).toHaveAttribute(
+        'data-auto-highlighted',
+        'true'
+      );
+
+      await userEvent.keyboard('{Enter}');
+      expect(mock).toHaveBeenCalledWith({value: 'opt_two', label: 'Option Two'});
     });
 
     it('restores full list when search query is cleared', async () => {

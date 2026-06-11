@@ -58,11 +58,19 @@ function nextFrameCallback(cb: () => void) {
 }
 
 interface ControlContextValue {
+  /**
+   * Whether to highlight the first visible result while searching.
+   */
+  autoHighlightFirstResult: boolean;
   overlayIsOpen: boolean;
   /**
    * Search string to determine whether an option should be rendered in the select list.
    */
   search: string;
+  /**
+   * Current value in the search input, even when client-side filtering is disabled.
+   */
+  searchInputValue: string;
   /**
    * Whether the select has a search input field.
    */
@@ -86,7 +94,9 @@ interface ControlContextValue {
 export const ControlContext = createContext<ControlContextValue>({
   overlayIsOpen: false,
   search: '',
+  searchInputValue: '',
   searchable: false,
+  autoHighlightFirstResult: false,
 });
 
 export interface ControlProps
@@ -280,9 +290,18 @@ export function Control({
           ?.focus();
       }
 
-      // Prevent form submissions on Enter key press in search box
+      // Prevent form submissions on Enter key press in search box. If configured,
+      // select the auto-highlighted result while keeping typing focus in the input.
       if (e.key === 'Enter') {
         e.preventDefault();
+        if (
+          normalizedSearch?.autoHighlightFirstResult &&
+          searchInputValue.trim().length > 0
+        ) {
+          overlayRef.current
+            ?.querySelector<HTMLElement>('[data-auto-highlighted="true"]')
+            ?.click();
+        }
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
@@ -478,12 +497,24 @@ export function Control({
       overlayState,
       overlayIsOpen,
       search,
+      searchInputValue,
       searchable: searchEnabled,
+      autoHighlightFirstResult: normalizedSearch?.autoHighlightFirstResult ?? false,
       size,
       disabled,
       searchMatcher: searchFilter,
     };
-  }, [overlayState, overlayIsOpen, search, searchEnabled, size, disabled, searchFilter]);
+  }, [
+    overlayState,
+    overlayIsOpen,
+    search,
+    searchInputValue,
+    searchEnabled,
+    normalizedSearch?.autoHighlightFirstResult,
+    size,
+    disabled,
+    searchFilter,
+  ]);
 
   const theme = useTheme();
 

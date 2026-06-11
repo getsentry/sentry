@@ -45,6 +45,11 @@ interface GridListProps<T extends ListItemBase>
    * `useGridList()`.
    */
   listState: ListState<T>;
+  /**
+   * Key of the first search result to visually highlight while focus remains in the
+   * search input.
+   */
+  autoHighlightedKey?: React.Key | null;
   children?: CollectionChildren<T>;
   /**
    * Text label to be rendered as heading on top of grid list.
@@ -78,6 +83,7 @@ function GridList<T extends ListItemBase>({
   sizeLimitMessage,
   keyDownHandler,
   virtualized,
+  autoHighlightedKey,
   ...props
 }: GridListProps<T>) {
   const ref = useRef<HTMLUListElement>(null);
@@ -155,6 +161,7 @@ function GridList<T extends ListItemBase>({
                     node={item}
                     listState={listState}
                     size={size}
+                    autoHighlighted={autoHighlightedKey === item.key}
                   />
                 );
               })}

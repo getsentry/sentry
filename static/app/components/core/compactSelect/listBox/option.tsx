@@ -20,6 +20,7 @@ export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: MenuListItemProps['size'];
+  autoHighlighted?: boolean;
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -36,6 +37,7 @@ export function ListBoxOption({
   showDetails = true,
   ref: refProp,
   'data-index': dataIndex,
+  autoHighlighted = false,
 }: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -66,12 +68,18 @@ export function ListBoxOption({
   );
 
   const leadingItems = (item.props as MenuListItemProps).leadingItems;
+  const isAutoHighlighted =
+    autoHighlighted &&
+    !(listState.selectionManager.isFocused && listState.selectionManager.focusedKey);
+  const optionIsFocused =
+    (listState.selectionManager.isFocused && isFocused) || isAutoHighlighted;
+
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
     const leading =
       typeof leadingItems === 'function'
-        ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+        ? leadingItems({disabled: isDisabled, isFocused: optionIsFocused, isSelected})
         : leadingItems;
 
     if (hideCheck) {
@@ -95,12 +103,13 @@ export function ListBoxOption({
         {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
       </Fragment>
     );
-  }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
+  }, [size, leadingItems, isDisabled, optionIsFocused, isSelected, hideCheck, multiple]);
 
   return (
     <StyledMenuListItem
       {...optionProps}
       data-index={dataIndex}
+      data-auto-highlighted={isAutoHighlighted ? 'true' : undefined}
       ref={mergeRefs(ref, refProp)}
       size={size}
       label={label}
@@ -108,7 +117,7 @@ export function ListBoxOption({
       disabled={isDisabled}
       isPressed={isPressed}
       isSelected={isSelected}
-      isFocused={listState.selectionManager.isFocused && isFocused}
+      isFocused={optionIsFocused}
       priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
