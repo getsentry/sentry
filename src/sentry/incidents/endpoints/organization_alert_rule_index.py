@@ -521,12 +521,12 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-index",
         key=ALERTS_API_DEPRECATION_KEY,
     )
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
