@@ -357,14 +357,21 @@ describe('ActivitySection', () => {
           data: {age: 504},
           user: null,
         },
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-2',
+          dateCreated: '2020-01-02T00:00:00',
+          data: {age: 11},
+          user: null,
+        },
       ],
       project,
     });
 
     render(<ActivitySection group={autoResolvedGroup} />);
 
-    expect(await screen.findByText('Resolved')).toBeInTheDocument();
-    expect(screen.getByText(/after 21 days of inactivity/)).toBeInTheDocument();
+    expect(await screen.findByText(/after 21 days of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 11 hours of inactivity/)).toBeInTheDocument();
   });
 
   it('renders note and allows for edit', async () => {
