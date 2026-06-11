@@ -1,9 +1,23 @@
 import {millisecondsToClosestInterval} from 'sentry/utils/duration/millisecondsToInterval';
 
+const TEST_INTERVALS = [
+  '1m',
+  '2m',
+  '5m',
+  '10m',
+  '15m',
+  '30m',
+  '1h',
+  '2h',
+  '3h',
+  '4h',
+  '6h',
+  '12h',
+  '1d',
+];
+
 describe('millisecondsToClosestInterval()', () => {
   it.each([
-    [15_000, '15s'],
-    [30_000, '30s'],
     [60_000, '1m'],
     [2 * 60_000, '2m'],
     [5 * 60_000, '5m'],
@@ -14,12 +28,10 @@ describe('millisecondsToClosestInterval()', () => {
     [6 * 3600_000, '6h'],
     [24 * 3600_000, '1d'],
   ])('returns an exact string for valid granularity (%s)', (ms, expected) => {
-    expect(millisecondsToClosestInterval(ms)).toBe(expected);
+    expect(millisecondsToClosestInterval(ms, TEST_INTERVALS)).toBe(expected);
   });
 
   it.each([
-    // 20s is closer to 15s than to 30s
-    [20_000, '15s'],
     // 45s is between 30s and 1m — equidistant, ties go to larger
     [45_000, '1m'],
     // 50s is closer to 1m (60s) than to 30s
@@ -35,17 +47,17 @@ describe('millisecondsToClosestInterval()', () => {
   ])(
     'rounds to the nearest interval when between two valid granularities (%s)',
     (ms, expected) => {
-      expect(millisecondsToClosestInterval(ms)).toBe(expected);
+      expect(millisecondsToClosestInterval(ms, TEST_INTERVALS)).toBe(expected);
     }
   );
 
   it.each([
-    [1_000, '15s'],
-    [5_000, '15s'],
+    [1_000, '1m'],
+    [5_000, '1m'],
   ])(
     'clamps to the smallest valid interval for values below the minimum (%s)',
     (ms, expected) => {
-      expect(millisecondsToClosestInterval(ms)).toBe(expected);
+      expect(millisecondsToClosestInterval(ms, TEST_INTERVALS)).toBe(expected);
     }
   );
 
@@ -55,7 +67,7 @@ describe('millisecondsToClosestInterval()', () => {
   ])(
     'clamps to the largest valid interval for values above the maximum (%s)',
     (ms, expected) => {
-      expect(millisecondsToClosestInterval(ms)).toBe(expected);
+      expect(millisecondsToClosestInterval(ms, TEST_INTERVALS)).toBe(expected);
     }
   );
 
@@ -64,15 +76,11 @@ describe('millisecondsToClosestInterval()', () => {
     [-60_000, undefined],
     [Infinity, undefined],
   ])('returns undefined for invalid inputs (%s)', (ms, expected) => {
-    expect(millisecondsToClosestInterval(ms)).toBe(expected);
+    expect(millisecondsToClosestInterval(ms, TEST_INTERVALS)).toBe(expected);
   });
 
-  describe('availableIntervals option', () => {
-    const availableIntervals = [
-      {label: '1 minute', value: '1m'},
-      {label: '5 minutes', value: '5m'},
-      {label: '1 hour', value: '1h'},
-    ];
+  describe('less availableIntervals option', () => {
+    const availableIntervals = ['1m', '5m', '1h'];
 
     it.each([
       // 90s is closer to 1m (diff=30s) than to 15s (diff=75s) among available intervals
@@ -82,13 +90,13 @@ describe('millisecondsToClosestInterval()', () => {
       // exact match still works
       [5 * 60_000, '5m'],
     ])('restricts selection to the provided available intervals (%s)', (ms, expected) => {
-      expect(millisecondsToClosestInterval(ms, {availableIntervals})).toBe(expected);
+      expect(millisecondsToClosestInterval(ms, availableIntervals)).toBe(expected);
     });
 
     it.each([[1_000, '1m']])(
       'clamps to the first available interval for values below the minimum (%s)',
       (ms, expected) => {
-        expect(millisecondsToClosestInterval(ms, {availableIntervals})).toBe(expected);
+        expect(millisecondsToClosestInterval(ms, availableIntervals)).toBe(expected);
       }
     );
 
@@ -98,21 +106,8 @@ describe('millisecondsToClosestInterval()', () => {
     ])(
       'clamps to the last available interval for values above the maximum (%s)',
       (ms, expected) => {
-        expect(millisecondsToClosestInterval(ms, {availableIntervals})).toBe(expected);
+        expect(millisecondsToClosestInterval(ms, availableIntervals)).toBe(expected);
       }
     );
-  });
-
-  describe('useNextInterval option', () => {
-    it.each([
-      // 20s is between 15s and 30s — useNextInterval returns 30s
-      [20_000, '30s'],
-      // 4m is between 2m and 5m — useNextInterval returns 5m
-      [4 * 60_000, '5m'],
-      // exact match returns itself
-      [5 * 60_000, '5m'],
-    ])('returns the next interval >= ms instead of the closest (%s)', (ms, expected) => {
-      expect(millisecondsToClosestInterval(ms, {useNextInterval: true})).toBe(expected);
-    });
   });
 });

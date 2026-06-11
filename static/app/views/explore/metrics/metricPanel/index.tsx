@@ -429,9 +429,10 @@ function getHeatmapXBucketInterval(
   const msPerXBucket = Math.round(
     timeRangeInMs / (chartContainerWidth / PIXELS_PER_X_BUCKET)
   );
-  const xBucketInterval = millisecondsToClosestInterval(msPerXBucket, {
-    availableIntervals: intervalOptions,
-  });
+  const xBucketInterval = millisecondsToClosestInterval(
+    msPerXBucket,
+    intervalOptions.map(option => option.value)
+  );
   return xBucketInterval || interval;
 }
 
