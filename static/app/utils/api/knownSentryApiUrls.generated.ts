@@ -271,6 +271,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/metrics-estimation-stats/'
   | '/organizations/$organizationIdOrSlug/metrics/data/'
   | '/organizations/$organizationIdOrSlug/missing-members/'
+  | '/organizations/$organizationIdOrSlug/monitoring-providers/'
+  | '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/'
   | '/organizations/$organizationIdOrSlug/monitors-count/'
   | '/organizations/$organizationIdOrSlug/monitors-schedule-buckets/'
   | '/organizations/$organizationIdOrSlug/monitors-schedule-data/'
