@@ -57,10 +57,10 @@ class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
                     "image_addr": "0x1a4e8f000",
                 },
                 {
-                    "function": "CPPExceptionTerminate",
-                    "raw_function": "CPPExceptionTerminate()",
+                    "function": "installCrashHandler",
+                    "raw_function": "installCrashHandler()",
                     "filename": filename,
-                    "symbol": "_ZL21CPPExceptionTerminatev",
+                    "symbol": "_ZL19installCrashHandlerv",
                     "package": "MainApp",
                     "in_app": False,
                     "image_addr": "0x1a4e8f000",
@@ -1039,6 +1039,108 @@ class CocoaSDKCoreDataTrackerTestMixin(BaseSDKCrashDetectionMixin):
         )
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+class CocoaSDKCPPExceptionTerminateTestMixin(BaseSDKCrashDetectionMixin):
+    """Tests for CPPExceptionTerminate conditional SDK crash detection.
+
+    CPPExceptionTerminate is our std::terminate handler installed by
+    SentryCrashMonitor_CPPException. It captures crash reports for unhandled C++ exceptions
+    but doesn't cause them. The crashes originate in system/app code (Metal GPU drivers,
+    pthread cleanup, objc_exception_rethrow).
+
+    Note: Frames are ordered from oldest (caller) to youngest (exception).
+    """
+
+    def test_cpp_exception_terminate_only_sdk_frame_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        CPPExceptionTerminate is the only SDK frame. The crash originates in system
+        code (pthread/libc++abi), not in the SDK.
+
+        Real stack trace from SDK-CRASHES-COCOA-7Y8 event fc2cdaf364a84bbeb3d4bbd8c53d5282.
+        """
+        frames = [
+            {
+                "function": "thread_start",
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "_pthread_start",
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "std::terminate",
+                "package": "/usr/lib/libc++abi.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "std::__terminate",
+                "package": "/usr/lib/libc++abi.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "CPPExceptionTerminate",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+    def test_cpp_exception_terminate_with_other_sdk_frame_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        CPPExceptionTerminate is in the stack, but there's another non-instrumentation
+        SDK frame (SentryHub). This IS an SDK crash.
+        """
+        frames = [
+            {
+                "function": "thread_start",
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "_pthread_start",
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "std::terminate",
+                "package": "/usr/lib/libc++abi.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "std::__terminate",
+                "package": "/usr/lib/libc++abi.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "CPPExceptionTerminate",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryHub captureEvent:]",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            True,
+            mock_sdk_crash_reporter,
+        )
+
+
 class SDKCrashDetectionCocoaTest(
     TestCase,
     CococaSDKFilenameTestMixin,
@@ -1046,6 +1148,7 @@ class SDKCrashDetectionCocoaTest(
     CococaSDKFunctionTestMixin,
     CocoaSDKSwizzleWrapperTestMixin,
     CocoaSDKCoreDataTrackerTestMixin,
+    CocoaSDKCPPExceptionTerminateTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
