@@ -900,6 +900,34 @@ class PerforceClientTest(TestCase):
         p4._handle_message({b"code0": b"not-a-number", b"fmt0": b"kaboom"}, errors)
         assert errors == ["kaboom"]
 
+    def test_write_wraps_socket_errors(self) -> None:
+        """A mid-stream socket error surfaces as P4Exception, not a raw OSError
+        that the callers (which catch only P4Exception) would let escape as a 500."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4, P4Exception
+
+        p4 = P4()
+        p4._sock = mock.Mock()
+        p4._sock.sendall.side_effect = OSError("broken pipe")
+        with pytest.raises(P4Exception):
+            p4._write(b"data")
+
+    def test_read_message_rejects_oversized_length(self) -> None:
+        """A hostile/oversized announced message length is rejected up front."""
+        import struct
+
+        from sentry.integrations.perforce.p4protocol.protocol import (
+            _MAX_MESSAGE_SIZE,
+            P4,
+            P4Exception,
+        )
+
+        p4 = P4()
+        length = _MAX_MESSAGE_SIZE + 1
+        lb = struct.pack("<I", length)
+        p4._buf = bytes([lb[0] ^ lb[1] ^ lb[2] ^ lb[3]]) + lb
+        with pytest.raises(P4Exception):
+            p4._read_message()
+
     def test_dispatch_ignores_progress_rpc(self) -> None:
         """A server-emitted client-Progress meter must not abort the operation."""
         from sentry.integrations.perforce.p4protocol.protocol import P4

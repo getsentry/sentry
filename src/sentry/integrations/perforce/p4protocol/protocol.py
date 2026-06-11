@@ -44,6 +44,11 @@ _BPB = 8
 
 _DEFAULT_TIMEOUT = 30
 
+# Upper bound on a single RPC message. Generous for any source file served via
+# `print`, but guards against a hostile/buggy server announcing a huge length
+# and driving unbounded buffer growth.
+_MAX_MESSAGE_SIZE = 100 * 1024 * 1024
+
 
 def _otox(octets: list[int]) -> str:
     out = []
@@ -324,7 +329,7 @@ class P4:
         if self._sock is not None:
             try:
                 self._write(_encode_message([(b"func", b"release2")]))
-            except OSError:
+            except (OSError, P4Exception):
                 pass
             try:
                 self._sock.close()
@@ -379,12 +384,17 @@ class P4:
 
     def _write(self, data: bytes) -> None:
         assert self._sock is not None
-        self._sock.sendall(data)
+        try:
+            self._sock.sendall(data)
+        except OSError as exc:
+            raise P4Exception(f"Perforce network write failed: {exc}")
 
     def _read_message(self) -> dict[bytes, bytes]:
         while len(self._buf) < 5:
             self._fill()
         length = struct.unpack("<I", self._buf[1:5])[0]
+        if length > _MAX_MESSAGE_SIZE:
+            raise P4Exception(f"Perforce message length {length} exceeds the maximum allowed")
         while len(self._buf) < 5 + length:
             self._fill()
         payload = self._buf[5 : 5 + length]
@@ -393,7 +403,10 @@ class P4:
 
     def _fill(self) -> None:
         assert self._sock is not None
-        chunk = self._sock.recv(65536)
+        try:
+            chunk = self._sock.recv(65536)
+        except OSError as exc:
+            raise P4Exception(f"Perforce network read failed: {exc}")
         if not chunk:
             raise P4Exception("Perforce server closed the connection")
         self._buf += chunk
