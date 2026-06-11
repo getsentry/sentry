@@ -504,6 +504,9 @@ class P4:
 
     def _handle_crypto(self, msg: dict[bytes, bytes]) -> None:
         token = msg.get(b"token", b"")
+        # Unlike client-Prompt (whose confirm varies: dm-Login, dm-Password, …),
+        # client-Crypto's confirm is the invariant constant "crypto", so it is
+        # safe to default rather than fail when the server omits it.
         confirm = msg.get(b"confirm", b"crypto")
         resp = _md5_hex_upper(token, self._secret().encode())
         out: list[tuple[bytes, bytes]] = []
@@ -540,8 +543,13 @@ class P4:
     def _handle_message(self, msg: dict[bytes, bytes], errors: list[str]) -> None:
         idx = 0
         while ("code%d" % idx).encode() in msg:
-            code = int(msg[("code%d" % idx).encode()])
-            severity = (code >> 28) & 0xF
+            try:
+                code = int(msg[("code%d" % idx).encode()])
+                severity = (code >> 28) & 0xF
+            except ValueError:
+                # A non-numeric code is a malformed/hostile message; surface it
+                # as a fatal error rather than letting ValueError crash the loop.
+                severity = 4
             threshold = 2 if self.exception_level >= 2 else 3
             if severity >= threshold:
                 fmt = msg.get(("fmt%d" % idx).encode(), b"").decode("utf-8", "replace")

@@ -890,6 +890,16 @@ class PerforceClientTest(TestCase):
         assert is_ssl("perforce.example.com:1666") is False
         assert is_ssl("sslhost.example.com:1666") is False
 
+    def test_handle_message_tolerates_non_numeric_code(self) -> None:
+        """A non-numeric server message code is surfaced as an error rather than
+        crashing the dispatch loop with a ValueError."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4
+
+        p4 = P4()
+        errors: list[str] = []
+        p4._handle_message({b"code0": b"not-a-number", b"fmt0": b"kaboom"}, errors)
+        assert errors == ["kaboom"]
+
     def test_dispatch_ignores_progress_rpc(self) -> None:
         """A server-emitted client-Progress meter must not abort the operation."""
         from sentry.integrations.perforce.p4protocol.protocol import P4
