@@ -249,13 +249,13 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
 
     @deprecated(ALERTS_API_DEPRECATION_DATE)
     @track_alert_endpoint_execution("POST", "sentry-api-0-rule-snooze")
-    def post(self, request: Request, project: Project, rule: Rule) -> Response:
+    def post(self, request: Request, project: Project, rule: Rule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
     @deprecated(ALERTS_API_DEPRECATION_DATE)
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-rule-snooze")
-    def delete(self, request: Request, project: Project, rule: Rule) -> Response:
+    def delete(self, request: Request, project: Project, rule: Rule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list and fetch_instance
         return super().delete(request, project, rule)
 
@@ -306,13 +306,13 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
 
     @deprecated(ALERTS_API_DEPRECATION_DATE)
     @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
-    def post(self, request: Request, project: Project, rule: AlertRule) -> Response:
+    def post(self, request: Request, project: Project, rule: AlertRule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
     @deprecated(ALERTS_API_DEPRECATION_DATE)
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
-    def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:
+    def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list and fetch_instance
         return super().delete(request, project, rule)
 
