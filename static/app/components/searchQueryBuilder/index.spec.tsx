@@ -6650,6 +6650,35 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('row', {name: /async_tag_one/})).toBeInTheDocument();
     });
 
+    it('uses async key metadata to create measurement filters', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {
+          key: 'app.vitals.start.warm.value',
+          name: 'app.vitals.start.warm.value',
+          kind: FieldKind.MEASUREMENT,
+        },
+      ]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          getTagKeys={mockGetTagKeys}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('app.vitals');
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'app.vitals.start.warm.value'})
+      );
+
+      expect(
+        await screen.findByRole('row', {name: 'app.vitals.start.warm.value:>100'})
+      ).toBeInTheDocument();
+    });
+
     it('normalizes typed pretty tag keys using loaded async explicit keys', async () => {
       const mockGetTagKeys = jest
         .fn()
