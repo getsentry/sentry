@@ -29,6 +29,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.net.socket import is_safe_hostname
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,10 @@ def validate_p4port_transport(p4port: str) -> None:
         raise InvalidP4Port("Invalid P4PORT transport. Only tcp and ssl transports are allowed.")
     if not host:
         raise InvalidP4Port("P4PORT must include a host, e.g. ssl:perforce.example.com:1666.")
+    if not is_safe_hostname(host):
+        raise InvalidP4Port(
+            f"P4PORT host could not be resolved or is not an allowed address: {host}"
+        )
 
 
 class P4ChangeInfo(TypedDict):

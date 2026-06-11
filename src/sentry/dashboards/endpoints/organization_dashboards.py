@@ -348,7 +348,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Custom Dashboards",
+        operation_id="listOrganizationDashboards",
+        summary="List an Organization's Custom Dashboards",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
         request=None,
         responses={
@@ -542,7 +543,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a New Dashboard for an Organization",
+        operation_id="createOrganizationDashboard",
+        summary="Create a New Dashboard for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=DashboardSerializer,
         responses={

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from enum import StrEnum
 from functools import partial
 from typing import overload
 
@@ -263,26 +264,43 @@ def convert_seer_actionability_value(
     return results
 
 
-ISSUE_AGENT_TO_ACTIVITY_TYPES: dict[str, list[int]] = {
-    "has_root_cause": [ActivityType.SEER_RCA_COMPLETED.value],
-    "has_plan": [ActivityType.SEER_SOLUTION_COMPLETED.value],
-    "has_code_changes": [ActivityType.SEER_CODING_COMPLETED.value],
-    "pr_created": [ActivityType.SEER_PR_CREATED.value],
+class IssueProgressState(StrEnum):
+    IDENTIFIED = "identified"
+    TRIAGED = "triaged"
+    DIAGNOSED = "diagnosed"
+    FIX_PROPOSED = "fix_proposed"
+    FIX_APPLIED = "fix_applied"
+
+
+ISSUE_PROGRESS_TO_ACTIVITY_TYPES: dict[IssueProgressState, list[int]] = {
+    IssueProgressState.DIAGNOSED: [ActivityType.SEER_RCA_COMPLETED.value],
+    IssueProgressState.FIX_PROPOSED: [
+        ActivityType.SEER_PR_CREATED.value,
+        ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+    ],
+    IssueProgressState.FIX_APPLIED: [
+        ActivityType.REFERENCED_IN_COMMIT.value,
+        ActivityType.SET_RESOLVED_IN_COMMIT.value,
+        ActivityType.SET_RESOLVED_IN_RELEASE.value,
+        ActivityType.SET_RESOLVED_BY_AGE.value,
+        ActivityType.SET_RESOLVED.value,
+    ],
 }
 
 
-def convert_issue_agent_value(
+def convert_issue_progress_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
     environments: Sequence[Environment] | None,
-) -> list[int]:
-    results: list[int] = []
+) -> list[str]:
+    results: list[str] = []
     for status in value:
-        activity_types = ISSUE_AGENT_TO_ACTIVITY_TYPES.get(status)
-        if not activity_types:
-            raise InvalidSearchQuery(f"Invalid issue.agent value of '{status}'")
-        results.extend(activity_types)
+        try:
+            IssueProgressState(status)
+        except ValueError:
+            raise InvalidSearchQuery(f"Invalid issue.progress value of '{status}'")
+        results.append(status)
     return results
 
 
@@ -311,7 +329,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "device.class": convert_device_class_value,
     "substatus": convert_substatus_value,
     "issue.seer_actionability": convert_seer_actionability_value,
-    "issue.agent": convert_issue_agent_value,
+    "issue.progress": convert_issue_progress_value,
     "detector": convert_detector_value,  # TODO - delete this once the UI has been updated
     "monitor": convert_detector_value,
 }

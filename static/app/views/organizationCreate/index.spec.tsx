@@ -19,8 +19,8 @@ describe('OrganizationCreate', () => {
 
     configstate = ConfigStore.getState();
 
-    // Set only a single region in the config store by default
-    ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
+    // Set only a single locality in the config store by default
+    ConfigStore.set('localities', [{name: '--monolith--', url: 'https://example.com'}]);
   });
 
   afterEach(() => {
@@ -131,7 +131,7 @@ describe('OrganizationCreate', () => {
     );
   });
 
-  function multiRegionSetup() {
+  function multiLocalitySetup() {
     const orgCreateMock = MockApiClient.addMockResponse({
       host: ConfigStore.get('links').sentryUrl,
       url: '/organizations/',
@@ -139,7 +139,7 @@ describe('OrganizationCreate', () => {
       body: OrganizationFixture(),
     });
 
-    ConfigStore.set('regions', [
+    ConfigStore.set('localities', [
       {url: 'https://us.example.com', name: 'us'},
       {
         url: 'https://de.example.com',
@@ -151,9 +151,9 @@ describe('OrganizationCreate', () => {
   }
 
   it('renders without region data and submits without host when only a single region is defined', async () => {
-    const orgCreateMock = multiRegionSetup();
+    const orgCreateMock = multiLocalitySetup();
     // Set only a single region in the config store
-    ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('localities', [{name: '--monolith--', url: 'https://example.com'}]);
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     render(<OrganizationCreate />);
@@ -180,7 +180,7 @@ describe('OrganizationCreate', () => {
   it('renders without a pre-selected region, and does not submit until one is selected', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
-    const orgCreateMock = multiRegionSetup();
+    const orgCreateMock = multiLocalitySetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
     const link = screen.getByText<HTMLAnchorElement>('Learn More');
@@ -217,7 +217,7 @@ describe('OrganizationCreate', () => {
   it('uses the host of the selected region when submitting', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
-    const orgCreateMock = multiRegionSetup();
+    const orgCreateMock = multiLocalitySetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
     const link = screen.getByText<HTMLAnchorElement>('Learn More');
@@ -249,7 +249,7 @@ describe('OrganizationCreate', () => {
   it('submits to the control URL when multi-region is active', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
     ConfigStore.set('urlPrefix', 'https://sentry.io');
-    ConfigStore.set('regions', [
+    ConfigStore.set('localities', [
       {url: 'https://us.example.com', name: 'us'},
       {
         url: 'https://de.example.com',
