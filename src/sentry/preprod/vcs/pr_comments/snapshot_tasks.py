@@ -19,7 +19,10 @@ from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     format_solo_snapshot_pr_comment,
     format_waiting_for_base_snapshot_pr_comment,
 )
-from sentry.preprod.vcs.pr_comments.tasks import find_existing_comment_id, save_pr_comment_result
+from sentry.preprod.vcs.pr_comments.tasks import (
+    lock_pr_comparisons_for_update,
+    save_pr_comment_result,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -113,22 +116,13 @@ def create_preprod_snapshot_pr_comment_task(
     db_alias = router.db_for_write(CommitComparison)
 
     with transaction.atomic(db_alias):
-        all_for_pr = list(
-            CommitComparison.objects.select_for_update()
-            .filter(
-                organization_id=commit_comparison.organization_id,
-                head_repo_name=commit_comparison.head_repo_name,
-                pr_number=commit_comparison.pr_number,
-            )
-            .order_by("id")
+        cc, existing_comment_id = lock_pr_comparisons_for_update(
+            organization_id=commit_comparison.organization_id,
+            head_repo_name=commit_comparison.head_repo_name,
+            pr_number=commit_comparison.pr_number,
+            target_id=commit_comparison.id,
+            comment_type="snapshots",
         )
-
-        try:
-            cc = next(c for c in all_for_pr if c.id == commit_comparison.id)
-        except StopIteration:
-            raise CommitComparison.DoesNotExist(
-                f"CommitComparison {commit_comparison.id} was deleted before lock acquisition"
-            )
 
         all_artifacts = list(artifact.get_sibling_artifacts_for_commit())
 
@@ -165,7 +159,6 @@ def create_preprod_snapshot_pr_comment_task(
 
         is_solo = not base_artifact_map
 
-        existing_comment_id = find_existing_comment_id(all_for_pr, "snapshots")
         cc_id = cc.id
 
         if is_solo:
@@ -241,7 +234,6 @@ def create_preprod_snapshot_pr_comment_task(
         commit_comparison_id=cc_id,
         artifact_id=artifact.id,
         comment_body=comment_body,
-        existing_comment_id=existing_comment_id,
     )
 
 
@@ -261,7 +253,6 @@ def post_snapshot_pr_comment_task(
     commit_comparison_id: int,
     artifact_id: int | None = None,
     comment_body: str,
-    existing_comment_id: str | None,
     **kwargs: Any,
 ) -> None:
     try:
@@ -283,38 +274,53 @@ def post_snapshot_pr_comment_task(
 
     comment_id: str | None = None
     api_error: Exception | None = None
-
-    try:
-        if existing_comment_id:
-            client.update_comment(
-                repo=repo_name,
-                issue_id=str(pr_number),
-                comment_id=str(existing_comment_id),
-                data={"body": comment_body},
-            )
-            comment_id = existing_comment_id
-        else:
-            resp = client.create_comment(
-                repo=repo_name,
-                issue_id=str(pr_number),
-                data={"body": comment_body},
-            )
-            comment_id = str(resp["id"])
-    except Exception as e:
-        extra: dict[str, Any] = {
-            "commit_comparison_id": commit_comparison_id,
-            "organization_id": organization_id,
-            "error_type": type(e).__name__,
-        }
-        if isinstance(e, ApiError):
-            extra["status_code"] = e.code
-        logger.exception("preprod.snapshot_pr_comments.post.failed", extra=extra)
-        api_error = e
-
     db_alias = router.db_for_write(CommitComparison)
+
     try:
+        # The comment_id is re-derived under the lock instead of trusting the
+        # value passed from the create task: when several artifacts on a commit
+        # post at once, each create task reads no existing comment, so the
+        # first post here would otherwise create a duplicate comment instead of
+        # updating the shared one. The GitHub call is held inside the lock (as
+        # in create_preprod_pr_comment_task) so concurrent posters serialize on
+        # the decision; lock hold is bounded by the client timeout, which
+        # matches this task's processing deadline.
         with transaction.atomic(db_alias):
-            cc = CommitComparison.objects.select_for_update().get(id=commit_comparison_id)
+            cc, comment_id = lock_pr_comparisons_for_update(
+                organization_id=organization.id,
+                head_repo_name=repo_name,
+                pr_number=pr_number,
+                target_id=commit_comparison_id,
+                comment_type="snapshots",
+            )
+            is_update = comment_id is not None
+
+            try:
+                if comment_id:
+                    client.update_comment(
+                        repo=repo_name,
+                        issue_id=str(pr_number),
+                        comment_id=str(comment_id),
+                        data={"body": comment_body},
+                    )
+                else:
+                    resp = client.create_comment(
+                        repo=repo_name,
+                        issue_id=str(pr_number),
+                        data={"body": comment_body},
+                    )
+                    comment_id = str(resp["id"])
+            except Exception as e:
+                extra: dict[str, Any] = {
+                    "commit_comparison_id": commit_comparison_id,
+                    "organization_id": organization_id,
+                    "error_type": type(e).__name__,
+                }
+                if isinstance(e, ApiError):
+                    extra["status_code"] = e.code
+                logger.exception("preprod.snapshot_pr_comments.post.failed", extra=extra)
+                api_error = e
+
             if api_error is not None:
                 save_pr_comment_result(cc, "snapshots", success=False, error=api_error)
             else:
@@ -328,7 +334,7 @@ def post_snapshot_pr_comment_task(
                         "comment_id": comment_id,
                         "repo_name": repo_name,
                         "pr_number": pr_number,
-                        "is_update": existing_comment_id is not None,
+                        "is_update": is_update,
                     },
                 )
     except CommitComparison.DoesNotExist:
@@ -338,6 +344,9 @@ def post_snapshot_pr_comment_task(
         )
         return
 
+    # Re-raised outside the transaction so the failure record is committed
+    # before the retry fires. Terminal 4xx (except 429) are swallowed; 429,
+    # 5xx, and network errors re-raise to trigger the task's retry policy.
     if api_error is not None:
         if (
             isinstance(api_error, ApiError)
