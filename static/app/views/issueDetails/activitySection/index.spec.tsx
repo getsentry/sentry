@@ -364,8 +364,7 @@ describe('ActivitySection', () => {
     render(<ActivitySection group={autoResolvedGroup} />);
 
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
-    expect(screen.getByText('3 weeks')).toBeInTheDocument();
-    expect(screen.getByText(/of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 21 days of inactivity/)).toBeInTheDocument();
   });
 
   it('renders note and allows for edit', async () => {

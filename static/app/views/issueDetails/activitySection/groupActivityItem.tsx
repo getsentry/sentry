@@ -289,12 +289,13 @@ export function getGroupActivityItem(
       }
       case GroupActivityType.SET_RESOLVED_BY_AGE: {
         const age = activity.data.age;
+        const ageInDays = age ? Math.round(age / 24) : null;
         return {
           title: t('Resolved'),
-          message: age
+          message: ageInDays
             ? tct('by [author] after [duration] of inactivity', {
                 author,
-                duration: <Duration seconds={age * 60 * 60} />,
+                duration: tn('%s day', '%s days', ageInDays),
               })
             : tct('by [author] due to inactivity', {
                 author,
