@@ -401,7 +401,7 @@ class OrganizationEndpoint(Endpoint):
             raise ParseError(detail="Cannot query for both ids and slugs")
 
         query_slugs = set(filter(None, request.GET.getlist("projectSlug")))
-        if project_ids is not None:
+        if project_ids:
             requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
         elif project_slugs or query_slugs:
             # Preserve existing projectSlug behavior: explicit slug filters take
@@ -752,7 +752,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if actor_id is not None:
             # Match get_projects() precedence: explicit ids, projectSlug, then project.
             project_slug_params = set(filter(None, request.GET.getlist("projectSlug")))
-            if project_ids is not None:
+            if project_ids:
                 requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
             elif project_slug_params:
                 requested_projects = ParsedProjectIdOrSlugParams(

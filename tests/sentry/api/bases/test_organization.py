@@ -691,6 +691,14 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         assert {p.id for p in result} == {self.project_1.id}
 
+    def test_empty_explicit_project_ids_falls_back_to_project_param_slugs(self) -> None:
+        self.create_team_membership(user=self.user, team=self.team_3)
+        request = self.build_request(project=[self.project_1.slug])
+
+        result = self.endpoint.get_projects(request, self.org, project_ids=set())
+
+        assert {p.id for p in result} == {self.project_1.id}
+
     @mock.patch("sentry.api.bases.organization.cache")
     def test_release_permission_cache_key_uses_project_slug_precedence(
         self, mock_cache: mock.MagicMock
@@ -708,6 +716,26 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         endpoint.has_release_permission(
             self.build_request(project=[self.project_2.slug], projectSlug=[self.project_1.slug]),
             self.org,
+        )
+        second_cache_key = mock_cache.get.call_args.args[0]
+
+        assert first_cache_key != second_cache_key
+
+    @mock.patch("sentry.api.bases.organization.cache")
+    def test_release_permission_cache_key_uses_project_param_slugs_when_project_ids_empty(
+        self, mock_cache: mock.MagicMock
+    ) -> None:
+        self.create_team_membership(user=self.user, team=self.team_3)
+        mock_cache.get.return_value = None
+        endpoint = OrganizationReleasesBaseEndpoint()
+
+        endpoint.has_release_permission(
+            self.build_request(project=[self.project_1.slug]), self.org, project_ids=set()
+        )
+        first_cache_key = mock_cache.get.call_args.args[0]
+
+        endpoint.has_release_permission(
+            self.build_request(project=[self.project_2.slug]), self.org, project_ids=set()
         )
         second_cache_key = mock_cache.get.call_args.args[0]
 
