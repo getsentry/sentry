@@ -713,6 +713,13 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         assert first_cache_key != second_cache_key
 
+    def test_get_requested_project_ids_unchecked_ignores_slugs(self) -> None:
+        request = self.build_request(project=["1", "my-slug", "42"])
+
+        result = self.endpoint.get_requested_project_ids_unchecked(request)
+
+        assert result == {1, 42}
+
     def test_get_requested_project_ids_and_slugs_unchecked(self) -> None:
         request = self.build_request(project=["1", "my-slug", "42"])
 
