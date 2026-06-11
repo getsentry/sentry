@@ -226,18 +226,18 @@ export function SearchQueryBuilderProvider({
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
 
-  const stableFieldDefinitionGetter = useMemo(
-    () => fieldDefinitionGetter,
-    [fieldDefinitionGetter]
+  const filterKeyRegistryQueryKey = useMemo<QueryKey>(
+    () =>
+      asyncFilterKeyRegistryQueryKey ?? [
+        'search-query-builder-filter-key-registry',
+        fallbackRegistryId,
+      ],
+    [asyncFilterKeyRegistryQueryKey, fallbackRegistryId]
   );
 
-  const stableFilterKeys = useMemo(() => filterKeys, [filterKeys]);
-
-  const filterKeyRegistryQueryOptions = filterKeyRegistryOptions(
-    asyncFilterKeyRegistryQueryKey ?? [
-      'search-query-builder-filter-key-registry',
-      fallbackRegistryId,
-    ]
+  const filterKeyRegistryQueryOptions = useMemo(
+    () => filterKeyRegistryOptions(filterKeyRegistryQueryKey),
+    [filterKeyRegistryQueryKey]
   );
   const {data: asyncFilterKeys = getEmptyFilterKeyRegistry()} = useQuery(
     filterKeyRegistryQueryOptions
@@ -290,17 +290,17 @@ export function SearchQueryBuilderProvider({
   );
 
   const mergedFilterKeys = useMemo(
-    () => ({...asyncFilterKeys, ...stableFilterKeys}),
-    [asyncFilterKeys, stableFilterKeys]
+    () => ({...asyncFilterKeys, ...filterKeys}),
+    [asyncFilterKeys, filterKeys]
   );
 
   const getFieldDefinitionWithTagMetadata = useCallback<FieldDefinitionGetter>(
     (key, options) =>
-      stableFieldDefinitionGetter(key, {
+      fieldDefinitionGetter(key, {
         ...options,
         kind: options?.kind ?? mergedFilterKeys[key]?.kind,
       }),
-    [mergedFilterKeys, stableFieldDefinitionGetter]
+    [mergedFilterKeys, fieldDefinitionGetter]
   );
 
   const stableGetSuggestedFilterKey = useCallback(
