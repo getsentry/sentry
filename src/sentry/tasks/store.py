@@ -47,8 +47,13 @@ class RetryProcessing(Exception):
     pass
 
 
+LANGUAGE_PLUGIN_SLUGS = frozenset({"javaplugin", "javascriptplugin", "dartplugin"})
+
+
 def should_process(data: Mapping[str, Any]) -> bool:
     """Quick check if processing is needed at all."""
+    from sentry.plugins.base import plugins
+
     if data.get("type") == "transaction":
         return False
 
@@ -56,9 +61,13 @@ def should_process(data: Mapping[str, Any]) -> bool:
     if features.has("organizations:event-preprocessors-without-plugins", project.organization):
         if get_event_preprocessor(data) is not None:
             return True
+        for plugin in plugins.all(version=2):
+            if plugin.slug in LANGUAGE_PLUGIN_SLUGS:
+                continue
+            processors = safe_execute(plugin.get_event_preprocessors, data=data)
+            if processors:
+                return True
     else:
-        from sentry.plugins.base import plugins
-
         for plugin in plugins.all(version=2):
             processors = safe_execute(plugin.get_event_preprocessors, data=data)
             if processors:
@@ -408,6 +417,10 @@ def do_process_event(
     if use_new_preprocessors:
         event_preprocessor = get_event_preprocessor(data)
         preprocessors = [event_preprocessor] if event_preprocessor is not None else []
+        for plugin in plugins.all(version=2):
+            if plugin.slug in LANGUAGE_PLUGIN_SLUGS:
+                continue
+            preprocessors.extend(safe_execute(plugin.get_event_preprocessors, data=data) or ())
     else:
         preprocessors = []
         for plugin in plugins.all(version=2):

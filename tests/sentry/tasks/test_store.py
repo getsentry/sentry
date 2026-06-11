@@ -435,14 +435,14 @@ def test_should_process_new_path_no_preprocessor(default_project):
 
 @django_db_all
 @with_feature("organizations:event-preprocessors-without-plugins")
-def test_should_process_new_path_skips_plugins(default_project, register_plugin):
+def test_should_process_new_path_still_runs_non_language_plugins(default_project, register_plugin):
     register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "mattlang",
         "event_id": EVENT_ID,
     }
-    assert should_process(data) is False
+    assert should_process(data) is True
 
 
 @django_db_all
