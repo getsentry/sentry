@@ -26,6 +26,20 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 
+def mask_webhook_header_values(headers: Sequence[str]) -> list[str]:
+    """Replace each header's value with MASKED_VALUE, preserving the header name.
+
+    Webhook header values may carry secrets (e.g. bearer tokens), so they are masked
+    for viewers without elevated access. The name is kept visible so the form can
+    still render which headers are set.
+    """
+    masked = []
+    for header in headers:
+        name, separator, _value = header.partition(":")
+        masked.append(f"{name}: {MASKED_VALUE}" if separator else MASKED_VALUE)
+    return masked
+
+
 class OwnerResponseField(TypedDict):
     id: int
     slug: str
@@ -45,6 +59,8 @@ class SentryAppSerializerResponse(TypedDict):
     status: str
     uuid: str
     verifyInstall: bool
+    # Header values are masked unless the viewer is allowed to see secrets.
+    webhookHeaders: list[str]
 
     # Optional fields
     isDisabled: NotRequired[bool]
@@ -145,6 +161,9 @@ class SentryAppSerializer(Serializer):
             uuid=obj.uuid,
             verifyInstall=obj.verify_install,
             webhookUrl=obj.webhook_url,
+            # Header values are write-only after save; masked values can still be
+            # resubmitted unchanged because the updater preserves stored values.
+            webhookHeaders=mask_webhook_header_values(obj.webhook_headers),
         )
 
         if obj.status != SentryAppStatus.INTERNAL:
@@ -167,13 +186,15 @@ class SentryAppSerializer(Serializer):
 
                 assert application, "Sentry App must have an associated ApiApplication"
 
-                client_secret = MASKED_VALUE
-                if elevated_user or (
+                can_view_secrets = elevated_user or (
                     owner_context
                     and owner_context.member
                     and "org:write" in owner_context.member.scopes
                     and obj.show_auth_info(owner_context.member)
-                ):
+                )
+
+                client_secret = MASKED_VALUE
+                if can_view_secrets:
                     client_secret = application.client_secret
 
                 data.update(

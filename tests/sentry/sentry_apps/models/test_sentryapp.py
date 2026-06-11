@@ -1,3 +1,8 @@
+import orjson
+from django.core.serializers import serialize as django_serialize
+
+from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder
+from sentry.backup.sanitize import sanitize
 from sentry.constants import SentryAppStatus
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -105,3 +110,23 @@ class SentryAppTest(TestCase):
             organization=self.eu_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
         assert self.sentry_app.cells_with_installations() == {"us", "eu"}
+
+    def test_sanitize_relocation_json_scrubs_webhook_headers(self) -> None:
+        # webhook_headers can hold auth tokens, so the relocation export must never
+        # include them. Exercise the real export path: serialize -> sanitize.
+        self.sentry_app.webhook_headers = ["Authorization: Bearer super-secret-token"]
+        self.sentry_app.save()
+
+        json_data = orjson.loads(
+            django_serialize(
+                "json",
+                [self.sentry_app],
+                use_natural_foreign_keys=False,
+                cls=DatetimeSafeDjangoJSONEncoder,
+            )
+        )
+        sanitized = sanitize(json_data)
+
+        fields = sanitized[0]["fields"]
+        assert fields["webhook_headers"] == "[]"
+        assert "super-secret-token" not in orjson.dumps(sanitized).decode()

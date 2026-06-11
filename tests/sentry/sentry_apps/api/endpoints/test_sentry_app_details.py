@@ -14,7 +14,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
-from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
@@ -146,6 +146,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "clientSecret": self.published_app.application.client_secret,
             "overview": self.published_app.overview,
             "allowedOrigins": [],
+            "webhookHeaders": [],
             "schema": {},
             "owner": {"id": self.organization.id, "slug": self.organization.slug},
             "featureData": [
@@ -743,6 +744,210 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=400,
         )
         assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
+
+    @override_options({"staff.ga-rollout": True})
+    def test_set_webhook_headers(self) -> None:
+        response = self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[
+                "Authorization: Bearer token",
+                "X-Example: value",
+                "User-Agent: custom-agent",
+                "Accept: application/json",
+                "Date: Tue, 10 Jun 2026 12:00:00 GMT",
+                "Prefer: respond-async",
+            ],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == [
+            "Authorization: Bearer token",
+            "X-Example: value",
+            "User-Agent: custom-agent",
+            "Accept: application/json",
+            "Date: Tue, 10 Jun 2026 12:00:00 GMT",
+            "Prefer: respond-async",
+        ]
+        assert response.data["webhookHeaders"] == [
+            f"Authorization: {MASKED_VALUE}",
+            f"X-Example: {MASKED_VALUE}",
+            f"User-Agent: {MASKED_VALUE}",
+            f"Accept: {MASKED_VALUE}",
+            f"Date: {MASKED_VALUE}",
+            f"Prefer: {MASKED_VALUE}",
+        ]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_invalid_format(self) -> None:
+        response = self.get_error_response(
+            self.published_app.slug,
+            webhookHeaders=["no-colon-here"],
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_reserved_header_rejected(self) -> None:
+        response = self.get_error_response(
+            self.published_app.slug,
+            webhookHeaders=["Sentry-Hook-Signature: spoofed"],
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_masked_value_preserved(self) -> None:
+        self.published_app.webhook_headers = ["Authorization: Bearer secret-token"]
+        self.published_app.save()
+
+        # The serializer masks values on read, so the form resubmits the masked
+        # value. Re-saving it must not overwrite the stored secret.
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[f"Authorization: {MASKED_VALUE}"],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == ["Authorization: Bearer secret-token"]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_masked_value_preserved_alongside_new_header(self) -> None:
+        self.published_app.webhook_headers = ["Authorization: Bearer secret-token"]
+        self.published_app.save()
+
+        # The form prefills the existing header as masked and the user adds a new one.
+        # Re-pair the masked entry to its stored secret while appending the new header,
+        # preserving submission order.
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[f"Authorization: {MASKED_VALUE}", "X-New: fresh-value"],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == [
+            "Authorization: Bearer secret-token",
+            "X-New: fresh-value",
+        ]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_masked_values_preserved_when_reordered(self) -> None:
+        self.published_app.webhook_headers = [
+            "Authorization: Bearer secret-token",
+            "X-Token: stored-token",
+        ]
+        self.published_app.save()
+
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[
+                f"X-Token: {MASKED_VALUE}",
+                f"Authorization: {MASKED_VALUE}",
+            ],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == [
+            "X-Token: stored-token",
+            "Authorization: Bearer secret-token",
+        ]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_clear_webhook_headers(self) -> None:
+        self.published_app.webhook_headers = ["X-Example: value"]
+        self.published_app.save()
+
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == []
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_reject_newline_injection(self) -> None:
+        # CR/LF in a header would let a caller smuggle extra headers / split the
+        # request when these are written to the outgoing webhook. The validator must
+        # reject them regardless of which line terminator is used.
+        for malicious in [
+            "X-Evil: value\r\nInjected: gotcha",
+            "X-Evil: value\nInjected: gotcha",
+            "X-Evil: value\rInjected: gotcha",
+        ]:
+            response = self.get_error_response(
+                self.published_app.slug,
+                webhookHeaders=[malicious],
+                status_code=400,
+            )
+            assert "webhookHeaders" in response.data
+            self.published_app.refresh_from_db()
+            assert self.published_app.webhook_headers == []
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_reserved_check_is_case_insensitive(self) -> None:
+        # The reserved-name guard normalizes with .lower(), so non-canonical casing
+        # must not slip a reserved header through.
+        for reserved in ["content-TYPE: text/plain", "HOST: evil.test", "SENTRY-HOOK-foo: x"]:
+            response = self.get_error_response(
+                self.published_app.slug,
+                webhookHeaders=[reserved],
+                status_code=400,
+            )
+            assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_disallowed_name_rejected(self) -> None:
+        response = self.get_error_response(
+            self.published_app.slug,
+            webhookHeaders=["Another-Header: thing"],
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_disallowed_x_header_rejected(self) -> None:
+        for header in ["X-Forwarded-For: 127.0.0.1", "X-Real-IP: 127.0.0.1", "X-Sentry-Test: x"]:
+            response = self.get_error_response(
+                self.published_app.slug,
+                webhookHeaders=[header],
+                status_code=400,
+            )
+            assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_unmatched_masked_entry_dropped(self) -> None:
+        # A masked entry whose name matches no stored header can't be re-paired to a
+        # real value. It must be dropped rather than persisting the literal mask as a
+        # header value (which would then be sent on every outgoing webhook).
+        self.published_app.webhook_headers = ["Authorization: Bearer secret-token"]
+        self.published_app.save()
+
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[
+                f"Authorization: {MASKED_VALUE}",
+                f"X-Ghost: {MASKED_VALUE}",
+            ],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == ["Authorization: Bearer secret-token"]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_rename_while_masked_drops_entry(self) -> None:
+        # Documented limitation: renaming a header while leaving its value masked
+        # can't be matched by the new name, so the entry is dropped. This pins that
+        # behavior so any future change to it is a deliberate decision.
+        self.published_app.webhook_headers = ["Authorization: Bearer secret-token"]
+        self.published_app.save()
+
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[f"X-Renamed: {MASKED_VALUE}"],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == []
 
     @override_options({"staff.ga-rollout": True})
     def test_members_cant_update(self) -> None:

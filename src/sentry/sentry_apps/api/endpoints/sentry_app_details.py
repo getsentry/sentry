@@ -186,6 +186,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 schema=result.get("schema"),
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
+                webhook_headers=result.get("webhookHeaders"),
                 popularity=result.get("popularity"),
                 is_disabled=result.get("isDisabled"),
             ).run(user=request.user)
