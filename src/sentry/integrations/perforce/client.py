@@ -175,6 +175,28 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         # Empty / "none" means non-Unicode server — leave p4.charset alone.
         self.charset = metadata.get("charset") or ""
 
+    def _raise_for_connection_error(self, error_msg: str) -> None:
+        """Translate connection-level P4 failures into an actionable ApiError.
+
+        The pure-Python client surfaces these on the first command (run_login /
+        run("info")), not from connect(), so every auth handler routes through
+        here. Returns normally when the message isn't connection-level, letting
+        callers apply their own (e.g. auth) error mapping.
+        """
+        lowered = error_msg.lower()
+        if "unicode server" in lowered:
+            raise ApiError(
+                f"Failed to connect to Perforce: {error_msg}. "
+                "This server is running in Unicode mode — set "
+                "'Server Encoding' to 'Unicode server (UTF-8)' in the "
+                "integration configuration."
+            )
+        if "SSL" in error_msg or "trust" in lowered:
+            raise ApiError(
+                f"Failed to connect to Perforce (SSL issue): {error_msg}. "
+                f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+            )
+
     @contextmanager
     def _connect(self) -> Generator[P4]:
         """
@@ -233,18 +255,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 p4.connect()
             except P4Exception as e:
                 error_msg = str(e)
-                if "unicode server" in error_msg.lower():
-                    raise ApiError(
-                        f"Failed to connect to Perforce: {error_msg}. "
-                        "This server is running in Unicode mode — set "
-                        "'Server Encoding' to 'Unicode server (UTF-8)' in the "
-                        "integration configuration."
-                    )
-                if "SSL" in error_msg or "trust" in error_msg.lower():
-                    raise ApiError(
-                        f"Failed to connect to Perforce (SSL issue): {error_msg}. "
-                        f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
-                    )
+                self._raise_for_connection_error(error_msg)
                 raise ApiError(f"Failed to connect to Perforce: {error_msg}")
 
             # Assert SSL trust after connection (if needed)
@@ -273,6 +284,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                         p4.disconnect()
                     except Exception:
                         pass
+                    # The pure-Python client surfaces connection-level failures
+                    # (e.g. Unicode/SSL) here rather than from connect(); prefer
+                    # the actionable message over the generic password hint.
+                    self._raise_for_connection_error(str(login_error))
                     raise ApiUnauthorized(
                         f"Failed to authenticate with Perforce: {login_error}. "
                         "Verify your password is correct."
@@ -285,6 +300,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                         p4.disconnect()
                     except Exception:
                         pass
+                    self._raise_for_connection_error(str(e))
                     raise ApiUnauthorized(
                         f"Failed to authenticate with Perforce ticket: {e}. "
                         "Verify your P4 ticket is valid. Obtain a new ticket with: p4 login -p"
@@ -704,8 +720,12 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 raise ApiError(f"File not found: {depot_path}", code=404)
 
             # Binary depot files aren't source we can display; return nothing
-            # rather than decoding raw bytes into mojibake.
-            if result[0].get("type", "").startswith("binary"):
+            # rather than decoding raw bytes into mojibake. Perforce file types
+            # carry "+modifiers" (e.g. "binary+x") and legacy aliases such as
+            # "xbinary"/"ubinary"/"uxbinary" all denote binary content, so match
+            # on the base type rather than a plain "binary" prefix.
+            base_type = result[0].get("type", "").split("+", 1)[0]
+            if "binary" in base_type or base_type in ("apple", "resource", "uresource"):
                 return ""
 
             content_parts = result[1:]

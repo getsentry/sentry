@@ -462,7 +462,15 @@ class P4:
                 results.append(msg.get(b"data", b""))
             elif func == b"client-OutputError":
                 errors.append(msg.get(b"data", b"").decode("utf-8", "replace"))
-            elif func in (b"client-Ack", b"client-Stats", b"client-HandleError"):
+            elif func in (
+                b"client-Ack",
+                b"client-Stats",
+                b"client-HandleError",
+                b"client-Progress",
+            ):
+                # client-Progress is a display-only progress meter the server may
+                # emit during large print/sync transfers; it expects no reply, so
+                # ignore it like the other no-op acknowledgements.
                 pass
             elif func in (b"release", b"release2"):
                 break
@@ -472,6 +480,11 @@ class P4:
                     "this client never reads from or writes to the local filesystem"
                 )
             else:
+                # Fail closed on genuinely unknown RPCs rather than ignoring
+                # them: silently dropping an RPC that expects a reply would
+                # desync the wire protocol, and a future file-I/O RPC not yet in
+                # _REFUSED_RPCS must never slip through unnoticed. Benign,
+                # reply-less RPCs (e.g. client-Progress) are allow-listed above.
                 raise P4Exception(f"unsupported server RPC {func.decode()!r}")
         if errors:
             raise P4Exception("; ".join(errors))

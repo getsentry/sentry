@@ -818,6 +818,90 @@ class PerforceClientTest(TestCase):
         assert "Unicode mode" in message
         assert "Server Encoding" in message
 
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_unicode_error_at_login_is_translated(self, mock_p4_class):
+        """The pure-Python client surfaces the Unicode error at run_login(), not
+        connect(); it must still yield the Server Encoding guidance rather than a
+        misleading password/ticket error."""
+        from sentry.integrations.perforce.p4protocol import P4Exception
+        from sentry.shared_integrations.exceptions import ApiError
+
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+        mock_p4.run_login.side_effect = P4Exception(
+            "Unicode server permits only unicode enabled clients."
+        )
+
+        with pytest.raises(ApiError) as exc_info:
+            with self.p4_client._connect():
+                pass
+
+        message = str(exc_info.value)
+        assert "Unicode mode" in message
+        assert "Server Encoding" in message
+        assert "password" not in message.lower()
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_file_binary_returns_empty(self, mock_p4_class):
+        """Binary depot files return empty rather than 500-ing or yielding mojibake."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+        mock_p4.run.return_value = [
+            {"depotFile": "//depot/logo.bin", "type": "binary", "fileSize": "15"},
+            b"\x89PNG\r\n\x1a\n\x00\x01\x02\x03",
+        ]
+
+        assert self.p4_client.get_file(self.repo, "logo.bin", None) == ""
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_file_binary_variants_return_empty(self, mock_p4_class):
+        """Legacy/modified binary file types must also be treated as binary."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        for file_type in ("xbinary", "ubinary", "uxbinary", "binary+x", "apple", "resource"):
+            mock_p4.run.return_value = [
+                {"depotFile": "//depot/logo.bin", "type": file_type, "fileSize": "15"},
+                b"\x89PNG\r\n\x1a\n\x00\x01\x02\x03",
+            ]
+            assert self.p4_client.get_file(self.repo, "logo.bin", None) == "", file_type
+
+    def test_parse_fields_rejects_malformed_message(self) -> None:
+        """A truncated/malformed server message raises P4Exception, not a bare ValueError."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4, P4Exception
+
+        with pytest.raises(P4Exception):
+            P4._parse_fields(b"name-without-terminator")
+
+    def test_dispatch_ignores_progress_rpc(self) -> None:
+        """A server-emitted client-Progress meter must not abort the operation."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4
+
+        p4 = P4()
+        with mock.patch.object(
+            p4,
+            "_read_message",
+            side_effect=[
+                {b"func": b"client-Progress", b"desc": b"copying", b"position": b"1"},
+                {b"func": b"client-OutputText", b"data": b"hello"},
+                {b"func": b"release"},
+            ],
+        ):
+            assert p4._dispatch() == [b"hello"]
+
+    def test_dispatch_fails_closed_on_unknown_rpc(self) -> None:
+        """Genuinely unknown server RPCs fail closed rather than being ignored silently."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4, P4Exception
+
+        p4 = P4()
+        with mock.patch.object(
+            p4,
+            "_read_message",
+            side_effect=[{b"func": b"client-SomeBrandNewRpc"}],
+        ):
+            with pytest.raises(P4Exception):
+                p4._dispatch()
+
 
 class _P4AttributeRecorder:
     """
