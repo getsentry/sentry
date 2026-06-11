@@ -268,8 +268,8 @@ class P4:
             )
         peer = raw.getpeername()
         self._daddr = f"{peer[0]}:{peer[1]}"
-        if self.port.startswith("ssl"):
-            self.use_ssl = True
+        self.use_ssl = self._is_ssl()
+        if self.use_ssl:
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             context.minimum_version = ssl.TLSVersion.TLSv1_2
             context.check_hostname = False
@@ -303,10 +303,19 @@ class P4:
                 self._sock = None
 
     def _host_port(self) -> tuple[str, int]:
-        parts = self.port.split(":")
+        parts = [p.strip() for p in self.port.split(":")]
         if len(parts) == 3:
             return parts[1], int(parts[2])
         return parts[0], int(parts[1])
+
+    def _is_ssl(self) -> bool:
+        # Detect TLS by the transport prefix only when one is present
+        # (transport:host:port), case-insensitively — matching the integration's
+        # validate_p4port_transport. A bare host:port (even a host literally
+        # named "ssl...") is plain TCP.
+        parts = [p.strip() for p in self.port.split(":")]
+        transport = parts[0].lower() if len(parts) == 3 else ""
+        return transport.startswith("ssl")
 
     def connected(self) -> bool:
         return self._sock is not None
@@ -506,7 +515,12 @@ class P4:
         self._write(_encode_message(out))
 
     def _handle_prompt(self, msg: dict[bytes, bytes]) -> None:
-        confirm = msg.get(b"confirm", b"")
+        # `confirm` names the server callback function our reply must invoke
+        # (e.g. dm-Login). Without it we cannot form a valid response, so fail
+        # loudly rather than send an empty func the server will reject.
+        confirm = msg.get(b"confirm")
+        if not confirm:
+            raise P4Exception("login prompt is missing its confirm function")
         password = self.password or ""
         if b"digest" in msg:
             resp = hashlib.md5(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()

@@ -873,6 +873,23 @@ class PerforceClientTest(TestCase):
         with pytest.raises(P4Exception):
             P4._parse_fields(b"name-without-terminator")
 
+    def test_is_ssl_transport_detection(self) -> None:
+        """TLS is detected by the transport prefix case-insensitively, and only
+        when a transport is present — a host named 'ssl...' is plain TCP."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4
+
+        def is_ssl(port: str) -> bool:
+            p4 = P4()
+            p4.port = port
+            return p4._is_ssl()
+
+        assert is_ssl("ssl:perforce.example.com:1666") is True
+        assert is_ssl("SSL:perforce.example.com:1666") is True
+        assert is_ssl("Ssl6:perforce.example.com:1666") is True
+        assert is_ssl("tcp:perforce.example.com:1666") is False
+        assert is_ssl("perforce.example.com:1666") is False
+        assert is_ssl("sslhost.example.com:1666") is False
+
     def test_dispatch_ignores_progress_rpc(self) -> None:
         """A server-emitted client-Progress meter must not abort the operation."""
         from sentry.integrations.perforce.p4protocol.protocol import P4
