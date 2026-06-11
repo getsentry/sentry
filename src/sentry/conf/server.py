@@ -2344,7 +2344,7 @@ DEAD: Any = object()
 # This will eventually get set from values in SENTRY_OPTIONS during
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
-SENTRY_LOGGING_FORMAT = DEAD
+SENTRY_LOGGING_FORMAT = "human"
 SENTRY_BASE_HOSTNAME = DEAD
 SENTRY_ORGANIZATION_BASE_HOSTNAME = DEAD
 SENTRY_ORGANIZATION_URL_TEMPLATE = DEAD

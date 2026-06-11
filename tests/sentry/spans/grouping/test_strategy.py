@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.spans.grouping.strategy.base import (
     Span,
@@ -614,7 +615,7 @@ def test_standalone_spans_compat() -> None:
         SpanBuilder()
         .with_span_id("a" * 16)
         .segment()
-        .with_data({"sentry.transaction": "transaction name"})
+        .with_data({ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction name"})
         .build_v2()
     ]
 
