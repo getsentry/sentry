@@ -38,6 +38,7 @@ import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -289,10 +290,13 @@ export function SearchQueryBuilderProvider({
     [getTagKeys, registerFilterKeys]
   );
 
-  const mergedFilterKeys = useMemo(
-    () => ({...asyncFilterKeys, ...filterKeys}),
-    [asyncFilterKeys, filterKeys]
-  );
+  const mergedFilterKeys = useMemo(() => {
+    if (isEmptyObject(asyncFilterKeys)) {
+      return filterKeys;
+    }
+
+    return {...asyncFilterKeys, ...filterKeys};
+  }, [asyncFilterKeys, filterKeys]);
 
   const getFieldDefinitionWithTagMetadata = useCallback<FieldDefinitionGetter>(
     (key, options) =>
