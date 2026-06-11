@@ -7,7 +7,8 @@ import {
   serverless,
 } from 'sentry/data/platformCategories';
 import {DataCategory} from 'sentry/types/core';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 
 type SupportedProfilingPlatformSDK =
   | 'android'

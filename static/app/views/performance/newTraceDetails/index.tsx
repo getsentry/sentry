@@ -138,6 +138,8 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       'thread.id',
       'tags[performance.timeOrigin,number]',
       'gen_ai.operation.type',
+      'http.response.status_code',
+      'span.status',
     ],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
@@ -153,6 +155,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: logsData,
+    timestamp: queryParams.timestamp,
     traceId: traceSlug,
   });
 

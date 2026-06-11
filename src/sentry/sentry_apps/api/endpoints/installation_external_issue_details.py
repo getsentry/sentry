@@ -1,22 +1,55 @@
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import SentryAppParams
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 
+_EXTERNAL_ISSUE_ID_PARAM = OpenApiParameter(
+    name="external_issue_id",
+    location="path",
+    required=True,
+    type=int,
+    description="The ID of the external issue link to remove.",
+)
 
+
+@extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
 
+    @extend_schema(
+        operation_id="Delete an External Issue",
+        parameters=[SentryAppParams.INSTALLATION_UUID, _EXTERNAL_ISSUE_ID_PARAM],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(self, request: Request, installation, external_issue_id) -> Response:
+        """
+        Remove the link between a Sentry issue and an external resource created through a
+        custom integration (Sentry App) installation.
+        """
         try:
             external_issue_id = int(external_issue_id)
         except (ValueError, TypeError):

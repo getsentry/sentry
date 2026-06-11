@@ -34,14 +34,7 @@ export function GithubCopilotIntegrationCta() {
     integration => integration.provider === 'github_copilot'
   );
 
-  const hasGithubCopilotFeatureFlag = organization.features.includes(
-    'integrations-github-copilot-agent'
-  );
   const hasGithubCopilotIntegration = Boolean(githubCopilotIntegration);
-
-  if (!hasGithubCopilotFeatureFlag) {
-    return null;
-  }
 
   if (isLoadingIntegrations) {
     return (

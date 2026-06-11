@@ -340,6 +340,35 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert response.status_code == 404
         assert "base preprod artifact does not exist" in response.json()["detail"]
 
+    def test_same_org_artifact_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        limited_user = self.create_user()
+        accessible_team = self.create_team(organization=self.organization)
+        self.project.add_team(accessible_team)
+        self.create_member(
+            user=limited_user,
+            organization=self.organization,
+            teams=[accessible_team],
+            has_global_access=False,
+        )
+        restricted_project = self.create_project(organization=self.organization)
+        restricted_file = self.create_file(
+            name="restricted_artifact.apk", type="application/octet-stream"
+        )
+        restricted_artifact = self.create_preprod_artifact(
+            project=restricted_project,
+            file_id=restricted_file.id,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.restricted.app",
+        )
+
+        self.login_as(user=limited_user)
+        response = self.client.get(self._get_url(artifact_id=restricted_artifact.id))
+
+        assert response.status_code == 404
+        assert "The requested preprod artifact does not exist" in response.json()["detail"]
+
     def test_cross_org_artifact_access(self) -> None:
         other_org = self.create_organization(owner=self.user)
         other_project = self.create_project(organization=other_org)
@@ -354,6 +383,32 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         response = self.client.get(self._get_url(artifact_id=other_artifact.id))
         assert response.status_code == 404
         assert "The requested preprod artifact does not exist" in response.json()["detail"]
+
+    def test_base_artifact_different_project(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        other_file = self.create_file(name="other_artifact.apk", type="application/octet-stream")
+        other_artifact = self.create_preprod_artifact(
+            project=other_project,
+            file_id=other_file.id,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            app_id="com.other.app",
+        )
+
+        analysis_file = self._create_analysis_file(self._make_analysis_data())
+
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            analysis_file_id=analysis_file.id,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=1024000,
+            max_download_size=512000,
+        )
+
+        response = self.client.get(self._get_url() + f"?baseArtifactId={other_artifact.id}")
+
+        assert response.status_code == 404
+        assert "base preprod artifact does not exist" in response.json()["detail"]
 
     def test_base_artifact_different_org(self) -> None:
         other_org = self.create_organization(owner=self.user)

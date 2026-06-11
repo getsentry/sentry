@@ -20,7 +20,7 @@ from sentry.backup.services.import_export.model import (
     RpcImportErrorKind,
 )
 from sentry.testutils.cases import TestCase
-from sentry.users.models.email import Email
+from sentry.users.models.useremail import UserEmail
 
 encoder = FindingJSONEncoder(
     sort_keys=True,
@@ -64,7 +64,7 @@ class TestFinding(Finding):
 class FindingsTests(TestCase):
     def test_defaults(self) -> None:
         finding = TestFinding(
-            on=InstanceID(model=str(get_model_name(Email))),
+            on=InstanceID(model=str(get_model_name(UserEmail))),
             reason="test reason",
         )
 
@@ -75,7 +75,7 @@ class FindingsTests(TestCase):
     "kind": "Unknown",
     "left_pk": null,
     "on": {
-        "model": "sentry.email",
+        "model": "sentry.useremail",
         "ordinal": null
     },
     "reason": "test reason",
@@ -86,7 +86,7 @@ class FindingsTests(TestCase):
             finding.pretty()
             == """TestFinding(
     kind: Unknown,
-    on: InstanceID(model: 'sentry.email'),
+    on: InstanceID(model: 'sentry.useremail'),
     reason: test reason
 )"""
         )
@@ -94,7 +94,7 @@ class FindingsTests(TestCase):
     def test_no_nulls(self) -> None:
         finding = TestFinding(
             kind=TestFindingKind.Foo,
-            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            on=InstanceID(model=str(get_model_name(UserEmail)), ordinal=1),
             left_pk=2,
             right_pk=3,
             reason="test reason",
@@ -106,7 +106,7 @@ class FindingsTests(TestCase):
     "kind": "Foo",
     "left_pk": 2,
     "on": {
-        "model": "sentry.email",
+        "model": "sentry.useremail",
         "ordinal": 1
     },
     "reason": "test reason",
@@ -117,7 +117,7 @@ class FindingsTests(TestCase):
             finding.pretty()
             == """TestFinding(
     kind: Foo,
-    on: InstanceID(model: 'sentry.email', ordinal: 1),
+    on: InstanceID(model: 'sentry.useremail', ordinal: 1),
     left_pk: 2,
     right_pk: 3,
     reason: test reason
@@ -127,7 +127,7 @@ class FindingsTests(TestCase):
     def test_comparator_finding(self) -> None:
         finding = ComparatorFinding(
             kind=ComparatorFindingKind.Unknown,
-            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            on=InstanceID(model=str(get_model_name(UserEmail)), ordinal=1),
             left_pk=2,
             right_pk=3,
             reason="test reason",
@@ -139,7 +139,7 @@ class FindingsTests(TestCase):
     "kind": "Unknown",
     "left_pk": 2,
     "on": {
-        "model": "sentry.email",
+        "model": "sentry.useremail",
         "ordinal": 1
     },
     "reason": "test reason",
@@ -150,7 +150,7 @@ class FindingsTests(TestCase):
             finding.pretty()
             == """ComparatorFinding(
     kind: Unknown,
-    on: InstanceID(model: 'sentry.email', ordinal: 1),
+    on: InstanceID(model: 'sentry.useremail', ordinal: 1),
     left_pk: 2,
     right_pk: 3,
     reason: test reason
@@ -160,7 +160,7 @@ class FindingsTests(TestCase):
     def test_rpc_export_error(self) -> None:
         finding = RpcExportError(
             kind=RpcExportErrorKind.Unknown,
-            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            on=InstanceID(model=str(get_model_name(UserEmail)), ordinal=1),
             left_pk=2,
             right_pk=3,
             reason="test reason",
@@ -172,7 +172,7 @@ class FindingsTests(TestCase):
     "kind": "Unknown",
     "left_pk": 2,
     "on": {
-        "model": "sentry.email",
+        "model": "sentry.useremail",
         "ordinal": 1
     },
     "reason": "test reason",
@@ -183,7 +183,7 @@ class FindingsTests(TestCase):
             finding.pretty()
             == """RpcExportError(
     kind: Unknown,
-    on: InstanceID(model: 'sentry.email', ordinal: 1),
+    on: InstanceID(model: 'sentry.useremail', ordinal: 1),
     left_pk: 2,
     right_pk: 3,
     reason: test reason
@@ -193,7 +193,7 @@ class FindingsTests(TestCase):
     def test_rpc_import_error(self) -> None:
         finding = RpcImportError(
             kind=RpcImportErrorKind.Unknown,
-            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            on=InstanceID(model=str(get_model_name(UserEmail)), ordinal=1),
             left_pk=2,
             right_pk=3,
             reason="test reason",
@@ -205,7 +205,7 @@ class FindingsTests(TestCase):
     "kind": "Unknown",
     "left_pk": 2,
     "on": {
-        "model": "sentry.email",
+        "model": "sentry.useremail",
         "ordinal": 1
     },
     "reason": "test reason",
@@ -216,7 +216,7 @@ class FindingsTests(TestCase):
             finding.pretty()
             == """RpcImportError(
     kind: Unknown,
-    on: InstanceID(model: 'sentry.email', ordinal: 1),
+    on: InstanceID(model: 'sentry.useremail', ordinal: 1),
     left_pk: 2,
     right_pk: 3,
     reason: test reason

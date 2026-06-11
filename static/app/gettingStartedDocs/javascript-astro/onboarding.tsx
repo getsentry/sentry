@@ -30,9 +30,9 @@ import * as Sentry from "@sentry/astro";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  // Adds request headers and IP for users, for more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,${logsConfig}${performanceConfig}
+  // To disable sending user data, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false },${logsConfig}${performanceConfig}
 });
 `;
 }
@@ -81,9 +81,9 @@ import * as Sentry from "@sentry/astro";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  // Adds request headers and IP for users, for more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,${integrationsConfig}${logsConfig}${performanceConfig}${replaySampleRates}
+  // To disable sending user data, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false },${integrationsConfig}${logsConfig}${performanceConfig}${replaySampleRates}
 });
 `;
 }

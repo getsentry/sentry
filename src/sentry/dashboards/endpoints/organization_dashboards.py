@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Required, TypedDict
+from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -29,6 +29,7 @@ from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import (
     DashboardDetailsModelSerializer,
+    DashboardDetailsResponse,
     DashboardListResponse,
     DashboardListSerializer,
 )
@@ -41,6 +42,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
@@ -346,7 +348,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Custom Dashboards",
+        operation_id="listOrganizationDashboards",
+        summary="List an Organization's Custom Dashboards",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
         request=None,
         responses={
@@ -359,7 +362,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         },
         examples=DashboardExamples.DASHBOARDS_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DashboardListResponse]]:
         """
         Retrieve a list of custom dashboards that are associated with the given organization.
         """
@@ -522,7 +527,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         list_serializer = DashboardListSerializer()
 
-        def handle_results(results: list[Dashboard]) -> list[dict[str, Any]]:
+        def handle_results(results: list[Dashboard]) -> list[DashboardListResponse]:
             return serialize(
                 results,
                 request.user,
@@ -538,7 +543,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a New Dashboard for an Organization",
+        operation_id="createOrganizationDashboard",
+        summary="Create a New Dashboard for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=DashboardSerializer,
         responses={
@@ -550,7 +556,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         },
         examples=DashboardExamples.DASHBOARD_POST_RESPONSE,
     )
-    def post(self, request: Request, organization: Organization, retry: int = 0) -> Response:
+    def post(
+        self, request: Request, organization: Organization, retry: int = 0
+    ) -> (
+        Response[DashboardDetailsResponse]
+        | Response[None]
+        | Response[ValidationErrorResponse]
+        | Response[str]
+    ):
         """
         Create a new dashboard for the given Organization
         """
@@ -571,7 +584,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         if request.GET.get("validateOnly"):
             return Response(status=200)
@@ -601,7 +614,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
                 dashboard = serializer.save()
 
-            return Response(serialize(dashboard, request.user), status=201)
+            body: DashboardDetailsResponse = serialize(dashboard, request.user)
+            return Response(body, status=201)
         except IntegrityError:
             if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)

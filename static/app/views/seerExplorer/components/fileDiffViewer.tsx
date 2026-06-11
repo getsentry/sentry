@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -194,8 +195,18 @@ const FileDiffWrapper = styled('div')<{showBorder?: boolean}>`
   vertical-align: middle;
   overflow: hidden;
   background-color: ${p => p.theme.tokens.background.primary};
-  ${p => (p.showBorder ? `border: 1px solid ${p.theme.tokens.border.primary};` : '')}
-  ${p => (p.showBorder ? `border-radius: ${p.theme.radius.md};` : '')}
+  ${p =>
+    p.showBorder
+      ? css`
+          border: 1px solid ${p.theme.tokens.border.primary};
+        `
+      : ''}
+  ${p =>
+    p.showBorder
+      ? css`
+          border-radius: ${p.theme.radius.md};
+        `
+      : ''}
 `;
 
 const FileHeader = styled('div')<{collapsible?: boolean}>`
@@ -263,10 +274,16 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.added}; color: ${p.theme.tokens.content.primary}`};
+    css`
+      background-color: ${DIFF_COLORS.added};
+      color: ${p.theme.tokens.content.primary};
+    `}
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removed}; color: ${p.theme.tokens.content.primary}`};
+    css`
+      background-color: ${DIFF_COLORS.removed};
+      color: ${p.theme.tokens.content.primary};
+    `}
 
   & + & {
     padding-left: 0;
@@ -284,10 +301,16 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
-    `background-color: ${DIFF_COLORS.addedRow}; color: ${p.theme.tokens.content.primary}`};
+    css`
+      background-color: ${DIFF_COLORS.addedRow};
+      color: ${p.theme.tokens.content.primary};
+    `}
   ${p =>
     p.lineType === DiffLineType.REMOVED &&
-    `background-color: ${DIFF_COLORS.removedRow}; color: ${p.theme.tokens.content.primary}`};
+    css`
+      background-color: ${DIFF_COLORS.removedRow};
+      color: ${p.theme.tokens.content.primary};
+    `}
 
   &::before {
     content: ${p =>

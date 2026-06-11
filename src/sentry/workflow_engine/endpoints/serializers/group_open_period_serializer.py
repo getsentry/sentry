@@ -27,7 +27,7 @@ class GroupOpenPeriodResponse(TypedDict):
 
 
 @register(GroupOpenPeriodActivity)
-class GroupOpenPeriodActivitySerializer(Serializer):
+class GroupOpenPeriodActivitySerializer(Serializer[GroupOpenPeriodActivityResponse]):
     def serialize(
         self, obj: GroupOpenPeriodActivity, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> GroupOpenPeriodActivityResponse:
@@ -41,7 +41,7 @@ class GroupOpenPeriodActivitySerializer(Serializer):
 
 
 @register(GroupOpenPeriod)
-class GroupOpenPeriodSerializer(Serializer):
+class GroupOpenPeriodSerializer(Serializer[GroupOpenPeriodResponse]):
     def get_attrs(self, item_list: Any, user: Any, **kwargs: Any) -> Any:
         query_start = kwargs.get("query_start")
         query_end = kwargs.get("query_end")

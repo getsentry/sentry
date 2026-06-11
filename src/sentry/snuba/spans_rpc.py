@@ -59,6 +59,7 @@ class Spans(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -73,6 +74,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
                 additional_queries=additional_queries,
+                max_string_length=max_string_length,
             ),
             params.debug,
         )
@@ -109,17 +111,18 @@ class Spans(rpc_dataset_common.RPCBase):
             "sdk.name",
             "measurements.time_to_initial_display",
             "measurements.time_to_full_display",
+            "measurements.lcp",
+            "measurements.score.ratio.lcp",
+            "measurements.fcp",
+            "measurements.score.ratio.fcp",
+            "measurements.inp",
+            "measurements.score.ratio.inp",
+            "measurements.cls",
+            "measurements.score.ratio.cls",
+            "measurements.ttfb",
+            "measurements.score.ratio.ttfb",
             *additional_attributes,
         ]
-        for key in {
-            "lcp",
-            "fcp",
-            "inp",
-            "cls",
-            "ttfb",
-        }:
-            trace_attributes.append(f"measurements.{key}")
-            trace_attributes.append(f"measurements.score.ratio.{key}")
         resolver = cls.get_resolver(params=params, config=SearchResolverConfig())
         columns, _ = resolver.resolve_attributes(trace_attributes)
         meta = resolver.resolve_meta(referrer=referrer)

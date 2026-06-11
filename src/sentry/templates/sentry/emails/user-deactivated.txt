@@ -15,7 +15,7 @@ Scheduled Deletion: {{ scheduled_deletion_datetime }} UTC
 
 You have until {{ scheduled_deletion_datetime }} UTC to reactivate your account. After this time, your account and all associated data will be permanently deleted.
 
-To reactivate your account, please log in before the scheduled deletion date.
+To reactivate your account, please log in before the scheduled deletion date: {% absolute_uri '/auth/login/' %}
 
 Don't recognize this activity?
 ------------------------------

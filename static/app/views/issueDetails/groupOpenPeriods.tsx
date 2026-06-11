@@ -19,7 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
-import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
+import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
 
 interface OpenPeriodDisplayData {
   description: string;

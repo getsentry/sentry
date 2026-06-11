@@ -165,10 +165,6 @@ function buildRoutes(): RouteObject[] {
       component: errorHandler(OrganizationContainerRoute),
       children: [
         {
-          path: '/extensions/external-install/:integrationSlug/:installationId',
-          component: make(() => import('sentry/views/integrationOrganizationLink')),
-        },
-        {
           path: '/extensions/:integrationSlug/link/',
           component: make(() => import('sentry/views/integrationOrganizationLink')),
         },
@@ -742,6 +738,13 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
     },
     {
+      path: 'legacy-webhooks/',
+      name: t('Webhooks'),
+      component: make(
+        () => import('sentry/views/settings/projectPlugins/legacyWebhookDetails')
+      ),
+    },
+    {
       path: 'plugins/',
       name: t('Legacy Integrations'),
       children: [
@@ -1022,6 +1025,14 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () =>
               import('sentry/views/settings/organizationIntegrations/integrationListDirectory')
+          ),
+        },
+        {
+          path: 'legacy-webhooks/',
+          name: t('Webhooks'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationIntegrations/webhookDetailedView')
           ),
         },
         {

@@ -3,9 +3,9 @@ from typing import Any
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
-from rest_framework import serializers
 
 from sentry import constants
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -206,6 +206,14 @@ Valid fields include:
 """,
     )
 
+    PROJECT_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter projects by name or slug.",
+    )
+
     EXTERNAL_USER_ID = OpenApiParameter(
         name="external_user_id",
         location="path",
@@ -230,6 +238,20 @@ class ReleaseParams:
         required=True,
         type=str,
         description="The version identifier of the release",
+    )
+    FILE_ID = OpenApiParameter(
+        name="file_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the release file.",
+    )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=OpenApiTypes.STR,
+        description="Case-insensitive substring match against the release version.",
     )
     PROJECT_ID = OpenApiParameter(
         name="project_id",
@@ -306,7 +328,7 @@ class IssueParams:
         name="issue_id",
         location="path",
         required=True,
-        type=int,
+        type=str,
         description="The ID of the issue you'd like to query.",
     )
 
@@ -591,6 +613,13 @@ class SentryAppParams:
         type=str,
         description="The ID or slug of the custom integration.",
     )
+    INSTALLATION_UUID = OpenApiParameter(
+        name="uuid",
+        location="path",
+        required=True,
+        type=str,
+        description="The UUID of the Sentry App installation.",
+    )
 
 
 class SentryAppStatusParams:
@@ -606,6 +635,13 @@ class SentryAppStatusParams:
 
 
 class VisibilityParams:
+    ALLOW_AGGREGATE_CONDITIONS = OpenApiParameter(
+        name="allowAggregateConditions",
+        location="query",
+        required=False,
+        type=OpenApiTypes.BOOL,
+        description="If false, aggregate conditions in the query string are disallowed. Defaults to true.",
+    )
     QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -742,11 +778,15 @@ events that aren't in the top groups.""",
     )
 
 
-class CursorQueryParam(serializers.Serializer):
-    cursor = serializers.CharField(
-        help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
-        required=False,
-    )
+CursorQueryParam = OpenApiParameter(
+    name="cursor",
+    location="query",
+    required=False,
+    type=str,
+    allow_blank=False,
+    description="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
+    extensions={"x-learn-more": "https://docs.sentry.io/api/pagination/"},
+)
 
 
 class MonitorParams:
@@ -923,6 +963,13 @@ keys if not specified.
 
 
 class TeamParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter teams by name or slug.",
+    )
     DETAILED = OpenApiParameter(
         name="detailed",
         location="query",
@@ -977,6 +1024,28 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.INT,
         description="""The ID of the replay deletion job you'd like to retrieve.""",
+    )
+
+    DATA_SOURCE = OpenApiParameter(
+        name="data_source",
+        location="query",
+        required=False,
+        type=OpenApiTypes.STR,
+        enum=[
+            Dataset.Discover.value,
+            Dataset.Events.value,
+            Dataset.Transactions.value,
+            Dataset.IssuePlatform.value,
+        ],
+        description="The data source to query replays from. Defaults to 'discover'.",
+    )
+
+    RETURN_IDS = OpenApiParameter(
+        name="returnIds",
+        location="query",
+        required=False,
+        type=OpenApiTypes.BOOL,
+        description="If true, return issue IDs rather than counts.",
     )
 
 
@@ -1183,137 +1252,5 @@ Available fields are:
 - `mostPopular`
 - `recentlyViewed`
 - `myqueries`
-        """,
-    )
-
-
-class PreventParams:
-    OWNER = OpenApiParameter(
-        name="owner",
-        location="path",
-        required=True,
-        type=str,
-        description="The owner of the repository.",
-    )
-    REPOSITORY = OpenApiParameter(
-        name="repository",
-        location="path",
-        required=True,
-        type=str,
-        description="The name of the repository.",
-    )
-    INTERVAL = OpenApiParameter(
-        name="interval",
-        location="query",
-        required=False,
-        type=str,
-        description="""The time interval to search for results by.
-
-Available fields are:
-- `INTERVAL_30_DAY`
-- `INTERVAL_7_DAY`
-- `INTERVAL_1_DAY`
-""",
-    )
-    BRANCH = OpenApiParameter(
-        name="branch",
-        location="query",
-        required=False,
-        type=str,
-        description="""The branch to search for results by. If not specified, the default is all branches.
-        """,
-    )
-    TEST_RESULTS_FILTER_BY = OpenApiParameter(
-        name="filterBy",
-        location="query",
-        required=False,
-        type=str,
-        description="""An optional field to filter by, which will constrain the results to only include tests that match the filter.
-
-Available fields are:
-- `FLAKY_TESTS`
-- `FAILED_TESTS`
-- `SLOWEST_TESTS`
-- `SKIPPED_TESTS`
-        """,
-    )
-    TEST_RESULTS_SORT_BY = OpenApiParameter(
-        name="sortBy",
-        location="query",
-        required=False,
-        type=str,
-        description="""The property to sort results by. If not specified, the default is `TOTAL_FAIL_COUNT` in descending order. Use `-`
-        for descending order.
-
-Available fields are:
-- `AVG_DURATION`
-- `FLAKE_RATE`
-- `FAILURE_RATE`
-- `TOTAL_FAIL_COUNT`
-- `UPDATED_AT`
-        """,
-    )
-    LIMIT = OpenApiParameter(
-        name="limit",
-        location="query",
-        required=False,
-        type=int,
-        description="""The number of results to return. If not specified, defaults to 20.""",
-    )
-    FIRST = OpenApiParameter(
-        name="first",
-        location="query",
-        required=False,
-        type=int,
-        default=20,
-        description="""The number of results to return from the start of the list.""",
-    )
-    LAST = OpenApiParameter(
-        name="last",
-        location="query",
-        required=False,
-        type=int,
-        description="""The number of results to return from the end of the list.""",
-    )
-    CURSOR = OpenApiParameter(
-        name="cursor",
-        location="query",
-        required=False,
-        type=str,
-        description="""The cursor pointing to a specific position in the result set to start the query from. Results after the cursor will be returned if used with `next` or before the cursor if used with `prev` for `navigation`.""",
-    )
-    TERM = OpenApiParameter(
-        name="term",
-        location="query",
-        required=False,
-        type=str,
-        description="""The term substring to filter name strings by using the `contains` operator.""",
-    )
-    NAVIGATION = OpenApiParameter(
-        name="navigation",
-        location="query",
-        required=False,
-        type=str,
-        description="""Whether to get the previous or next page from paginated results. Use `next` for forward pagination after the cursor or `prev` for backward pagination before the cursor. If not specified, defaults to `next`. If no cursor is provided, the cursor is the beginning of the result set.""",
-    )
-    TEST_SUITES = OpenApiParameter(
-        name="testSuites",
-        location="query",
-        required=False,
-        type=str,
-        many=True,
-        description="""A list of test suites belonging to a repository's test results.""",
-    )
-    TOKENS_SORT_BY = OpenApiParameter(
-        name="sortBy",
-        location="query",
-        required=False,
-        type=str,
-        description="""The property to sort results by. If not specified, the default is `COMMIT_DATE` in descending order. Use `-`
-        for descending order.
-
-Available fields are:
-- `NAME`
-- `COMMIT_DATE`
         """,
     )

@@ -22,6 +22,7 @@ from sentry.silo.client import (
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import override_allowed_cell_silo_ip_addresses
 from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 from sentry.utils import json
@@ -348,6 +349,43 @@ class SiloClientTest(TestCase):
         err = mock_capture_exception.call_args.args[0]
         assert isinstance(err, CellResolutionError)
         assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.31",)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
+    @responses.activate
+    def test_cell_gateway_address_is_allowed(self) -> None:
+        cell = Cell(
+            name="us",
+            snowflake_id=1,
+            address="http://10.2.0.88:9000",
+            api_gateway_address="http://10.2.0.66:9000",
+            category=RegionCategory.MULTI_TENANT,
+        )
+
+        responses.add(
+            responses.GET,
+            "http://10.2.0.66:9000/api/0/imaginary-public-endpoint/",
+            json={"ok": "66"},
+            headers={"X-Some-Header": "Some-Value", PROXY_SIGNATURE_HEADER: "123"},
+        )
+
+        # We're not mocking allowed_cell_silo_ip_addresses, so the cell attributes
+        # above are used.
+        with (
+            override_cells((cell,)),
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        ):
+            assert mock_capture_exception.call_count == 0
+
+            client = CellSiloClient(cell)
+            assert client.base_url == "http://10.2.0.66:9000"
+            request = self.factory.get(
+                "/api/0/imaginary-public-endpoint/", HTTP_HOST="http://control.sentry.io"
+            )
+            res = client.proxy_request(request)
+            assert res.content == b'{"ok": "66"}'
+
+            assert mock_capture_exception.call_count == 0
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_allowed_cell_silo_ip_addresses("172.31.255.255")

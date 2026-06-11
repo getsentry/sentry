@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import httpx
 from asgiref.sync import sync_to_async
@@ -15,9 +15,8 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
-from sentry import options
-from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import get_raw_body_async
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
@@ -27,7 +26,6 @@ from sentry.silo.util import (
 from sentry.types.cell import (
     Cell,
     CellResolutionError,
-    get_cell_by_name,
     get_cell_for_organization,
 )
 from sentry.utils import metrics
@@ -57,6 +55,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
     "sentry-api-0-organization-preprod-snapshots-download": 90.0,
+    "sentry-api-0-organization-preprod-snapshots-archive": 90.0,
 }
 
 # stream 0.5 MB at a time
@@ -113,45 +112,23 @@ async def proxy_request(
     return await proxy_cell_request(request, cell, url_name)
 
 
-async def proxy_error_embed_request(
-    request: HttpRequest, dsn: str, url_name: str
-) -> HttpResponseBase | None:
-    try:
-        parsed = urlparse(dsn)
-    except Exception as err:
-        logger.info("apigateway.error_embed.invalid_dsn", extra={"dsn": dsn, "error": err})
-        return None
-    host = parsed.netloc
-    app_host = urlparse(options.get("system.url-prefix")).netloc
-    if not host.endswith(app_host):
-        # Don't further parse URLs that aren't for us.
-        return None
-
-    app_segments = app_host.split(".")
-    host_segments = host.split(".")
-    if len(host_segments) - len(app_segments) < 3:
-        # If we don't have a o123.ingest.{cell}.{app_host} style domain
-        # we forward to the monolith cell
-        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
-        return await proxy_cell_request(request, cell, url_name)
-    try:
-        cell_offset = len(app_segments) + 1
-        cell_segment = host_segments[cell_offset * -1]
-        cell = get_cell_by_name(cell_segment)
-    except Exception:
-        return None
-
-    return await proxy_cell_request(request, cell, url_name)
-
-
 async def proxy_cell_request(
     request: HttpRequest,
     cell: Cell,
     url_name: str,
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
-    metric_tags = {"region": cell.name, "url_name": url_name}
-    target_url = urljoin(cell.address, request.path)
+    host = cell.address
+    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+        host = cell.api_gateway_address
+
+    metric_tags = {
+        "destination_cell": cell.name,
+        "url_name": url_name,
+        "destination_host": host,
+        "request_method": request.method,
+    }
+    target_url = urljoin(host, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
     content_length = request.headers.get("Content-Length")
@@ -203,12 +180,17 @@ async def proxy_cell_request(
             except httpx.TimeoutException:
                 metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
                 circuitbreaker.incr_failures()
-                # remote silo timeout. Use DRF timeout instead
-                raise RequestTimeout()
+                return JsonResponse(
+                    {"error": "apigateway", "detail": "Proxied request timed out"},
+                    status=500,
+                )
             except httpx.RequestError:
                 metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                 circuitbreaker.incr_failures()
-                raise
+                return JsonResponse(
+                    {"error": "apigateway", "detail": "Downstream service unavailable"},
+                    status=500,
+                )
     except CircuitBreakerOverflow:
         metrics.incr("apigateway.proxy.circuit_breaker.overflow", tags=metric_tags)
         return JsonResponse(

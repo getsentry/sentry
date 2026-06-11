@@ -21,6 +21,8 @@ export function getNavigationConfiguration({
   const plugins = (
     'plugins' in (project ?? {}) ? ((project as DetailedProject)?.plugins ?? []) : []
   ).filter(plugin => plugin.enabled);
+  const hasLegacyWebhookUI =
+    organization?.features?.includes('legacy-webhook-ui') ?? false;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return [
@@ -59,7 +61,13 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/ownership/`,
           title: t('Ownership Rules'),
-          keywords: [t('ownership'), t('codeowners'), t('owners'), t('owner rules')],
+          keywords: [
+            t('ownership'),
+            t('codeowners'),
+            t('code owners'),
+            t('owners'),
+            t('owner rules'),
+          ],
           description: t('Manage ownership rules for a project'),
         },
         {
@@ -107,6 +115,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/issue-grouping/`,
           title: t('Issue Grouping'),
+          keywords: [t('fingerprinting'), t('fingerprint rules')],
         },
         {
           path: `${pathPrefix}/debug-symbols/`,
@@ -173,7 +182,19 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
-          keywords: [t('dsn'), t('auth'), t('token'), t('client key'), t('dsn key')],
+          keywords: [
+            t('dsn'),
+            // The SDK environment variable name (and its spaced form) that
+            // developers search for. Not wrapped in t() — these are fixed
+            // config/product tokens, not translatable prose.
+            'SENTRY_DSN',
+            'Sentry DSN',
+            t('auth'),
+            t('token'),
+            t('client key'),
+            t('dsn key'),
+            t('allowed domains'),
+          ],
         },
         {
           path: `${pathPrefix}/loader-script/`,
@@ -194,20 +215,30 @@ export function getNavigationConfiguration({
       id: 'settings-legacy-integrations',
       name: t('Legacy Integrations'),
       items: [
-        {
-          path: `${pathPrefix}/plugins/`,
-          title: t('Legacy Integrations'),
-          description: t('View, enable, and disable all integrations for a project'),
-          id: 'legacy_integrations',
-          recordAnalytics: true,
-        },
-        ...plugins.map(plugin => ({
-          path: `${pathPrefix}/plugins/${plugin.id}/`,
-          title: plugin.name,
-          show: (opts: any) => opts?.access?.has('project:write') && !plugin.isDeprecated,
-          id: 'plugin_details',
-          recordAnalytics: true,
-        })),
+        hasLegacyWebhookUI
+          ? {
+              path: `${pathPrefix}/legacy-webhooks/`,
+              title: t('Webhooks (Legacy)'),
+              id: 'webhook_details',
+              recordAnalytics: true,
+            }
+          : {
+              path: `${pathPrefix}/plugins/`,
+              title: t('Legacy Integrations'),
+              description: t('View, enable, and disable all integrations for a project'),
+              id: 'legacy_integrations',
+              recordAnalytics: true,
+            },
+        ...plugins
+          .filter(plugin => !hasLegacyWebhookUI || plugin.id !== 'webhooks')
+          .map(plugin => ({
+            path: `${pathPrefix}/plugins/${plugin.id}/`,
+            title: plugin.name,
+            show: (opts: any) =>
+              opts?.access?.has('project:write') && !plugin.isDeprecated,
+            id: 'plugin_details',
+            recordAnalytics: true,
+          })),
       ],
     },
   ];

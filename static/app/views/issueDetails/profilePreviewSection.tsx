@@ -14,7 +14,8 @@ import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -28,8 +29,8 @@ import {
   ProfilesProvider,
   useProfiles,
 } from 'sentry/views/explore/profiling/profilesProvider';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 export function ProfilePreviewSection({
   event,

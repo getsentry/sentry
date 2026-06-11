@@ -4,7 +4,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
+import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
 import {
   groupEventApiOptions,
   useDefaultIssueEvent,

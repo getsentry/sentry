@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -106,7 +107,11 @@ const FormWrap = styled('form')`
 `;
 
 const StyledInput = styled(InputGroup.Input)`
-  ${p => p.width && `width: ${p.width};`}
+  ${p =>
+    p.width &&
+    css`
+      width: ${p.width};
+    `}
 `;
 
 export const SearchBarTrailingButton = styled(Button)`

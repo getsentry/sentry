@@ -21,13 +21,13 @@ from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
 
 if TYPE_CHECKING:
     from sentry.grouping.context import GroupingContext
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 
 @strategy(ids=["expect-ct:v1"], interface=ExpectCT, score=1000)
 @produces_variants(["default"])
 def expect_ct_v1(
-    interface: ExpectCT, event: Event, context: GroupingContext, **kwargs: Any
+    interface: ExpectCT, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 
@@ -44,7 +44,7 @@ def expect_ct_v1(
 @strategy(ids=["expect-staple:v1"], interface=ExpectStaple, score=1001)
 @produces_variants(["default"])
 def expect_staple_v1(
-    interface: ExpectStaple, event: Event, context: GroupingContext, **kwargs: Any
+    interface: ExpectStaple, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 
@@ -61,7 +61,7 @@ def expect_staple_v1(
 @strategy(ids=["hpkp:v1"], interface=Hpkp, score=1002)
 @produces_variants(["default"])
 def hpkp_v1(
-    interface: Hpkp, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Hpkp, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 
@@ -78,7 +78,7 @@ def hpkp_v1(
 @strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
 def csp_v1(
-    interface: Csp, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Csp, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 

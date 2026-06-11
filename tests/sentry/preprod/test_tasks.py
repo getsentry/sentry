@@ -17,6 +17,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodSnapshotComparison,
 )
 from sentry.preprod.tasks import (
     assemble_preprod_artifact,
@@ -1132,6 +1133,98 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             expired_size_comparison.error_message
             and "30 minutes" in expired_size_comparison.error_message
         )
+
+    def _create_snapshot_comparison(self, state: int) -> PreprodSnapshotComparison:
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        head_metrics = self.create_preprod_snapshot_metrics(head_artifact)
+        base_metrics = self.create_preprod_snapshot_metrics(base_artifact)
+        return self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=state,
+        )
+
+    def test_detect_expired_preprod_artifacts_expires_stuck_snapshot_comparison(self) -> None:
+        """A snapshot comparison stuck in PROCESSING for >30 minutes is marked FAILED"""
+        old_time = timezone.now() - timedelta(minutes=35)
+
+        comparison = self._create_snapshot_comparison(
+            state=PreprodSnapshotComparison.State.PROCESSING
+        )
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.TIMEOUT
+        assert comparison.error_message and "30 minutes" in comparison.error_message
+
+    def test_detect_expired_preprod_artifacts_ignores_recent_snapshot_comparison(self) -> None:
+        """A snapshot comparison that started PROCESSING recently is left alone"""
+        comparison = self._create_snapshot_comparison(
+            state=PreprodSnapshotComparison.State.PROCESSING
+        )
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+
+    def test_detect_expired_preprod_artifacts_ignores_stale_non_processing_snapshot_comparison(
+        self,
+    ) -> None:
+        """An old snapshot comparison that is not PROCESSING is left alone"""
+        old_time = timezone.now() - timedelta(minutes=35)
+
+        comparison = self._create_snapshot_comparison(state=PreprodSnapshotComparison.State.SUCCESS)
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.error_code is None
+
+    def test_detect_expired_preprod_artifacts_expires_stuck_pending_snapshot_comparison(
+        self,
+    ) -> None:
+        """A snapshot comparison stuck in PENDING for >30 minutes is marked FAILED.
+
+        Selective-base reconstruction parks a comparison in PENDING between deferral
+        retries; if the rescheduled task is ever lost, the row would otherwise orphan
+        forever. A healthy or actively-deferring row keeps date_updated fresh, so the
+        stale threshold only catches a genuinely orphaned one.
+        """
+        old_time = timezone.now() - timedelta(minutes=35)
+
+        comparison = self._create_snapshot_comparison(state=PreprodSnapshotComparison.State.PENDING)
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.TIMEOUT
+
+    def test_detect_expired_preprod_artifacts_ignores_recent_pending_snapshot_comparison(
+        self,
+    ) -> None:
+        """A freshly-created PENDING comparison (about to be picked up) is left alone."""
+        comparison = self._create_snapshot_comparison(state=PreprodSnapshotComparison.State.PENDING)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.PENDING
+        assert comparison.error_code is None
 
     def test_detect_expired_preprod_artifacts_captures_sentry_message(self) -> None:
         """Test that Sentry messages are captured for each expired artifact"""

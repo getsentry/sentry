@@ -5,7 +5,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 interface Props {

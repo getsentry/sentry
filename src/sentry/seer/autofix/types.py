@@ -1,34 +1,22 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 
 class AutofixPostResponse(TypedDict):
-    """Response type for the POST endpoint"""
+    """Response type for the POST endpoint (default kickoff and step paths)."""
 
     run_id: int
+
+
+class AutofixHandoffResponse(TypedDict):
+    """Response type for the POST endpoint when `step=coding_agent_handoff`."""
+
+    successes: list[dict[str, Any]]
+    failures: list[dict[str, Any]]
 
 
 class AutofixStateResponse(TypedDict):
     """Response type for the GET endpoint"""
 
     autofix: dict[str, Any] | None
-
-
-class AutofixSelectRootCausePayload(TypedDict):
-    type: Literal["select_root_cause"]
-    cause_id: int
-
-
-class AutofixSelectSolutionPayload(TypedDict):
-    type: Literal["select_solution"]
-
-
-class AutofixCreatePRPayload(TypedDict):
-    type: Literal["create_pr"]
-
-
-class AutofixUpdateRequest(TypedDict):
-    run_id: int
-    organization_id: int
-    payload: AutofixSelectRootCausePayload | AutofixSelectSolutionPayload | AutofixCreatePRPayload

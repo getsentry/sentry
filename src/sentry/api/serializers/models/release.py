@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict, Union
+from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -11,7 +11,7 @@ from django.db.models import Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.release_details_types import VersionInfo
+from sentry.api.serializers.release_details_types import Author, NonMappableUser, VersionInfo
 from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
     ReleaseSerializerResponse,
@@ -224,14 +224,6 @@ def _get_last_deploy_metadata(item_list, user):
 def _user_to_author_cache_key(organization_id: int, author: CommitAuthor) -> str:
     author_hash = md5_text(author.email.lower()).hexdigest()
     return f"get_users_for_authors:{organization_id}:{author_hash}"
-
-
-class NonMappableUser(TypedDict):
-    name: str | None
-    email: str
-
-
-Author = Union[UserSerializerResponse, NonMappableUser]
 
 
 def get_author_users_by_external_actors(

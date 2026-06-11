@@ -21,8 +21,11 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
   ExpandedRowContainer,
@@ -33,15 +36,27 @@ import {
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
-import {stripMetricParamsFromLocation} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  defaultAggregateSortBys,
+  defaultMetricQuery,
+  stripMetricParamsFromLocation,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
+  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
+  isEmbeddedMetricsSamplesTableSource,
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
+  type MetricsSamplesTableSource,
   type SampleTableColumnKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {
+  getMetricTableColumnType,
+  getMetricsUrl,
+  makeMetricsAggregate,
+} from 'sentry/views/explore/metrics/utils';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -49,22 +64,35 @@ import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTr
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const VALUE_COLUMN_MIN_WIDTH = '50px';
-const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-metrics-samples-table-similar-spans';
+const VIEW_CONNECTED_TRACES_REFERRER = 'trace-metrics-samples-table-connected-traces';
+const OPEN_IN_EXPLORE_REFERRER = 'trace-metrics-samples-table-open-in-explore';
+const ISSUE_DETAILS_CELL_ACTIONS = ALLOWED_CELL_ACTIONS.filter(
+  action =>
+    ![
+      Actions.ADD,
+      Actions.EXCLUDE,
+      Actions.SHOW_GREATER_THAN,
+      Actions.SHOW_LESS_THAN,
+    ].includes(action)
+);
 
 const getExtraMenuItems = ({
-  embedded,
   field,
   organization,
   row,
   selection,
+  source,
 }: {
-  embedded: boolean;
   field: SampleTableColumnKey;
   organization: Organization;
   row: TraceMetricEventsResponseItem;
   selection: PageFilters;
+  source: MetricsSamplesTableSource;
 }): MenuItemProps[] | undefined => {
-  if (!embedded || field !== TraceMetricKnownFieldKey.METRIC_NAME) {
+  if (
+    !isEmbeddedMetricsSamplesTableSource(source) ||
+    field !== TraceMetricKnownFieldKey.METRIC_NAME
+  ) {
     return undefined;
   }
 
@@ -80,15 +108,23 @@ const getExtraMenuItems = ({
     type: metricType,
     unit: metricUnit?.length > 0 ? metricUnit : undefined,
   };
+  const aggregateFields = [
+    new VisualizeFunction(
+      makeMetricsAggregate({
+        aggregate: DEFAULT_YAXIS_BY_TYPE[metric.type] ?? 'sum',
+        traceMetric: metric,
+      })
+    ),
+  ];
 
   return [
     {
-      key: 'explore-similar-spans',
-      label: t('Explore similar spans'),
+      key: 'view-connected-traces',
+      label: t('View connected traces'),
       to: getExploreUrl({
         organization,
         mode: Mode.SAMPLES,
-        referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
+        referrer: VIEW_CONNECTED_TRACES_REFERRER,
         selection: {
           ...selection,
           datetime: {
@@ -107,6 +143,24 @@ const getExtraMenuItems = ({
         ],
       }),
     },
+    {
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getMetricsUrl({
+        organization,
+        referrer: OPEN_IN_EXPLORE_REFERRER,
+        selection,
+        metricQueries: [
+          {
+            metric,
+            queryParams: defaultMetricQuery().queryParams.replace({
+              aggregateFields,
+              aggregateSortBys: defaultAggregateSortBys(aggregateFields),
+            }),
+          },
+        ],
+      }),
+    },
   ];
 };
 
@@ -114,8 +168,8 @@ interface SampleTableRowProps {
   columns: SampleTableColumnKey[];
   meta: EventsMetaType;
   row: TraceMetricEventsResponseItem;
-  embedded?: boolean;
   ref?: (element: HTMLElement | null) => void;
+  source?: MetricsSamplesTableSource;
 }
 
 function FieldCellWrapper({
@@ -123,13 +177,13 @@ function FieldCellWrapper({
   row,
   children,
   index,
-  embedded = false,
+  source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
 }: {
   children: ReactNode;
   field: SampleTableColumnKey;
   index: number;
   row: TraceMetricEventsResponseItem;
-  embedded?: boolean;
+  source?: MetricsSamplesTableSource;
 }) {
   const columnType = getMetricTableColumnType(field);
   const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
@@ -138,7 +192,7 @@ function FieldCellWrapper({
       <NumericSimpleTableRowCell
         key={index}
         style={{minWidth: VALUE_COLUMN_MIN_WIDTH}}
-        embedded={embedded}
+        source={source}
       >
         <Tooltip showOnlyOnOverflow title={row[TraceMetricKnownFieldKey.METRIC_VALUE]}>
           {children}
@@ -147,7 +201,7 @@ function FieldCellWrapper({
     );
   }
   return (
-    <StyledSimpleTableRowCell key={index} embedded={embedded} noPadding={!hasPadding}>
+    <StyledSimpleTableRowCell key={index} source={source} noPadding={!hasPadding}>
       {children}
     </StyledSimpleTableRowCell>
   );
@@ -157,7 +211,7 @@ export function SampleTableRow({
   row,
   columns,
   meta,
-  embedded = false,
+  source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   ref,
 }: SampleTableRowProps) {
   const organization = useOrganization();
@@ -169,6 +223,7 @@ export function SampleTableRow({
   const projectId = row[TraceMetricKnownFieldKey.PROJECT_ID];
   const project = projects.projects.find(p => p.id === '' + projectId);
   const projectSlug = project?.slug ?? '';
+  const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
 
   const traceId = row[TraceMetricKnownFieldKey.TRACE];
 
@@ -178,7 +233,7 @@ export function SampleTableRow({
         icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
         aria-label={t('Toggle trace details')}
         aria-expanded={isExpanded}
-        size={embedded ? 'zero' : 'sm'}
+        size={isEmbedded ? 'zero' : 'sm'}
         variant="transparent"
         onClick={() => setIsExpanded(!isExpanded)}
       />
@@ -236,6 +291,7 @@ export function SampleTableRow({
     // instead of converting it with a duration assumption. The renderer
     // still picks up the correct formatter via meta.fields/meta.units.
     const isMetricValue = field === TraceMetricKnownFieldKey.METRIC_VALUE;
+    const shouldRemoveAddFilter = source === 'issueDetails';
     const discoverColumn: TableColumn<keyof TableDataRow> = {
       column: {
         field,
@@ -255,12 +311,13 @@ export function SampleTableRow({
         unit={meta?.units?.[field]}
         meta={meta}
         extraMenuItems={getExtraMenuItems({
-          embedded,
           field,
           organization,
           row,
           selection,
+          source,
         })}
+        allowActions={shouldRemoveAddFilter ? ISSUE_DETAILS_CELL_ACTIONS : undefined}
       />
     );
   };
@@ -302,13 +359,7 @@ export function SampleTableRow({
           const cellContent = renderFieldCell(field);
 
           return (
-            <FieldCellWrapper
-              key={i}
-              field={field}
-              index={i}
-              row={row}
-              embedded={embedded}
-            >
+            <FieldCellWrapper key={i} field={field} index={i} row={row} source={source}>
               {isValueColumn ? (
                 <Tooltip
                   showOnlyOnOverflow
@@ -325,7 +376,11 @@ export function SampleTableRow({
       </StickyTableRow>
       {isExpanded && (
         <ExpandedRowContainer>
-          <MetricDetails dataRow={row} ref={measureRef} showTelemetry={!embedded} />
+          <MetricDetails
+            dataRow={row}
+            ref={measureRef}
+            showTelemetry={source === 'metricsPage'}
+          />
         </ExpandedRowContainer>
       )}
     </TableRowContainer>

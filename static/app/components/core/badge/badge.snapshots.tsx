@@ -1,6 +1,6 @@
 import {ThemeProvider} from '@emotion/react';
 
-// eslint-disable-next-line @sentry/scraps/no-core-import -- SSR snapshot needs direct import to avoid barrel re-exports with heavy deps
+// eslint-disable-next-line @sentry/scraps/no-core-import, boundaries/dependencies -- SSR snapshot needs direct import to avoid barrel re-exports with heavy deps
 import {Badge, type BadgeProps} from 'sentry/components/core/badge/badge';
 // eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';

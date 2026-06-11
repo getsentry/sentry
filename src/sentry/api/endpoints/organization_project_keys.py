@@ -80,7 +80,7 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
             ),
         ],
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization) -> Response[list[ProjectKeySerializerResponse]]:
         """
         Return a list of client keys (DSNs) for all projects in an organization.
 

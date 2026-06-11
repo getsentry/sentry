@@ -32,12 +32,11 @@ from sentry.search.eap.types import (
     TraceItemAttribute,
 )
 from sentry.search.eap.utils import (
-    can_expose_attribute,
+    can_expose_attribute_to_api,
     get_deprecated_source_internal_names,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_search_type_for_internal_column,
-    translate_to_sentry_conventions,
 )
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.referrer import Referrer
@@ -112,18 +111,16 @@ def _get_value_from_attribute(
 def convert_rpc_attribute_to_json(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
-    use_sentry_conventions: bool = False,
     include_internal: bool = False,
     include_arrays: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
-    seen_sentry_conventions: set[str] = set()
     all_internal_names = {attr["name"] for attr in attributes}
 
     for attribute in attributes:
         internal_name = attribute["name"]
 
-        if not can_expose_attribute(
+        if not can_expose_attribute_to_api(
             internal_name, trace_item_type, include_internal=include_internal
         ):
             continue
@@ -147,17 +144,12 @@ def convert_rpc_attribute_to_json(
                     internal_name, translate_type, trace_item_type
                 )
             if not include_arrays:
-                convention_name = (
-                    translate_to_sentry_conventions(external_name, trace_item_type)
-                    if use_sentry_conventions and external_name
-                    else external_name
-                )
                 if (
                     translate_type != "string"
                     or not isinstance(output_value, list)
-                    or not convention_name
+                    or not external_name
                     or not is_sentry_convention_replacement_attribute(
-                        convention_name, trace_item_type
+                        external_name, trace_item_type
                     )
                 ):
                     continue
@@ -172,20 +164,12 @@ def convert_rpc_attribute_to_json(
                     internal_name, translate_type, trace_item_type
                 )
 
-        if use_sentry_conventions and external_name:
-            external_name = translate_to_sentry_conventions(external_name, trace_item_type)
-            if external_name in seen_sentry_conventions:
+        if external_name and is_sentry_convention_replacement_attribute(
+            external_name, trace_item_type
+        ):
+            deprecated_names = get_deprecated_source_internal_names(external_name, trace_item_type)
+            if not deprecated_names.isdisjoint(all_internal_names):
                 continue
-            seen_sentry_conventions.add(external_name)
-        else:
-            if external_name and is_sentry_convention_replacement_attribute(
-                external_name, trace_item_type
-            ):
-                deprecated_names = get_deprecated_source_internal_names(
-                    external_name, trace_item_type
-                )
-                if not deprecated_names.isdisjoint(all_internal_names):
-                    continue
 
         if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith("sentry."):
             internal_name = internal_name.replace("sentry.", "", count=1)
@@ -389,6 +373,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 end = example_end
 
         serialized = serializer.validated_data
+        debug = request.user.is_superuser and request.GET.get("debug", False)
         trace_id = serialized.get("trace_id")
         item_type = serialized.get("item_type")
         sentry_sdk.set_tag("trace_item_details.item_type", item_type)
@@ -432,13 +417,8 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             trace_id=trace_id,
         )
 
-        resp = MessageToDict(trace_item_details_rpc(req))
+        resp = MessageToDict(trace_item_details_rpc(req, debug=debug))
 
-        use_sentry_conventions = features.has(
-            "organizations:performance-sentry-conventions-fields",
-            project.organization,
-            actor=request.user,
-        )
         include_arrays = features.has(
             "organizations:trace-item-details-array-fields",
             project.organization,
@@ -453,12 +433,17 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             "attributes": convert_rpc_attribute_to_json(
                 resp["attributes"],
                 item_type,
-                use_sentry_conventions,
                 include_internal=include_internal,
                 include_arrays=include_arrays,
             ),
             "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),
         }
+
+        if debug:
+            resp_dict["meta"]["debug_info"] = {
+                "raw_response": resp,
+                "raw_request": MessageToDict(req),
+            }
 
         return Response(resp_dict)

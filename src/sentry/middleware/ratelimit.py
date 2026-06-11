@@ -4,6 +4,7 @@ import logging
 import uuid
 from collections.abc import Callable
 from math import ceil
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -20,6 +21,7 @@ from sentry.ratelimits import (
     get_rate_limit_value,
 )
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.ratelimits.utils import EndpointFunction
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils import metrics
 
@@ -101,17 +103,22 @@ class RatelimitMiddleware:
         )
 
     def process_view(
-        self, request: HttpRequest, view_func, view_args, view_kwargs
+        self,
+        request: HttpRequest,
+        view_func: EndpointFunction,
+        view_args: list[Any],
+        view_kwargs: dict[str, Any],
     ) -> HttpResponseBase | None:
         """Check if the endpoint call will violate."""
         with metrics.timer("middleware.ratelimit.process_view", sample_rate=0.01):
             try:
                 # TODO: put these fields into their own object
-                request.will_be_rate_limited = False
+                setattr(request, "will_be_rate_limited", False)
                 if settings.SENTRY_SELF_HOSTED:
                     return None
-                request.rate_limit_category = None
-                request.rate_limit_uid = uuid.uuid4().hex
+                setattr(request, "rate_limit_category", None)
+                rate_limit_uid = uuid.uuid4().hex
+                setattr(request, "rate_limit_uid", rate_limit_uid)
                 view_class = getattr(view_func, "view_class", None)
                 if not view_class:
                     return None
@@ -138,52 +145,57 @@ class RatelimitMiddleware:
                 rate_limit_group = (
                     rate_limit_config.group if rate_limit_config else RateLimitConfig().group
                 )
-                request.rate_limit_key = get_rate_limit_key(
-                    view_func, request, rate_limit_group, rate_limit_config
+                rate_limit_key = get_rate_limit_key(
+                    view_func,
+                    request,
+                    rate_limit_group,
+                    rate_limit_config,
                 )
-                if request.rate_limit_key is None:
+                setattr(request, "rate_limit_key", rate_limit_key)
+                if rate_limit_key is None:
                     return None
 
-                category_str = request.rate_limit_key.split(":", 1)[0]
-                request.rate_limit_category = category_str
+                category_str = rate_limit_key.split(":", 1)[0]
+                setattr(request, "rate_limit_category", category_str)
 
                 rate_limit = get_rate_limit_value(
-                    http_method=request.method,
+                    http_method=cast(str, request.method),
                     category=RateLimitCategory(category_str),
                     rate_limit_config=rate_limit_config,
                 )
                 if rate_limit is None:
                     return None
 
-                request.rate_limit_metadata = above_rate_limit_check(
-                    request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group
+                rate_limit_metadata = above_rate_limit_check(
+                    rate_limit_key, rate_limit, rate_limit_uid, rate_limit_group
                 )
+                setattr(request, "rate_limit_metadata", rate_limit_metadata)
 
                 # TODO: also limit by concurrent window once we have the data
                 rate_limit_cond = (
-                    request.rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
+                    rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
                     if settings.ENFORCE_CONCURRENT_RATE_LIMITS
-                    else request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
+                    else rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW
                 )
                 if rate_limit_cond:
-                    request.will_be_rate_limited = True
+                    setattr(request, "will_be_rate_limited", True)
                     logger.info(
                         "sentry.api.rate-limit.exceeded",
                         extra={
-                            "key": request.rate_limit_key,
+                            "key": rate_limit_key,
                             "url": request.build_absolute_uri(),
-                            "limit": request.rate_limit_metadata.limit,
-                            "window": request.rate_limit_metadata.window,
+                            "limit": rate_limit_metadata.limit,
+                            "window": rate_limit_metadata.window,
                         },
                     )
-                    if request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW:
+                    if rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW:
                         response_text = DEFAULT_ERROR_MESSAGE.format(
-                            limit=request.rate_limit_metadata.limit,
-                            window=request.rate_limit_metadata.window,
+                            limit=rate_limit_metadata.limit,
+                            window=rate_limit_metadata.window,
                         )
                     else:
                         response_text = DEFAULT_CONCURRENT_ERROR_MESSAGE.format(
-                            limit=request.rate_limit_metadata.concurrent_limit
+                            limit=rate_limit_metadata.concurrent_limit
                         )
 
                     response_json = {
@@ -213,14 +225,18 @@ class RatelimitMiddleware:
                     response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
                     response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
                     response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
-                    response["X-Sentry-Rate-Limit-ConcurrentRemaining"] = (
-                        rate_limit_metadata.concurrent_remaining
-                    )
-                    response["X-Sentry-Rate-Limit-ConcurrentLimit"] = (
-                        rate_limit_metadata.concurrent_limit
-                    )
-                if hasattr(request, "rate_limit_key") and hasattr(request, "rate_limit_uid"):
-                    finish_request(request.rate_limit_key, request.rate_limit_uid)
+                    if rate_limit_metadata.concurrent_remaining is not None:
+                        response["X-Sentry-Rate-Limit-ConcurrentRemaining"] = (
+                            rate_limit_metadata.concurrent_remaining
+                        )
+                    if rate_limit_metadata.concurrent_limit is not None:
+                        response["X-Sentry-Rate-Limit-ConcurrentLimit"] = (
+                            rate_limit_metadata.concurrent_limit
+                        )
+                rate_limit_key = getattr(request, "rate_limit_key", None)
+                rate_limit_uid = getattr(request, "rate_limit_uid", None)
+                if rate_limit_key is not None and rate_limit_uid is not None:
+                    finish_request(rate_limit_key, rate_limit_uid)
             except Exception:
                 logging.exception("COULD NOT POPULATE RATE LIMIT HEADERS")
             return response

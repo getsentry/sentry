@@ -52,7 +52,9 @@ class ProjectMonitorProcessingErrorsIndexEndpoint(ProjectMonitorEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: AuthenticatedHttpRequest, project, monitor) -> Response:
+    def get(
+        self, request: AuthenticatedHttpRequest, project, monitor
+    ) -> Response[list[CheckinProcessingErrorData]]:
         """
         Retrieves checkin processing errors for a monitor
         """

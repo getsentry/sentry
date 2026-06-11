@@ -5,20 +5,25 @@ Utilities related to proxying a request to a cell
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
-from urllib.parse import urljoin, urlparse
+from collections.abc import Callable, Generator
+from http.cookiejar import Cookie
+from threading import local
+from typing import Any
+from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
+from requests import Session
 from requests import request as external_request
+from requests.cookies import RequestsCookieJar
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
-from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
@@ -28,7 +33,6 @@ from sentry.silo.util import (
 from sentry.types.cell import (
     Cell,
     CellResolutionError,
-    get_cell_by_name,
     get_cell_for_organization,
 )
 from sentry.utils import metrics
@@ -50,10 +54,29 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
     "sentry-api-0-organization-preprod-snapshots-download": 90.0,
+    "sentry-api-0-organization-preprod-snapshots-archive": 90.0,
 }
 
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
+
+_connection = local()
+
+
+class _StatelessCookieJar(RequestsCookieJar):
+    def set_cookie(self, cookie: Cookie, *args: Any, **kwargs: Any) -> None:
+        return None
+
+    def extract_cookies(self, response: Any, request: Any) -> None:
+        return None
+
+
+def _get_connection() -> Session:
+    if not hasattr(_connection, "session"):
+        session = Session()
+        session.cookies = _StatelessCookieJar()
+        _connection.session = session
+    return _connection.session
 
 
 def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:
@@ -62,7 +85,10 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     """
 
     def stream_response() -> Generator[bytes]:
-        yield from response.iter_content(PROXY_CHUNK_SIZE)
+        try:
+            yield from response.iter_content(PROXY_CHUNK_SIZE)
+        finally:
+            response.close()
 
     streamed_response = StreamingHttpResponse(
         streaming_content=stream_response(),
@@ -87,45 +113,34 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
-    return proxy_cell_request(request, cell, url_name)
-
-
-def proxy_error_embed_request(
-    request: HttpRequest, dsn: str, url_name: str
-) -> HttpResponseBase | None:
-    try:
-        parsed = urlparse(dsn)
-    except Exception as err:
-        logger.info("apigateway.error_embed.invalid_dsn", extra={"dsn": dsn, "error": err})
-        return None
-    host = parsed.netloc
-    app_host = urlparse(options.get("system.url-prefix")).netloc
-    if not host.endswith(app_host):
-        # Don't further parse URLs that aren't for us.
-        return None
-
-    app_segments = app_host.split(".")
-    host_segments = host.split(".")
-    if len(host_segments) - len(app_segments) < 3:
-        # If we don't have a o123.ingest.{cell}.{app_host} style domain
-        # we forward to the monolith cell
-        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
-        return proxy_cell_request(request, cell, url_name)
-    try:
-        cell_offset = len(app_segments) + 1
-        cell_segment = host_segments[cell_offset * -1]
-        cell = get_cell_by_name(cell_segment)
-    except Exception:
-        return None
-
+    metrics.incr(
+        "apigateway.proxy_request",
+        tags={
+            "url_name": url_name,
+            "kind": "orgslug",
+            "target": cell.name,
+            "request_method": request.method,
+        },
+    )
     return proxy_cell_request(request, cell, url_name)
 
 
 def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
 
-    metric_tags = {"region": cell.name, "url_name": url_name}
+    host = cell.address
+    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+        host = cell.api_gateway_address
+
+    metric_tags = {
+        "destination_cell": cell.name,
+        "url_name": url_name,
+        "destination_host": host,
+        "request_method": request.method,
+    }
     circuit_breaker: CircuitBreaker | None = None
+    use_pooling = in_random_rollout("hybridcloud.apigateway.use_pooling.rate")
+
     # TODO(mark) remove rollout options
     if options.get("apigateway.proxy.circuit-breaker.enabled"):
         try:
@@ -149,7 +164,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
                 }
                 return JsonResponse(body, status=503)
 
-    target_url = urljoin(cell.address, request.path)
+    target_url = urljoin(host, request.path)
 
     if settings.APIGW_WARN_REQS:
         logger.warning("apigateway.legacy-sync-request", extra={"endpoint": target_url})
@@ -158,7 +173,6 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     header_dict = clean_proxy_headers(request.headers)
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
-    # TODO: use requests session for connection pooling capabilities
     assert request.method is not None
     query_params = request.GET
 
@@ -180,9 +194,15 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     else:
         data = BodyWithLength(request)
 
+    # When pooling is enabled, reuse the thread-local session to keep connections
+    # alive across requests; otherwise issue a one-off request.
+    requester: Callable[..., ExternalResponse] = (
+        _get_connection().request if use_pooling else external_request
+    )
+
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
-            resp = external_request(
+            resp = requester(
                 request.method,
                 url=target_url,
                 headers=header_dict,
@@ -190,9 +210,8 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
                 data=data,
                 stream=True,
                 timeout=timeout,
-                # By default, external_request will resolve any redirects for any verb except for HEAD.
-                # We explicitly disable this behavior to avoid misrepresenting the original sentry.io request with the
-                # body response of the redirect.
+                # By default, requests resolves redirects for every verb except HEAD.
+                # Disable that to avoid misrepresenting the original sentry.io request.
                 allow_redirects=False,
             )
     except Timeout:
@@ -200,14 +219,19 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        # remote silo timeout. Use DRF timeout instead
-        raise RequestTimeout()
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Proxied request timed out"},
+            status=500,
+        )
     except ConnectionError:
         metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        raise
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Downstream service unavailable"},
+            status=500,
+        )
 
     if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)

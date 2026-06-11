@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition
@@ -128,3 +129,34 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
 
     def test_no_group(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)
+
+    def test_seer_activity_trigger_hidden_without_feature(self) -> None:
+        @self.registry.register(Condition.SEER_ACTIVITY_TRIGGER)
+        @dataclass(frozen=True)
+        class TestSeerActivityTrigger(DataConditionHandler[dict[str, str]]):
+            group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+            comparison_json_schema = {"type": "array", "items": {"type": "string"}}
+
+        response = self.get_success_response(
+            self.organization.slug,
+            group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
+            status_code=200,
+        )
+        condition_types = [item["type"] for item in response.data]
+        assert Condition.SEER_ACTIVITY_TRIGGER.value not in condition_types
+
+    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
+    def test_seer_activity_trigger_shown_with_feature(self) -> None:
+        @self.registry.register(Condition.SEER_ACTIVITY_TRIGGER)
+        @dataclass(frozen=True)
+        class TestSeerActivityTrigger(DataConditionHandler[dict[str, str]]):
+            group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+            comparison_json_schema = {"type": "array", "items": {"type": "string"}}
+
+        response = self.get_success_response(
+            self.organization.slug,
+            group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
+            status_code=200,
+        )
+        condition_types = [item["type"] for item in response.data]
+        assert Condition.SEER_ACTIVITY_TRIGGER.value in condition_types

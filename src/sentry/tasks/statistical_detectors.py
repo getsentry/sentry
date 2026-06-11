@@ -5,7 +5,6 @@ from collections.abc import Generator, Iterable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-import sentry_sdk
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
@@ -59,6 +58,7 @@ from sentry.statistical_detectors.issue_platform_adapter import (
 from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.utils import compute_delay
 from sentry.taskworker.namespaces import performance_tasks, profiling_tasks
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -75,9 +75,6 @@ TRANSACTIONS_PER_PROJECT = 50
 TRANSACTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
-RUN_FREQUENCY = timedelta(hours=1)  # runs hourly
-# pick a prime number so when it wraps around, it doesn't over lap
-DISPATCH_STEP = timedelta(seconds=17)
 
 
 def get_performance_issue_settings(projects: list[Project]):
@@ -126,27 +123,6 @@ def run_detection() -> None:
     # make sure to consume the generator
     for _ in projects:
         pass
-
-
-def compute_delay(
-    timestamp: datetime,
-    batch_index: int,
-    duration: timedelta = RUN_FREQUENCY,
-    step: timedelta = DISPATCH_STEP,
-) -> int:
-    now = django_timezone.now()
-
-    if now - timestamp > duration:
-        sentry_sdk.capture_message("Statistical detectors task not dispatched within duration.")
-
-    start = now.replace(minute=0, second=0, microsecond=0)
-    end = start + duration
-
-    remaining = end - now.replace(microsecond=0)
-    # ensure there is some padding before the end of the duration
-    remaining -= step
-
-    return batch_index * int(step.total_seconds()) % int(remaining.total_seconds())
 
 
 def dispatch_performance_projects(

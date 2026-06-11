@@ -20,6 +20,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {UnsupportedAlert} from 'sentry/components/alerts/unsupportedAlert';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -158,6 +159,18 @@ function SampleButton({
 }: SampleButtonProps) {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Creating a sample transaction POSTs to an endpoint that requires the
+  // event:write (or event:admin) scope. Members without that scope get a 403,
+  // so hide the button entirely rather than letting them click into a failure.
+  const hasEventWriteAccess =
+    hasEveryAccess(['event:write'], {organization, project}) ||
+    hasEveryAccess(['event:admin'], {organization, project});
+
+  if (!hasEventWriteAccess) {
+    return null;
+  }
+
   return (
     <Button
       data-test-id="create-sample-transaction-btn"

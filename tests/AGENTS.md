@@ -1,16 +1,6 @@
 # Python Testing Guide
 
-> For critical test commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
-
-## Running Tests Locally
-
-For backend-scoped changes, prefer `make test-selective` over running the full suite — it detects tests affected by your local diff and runs only those:
-
-```bash
-make test-selective
-```
-
-Fall back to `pytest -svv --reuse-db <path>` when you need to target a specific file or `test-selective` doesn't cover your case.
+> For test commands (`make test-selective`, `pytest`), see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## How to Determine Where to Add New Test Cases
 
@@ -27,10 +17,6 @@ Notice that we prefix `tests/` to the path and prefix `test_` to the module name
 
 ### Python Tests
 
-- Use pytest fixtures
-- Mock external services
-- Test database isolation with transactions
-- Use factories for test data
 - For Kafka/Arroyo components: Use `LocalProducer` with `MemoryMessageStorage` instead of mocks
 
 ### Test Pattern
@@ -104,13 +90,3 @@ For example, a diff that uses `pytest` instead of `unittest` would look like:
 - **Python**: `tests/` mirrors `src/` structure
 - **Fixtures**: `fixtures/{type}/`
 - **Factories**: `tests/sentry/testutils/factories.py`
-
-## Rule Enforcement
-
-These rules are MANDATORY for all Python development in the Sentry codebase. Violations will:
-
-- Cause CI failures
-- Require code review rejection
-- Must be fixed before merging the pull request
-
-Agents MUST follow these rules without exception to maintain code quality and consistency across the project.

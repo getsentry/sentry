@@ -134,7 +134,6 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             disable_shared_issues=update.disable_shared_issues,
             disable_new_visibility_features=update.disable_new_visibility_features,
             require_email_verification=update.require_email_verification,
-            codecov_access=update.codecov_access,
             disable_member_project_creation=update.disable_member_project_creation,
             prevent_superuser_access=update.prevent_superuser_access,
             disable_member_invite=update.disable_member_invite,

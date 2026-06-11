@@ -20,7 +20,7 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {
   CallbackSearchState,
@@ -28,8 +28,8 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {defined} from 'sentry/utils/defined';
 import type {Field} from 'sentry/utils/discover/fields';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -109,7 +109,7 @@ function ErrorsSearchBar({
   recentSearches,
   searchSource,
 }: ErrorsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer && onSearch) {
     return <IssueListSeerComboBox onSearch={onSearch} />;

@@ -548,7 +548,11 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   padding: 4px ${p => p.theme.space.xl};
 
   min-height: ${p => (p.isChild ? '30px' : '36px')};
-  ${p => !p.isChild && `border-top: 1px solid ${p.theme.tokens.border.secondary};`}
+  ${p =>
+    !p.isChild &&
+    css`
+      border-top: 1px solid ${p.theme.tokens.border.secondary};
+    `}
 
   ${p => {
     if (!p.isDisabled) {

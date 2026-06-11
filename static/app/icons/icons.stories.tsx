@@ -246,13 +246,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'codecov',
-        groups: ['logo'],
-        keywords: ['coverage', 'testing', 'code'],
-        name: 'Codecov',
-        defaultProps: {},
-      },
-      {
         id: 'bitbucket',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'atlassian'],
@@ -1301,6 +1294,13 @@ const SECTIONS: TSection[] = [
         name: 'Graph',
         defaultProps: {
           type: 'scatter',
+        },
+      },
+      {
+        id: 'graph-type-heatmap',
+        name: 'Graph',
+        defaultProps: {
+          type: 'heatmap',
         },
       },
       {

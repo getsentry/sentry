@@ -3,7 +3,7 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';

@@ -116,7 +116,6 @@ class IntegrationClassification(BaseClassification):
             and not request.path.endswith("/setup/")
             # or match the routes for integrationOrganizationLink page (See routes.tsx)
             and not request.path.endswith("/link/")
-            and not request.path.startswith("/extensions/external-install/")
         )
 
     def get_response(self, request: HttpRequest) -> HttpResponseBase:

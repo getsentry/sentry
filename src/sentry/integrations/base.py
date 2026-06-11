@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import sys
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
@@ -159,6 +159,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.BITBUCKET,
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
+        IntegrationProviderSlug.PERFORCE,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
@@ -204,7 +205,8 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """
     a unique identifier to use when creating the ``Integration`` object.
     Only needed when you want to create the above object with something other
-    than ``key``. See: VstsExtensionIntegrationProvider.
+    than ``key`` (e.g. a provider variant that stores its ``Integration`` under
+    a shared provider key).
     """
 
     visible = True
@@ -222,11 +224,21 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     integration_cls: type[IntegrationInstallation] | None = None
     """an Integration class that will manage the functionality once installed"""
 
-    setup_dialog_config = {"width": 600, "height": 600}
     """configuration for the setup dialog"""
 
     can_add = True
     """whether or not the integration installation be initiated from Sentry"""
+
+    can_add_externally = False
+    """
+    Marks providers whose install is initiated from the third party's app
+    directory or marketplace (e.g. Discord's App Directory, the GitHub App
+    listing, the Teams Marketplace) and completed through the pipeline modal.
+
+    For providers that also set `can_add = False`, hiding the in-app install
+    button because the install can only start from the third party, this is
+    what lets the pipeline endpoint accept the externally-initiated install.
+    """
 
     allow_multiple = True
     """whether multiple installations of this integration are allowed per organization"""
@@ -299,19 +311,15 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
                 data={"provider": integration.provider, "name": integration.name},
             )
 
-    def get_pipeline_views(
-        self,
-    ) -> Sequence[
-        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
-    ]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         """
-        Return a list of ``View`` instances describing this integration's
-        configuration pipeline.
-
-        >>> def get_pipeline_views(self):
-        >>>    return []
+        Do NOT override this for an integration. Integrations install through
+        the API-driven pipeline (``get_pipeline_api_steps``) and have no
+        server-rendered pipeline views -- the legacy web-view setup flow has
+        been removed. This empty implementation exists only to satisfy the
+        abstract ``PipelineProvider`` interface for every integration provider.
         """
-        raise NotImplementedError
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline] | None:
         """

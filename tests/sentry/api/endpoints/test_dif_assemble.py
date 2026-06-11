@@ -63,6 +63,24 @@ class DifAssembleEndpoint(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[checksum]["state"] == ChunkFileState.NOT_FOUND
 
+    def test_assemble_rejects_invalid_debug_id(self) -> None:
+        checksum = sha1(b"1").hexdigest()
+
+        response = self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    "name": "dif",
+                    "debug_id": "invalid-debug-id",
+                    "chunks": [],
+                }
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data["error"] == "'invalid-debug-id' does not match '^[A-Fa-f0-9-]+$'"
+
     def test_assemble_check(self) -> None:
         content = b"foo bar"
         fileobj = ContentFile(content)

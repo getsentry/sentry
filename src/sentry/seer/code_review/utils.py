@@ -11,11 +11,11 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
@@ -75,6 +75,11 @@ class SeerEndpoint(StrEnum):
     PR_REVIEW_RERUN = "/v1/code_review/check/rerun"
     CODE_REVIEW_REVIEW_REQUEST = "/v1/code_review/review-request"
     CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
+    # The scm_code_review endpoints route every SCM operation through the
+    # scm-platform RPC instead of direct PyGithub calls, so they are the
+    # provider-agnostic path required for non-GitHub providers like GitLab.
+    SCM_CODE_REVIEW_REVIEW_REQUEST = "/v1/scm_code_review/review-request"
+    SCM_CODE_REVIEW_PR_CLOSED = "/v1/scm_code_review/pr-closed"
     REPOSITORY_OFFBOARD = "/v1/offboarding/repository"
 
 
@@ -171,7 +176,12 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
         "trigger_user": comment_user.get("login"),
         "trigger_user_id": comment_user.get("id"),
         "trigger_comment_id": comment.get("id"),
-        "trigger_comment_type": "issue_comment",
+        # The @sentry review trigger is always a comment on a PR (non-PR issue
+        # comments are filtered out upstream), so it is treated as a review
+        # comment. On GitHub this resolves to the same issue-comment reactions
+        # endpoint; using "pull_request_review_comment" keeps the type correct
+        # for GitLab too, where it must route to the merge-request note endpoint.
+        "trigger_comment_type": "pull_request_review_comment",
         "trigger_at": trigger_at,
     }
 
@@ -268,9 +278,8 @@ def _common_codegen_request_payload(
         },
     }
 
-    # Add experiment_enabled flag ONLY for pr-review requests (not for pr-closed / pr-reopened)
     if add_experiment_enabled:
-        data["experiment_enabled"] = is_org_enabled_for_code_review_experiments(organization)
+        data["experiment_enabled"] = True
 
     return {
         "external_owner_id": repo.external_id,
@@ -354,22 +363,42 @@ def _build_repo_definition(
 ) -> dict[str, Any]:
     """
     Build the repository definition for code review requests.
-    """
-    # Extract owner and repo name from full repository name (format: "owner/repo")
-    repo_name_sections = repo.name.split("/")
-    if len(repo_name_sections) < 2:
-        raise ValueError(f"Invalid repository name format: {repo.name}")
 
+    GitHub and GitLab expose repo identity and visibility differently, so each
+    provider has its own builder. Anything unrecognized falls back to GitHub.
+    """
     # repo.provider uses the "integrations:<slug>" format; Seer expects the bare slug
     provider = repo.provider.removeprefix("integrations:") if repo.provider else "github"
+
+    if provider == IntegrationProviderSlug.GITLAB.value:
+        return _build_gitlab_repo_definition(repo, provider, target_commit_sha, event_payload)
+    return _build_github_repo_definition(repo, provider, target_commit_sha, event_payload)
+
+
+def _split_full_name(full_name: str) -> tuple[str, str]:
+    """Split a "owner/repo" (or "group/subgroup/repo") slug into (owner, name)."""
+    sections = full_name.split("/")
+    if len(sections) < 2:
+        raise ValueError(f"Invalid repository name format: {full_name}")
+    return sections[0], "/".join(sections[1:])
+
+
+def _base_repo_definition(
+    repo: Repository,
+    provider: str,
+    owner: str,
+    name: str,
+    target_commit_sha: str,
+    is_private: bool | None,
+) -> dict[str, Any]:
     repo_definition = {
         "provider": provider,
-        "owner": repo_name_sections[0],
-        "name": "/".join(repo_name_sections[1:]),
+        "owner": owner,
+        "name": name,
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
         "organization_id": repo.organization_id,
-        "is_private": event_payload.get("repository", {}).get("private"),
+        "is_private": is_private,
     }
 
     # add integration_id which is used in pr_closed_step for product metrics dashboarding only
@@ -377,6 +406,42 @@ def _build_repo_definition(
         repo_definition["integration_id"] = str(repo.integration_id)
 
     return repo_definition
+
+
+def _build_github_repo_definition(
+    repo: Repository,
+    provider: str,
+    target_commit_sha: str,
+    event_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    # GitHub stores Repository.name as the "owner/repo" slug.
+    owner, name = _split_full_name(repo.name)
+    is_private = event_payload.get("repository", {}).get("private")
+    return _base_repo_definition(repo, provider, owner, name, target_commit_sha, is_private)
+
+
+def _build_gitlab_repo_definition(
+    repo: Repository,
+    provider: str,
+    target_commit_sha: str,
+    event_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    # GitLab stores Repository.name as the display "name_with_namespace"
+    # (e.g. "Cool Group / Sentry"), which is not a valid URL slug. The slug
+    # ("cool-group/sentry") lives in config["path"], kept current by the webhook's
+    # update_repo_data(), and is the only valid source for owner/name. Falling back
+    # to repo.name would silently produce slugs with spaces, so require the path.
+    path = repo.config.get("path")
+    if not path:
+        raise ValueError(f"GitLab repository {repo.id} is missing config['path']")
+    owner, name = _split_full_name(path)
+
+    # GitLab has no repository.private; visibility lives in project.visibility_level
+    # (0 = private, 10 = internal, 20 = public). Leave as None when absent.
+    visibility_level = event_payload.get("project", {}).get("visibility_level")
+    is_private = visibility_level != 20 if visibility_level is not None else None
+
+    return _base_repo_definition(repo, provider, owner, name, target_commit_sha, is_private)
 
 
 def get_pr_author_id(event: Mapping[str, Any]) -> str | None:
@@ -562,16 +627,3 @@ def delete_existing_reactions_and_add_reaction(
             CodeReviewErrorType.REACTION_FAILED,
         )
         logger.warning(Log.REACTION_FAILED.value, exc_info=True)
-
-
-def is_org_enabled_for_code_review_experiments(organization: Organization) -> bool:
-    """
-    Checks if an org is eligible to code review experiments via Flagpole.
-
-    If True the exact experiment is decided by Seer.
-    If False no experiment will be applied to the PR, and it'll use the default behavior.
-    """
-    return features.has(
-        "organizations:code-review-experiments-enabled",
-        organization,
-    )

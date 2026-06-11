@@ -19,7 +19,7 @@ from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -37,11 +37,12 @@ from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
-from sentry.utils import json, redis
+from sentry.utils import json, metrics, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
@@ -154,6 +155,7 @@ def schedule_organizations(
                     batch_id,
                     dry_run=dry_run,
                 )
+                metrics.incr("weekly_report.organization.scheduled")
                 batching.set_last_processed_org_id(organization.id)
 
             batching.delete_min_org_id()
@@ -217,6 +219,20 @@ def prepare_organization_report(
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
             return
 
+    if not dry_run:
+        try:
+            project_metrics: dict[int, dict[str, int]] = {}
+            for project_id, project_ctx in ctx.projects_context_map.items():
+                if not project_ctx.check_if_project_is_empty():
+                    project_metrics[project_id] = {
+                        "e": project_ctx.accepted_error_count,
+                        "t": project_ctx.accepted_transaction_count,
+                    }
+            if project_metrics:
+                cache_project_metrics(organization_id, project_metrics)
+        except Exception:
+            sentry_sdk.capture_exception()
+
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
@@ -224,7 +240,8 @@ def prepare_organization_report(
             "weekly_reports.deliver_reports",
             extra={"batch_id": str(batch_id), "organization": organization_id},
         )
-        batch.deliver_reports()
+        with metrics.timer("weekly_report.deliver_reports.duration"):
+            batch.deliver_reports()
 
 
 @dataclass(frozen=True)
@@ -259,14 +276,36 @@ class OrganizationReportBatch:
                 .values_list("user_id", flat=True)
             )
             user_list = [v for v in user_list if v is not None]
+            metrics.distribution(
+                "weekly_report.deliver_reports.org_member_count",
+                len(user_list),
+            )
             user_ids = notifications_service.get_users_for_weekly_reports(
                 organization_id=self.ctx.organization.id, user_ids=user_list
             )
+            metrics.distribution(
+                "weekly_report.deliver_reports.eligible_user_count",
+                len(user_ids),
+            )
+            filtered_by_preference = len(user_list) - len(user_ids)
+            if filtered_by_preference > 0:
+                metrics.incr(
+                    "weekly_report.user.filtered",
+                    amount=filtered_by_preference,
+                    tags={"reason": "notification_preference"},
+                )
             user_template_context_by_user_id_list = []
             if user_ids:
                 user_template_context_by_user_id_list = prepare_template_context(
                     ctx=self.ctx, user_ids=user_ids
                 )
+                skipped_no_projects = len(user_ids) - len(user_template_context_by_user_id_list)
+                if skipped_no_projects > 0:
+                    metrics.incr(
+                        "weekly_report.user.filtered",
+                        amount=skipped_no_projects,
+                        tags={"reason": "no_project_access"},
+                    )
             if user_template_context_by_user_id_list:
                 for user_template in user_template_context_by_user_id_list:
                     self._send_to_user(user_template)
@@ -294,6 +333,7 @@ class OrganizationReportBatch:
                     dupe_check.record_delivery()
                 else:
                     lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
+                    metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
         # get user options timezone for this user, then format the timestamp according to the timezone
@@ -308,10 +348,12 @@ class OrganizationReportBatch:
             headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
         )
         if self.dry_run:
+            metrics.incr("weekly_report.email.skipped", tags={"reason": "dry_run"})
             return
 
         if self.email_override:
             message.send(to=(self.email_override,))
+            metrics.incr("weekly_report.email.sent")
         else:
             try:
                 analytics.record(
@@ -337,7 +379,11 @@ class OrganizationReportBatch:
             )
 
             message.add_users((user_id,))
-            message.send_async()
+            if message._send_to:
+                message.send_async()
+                metrics.incr("weekly_report.email.sent")
+            else:
+                metrics.incr("weekly_report.email.skipped", tags={"reason": "no_email"})
 
 
 class _DuplicateDeliveryCheck:
@@ -448,6 +494,18 @@ group_status_to_color = {
     GroupHistoryStatus.PRIORITY_MEDIUM: "#FAD473",
     GroupHistoryStatus.PRIORITY_HIGH: "#FAD473",
 }
+
+
+def _pct_change(current: int, previous: int) -> str | None:
+    """Returns a formatted string like '▲ 50%' or '▼ 25%', or None if not meaningful."""
+    if previous == 0:
+        return None
+    change = (current - previous) / previous
+    pct = round(change * 100)
+    if pct == 0:
+        return None
+    arrow = "▲" if change > 0 else "▼"
+    return f"{arrow} {abs(pct)}%"
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
@@ -623,12 +681,21 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     }
                 )
             series.append((to_datetime(t), project_series))
+        prev_week_error = sum(
+            p.prev_week_accepted_error_count for p in projects_associated_with_user
+        )
+        prev_week_transaction = sum(
+            p.prev_week_accepted_transaction_count for p in projects_associated_with_user
+        )
+
         return {
             "legend": legend,
             "series": series,
             "total_error_count": total_error,
             "total_transaction_count": total_transaction,
             "total_replay_count": total_replays,
+            "error_pct_change": _pct_change(total_error, prev_week_error),
+            "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
@@ -736,6 +803,10 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
+        "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
+        "show_week_over_week_metric": features.has(
+            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        ),
     }
 
 

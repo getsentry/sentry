@@ -467,7 +467,7 @@ describe('useExplorerAutofix - createPR', () => {
 describe('useExplorerAutofix - codingAgentErrors', () => {
   const GROUP_ID = '123';
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
-  const integration = {id: '42', name: 'Claude Agent', provider: 'claude_code'};
+  const integration = {id: '42', name: 'Claude Agent', provider: 'claude_code' as const};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

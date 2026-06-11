@@ -1,4 +1,5 @@
 import {useTheme, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import color from 'color';
@@ -121,15 +122,15 @@ const StyledAvatarButton = styled(Button)<{chonk: string | undefined}>`
 
   ${p =>
     p.chonk &&
-    `
-    &&::before {
-    background: ${p.chonk};
-      box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size ?? 'md'] ?? '2px'} 0 0px ${p.chonk};
-    }
-    &&::after {
-      border-color: ${p.chonk};
-    }
-  `}
+    css`
+      &&::before {
+        background: ${p.chonk};
+        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size ?? 'md'] ?? '2px'} 0 0px ${p.chonk};
+      }
+      &&::after {
+        border-color: ${p.chonk};
+      }
+    `}
 `;
 
 // Returns 'fill' when the image covers the full frame edge-to-edge, 'padded' otherwise.

@@ -24,7 +24,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;

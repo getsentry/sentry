@@ -1,6 +1,6 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {act, render, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {DocumentTitleManager} from './documentTitleManager';
+import {DocumentTitleManager, useDocumentTitleManager} from './documentTitleManager';
 import {SentryDocumentTitle} from '.';
 
 describe('SentryDocumentTitle', () => {
@@ -47,6 +47,24 @@ describe('SentryDocumentTitle', () => {
       </DocumentTitleManager>
     );
     expect(document.title).toBe('This is a test');
+  });
+
+  it('prepends and clears prefixes registered via setPrefix', () => {
+    const {result} = renderHook(() => useDocumentTitleManager(), {
+      wrapper: ({children}) => (
+        <DocumentTitleManager>
+          <SentryDocumentTitle title="page">{children}</SentryDocumentTitle>
+        </DocumentTitleManager>
+      ),
+    });
+
+    expect(document.title).toBe('page — Sentry');
+
+    act(() => result.current.setPrefix('badge', '(2) '));
+    expect(document.title).toBe('(2) page — Sentry');
+
+    act(() => result.current.setPrefix('badge', ''));
+    expect(document.title).toBe('page — Sentry');
   });
 
   it('reverts to the parent title', () => {

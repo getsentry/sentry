@@ -4,7 +4,7 @@ import GridLayout, {WidthProvider} from 'react-grid-layout';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   assignDefaultLayout,
   calculateColumnDepths,

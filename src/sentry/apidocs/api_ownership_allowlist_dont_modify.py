@@ -6,7 +6,6 @@ DO NOT ADD ANY NEW APIS
 
 API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/organizations/{organization_id_or_slug}/invite-requests/",
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/stats/",
     "/api/0/sentry-app-installations/{uuid}/external-issues/{external_issue_id}/",
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/deploys/",
     "/api/0/accept-transfer/",
@@ -36,7 +35,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/filters/",
     "/api/0/organizations/{organization_id_or_slug}/join-request/",
     "/api/0/organizations/{organization_id_or_slug}/teams/",
-    "/api/0/prompts-activity/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/repo-path-parsing/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/transfer/",
     "/api/0/organizations/{organization_id_or_slug}/users/",
@@ -55,12 +53,10 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/users/{user_id}/roles/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/keys/{key_id}/",
     "/api/0/organizations/{organization_id_or_slug}/recent-searches/",
-    "/api/0/organizations/{organization_id_or_slug}/projects/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/environments/{environment}/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/token/",
     "/api/0/organizations/{organization_id_or_slug}/searches/{search_id}/",
     "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/",
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/users/",
     "/api/0/api-applications/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/tags/",
     "/api/0/broadcasts/{broadcast_id}/",

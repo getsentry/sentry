@@ -54,6 +54,7 @@ class CellDirectoryTest(TestCase):
             "name": "eu",
             "snowflake_id": 2,
             "address": "http://eu.testserver",
+            "api_gateway_address": "http://eu-gateway.testserver",
             "category": RegionCategory.MULTI_TENANT.name,
         },
         {
@@ -66,7 +67,13 @@ class CellDirectoryTest(TestCase):
 
     _EXPECTED_OUTPUTS = (
         Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-        Cell("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
+        Cell(
+            "eu",
+            2,
+            "http://eu.testserver",
+            RegionCategory.MULTI_TENANT,
+            "http://eu-gateway.testserver",
+        ),
         Cell("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
     )
 

@@ -18,11 +18,14 @@
  * Add new types here as new context-aware components are registered.
  */
 export type LLMContextNodeType =
+  | 'autofix'
   | 'chart'
   | 'dashboard'
   | 'issue-detail'
   | 'issue-list'
   | 'logs-explorer'
+  | 'metrics-explorer'
+  | 'profiling-explorer'
   | 'releases-list'
   | 'replay-detail'
   | 'replays-list'

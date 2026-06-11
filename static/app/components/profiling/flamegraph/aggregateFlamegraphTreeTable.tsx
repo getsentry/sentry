@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState, type MouseEvent} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -7,9 +8,9 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AggregateProfileSource} from 'sentry/utils/analytics/profilingAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
@@ -526,7 +527,11 @@ const FrameBar = styled('div')<{withoutBorders?: boolean}>`
   width: 100%;
   position: relative;
   background-color: ${p => p.theme.tokens.background.tertiary};
-  ${p => !p.withoutBorders && `border-top: 1px solid ${p.theme.tokens.border.primary};`}
+  ${p =>
+    !p.withoutBorders &&
+    css`
+      border-top: 1px solid ${p.theme.tokens.border.primary};
+    `}
   flex: 1 1 100%;
 `;
 

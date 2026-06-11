@@ -11,8 +11,8 @@ import {
 } from 'sentry/components/featureFlags/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 
 /**
  * Legacy suspect flags implementation.

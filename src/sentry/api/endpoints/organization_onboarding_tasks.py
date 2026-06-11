@@ -67,6 +67,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         if created and task_id == OnboardingTask.FIRST_PROJECT:
             scope = sentry_sdk.get_current_scope()
             scope.set_extra("org", organization.id)
+            scope.set_attribute("org", organization.id)
             sentry_sdk.capture_message(
                 f"Onboarding task {task_id} was created unexpectedly. It should have been updated instead.",
                 level="warning",

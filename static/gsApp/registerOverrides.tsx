@@ -1,7 +1,6 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {IconBusiness} from 'sentry/icons';
 import {registerOverride} from 'sentry/overrideRegistry';
 import type {Overrides} from 'sentry/types/overrides';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
@@ -78,7 +77,6 @@ import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
 
-import {CodecovSettingsLink} from './components/codecovSettingsLink';
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
 import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
@@ -160,7 +158,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   ),
 
   /**
-   * Augment the global help search modal with a contat support button
+   * Augment the global help search modal with a contact support button
    */
   'help-modal:footer': ({closeModal}) => (
     <HelpSearchFooter key="help-search-footer" closeModal={closeModal} />
@@ -236,7 +234,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
     InsightsDateRangeQueryLimitFooter,
   'component:ai-configure-seer-quota-sidebar': () => AiConfigureSeerQuotaSidebar,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
-  'component:codecov-integration-settings-link': () => CodecovSettingsLink,
   'component:continuous-profiling-billing-requirement-banner': () =>
     ContinuousProfilingBillingRequirementBanner,
   'component:header-date-page-filter-upsell-footer': () => DateRangeQueryLimitFooter,
@@ -334,14 +331,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
     <DisabledAlertWizard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </DisabledAlertWizard>
-  ),
-  'feature-disabled:codecov-integration-setting': () => (
-    <PowerFeatureHovercard
-      features={['organizations:codecov-integration']}
-      id="codecov-integration"
-    >
-      <IconBusiness size="sm" data-test-id="power-icon" />
-    </PowerFeatureHovercard>
   ),
   'feature-disabled:project-performance-score-card': p => (
     <ProjectPerformanceScoreCard {...p}>

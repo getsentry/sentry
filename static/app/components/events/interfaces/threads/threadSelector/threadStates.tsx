@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export enum ThreadStates {
   RUNNABLE = 'Runnable',

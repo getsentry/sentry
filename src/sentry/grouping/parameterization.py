@@ -84,10 +84,34 @@ def is_valid_ip(maybe_ip_str: str) -> bool:
     return False
 
 
+# fmt: off
+TLDS = {"com", "net", "org", "jp", "de", "uk", "fr", "br", "it", "ru", "es", "me", "gov", "pl", "ca", "au", "cn", "co", "in", "nl", "edu", "info", "eu", "ch", "id", "at", "kr", "cz", "mx", "be", "tv", "se", "tr", "tw", "al", "ua", "ir", "vn", "cl", "sk", "ly", "cc", "to", "no", "fi", "us", "pt", "dk", "ar", "hu", "tk", "gr", "il", "news", "ro", "my", "biz", "ie", "za", "nz", "sg", "ee", "th", "io", "xyz", "pe", "bg", "hk", "rs", "lt", "link", "ph", "club", "si", "site", "mobi", "by", "cat", "wiki", "la", "ga", "xxx", "cf", "hr", "ng", "jobs", "online", "kz", "ug", "gq", "ae", "is", "lv", "pro", "fm", "tips", "ms", "sa", "app"}
+# fmt: on
+
+
+def is_valid_hostname(maybe_hostname_str: str) -> bool:
+    # By spec, hostnames have a max length of 255
+    if len(maybe_hostname_str) > 255:
+        return False
+
+    # Almost anything is an allowable top-level domain since ICANN opened it up, but that means that
+    # paths like `some.path.to.a.module` and attribute access like `someobj.someproperty` and
+    # filenames like `somefile.txt` all would match as hostnames, which isn't what we want. So, at
+    # the risk of occasional false negatives, we check against the top 99 TLDs and if it doesn't
+    # match one of those, we don't count it as a hostname. (Fortunately there's not a ton of overlap
+    # between popular TLDs and common file extensions, and most of them aren't actual words, so
+    # they're also less likely to be used as module or property names.)
+    maybe_tld = maybe_hostname_str.split(".")[-1]
+    if maybe_tld.lower() not in TLDS:
+        return False
+
+    return True
+
+
 DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="email",
-        raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
+        raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]{1,254}@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
     ),
     ParameterizationRegex(
         name="url",
@@ -113,16 +137,43 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ),
     ParameterizationRegex(
         name="hostname",
+        # This regex is intentionally loose, in that it doesn't encode the hostname spec's overall
+        # length restriction, and in that it catches things which are technically valid hostnames
+        # but which we don't want to parameterize that way (module paths, filenames with extensions,
+        # etc.). Max length is complicated to bake into a regex, and depending on how you do it,
+        # using the regex to narrow matches down to the most popular top-level domains is either
+        # slow or too aggressive. So here we use the regex to find hostname-like strings, and then
+        # validate them using a callback.
         raw_pattern=r"""
-            # Top 100 TLDs. The complete list is 1000s long.
+            # The overall pattern here expresses "2 to 128 dot-separated segments, each segment
+            # consisting of up to 63 letters/numbers/dashes, as long as no segment starts or ends
+            # with a dash." Individual parts labeled below.
             \b
-            ([a-zA-Z0-9\-]{1,63}\.)+?
+            # All segments but the final one, each followed by a dot
             (
-                (COM|NET|ORG|JP|DE|UK|FR|BR|IT|RU|ES|ME|GOV|PL|CA|AU|CN|CO|IN|NL|EDU|INFO|EU|CH|ID|AT|KR|CZ|MX|BE|TV|SE|TR|TW|AL|UA|IR|VN|CL|SK|LY|CC|TO|NO|FI|US|PT|DK|AR|HU|TK|GR|IL|NEWS|RO|MY|BIZ|IE|ZA|NZ|SG|EE|TH|IO|XYZ|PE|BG|HK|RS|LT|LINK|PH|CLUB|SI|SITE|MOBI|BY|CAT|WIKI|LA|GA|XXX|CF|HR|NG|JOBS|ONLINE|KZ|UG|GQ|AE|IS|LV|PRO|FM|TIPS|MS|SA|APP)|
-                (com|net|org|jp|de|uk|fr|br|it|ru|es|me|gov|pl|ca|au|cn|co|in|nl|edu|info|eu|ch|id|at|kr|cz|mx|be|tv|se|tr|tw|al|ua|ir|vn|cl|sk|ly|cc|to|no|fi|us|pt|dk|ar|hu|tk|gr|il|news|ro|my|biz|ie|za|nz|sg|ee|th|io|xyz|pe|bg|hk|rs|lt|link|ph|club|si|site|mobi|by|cat|wiki|la|ga|xxx|cf|hr|ng|jobs|online|kz|ug|gq|ae|is|lv|pro|fm|tips|ms|sa|app)
+                # Lookahead guaranteeing at least one letter
+                (?= [a-zA-Z0-9\-]* [a-zA-Z])
+                # Segment body - either all letters/numbers (no dashes), or with interior-only dashes
+                (
+                    [a-zA-Z0-9]{1,63}
+                    |
+                    [a-zA-Z0-9] [a-zA-Z0-9\-]{1,61} [a-zA-Z0-9]
+                )
+                \.
+            ){1,127}
+            # Final segment has no dot
+            (
+                [a-zA-Z0-9]{1,63}
+                |
+                [a-zA-Z0-9] [a-zA-Z0-9\-]{1,61} [a-zA-Z0-9]
             )
             \b
         """,
+        # Validate that the matched string actually is a valid hostname before replacing it. If not,
+        # leave it alone.
+        replacement_callback=lambda orig_value: "<hostname>"
+        if is_valid_hostname(orig_value)
+        else orig_value,
     ),
     ParameterizationRegex(
         name="traceparent",
@@ -220,7 +271,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (datetime.datetime\(.*?\))
         """,
     ),
-    ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    ParameterizationRegex(
+        name="duration", raw_pattern=r"""\b(\d{1,20}ms)\b | \b(\d{1,20}(\.\d{1,20})?s)\b"""
+    ),
     ParameterizationRegex(
         name="mac_addr",
         raw_pattern=r"""
@@ -477,6 +530,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
 
 
 class Parameterizer:
+    # Inputs longer than this are not parameterized, as a defense against ReDoS
+    MAX_INPUT_LENGTH = 8192
+
     def __init__(
         self,
         # List of `ParameterizationRegex` objects defining the regexes to use. If nothing is passed,
@@ -541,6 +597,10 @@ class Parameterizer:
 
         For example, turn "Error with order #1231" into "Error with order #<int>".
         """
+
+        if len(input_str) > self.MAX_INPUT_LENGTH:
+            metrics.incr("grouping.parameterization_skipped_long_input")
+            return input_str
 
         replacement_counts: defaultdict[str, int] = defaultdict(int)
         # Track whether any regex matches don't lead to a replacement

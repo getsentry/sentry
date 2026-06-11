@@ -20,7 +20,7 @@ const EngineeringCategories: SuperuserAccessCategories[] = [
 const ReactiveSupportCategories: SuperuserAccessCategories[] = [
   ['_admin_actions', '_admin actions'],
   ['organization_setting_change', 'Change organization settings'],
-  ['zendesk', 'Zendesk'],
+  ['intercom', 'Intercom'],
 ];
 
 const ProactiveSupportCategories: SuperuserAccessCategories[] = [

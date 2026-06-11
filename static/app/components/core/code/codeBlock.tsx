@@ -287,9 +287,11 @@ const Tab = styled('button')<{isSelected: boolean}>`
   color: var(--prism-comment);
   ${p =>
     p.isSelected
-      ? `border-bottom: 3px solid ${p.theme.tokens.graphics.accent.vibrant};
-      padding-bottom: 5px;
-      color: var(--prism-base);`
+      ? css`
+          border-bottom: 3px solid ${p.theme.tokens.graphics.accent.vibrant};
+          padding-bottom: 5px;
+          color: var(--prism-base);
+        `
       : ''}
 `;
 

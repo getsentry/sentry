@@ -1,9 +1,10 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
+import {IssueStreamDetectorContextProvider} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
 
 describe('DetectorListConnectedAutomations', () => {
   beforeEach(() => {
@@ -90,6 +91,46 @@ describe('DetectorListConnectedAutomations', () => {
     expect(projectAlert.closest('a')).toHaveAttribute(
       'href',
       '/organizations/org-slug/monitors/alerts/2/'
+    );
+  });
+
+  it('uses batch context instead of per-row request when provider is present', async () => {
+    const batchDetectorsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [
+        IssueStreamDetectorFixture({projectId: '1', workflowIds: ['2']}),
+        IssueStreamDetectorFixture({id: '5', projectId: '2', workflowIds: ['3']}),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [
+        AutomationFixture({id: '1', name: 'Direct Alert'}),
+        AutomationFixture({id: '2', name: 'Project Alert'}),
+      ],
+    });
+
+    render(
+      <IssueStreamDetectorContextProvider projectIds={['1', '2']}>
+        <DetectorListConnectedAutomations automationIds={['1']} projectId="1" />
+      </IssueStreamDetectorContextProvider>
+    );
+
+    expect(await screen.findByText('2 alerts')).toBeInTheDocument();
+
+    // Only one batch request should have been made for detectors
+    await waitFor(() => {
+      expect(batchDetectorsRequest).toHaveBeenCalledTimes(1);
+    });
+    expect(batchDetectorsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/detectors/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [1, 2],
+          query: 'type:issue_stream',
+        }),
+      })
     );
   });
 });

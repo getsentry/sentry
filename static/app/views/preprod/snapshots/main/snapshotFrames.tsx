@@ -1,4 +1,5 @@
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -87,7 +88,7 @@ const SnapshotVariantContainer = styled(Container, {
 })<{$fillHeight: boolean}>`
   ${p =>
     p.$fillHeight &&
-    `
+    css`
       display: flex;
       flex-direction: column;
       flex: 1 1 0;

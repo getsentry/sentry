@@ -22,7 +22,7 @@ class GroupSearchViewStarredSerializerResponse(TypedDict):
 
 
 @register(GroupSearchViewStarred)
-class GroupSearchViewStarredSerializer(Serializer):
+class GroupSearchViewStarredSerializer(Serializer[GroupSearchViewStarredSerializerResponse]):
     def __init__(self, *args, **kwargs):
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)

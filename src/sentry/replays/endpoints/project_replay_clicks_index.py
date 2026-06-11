@@ -62,7 +62,8 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
     }
 
     @extend_schema(
-        operation_id="List Clicked Nodes",
+        operation_id="listProjectReplayClicks",
+        summary="List Clicked Nodes",
         parameters=[
             CursorQueryParam,
             GlobalParams.ORG_ID_OR_SLUG,
@@ -80,7 +81,9 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
         },
         examples=ReplayExamples.GET_REPLAY_CLICKS,
     )
-    def get(self, request: Request, project: Project, replay_id: str) -> Response:
+    def get(
+        self, request: Request, project: Project, replay_id: str
+    ) -> Response[ReplayClickResponse]:
         """Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked."""
         self.check_replay_access(request, project)
 

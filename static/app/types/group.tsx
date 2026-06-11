@@ -1,8 +1,9 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
+import type {ParsedOwnershipRule} from 'sentry/types/ownership';
+import type {TitledPlugin} from 'sentry/types/plugins';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,7 +17,8 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {AvatarProject, PlatformKey, Project} from './project';
+import type {PlatformKey} from './platform';
+import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -382,8 +384,8 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
-  2008: IssueType.PROFILE_FRAME_DROP,
-  2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  2009: IssueType.PROFILE_FRAME_DROP,
+  2011: IssueType.PROFILE_FUNCTION_REGRESSION,
   3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
   3502: IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
   3503: IssueType.AI_DETECTED_HTTP,
@@ -558,20 +560,6 @@ type SuggestedOwner = {
   owner: string;
   type: SuggestedOwnerReason;
 };
-
-/**
- * Mirrors OwnershipRuleOwnerResponse from the backend
- */
-interface OwnershipRuleOwner {
-  name: string;
-  type: 'user' | 'team';
-  id?: string;
-}
-
-export interface ParsedOwnershipRule {
-  matcher: {pattern: string; type: string};
-  owners: OwnershipRuleOwner[];
-}
 
 export type IssueOwnership = {
   autoAssignment:

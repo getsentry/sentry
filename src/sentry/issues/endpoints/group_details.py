@@ -2,14 +2,17 @@ import functools
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, tagstore, tsdb
+from sentry import analytics, features, tagstore, tsdb
+from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.api import client
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -20,12 +23,32 @@ from sentry.api.helpers.group_index import (
     prep_search,
     update_groups_with_search_fn,
 )
+from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_ACCEPTED,
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.issue_examples import IssueExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
@@ -57,12 +80,14 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
@@ -134,19 +159,43 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         return hourly_stats, daily_stats
 
+    def finalize_response(
+        self,
+        request: Request,
+        response: Response,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        response = super().finalize_response(request, response, *args, **kwargs)
+
+        group = kwargs.get("group")
+        send_issue_view_attribution(request, response, group)
+
+        return response
+
+    @extend_schema(
+        operation_id="Retrieve an Issue",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            GlobalParams.ENVIRONMENT,
+            IssueParams.GROUP_DETAILS_EXPAND,
+            IssueParams.GROUP_DETAILS_COLLAPSE,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("GroupDetailsResponse", GroupDetailsResponse),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IssueExamples.GROUP_DETAILS,
+    )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
-        Retrieve an Issue
-        `````````````````
-
-        Return details on an individual issue. This returns the basic stats for
-        the issue (title, last seen, first seen), some overall numbers (number
-        of comments, user reports) as well as the summarized event data.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization.
-        :pparam string issue_id: the ID of the issue to retrieve.
-        :auth: required
+        Return details on an individual issue, including its basic stats, comment
+        and user-report counts, and a summary of the latest event.
         """
         from sentry.utils import snuba
 
@@ -161,7 +210,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
-            data = serialize(
+            data: GroupDetailsResponse = serialize(
                 group, request.user, GroupSerializerSnuba(environment_ids=environment_ids)
             )
 
@@ -229,7 +278,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     ),
                 )
                 integration_issues = serialize(
-                    external_issues,
+                    list(external_issues),
                     request.user,
                     serializer=ExternalIssueSerializer(),
                 )
@@ -293,6 +342,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             data.update({"participants": participants})
 
+            publish_action(
+                ViewAction(),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                actor=GroupActionActor.user(request.user.id)
+                if request.user.is_authenticated
+                else SYSTEM_ACTOR,
+            )
+
             metrics.incr(
                 "group.get.http_response",
                 sample_rate=1.0,
@@ -314,41 +374,31 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
             raise
 
+    @extend_schema(
+        operation_id="Update an Issue",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+        ],
+        request=GroupValidator,
+        responses={
+            200: inline_sentry_response_serializer(
+                "GroupUpdateResponse", BaseGroupSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def put(self, request: Request, group: Group) -> Response:
+    def put(
+        self, request: Request, group: Group
+    ) -> Response[BaseGroupSerializerResponse] | Response[DetailResponse]:
         """
-        Update an Issue
-        ```````````````
-
-        Updates an individual issue's attributes. Only the attributes submitted
+        Update an individual issue's attributes. Only the attributes submitted
         are modified.
-
-        :pparam string issue_id: the ID of the group to retrieve.
-        :param string status: the new status for the issue.  Valid values
-                              are ``"resolved"``, ``resolvedInNextRelease``,
-                              ``"unresolved"``, and ``"ignored"``.
-        :param map statusDetails: additional details about the resolution.
-                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
-                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
-                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
-                                  ``"ignoreUserWindow"``.
-        :param string assignedTo: the user or team that should be assigned to
-                                  this issue. Can be of the form ``"<user_id>"``,
-                                  ``"user:<user_id>"``, ``"<username>"``,
-                                  ``"<user_primary_email>"``, or ``"team:<team_id>"``.
-        :param string assignedBy: ``"suggested_assignee"`` | ``"assignee_selector"``
-        :param boolean hasSeen: in case this API call is invoked with a user
-                                context this allows changing of the flag
-                                that indicates if the user has seen the
-                                event.
-        :param boolean isBookmarked: in case this API call is invoked with a
-                                     user context this allows changing of
-                                     the bookmark flag.
-        :param boolean isSubscribed:
-        :param boolean isPublic: sets the issue to public or private.
-        :param string substatus: the new substatus for the issues. Valid values
-                                 defined in GroupSubStatus.
-        :auth: required
         """
         try:
             discard = request.data.get("discard")
@@ -371,7 +421,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # for mutation.
             group = Group.objects.get(id=group.id)
 
-            serialized = serialize(
+            serialized: BaseGroupSerializerResponse = serialize(
                 group,
                 request.user,
                 GroupSerializer(
@@ -393,18 +443,29 @@ class GroupDetailsEndpoint(GroupEndpoint):
             logger.exception(
                 "group_details:put client.ApiError",
             )
-            return Response(e.body, status=e.status_code)
+            # client.ApiError.body is opaque (proxied from another service);
+            # cast is sanctioned for this opaque-body cohort per the spec.
+            body = cast(BaseGroupSerializerResponse, e.body)
+            return Response(body, status=e.status_code)
 
+    @extend_schema(
+        operation_id="Remove an Issue",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+        ],
+        responses={
+            202: RESPONSE_ACCEPTED,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def delete(self, request: Request, group: Group) -> Response:
+    def delete(self, request: Request, group: Group) -> Response[None]:
         """
-        Remove an Issue
-        ```````````````
-
-        Removes an individual issue.
-
-        :pparam string issue_id: the ID of the issue to delete.
-        :auth: required
+        Asynchronously queue an individual issue for deletion.
         """
         from sentry.utils import snuba
 
@@ -431,3 +492,27 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 tags={"status": 500, "detail": "group_details:delete:Exception"},
             )
             raise
+
+
+def send_issue_view_attribution(request: Request, response: Response, group: Any) -> None:
+    if request.method != "GET":
+        return
+
+    if response.status_code < 200 or response.status_code >= 300:
+        return
+
+    if not isinstance(group, Group):
+        return
+
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
+    if isinstance(user_agent, str) and user_agent.startswith("sentry-mcp/"):
+        client_family = request.headers.get("x-sentry-mcp-client-family")
+        analytics.record(
+            IssueViewedEvent(
+                organization_id=group.project.organization_id,
+                project_id=group.project.id,
+                group_id=group.id,
+                client=f"mcp - {client_family or 'unknown'}",
+                user_id=request.user.id,
+            )
+        )

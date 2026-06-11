@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
@@ -52,16 +53,17 @@ const COLOR_MAP = {
 const SentryStyleAnsi = styled(Ansi)`
   ${p =>
     Object.entries(COLOR_MAP).map(
-      ([ansiColor, themeColor]) => `
-      .ansi-${ansiColor}-bg {
-        background-color: ${p.theme.colors[`${themeColor}500`]};
-      }
-      .ansi-${ansiColor}-fg {
-        color: ${p.theme.colors[`${themeColor}500`]};
-      }
-      .ansi-bright-${ansiColor}-fg {
-        color: ${p.theme.colors[`${themeColor}200`]};
-      }`
+      ([ansiColor, themeColor]) => css`
+        .ansi-${ansiColor}-bg {
+          background-color: ${p.theme.colors[`${themeColor}500`]};
+        }
+        .ansi-${ansiColor}-fg {
+          color: ${p.theme.colors[`${themeColor}500`]};
+        }
+        .ansi-bright-${ansiColor}-fg {
+          color: ${p.theme.colors[`${themeColor}200`]};
+        }
+      `
     )}
 
   .ansi-black-fg,

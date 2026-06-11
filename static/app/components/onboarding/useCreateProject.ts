@@ -22,7 +22,7 @@ export function useCreateProject() {
       return api.requestPromise(
         firstTeamSlug
           ? `/teams/${organization.slug}/${firstTeamSlug}/projects/`
-          : `/organizations/${organization.slug}/experimental/projects/`,
+          : `/organizations/${organization.slug}/projects/`,
         {
           method: 'POST',
           data: {

@@ -1,5 +1,6 @@
 import {Component, createRef, type ReactNode} from 'react';
 import {withTheme, type CSSObject, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -7,6 +8,7 @@ import type {InputProps} from '@sentry/scraps/input';
 import {Input} from '@sentry/scraps/input';
 import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -14,7 +16,6 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import type {SelectValue} from 'sentry/types/core';
 import type {
   AggregateParameter,
   AggregationKeyWithAlias,
@@ -743,7 +744,9 @@ const Container = styled('div')<{
   ${p =>
     p.tripleLayout
       ? 'grid-template-columns: 1fr 2fr;'
-      : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
+      : css`
+          grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};
+        `}
   gap: ${p => p.theme.space.md};
   align-items: center;
 

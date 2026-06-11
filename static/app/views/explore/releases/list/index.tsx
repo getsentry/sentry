@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
@@ -675,7 +676,7 @@ function ReleasesHeader() {
 const ReleasesBodySearch = styled(ExploreBodySearch)<{hasTabs: boolean}>`
   ${p =>
     p.hasTabs &&
-    `
+    css`
       padding-bottom: 0;
 
       @media (min-width: ${p.theme.breakpoints.md}) {

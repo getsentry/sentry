@@ -11,7 +11,7 @@ from django.test import override_settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import SpansBuffer
-from sentry.spans.buffer_types import FlushedSegment, OutputSpan, Span
+from sentry.spans.buffer_types import Span
 from sentry.spans.consumers.process.flusher import MultiProducer, SpanFlusher
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
@@ -33,21 +33,36 @@ def _blocking_main_for_join_test(
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.flusher.log-flushed-segments": True})
 def test_flusher_logs_flushed_segments() -> None:
-    segment_key = f"span-buf:s:{{1:{'a' * 32}}}:{'b' * 16}".encode()
-    flushed_segment = FlushedSegment(
-        queue_key=b"span-buf:q:0",
-        spans=[OutputSpan(payload={"span_id": "b" * 16})],
-        project_id=1,
+    project_id = 999_002
+    trace_id = "9" * 32
+    span_id = "b" * 16
+    slice_id = 999_002
+    segment_key = f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode()
+    queue_key = f"span-buf:q:{slice_id}-0".encode()
+    buffer = SpansBuffer(assigned_shards=[0], slice_id=slice_id)
+    buffer.process_spans(
+        [
+            Span(
+                payload=_payload(span_id),
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=project_id,
+                partition=0,
+            )
+        ],
+        now=0,
     )
-    buffer = mock.Mock()
-    buffer.any_shard_at_limit = False
-    buffer.flush_segments.return_value = {segment_key: flushed_segment}
     stopped = SimpleNamespace(value=0)
     current_drift = SimpleNamespace(value=0)
     backpressure_since = SimpleNamespace(value=0)
     healthy_since = SimpleNamespace(value=0)
+    produced: list[tuple[int, Any, int]] = []
 
-    def produce_to_pipe(project_id, payload, dropped):
+    def produce_to_pipe(project_id: int, payload: Any, dropped: int) -> None:
+        produced.append((project_id, payload, dropped))
         stopped.value = 1
 
     with mock.patch("sentry.spans.consumers.process.flusher.logger") as mock_logger:
@@ -65,12 +80,17 @@ def test_flusher_logs_flushed_segments() -> None:
         "spans.buffer.flushed_segment",
         extra={
             "segment_key": segment_key.decode("utf-8"),
-            "queue_key": "span-buf:q:0",
+            "queue_key": queue_key.decode("utf-8"),
             "span_count": 1,
-            "project_id": 1,
+            "project_id": project_id,
         },
     )
-    buffer.done_flush_segments.assert_called_once_with({segment_key: flushed_segment})
+    assert len(produced) == 1
+    assert produced[0][0] == project_id
+    assert produced[0][2] == 1
+    assert orjson.loads(produced[0][1].value)["spans"][0]["span_id"] == span_id
+    assert buffer.client.zscore(queue_key, segment_key) is None
+    assert not buffer.client.keys(f"*{project_id}:{trace_id}*")
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})

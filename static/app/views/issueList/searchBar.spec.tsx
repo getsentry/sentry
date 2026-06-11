@@ -167,5 +167,37 @@ describe('IssueListSearchBar', () => {
         expect(tagValueMock).toHaveBeenCalledTimes(2);
       });
     });
+
+    it('displays "latest" as an option for the release filter', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        method: 'GET',
+        body: [{key: 'release', name: 'release'}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/release/values/',
+        method: 'GET',
+        body: [
+          {
+            name: 'v1.0.0',
+            value: 'v1.0.0',
+            count: 5,
+            firstSeen: '2021-01-01T00:00:00Z',
+            lastSeen: '2021-01-01T00:00:00Z',
+          },
+        ] as TagValue[],
+      });
+
+      render(<IssueListSearchBar {...newDefaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste('release:', {delay: null});
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Edit value for filter: release'})
+      );
+
+      expect(await screen.findByRole('option', {name: 'latest'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'v1.0.0'})).toBeInTheDocument();
+    });
   });
 });

@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -368,7 +369,12 @@ const PlatformCard = styled(
   border-radius: 4px;
   cursor: ${p => (p.loading ? 'default' : 'pointer')};
 
-  ${p => p.selected && p.visibleSelection && `background: ${p.theme.colors.blue100};`}
+  ${p =>
+    p.selected &&
+    p.visibleSelection &&
+    css`
+      background: ${p.theme.colors.blue100};
+    `}
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};

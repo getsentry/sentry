@@ -41,7 +41,9 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
         examples=SentryAppExamples.GET_PLATFORM_EXTERNAL_ISSUE,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-external-issues"])
-    def get(self, request: Request, group) -> Response:
+    def get(
+        self, request: Request, group
+    ) -> Response[list[PlatformExternalIssueSerializerResponse]]:
         """
         Retrieve custom integration issue links for the given Sentry issue
 

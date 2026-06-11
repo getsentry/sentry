@@ -138,7 +138,10 @@ def test_monitor_task_trigger_partition_tick_skip(dispatch_tick: mock.MagicMock)
     assert dispatch_tick.mock_calls[2] == mock.call(now + timedelta(minutes=2))
 
 
-@override_settings(KAFKA_TOPIC_OVERRIDES={"monitors-clock-tick": "clock-tick-test-topic"})
+@override_settings(
+    KAFKA_TOPIC_OVERRIDES={"monitors-clock-tick": "clock-tick-test-topic"},
+    KAFKA_TOPIC_TO_CLUSTER={"clock-tick-test-topic": "default"},
+)
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 @mock.patch("sentry.monitors.clock_dispatch._clock_tick_producer")
 @override_options({"crons.system_incidents.collect_metrics": False})

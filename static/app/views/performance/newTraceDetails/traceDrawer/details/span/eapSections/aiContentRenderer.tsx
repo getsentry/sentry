@@ -15,6 +15,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 
 interface AIContentRendererProps {
   text: string;
+  autoCollapseLimit?: number;
   inline?: boolean;
   maxJsonDepth?: number;
 }
@@ -67,6 +68,7 @@ export function AIContentRenderer({
   text,
   inline = false,
   maxJsonDepth = 2,
+  autoCollapseLimit,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
 
@@ -77,6 +79,7 @@ export function AIContentRenderer({
         <TraceDrawerComponents.MultilineJSON
           value={detection.parsedData}
           maxDefaultDepth={maxJsonDepth}
+          autoCollapseLimit={autoCollapseLimit}
         />
       );
 
@@ -86,6 +89,7 @@ export function AIContentRenderer({
           <TraceDrawerComponents.MultilineJSON
             value={detection.parsedData}
             maxDefaultDepth={maxJsonDepth}
+            autoCollapseLimit={autoCollapseLimit}
           />
           <Text size="xs" variant="muted">
             {t('Truncated')}

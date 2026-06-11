@@ -2,8 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import type {TooltipProps} from '@sentry/scraps/tooltip';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText, type InfoTextProps} from '@sentry/scraps/info';
 
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -19,7 +18,10 @@ type RelaxedDateType = string | number | Date;
 
 type UnitStyle = 'human' | 'regular' | 'short' | 'extraShort';
 
-interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
+interface Props extends Omit<
+  React.TimeHTMLAttributes<HTMLTimeElement>,
+  'color' | 'title'
+> {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    *
@@ -32,10 +34,6 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   disabledAbsoluteTooltip?: boolean;
   /**
-   * Tooltip text to be hoverable when isTooltipHoverable is true
-   */
-  isTooltipHoverable?: boolean;
-  /**
    * How often should the component live update the timestamp.
    *
    * You may specify a custom interval in milliseconds if necissary.
@@ -43,6 +41,10 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * @default minute
    */
   liveUpdateInterval?: 'minute' | 'second' | number;
+  /**
+   * Max width of the tooltip
+   */
+  maxWidth?: InfoTextProps<'time'>['maxWidth'];
   /**
    * Prefix before upcoming time (when the date is in the future)
    *
@@ -66,22 +68,9 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   tooltipPrefix?: React.ReactNode;
   /**
-   * Any other props for the <Tooltip>
-   */
-  tooltipProps?: Partial<TooltipProps>;
-  /**
    * Include seconds in the tooltip
    */
   tooltipShowSeconds?: boolean;
-  /**
-   * Suffix content to add to the tooltip. Useful to indicate what the relative
-   * time is for
-   */
-  tooltipSuffix?: React.ReactNode;
-  /**
-   * Change the color of the underline
-   */
-  tooltipUnderlineColor?: 'warning' | 'danger' | 'success' | 'muted';
   /**
    * How much text should be used for the suffix:
    *
@@ -103,6 +92,10 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * @default human
    */
   unitStyle?: UnitStyle;
+  /**
+   * Change the color of the underline
+   */
+  variant?: InfoTextProps<'time'>['variant'];
 }
 
 export function TimeSince({
@@ -111,10 +104,8 @@ export function TimeSince({
   tooltipShowSeconds,
   tooltipPrefix: tooltipTitle,
   tooltipBody,
-  tooltipSuffix,
-  tooltipUnderlineColor,
-  tooltipProps,
-  isTooltipHoverable = false,
+  variant = 'inherit',
+  maxWidth,
   unitStyle,
   prefix = t('in'),
   suffix = t('ago'),
@@ -159,24 +150,23 @@ export function TimeSince({
   const tooltip = moment.tz(dateObj, tz).format(format);
 
   return (
-    <Tooltip
-      disabled={disabledAbsoluteTooltip}
-      underlineColor={tooltipUnderlineColor}
-      showUnderline
-      isHoverable={isTooltipHoverable}
+    <InfoText
+      as="time"
+      dateTime={dateObj?.toISOString()}
+      variant={variant}
+      maxWidth={maxWidth}
       title={
-        <Fragment>
-          {tooltipTitle && <div>{tooltipTitle}</div>}
-          {tooltipBody ?? tooltip}
-          {tooltipSuffix && <div>{tooltipSuffix}</div>}
-        </Fragment>
+        disabledAbsoluteTooltip ? null : (
+          <Fragment>
+            {tooltipTitle && <div>{tooltipTitle}</div>}
+            {tooltipBody ?? tooltip}
+          </Fragment>
+        )
       }
-      {...tooltipProps}
+      {...props}
     >
-      <time dateTime={dateObj?.toISOString()} {...props}>
-        {relative}
-      </time>
-    </Tooltip>
+      {relative}
+    </InfoText>
   );
 }
 

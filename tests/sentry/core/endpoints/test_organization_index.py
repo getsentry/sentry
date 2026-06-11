@@ -176,15 +176,28 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org1.id)
 
-    def test_owner_not_supported(self) -> None:
-        self.create_organization(cell="us", owner=self.user)
+    def test_ownership_across_cells(self) -> None:
+        org_a = self.create_organization(cell="us", name="A", owner=self.user)
+        org_b = self.create_organization(cell="de", name="B", owner=self.user)
 
-        response = self.get_error_response(status_code=400, owner="1")
+        user2 = self.create_user(email="user2@example.com")
+        org_c = self.create_organization(cell="us", name="C", owner=user2)
+        self.create_organization(cell="de", name="D", owner=user2)
+        org_e = self.create_organization(cell="us", name="E", owner=user2)
 
-        assert (
-            response.data["detail"]
-            == "The control-silo organizations endpoint does not support owner=1."
-        )
+        self.create_member(user=user2, organization=org_b, role="owner")
+        self.create_member(user=self.user, organization=org_c, role="owner")
+        self.create_member(user=self.user, organization=org_e, role="member")
+
+        response = self.get_success_response(qs_params={"owner": 1})
+
+        assert len(response.data) == 3
+        assert response.data[0]["organization"]["id"] == str(org_a.id)
+        assert response.data[0]["singleOwner"] is True
+        assert response.data[1]["organization"]["id"] == str(org_b.id)
+        assert response.data[1]["singleOwner"] is False
+        assert response.data[2]["organization"]["id"] == str(org_c.id)
+        assert response.data[2]["singleOwner"] is False
 
     def test_sort_by_members(self) -> None:
         smaller_org = self.create_organization(
@@ -299,6 +312,80 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             # Validate ownership of the new org
             owners = [owner.id for owner in org.get_owners()]
             assert [self.user.id] == owners
+
+    def test_staff_user_override_cell_visiblity(self) -> None:
+        cells = [
+            Cell(
+                name="ja",
+                snowflake_id=3,
+                category=RegionCategory.MULTI_TENANT,
+                address="10.0.0.2",
+                visible=False,
+            ),
+            Cell(
+                name="acme",
+                snowflake_id=4,
+                category=RegionCategory.SINGLE_TENANT,
+                address="10.0.0.4",
+                visible=True,
+            ),
+        ]
+
+        localities = [
+            Locality(
+                name="ja",
+                cells=frozenset(["ja"]),
+                category=RegionCategory.MULTI_TENANT,
+                new_org_cell="ja",
+                visible=False,
+            ),
+            Locality(
+                name="acme",
+                cells=frozenset(["acme"]),
+                category=RegionCategory.SINGLE_TENANT,
+                new_org_cell="acme",
+                visible=True,
+            ),
+        ]
+        with get_test_env_directory().swap_state(cells, localities):
+            user = self.create_user("regular@example.com", is_staff=False)
+            staff = self.create_user("staff@example.com", is_staff=True)
+
+            data = {"name": "Sentry ja", "slug": "sentry-ja", "dataStorageLocation": "ja"}
+
+            self.login_as(user)
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400
+
+            self.login_as(staff, staff=False)
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400, "Staff require an active staff session"
+
+            self.login_as(staff, staff=True)
+            resp = self.get_success_response(**data)
+            assert resp.status_code == 201, "Staff can be create orgs in hidden locales"
+
+            data = {"name": "Acme co", "slug": "acme-co", "dataStorageLocation": "acme"}
+
+            self.login_as(user)
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400
+
+            self.login_as(staff)
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400, (
+                "Staff require an active staff session to create orgs in st locales"
+            )
+
+            self.login_as(staff, staff=True)
+            resp = self.get_success_response(**data)
+            assert resp.status_code == 201, (
+                "Staff should be able to create orgs in hidden st locales"
+            )
+
+            data = {"name": "Denied co", "slug": "denied", "dataStorageLocation": "moon"}
+            resp = self.get_error_response(**data)
+            assert resp.status_code == 400, "Staff cannot create orgs in invalid locales"
 
     @override_options(
         {

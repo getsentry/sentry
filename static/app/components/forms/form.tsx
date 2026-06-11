@@ -302,7 +302,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
         margin-top: 16px;
         padding-bottom: 16px;
       }
-    `};
+    `}
 `;
 
 const DefaultButtons = styled('div')`

@@ -8,7 +8,7 @@ import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {
@@ -839,7 +839,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
 
   story('SearchQueryBuilderProvider', () => {
     function OpenDropdownButton() {
-      const {dispatch} = useSearchQueryBuilder();
+      const {dispatch} = useSearchQueryBuilderState();
 
       return (
         <Button
@@ -887,9 +887,9 @@ export default Storybook.story('SearchQueryBuilder', story => {
           <Storybook.JSXNode name="SearchQueryBuilder" /> component.
         </p>
         <p>
-          The provider will give you access to the context values within the search bar.
-          Access these values using the <code>useSearchQueryBuilder</code> hook within any
-          of the provider's child components.
+          The provider will give you access to focused context values within the search
+          bar. Access query state using the <code>useSearchQueryBuilderState</code> hook
+          within any of the provider's child components.
         </p>
         <p>
           Here is an example of a custom component that uses the provider. In this
@@ -899,7 +899,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <CodeBlock language="tsx">
           {`
 function OpenDropdownButton() {
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
 
   const handleClick = () => {
     dispatch({

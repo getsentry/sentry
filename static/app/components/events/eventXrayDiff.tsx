@@ -10,8 +10,8 @@ import {
   type MetricIds,
   useSizeAnalysisComparison,
 } from 'sentry/utils/preprod/useSizeAnalysisComparison';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
 
 type SectionProps = MetricIds & {project: Project};

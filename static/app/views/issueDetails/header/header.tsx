@@ -1,0 +1,415 @@
+import {Fragment, type ComponentProps, type ReactNode} from 'react';
+import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
+
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Count} from 'sentry/components/count';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {EventMessage} from 'sentry/components/events/eventMessage';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
+import {TourElement} from 'sentry/components/tours/components';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {AI_DETECTED_ISSUE_TYPES, IssueType} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {getMessage, getTitle} from 'sentry/utils/events';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
+import {Divider} from 'sentry/views/issueDetails/divider';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
+import {AttachmentsBadge} from 'sentry/views/issueDetails/header/attachmentsBadge';
+import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {ReplayBadge} from 'sentry/views/issueDetails/header/replayBadge';
+import {SeerBadge} from 'sentry/views/issueDetails/header/seerBadge';
+import {UserFeedbackBadge} from 'sentry/views/issueDetails/header/userFeedbackBadge';
+import {
+  IssueDetailsTour,
+  IssueDetailsTourContext,
+} from 'sentry/views/issueDetails/issueDetailsTour';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+interface GroupHeaderProps {
+  event: Event | null;
+  group: Group;
+  project: Project;
+}
+
+export function GroupHeader({event, group, project}: GroupHeaderProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const {baseUrl} = useGroupDetailsRoute();
+
+  const {sort: _sort, ...query} = location.query;
+  const {count: eventCount, userCount} = group;
+  const useGetMaxRetentionDays =
+    getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
+  const maxRetentionDays = useGetMaxRetentionDays();
+  const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
+  const {title: primaryTitle, subtitle} = getTitle(group);
+  const secondaryTitle = getMessage(group);
+  const isComplete = group.status === 'resolved' || group.status === 'ignored';
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
+  const disableActions = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(groupReprocessingStatus);
+
+  const hasErrorUpsampling = project.features.includes('error-upsampling');
+
+  const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
+
+  const statusProps = getBadgeProperties(group.status, group.substatus);
+  const issueTypeConfig = getConfigForIssueType(group, project);
+
+  const crumbs = [
+    {
+      label: 'Issues',
+      to: {pathname: `/organizations/${organization.slug}/issues/`, query},
+    },
+    {label: <IssueIdBreadcrumb project={project} group={group} />},
+  ];
+
+  return (
+    <Fragment>
+      <Header>
+        <Flex justify="between">
+          <Flex align="center" gap="md">
+            <MaybeTopBarSlot name="title">
+              <StyledBreadcrumbs crumbs={crumbs} />
+            </MaybeTopBarSlot>
+            {hasErrorUpsampling && (
+              <Tooltip
+                title={t(
+                  'Error counts on this page have been upsampled based on your sampling rate.'
+                )}
+              >
+                <StyledTag variant="muted">{t('Errors Upsampled')}</StyledTag>
+              </Tooltip>
+            )}
+          </Flex>
+          <Grid flow="column" align="center" gap="xs">
+            <HeaderActions group={group} />
+          </Grid>
+        </Flex>
+        <HeaderGrid>
+          <Title>
+            <Tooltip
+              title={primaryTitle}
+              skipWrapper
+              isHoverable
+              showOnlyOnOverflow
+              delay={1000}
+            >
+              <PrimaryTitle>{primaryTitle}</PrimaryTitle>
+            </Tooltip>
+            {isAIDetectedIssue && <FeatureBadge type="new" />}
+          </Title>
+          <StatTitle>
+            {issueTypeConfig.eventAndUserCounts.enabled && (
+              <StatLink
+                to={`${baseUrl}events/${location.search}`}
+                aria-label={t('View events')}
+              >
+                {t('Events (total)')}
+              </StatLink>
+            )}
+          </StatTitle>
+          <StatTitle>
+            {issueTypeConfig.eventAndUserCounts.enabled &&
+              (userCount === 0 ? (
+                t('Users %s', userCountPeriod)
+              ) : (
+                <StatLink
+                  to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
+                  aria-label={t('View affected users')}
+                >
+                  {t('Users %s', userCountPeriod)}
+                </StatLink>
+              ))}
+          </StatTitle>
+          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
+          {issueTypeConfig.eventAndUserCounts.enabled && (
+            <Fragment>
+              <StatCount value={eventCount} aria-label={t('Event count')} />
+              <StatCount value={userCount} aria-label={t('User count')} />
+            </Fragment>
+          )}
+          <Flex gap="md" align="center">
+            {group.isUnhandled && (
+              <Fragment>
+                <UnhandledTag />
+                <Divider />
+              </Fragment>
+            )}
+            {statusProps?.status ? (
+              <Fragment>
+                <Tooltip
+                  isHoverable
+                  title={tct('[tooltip] [link:Learn more]', {
+                    tooltip: statusProps.tooltip,
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
+                    ),
+                  })}
+                >
+                  <Subtext>{statusProps?.status}</Subtext>
+                </Tooltip>
+              </Fragment>
+            ) : null}
+            {subtitle && (
+              <Fragment>
+                <Divider />
+                <Tooltip
+                  title={subtitle}
+                  skipWrapper
+                  isHoverable
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
+                  <Subtext>{subtitle}</Subtext>
+                </Tooltip>
+              </Fragment>
+            )}
+            <ErrorBoundary customComponent={null}>
+              <AttachmentsBadge group={group} />
+              <UserFeedbackBadge group={group} project={project} />
+              <ReplayBadge group={group} project={project} />
+              <SeerBadge group={group} />
+            </ErrorBoundary>
+          </Flex>
+        </HeaderGrid>
+      </Header>
+      <TourElement<IssueDetailsTour>
+        tourContext={IssueDetailsTourContext}
+        id={IssueDetailsTour.WORKFLOWS}
+        title={t('Take action')}
+        description={t(
+          "Now that you've learned about this issue, it's time to assign an owner, update priority, and take additional actions."
+        )}
+        position="bottom-end"
+      >
+        {tourProps => (
+          <div {...tourProps}>
+            <ActionBar isComplete={isComplete} role="banner">
+              <GroupActions
+                group={group}
+                project={project}
+                disabled={disableActions}
+                event={event}
+              />
+              <WorkflowActions>
+                <Workflow>
+                  {t('Priority')}
+                  <GroupPriority group={group} />
+                </Workflow>
+                <Workflow>
+                  {t('Assignee')}
+                  <GroupHeaderAssigneeSelector
+                    group={group}
+                    project={project}
+                    event={event}
+                  />
+                </Workflow>
+              </WorkflowActions>
+            </ActionBar>
+          </div>
+        )}
+      </TourElement>
+    </Fragment>
+  );
+}
+
+function MaybeTopBarSlot({
+  name,
+  children,
+}: {
+  children: ReactNode;
+  name: ComponentProps<typeof TopBar.Slot>['name'];
+}) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  if (hasPageFrameFeature) {
+    return <TopBar.Slot name={name}>{children}</TopBar.Slot>;
+  }
+  return children;
+}
+
+function HeaderActions({group}: {group: Group}) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const {feedback} = useFeedbackSDKIntegration();
+
+  const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
+  const hasFeedbackForm =
+    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY ||
+    group.issueType === IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS ||
+    isAIDetectedIssue;
+  const feedbackSource =
+    group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY
+      ? 'issue_details_query_injection'
+      : isAIDetectedIssue
+        ? 'issue_details_ai_detected'
+        : 'issue_details_n_plus_one_api_calls';
+  const feedbackOptions = {
+    messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
+    tags: {['feedback.source']: feedbackSource},
+  };
+  const feedbackLabel = t('Give feedback on the issue Sentry detected');
+
+  if (hasFeedbackForm && feedback) {
+    return (
+      <MaybeTopBarSlot name="feedback">
+        <FeedbackButton
+          aria-label={feedbackLabel}
+          size={hasPageFrameFeature ? undefined : 'xs'}
+          feedbackOptions={feedbackOptions}
+          tooltipProps={hasPageFrameFeature ? {title: feedbackLabel} : undefined}
+        >
+          {hasPageFrameFeature ? null : t('Give Feedback')}
+        </FeedbackButton>
+      </MaybeTopBarSlot>
+    );
+  }
+
+  return null;
+}
+
+const Header = styled('header')`
+  background-color: ${p => p.theme.tokens.background.primary};
+  padding: ${p => p.theme.space.md}
+    var(--issue-details-inset, ${p => p.theme.space['2xl']});
+`;
+
+const HeaderGrid = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto auto;
+  column-gap: ${p => p.theme.space.xl};
+  align-items: center;
+`;
+
+const PrimaryTitle = styled('span')`
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 20px;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  flex-shrink: 0;
+`;
+
+const StatTitle = styled('div')`
+  display: block;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: 1;
+  justify-self: flex-end;
+`;
+
+const StatLink = styled(Link)`
+  color: ${p => p.theme.tokens.content.secondary};
+  text-decoration: ${p => (p['aria-disabled'] ? 'none' : 'underline')};
+  text-decoration-style: dotted;
+`;
+
+const StatCount = styled(Count)`
+  display: block;
+  font-size: 20px;
+  line-height: 1;
+  text-align: right;
+`;
+
+const Subtext = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ActionBar = styled('div')<{isComplete: boolean}>`
+  display: flex;
+  justify-content: space-between;
+  gap: ${p => p.theme.space.md};
+  flex-wrap: wrap;
+  padding: ${p => p.theme.space.md}
+    var(--issue-details-inset, ${p => p.theme.space['2xl']});
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  position: relative;
+  transition: background 0.3s ease-in-out;
+  background: ${p => (p.isComplete ? 'transparent' : p.theme.tokens.background.primary)};
+  &:before {
+    z-index: -1;
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: linear-gradient(
+      to right,
+      ${p => p.theme.tokens.background.primary},
+      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
+    );
+  }
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: var(--issue-details-inset, ${p => p.theme.space['2xl']});
+    bottom: unset;
+    height: 1px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.primary};
+  }
+`;
+
+const WorkflowActions = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  column-gap: ${p => p.theme.space.xl};
+  flex-wrap: wrap;
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    justify-content: flex-start;
+  }
+`;
+
+const Workflow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const Title = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, max-content) min-content;
+  align-items: center;
+  column-gap: ${p => p.theme.space.sm};
+`;
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  padding: 0;
+`;
+
+const StyledTag = styled(Tag)`
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    display: none;
+  }
+`;

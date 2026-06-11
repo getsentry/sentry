@@ -97,7 +97,6 @@ const AM3_FREE_FEATURES = [
 
 const AM3_TEAM_FEATURES = [
   ...AM3_FREE_FEATURES,
-  'codecov-integration',
   'crash-rate-alerts',
   'discover-basic',
   'incidents',

@@ -12,10 +12,12 @@ import {
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useModal} from '@sentry/scraps/modal';
 
+import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
@@ -27,6 +29,7 @@ type SeerExplorerContextValue = {
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   sessionState: SeerExplorerSessionState;
   toggleSeerExplorer: () => void;
+  unreadCount: number;
 };
 
 const SeerExplorerContext = createContext<SeerExplorerContextValue>({
@@ -35,19 +38,59 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   openSeerExplorer: () => {},
   sessionState: 'inactive',
   toggleSeerExplorer: () => {},
+  unreadCount: 0,
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {runId, chatStates} = useSeerExplorerChatState();
+  const [lastViewedAt, setLastViewedAt] = useState<number>(() => Date.now());
+
   const {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
     isOpen,
-  } = useSeerExplorerDrawer();
+  } = useSeerExplorerDrawer({
+    onClose: () => setLastViewedAt(Date.now()),
+  });
+
+  const {apiData} = useSeerExplorerPolling({runId});
+  const blocks = apiData?.session?.blocks;
 
   const pollingState = runId === null ? undefined : chatStates[runId]?.polling;
   const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
+
+  useEffect(() => {
+    setLastViewedAt(Date.now());
+  }, [runId]);
+
+  const [isWindowVisible, setIsWindowVisible] = useState(
+    () => document.visibilityState === 'visible'
+  );
+  useEffect(() => {
+    const handler = () => {
+      const visible = document.visibilityState === 'visible';
+      setIsWindowVisible(visible);
+      if (!visible) {
+        setLastViewedAt(Date.now());
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
+
+  const unreadCount = useMemo(() => {
+    if (!blocks?.length || runId === null || (isOpen && isWindowVisible)) {
+      return 0;
+    }
+    return blocks.filter(block => {
+      if (block.message.role === 'user' || block.loading) {
+        return false;
+      }
+      const ts = getDateFromTimestampAssumeUtc(block.timestamp)?.getTime();
+      return ts !== null && ts !== undefined && ts > lastViewedAt;
+    }).length;
+  }, [blocks, isOpen, isWindowVisible, lastViewedAt, runId]);
 
   // Gates `thinking` / `done-thinking`: otherwise an initial fetch of a stale
   // runId from sessionStorage flashes polling state before the user engages.
@@ -93,6 +136,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       closeSeerExplorer: closeSeerExplorerDrawer,
       toggleSeerExplorer: toggleSeerExplorerDrawer,
       sessionState,
+      unreadCount,
     }),
     [
       isOpen,
@@ -100,6 +144,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       closeSeerExplorerDrawer,
       toggleSeerExplorerDrawer,
       sessionState,
+      unreadCount,
     ]
   );
 

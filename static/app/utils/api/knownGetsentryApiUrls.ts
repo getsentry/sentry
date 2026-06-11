@@ -7,6 +7,7 @@
 
 export type KnownGetsentryApiUrls =
   | '/_admin/cells/$region/admin-invoices/$invoiceId/'
+  | '/_admin/cells/$region/invoice-comparison/'
   | '/audit-logs/'
   | '/beacons/'
   | '/beacons/$beaconId/'
@@ -58,7 +59,6 @@ export type KnownGetsentryApiUrls =
   | '/invoices/$invoiceId/close/'
   | '/invoices/$invoiceId/effective-at/'
   | '/invoices/$invoiceId/retry-payment/'
-  | '/organizations/$organizationIdOrSlug/codecov-jwt/'
   | '/organizations/$organizationIdOrSlug/console-sdk-invites/'
   | '/organizations/$organizationIdOrSlug/data-consent/'
   | '/organizations/$organizationIdOrSlug/issues/force-auto-assignment/'

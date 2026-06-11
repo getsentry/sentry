@@ -28,7 +28,7 @@ import {
   generateQueryTokensString,
   isNoneOfTheseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -126,7 +126,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     autoSubmitSeer,
     setAutoSubmitSeer,
     enableAISearch,
-  } = useSearchQueryBuilder();
+  } = useSearchQueryBuilderAI();
 
   const analyticsArea = useAnalyticsArea();
 
@@ -247,6 +247,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             start={item?.start}
             end={item?.end}
             visualizations={item?.visualizations}
+            expandedProjectIds={item?.expandedProjectIds}
+            interval={item?.interval}
           />
         </Item>
       );

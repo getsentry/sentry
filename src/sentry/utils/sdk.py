@@ -75,7 +75,6 @@ SAMPLED_TASKS = {
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
-    "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,

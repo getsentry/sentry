@@ -4,6 +4,9 @@ import orjson
 from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
+from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base import (
+    LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS,
+)
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
@@ -450,6 +453,101 @@ class ProjectPreprodSnapshotTest(APITestCase):
             }
         )
 
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
+    def test_selective_base_requires_feature_flag(
+        self, mock_compare_snapshots, mock_get_session
+    ) -> None:
+        """
+        A SELECTIVE base build must only be matched as a comparison base when the
+        selective-base feature flag is on. With the flag off, the upload endpoint must
+        behave exactly as today: no comparison is dispatched against the selective base.
+        """
+        base_sha = "b" * 40
+        head_sha = "a" * 40
+        repo_name = "owner/repo"
+        app_id = "com.example.app"
+
+        # A SELECTIVE base build whose commit_comparison.head_sha is the base_sha that
+        # incoming heads will reference.
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.org.id,
+            head_repo_name=repo_name,
+            head_sha=base_sha,
+            base_sha="c" * 40,
+            provider="github",
+            head_ref="main",
+            base_repo_name=repo_name,
+        )
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id=app_id,
+            commit_comparison=base_commit_comparison,
+        )
+        PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            image_count=1,
+            is_selective=True,
+            extras={
+                "manifest_key": f"{self.org.id}/{self.project.id}/{base_artifact.id}/manifest.json"
+            },
+        )
+
+        url = self._get_create_url()
+        head_data = {
+            "app_id": app_id,
+            "head_sha": head_sha,
+            "base_sha": base_sha,
+            "provider": "github",
+            "head_repo_name": repo_name,
+            "base_repo_name": repo_name,
+            "head_ref": "feature-branch",
+            "images": {
+                "img1": {
+                    "content_hash": "img1",
+                    "display_name": "Screen 1",
+                    "width": 375,
+                    "height": 812,
+                },
+            },
+        }
+
+        # Flag OFF: the selective base must NOT be matched, so no comparison is dispatched.
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(url, head_data, format="json")
+        assert response.status_code == 200
+        head_artifact_off = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        assert not PreprodSnapshotComparison.objects.filter(
+            base_snapshot_metrics__preprod_artifact=base_artifact
+        ).exists()
+        mock_compare_snapshots.apply_async.assert_not_called()
+
+        # Flag ON: the selective base IS matched and a comparison is dispatched.
+        with self.feature(
+            {
+                "organizations:preprod-snapshots": True,
+                "organizations:preprod-selective-base-snapshots": True,
+            }
+        ):
+            response = self.client.post(url, head_data, format="json")
+        assert response.status_code == 200
+        head_artifact_on = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        assert head_artifact_on.id != head_artifact_off.id
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            base_snapshot_metrics__preprod_artifact=base_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PENDING
+        mock_compare_snapshots.apply_async.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "org_id": self.org.id,
+                "head_artifact_id": head_artifact_on.id,
+                "base_artifact_id": base_artifact.id,
+            },
+        )
+
 
 class ProjectPreprodSnapshotGetTest(APITestCase):
     def setUp(self) -> None:
@@ -764,6 +862,76 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 200
         assert response.data["comparison_state"] == "waiting_for_base"
         assert response.data["comparison_type"] == "waiting_for_base"
+
+
+class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org, slug="sausage")
+
+    def _get_url(self):
+        return reverse(
+            "sentry-api-0-organization-preprod-snapshots-latest-base",
+            args=[self.org.slug],
+        )
+
+    def _create_base_snapshot(self):
+        images = {
+            "components/button.png": {
+                "content_hash": "hash_button",
+                "display_name": "Button",
+                "width": 375,
+                "height": 812,
+            }
+        }
+        artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id="com.example.app",
+        )
+        manifest_key = f"{self.org.id}/{self.project.id}/{artifact.id}/manifest.json"
+        PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=artifact,
+            image_count=len(images),
+            extras={"manifest_key": manifest_key},
+        )
+        return artifact, manifest_key, orjson.dumps({"images": images})
+
+    def _create_mock_session(self, manifest_json):
+        mock_result = MagicMock()
+        mock_result.payload.read.return_value = manifest_json
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_result
+        return mock_session
+
+    def test_query_params_document_project_slug(self):
+        assert LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS["projectSlug"] == {
+            "type": "string",
+            "required": False,
+            "description": "Project slug to scope the lookup. Use either projectSlug or project when app_id is not unique across projects or project inference is unavailable.",
+        }
+
+    @patch(
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+    )
+    def test_get_latest_base_snapshot_scoped_by_project_slug(self, mock_get_session):
+        artifact, manifest_key, manifest_json = self._create_base_snapshot()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "projectSlug": self.project.slug},
+            )
+
+        assert response.status_code == 200
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["project_slug"] == "sausage"
+        assert response.data["image_count"] == 1
+        assert response.data["images"][0]["image_file_name"] == "components/button.png"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
 
 
 class ProjectPreprodSnapshotDeleteTest(APITestCase):

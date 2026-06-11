@@ -178,7 +178,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = False

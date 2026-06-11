@@ -44,7 +44,7 @@ repos:
         require_serial: true
       - id: mypy
         name: mypy
-        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec .venv/bin/mypy "$@"; fi' --
+        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec .venv/bin/mypy --no-warn-unused-configs "$@"; fi' --
         language: system
         stages: [pre-push]
         types: [python]
@@ -59,6 +59,13 @@ repos:
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
         language: pygrep
         types: [python]
+      - id: check-response-annotation-matches-schema
+        name: check @extend_schema response T matches Response[T] annotation
+        entry: .venv/bin/python src/sentry/apidocs/_check_response_annotation_matches_schema.py
+        language: system
+        pass_filenames: true
+        files: ^src/sentry/.*endpoints/.*\.py$
+        require_serial: false
       - id: sort-mypy-weaklist
         name: sort mypy weaklist
         entry: python3 -m tools.mypy_helpers.sort_weaklist
