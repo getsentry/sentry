@@ -606,13 +606,14 @@ def _schedule_task(
 ) -> None:
     payload = _build_payload(action, event, organization, repo, target_commit_sha, review_trigger)
 
-    # GitLab is not supported by the direct-PyGithub /v1/code_review/* endpoints;
-    # it must use the scm-platform RPC counterparts at /v1/scm_code_review/*.
+    # The scm-platform rollout for code review is at 100%, so the /v1/code_review/*
+    # endpoints now route every provider (including GitLab) through ScmRepoClient,
+    # making them functionally equivalent to the /v1/scm_code_review/* counterparts.
     is_closed = action in CLOSE_ACTIONS
     seer_path = (
-        SeerEndpoint.SCM_CODE_REVIEW_PR_CLOSED.value
+        SeerEndpoint.CODE_REVIEW_PR_CLOSED.value
         if is_closed
-        else SeerEndpoint.SCM_CODE_REVIEW_REVIEW_REQUEST.value
+        else SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value
     )
 
     try:
@@ -778,7 +779,7 @@ def _schedule_note_task(
         {"mr_iid": mr_iid, "target_commit_sha": target_commit_sha},
     )
     process_github_webhook_event.delay(
-        seer_path=SeerEndpoint.SCM_CODE_REVIEW_REVIEW_REQUEST.value,
+        seer_path=SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value,
         event_payload=serialized_payload,
         tags={
             "sentry_organization_id": str(organization.id),

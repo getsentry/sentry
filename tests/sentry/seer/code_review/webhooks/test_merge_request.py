@@ -174,7 +174,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_when_gitlab_flag_disabled(self) -> None:
@@ -204,7 +204,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
+        assert call_kwargs["path"] == "/v1/code_review/pr-closed"
 
     @with_feature(
         {
@@ -222,7 +222,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
+        assert call_kwargs["path"] == "/v1/code_review/pr-closed"
 
     @with_feature(
         {
@@ -240,7 +240,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
@@ -297,7 +297,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        assert self.mock_seer.call_args[1]["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
@@ -316,7 +316,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        assert self.mock_seer.call_args[1]["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
@@ -929,7 +929,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
