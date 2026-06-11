@@ -428,6 +428,32 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
         assert self._query(actor=self.user) == [self.groups[0], self.groups[1], self.groups[2]]
 
+    def test_agent_boost_reset_by_regression(self):
+        # groups[0] reached PR-created but then regressed: that progress is stale.
+        self.create_group_activity(
+            group=self.groups[0],
+            type=ActivityType.SEER_PR_CREATED.value,
+            datetime=before_now(hours=2),
+        )
+        self.create_group_activity(
+            group=self.groups[0],
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=before_now(hours=1),
+        )
+        # groups[1] reached a (lesser) stage after its regression: still counts.
+        self.create_group_activity(
+            group=self.groups[1],
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=before_now(hours=2),
+        )
+        self.create_group_activity(
+            group=self.groups[1],
+            type=ActivityType.SEER_RCA_COMPLETED.value,
+            datetime=before_now(hours=1),
+        )
+
+        assert self._query(actor=self.user) == [self.groups[1], self.groups[2], self.groups[0]]
+
 
 class TestDefaultPostgresSortStrategies(TestCase):
     def test_recommended_v2_registered(self):

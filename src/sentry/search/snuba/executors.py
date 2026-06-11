@@ -931,12 +931,27 @@ def resolve_assignment_signal(
 def resolve_issue_agent_signal(
     actor: Any | None, organization: Organization, group_ids: list[int]
 ) -> dict[int, float]:
-    """Furthest Seer agent stage reached per group, normalized to [0, 1]."""
+    """Furthest Seer agent stage reached per group, normalized to [0, 1].
+
+    A regression resets progress: stages reached before the group's latest
+    SET_REGRESSION activity don't count, since that fix evidently didn't hold.
+    """
     activities = Activity.objects.filter(
-        group_id__in=group_ids, type__in=list(ISSUE_AGENT_STAGE_SIGNALS)
-    ).values_list("group_id", "type")
+        group_id__in=group_ids,
+        type__in=[*ISSUE_AGENT_STAGE_SIGNALS, ActivityType.SET_REGRESSION.value],
+    ).values_list("group_id", "type", "datetime")
+    last_regressed: dict[int, datetime] = {}
+    seer_activities: list[tuple[int, int, datetime]] = []
+    for group_id, activity_type, date in activities:
+        if activity_type == ActivityType.SET_REGRESSION.value:
+            if group_id not in last_regressed or date > last_regressed[group_id]:
+                last_regressed[group_id] = date
+        else:
+            seer_activities.append((group_id, activity_type, date))
     signal: dict[int, float] = {}
-    for group_id, activity_type in activities:
+    for group_id, activity_type, date in seer_activities:
+        if group_id in last_regressed and date < last_regressed[group_id]:
+            continue
         signal[group_id] = max(signal.get(group_id, 0.0), ISSUE_AGENT_STAGE_SIGNALS[activity_type])
     return signal
 
