@@ -147,7 +147,6 @@ def _merge_commit_id(pull_request: PullRequest) -> int | None:
     )
 
 
-
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
