@@ -87,6 +87,32 @@ class CodeOwnersTest(TestCase):
         assert code_owners.schema == {"$version": 1, "rules": []}
         assert code_owners.date_synced is None
 
+    def test_update_schema_with_codeowners_root_mapping(self) -> None:
+        self.code_mapping.source_root = "/docs"
+        self.code_mapping.stack_root = ""
+        self.code_mapping.save()
+        self.code_owners.raw = "/docs @getsentry/ecosystem\n"
+        self.code_owners.save()
+
+        with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
+            self.create_external_team(integration=self.integration)
+            update_code_owners_schema(
+                organization=self.organization.id, integration=self.integration.id
+            )
+
+        code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
+        assert code_owners.schema == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "codeowners", "pattern": "/"},
+                    "owners": [
+                        {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                    ],
+                }
+            ],
+        }
+
     @freeze_time("2023-01-01 00:00:00")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",

@@ -51,6 +51,7 @@ URL = "url"
 PATH = "path"
 MODULE = "module"
 CODEOWNERS = "codeowners"
+EMPTY_CODEOWNERS_RULE = re.compile(rf"^\s*{CODEOWNERS}:\s*(?:#.*)?$")
 
 # Grammar is defined in EBNF syntax.
 ownership_grammar = Grammar(
@@ -327,6 +328,14 @@ def parse_rules(data: str) -> Any:
     return OwnershipVisitor().visit(tree)
 
 
+def remove_empty_codeowners_rules(data: str) -> str:
+    return "".join(
+        line
+        for line in data.splitlines(keepends=True)
+        if not EMPTY_CODEOWNERS_RULE.match(line)
+    )
+
+
 def dump_schema(rules: Sequence[Rule]) -> OwnershipSchema:
     """Convert a Rule tree into a JSON schema"""
     return {"$version": VERSION, "rules": [r.dump() for r in rules]}
@@ -460,6 +469,9 @@ def convert_codeowners_syntax(
             formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
         else:
             formatted_path = path
+
+        if not formatted_path:
+            formatted_path = "/"
 
         if not code_owners:
             # Exclusion rule: path with no owners means "no ownership" for this path
@@ -619,6 +631,8 @@ def create_schema_from_issue_owners(
 ) -> OwnershipSchema | None:
     if issue_owners is None:
         return None
+
+    issue_owners = remove_empty_codeowners_rules(issue_owners)
 
     try:
         rules = parse_rules(issue_owners)

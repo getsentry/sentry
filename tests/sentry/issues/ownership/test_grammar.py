@@ -9,6 +9,7 @@ from sentry.issues.ownership.grammar import (
     Rule,
     convert_codeowners_syntax,
     convert_schema_to_rules_text,
+    create_schema_from_issue_owners,
     dump_schema,
     get_invalid_owner_details,
     load_schema,
@@ -1420,6 +1421,30 @@ def test_convert_codeowners_syntax_exclusion_with_stack_root() -> None:
     )
     assert "codeowners:webpack://static/apps/ octocat@sentry.io\n" in result
     assert "codeowners:webpack://static/apps/github\n" in result
+
+
+def test_convert_codeowners_syntax_preserves_mapped_root_path() -> None:
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = ""
+    code_mapping.source_root = "/apps"
+
+    result = convert_codeowners_syntax(
+        "/apps @octocat\n",
+        {"@octocat": "octocat@sentry.io"},
+        code_mapping,
+    )
+    assert result == "codeowners:/ octocat@sentry.io\n"
+
+
+def test_create_schema_from_issue_owners_skips_empty_codeowners_rule() -> None:
+    assert (
+        create_schema_from_issue_owners(
+            project_id=1,
+            issue_owners="codeowners: #discover\n",
+            remove_deleted_owners=True,
+        )
+        == {"$version": 1, "rules": []}
+    )
 
 
 def test_parse_code_owners_exclusion_rule() -> None:
