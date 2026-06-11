@@ -35,8 +35,6 @@ def get_group_list(
         for group_id in group_ids:
             if isinstance(group_id, str):
                 try:
-                    # Scope the short id lookup to the authorized projects so a short id
-                    # referencing a project the caller cannot access does not resolve.
                     group = Group.objects.by_qualified_short_id(
                         organization_id, group_id, project_ids=project_ids
                     )

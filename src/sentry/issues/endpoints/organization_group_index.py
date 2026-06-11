@@ -401,9 +401,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     )
                     return Response(by_event)
 
-            # project_ids=None: resolve org-wide, then gate on the actor's project access
-            # below via has_project_access (the authoritative check, which also handles
-            # global/superuser access that a raw project-id filter would not).
             group = get_by_short_id(
                 organization.id,
                 request.GET.get("shortIdLookup") or "0",

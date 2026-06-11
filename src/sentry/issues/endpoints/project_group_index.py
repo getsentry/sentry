@@ -171,8 +171,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 else:
                     matching_event = eventstore.backend.get_event_by_id(project.id, event_id)
             elif matching_group is None:
-                # Scope the short id lookup to this project so a short id for another
-                # project in the org does not resolve here.
                 matching_group = get_by_short_id(
                     project.organization_id,
                     request.GET.get("shortIdLookup", "0"),
