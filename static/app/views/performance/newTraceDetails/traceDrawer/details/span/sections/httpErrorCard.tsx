@@ -48,9 +48,9 @@ export function HttpErrorCard({node}: HttpErrorCardProps) {
     <Wrapper>
       <StyledPanel>
         <StyledPanelItem>
-          <IconWrapper>
+          <Flex align="center" justify="center">
             <IconWarning size="md" variant="warning" />
-          </IconWrapper>
+          </Flex>
           <Stack gap="2xs">
             <Flex gap="xs" align="center">
               <Text bold>{statusText ?? t('HTTP Error')}</Text>
@@ -81,10 +81,4 @@ const StyledPanelItem = styled(PanelItem)`
   gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.lg}
     ${p => p.theme.space.md};
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
