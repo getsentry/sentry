@@ -68,7 +68,7 @@ export function LogsExportModal({
     }),
     [queryInfo]
   );
-  const handleDataExport = useDataExport();
+  const {mutateAsync: handleDataExport} = useDataExport();
   const {rowCountDefault, rowCountOptions} =
     generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
@@ -107,14 +107,20 @@ export function LogsExportModal({
       });
 
       if (isAllColumns || passedSyncLimit) {
-        await handleDataExport({
-          format,
-          queryInfo: isAllColumns ? {...payload.queryInfo, field: []} : payload.queryInfo,
-          queryType: isAllColumns
-            ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
-            : ExportQueryType.EXPLORE,
-          limit: value.limit,
-        });
+        try {
+          await handleDataExport({
+            format,
+            queryInfo: isAllColumns
+              ? {...payload.queryInfo, field: []}
+              : payload.queryInfo,
+            queryType: isAllColumns
+              ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
+              : ExportQueryType.EXPLORE,
+            limit: value.limit,
+          });
+        } catch {
+          // The error message is surfaced by useDataExport's onError handler.
+        }
       } else {
         downloadLogs({
           rows: tableData.slice(0, value.limit),
