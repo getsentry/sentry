@@ -139,6 +139,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     "--push-mode", help="Whether to run in PUSH or PULL mode.", default=False, is_flag=True
 )
 @click.option(
+    "--batch-push-mode", help="Whether to run in BATCH PUSH mode.", default=False, is_flag=True
+)
+@click.option(
     "--rpc-host",
     help="The hostname and port for the taskbroker gRPC server. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
     default="127.0.0.1:50051",
@@ -213,6 +216,7 @@ def taskworker(**options: Any) -> None:
 
 def run_taskworker(
     push_mode: bool,
+    batch_push_mode: bool,
     worker_rpc_port: int,
     rpc_host: str,
     num_brokers: int | None,
@@ -232,12 +236,28 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
-    from taskbroker_client.worker import PushTaskWorker, TaskWorker
+    from taskbroker_client.worker import BatchPushTaskWorker, PushTaskWorker, TaskWorker
     from taskbroker_client.worker.client import make_broker_hosts
 
     with managed_bgtasks(role="taskworker"):
         if push_mode:
             worker: PushTaskWorker | TaskWorker = PushTaskWorker(
+                app_module="sentry.taskworker.bootstrap:app",
+                broker_service=rpc_host,
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                pod_name=pod_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+                grpc_port=worker_rpc_port,
+            )
+        elif batch_push_mode:
+            worker = BatchPushTaskWorker(
                 app_module="sentry.taskworker.bootstrap:app",
                 broker_service=rpc_host,
                 max_child_task_count=max_child_task_count,
