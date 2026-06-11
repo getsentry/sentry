@@ -25,9 +25,19 @@ import {useLogsExportEstimatedRowCount} from 'sentry/views/explore/logs/exports/
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+enum ModalColumnValue {
+  ALL = 'all',
+  SELECTED = 'selected',
+}
+
+enum ModalColumnFormat {
+  CSV = 'csv',
+  JSONL = 'jsonl',
+}
+
 const exportModalFormSchema = z.object({
-  columns: z.enum(['all', 'selected']),
-  format: z.enum(['csv', 'jsonl']),
+  columns: z.enum(ModalColumnValue),
+  format: z.enum(ModalColumnFormat),
   limit: z.number(),
 });
 
@@ -62,8 +72,8 @@ export function LogsExportModal({
   const {rowCountDefault, rowCountOptions} =
     generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
-    columns: 'selected',
-    format: 'csv',
+    columns: ModalColumnValue.SELECTED,
+    format: ModalColumnFormat.CSV,
     limit: rowCountDefault.value,
   };
 
@@ -75,8 +85,10 @@ export function LogsExportModal({
     },
     onSubmit: async ({value}) => {
       const isAllColumns = value.columns === 'all';
-      const format = isAllColumns ? 'jsonl' : value.format;
       const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
+
+      // The backend only supports exporting all columns in JSONL format.
+      const format = isAllColumns ? 'jsonl' : value.format;
 
       trackAnalytics('explore.table_exported', {
         organization,
@@ -136,8 +148,12 @@ export function LogsExportModal({
             {field => (
               <field.Layout.Stack label={t('All Columns?')}>
                 <field.Switch
-                  checked={field.state.value === 'all'}
-                  onChange={checked => field.handleChange(checked ? 'all' : 'selected')}
+                  checked={field.state.value === ModalColumnValue.ALL}
+                  onChange={checked =>
+                    field.handleChange(
+                      checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
+                    )
+                  }
                 />
               </field.Layout.Stack>
             )}
@@ -145,15 +161,23 @@ export function LogsExportModal({
           <form.AppField name="format">
             {field => (
               <field.Radio.Group
-                value={columnsValue === 'all' ? 'jsonl' : field.state.value}
+                value={
+                  columnsValue === ModalColumnValue.ALL
+                    ? ModalColumnFormat.JSONL
+                    : field.state.value
+                }
                 onChange={value =>
                   field.handleChange(value as ExportModalFormValues['format'])
                 }
-                disabled={columnsValue === 'all'}
+                disabled={columnsValue === ModalColumnValue.ALL}
               >
                 <field.Layout.Stack label={t('Format')}>
-                  <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
-                  <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
+                  <field.Radio.Item value={ModalColumnFormat.CSV}>
+                    {t('CSV')}
+                  </field.Radio.Item>
+                  <field.Radio.Item value={ModalColumnFormat.JSONL}>
+                    {t('JSONL')}
+                  </field.Radio.Item>
                 </field.Layout.Stack>
               </field.Radio.Group>
             )}
