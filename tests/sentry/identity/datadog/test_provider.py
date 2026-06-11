@@ -40,9 +40,12 @@ class DatadogOAuth2DCRViewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.request = RequestFactory().get("/")
+        self.request.user = self.user
+        self.identity_provider = self.create_identity_provider(type="datadog")
         self.pipeline = MagicMock()
         self.pipeline.config = {}
         self.pipeline.provider.key = "datadog"
+        self.pipeline.provider_model = self.identity_provider
         self.pipeline.fetch_state.return_value = None
         self.view = DatadogOAuth2DCRView(register_url=REGISTER_URL)
 
@@ -120,6 +123,63 @@ class DatadogOAuth2DCRViewTest(TestCase):
         self.pipeline.error.assert_called_once_with("DCR response missing client credentials")
         self.pipeline.bind_state.assert_not_called()
         assert_failure_metric(mock_record, "missing_credentials")
+
+    @responses.activate
+    def test_existing_identity_and_credentials(self, mock_record: MagicMock) -> None:
+        self.create_identity(
+            user=self.user,
+            identity_provider=self.identity_provider,
+            external_id="dd-user-123",
+            data={"client_id": "existing-client", "client_secret": "existing-secret"},
+        )
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        assert len(responses.calls) == 0
+        self.pipeline.bind_state.assert_any_call("dcr_client_id", "existing-client")
+        self.pipeline.bind_state.assert_any_call("dcr_client_secret", "existing-secret")
+        self.pipeline.next_step.assert_called_once()
+
+    @responses.activate
+    def test_existing_identity_missing_credentials(self, mock_record: MagicMock) -> None:
+        self.create_identity(
+            user=self.user,
+            identity_provider=self.identity_provider,
+            external_id="dd-user-123",
+            data={},
+        )
+        responses.add(
+            responses.POST,
+            REGISTER_URL,
+            json={"client_id": "new-client", "client_secret": "new-secret"},
+        )
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        assert len(responses.calls) == 1
+        self.pipeline.bind_state.assert_any_call("dcr_client_id", "new-client")
+        self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-secret")
+
+    @responses.activate
+    def test_existing_identity_unauthenticated_user(self, mock_record: MagicMock) -> None:
+        self.create_identity(
+            user=self.user,
+            identity_provider=self.identity_provider,
+            external_id="dd-user-123",
+            data={"client_id": "existing-client", "client_secret": "existing-secret"},
+        )
+        self.request.user = MagicMock(is_authenticated=False)
+        responses.add(
+            responses.POST,
+            REGISTER_URL,
+            json={"client_id": "new-client", "client_secret": "new-secret"},
+        )
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        assert len(responses.calls) == 1
+        self.pipeline.bind_state.assert_any_call("dcr_client_id", "new-client")
+        self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-secret")
 
 
 @control_silo_test
