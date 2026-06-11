@@ -1,3 +1,3 @@
-const {wrapWithStructuredClone} = require('./jest-environment');
+const wrapWithStructuredClone = require('./wrapWithStructuredClone');
 
 module.exports = wrapWithStructuredClone(require('@sentry/jest-environment/node'));
