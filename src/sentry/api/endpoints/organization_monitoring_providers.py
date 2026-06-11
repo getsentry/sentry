@@ -10,7 +10,10 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrganizationPermission,
+)
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -51,12 +54,21 @@ def _get_identity_provider(provider_key: str, config: dict[str, str]) -> Identit
     return idp
 
 
+class MonitoringProviderPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin"],
+    }
+
+
 @control_silo_endpoint
 class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (MonitoringProviderPermission,)
 
     def get(self, request: Request, organization: RpcOrganization, **kwargs: object) -> Response:
         if not features.has(MONITORING_PROVIDER_FEATURE, organization, actor=request.user):
@@ -77,16 +89,13 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
         providers = []
         for key, meta in MONITORING_PROVIDERS.items():
             identity = connected_identities.get(key)
-            entry: dict[str, str | bool] = {
-                "provider": key,
-                "name": meta["name"],
-                "connected": identity is not None,
-            }
-            if identity is not None:
-                email = identity.data.get("email") if identity.data else None
-                if email:
-                    entry["email"] = email
-            providers.append(entry)
+            providers.append(
+                {
+                    "provider": key,
+                    "name": meta["name"],
+                    "connected": identity is not None,
+                }
+            )
 
         return Response({"providers": providers})
 
@@ -98,6 +107,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         "POST": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (MonitoringProviderPermission,)
 
     def post(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
