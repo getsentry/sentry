@@ -27,7 +27,8 @@ ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
 
 class _Query(TypedDict, total=False):
     triggerType: str
-    project: int
+    project: int | str
+    projectSlug: str
 
 
 class _QueryResult(TypedDict):
@@ -132,6 +133,15 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "regular project": {
                 "query": {"project": project.id},
                 "result": {na2, na3},
+            },
+            "regular project slug": {
+                "query": {"project": project.slug},
+                "result": {na2, na3},
+            },
+            "empty project": {"query": {"project": ""}, "result": {na1, na2, na3, na4}},
+            "empty project slug": {
+                "query": {"projectSlug": ""},
+                "result": {na1, na2, na3, na4},
             },
             "regular trigger": {
                 "query": {"triggerType": "teacher"},
@@ -441,6 +451,43 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         self.test_post_simple()
 
     @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__success_with_project_ids(self) -> None:
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
+        registration = MockActionRegistration
+        _mock_register(self.base_data)(registration)
+
+        data = {
+            **self.base_data,
+            "projects": [self.projects[0].id, str(self.projects[1].id)],
+        }
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_201_CREATED,
+            method="POST",
+            **data,
+        )
+
+        registration.validate_action.assert_called()
+        notif_action_projects = NotificationActionProject.objects.filter(
+            action_id=response.data["id"]
+        )
+        assert {action_project.project_id for action_project in notif_action_projects} == {
+            project.id for project in self.projects
+        }
+
+    @patch.dict(NotificationAction._registry, {})
     def test_post_team_admin__missing_access(self) -> None:
         user = self.create_user()
         member = self.create_member(organization=self.organization, user=user, role="member")
@@ -475,6 +522,47 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **data,
         )
 
+        assert (
+            "You do not have permission to create notification actions for projects"
+            in response.data["detail"]
+        )
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__missing_access_with_project_id(self) -> None:
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        non_admin_project = self.create_project(
+            organization=self.organization, teams=[self.create_team()]
+        )
+
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
+        registration = MockActionRegistration
+        _mock_register(self.base_data)(registration)
+
+        data = {
+            **self.base_data,
+            "projects": [self.projects[0].id, non_admin_project.id],
+        }
+
+        assert not registration.validate_action.called
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="POST",
+            **data,
+        )
+
+        assert not registration.validate_action.called
         assert (
             "You do not have permission to create notification actions for projects"
             in response.data["detail"]

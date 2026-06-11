@@ -72,6 +72,12 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             project=self.project1, repository=self.repo1
         ).exists()
 
+    def test_create_single_mapping_with_project_id(self) -> None:
+        response = self.make_post({"project": self.project1.id})
+
+        assert response.status_code == 200, response.content
+        assert response.data["created"] == 1
+
     def test_create_multiple_mappings(self) -> None:
         response = self.make_post(
             {

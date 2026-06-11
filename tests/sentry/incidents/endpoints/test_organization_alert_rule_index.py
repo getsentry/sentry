@@ -369,6 +369,30 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         assert len(resp.data) == 1
         assert resp.data[0]["name"] == self.detector.name
 
+    def test_workflow_engine_serializer_filters_by_project_slug(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        other_project = self.create_project(organization=self.organization)
+        self.create_detector(
+            project=other_project,
+            type=MetricIssue.slug,
+            name="Other Project Detector",
+        )
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            id_response = self.get_success_response(self.organization.slug, project=self.project.id)
+            slug_response = self.get_success_response(
+                self.organization.slug, project=self.project.slug
+            )
+
+        assert slug_response.data == id_response.data
+        assert len(slug_response.data) == 1
+        assert slug_response.data[0]["name"] == self.detector.name
+
     def test_workflow_engine_serializer_gte_lte_condition_types(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)

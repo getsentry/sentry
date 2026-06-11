@@ -1,6 +1,7 @@
 import logging
 
 from django.db import IntegrityError, router, transaction
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -13,6 +14,7 @@ from sentry.api.bases.organization import (
     OrganizationCodeMappingsBulkPermission,
     OrganizationEndpoint,
 )
+from sentry.api.helpers.projects import ProjectIdOrSlugField, parse_id_or_slug_params
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.endpoints.organization_code_mappings import (
@@ -42,7 +44,7 @@ class MappingItemSerializer(serializers.Serializer[dict[str, object]]):
 
 
 class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]]):
-    project = serializers.CharField(required=True)
+    project = ProjectIdOrSlugField(required=True)
     repository = serializers.CharField(required=True)
     provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     default_branch = serializers.RegexField(
@@ -165,13 +167,16 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
 
-        # Resolve project by slug
+        # Resolve project by ID or slug.
+        parsed_project = parse_id_or_slug_params([data["project"]])
+        project_filter = Q(organization=organization, status=ObjectStatus.ACTIVE)
+        if parsed_project.ids:
+            project_filter &= Q(id__in=parsed_project.ids)
+        else:
+            project_filter &= Q(slug__in=parsed_project.slugs)
+
         try:
-            project = Project.objects.get(
-                organization=organization,
-                slug=data["project"],
-                status=ObjectStatus.ACTIVE,
-            )
+            project = Project.objects.get(project_filter)
         except Project.DoesNotExist:
             return Response(
                 {"detail": f"Project not found or not active: {data['project']}"},

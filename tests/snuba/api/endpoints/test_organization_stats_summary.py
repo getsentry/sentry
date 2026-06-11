@@ -288,6 +288,20 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     @freeze_time(_now)
+    def test_project_slug_filter_matches_project_id_filter(self) -> None:
+        query = {
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["sum(quantity)"],
+            "category": ["error"],
+        }
+
+        id_response = self.do_request({**query, "project": self.project2.id})
+        slug_response = self.do_request({**query, "project": self.project2.slug})
+
+        assert slug_response.data == id_response.data
+
+    @freeze_time(_now)
     def test_open_membership_semantics(self) -> None:
         self.org.flags.allow_joinleave = True
         self.org.save()

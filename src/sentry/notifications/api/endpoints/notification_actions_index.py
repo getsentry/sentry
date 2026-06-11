@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.helpers.projects import parse_id_or_slug_params
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -62,7 +63,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
-            OrganizationParams.PROJECT_ID_OR_SLUG,
+            OrganizationParams.PROJECT_SLUG,
             NotificationParams.TRIGGER_TYPE,
         ],
         responses={
@@ -86,10 +87,15 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions
         # otherwise, include them but still ensure project permissions are enforced
+        query_slugs = set(filter(None, request.GET.getlist("projectSlug")))
+        has_project_query = bool(
+            query_slugs or self.get_requested_project_ids_and_slugs_unchecked(request).has_values
+        )
+        projects = self.get_projects(request, organization)
         project_query = (
-            Q(projects__in=self.get_projects(request, organization))
-            if self.get_requested_project_ids_unchecked(request)
-            else Q(projects=None) | Q(projects__in=self.get_projects(request, organization))
+            Q(projects__in=projects)
+            if has_project_query
+            else Q(projects=None) | Q(projects__in=projects)
         )
         queryset = queryset.filter(project_query).distinct()
         trigger_type_query = request.GET.getlist("triggerType")
@@ -102,7 +108,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             extra={
                 "organization_id": organization.id,
                 "trigger_type_query": trigger_type_query,
-                "project_query": self.get_requested_project_ids_unchecked(request),
+                "project_query": self.get_requested_project_ids_and_slugs_unchecked(request),
             },
         )
         return self.paginate(
@@ -137,10 +143,13 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):
             # check if user has access to create notification actions for all requested projects
-            requested_projects = request.data.get("projects", [])
+            requested_projects = parse_id_or_slug_params(request.data.get("projects") or [])
             projects = self.get_projects(request, organization)
-            project_slugs = [project.slug for project in projects]
-            missing_access_projects = set(requested_projects).difference(set(project_slugs))
+            project_ids = {project.id for project in projects}
+            project_slugs = {project.slug for project in projects}
+            missing_access_projects = requested_projects.ids.difference(
+                project_ids
+            ) | requested_projects.slugs.difference(project_slugs)
 
             if missing_access_projects:
                 raise PermissionDenied(
