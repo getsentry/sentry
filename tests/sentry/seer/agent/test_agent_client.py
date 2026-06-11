@@ -130,6 +130,18 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_start_run_raises_when_seer_rejects_creation(self, mock_post, mock_access):
+        """A 4xx from Seer marks the run FAILED during the synchronous drain, so
+        start_run raises instead of returning an unmirrored run."""
+        mock_access.return_value = (True, None)
+        mock_post.return_value = MagicMock(status=400)
+
+        client = SeerAgentClient(self.organization, self.user)
+        with pytest.raises(SeerApiError, match="failed during outbox drain"):
+            client.start_run("Test query")
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_with_categories(self, mock_collect_context, mock_post, mock_access):
         """Test starting a run with category fields"""
