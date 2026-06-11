@@ -17,6 +17,7 @@ from sentry.api.bases.organization import (
     OrganizationAndStaffPermission,
     OrganizationEndpoint,
     OrganizationPermission,
+    OrganizationReleasesBaseEndpoint,
 )
 from sentry.api.exceptions import (
     MemberDisabledOverLimit,
@@ -556,15 +557,8 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     @mock.patch(
         "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
     )
-    @mock.patch(
-        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
-    )
-    def test_get_projects_no_slug_fallsback_to_ids(
-        self, mock_get_project_ids_unchecked, mock__filter_projects_by_permissions
-    ):
-        project_slugs = [""]
-        request = self.build_request(projectSlug=project_slugs)
-        mock_get_project_ids_unchecked.return_value = {self.project_1.id}
+    def test_get_projects_no_slug_fallsback_to_ids(self, mock__filter_projects_by_permissions):
+        request = self.build_request(projectSlug=[""], project=[str(self.project_1.id)])
 
         def side_effect(
             projects,
@@ -579,7 +573,6 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             self.org,
         )
 
-        mock_get_project_ids_unchecked.assert_called_with(request)
         mock__filter_projects_by_permissions.assert_called_with(
             projects=[self.project_1],
             request=request,
@@ -656,6 +649,77 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         with pytest.raises(PermissionDenied):
             self.endpoint.get_projects(request, self.org)
+
+    def test_project_param_with_slug(self) -> None:
+        self.create_team_membership(user=self.user, team=self.team_1)
+        request = self.build_request(project=[self.project_1.slug])
+
+        result = self.endpoint.get_projects(request, self.org)
+
+        assert {p.id for p in result} == {self.project_1.id}
+
+    def test_project_param_with_mixed_ids_and_slugs(self) -> None:
+        self.create_team_membership(user=self.user, team=self.team_3)
+        request = self.build_request(project=[str(self.project_1.id), self.project_2.slug])
+
+        result = self.endpoint.get_projects(request, self.org)
+
+        assert {p.id for p in result} == {self.project_1.id, self.project_2.id}
+
+    def test_project_param_with_nonexistent_slug(self) -> None:
+        self.create_team_membership(user=self.user, team=self.team_1)
+        request = self.build_request(project=["nonexistent-slug"])
+
+        with pytest.raises(PermissionDenied):
+            self.endpoint.get_projects(request, self.org)
+
+    def test_project_slug_param_takes_precedence_over_project_param(self) -> None:
+        self.create_team_membership(user=self.user, team=self.team_3)
+        request = self.build_request(
+            project=[str(self.project_1.id)], projectSlug=[self.project_2.slug]
+        )
+
+        result = self.endpoint.get_projects(request, self.org)
+
+        assert {p.id for p in result} == {self.project_2.id}
+
+    def test_empty_explicit_project_slugs_falls_back_to_project_param(self) -> None:
+        self.create_team_membership(user=self.user, team=self.team_1)
+        request = self.build_request(project=[str(self.project_1.id)])
+
+        result = self.endpoint.get_projects(request, self.org, project_slugs=set())
+
+        assert {p.id for p in result} == {self.project_1.id}
+
+    @mock.patch("sentry.api.bases.organization.cache")
+    def test_release_permission_cache_key_uses_project_slug_precedence(
+        self, mock_cache: mock.MagicMock
+    ) -> None:
+        self.create_team_membership(user=self.user, team=self.team_3)
+        mock_cache.get.return_value = None
+        endpoint = OrganizationReleasesBaseEndpoint()
+
+        endpoint.has_release_permission(
+            self.build_request(project=[self.project_1.slug], projectSlug=[self.project_2.slug]),
+            self.org,
+        )
+        first_cache_key = mock_cache.get.call_args.args[0]
+
+        endpoint.has_release_permission(
+            self.build_request(project=[self.project_2.slug], projectSlug=[self.project_1.slug]),
+            self.org,
+        )
+        second_cache_key = mock_cache.get.call_args.args[0]
+
+        assert first_cache_key != second_cache_key
+
+    def test_get_requested_project_ids_and_slugs_unchecked(self) -> None:
+        request = self.build_request(project=["1", "my-slug", "42"])
+
+        result = self.endpoint.get_requested_project_ids_and_slugs_unchecked(request)
+
+        assert result.ids == {1, 42}
+        assert result.slugs == {"my-slug"}
 
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):

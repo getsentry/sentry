@@ -44,7 +44,7 @@ class GlobalParams:
     )
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
-        description="The ID or slug of the project the resource belongs to.",
+        description="The ID or slug of the project the resource belongs to. Project slugs are unique within each organization.",
         required=True,
         type=str,
         location="path",
@@ -137,26 +137,28 @@ class EnvironmentParams:
 
 
 class OrganizationParams:
-    PROJECT_ID_OR_SLUG = OpenApiParameter(
-        name="project_id_or_slug",
+    PROJECT_SLUG = OpenApiParameter(
+        name="projectSlug",
         location="query",
         required=False,
         many=True,
         type=str,
-        description="""The project slugs to filter by. Use `$all` to include all available projects. For example, the following are valid parameters:
+        description="""The project slugs to filter by. This legacy parameter takes precedence over `project` if both are provided. Omit this parameter to include all accessible projects. `$all` is also accepted. For example, the following are valid parameters:
 - `/?projectSlug=$all`
 - `/?projectSlug=android&projectSlug=javascript-react`
 """,
     )
+    PROJECT_ID_OR_SLUG = PROJECT_SLUG
     PROJECT = OpenApiParameter(
         name="project",
         location="query",
         required=False,
         many=True,
-        type=int,
-        description="""The IDs of projects to filter by. `-1` means all available projects.
+        type=str,
+        description="""The IDs or slugs of projects to filter by. Project slugs are unique within each organization. Omit this parameter to include all accessible projects. `-1` is also accepted.
 For example, the following are valid parameters:
 - `/?project=1234&project=56789`
+- `/?project=android&project=javascript-react`
 - `/?project=-1`
 """,
     )
