@@ -470,4 +470,3 @@ const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
 const InstallButton = styled(Button)`
   margin-left: ${p => p.theme.space.md};
 `;
-
