@@ -51,7 +51,7 @@ const config: Config.InitialOptions = {
   testTimeout: 30_000,
   cacheDirectory: '.cache/jest-snapshots',
   // testEnvironment and testMatch are the core differences between this and the main config
-  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment-node.js',
+  testEnvironment: '@sentry/jest-environment/node',
   testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
   testPathIgnorePatterns: ['/node_modules/'],
   testEnvironmentOptions: {
