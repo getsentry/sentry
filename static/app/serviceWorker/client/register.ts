@@ -1,13 +1,5 @@
 import {addIntegration, webWorkerIntegration} from '@sentry/react';
 
-function getWorkerUrl(): string {
-  if (window.__SENTRY_DEV_UI) {
-    return '/_assets/entrypoints/worker.js';
-  }
-  const distPrefix = window.__initialData?.distPrefix ?? '/_static/dist/sentry/';
-  return `${distPrefix}entrypoints/worker.js`;
-}
-
 type WebWorkerIntegration = ReturnType<typeof webWorkerIntegration>;
 let integration: WebWorkerIntegration | null = null;
 
@@ -39,7 +31,7 @@ export function registerWorker(): void {
   }
 
   navigator.serviceWorker
-    .register(getWorkerUrl(), {scope: '/'})
+    .register(new URL('../worker/worker.ts', import.meta.url), {scope: '/'})
     .then(registration => {
       const incoming = registration.installing ?? registration.waiting;
       if (incoming) {
