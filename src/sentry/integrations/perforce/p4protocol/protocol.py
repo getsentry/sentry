@@ -3,7 +3,7 @@
 A drop-in replacement for the subset of the P4Python ``P4`` API used by this
 integration, implemented directly against the Perforce wire protocol so the
 integration carries no compiled C dependency and never performs server-driven
-local filesystem I/O.
+RPC calls.
 
 Cross-checked against the open-source perforce/p4java reference implementation
 (``Mangle.java`` for the login cipher and ``ClientUserInteraction.java`` for
@@ -490,23 +490,15 @@ class P4:
                 b"client-HandleError",
                 b"client-Progress",
             ):
-                # client-Progress is a display-only progress meter the server may
-                # emit during large print/sync transfers; it expects no reply, so
-                # ignore it like the other no-op acknowledgements.
                 pass
             elif func in (b"release", b"release2"):
                 break
             elif func in _REFUSED_RPCS:
                 raise P4Exception(
-                    f"refused server-initiated file I/O RPC {func.decode()!r}: "
-                    "this client never reads from or writes to the local filesystem"
+                    f"refused server-initiated RPC {func.decode()!r}: "
+                    "this operation is not supported by Sentry client"
                 )
             else:
-                # Fail closed on genuinely unknown RPCs rather than ignoring
-                # them: silently dropping an RPC that expects a reply would
-                # desync the wire protocol, and a future file-I/O RPC not yet in
-                # _REFUSED_RPCS must never slip through unnoticed. Benign,
-                # reply-less RPCs (e.g. client-Progress) are allow-listed above.
                 raise P4Exception(f"unsupported server RPC {func.decode()!r}")
         if errors:
             raise P4Exception("; ".join(errors))
