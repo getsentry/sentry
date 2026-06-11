@@ -124,7 +124,12 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]
-        project_id, issue_id = data.get("externalIssue", "").split("#")
+        external_issue_val = str(data.get("externalIssue", ""))
+        if "#" in external_issue_val:
+            project_id, issue_id = external_issue_val.split("#")
+        else:
+            project_id = str(data.get("project", ""))
+            issue_id = external_issue_val
         if not (project_id and issue_id):
             raise IntegrationError("Project and Issue id must be provided")
 
@@ -183,7 +188,13 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def get_issue(self, issue_id, **kwargs):
-        project_id, issue_num = issue_id.split("#")
+        issue_id_str = str(issue_id)
+        if "#" in issue_id_str:
+            project_id, issue_num = issue_id_str.split("#")
+        else:
+            data = kwargs.get("data", {})
+            project_id = str(data.get("project", ""))
+            issue_num = issue_id_str
         client = self.get_client()
 
         if not project_id:
