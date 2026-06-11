@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.urls import re_path
 
 from sentry.preprod.api.endpoints.builds import BuildsEndpoint
+from sentry.preprod.api.endpoints.builds_export import BuildsExportEndpoint
 from sentry.preprod.api.endpoints.project_preprod_artifact_image import (
     ProjectPreprodArtifactImageEndpoint,
 )
@@ -182,6 +183,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/builds/$",
         BuildsEndpoint.as_view(),
         name="sentry-api-0-organization-builds",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/builds/export/$",
+        BuildsExportEndpoint.as_view(),
+        name="sentry-api-0-organization-builds-export",
     ),
     # Public API endpoints
     re_path(
