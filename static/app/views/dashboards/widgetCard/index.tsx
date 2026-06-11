@@ -45,6 +45,7 @@ import {
   OnDemandExtractionState,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -104,7 +105,6 @@ type Props = {
   isEditingWidget?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
-  isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
   onDataFetched?: (results: OnDataFetchedParams) => void;
@@ -156,6 +156,8 @@ function WidgetCard(props: Props) {
       ? DisplayType.AREA
       : props.widget.displayType;
 
+  const widgetQueryError = getWidgetConfigError(props.widget);
+
   // Push widget metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     title: props.widget.title,
@@ -168,6 +170,7 @@ function WidgetCard(props: Props) {
       columns: q.columns,
       orderby: q.orderby,
     })),
+    ...(widgetQueryError && {error: widgetQueryError}),
   });
 
   const onDataFetched = (newData: Data) => {
@@ -196,7 +199,6 @@ function WidgetCard(props: Props) {
     tableItemLimit,
     windowWidth,
     dashboardFilters,
-    isWidgetInvalid,
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
@@ -354,10 +356,6 @@ function WidgetCard(props: Props) {
         data?.timeseriesResults
       )
     : [];
-
-  const widgetQueryError = isWidgetInvalid
-    ? t('Widget query condition is invalid.')
-    : undefined;
 
   const errorBoundaryHandler = () => {
     return (
