@@ -701,6 +701,32 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
+    def test_project_slug_filter(self) -> None:
+        response = self.do_request(
+            {
+                "project": self.project.slug,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+            },
+            org=self.org,
+            status_code=200,
+        )
+
+        assert result_sorted(response.data) == {
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
+            "groups": [
+                {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
+            ],
+        }
+
+    @freeze_time(_now)
     def test_staff_project_filter(self) -> None:
         staff_user = self.create_user(is_staff=True, is_superuser=True)
         self.login_as(user=staff_user, superuser=True)

@@ -526,14 +526,15 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         Fetches metric, issue, crons, and uptime alert rules for an organization
         """
         # Common setup: project resolution
-        project_ids = self.get_requested_project_ids_unchecked(request) or None
+        requested_projects = self.get_requested_project_params_unchecked(request)
+        project_ids = requested_projects.ids or None
         if project_ids == {-1}:  # All projects for org:
             project_ids = set(
                 Project.objects.filter(
                     organization=organization, status=ObjectStatus.ACTIVE
                 ).values_list("id", flat=True)
             )
-        elif project_ids is None:  # All projects for user
+        elif project_ids is None and not requested_projects.slugs:  # All projects for user
             org_team_list = Team.objects.filter(organization=organization).values_list(
                 "id", flat=True
             )

@@ -1486,6 +1486,19 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         for rule in response.data:
             assert rule["type"] == "alert_rule"
 
+    def test_workflow_engine_filters_by_project_slug(self) -> None:
+        alert_rule1 = self.create_alert_rule(name="Project Slug Rule 1", projects=[self.project])
+        alert_rule2 = self.create_alert_rule(name="Project Slug Rule 2", projects=[self.project2])
+
+        migrate_alert_rule(alert_rule1)
+        migrate_alert_rule(alert_rule2)
+
+        response = self.get_success_response(self.organization.slug, project=[self.project.slug])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Project Slug Rule 1"
+
     def test_workflow_engine_filtering_by_team(self) -> None:
         # Create second team for testing
         team2 = self.create_team(organization=self.organization, name="Team 2")

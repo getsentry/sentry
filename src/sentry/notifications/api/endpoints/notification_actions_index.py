@@ -86,9 +86,10 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions
         # otherwise, include them but still ensure project permissions are enforced
+        requested_projects = self.get_requested_project_params_unchecked(request)
         project_query = (
             Q(projects__in=self.get_projects(request, organization))
-            if self.get_requested_project_ids_unchecked(request)
+            if requested_projects.ids or requested_projects.slugs
             else Q(projects=None) | Q(projects__in=self.get_projects(request, organization))
         )
         queryset = queryset.filter(project_query).distinct()
@@ -102,7 +103,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             extra={
                 "organization_id": organization.id,
                 "trigger_type_query": trigger_type_query,
-                "project_query": self.get_requested_project_ids_unchecked(request),
+                "project_query": requested_projects.ids,
+                "project_slug_query": requested_projects.slugs,
             },
         )
         return self.paginate(

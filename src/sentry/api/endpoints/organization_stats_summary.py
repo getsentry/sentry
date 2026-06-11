@@ -188,12 +188,12 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
         return QueryDefinition.from_query_dict(query_dict, params)
 
     def _get_projects_for_orgstats_query(self, request: Request, organization):
-        req_proj_ids = self.get_requested_project_ids_unchecked(request)
+        requested_projects = self.get_requested_project_params_unchecked(request)
 
         # the projects table always filters by project
         # the projects in the table should be those the user has access to
 
-        projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+        projects = self.get_projects(request, organization, project_ids=requested_projects.ids)
         if not projects:
             raise NoProjects("No projects available")
         return [p.id for p in projects]

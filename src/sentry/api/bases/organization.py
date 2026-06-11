@@ -400,17 +400,12 @@ class OrganizationEndpoint(Endpoint):
         if project_slugs and project_ids:
             raise ParseError(detail="Cannot query for both ids and slugs")
 
-        query_slugs = set(filter(None, request.GET.getlist("projectSlug")))
         if project_ids:
             requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
-        elif project_slugs or query_slugs:
-            # Preserve existing projectSlug behavior: explicit slug filters take
-            # precedence over the project query param.
-            requested_projects = ParsedProjectIdOrSlugParams(
-                ids=set(), slugs=set(project_slugs or query_slugs)
-            )
+        elif project_slugs:
+            requested_projects = ParsedProjectIdOrSlugParams(ids=set(), slugs=set(project_slugs))
         else:
-            requested_projects = self.get_requested_project_ids_and_slugs_unchecked(request)
+            requested_projects = self.get_requested_project_params_unchecked(request)
         ids = requested_projects.ids
         slugs = requested_projects.slugs
 
@@ -500,6 +495,20 @@ class OrganizationEndpoint(Endpoint):
         permission checking, use ``get_projects``, instead.
         """
         return parse_id_or_slug_params(request.GET.getlist("project"))
+
+    def get_requested_project_params_unchecked(
+        self, request: HttpRequest
+    ) -> ParsedProjectIdOrSlugParams:
+        """
+        Returns requested project ids and slugs from projectSlug or project query params.
+
+        To determine the projects to filter this endpoint by with full
+        permission checking, use ``get_projects``, instead.
+        """
+        project_slugs = set(filter(None, request.GET.getlist("projectSlug")))
+        if project_slugs:
+            return ParsedProjectIdOrSlugParams(ids=set(), slugs=project_slugs)
+        return self.get_requested_project_ids_and_slugs_unchecked(request)
 
     def get_environments(
         self, request: Request, organization: Organization | RpcOrganization
@@ -750,16 +759,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         elif request.auth is not None:
             actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
-            # Match get_projects() precedence: explicit ids, projectSlug, then project.
-            project_slug_params = set(filter(None, request.GET.getlist("projectSlug")))
             if project_ids:
                 requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
-            elif project_slug_params:
-                requested_projects = ParsedProjectIdOrSlugParams(
-                    ids=set(), slugs=project_slug_params
-                )
             else:
-                requested_projects = self.get_requested_project_ids_and_slugs_unchecked(request)
+                requested_projects = self.get_requested_project_params_unchecked(request)
             key = "release_perms:1:%s" % hash_values(
                 [
                     actor_id,

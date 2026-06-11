@@ -133,6 +133,10 @@ class NotificationActionsIndexEndpointTest(APITestCase):
                 "query": {"project": project.id},
                 "result": {na2, na3},
             },
+            "regular project slug": {
+                "query": {"project": project.slug},
+                "result": {na2, na3},
+            },
             "regular trigger": {
                 "query": {"triggerType": "teacher"},
                 "result": {na1, na2, na4},
