@@ -1027,8 +1027,13 @@ def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -
 
 
 def percent_increase(result: int | float, comparison_result: int | float) -> int:
-    return (
-        int(max(0, ((result - comparison_result) / comparison_result * 100)))
-        if comparison_result > 0
-        else 0
-    )
+    if comparison_result > 0:
+        return int(max(0, ((result - comparison_result) / comparison_result * 100)))
+    # When the baseline is zero but current count is positive, this represents
+    # an infinite percent increase. Return a very large constant so that any
+    # configured threshold will always be exceeded and the alert fires.
+    # This mirrors the MIN_SESSIONS_TO_FIRE floor used by session-based
+    # percent conditions — sparse/zero baselines should not silently suppress alerts.
+    if result > 0:
+        return 10_000_000
+    return 0
