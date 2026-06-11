@@ -4,6 +4,13 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
 
+from sentry.seer.agent.client_models import (
+    MemoryBlock,
+    Message,
+    SeerRunState,
+    Usage,
+    UsageAccumulator,
+)
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
@@ -30,8 +37,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_with_run_id_calls_client(self, mock_client_class: MagicMock) -> None:
-        from sentry.seer.agent.client_models import SeerRunState
-
         # Mock client response
         mock_state = SeerRunState(
             run_id=123,
@@ -52,14 +57,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
-        from sentry.seer.agent.client_models import (
-            MemoryBlock,
-            Message,
-            SeerRunState,
-            Usage,
-            UsageAccumulator,
-        )
-
         mock_state = SeerRunState(
             run_id=123,
             blocks=[
@@ -197,8 +194,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def test_get_with_uuid_resolves_to_seer_run_state_id(
         self, mock_client_class: MagicMock
     ) -> None:
-        from sentry.seer.agent.client_models import SeerRunState
-
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
         mock_client = MagicMock()
         mock_client.get_run.return_value = SeerRunState(
@@ -308,8 +303,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         self, mock_client_class: MagicMock
     ) -> None:
         """GET with run_id should succeed with dashboards-ai-generate flag even without seer-explorer."""
-        from sentry.seer.agent.client_models import SeerRunState
-
         mock_state = SeerRunState(
             run_id=123,
             blocks=[],
