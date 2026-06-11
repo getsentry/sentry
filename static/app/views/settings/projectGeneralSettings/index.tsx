@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -412,6 +413,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 }
 
 export default function ProjectGeneralSettingsContainer() {
+  const matches = useMatches();
   const routes = useRoutes();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -422,6 +424,7 @@ export default function ProjectGeneralSettingsContainer() {
     (newSlug: string) => {
       navigate(
         recreateRoute('', {
+          matches,
           params: {
             orgId: organization.slug,
             projectId: newSlug,
@@ -432,7 +435,7 @@ export default function ProjectGeneralSettingsContainer() {
         {replace: true}
       );
     },
-    [navigate, organization.slug, routes, location]
+    [navigate, organization.slug, routes, location, matches]
   );
 
   if (!project?.id) {

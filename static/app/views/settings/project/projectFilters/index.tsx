@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -16,6 +17,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 export default function ProjectFilters() {
+  const matches = useMatches();
   const routes = useRoutes();
   const params = useParams<{filterType: string; projectId: string}>();
   const {projectId, filterType} = params;
@@ -48,13 +50,23 @@ export default function ProjectFilters() {
               <TabList>
                 <TabList.Item
                   key="data-filters"
-                  to={recreateRoute('data-filters/', {routes, params, stepBack: -1})}
+                  to={recreateRoute('data-filters/', {
+                    matches,
+                    routes,
+                    params,
+                    stepBack: -1,
+                  })}
                 >
                   {t('Data Filters')}
                 </TabList.Item>
                 <TabList.Item
                   key="discarded-groups"
-                  to={recreateRoute('discarded-groups/', {routes, params, stepBack: -1})}
+                  to={recreateRoute('discarded-groups/', {
+                    matches,
+                    routes,
+                    params,
+                    stepBack: -1,
+                  })}
                 >
                   {t('Discarded Issues')}
                 </TabList.Item>

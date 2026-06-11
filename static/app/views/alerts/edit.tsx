@@ -1,4 +1,5 @@
 import {useMemo, useState, Fragment} from 'react';
+import {useMatches} from 'react-router-dom';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -34,6 +35,7 @@ export default function ProjectAlertsEditor() {
   const location = useLocation();
   const params = useParams<RouteParams>();
   const navigate = useNavigate();
+  const matches = useMatches();
   const routes = useRoutes();
   const {project, members} = useAlertBuilderOutlet();
 
@@ -106,6 +108,7 @@ export default function ProjectAlertsEditor() {
           <Fragment>
             {alertType === CombinedAlertType.ISSUE && (
               <IssueEditor
+                matches={matches}
                 location={location}
                 params={params}
                 router={router}

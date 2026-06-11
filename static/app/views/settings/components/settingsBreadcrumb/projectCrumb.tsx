@@ -1,3 +1,4 @@
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -19,6 +20,7 @@ import {CrumbLink} from '.';
 
 export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
+  const matches = useMatches();
   const {projects, onSearch} = useProjects();
   const organization = useOrganization();
   const params = useParams();
@@ -38,7 +40,11 @@ export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps)
     }
 
     navigate(
-      recreateRoute(returnTo, {routes, params: {...params, projectId: projectSlug}})
+      recreateRoute(returnTo, {
+        matches,
+        routes,
+        params: {...params, projectId: projectSlug},
+      })
     );
   };
 

@@ -1,5 +1,6 @@
 import type {ChangeEvent, ReactNode} from 'react';
 import {Fragment} from 'react';
+import type {UIMatch} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
@@ -135,6 +136,7 @@ type IncompatibleRule = {
 
 type Props = {
   location: Location;
+  matches: UIMatch[];
   members: Member[] | undefined;
   navigate: ReactRouter3Navigate;
   organization: Organization;

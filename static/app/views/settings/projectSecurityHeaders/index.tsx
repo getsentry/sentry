@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -26,6 +27,7 @@ import {ReportUri} from 'sentry/views/settings/projectSecurityHeaders/reportUri'
 function ProjectSecurityHeaders() {
   const organization = useOrganization();
   const routes = useRoutes();
+  const matches = useMatches();
   const params = useParams();
   const {projectId} = useParams<{projectId: string}>();
 
@@ -40,18 +42,18 @@ function ProjectSecurityHeaders() {
     () => [
       {
         name: 'Content Security Policy (CSP)',
-        url: recreateRoute('csp/', {routes, params}),
+        url: recreateRoute('csp/', {matches, routes, params}),
       },
       {
         name: 'Certificate Transparency (Expect-CT)',
-        url: recreateRoute('expect-ct/', {routes, params}),
+        url: recreateRoute('expect-ct/', {matches, routes, params}),
       },
       {
         name: 'HTTP Public Key Pinning (HPKP)',
-        url: recreateRoute('hpkp/', {routes, params}),
+        url: recreateRoute('hpkp/', {matches, routes, params}),
       },
     ],
-    [routes, params]
+    [matches, routes, params]
   );
 
   if (isPending) {

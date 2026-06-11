@@ -1,21 +1,29 @@
+import {useMatches} from 'react-router-dom';
+
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {ProjectKey} from 'sentry/types/project';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 type Props = {
   projectKey: ProjectKey;
-} & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
+};
 
-export function LoaderScript({projectKey, routes, params, location}: Props) {
+export function LoaderScript({projectKey}: Props) {
+  const location = useLocation();
+  const matches = useMatches();
+  const params = useParams<{projectId: string}>();
+  const routes = useRoutes();
   const loaderLink = projectKey.dsn.cdn;
 
-  const editUrl = recreateRoute(`${projectKey.id}/`, {routes, params, location});
+  const editUrl = recreateRoute(`${projectKey.id}/`, {matches, routes, params, location});
 
   return (
     <Stack padding="xl" gap="md">

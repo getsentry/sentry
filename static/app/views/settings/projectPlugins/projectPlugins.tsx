@@ -9,31 +9,22 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {RouteError} from 'sentry/views/routeError';
 
-import ProjectPluginRow from './projectPluginRow';
+import {ProjectPluginRow} from './projectPluginRow';
 
 type Props = {
   error: React.ComponentProps<typeof RouteError>['error'];
   loading: boolean;
   onChange: React.ComponentProps<typeof ProjectPluginRow>['onChange'];
-  organization: Organization;
   plugins: Plugin[];
   project: Project;
 };
 
-export function ProjectPlugins({
-  plugins,
-  loading,
-  error,
-  onChange,
-  organization,
-  project,
-}: Props) {
-  const routes = useRoutes();
+export function ProjectPlugins({plugins, loading, error, onChange, project}: Props) {
+  const organization = useOrganization();
 
   const hasError = error;
   const isLoading = !hasError && loading;
@@ -45,7 +36,6 @@ export function ProjectPlugins({
   if (isLoading) {
     return <LoadingIndicator />;
   }
-  const params = {orgId: organization.slug, projectId: project.slug};
 
   return (
     <Access access={['org:integrations']} project={project}>
@@ -75,13 +65,7 @@ export function ProjectPlugins({
               })
               .map(plugin => (
                 <PanelItem key={plugin.id}>
-                  <ProjectPluginRow
-                    params={params}
-                    routes={routes}
-                    project={project}
-                    {...plugin}
-                    onChange={onChange}
-                  />
+                  <ProjectPluginRow project={project} {...plugin} onChange={onChange} />
                 </PanelItem>
               ))}
           </PanelBody>

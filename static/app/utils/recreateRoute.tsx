@@ -1,9 +1,12 @@
+import type {UIMatch} from 'react-router-dom';
 import type {Location} from 'history';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 
 type Options = {
+  matches: UIMatch[];
+
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
   params: Record<string, string | undefined>;

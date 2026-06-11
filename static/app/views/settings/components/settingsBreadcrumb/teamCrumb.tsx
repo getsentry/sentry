@@ -1,3 +1,5 @@
+import {useMatches} from 'react-router-dom';
+
 import {TeamAvatar} from '@sentry/scraps/avatar';
 
 import {IdBadge} from 'sentry/components/idBadge';
@@ -13,6 +15,7 @@ import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {CrumbLink} from '.';
 
 export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
+  const matches = useMatches();
   const navigate = useNavigate();
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();
@@ -36,6 +39,7 @@ export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
         navigate(
           recreateRoute('', {
             routes,
+            matches,
             params: {...params, teamId: teamSlug},
           })
         );

@@ -1,4 +1,5 @@
 import {useEffect, Fragment, useMemo, useRef} from 'react';
+import {useMatches} from 'react-router-dom';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -51,6 +52,7 @@ export default function Create() {
   const location = useLocation();
   const params = useParams<RouteParams>();
   const navigate = useNavigate();
+  const matches = useMatches();
   const routes = useRoutes();
   const {project, members} = useAlertBuilderOutlet();
   const hasMetricAlerts = organization.features.includes('incidents');
@@ -202,6 +204,7 @@ export default function Create() {
               />
             ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
               <IssueRuleEditor
+                matches={matches}
                 location={location}
                 params={params}
                 router={router}

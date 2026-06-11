@@ -1,4 +1,4 @@
-import {generatePath} from 'react-router-dom';
+import {generatePath, useMatches} from 'react-router-dom';
 import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
@@ -39,6 +39,7 @@ export function withDomainRedirect(WrappedComponent: React.ComponentType<any>) {
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});
     const params = useParams();
+    const matches = useMatches();
     const routes = useRoutes();
 
     if (customerDomain) {
@@ -63,7 +64,7 @@ export function withDomainRedirect(WrappedComponent: React.ComponentType<any>) {
       Object.keys(params).forEach(param => {
         newParams[param] = `:${param}`;
       });
-      const fullRoute = recreateRoute('', {routes, params: newParams});
+      const fullRoute = recreateRoute('', {matches, routes, params: newParams});
       const orglessSlugRoute = normalizeUrl(fullRoute, {forceCustomerDomain: true});
 
       if (orglessSlugRoute === fullRoute) {

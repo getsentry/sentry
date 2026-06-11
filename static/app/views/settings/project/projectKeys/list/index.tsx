@@ -25,8 +25,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -34,12 +32,10 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 import {KeyRow} from './keyRow';
 
 export default function ProjectKeys() {
-  const params = useParams<{projectId: string}>();
   const location = useLocation();
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const api = useApi({persistInFlight: true});
-  const routes = useRoutes();
 
   const [keyListState, setKeyListState] = useState<ProjectKey[] | undefined>(undefined);
 
@@ -170,9 +166,6 @@ export default function ProjectKeys() {
               handleToggleKeyMutation.mutate({isActive, data})
             }
             onRemove={data => handleRemoveKeyMutation.mutate(data)}
-            routes={routes}
-            location={location}
-            params={params}
           />
         ))}
         <Pagination pageLinks={keyListResponse.headers.Link} />
