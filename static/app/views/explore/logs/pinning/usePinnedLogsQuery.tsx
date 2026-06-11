@@ -82,14 +82,14 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   // Step 2: Any IDs not found in the parent selected range escalate to a wide window.
   // Only populated if there are IDs still missing after the in-range query succeeds.
   const stillMissingIds = useMemo(() => {
-    if (!inRangeQuery.isSuccess) {
+    if (!inRangeQuery.isSuccess && !inRangeQuery.isError) {
       return [];
     }
     const foundIds = new Set(
-      inRangeQuery.data.data.map(row => row[OurLogKnownFieldKey.ID])
+      (inRangeQuery.data?.data ?? []).map(row => row[OurLogKnownFieldKey.ID])
     );
     return missingIds.filter(id => !foundIds.has(id));
-  }, [inRangeQuery.isSuccess, inRangeQuery.data?.data, missingIds]);
+  }, [inRangeQuery.isSuccess, inRangeQuery.isError, inRangeQuery.data?.data, missingIds]);
 
   const wideQuery = useQuery(
     apiOptions.as<EventsLogsResult>()('/organizations/$organizationIdOrSlug/events/', {

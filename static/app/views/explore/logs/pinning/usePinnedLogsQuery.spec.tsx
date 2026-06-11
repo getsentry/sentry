@@ -204,6 +204,77 @@ describe('usePinnedLogsQuery', () => {
     expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
   });
 
+  it('falls back to the wide window when the in-range query fails', async () => {
+    const outOfRangeLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-out-of-range',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    const wideRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [outOfRangeLog], meta: {fields: {id: 'string'}, units: {}}},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
+    });
+
+    const logsPinning = makeLogsPinning(['log-out-of-range']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.fetchedRows).toHaveLength(1);
+    });
+
+    expect(wideRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'id:[log-out-of-range]'}),
+      })
+    );
+    expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
+  });
+
+  it('does not unpin when both the in-range and wide queries fail', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+      match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+      match: [MockApiClient.matchQuery({statsPeriod: '9999d'})],
+    });
+
+    const logsPinning = makeLogsPinning(['log-out-of-range']);
+
+    const {result} = renderHookWithProviders(
+      () => usePinnedLogsQuery({allRows: [], logsPinning}),
+      {organization, additionalWrapper: AdditionalWrapper}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
+
+    expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
+  });
+
   it('does not unpin a pin found only in the wide window', async () => {
     const outOfRangeLog = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-out-of-range',
