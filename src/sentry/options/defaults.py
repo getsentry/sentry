@@ -2847,6 +2847,13 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Skip the script_exists check in ensure_script and trust the cached SHA.
+register(
+    "spans.buffer.ensure-script.skip-exists-check",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Timeout for stale segments without a root span to be flushed.
 register(
     "spans.buffer.timeout",
