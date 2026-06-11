@@ -28,7 +28,8 @@ jobs:
     # Map a step output to a job output
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
-      backend: ${{ steps.changes.outputs.backend_all_without_acceptance }}
+      # DO NOT MERGE (hang-hunt): force backend jobs to run on workflow_dispatch regardless of diff
+      backend: 'true'
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
@@ -179,7 +180,9 @@ jobs:
         # Keep in sync with MAX_SHARDS in .github/workflows/scripts/calculate-backend-test-shards.py
         run: |
           echo "shard-count=22" >> "$GITHUB_OUTPUT"
-          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]" >> "$GITHUB_OUTPUT"
+          # DO NOT MERGE (hang-hunt): keep total at 22 so each shard's test population is identical to
+          # master, but only run the shards that historically hung, to concentrate the repro.
+          echo "shard-indices=[2,3,7,21]" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -292,6 +295,23 @@ jobs:
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
         run: |
+          # DO NOT MERGE (hang-hunt): py-spy watchdog. faulthandler is per-test and never fires for
+          # these hangs, so instead sample every pytest worker's stack near end-of-run and again as
+          # the wall approaches. If a worker is wedged, its blocked frame lands in /tmp/pyspy.log.
+          sudo sysctl -w kernel.yama.ptrace_scope=0 || true
+          curl -sSL https://github.com/benfred/py-spy/releases/download/v0.3.14/py-spy-0.3.14-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz py-spy && sudo install -m755 py-spy /usr/local/bin/py-spy && rm -f py-spy || true
+          (
+            sleep 780  # hangs manifest ~13-15min in; start sampling then
+            for i in $(seq 1 24); do
+              echo "===== py-spy sweep $i $(date -u +%H:%M:%S) =====" >> /tmp/pyspy.log
+              for pid in $(pgrep -f "[p]ytest" 2>/dev/null); do
+                echo "--- pid $pid ---" >> /tmp/pyspy.log
+                py-spy dump --pid "$pid" >> /tmp/pyspy.log 2>&1 || true
+              done
+              sleep 25
+            done
+          ) &
           if [ -n "${XDIST_WORKERS}" ]; then
             export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
             timeout 1200 make test-python-ci || {
@@ -303,6 +323,16 @@ jobs:
             }
           else
             make test-python-ci
+          fi
+
+      - name: Dump py-spy stacks (hang-hunt)
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -s /tmp/pyspy.log ]; then
+            echo "=== captured py-spy stacks (worker hang evidence) ==="
+            cat /tmp/pyspy.log
+          else
+            echo "no py-spy stacks captured (shard finished before the 13min watchdog, i.e. no hang)"
           fi
 
       - name: Report failures
