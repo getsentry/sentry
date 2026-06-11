@@ -31,11 +31,20 @@ class GroupDerivedData(DefaultFieldsModel):
     group = FlexibleForeignKey("sentry.Group", unique=True)
     cursor_date = models.DateTimeField(default=EPOCH)
     cursor_id = BoundedBigIntegerField(default=0)
+
+    # Open-ended JSON object for storing derived features that don't need their own column.
+    # Data in here should be kept small; we typically have to read and write the full blob.
+    # If it changes frequently, needs to be indexed, or needs convenient joins, consider a column.
     data = models.JSONField(default=dict)
 
     # Column-backed features — promoted from JSON for indexing/querying.
+
+    # This is here just for demonstration purposes.
     view_count = BoundedPositiveIntegerField(default=0)
+    # Stores the current Progress value as a string.
     progress = models.CharField(max_length=32, null=True, default="identified")
+
+    # The last time the above column was changed.
     last_progressed_at = models.DateTimeField(null=True, default=None)
 
     class Meta:
