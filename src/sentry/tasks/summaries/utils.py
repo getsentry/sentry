@@ -590,7 +590,12 @@ def project_key_transactions_this_week(ctx, project):
             orderby=[OrderBy(Function("count", []), Direction.DESC)],
             limit=Limit(3),
         )
-        request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
+        request = Request(
+            dataset=Dataset.Transactions.value,
+            app_id="reports",
+            query=query,
+            tenant_ids={"organization_id": ctx.organization.id},
+        )
         query_result = raw_snql_query(
             request, referrer=Referrer.REPORTS_KEY_TRANSACTIONS_THIS_WEEK.value
         )
@@ -619,7 +624,12 @@ def project_key_transactions_last_week(ctx, project, key_transactions):
         ],
         groupby=[Column("transaction_name")],
     )
-    request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
+    request = Request(
+        dataset=Dataset.Transactions.value,
+        app_id="reports",
+        query=query,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
     query_result = raw_snql_query(
         request, referrer=Referrer.REPORTS_KEY_TRANSACTIONS_LAST_WEEK.value
     )
