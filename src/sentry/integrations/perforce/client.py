@@ -215,6 +215,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             p4.user = self.user
             p4.password = self.password
             p4.ticket_file = ticket_path
+            p4.ssl_fingerprint = self.ssl_fingerprint
 
             if self.client_name:
                 p4.client = self.client_name
@@ -701,6 +702,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # remaining elements are file content strings/bytes
             if not result or not isinstance(result[0], dict):
                 raise ApiError(f"File not found: {depot_path}", code=404)
+
+            # Binary depot files aren't source we can display; return nothing
+            # rather than decoding raw bytes into mojibake.
+            if result[0].get("type", "").startswith("binary"):
+                return ""
 
             content_parts = result[1:]
             if not content_parts:

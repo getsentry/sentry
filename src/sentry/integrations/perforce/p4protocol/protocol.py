@@ -9,6 +9,12 @@ Cross-checked against the open-source perforce/p4java reference implementation
 (``Mangle.java`` for the login cipher and ``ClientUserInteraction.java`` for
 the ``client-Crypto`` and login digests).
 
+The MD5 and SHA1 hashing here is dictated by the Perforce wire protocol (the
+server validates the challenge responses and reports cert fingerprints using
+these algorithms); they are not a security choice we control and cannot be
+swapped without breaking authentication, so the calls pass
+``usedforsecurity=False``.
+
 Credit / license: the login "Mangle" cipher below (the ``_otox``, ``_getdval``,
 ``_mangle_block`` and ``_mangle_encrypt`` functions and the ``_O``/``_PR``/
 ``_S0``/``_S1`` S-box constants) is a Python port of ``Mangle.java`` from the
@@ -26,6 +32,9 @@ import socket
 import ssl
 import struct
 from typing import Any
+
+from sentry.exceptions import RestrictedIPAddress
+from sentry.net.socket import safe_create_connection
 
 _O = [7, 6, 2, 1, 5, 0, 3, 4]
 _PR = [2, 5, 4, 0, 3, 1, 7, 6]
@@ -142,7 +151,7 @@ def _mangle_encrypt(data: str, key: str) -> str:
 
 
 def _md5_hex_upper(*parts: bytes) -> str:
-    h = hashlib.md5()
+    h = hashlib.md5(usedforsecurity=False)
     for p in parts:
         h.update(p)
     return h.hexdigest().upper()
@@ -216,6 +225,7 @@ class P4:
         self.charset: str | None = None
         self.cwd: str | None = None
         self.ticket_file: str | None = None
+        self.ssl_fingerprint: str | None = None
         self.exception_level = 1
         self.use_ssl = False
         self._sock: socket.socket | None = None
@@ -245,8 +255,13 @@ class P4:
 
     def connect(self) -> None:
         host, port = self._host_port()
+        # safe_create_connection resolves the host once and connects to that
+        # validated IP, so the SSRF/blocklist check and the connection share a
+        # single DNS lookup — closing the DNS-rebinding TOCTOU window.
         try:
-            raw = socket.create_connection((host, port), timeout=_DEFAULT_TIMEOUT)
+            raw = safe_create_connection((host, port), timeout=_DEFAULT_TIMEOUT)
+        except RestrictedIPAddress as exc:
+            raise P4Exception(f"refused to connect to a disallowed address for {host}: {exc}")
         except OSError as exc:
             raise P4Exception(
                 f"connect to server failed; check P4PORT. TCP connect to {host}:{port} failed: {exc}"
@@ -256,6 +271,7 @@ class P4:
         if self.port.startswith("ssl"):
             self.use_ssl = True
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
             try:
@@ -263,9 +279,28 @@ class P4:
             except ssl.SSLError as exc:
                 raw.close()
                 raise P4Exception(f"SSL connection to {host}:{port} failed: {exc}")
+            # Perforce SSL is fingerprint-trust (self-signed certs), so we accept
+            # the cert at handshake then pin it here, before any data is sent. A
+            # fingerprint is mandatory: without it an SSL connection is wide open
+            # to MITM, so refuse rather than trust blindly.
+            if not self.ssl_fingerprint:
+                self._close_sock()
+                raise P4Exception("refusing SSL connection: no ssl_fingerprint configured")
+            try:
+                self._verify_fingerprint(self.ssl_fingerprint)
+            except P4Exception:
+                self._close_sock()
+                raise
         else:
             self._sock = raw
         self._send_protocol()
+
+    def _close_sock(self) -> None:
+        if self._sock is not None:
+            try:
+                self._sock.close()
+            finally:
+                self._sock = None
 
     def _host_port(self) -> tuple[str, int]:
         parts = self.port.split(":")
@@ -297,15 +332,20 @@ class P4:
                 fingerprint = next(argv, None)
             elif not arg.startswith("-"):
                 fingerprint = arg
-        if not fingerprint:
-            return
+        if fingerprint:
+            self._verify_fingerprint(fingerprint)
+
+    def _verify_fingerprint(self, fingerprint: str) -> None:
         assert isinstance(self._sock, ssl.SSLSocket)
         cert_der = self._sock.getpeercert(binary_form=True)
         if cert_der is None:
             raise P4Exception("SSL trust failed: server presented no certificate")
-        spki = _extract_spki(cert_der)
+        try:
+            spki = _extract_spki(cert_der)
+        except (IndexError, ValueError):
+            raise P4Exception("SSL trust failed: could not parse the server certificate")
         candidates = {
-            hashlib.sha1(spki).hexdigest().upper(),
+            hashlib.sha1(spki, usedforsecurity=False).hexdigest().upper(),
             hashlib.sha256(spki).hexdigest().upper(),
         }
         if fingerprint.replace(":", "").upper() not in candidates:
@@ -355,11 +395,15 @@ class P4:
         i = 0
         n = len(payload)
         while i < n:
-            j = payload.index(0, i)
+            j = payload.find(0, i)
+            if j < 0 or j + 5 > n:
+                raise P4Exception("malformed server message: truncated field header")
             name = payload[i:j]
             i = j + 1
             vlen = struct.unpack("<I", payload[i : i + 4])[0]
             i += 4
+            if i + vlen + 1 > n:
+                raise P4Exception("malformed server message: truncated field value")
             out[name] = payload[i : i + vlen]
             i += vlen + 1
         return out
@@ -414,7 +458,7 @@ class P4:
                 self._handle_message(msg, errors)
             elif func in (b"client-FstatInfo", b"client-FstatPartial", b"client-OutputInfo"):
                 results.append(self._decode_stat(msg))
-            elif func in (b"client-OutputText", b"client-OutputData"):
+            elif func in (b"client-OutputText", b"client-OutputData", b"client-OutputBinary"):
                 results.append(msg.get(b"data", b""))
             elif func == b"client-OutputError":
                 errors.append(msg.get(b"data", b"").decode("utf-8", "replace"))
@@ -452,7 +496,7 @@ class P4:
         confirm = msg.get(b"confirm", b"")
         password = self.password or ""
         if b"digest" in msg:
-            resp = hashlib.md5(password.encode("utf-8")).hexdigest().upper()
+            resp = hashlib.md5(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()
             digest = msg[b"digest"]
             if digest:
                 resp = _md5_hex_upper(resp.encode(), digest)
@@ -460,7 +504,7 @@ class P4:
             key = _md5_hex_upper(msg[b"mangle"], self.user.encode())
             resp = _mangle_encrypt(password, key)
         else:
-            resp = hashlib.md5(password.encode("utf-8")).hexdigest().upper()
+            resp = hashlib.md5(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()
         out = [(key, val) for key, val in msg.items() if key != b"func"]
         out.append((b"data", resp.encode()))
         out.append((b"func", confirm))
