@@ -100,9 +100,7 @@ export function useGetTraceItemAttributeValues({
       try {
         const {json} = await queryClient.fetchQuery(optionsWithPrefixCacheShortcut);
         return json.flatMap((item: TraceItemAttributeValue) =>
-          defined(item.value)
-            ? [{value: item.value, count: item.count ?? undefined}]
-            : []
+          defined(item.value) ? [{value: item.value, count: item.count ?? undefined}] : []
         );
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);

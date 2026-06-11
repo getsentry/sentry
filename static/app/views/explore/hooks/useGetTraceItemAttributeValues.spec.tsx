@@ -24,7 +24,11 @@ describe('useGetTraceItemAttributeValues', () => {
     };
   }
 
-  function makeAttributeValue(value: string, key = attributeKey, count: number | null = null) {
+  function makeAttributeValue(
+    value: string,
+    key = attributeKey,
+    count: number | null = null
+  ) {
     return {
       key,
       value,
