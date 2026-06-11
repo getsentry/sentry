@@ -60,6 +60,20 @@ describe('HttpErrorCard', () => {
       expect(screen.getByText('Not Found')).toBeInTheDocument();
       expect(screen.queryByText(/HTTP \d/)).not.toBeInTheDocument();
     });
+
+    it('does not show non-error status as title when only status code triggers the error', () => {
+      const node = new SpanNode(
+        null,
+        makeSpan({status: 'ok', data: {'http.response.status_code': 500}}),
+        extra
+      );
+
+      render(<HttpErrorCard node={node} />);
+
+      expect(screen.getByText('HTTP Error')).toBeInTheDocument();
+      expect(screen.getByText('HTTP 500')).toBeInTheDocument();
+      expect(screen.queryByText('Ok')).not.toBeInTheDocument();
+    });
   });
 
   describe('EapSpanNode', () => {

@@ -7,6 +7,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {HTTP_ERROR_STATUSES} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/constants';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 
@@ -27,7 +28,10 @@ function getStatusInfo(node: SpanNode | EapSpanNode): {
 } {
   const status =
     node instanceof SpanNode ? node.value.status : node.attributes?.['span.status'];
-  const statusText = typeof status === 'string' ? formatStatusText(status) : null;
+  const statusText =
+    typeof status === 'string' && HTTP_ERROR_STATUSES.has(status)
+      ? formatStatusText(status)
+      : null;
   const raw = Number(node.attributes?.['http.response.status_code']);
   const statusCode = !isNaN(raw) && raw >= 400 ? raw : null;
   return {statusText, statusCode};
