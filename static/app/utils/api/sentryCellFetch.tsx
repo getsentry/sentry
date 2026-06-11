@@ -2,7 +2,6 @@ import type {QueryFunctionContext} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import type {ResponseMeta} from 'sentry/api';
-import {isSimilarOrigin, resolveHostname} from 'sentry/api';
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
@@ -13,6 +12,8 @@ import type {
   InfiniteApiQueryKey,
   QueryKeyEndpointOptions,
 } from 'sentry/utils/api/apiQueryKey';
+import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {RequestError} from 'sentry/utils/requestError/requestError';

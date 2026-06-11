@@ -8,8 +8,6 @@ const RealApi = jest.requireActual<typeof ApiNamespace>('sentry/api');
 
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
-export const isSimilarOrigin = RealApi.isSimilarOrigin;
-export const resolveHostname = RealApi.resolveHostname;
 
 const respond = (
   asyncDelay: AsyncDelay,
