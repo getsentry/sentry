@@ -9,9 +9,11 @@ from typing import Any, Literal, Protocol, overload
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover, errors, issue_platform, transactions
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.spans_rpc import Spans
 
 MAX_REPLAY_COUNT = 51
 MAX_VALS_PROVIDED = {
@@ -71,7 +73,10 @@ def get_replay_counts(
         raise ValueError("Must provide start and end")
 
     if not isinstance(data_source, Dataset):
-        data_source = Dataset(data_source)
+        if data_source == SupportedTraceItemType.SPANS.value:
+            data_source = Dataset.EventsAnalyticsPlatform
+        else:
+            data_source = Dataset(data_source)
 
     replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
@@ -105,13 +110,7 @@ def _get_replay_id_mappings(
     If select_column is replay_id, return an identity map of replay_id -> [replay_id].
     The keys of the returned dict are UUIDs, represented as 32 char hex strings (all '-'s stripped)
     """
-    if data_source not in _DATASET_QUERY_FUNCS:
-        raise ValueError("Invalid data source")
-    search_query_func = _DATASET_QUERY_FUNCS[data_source]
-
     select_column, column_value = _get_select_column(query)
-    if data_source != Dataset.IssuePlatform:
-        query = query + FILTER_HAS_A_REPLAY
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting the dataset.
@@ -132,8 +131,9 @@ def _get_replay_id_mappings(
     # safety check is inexpensive and bad-actors (or malfunctioning clients) could
     # provide every project_id manually.
     if select_column == "issue.id":
+        accessible_project_ids = {p.id for p in snuba_params.projects}
         groups = Group.objects.select_related("project").filter(
-            project__organization_id=snuba_params.organization.id,  # type: ignore[union-attr]
+            project_id__in=accessible_project_ids,
             id__in=column_value,
         )
         snuba_params = dataclasses.replace(
@@ -143,6 +143,20 @@ def _get_replay_id_mappings(
         # Discover queries raise an error if projects is empty, so we skip Snuba in this case.
         if not snuba_params.projects:
             return {}
+
+    if data_source == Dataset.EventsAnalyticsPlatform:
+        if len(column_value) != 1:
+            raise ValueError("The spans data source only supports a single value")
+        return _query_eap_spans_for_replay_ids(
+            query + FILTER_HAS_A_REPLAY, snuba_params, column_value[0]
+        )
+
+    if data_source not in _DATASET_QUERY_FUNCS:
+        raise ValueError("Invalid data source")
+    search_query_func = _DATASET_QUERY_FUNCS[data_source]
+
+    if data_source != Dataset.IssuePlatform:
+        query = query + FILTER_HAS_A_REPLAY
 
     results = search_query_func(
         snuba_params=snuba_params,
@@ -165,6 +179,36 @@ def _get_replay_id_mappings(
                 replay_id_to_issue_map[replay_id].append(row[select_column])
 
     return replay_id_to_issue_map
+
+
+def _query_eap_spans_for_replay_ids(
+    query: str,
+    snuba_params: SnubaParams,
+    identifier: Any,
+) -> dict[str, list[Any]]:
+    """Query EAP spans for unique replay IDs matching the given identifier."""
+    result = Spans.run_table_query(
+        params=snuba_params,
+        query_string=query,
+        # We don't care about the count(), but it forces grouping by the other
+        # columns (so `replay.id`s will be unique).
+        selected_columns=["replay.id", "count()"],
+        orderby=None,
+        offset=0,
+        limit=2500,
+        referrer="api.organization-issue-replay-count",
+        config=SearchResolverConfig(),
+        sampling_mode="HIGHEST_ACCURACY",
+    )
+
+    replay_id_to_identifier_map = defaultdict(list)
+    for row in result["data"]:
+        replay_id = row.get("replay.id", "")
+        if replay_id:
+            replay_id = replay_id.replace("-", "")
+            replay_id_to_identifier_map[replay_id].append(identifier)
+
+    return replay_id_to_identifier_map
 
 
 def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[int]]) -> dict[int, int]:

@@ -13,6 +13,7 @@ import {
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
@@ -32,15 +33,8 @@ export function ReplayTableHeader({
   stickyHeader,
 }: Props) {
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {
-    countSelected,
-    deselectAll,
-    isAllSelected,
-    isAnySelected,
-    endpointOptionsRef,
-    selectAll,
-    selectedIds,
-  } = listItemCheckboxState;
+  const {countSelected, deselectAll, endpointOptionsRef, selectAll, selectedIds} =
+    listItemCheckboxState;
   const endpointOptions = endpointOptionsRef.current;
   const rawQuery = endpointOptions?.query?.query;
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
@@ -67,7 +61,7 @@ export function ReplayTableHeader({
         ))}
       </TableHeader>
 
-      {isAnySelected ? (
+      <ListItemSelectedState selected="indeterminate-or-all">
         <TableHeader>
           <TableCellFirst>
             <ReplaySelectColumn.Header
@@ -99,9 +93,9 @@ export function ReplayTableHeader({
             />
           </Flex>
         </TableHeader>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === 'indeterminate' ? (
+      <ListItemSelectedState selected="indeterminate">
         <FullGridAlert variant="info" system>
           <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn(
@@ -118,9 +112,9 @@ export function ReplayTableHeader({
             </a>
           </Flex>
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === true ? (
+      <ListItemSelectedState selected="all">
         <FullGridAlert variant="info" system>
           {queryString
             ? tct('Selected all replays matching: [queryString].', {
@@ -130,7 +124,7 @@ export function ReplayTableHeader({
               ? t('Selected all %s+ replays.', replays.length)
               : tn('Selected all %s replay.', 'Selected all %s replays.', countSelected)}
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
     </Fragment>
   );
 }

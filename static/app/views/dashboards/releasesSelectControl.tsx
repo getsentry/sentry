@@ -14,7 +14,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';

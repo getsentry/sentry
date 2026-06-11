@@ -396,6 +396,15 @@ family:javascript module:**/packages/flutter/** -app
 family:native stack.abs_path:**/packages/flutter/** -app
 family:native stack.abs_path:lib/ui/hooks.dart -app
 family:native stack.abs_path:lib/ui/platform_dispatcher.dart -app
+family:native stack.abs_path:package:flutter/** -app
+family:native stack.abs_path:dart:** -app
+family:native stack.abs_path:dart:*/** -app
+family:native stack.abs_path:third_party/dart/sdk/** -app
+family:native package:**/Frameworks/FlutterMacOS.framework/** -app
+family:native package:**/Frameworks/Flutter.framework/** -app
+family:native function:"InvokeDartCode" -app
+family:native function:"CallBootstrapNative" -app
+
 # sentry-dart SDK frames are not in app
 stack.abs_path:package:sentry/** -app -group
 stack.abs_path:package:sentry_flutter/** -app -group

@@ -18,8 +18,8 @@ import type {Group} from 'sentry/types/group';
 import {getReplayDiffOffsetsFromEvent} from 'sentry/utils/replays/getDiffTimestamps';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 interface Props {
   event: Event;

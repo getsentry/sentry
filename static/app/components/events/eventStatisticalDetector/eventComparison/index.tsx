@@ -6,8 +6,8 @@ import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/ev
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 const COMPARISON_DESCRIPTION = t(
   'To better understand what happened before and after this regression, compare a baseline event with a regressed event. Look for any significant shape changes, operation percentage changes, and tag differences.'

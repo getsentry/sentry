@@ -21,7 +21,6 @@ from rest_framework.exceptions import (
     ParseError,
     PermissionDenied,
     Throttled,
-    ValidationError,
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -54,12 +53,14 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
+from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -102,17 +103,8 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_values_with_substring,
 )
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
-from sentry.seer.autofix.coding_agent import (
-    AutofixStateNotFound,
-    IntegrationNotFound,
-    OrganizationNotFound,
-    StateReposNotFound,
-    launch_coding_agents_for_run,
-)
 from sentry.seer.autofix.utils import (
-    AutofixTriggerSource,
     bulk_read_preferences_from_sentry_db,
-    clear_preference_automation_handoff,
     read_preference_from_sentry_db,
 )
 from sentry.seer.constants import SeerSCMProvider
@@ -222,7 +214,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     authentication_classes = (SeerRpcSignatureAuthentication,)
@@ -520,7 +512,6 @@ def get_attributes_for_span(
     attributes = convert_rpc_attribute_to_json(
         response_dict.get("attributes", []),
         SupportedTraceItemType.SPANS,
-        use_sentry_conventions=False,
         include_internal=False,
     )
 
@@ -634,78 +625,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
     )
 
     return {"success": True}
-
-
-def trigger_coding_agent_launch(
-    *,
-    organization_id: int,
-    project_id: int | None = None,
-    integration_id: int,
-    run_id: int,
-    trigger_source: str = "solution",
-) -> dict:
-    """
-    Trigger a coding agent launch for an autofix run.
-
-    Args:
-        organization_id: The organization ID
-        integration_id: The coding agent integration ID
-        run_id: The autofix run ID
-        trigger_source: Either "root_cause" or "solution" (default: "solution")
-
-    Returns:
-        dict: {"success": bool, "error_code": str | None}
-    """
-    try:
-        launch_coding_agents_for_run(
-            organization_id=organization_id,
-            integration_id=integration_id,
-            run_id=run_id,
-            trigger_source=AutofixTriggerSource(trigger_source),
-            referrer="seer_rpc.trigger_coding_agent_launch",
-        )
-        return {"success": True}
-    except IntegrationNotFound:
-        logger.exception(
-            "coding_agent.rpc_launch_error",
-            extra={
-                "organization_id": organization_id,
-                "integration_id": integration_id,
-                "run_id": run_id,
-            },
-        )
-        try:
-            project = Project.objects.get_from_cache(id=project_id)
-            if project.organization_id != organization_id:
-                raise Project.DoesNotExist
-            clear_preference_automation_handoff(project)
-        except Exception:
-            logger.exception(
-                "coding_agent.clear_handoff_preference_failed",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": organization_id,
-                    "run_id": run_id,
-                },
-            )
-        return {"success": False, "error_code": "integration_not_found"}
-    except (
-        OrganizationNotFound,
-        AutofixStateNotFound,
-        StateReposNotFound,
-        PermissionDenied,
-        ValidationError,
-        APIException,
-    ):
-        logger.exception(
-            "coding_agent.rpc_launch_error",
-            extra={
-                "organization_id": organization_id,
-                "integration_id": integration_id,
-                "run_id": run_id,
-            },
-        )
-        return {"success": False}
 
 
 def has_repo_code_mappings(
@@ -957,6 +876,27 @@ def bulk_get_project_preferences(
     return {str(project_id): pref.dict() for project_id, pref in preferences.items()}
 
 
+def deliver_feature_result(
+    *,
+    organization_id: int,
+    feature_id: str,
+    run_uuid: str,
+    status: FeatureRunStatus,
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    """Dispatch a feature result from Seer to the registered handler."""
+    handler = DELIVERY_HANDLERS.get(feature_id)
+    if handler is None:
+        logger.warning(
+            "seer.feature_delivery.unknown_feature_id",
+            extra={"feature_id": feature_id, "run_uuid": run_uuid},
+        )
+        return
+
+    handler(organization_id, run_uuid, status, result, error)
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
@@ -973,7 +913,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profile_details": get_profile_details,
     "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
-    "trigger_coding_agent_launch": trigger_coding_agent_launch,
     "get_project_preferences": get_project_preferences,
     "bulk_get_project_preferences": bulk_get_project_preferences,
     #
@@ -1014,6 +953,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
+    "deliver_feature_result": deliver_feature_result,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
@@ -1026,6 +966,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # Issue Detection
     "create_issue_occurrence": create_issue_occurrence,
+    #
+    # PR metrics (judge path)
+    "update_pr_metrics": update_pr_metrics,
 }
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
@@ -31,7 +31,6 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.issue_sync import GitHubIssueSyncSpec
-from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.github.types import GitHubIssueStatus
 from sentry.integrations.models.integration import Integration
@@ -64,7 +63,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -693,6 +692,7 @@ def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:
 class GitHubIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.GITHUB.value
     name = "GitHub"
+    can_add_externally = True
     metadata = metadata
     integration_cls: type[IntegrationInstallation] = GitHubIntegration
     features = frozenset(
@@ -704,8 +704,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.CODEOWNERS,
         ]
     )
-
-    setup_dialog_config = {"width": 1030, "height": 1000}
 
     @property
     def client(self) -> GithubSetupApiClient:
@@ -719,44 +717,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
         *,
         extra: dict[str, Any],
     ) -> None:
-        # Check if this is the Codecov GitHub app to trigger account linking
-        github_app_id = extra.get("app_id")
-        SENTRY_GITHUB_APP_ID = options.get("github-app.id")
-
-        if not github_app_id or not SENTRY_GITHUB_APP_ID:
-            logger.warning(
-                "codecov.account_link.configuration_error",
-                extra={
-                    "integration_id": integration.id,
-                    "organization_id": organization.id,
-                    "has_github_app_id": bool(github_app_id),
-                    "has_sentry_github_app_id": bool(SENTRY_GITHUB_APP_ID),
-                },
-            )
-
-        if (
-            github_app_id
-            and SENTRY_GITHUB_APP_ID
-            and str(github_app_id) == str(SENTRY_GITHUB_APP_ID)
-        ):
-            org_integration = OrganizationIntegration.objects.filter(
-                integration=integration, organization_id=organization.id
-            ).first()
-
-            # Double check org integration exists before linking accounts
-            if org_integration:
-                codecov_account_link.apply_async(
-                    kwargs={
-                        "integration_id": integration.id,
-                        "organization_id": organization.id,
-                    }
-                )
-            else:
-                logger.warning(
-                    "codecov.account_link.org_integration_missing",
-                    extra={"integration_id": integration.id, "organization_id": organization.id},
-                )
-
         repos = repository_service.get_repositories(
             organization_id=organization.id,
             providers=[IntegrationProviderSlug.GITHUB.value, "integrations:github"],
@@ -779,13 +739,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "organization_id": organization.id,
             }
         )
-
-    def get_pipeline_views(
-        self,
-    ) -> Sequence[
-        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
-    ]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [

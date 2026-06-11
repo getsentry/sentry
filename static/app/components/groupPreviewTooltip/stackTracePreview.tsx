@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 export function getStacktrace(event: Event): StacktraceType | null {

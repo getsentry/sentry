@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from enum import IntEnum
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -88,6 +89,12 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
     images_unchanged = BoundedPositiveIntegerField(default=0)
     images_renamed = BoundedPositiveIntegerField(default=0)
     images_skipped = BoundedPositiveIntegerField(default=0, db_default=0)
+
+    # Set once by the orchestrator after the plan is written and all chunk tasks dispatched.
+    # NULL means orchestration did not finish; also the poll's done-counting denominator.
+    chunks_total = BoundedPositiveIntegerField(null=True)
+
+    chunks_done_indices = ArrayField(models.IntegerField(), default=list, db_default=[])
 
     # Miscellaneous fields that we don't need columns for
     extras = models.JSONField(null=True)

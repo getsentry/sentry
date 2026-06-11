@@ -36,6 +36,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -49,6 +50,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
                 sampling_mode=sampling_mode,
                 resolver=search_resolver or cls.get_resolver(params, config),
                 page_token=page_token,
+                max_string_length=max_string_length,
             ),
             params.debug,
         )

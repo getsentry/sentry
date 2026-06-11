@@ -7,7 +7,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   buildInstallationMenuItems,
   NEW_INSTALL_KEY,
-} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
+} from 'sentry/components/pipeline/integrationGitHub';
 import {IconLightning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

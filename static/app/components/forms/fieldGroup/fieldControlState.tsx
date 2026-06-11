@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {FieldGroupProps} from './types';
@@ -13,6 +14,13 @@ export const FieldControlState = styled('div')<FieldControlStateProps>`
 
   ${p =>
     p.flexibleControlStateSize
-      ? `&:not(:empty) { margin-left: ${p.theme.space.lg} }`
-      : `width: 24px; margin-left: ${p.theme.space.xs};`};
+      ? css`
+          &:not(:empty) {
+            margin-left: ${p.theme.space.lg};
+          }
+        `
+      : css`
+          width: 24px;
+          margin-left: ${p.theme.space.xs};
+        `}
 `;

@@ -2,8 +2,11 @@ import {t} from 'sentry/locale';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   PERCENTAGE_3XX,
   PERCENTAGE_4XX,
@@ -80,7 +83,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   0
 );
 
-const DOMAIN_TABLE: Widget = {
+const DOMAIN_TABLE: PrebuiltWidget = {
   id: 'domain-table',
   title: t('Domains'),
   displayType: DisplayType.TABLE,

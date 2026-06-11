@@ -1,7 +1,9 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
+from sentry.api.endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import (
     OrganizationEventsEndpointTestBase,
@@ -376,3 +378,98 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
         )
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "logScale cannot be 1"
+
+    def test_very_small_float_values(self) -> None:
+        # Values like 8.527e-06 would previously be formatted in scientific
+        # notation inside the query string, which the search query parser rejects.
+        small_values = [0.000008, 0.000009, 0.000010, 0.000011]
+
+        trace_metrics = []
+        for hour, value in enumerate(small_values):
+            trace_metrics.append(
+                self.create_trace_metric(
+                    "foo",
+                    value,
+                    "counter",
+                    timestamp=self.start + timedelta(hours=hour),
+                )
+            )
+        self.store_eap_items(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=6),
+                "yAxis": "value",
+                "interval": "1h",
+                "yBuckets": 4,
+                "query": "metric.name:foo metric.type:counter",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["yAxis"]["start"] == pytest.approx(0.000008, rel=1e-3)
+        assert response.data["meta"]["yAxis"]["end"] == pytest.approx(0.000011, rel=1e-3)
+
+    def test_very_small_float_min_equals_max(self) -> None:
+        # When min == max and the value is very small, the single-bucket query
+        # must also use plain decimal notation rather than scientific notation.
+        trace_metrics = [
+            self.create_trace_metric(
+                "foo",
+                0.000008527,
+                "counter",
+                timestamp=self.start + timedelta(hours=hour),
+            )
+            for hour in range(3)
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=6),
+                "yAxis": "value",
+                "interval": "1h",
+                "yBuckets": 10,
+                "query": "metric.name:foo metric.type:counter",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["yAxis"]["bucketCount"] == 1
+        assert response.data["meta"]["yAxis"]["start"] == pytest.approx(0.000008527, rel=1e-3)
+
+
+class TestFormatLongFloat:
+    def test_small_number_no_scientific_notation(self) -> None:
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(8.527e-06)
+        assert "e" not in result
+        assert "E" not in result
+        assert result == "0.000008527"
+
+    def test_normal_number(self) -> None:
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(123.456)
+        assert "e" not in result
+        assert result == "123.456"
+
+    def test_huge_number_no_scientific_notation(self) -> None:
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(
+            123456789012345678901234567890
+        )
+        assert "e" not in result
+        assert "E" not in result
+        assert result == "123456789012345678901234567890"
+
+    def test_zero(self) -> None:
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(0.0)
+        assert result == "0.0"
+
+    def test_very_small_number_is_parseable(self) -> None:
+        # Ensure the formatted string looks like a plain decimal Python float
+        result = OrganizationEventsHeatmapEndpoint._format_long_float(1.23e-10)
+        assert "e" not in result
+        assert "E" not in result
+        float(result)  # must not raise

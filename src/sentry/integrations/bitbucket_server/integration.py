@@ -6,14 +6,8 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
-from django import forms
-from django.core.validators import URLValidator
-from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
-from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework import serializers
 from rest_framework.fields import BooleanField, CharField, URLField
 
@@ -44,10 +38,9 @@ from sentry.integrations.utils.metrics import (
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
-from sentry.web.helpers import render_to_response
 
 from .client import BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
@@ -104,161 +97,6 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket_server",
     aspects={},
 )
-
-
-class InstallationForm(forms.Form):
-    url = forms.CharField(
-        label=_("Bitbucket URL"),
-        help_text=_(
-            "The base URL for your Bitbucket Server instance, including the host and protocol."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "https://bitbucket.example.com"}),
-        validators=[URLValidator()],
-    )
-    verify_ssl = forms.BooleanField(
-        label=_("Verify SSL"),
-        help_text=_(
-            "By default, we verify SSL certificates "
-            "when making requests to your Bitbucket instance."
-        ),
-        widget=forms.CheckboxInput(),
-        required=False,
-        initial=True,
-    )
-    consumer_key = forms.CharField(
-        label=_("Bitbucket Consumer Key"),
-        widget=forms.TextInput(attrs={"placeholder": "sentry-consumer-key"}),
-    )
-    private_key = forms.CharField(
-        label=_("Bitbucket Consumer Private Key"),
-        widget=forms.Textarea(
-            attrs={
-                "placeholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
-            }
-        ),
-    )
-
-    def clean_url(self):
-        """Strip off trailing / as they cause invalid URLs downstream"""
-        return self.cleaned_data["url"].rstrip("/")
-
-    def clean_private_key(self):
-        data = self.cleaned_data["private_key"]
-
-        try:
-            load_pem_private_key(data.encode("utf-8"), None, default_backend())
-        except Exception:
-            raise forms.ValidationError(
-                "Private key must be a valid SSH private key encoded in a PEM format."
-            )
-        return data
-
-    def clean_consumer_key(self):
-        data = self.cleaned_data["consumer_key"]
-        if len(data) > 200:
-            raise forms.ValidationError("Consumer key is limited to 200 characters.")
-        return data
-
-
-class InstallationConfigView:
-    """
-    Collect the OAuth client credentials from the user.
-    """
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if request.method == "POST":
-            form = InstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
-
-                pipeline.bind_state("installation_data", form_data)
-                return pipeline.next_step()
-        else:
-            form = InstallationForm()
-
-        return render_to_response(
-            template="sentry/integrations/bitbucket-server-config.html",
-            context={"form": form},
-            request=request,
-        )
-
-
-class OAuthLoginView:
-    """
-    Start the OAuth dance by creating a request token
-    and redirecting the user to approve it.
-    """
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with IntegrationPipelineViewEvent(
-            IntegrationPipelineViewType.OAUTH_LOGIN,
-            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            BitbucketServerIntegrationProvider.key,
-        ).capture() as lifecycle:
-            if "oauth_token" in request.GET:
-                return pipeline.next_step()
-
-            config = pipeline.fetch_state("installation_data")
-            assert config is not None
-            client = BitbucketServerSetupClient(
-                config.get("url"),
-                config.get("consumer_key"),
-                config.get("private_key"),
-                config.get("verify_ssl"),
-            )
-
-            try:
-                request_token = client.get_request_token()
-            except ApiError as error:
-                lifecycle.record_failure(str(error), extra={"url": config.get("url")})
-                return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
-
-            pipeline.bind_state("request_token", request_token)
-            if not request_token.get("oauth_token"):
-                lifecycle.record_failure("missing oauth_token", extra={"url": config.get("url")})
-                return pipeline.error("Missing oauth_token")
-
-            authorize_url = client.get_authorize_url(request_token)
-
-            return HttpResponseRedirect(authorize_url)
-
-
-class OAuthCallbackView:
-    """
-    Complete the OAuth dance by exchanging our request token
-    into an access token.
-    """
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with IntegrationPipelineViewEvent(
-            IntegrationPipelineViewType.OAUTH_CALLBACK,
-            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            BitbucketServerIntegrationProvider.key,
-        ).capture() as lifecycle:
-            config = pipeline.fetch_state("installation_data")
-            assert config is not None
-            client = BitbucketServerSetupClient(
-                config.get("url"),
-                config.get("consumer_key"),
-                config.get("private_key"),
-                config.get("verify_ssl"),
-            )
-
-            try:
-                access_token = client.get_access_token(
-                    pipeline.fetch_state("request_token"), request.GET["oauth_token"]
-                )
-
-                pipeline.bind_state("access_token", access_token)
-
-                return pipeline.next_step()
-            except ApiError as error:
-                lifecycle.record_failure(str(error))
-                return pipeline.error(
-                    f"Could not fetch an access token from Bitbucket. {str(error)}"
-                )
 
 
 class InstallationConfigData(TypedDict):
@@ -541,10 +379,6 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.CODEOWNERS,
         ]
     )
-    setup_dialog_config = {"width": 1030, "height": 1000}
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [InstallationConfigApiStep(), OAuthApiStep()]

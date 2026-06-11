@@ -10,7 +10,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {SpanResponse} from 'sentry/views/insights/types';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
   TraceDrawerComponents,
   type SectionCardKeyValueList,

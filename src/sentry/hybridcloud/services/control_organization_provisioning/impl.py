@@ -201,10 +201,8 @@ class DatabaseBackedControlOrganizationProvisioningService(
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
-        # If there's already a matching primary slug reservation for the org,
-        # just replicate it to the cell to kick off the organization sync process
+        # If there's already a matching primary slug reservation for the org, we're good.
         if existing_primary_alias and existing_primary_alias.slug == desired_slug:
-            existing_primary_alias.handle_async_replication(cell_name, organization_id)
             return serialize_slug_reservation(existing_primary_alias)
 
         slug_base = desired_slug

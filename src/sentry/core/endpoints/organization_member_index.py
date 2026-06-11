@@ -21,6 +21,11 @@ from sentry.api.serializers.models.organization_member.response import Organizat
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.core.endpoints.organization_member_utils import (
@@ -203,7 +208,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[OrganizationMemberResponse]]:
         """
         List all organization members.
 
@@ -324,7 +331,13 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationMemberExamples.CREATE_ORG_MEMBER,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationMemberResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Add or invite a member to an organization.
         """
@@ -365,7 +378,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
 
@@ -471,4 +484,5 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             ),
         )
 
-        return Response(serialize(om), status=201)
+        body: OrganizationMemberResponse = serialize(om)
+        return Response(body, status=201)

@@ -27,11 +27,9 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
             handler = metric_alert_handler_registry.get(invocation.action.type)
             handler.invoke_legacy_registry(invocation)
         except NoRegistrationExistsError:
-            logger.exception(
-                "No metric alert handler found for action type: %s",
-                invocation.action.type,
-                extra={"action_id": invocation.action.id},
-            )
+            # Fall through silently: execute_via_group_type_registry catches this
+            # and routes to the issue alert handler for action types (e.g. WEBHOOK,
+            # PLUGIN, ticketing) that have no metric-alert-specific handler.
             raise
         except Exception:
             logger.exception(

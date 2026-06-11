@@ -92,3 +92,29 @@ class ComparisonManifest(BaseModel):
     base_artifact_id: int
     summary: ComparisonSummary
     images: dict[str, ComparisonImageResult]
+
+
+class ChunkCandidate(BaseModel):
+    name: str
+    head_hash: str
+    base_hash: str
+    pixel_count: int
+    diff_threshold: float
+
+
+class ChunkAssignment(BaseModel):
+    chunk_index: int
+    candidates: list[ChunkCandidate]
+
+
+class ComparisonPlan(BaseModel):
+    head_artifact_id: int
+    base_artifact_id: int
+    chunks: list[ChunkAssignment]
+    # Results that need no odiff (added/removed/skipped/renamed/unchanged/exceeds-pixel-limit).
+    non_diff_images: dict[str, ComparisonImageResult]
+
+
+class ChunkResult(BaseModel):
+    chunk_index: int
+    images: dict[str, ComparisonImageResult]

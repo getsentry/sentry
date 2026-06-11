@@ -28,6 +28,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
     DatasetSourcesTypes,
+    get_max_widget_limit,
 )
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
@@ -646,16 +647,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {"limit": f"limit is required. The maximum limit is {limit}."}
             )
         # Validate limit based on display type: categorical bar charts allow up to 25,
-        # all other chart types allow up to 10.
+        # tables up to 20, all other chart types up to 10.
         widget_limit = data.get("limit")
         if widget_limit is not None:
-            display_type = data.get("display_type")
-            if display_type == DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART:
-                max_allowed = 25
-            elif display_type == DashboardWidgetDisplayTypes.TABLE:
-                max_allowed = 20
-            else:
-                max_allowed = 10
+            max_allowed = get_max_widget_limit(data.get("display_type"))
             if widget_limit > max_allowed:
                 raise serializers.ValidationError(
                     {"limit": f"The maximum limit for this display type is {max_allowed}."}

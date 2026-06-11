@@ -5,7 +5,12 @@ import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderInteraction,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
@@ -260,20 +265,18 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
+  const {query, dispatch, handleSearch} = useSearchQueryBuilderState();
   const {
-    query,
     filterKeys,
-    dispatch,
     getFieldDefinition,
     getSuggestedFilterKey,
-    handleSearch,
     placeholder,
     searchSource,
     recentSearches,
-    currentInputValueRef,
-    consumeReopenDropdownOnQueryClear,
-    reopenDropdownOnQueryClear,
-  } = useSearchQueryBuilder();
+  } = useSearchQueryBuilderConfig();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const {consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear} =
+    useSearchQueryBuilderInteraction();
 
   const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);

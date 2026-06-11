@@ -42,7 +42,7 @@ class SeerNightShiftRunResponse(TypedDict):
 
 
 @register(SeerNightShiftRun)
-class SeerNightShiftRunSerializer(Serializer):
+class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
     def get_attrs(
         self, item_list: Sequence[SeerNightShiftRun], user: Any, **kwargs: Any
     ) -> dict[SeerNightShiftRun, dict[str, Any]]:

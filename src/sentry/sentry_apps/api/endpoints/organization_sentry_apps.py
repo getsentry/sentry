@@ -46,7 +46,7 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         request: Request,
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
-    ) -> Response:
+    ) -> Response[list[SentryAppSerializerResponse]]:
         """
         Retrieve the custom integrations for an organization
         """

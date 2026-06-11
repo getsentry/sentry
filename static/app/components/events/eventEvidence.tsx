@@ -8,8 +8,8 @@ import {
   getConfigForIssueType,
   getIssueCategoryAndTypeFromOccurrenceType,
 } from 'sentry/utils/issueTypeConfig';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 type EvidenceProps = {
   event: Event;

@@ -29,7 +29,7 @@ class GroupSearchViewSerializerResponse(TypedDict):
 
 
 @register(GroupSearchView)
-class GroupSearchViewSerializer(Serializer):
+class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
     def __init__(self, *args, **kwargs):
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)

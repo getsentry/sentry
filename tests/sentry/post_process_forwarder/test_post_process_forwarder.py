@@ -67,6 +67,10 @@ class PostProcessForwarderTest(TestCase):
                 "events": self.events_topic,
                 "transactions": self.events_topic,
             },
+            KAFKA_TOPIC_TO_CLUSTER={
+                **settings.KAFKA_TOPIC_TO_CLUSTER,
+                self.events_topic: settings.KAFKA_TOPIC_TO_CLUSTER["events"],
+            },
         )
 
         self.override_settings_cm.__enter__()

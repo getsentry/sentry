@@ -46,7 +46,7 @@ class DataForwarderResponse(TypedDict):
 
 
 @register(DataForwarder)
-class DataForwarderSerializer(Serializer):
+class DataForwarderSerializer(Serializer[DataForwarderResponse]):
     def get_attrs(
         self,
         item_list: Sequence[DataForwarder],
@@ -101,7 +101,7 @@ class DataForwarderSerializer(Serializer):
 
 
 @register(DataForwarderProject)
-class DataForwarderProjectSerializer(Serializer):
+class DataForwarderProjectSerializer(Serializer[DataForwarderProjectResponse]):
     def serialize(
         self,
         obj: DataForwarderProject,

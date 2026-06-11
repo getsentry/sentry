@@ -18,9 +18,8 @@ Performance Issues are built on top of the [Issue Platform](https://develop.sent
     - If the system option is a boolean, it will only run the detector if set to `True`.
     - If the system option is a number (0.0 < `x` < 1.0), it will run the detector `100 * x`% of the time.
   - After this check, the detectors are run on the event, see `run_detector_on_data()` in [performance_detection.py](./performance_detection.py)
-  - After recording metrics about the results, two checks are run, dropping the `PerformanceProblem`s if either return `False`:
-    - `PerformanceDetector.is_creation_allowed_for_organization()` - Pre-GA, check a feature flag; post-GA, just return `True`
-    - `PerformanceDetector.is_creation_allowed_for_project()` - Usually checking project's detector settings
+  - After recording metrics about the results, a check is run, dropping the `PerformanceProblem`s if it returns `False`:
+    - `PerformanceDetector.is_creation_allowed()` - Usually checking project's detector settings
 - We store the list of `PerformanceProblem`s from `_detect_performance_problems` on `job["performance_problems"]`
 - Then we run `_send_occurrence_to_platform` which reads `job["performance_problems"]`
   - It will map each `PerformanceProblem` into an `IssueOccurrence`
@@ -59,8 +58,7 @@ There are quite a few places which need to be updated when adding a new performa
 - [ ] Setup for the `PerformanceDetector` subclass
   - [ ] Update the `type` and `settings_key` attributes with the new `DetectorType`
   - [ ] (Optional) Implement `is_event_eligible()` to allow early exits.
-  - [ ] Implement `is_creation_allowed_for_organization()` to check a feature flag.
-  - [ ] Implement `is_creation_allowed_for_project()` to check a creation flag.
+  - [ ] Implement `is_creation_allowed()` to check a creation flag.
 - [ ] Write some business logic!
   - [ ] Implement `visit_span()` and `on_complete()`, adding any identified `PerformanceProblem`s to `self.stored_problems` as you go.
   - [ ] Leverage the [Writing Detectors docs](https://develop.sentry.dev/backend/issue-platform/writing-detectors/) which can help guide your detector's design.

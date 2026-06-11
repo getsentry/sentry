@@ -97,6 +97,7 @@ class TestSendLegacyWebhooksForInvocation(BaseWorkflowTest):
         "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
     )
     def test_dispatches_task_per_url(self, mock_task: mock.MagicMock) -> None:
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
         ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://a.com\nhttp://b.com")
 
         send_legacy_webhooks_for_invocation(self.invocation)
@@ -109,6 +110,29 @@ class TestSendLegacyWebhooksForInvocation(BaseWorkflowTest):
         "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
     )
     def test_no_urls_configured_is_noop(self, mock_task: mock.MagicMock) -> None:
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
+
+        send_legacy_webhooks_for_invocation(self.invocation)
+
+        assert mock_task.delay.call_count == 0
+
+    @mock.patch(
+        "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
+    )
+    def test_webhooks_disabled_is_noop(self, mock_task: mock.MagicMock) -> None:
+        ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://a.com")
+
+        send_legacy_webhooks_for_invocation(self.invocation)
+
+        assert mock_task.delay.call_count == 0
+
+    @mock.patch(
+        "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
+    )
+    def test_webhooks_explicitly_disabled_is_noop(self, mock_task: mock.MagicMock) -> None:
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", False)
+        ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://a.com")
+
         send_legacy_webhooks_for_invocation(self.invocation)
 
         assert mock_task.delay.call_count == 0
@@ -117,6 +141,7 @@ class TestSendLegacyWebhooksForInvocation(BaseWorkflowTest):
         "sentry.sentry_apps.services.legacy_webhook.tasks.send_legacy_webhook_task",
     )
     def test_triggering_rules_uses_workflow_name(self, mock_task: mock.MagicMock) -> None:
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
         ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://a.com")
 
         send_legacy_webhooks_for_invocation(self.invocation)
@@ -133,6 +158,7 @@ class TestSendLegacyWebhooksForInvocation(BaseWorkflowTest):
         rule.save()
         self.create_alert_rule_workflow(rule_id=rule.id, workflow=self.workflow)
 
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
         ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://a.com")
 
         send_legacy_webhooks_for_invocation(self.invocation)

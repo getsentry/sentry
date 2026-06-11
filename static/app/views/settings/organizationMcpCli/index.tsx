@@ -43,7 +43,11 @@ export default function OrganizationMcpCli() {
               https://mcp.sentry.dev/mcp/your-org/your-project
             </TextCopyInput>
             <div>
-              <LinkButton href="https://mcp.sentry.dev" external variant="secondary">
+              <LinkButton
+                href="https://mcp.sentry.dev/?utm_source=sentry-mcp-settings-docs-btn"
+                external
+                variant="secondary"
+              >
                 {t('MCP Documentation')}
               </LinkButton>
             </div>

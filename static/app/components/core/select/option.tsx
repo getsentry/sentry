@@ -7,7 +7,7 @@ import {CheckWrap} from '@sentry/scraps/select';
 
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 

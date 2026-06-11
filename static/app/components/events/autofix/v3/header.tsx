@@ -7,21 +7,26 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {getReferrerConfig} from 'sentry/components/events/autofix/autofixReferrer';
+import {IconBot} from 'sentry/icons/iconBot';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 interface SeerDrawerHeaderProps {
   onCopyMarkdown?: () => void;
+  onOpenSeerAgent?: () => void;
   onReset?: () => void;
   referrer?: string;
 }
 
 export function SeerDrawerHeader({
   onCopyMarkdown,
+  onOpenSeerAgent,
   onReset,
   referrer,
 }: SeerDrawerHeaderProps) {
+  const isSentryEmployee = useIsSentryEmployee();
   const tooltip = useMemo(() => {
     const config = getReferrerConfig(referrer);
     return config.tooltip ?? referrer;
@@ -53,6 +58,16 @@ export function SeerDrawerHeader({
             aria-label={t('Copy analysis as Markdown')}
             variant="transparent"
           />
+          {isSentryEmployee && onOpenSeerAgent && (
+            <Button
+              size="xs"
+              icon={<IconBot />}
+              onClick={onOpenSeerAgent}
+              tooltipProps={{title: t('Open in Seer Agent (debug)')}}
+              aria-label={t('Open in Seer Agent (debug)')}
+              variant="transparent"
+            />
+          )}
         </Flex>
       </Flex>
     </DrawerHeader>

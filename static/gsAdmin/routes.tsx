@@ -5,6 +5,7 @@ import {BeaconDetails} from 'admin/views/beaconDetails';
 import {Beacons} from 'admin/views/beacons';
 import {BillingAdmins} from 'admin/views/billingAdmins';
 import {BillingPlans} from 'admin/views/billingPlans';
+import {BillingPlatform} from 'admin/views/billingPlatform';
 import {BroadcastDetails} from 'admin/views/broadcastDetails';
 import {Broadcasts} from 'admin/views/broadcasts';
 import {CustomerContractDetails} from 'admin/views/customerContractDetails';
@@ -253,6 +254,10 @@ function buildRoutes() {
             component: InvoiceDetails,
           },
         ],
+      },
+      {
+        path: 'billing-platform/',
+        component: BillingPlatform,
       },
       {
         path: 'instance-level-oauth',

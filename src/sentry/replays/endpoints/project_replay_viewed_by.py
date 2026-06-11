@@ -37,7 +37,8 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     @extend_schema(
-        operation_id="List Users Who Have Viewed a Replay",
+        operation_id="listProjectReplayViewedBy",
+        summary="List Users Who Have Viewed a Replay",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -51,7 +52,9 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         },
         examples=ReplayExamples.GET_REPLAY_VIEWED_BY,
     )
-    def get(self, request: Request, project: Project, replay_id: str) -> Response:
+    def get(
+        self, request: Request, project: Project, replay_id: str
+    ) -> Response[ReplayViewedByResponse]:
         """Return a list of users who have viewed a replay."""
         self.check_replay_access(request, project)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,39 +11,57 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
-from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
+from sentry.sentry_apps.api.serializers.servicehook import (
+    ServiceHookSerializer,
+    ServiceHookSerializerResponse,
+)
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import hook_service
 
 
+@extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class ProjectServiceHooksEndpoint(ProjectEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, request: Request, project):
         return features.has("projects:servicehooks", project=project, actor=request.user)
 
-    def get(self, request: Request, project) -> Response:
+    @extend_schema(
+        operation_id="List a Project's Service Hooks",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListServiceHooks", list[ServiceHookSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(self, request: Request, project) -> Response[list[ServiceHookSerializerResponse]]:
         """
-        List a Project's Service Hooks
-        ``````````````````````````````
-
         Return a list of service hooks bound to a project.
 
-        This endpoint requires the 'servicehooks' feature to
-        be enabled for your project.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          client keys belong to.
-        :pparam string project_id_or_slug: the id or slug of the project the client keys
-                                     belong to.
-        :auth: required
+        This endpoint requires the `servicehooks` feature to be enabled for your project.
         """
         if not self.has_feature(request, project):
             return self.respond(
@@ -69,28 +88,28 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user, ServiceHookSerializer()),
         )
 
-    def post(self, request: Request, project) -> Response:
+    @extend_schema(
+        operation_id="Register a New Service Hook",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=ServiceHookValidator,
+        responses={
+            201: inline_sentry_response_serializer("ServiceHook", ServiceHookSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(self, request: Request, project) -> Response[ServiceHookSerializerResponse]:
         """
-        Register a new Service Hook
-        ```````````````````````````
-
         Register a new service hook on a project.
 
         Events include:
 
-        - event.alert: An alert is generated for an event (via rules).
-        - event.created: A new event has been processed.
+        - `event.alert`: An alert is generated for an event (via rules).
+        - `event.created`: A new event has been processed.
 
-        This endpoint requires the 'servicehooks' feature to
-        be enabled for your project.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          client keys belong to.
-        :pparam string project_id_or_slug: the id or slug of the project the client keys
-                                     belong to.
-        :param string url: the url for the webhook
-        :param array[string] events: the events to subscribe to
-        :auth: required
+        This endpoint requires the `servicehooks` feature to be enabled for your project.
         """
         if not request.user.is_authenticated:
             return self.respond(status=401)

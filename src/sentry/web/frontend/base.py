@@ -5,7 +5,7 @@ import hashlib
 import inspect
 import logging
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -52,6 +52,9 @@ from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_fro
 from sentry.web.constants import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
+
+if TYPE_CHECKING:
+    from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.ui")
@@ -125,6 +128,14 @@ class ViewSiloLimit(SiloLimit):
         raise TypeError("`@ViewSiloLimit` must decorate a class or method")
 
 
+class CellSiloView(ViewSiloLimit):
+    def __init__(
+        self, cell_resolver: CellRequestResolver | None = None, *args, **kwargs: Any
+    ) -> None:
+        super().__init__([SiloMode.CELL], *args, **kwargs)
+        self.cell_resolver = cell_resolver
+
+
 control_silo_view = ViewSiloLimit([SiloMode.CONTROL])
 """
 Apply to frontend views that exist in CONTROL Silo
@@ -132,24 +143,48 @@ If a request is received and the application is not in CONTROL/MONOLITH
 mode a 404 will be returned.
 """
 
-cell_silo_view = ViewSiloLimit([SiloMode.CELL])
-"""
-Apply to frontend views that exist in CELL Silo
-If a request is received and the application is not in CELL/MONOLITH
-mode a 404 will be returned.
-"""
+
+def cell_silo_view(
+    decorated_obj: Any = None,
+    *,
+    cell_resolver: CellRequestResolver | None = None,
+) -> Any:
+    """
+    Apply to frontend views that exist in Cell silo that are publicly accesible.
+
+    By default, if a request is received and the application is not in CELL
+    mode 404s will be returned.
+
+    Optionally, a resolver class can be specified to allow Control Silo to
+    dispatch a request to the correct cell, if possible.
+    """
+    limiter = CellSiloView(internal=False, cell_resolver=cell_resolver)
+    if decorated_obj is not None:
+        return limiter(decorated_obj)
+    return limiter
+
 
 all_silo_view = ViewSiloLimit([SiloMode.CELL, SiloMode.CONTROL, SiloMode.MONOLITH])
 """
 Apply to frontend views that respond in both CONTROL and CELL mode.
 """
 
-internal_cell_silo_view = ViewSiloLimit([SiloMode.CELL], internal=True)
-"""
-Apply to frontend views that exist in CELL Silo
-and are not accessible via cell routing.
-This is generally for debug/development views.
-"""
+
+def internal_cell_silo_view(
+    decorated_obj: Any = None, *, cell_resolver: CellRequestResolver | None = None
+) -> Any:
+    """
+    Apply to frontend views that exist in CELL Silo
+    and are not accessible via cell routing.
+    This is generally for debug/development views.
+
+    Optionally, a resolver class can be specified to allow Control Silo to
+    dispatch a request to the correct cell, if possible.
+    """
+    limiter = CellSiloView(internal=True, cell_resolver=cell_resolver)
+    if decorated_obj is not None:
+        return limiter(decorated_obj)
+    return limiter
 
 
 class _HasRespond(Protocol):

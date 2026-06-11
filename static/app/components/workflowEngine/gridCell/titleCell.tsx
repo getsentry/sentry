@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
@@ -10,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconSentry, IconWarning} from 'sentry/icons';
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export type TitleCellProps = {
   link: LocationDescriptor | null;
@@ -130,13 +131,13 @@ const TitleBase = styled('div')<{noHover?: boolean}>`
 
   ${p =>
     !p.noHover &&
-    `
-    &:hover {
-      ${NameText} {
-        text-decoration: underline;
+    css`
+      &:hover {
+        ${NameText} {
+          text-decoration: underline;
+        }
       }
-    }
-  `}
+    `}
 `;
 
 const TitleWrapper = TitleBase.withComponent(Link);

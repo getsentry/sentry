@@ -1,0 +1,11 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block preheader %}We couldn't build your snapshot images — try again{% endblock %}
+
+{% block main %}
+    <h3>We couldn't build your snapshot images</h3>
+    <p>Something went wrong while building your snapshot image archive. Please try again, and reach out if it keeps failing.</p>
+    <p><a href="{{ url|safe }}" class="btn">Go to Sentry</a></p>
+{% endblock %}

@@ -1,16 +1,17 @@
-import {useState} from 'react';
-import {Outlet} from 'react-router-dom';
+import type React from 'react';
+import {useEffect, useState} from 'react';
+import {Outlet, useLocation} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
-import {IconSentry, IconSliders} from 'sentry/icons';
+import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
@@ -19,6 +20,8 @@ import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 
 import {GlobalStyles} from 'admin/globalStyles';
+
+const ADMIN_SIDEBAR_COLLAPSED_KEY = 'getsentryAdminSidebarCollapsed';
 
 const themes = {
   darkTheme,
@@ -42,6 +45,47 @@ const useToggleTheme = () => {
 
 export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
+  // Mobile: drawer open/closed
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop: sidebar collapsed/expanded, persisted to localStorage
+  const [isCollapsed, setIsCollapsed] = useState(
+    () => localStorageWrapper.getItem(ADMIN_SIDEBAR_COLLAPSED_KEY) === 'true'
+  );
+  const location = useLocation();
+
+  const closeSidebar = () => setSidebarOpen(false);
+
+  const toggleCollapsed = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    localStorageWrapper.setItem(ADMIN_SIDEBAR_COLLAPSED_KEY, next ? 'true' : 'false');
+  };
+
+  // Close mobile drawer on route change.
+  useEffect(() => {
+    closeSidebar();
+  }, [location.pathname]);
+
+  // Close mobile drawer when the viewport widens past the mobile breakpoint,
+  // so the body scroll lock is never left active on desktop.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (!e.matches) {
+        closeSidebar();
+      }
+    };
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
+
+  // Lock body scroll while the mobile sidebar drawer is open.
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -51,13 +95,46 @@ export function Layout() {
           <GlobalModal />
           <SystemAlerts className="messages-container" />
           <Indicators className="indicators-container" />
-          <AppContainer>
-            <Sidebar>
-              <Logo to="/_admin/">
-                <IconSentry size="xl" />
-                Admin
-              </Logo>
-              <Navigation>
+          <AppContainer isCollapsed={isCollapsed}>
+            {/* Mobile: tap-outside backdrop for the drawer */}
+            <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
+            {/* Desktop only: thin strip shown when sidebar is collapsed */}
+            <CollapsedSidebar
+              as="section"
+              isCollapsed={isCollapsed}
+              direction="column"
+              align="center"
+            >
+              <Button
+                aria-label="Expand sidebar"
+                variant="transparent"
+                size="sm"
+                onClick={toggleCollapsed}
+                icon={<IconChevron direction="right" isDouble />}
+              />
+            </CollapsedSidebar>
+            <Sidebar isOpen={sidebarOpen} isCollapsed={isCollapsed}>
+              <Flex align="center" justify="between" gap="md">
+                <Logo to="/_admin/" onClick={closeSidebar}>
+                  <IconSentry size="xl" />
+                  Admin
+                </Logo>
+                {/* Desktop only: collapse button inside the sidebar */}
+                <CollapseButton
+                  aria-label="Collapse sidebar"
+                  variant="transparent"
+                  size="xs"
+                  onClick={toggleCollapsed}
+                  icon={<IconChevron direction="left" isDouble />}
+                />
+              </Flex>
+              <Navigation
+                onClick={(e: React.MouseEvent<HTMLUListElement>) => {
+                  if ((e.target as HTMLElement).closest('a')) {
+                    closeSidebar();
+                  }
+                }}
+              >
                 <NavLink to="/_admin/" index>
                   Home
                 </NavLink>
@@ -79,13 +156,14 @@ export function Layout() {
                 <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
                 <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
                 <NavLink to="/_admin/invoices/">Invoices</NavLink>
+                <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
                 <NavLink to="/_admin/spike-projection-generation/">
                   Spike Projection Generation
                 </NavLink>
                 <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
                 <NavLink to="/_admin/seer/">Seer</NavLink>
               </Navigation>
-              <div>
+              <SidebarActions>
                 <ThemeToggle
                   variant="transparent"
                   size="zero"
@@ -99,16 +177,32 @@ export function Layout() {
                 >
                   {isDark ? 'Light mode' : 'Dark mode'}
                 </ThemeToggle>
-              </div>
+              </SidebarActions>
             </Sidebar>
-            <Container
-              as="main"
-              padding="0 2xl"
-              width="100%"
-              maxWidth="var(--contentWidth)"
-            >
-              <Outlet />
-            </Container>
+            <Flex direction="column" minWidth={0} inert={sidebarOpen || undefined}>
+              {/* Mobile only: sticky top bar with hamburger and logo */}
+              <MobileTopBar>
+                <Button
+                  variant="transparent"
+                  size="sm"
+                  icon={<IconMenu />}
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Open navigation"
+                />
+                <MobileLogo to="/_admin/">
+                  <IconSentry size="md" />
+                  Admin
+                </MobileLogo>
+              </MobileTopBar>
+              <Container
+                as="main"
+                padding="0 2xl"
+                width="100%"
+                maxWidth="var(--contentWidth)"
+              >
+                <Outlet />
+              </Container>
+            </Flex>
           </AppContainer>
         </GlobalAlertProvider>
       </ScrapsProviders>
@@ -118,15 +212,51 @@ export function Layout() {
 
 // flow-root is used here to create a new flow-context, to avoid margin
 // collapse causing scroll overflow.
-const AppContainer = styled('div')`
+const AppContainer = styled('div')<{isCollapsed: boolean}>`
   --contentWidth: 1270px;
   --sidebarWidth: 200px;
+  --sidebarCollapsedWidth: 48px;
 
   display: flow-root;
-  padding-left: var(--sidebarWidth);
+  padding-left: ${p =>
+    p.isCollapsed ? 'var(--sidebarCollapsedWidth)' : 'var(--sidebarWidth)'};
+  transition: padding-left 0.2s ease;
+
+  @media (max-width: 768px) {
+    padding-left: 0;
+  }
 `;
 
-const Sidebar = styled('section')`
+const Overlay = styled('div')<{isOpen: boolean}>`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: ${p => (p.isOpen ? 'block' : 'none')};
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+`;
+
+const CollapsedSidebar = styled(Flex)<{isCollapsed: boolean}>`
+  display: none;
+
+  @media (min-width: 769px) {
+    display: ${p => (p.isCollapsed ? 'flex' : 'none')};
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebarCollapsedWidth);
+    padding-top: ${p => p.theme.space['2xl']};
+    background: ${p => p.theme.tokens.background.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
+    z-index: 100;
+  }
+`;
+
+const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
   position: fixed;
   top: 0;
   left: 0;
@@ -138,10 +268,70 @@ const Sidebar = styled('section')`
   gap: ${p => p.theme.space['2xl']};
   background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  z-index: 100;
+  /* Delay visibility until after the slide animation so hidden sidebar is
+     removed from the tab order once off-screen. */
+  visibility: ${p => (p.isCollapsed ? 'hidden' : 'visible')};
+  transition:
+    transform 0.2s ease,
+    visibility 0s linear ${p => (p.isCollapsed ? '0.2s' : '0s')};
+
+  /* Desktop: collapsed state slides off-screen */
+  transform: translateX(${p => (p.isCollapsed ? '-100%' : '0')});
 
   > * {
     padding: 0 ${p => p.theme.space['3xl']};
   }
+
+  /* Mobile: open state overrides desktop collapsed state */
+  @media (max-width: 768px) {
+    transform: translateX(${p => (p.isOpen ? '0' : '-100%')});
+    visibility: ${p => (p.isOpen ? 'visible' : 'hidden')};
+    transition:
+      transform 0.2s ease,
+      visibility 0s linear ${p => (p.isOpen ? '0s' : '0.2s')};
+  }
+`;
+
+const SidebarActions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: ${p => p.theme.space.md};
+`;
+
+const CollapseButton = styled(Button)`
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileTopBar = styled('div')`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    gap: ${p => p.theme.space.md};
+    padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.primary};
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+`;
+
+const MobileLogo = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  text-transform: uppercase;
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: bold;
 `;
 
 const Logo = styled(Link)`

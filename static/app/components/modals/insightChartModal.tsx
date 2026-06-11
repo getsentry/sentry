@@ -56,12 +56,12 @@ const Container = styled('div')<{fullscreen?: boolean; height?: number | null}>`
 const ContentArea = styled('div')<{fullscreen?: boolean}>`
   ${p =>
     p.fullscreen &&
-    `
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  `}
+    css`
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    `}
 `;
 
 export const modalCss = css`

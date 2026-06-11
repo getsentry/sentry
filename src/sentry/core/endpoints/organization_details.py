@@ -26,7 +26,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
+    OrganizationSerializerResponse,
+    OrganizationSummarySerializerResponse,
     OrganizationWithProjectsAndTeamsSerializer,
+    OrganizationWithProjectsAndTeamsSerializerResponse,
     TrustedRelaySerializer,
 )
 from sentry.apidocs.constants import (
@@ -38,6 +41,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
@@ -86,7 +90,6 @@ from sentry.dynamic_sampling.utils import (
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
     STORE_CRASH_REPORTS_MAX,
@@ -118,7 +121,6 @@ ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
-ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
 
 
 ORG_OPTIONS = (
@@ -322,7 +324,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
-    codecovAccess = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -726,8 +727,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.flags.enhanced_privacy = data["enhancedPrivacy"]
         if "isEarlyAdopter" in data:
             org.flags.early_adopter = data["isEarlyAdopter"]
-        if "codecovAccess" in data:
-            org.flags.codecov_access = data["codecovAccess"]
         if "require2FA" in data:
             org.flags.require_2fa = data["require2FA"]
         if "allowMemberProjectCreation" in data:
@@ -751,7 +750,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "disable_shared_issues": org.flags.disable_shared_issues.is_set,
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
-                "codecov_access": org.flags.codecov_access.is_set,
                 "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
                 "prevent_superuser_access": org.flags.prevent_superuser_access.is_set,
                 "disable_member_invite": org.flags.disable_member_invite.is_set,
@@ -903,10 +901,6 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     hideAiFeatures = serializers.BooleanField(
         help_text="Specify `true` to hide AI features from the organization.",
-        required=False,
-    )
-    codecovAccess = serializers.BooleanField(
-        help_text="Specify `true` to enable Code Coverage Insights. This feature is only available for organizations on the Team plan and above. Learn more about Codecov [here](/product/codecov/).",
         required=False,
     )
 
@@ -1098,7 +1092,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_ORGANIZATION,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationSummarySerializerResponse]
+        | Response[OrganizationSerializerResponse]
+        | Response[OrganizationWithProjectsAndTeamsSerializerResponse]
+    ):
         """
         Return details on an individual organization, including various details
         such as membership access and teams.
@@ -1142,12 +1142,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.UPDATE_ORGANIZATION,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[OrganizationWithProjectsAndTeamsSerializerResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update various attributes and configurable settings for the given organization.
         """
-        from sentry import features
-
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
@@ -1159,18 +1162,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         )
 
         was_pending_deletion = organization.status in DELETION_STATUSES
-
-        enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
-        if enabling_codecov:
-            if not features.has("organizations:codecov-integration", organization):
-                return self.respond({"detail": ERR_PLAN_REQUIRED}, status=status.HTTP_403_FORBIDDEN)
-
-            has_integration, error = has_codecov_integration(organization)
-            if not has_integration:
-                return self.respond(
-                    {"codecovAccess": [error]},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
         serializer = serializer_cls(
             data=request.data,
@@ -1195,10 +1186,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         organization_id=organization.id, slug=slug
                     )
                 except RpcValidationException:
-                    return self.respond(
-                        {"slug": [f'The slug "{slug}" is in use by another organization.']},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    slug_err: ValidationErrorResponse = {
+                        "slug": [f'The slug "{slug}" is in use by another organization.'],
+                    }
+                    return self.respond(slug_err, status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
@@ -1303,7 +1294,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             )
 
             return self.respond(context)
-        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     def _compute_project_target_sample_rates(self, request: Request, organization: Organization):
         # TODO: this will take a long time for organizations with a lot of projects

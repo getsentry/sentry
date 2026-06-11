@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import TestCase, mock
 
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
@@ -9,7 +10,7 @@ class TestRateLimitConfig(TestCase):
         "sentry.ratelimits.config._get_group_defaults",
         return_value={"blz": {RateLimitCategory.ORGANIZATION: RateLimit(limit=420, window=69)}},
     )
-    def test_grouping(self, *m) -> None:
+    def test_grouping(self, *m: Any) -> None:
         config = RateLimitConfig(group="blz")
         assert config.get_rate_limit("GET", RateLimitCategory.ORGANIZATION) == RateLimit(
             limit=420, window=69

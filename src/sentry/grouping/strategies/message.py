@@ -13,13 +13,13 @@ from sentry.interfaces.message import Message
 
 if TYPE_CHECKING:
     from sentry.grouping.context import GroupingContext
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 
 @strategy(ids=["message:v1"], interface=Message, score=0)
 @produces_variants(["default"])
 def message_v1(
-    interface: Message, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Message, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 

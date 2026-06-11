@@ -517,13 +517,13 @@ def manage_issue_states(
     snooze_details: InboxReasonDetails | None = None,
     activity_data: Mapping[str, Any] | None = None,
 ) -> None:
-    from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
 
     `activity_data`: Additional activity data, such as escalating forecast
     """
+    from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+
     data: dict[str, str | Mapping[str, Any]] | None = (
         {"event_id": event.event_id} if event else None
     )
@@ -547,15 +547,13 @@ def manage_issue_states(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
             )
 
-            has_forecast = (
-                True if data and activity_data and "forecast" in activity_data.keys() else False
-            )
+            has_forecast = bool(data and activity_data and "forecast" in activity_data)
             issue_escalating.send_robust(
                 project=group.project,
                 group=group,
                 event=event,
                 sender=manage_issue_states,
-                was_until_escalating=True if has_forecast else False,
+                was_until_escalating=has_forecast,
                 new_substatus=GroupSubStatus.ESCALATING,
             )
             if data and activity_data and has_forecast:  # Redundant checks needed for typing

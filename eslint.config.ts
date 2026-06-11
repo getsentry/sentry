@@ -458,7 +458,9 @@ export default typescript.config([
       '@sentry/no-flag-comments': 'error',
       '@sentry/no-query-data-type-parameters': 'error',
       '@sentry/no-static-translations': 'error',
+      '@sentry/no-raw-css-in-styled': 'error',
       '@sentry/no-styled-shortcut': 'error',
+      '@sentry/no-useless-css-interpolation-semicolon': 'error',
       '@sentry/no-unnecessary-use-callback': 'error',
     },
   },
@@ -467,6 +469,7 @@ export default typescript.config([
     plugins: {'@sentry/scraps': sentryScrapsPlugin},
     rules: {
       '@sentry/scraps/no-core-import': 'error',
+      '@sentry/scraps/no-double-dollar-interpolation': 'error',
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/prefer-info-text': 'error',
       '@sentry/scraps/use-semantic-token': [
@@ -1183,6 +1186,7 @@ export default typescript.config([
           type: 'test-sentry',
           pattern: [
             'static/app/**/*.spec.{ts,js,tsx,jsx}',
+            'static/app/**/*.snapshots.tsx',
             'tests/js/sentry-test/**/*.*',
             'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
           ],

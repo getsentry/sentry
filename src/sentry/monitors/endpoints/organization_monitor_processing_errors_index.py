@@ -38,7 +38,9 @@ class OrganizationMonitorProcessingErrorsIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: AuthenticatedHttpRequest, organization: Organization) -> Response:
+    def get(
+        self, request: AuthenticatedHttpRequest, organization: Organization
+    ) -> Response[list[CheckinProcessingErrorData]]:
         """
         Retrieves checkin processing errors for an organization
         """

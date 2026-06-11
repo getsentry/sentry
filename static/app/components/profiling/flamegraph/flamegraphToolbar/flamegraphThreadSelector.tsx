@@ -9,8 +9,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';

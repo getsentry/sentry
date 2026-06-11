@@ -4,17 +4,20 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
+from sentry.api.base import CellSiloEndpoint
+from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.cell import get_cell_by_name
 from sentry.utils import metrics
+from sentry.web.frontend.base import CellSiloView
 
 from .proxy import (
     proxy_cell_request,
-    proxy_error_embed_request,
     proxy_request,
 )
 
@@ -29,6 +32,16 @@ def _get_view_silo_mode(view_func: Callable[..., HttpResponseBase]) -> frozenset
         return None
     endpoint_silo_limit: SiloLimit = view_class.silo_limit
     return endpoint_silo_limit.modes
+
+
+def _get_view_cell_resolver(
+    view_func: Callable[..., HttpResponseBase],
+) -> CellRequestResolver | None:
+    view_class = getattr(view_func, "view_class", None)
+    silo_limit = getattr(view_class, "silo_limit", None)
+    if isinstance(silo_limit, (CellSiloView, CellSiloEndpoint)):
+        return silo_limit.cell_resolver
+    return None
 
 
 async def proxy_request_if_needed(
@@ -52,6 +65,10 @@ async def proxy_request_if_needed(
     if request.resolver_match:
         url_name = request.resolver_match.url_name or url_name
 
+    shared_metric_tags = {
+        "url_name": url_name,
+        "request_method": request.method,
+    }
     if "organization_slug" in view_kwargs or "organization_id_or_slug" in view_kwargs:
         org_id_or_slug = str(
             view_kwargs.get("organization_slug") or view_kwargs.get("organization_id_or_slug", "")
@@ -60,23 +77,23 @@ async def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
-                "url_name": url_name,
+                **shared_metric_tags,
                 "kind": "orgslug",
             },
         )
         return await proxy_request(request, org_id_or_slug, url_name)
 
-    if url_name == "sentry-error-page-embed" and "dsn" in request.GET:
-        # Error embed modal is special as customers can't easily use cell URLs.
-        dsn = request.GET["dsn"]
-        metrics.incr(
-            "apigateway.proxy_request",
-            tags={
-                "url_name": url_name,
-                "kind": "error-embed",
-            },
-        )
-        return await proxy_error_embed_request(request, dsn, url_name)
+    resolver = _get_view_cell_resolver(view_func)
+    if resolver is not None:
+        cell = await sync_to_async(resolver.resolve)(request, view_func, view_kwargs)
+
+        if cell:
+            metrics.incr(
+                "apigateway.proxy_request",
+                tags={**shared_metric_tags, "kind": "cell_resolver"},
+            )
+            return await proxy_cell_request(request, cell, url_name)
+        # If no cell resolved, we drop through to the default resolution method
 
     if (
         request.resolver_match
@@ -86,7 +103,7 @@ async def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
-                "url_name": url_name,
+                **shared_metric_tags,
                 "kind": "regionpin",
             },
         )
@@ -99,8 +116,8 @@ async def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
+                **shared_metric_tags,
                 "kind": "noop",
-                "url_name": url_name,
             },
         )
         logger.info("apigateway.unknown_url", extra={"url": request.path})

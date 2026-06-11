@@ -17,7 +17,6 @@ from sentry import features, options, projectoptions, quotas, release_health, ro
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
-from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
@@ -49,6 +48,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.snuba import discover
 from sentry.tempest.utils import has_tempest_access
+from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -966,7 +966,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     defaultEnvironment: str | None
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
-    dynamicSamplingBiases: list[dict[str, str | bool]]
+    dynamicSamplingBiases: list[dict[str, str | bool]] | None
     symbolSources: str
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]

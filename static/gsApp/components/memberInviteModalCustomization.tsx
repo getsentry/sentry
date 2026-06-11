@@ -6,7 +6,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBusiness, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import TrialStarter from 'getsentry/components/trialStarter';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';

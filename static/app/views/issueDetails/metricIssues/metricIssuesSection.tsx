@@ -12,12 +12,12 @@ import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/u
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
   useMetricIssueAlertId,
   useMetricTimePeriod,
 } from 'sentry/views/issueDetails/metricIssues/utils';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface MetricIssuesSectionProps {
   group: Group;

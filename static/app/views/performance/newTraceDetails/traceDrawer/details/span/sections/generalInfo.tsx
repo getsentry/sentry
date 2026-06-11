@@ -15,7 +15,7 @@ import {FullSpanDescription} from 'sentry/views/insights/common/components/fullS
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
   TraceDrawerComponents,
   type SectionCardKeyValueList,

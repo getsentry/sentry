@@ -35,6 +35,12 @@ const MOCK_DEVICE_CONTEXT: DeviceContext = {
   manufacturer: 'Google',
   free_storage: 508784640,
   model: 'Android SDK built for x86',
+  locale: 'en_US',
+  archs: ['arm64-v8a'],
+  chipset: 'AOSP ranchu',
+  connection_type: 'cellular',
+  low_power_mode: false,
+  thermal_state: 'nominal',
 };
 
 const MOCK_REDACTION = {
@@ -74,9 +80,8 @@ describe('DeviceContext', () => {
       },
       {
         key: 'timezone',
-        subject: 'timezone',
+        subject: 'Timezone',
         value: 'America/Los_Angeles',
-        meta: undefined,
       },
       {
         key: 'external_storage_size',
@@ -132,6 +137,12 @@ describe('DeviceContext', () => {
         subject: 'Model',
         value: expect.anything(),
       },
+      {key: 'locale', subject: 'Locale', value: 'en_US'},
+      {key: 'archs', subject: 'Architectures', value: ['arm64-v8a']},
+      {key: 'chipset', subject: 'Chipset', value: 'AOSP ranchu'},
+      {key: 'connection_type', subject: 'Connection Type', value: 'cellular'},
+      {key: 'low_power_mode', subject: 'Low Power Mode', value: false},
+      {key: 'thermal_state', subject: 'Thermal State', value: 'nominal'},
     ]);
   });
 

@@ -1,9 +1,11 @@
 import sentry_sdk
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -11,6 +13,18 @@ from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
+from sentry.api.serializers.types import ReleaseSerializerResponse
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.release_examples import ReleaseExamples
+from sentry.apidocs.parameters import GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.release import Release
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
@@ -20,28 +34,39 @@ from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context
 
 
+@extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, version) -> Response:
+    @extend_schema(
+        operation_id="Retrieve a Project's Release",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            ReleaseParams.VERSION,
+            ReleaseParams.SUMMARY_STATS_PERIOD,
+            ReleaseParams.HEALTH_STATS_PERIOD,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectReleaseResponse", ReleaseSerializerResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ReleaseExamples.RETRIEVE_RELEASE,
+    )
+    def get(self, request: Request, project, version) -> Response[ReleaseSerializerResponse]:
         """
-        Retrieve a Project's Release
-        ````````````````````````````
-
         Return details on an individual release.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to retrieve the
-                                     release of.
-        :pparam string version: the version identifier of the release.
-        :auth: required
         """
         with_health = request.GET.get("health") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
@@ -61,39 +86,40 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         if with_health:
             release._for_project_id = project.id
 
-        return Response(
-            serialize(
-                release,
-                request.user,
-                project=project,
-                with_health_data=with_health,
-                summary_stats_period=summary_stats_period,
-                health_stats_period=health_stats_period,
-            )
+        data: ReleaseSerializerResponse = serialize(
+            release,
+            request.user,
+            project=project,
+            with_health_data=with_health,
+            summary_stats_period=summary_stats_period,
+            health_stats_period=health_stats_period,
         )
+        return Response(data)
 
-    def put(self, request: Request, project, version) -> Response:
+    @extend_schema(
+        operation_id="Update a Project's Release",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            ReleaseParams.VERSION,
+        ],
+        request=ReleaseSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "UpdateProjectReleaseResponse", ReleaseSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(
+        self, request: Request, project, version
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
-        Update a Project's Release
-        ``````````````````````````
-
-        Update a release.  This can change some metadata associated with
-        the release (the ref, url, and dates).
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to change the
-                                     release of.
-        :pparam string version: the version identifier of the release.
-        :param string ref: an optional commit reference.  This is useful if
-                           a tagged version has been provided.
-        :param url url: a URL that points to the release.  This can be the
-                        path to an online interface to the sourcecode
-                        for instance.
-        :param datetime dateReleased: an optional date that indicates when
-                                      the release went live.  If not provided
-                                      the current time is assumed.
-        :auth: required
+        Update a release. This can change metadata associated with the release
+        (its ref, url, dates, and status) and associate commits with it.
         """
         bind_organization_context(project.organization)
         scope = sentry_sdk.get_isolation_scope()
@@ -110,7 +136,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
 
@@ -147,25 +173,29 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
                 datetime=release.date_released,
             )
         no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        return Response(
-            serialize(
-                release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-            )
+        body: ReleaseSerializerResponse = serialize(
+            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
         )
+        return Response(body)
 
+    @extend_schema(
+        operation_id="Delete a Project's Release",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            ReleaseParams.VERSION,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(self, request: Request, project, version) -> Response:
         """
-        Delete a Project's Release
-        ``````````````````````````
-
         Permanently remove a release and all of its files.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to delete the
-                                     release of.
-        :pparam string version: the version identifier of the release.
-        :auth: required
         """
         try:
             release = Release.objects.get(

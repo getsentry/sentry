@@ -31,7 +31,7 @@ import type {Organization} from 'sentry/types/organization';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;

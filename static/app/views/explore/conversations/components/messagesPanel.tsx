@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -125,17 +126,23 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   onSelectNode={onSelectNode}
                 />
               )}
-              <StyledClippedBox
-                clipHeight={200}
-                buttonProps={{variant: 'secondary', size: 'xs'}}
-                collapsible
-              >
-                <Container padding="md">
-                  <MessageText size="sm" align="left">
-                    <AIContentRenderer text={message.content} inline />
-                  </MessageText>
-                </Container>
-              </StyledClippedBox>
+              {message.content !== '' && (
+                <StyledClippedBox
+                  clipHeight={200}
+                  buttonProps={{variant: 'secondary', size: 'xs'}}
+                  collapsible
+                >
+                  <Container padding="md">
+                    <MessageText size="sm" align="left">
+                      <AIContentRenderer
+                        text={message.content}
+                        inline
+                        autoCollapseLimit={10}
+                      />
+                    </MessageText>
+                  </Container>
+                </StyledClippedBox>
+              )}
             </MessageBubble>
           );
         })}
@@ -154,17 +161,17 @@ const MessageHeader = styled('div')<{role: 'user' | 'assistant'}>`
 
   ${p =>
     p.role === 'assistant' &&
-    `
-    position: relative;
-    &::after {
-      content: '';
-      position: absolute;
-      left: ${p.theme.space.md};
-      right: ${p.theme.space.md};
-      bottom: 0;
-      border-bottom: 1px solid ${p.theme.tokens.border.primary};
-    }
-  `}
+    css`
+      position: relative;
+      &::after {
+        content: '';
+        position: absolute;
+        left: ${p.theme.space.md};
+        right: ${p.theme.space.md};
+        bottom: 0;
+        border-bottom: 1px solid ${p.theme.tokens.border.primary};
+      }
+    `}
 `;
 
 const MessageText = styled(Text)`
@@ -185,41 +192,41 @@ const MessageBubble = styled('div')<{
 
   ${p =>
     p.role === 'assistant'
-      ? `
-    background-color: ${p.theme.tokens.background.primary};
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: 1px solid ${p.theme.tokens.border.primary};
-      border-radius: inherit;
-      box-sizing: border-box;
-      z-index: 1;
-      pointer-events: none;
-    }
-  `
+      ? css`
+          background-color: ${p.theme.tokens.background.primary};
+          &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 1px solid ${p.theme.tokens.border.primary};
+            border-radius: inherit;
+            box-sizing: border-box;
+            z-index: 1;
+            pointer-events: none;
+          }
+        `
       : ''}
 
   ${p =>
     p.isClickable &&
-    `
-    cursor: pointer;
-    &:hover::after {
-      border-color: ${p.theme.tokens.border.accent.moderate};
-      border-width: 2px;
-    }
-  `}
+    css`
+      cursor: pointer;
+      &:hover::after {
+        border-color: ${p.theme.tokens.border.accent.moderate};
+        border-width: 2px;
+      }
+    `}
   ${p =>
     p.isSelected &&
-    `
-    &::after {
-      border-color: ${p.theme.tokens.focus.default};
-      border-width: 2px;
-    }
-    &:hover::after {
-      border-color: ${p.theme.tokens.focus.default};
-    }
-  `}
+    css`
+      &::after {
+        border-color: ${p.theme.tokens.focus.default};
+        border-width: 2px;
+      }
+      &:hover::after {
+        border-color: ${p.theme.tokens.focus.default};
+      }
+    `}
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

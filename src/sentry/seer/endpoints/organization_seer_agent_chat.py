@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
@@ -112,12 +116,32 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
         "POST": ["org:read"],
     }
 
+    # Allow POST requests in demo mode to showcase Seer Agent
+    DEMO_ALLOWED_METHODS = (*SAFE_METHODS, "POST")
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
+                return False
+            return True
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
+                return False
+            org = obj.organization if hasattr(obj, "organization") else obj
+            if not is_demo_org(org):
+                return False
+            return True
+        return super().has_object_permission(request, view, obj)
+
 
 @cell_silo_endpoint
 class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
@@ -274,7 +298,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     override_ce_enable=override_ce_enable,
                     request=request,
-                )
+                ).seer_run_state_id
 
             return Response({"run_id": result_run_id})
         except SeerPermissionError as e:

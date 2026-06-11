@@ -1,36 +1,86 @@
-from typing import Any
+import logging
+import random
+import string
+from email.headerregistry import Address
+from typing import Any, TypedDict, TypeIs
 
+from django.contrib.auth.models import AnonymousUser
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.query import QuerySet
+from django.utils.text import slugify
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import NotAuthenticated, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
+from sentry import audit_log, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
     OrganizationProjectResponse,
     ProjectSummarySerializer,
 )
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.core.endpoints.team_projects import (
+    AuditData,
+    ProjectPostSerializer,
+    apply_default_project_settings,
+)
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.utils import tokenize_query
+from sentry.signals import project_created, team_created
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.users.models.user import User
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = (
     "Invalid stats_period. Valid choices are '', '1h', '24h', '7d', '14d', '30d', and '90d'"
 )
+
+
+class _LegacyParamErrorResponse(TypedDict):
+    # Legacy nested error envelope used by this endpoint's stats_period / id
+    # validation; kept as-is for wire compatibility.
+    error: dict[str, dict[str, dict[str, str]]]
+
+
+class _OrganizationProjectCreateResponse(OrganizationProjectResponse):
+    """Project-creation response: the base `OrganizationProjectResponse` shape
+    plus a `team_slug` key that the endpoint appends post-serialize to surface
+    the auto-created personal team."""
+
+    team_slug: str
+
 
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
@@ -39,6 +89,10 @@ DATASETS = {
     "metrics": metrics_performance,
 }
 
+CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
+MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
+DISABLED_FEATURE_ERROR_STRING = "Your organization has disabled this feature for members."
+
 
 def get_dataset(dataset_label: str) -> Any:
     if dataset_label not in DATASETS:
@@ -46,17 +100,43 @@ def get_dataset(dataset_label: str) -> Any:
     return DATASETS[dataset_label]
 
 
+def _generate_suffix() -> str:
+    letters = string.ascii_lowercase
+    return "".join(random.choice(letters) for _ in range(3))
+
+
+def fetch_slugifed_email_username(email: str) -> str:
+    return slugify(Address(addr_spec=email).username)
+
+
+class OrganizationProjectsPermission(StaffPermissionMixin, OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        # Intentionally lowered: org members can create projects when
+        # allowMemberProjectCreation is enabled on the org.
+        "POST": ["project:read", "project:write", "project:admin"],
+    }
+
+
 @extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationProjectsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = (OrganizationAndStaffPermission,)
+    permission_classes = (OrganizationProjectsPermission,)
+    owner = ApiOwner.FOUNDATIONS
+    logger = logging.getLogger("team-project.create")
 
     @extend_schema(
         operation_id="List an Organization's Projects",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            OrganizationParams.PROJECT_QUERY,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -68,7 +148,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.LIST_PROJECTS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[OrganizationProjectResponse]]
+        | Response[DetailResponse]
+        | Response[_LegacyParamErrorResponse]
+    ):
         """
         Return a list of projects bound to a organization.
         """
@@ -199,6 +285,177 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 on_results=serialize_on_result,
                 paginator_cls=OffsetPaginator,
             )
+
+    def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
+        return user.is_authenticated
+
+    @extend_schema(
+        tags=["Projects"],
+        operation_id="Create a Project for an Organization",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=ProjectPostSerializer,
+        responses={
+            201: ProjectSummarySerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        },
+        examples=ProjectExamples.CREATE_PROJECT,
+        description=(
+            "Create a new project for an organization. A personal team (`team-{username}`) "
+            "is automatically created for the caller with Team Admin role, and the project is "
+            "bound to it. If the org has member project creation disabled "
+            "(`disable_member_project_creation`), `org:write` scope is required."
+        ),
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[_OrganizationProjectCreateResponse]:
+        """
+        Create a new project for an organization.
+
+        Auto-creates a personal team (``team-{username}``) for the caller with Team Admin
+        role, then creates the project under that team. A random suffix is appended to the
+        team slug if the default name is already taken (up to five attempts).
+        """
+        serializer = ProjectPostSerializer(
+            data=request.data, context={"organization": organization}
+        )
+
+        if not serializer.is_valid():
+            raise ValidationError(serializer.errors)
+        if not self.should_add_creator_to_team(request.user):
+            raise NotAuthenticated("User is not authenticated")
+
+        result = serializer.validated_data
+
+        if not features.has("organizations:team-roles", organization):
+            raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
+        if organization.flags.disable_member_project_creation and not request.access.has_scope(
+            "org:write"
+        ):
+            raise PermissionDenied(detail=DISABLED_FEATURE_ERROR_STRING)
+
+        # parse the email to retrieve the username before the "@"
+        parsed_email = fetch_slugifed_email_username(request.user.email)
+
+        project_name = result["name"]
+        default_team_slug = f"team-{parsed_email}"
+        suffixed_team_slug = default_team_slug
+
+        # attempt to a maximum of 5 times to add a suffix to team slug until it is unique
+        for _ in range(5):
+            if not Team.objects.filter(organization=organization, slug=suffixed_team_slug).exists():
+                break
+            suffixed_team_slug = f"{default_team_slug}-{_generate_suffix()}"
+        else:
+            raise ConflictError(
+                {
+                    "detail": "Unable to create a default team for this user. Please try again.",
+                }
+            )
+        default_team_slug = suffixed_team_slug
+
+        try:
+            with transaction.atomic(router.db_for_write(Team)):
+                team = Team.objects.create(
+                    name=default_team_slug,
+                    slug=default_team_slug,
+                    idp_provisioned=result.get("idp_provisioned", False),
+                    organization=organization,
+                )
+                member = OrganizationMember.objects.get(
+                    user_id=request.user.id, organization=organization
+                )
+                OrganizationMemberTeam.objects.create(
+                    team=team,
+                    organizationmember=member,
+                    role="admin",
+                )
+                project = Project.objects.create(
+                    name=project_name,
+                    # slug is *not* set so we get an automatic one
+                    organization=organization,
+                    platform=result.get("platform"),
+                )
+                project.add_team(team)
+        except (IntegrityError, MaxSnowflakeRetryError):
+            raise ConflictError(
+                {
+                    "non_field_errors": [CONFLICTING_TEAM_SLUG_ERROR],
+                    "detail": CONFLICTING_TEAM_SLUG_ERROR,
+                }
+            )
+        except OrganizationMember.DoesNotExist:
+            raise PermissionDenied(
+                detail="You must be a member of the organization to join a new team as a Team Admin"
+            )
+
+        team_created.send_robust(
+            organization=organization,
+            user=request.user,
+            team=team,
+            sender=self.__class__,
+        )
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=team.id,
+            event=audit_log.get_event_id("TEAM_ADD"),
+            data=team.get_audit_log_data(),
+        )
+
+        common_audit_data: AuditData = {
+            "request": request,
+            "organization": team.organization,
+            "target_object": project.id,
+        }
+        origin = request.data.get("origin")
+        if origin:
+            self.create_audit_entry(
+                **common_audit_data,
+                event=audit_log.get_event_id("PROJECT_ADD_WITH_ORIGIN"),
+                data={
+                    **project.get_audit_log_data(),
+                    "origin": origin,
+                },
+            )
+        else:
+            self.create_audit_entry(
+                **common_audit_data,
+                event=audit_log.get_event_id("PROJECT_ADD"),
+                data={**project.get_audit_log_data()},
+            )
+
+        apply_default_project_settings(organization, project)
+
+        project_created.send_robust(
+            project=project,
+            user=request.user,
+            default_rules=result.get("default_rules", True),
+            origin=origin,
+            sender=self,
+        )
+        self.create_audit_entry(
+            request=request,
+            organization=team.organization,
+            event=audit_log.get_event_id("TEAM_AND_PROJECT_CREATED"),
+            data={"team_slug": default_team_slug, "project_slug": project_name},
+        )
+        self.logger.info(
+            "created team through project creation flow",
+            extra={"team_slug": default_team_slug, "project_slug": project_name},
+        )
+        base: OrganizationProjectResponse = serialize(
+            project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])
+        )
+        serialized_response: _OrganizationProjectCreateResponse = {
+            **base,
+            "team_slug": team.slug,
+        }
+        return Response(serialized_response, status=201)
 
 
 @cell_silo_endpoint

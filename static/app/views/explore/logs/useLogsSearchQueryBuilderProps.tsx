@@ -3,7 +3,6 @@ import {useCallback, useMemo} from 'react';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {TagCollection} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   useTraceItemSearchQueryBuilderProps,
@@ -19,6 +18,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
 export function useLogsSearchQueryBuilderProps({
+  attributeQuery,
   booleanAttributes,
   booleanSecondaryAliases,
   numberAttributes,
@@ -32,16 +32,13 @@ export function useLogsSearchQueryBuilderProps({
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  attributeQuery?: string;
 }) {
   const logsSearch = useQueryParamsSearch();
   const oldLogsSearch = usePrevious(logsSearch);
   const fields = useQueryParamsFields();
   const setQueryParams = useSetQueryParams();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
-  const organization = useOrganization();
-  const hasRawSearchReplacement = organization.features.includes(
-    'search-query-builder-raw-search-replacement'
-  );
 
   const onSearch = useCallback(
     (newQuery: string) => {
@@ -85,15 +82,16 @@ export function useLogsSearchQueryBuilderProps({
       stringSecondaryAliases,
       caseInsensitive,
       onCaseInsensitiveClick: setCaseInsensitive,
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['message'] : undefined,
+      replaceRawSearchKeys: ['message'],
       matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
       hiddenAttributeKeys: HiddenLogSearchFields,
+      attributeQuery,
     }),
     [
+      attributeQuery,
       booleanAttributes,
       booleanSecondaryAliases,
       caseInsensitive,
-      hasRawSearchReplacement,
       initialQuery,
       numberAttributes,
       numberSecondaryAliases,

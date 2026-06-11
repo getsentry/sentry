@@ -33,7 +33,7 @@ describe('PullRequestLink', () => {
     expect(screen.getByTestId('pull-request-github')).toBeInTheDocument();
 
     expect(
-      screen.getByRole('button', {name: 'example/repo-name #3: Fix first issue'})
+      screen.getByRole('link', {name: 'example/repo-name #3: Fix first issue'})
     ).toBeInTheDocument();
   });
 
@@ -49,7 +49,7 @@ describe('PullRequestLink', () => {
 
     expect(screen.getByTestId('pull-request-github')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'example/repo-name #3: Fix first issue'})
+      screen.getByRole('link', {name: 'example/repo-name #3: Fix first issue'})
     ).toBeInTheDocument();
   });
 
@@ -65,7 +65,7 @@ describe('PullRequestLink', () => {
 
     expect(screen.getByTestId('pull-request-gitlab')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'example/repo-name #3: Fix first issue'})
+      screen.getByRole('link', {name: 'example/repo-name #3: Fix first issue'})
     ).toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe('PullRequestLink', () => {
 
     expect(screen.getByTestId('pull-request-gitlab')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'example/repo-name #3: Fix first issue'})
+      screen.getByRole('link', {name: 'example/repo-name #3: Fix first issue'})
     ).toBeInTheDocument();
   });
 });

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 @cell_silo_endpoint
 class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True

@@ -118,7 +118,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
             )
         ],
     )
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[ShortIdLookupResponse]:
         """
         Resolve a short ID to the project slug and group details.
         """

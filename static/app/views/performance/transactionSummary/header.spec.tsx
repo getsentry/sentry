@@ -5,7 +5,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TransactionHeader} from 'sentry/views/performance/transactionSummary/header';
 import {Tab} from 'sentry/views/performance/transactionSummary/tabs';

@@ -107,8 +107,8 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
     conditions: list[dict]
     filters: list[dict]
     actions: list[dict]
-    actionMatch: str
-    filterMatch: str
+    actionMatch: str | None
+    filterMatch: str | None
     frequency: int
     name: str
     dateCreated: datetime
@@ -118,7 +118,7 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
 
 
 @register(Rule)
-class RuleSerializer(Serializer):
+class RuleSerializer(Serializer[RuleSerializerResponse]):
     def __init__(
         self,
         expand: list[str] | None = None,
@@ -229,10 +229,12 @@ class RuleSerializer(Serializer):
             last_triggered_lookup: dict[int, datetime] = {}
             if item_list:
                 rule_ids = [rule.id for rule in item_list]
+                org_ids = {rule.project.organization_id for rule in item_list}
                 workflow_rule_lookup = dict(
-                    AlertRuleWorkflow.objects.filter(rule_id__in=rule_ids).values_list(
-                        "workflow_id", "rule_id"
-                    )
+                    AlertRuleWorkflow.objects.filter(
+                        rule_id__in=rule_ids,
+                        workflow__organization_id__in=org_ids,
+                    ).values_list("workflow_id", "rule_id")
                 )
 
                 workflow_fire_dates = get_last_fired_dates(list(workflow_rule_lookup.keys()))
@@ -484,7 +486,9 @@ class WorkflowEngineRuleSerializer(Serializer):
                 except NoRegistrationExistsError:
                     raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
-            condition_data["name"] = handler.render_label(condition_data)
+            condition_data["name"] = handler.render_label(
+                condition_data, organization_id=project.organization_id
+            )
             return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):

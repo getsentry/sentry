@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -15,7 +16,7 @@ import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   fieldAlignment,
   parseFunction,
@@ -343,7 +344,11 @@ const TableBodyCell = styled(GridBodyCell)`
 `;
 
 const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
-  ${p => p.align && `justify-content: ${p.align};`}
+  ${p =>
+    p.align &&
+    css`
+      justify-content: ${p.align};
+    `}
   font-size: ${p => p.theme.font.size.sm};
   height: 33px;
 `;

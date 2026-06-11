@@ -24,6 +24,16 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+    action_context_scope,
+    get_action_context,
+    publish_action,
+    publish_action_from_context,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -61,6 +71,7 @@ from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
+from .lookup import get_group_list
 from .validators import GroupValidator, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -204,63 +215,81 @@ def update_groups(
     if discard:
         return handle_discard(request, groups, projects, acting_user)
 
-    status_details = result.pop("statusDetails", result)
-    status = result.get("status")
-    res_type = None
-    if "priority" in result:
-        if any(not group.issue_type.enable_user_status_and_priority_changes for group in groups):
-            return Response(
-                {"detail": "Cannot manually set priority of one or more issues."},
-                status=HTTPStatus.BAD_REQUEST,
-            )
+    # Defer to an outer context if one is already set (e.g. an inbound Slack/Discord/
+    # MS Teams action handler that wrapped this call), so the integration source is not
+    # overwritten by the request-derived source. Only the outermost boundary attributes.
+    existing_ctx = get_action_context()
+    if existing_ctx is not None:
+        source = existing_ctx.source
+        actor = existing_ctx.actor
+    else:
+        source = resolve_action_source(request)
+        actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
 
-        handle_priority(
-            priority=result["priority"],
-            group_list=groups,
-            acting_user=acting_user,
-            project_lookup=project_lookup,
-        )
-    if status in ("resolved", "resolvedInNextRelease"):
-        if any(not group.issue_type.enable_user_status_and_priority_changes for group in groups):
-            return Response(
-                {"detail": "Cannot manually resolve one or more issues."},
-                status=HTTPStatus.BAD_REQUEST,
-            )
+    with action_context_scope(source=source, actor=actor):
+        status_details = result.pop("statusDetails", result)
+        status = result.get("status")
+        res_type = None
+        if "priority" in result:
+            if any(
+                not group.issue_type.enable_user_status_and_priority_changes for group in groups
+            ):
+                return Response(
+                    {"detail": "Cannot manually set priority of one or more issues."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
 
-        try:
-            result, res_type = handle_resolve_in_release(
-                status,
-                status_details,
+            handle_priority(
+                priority=result["priority"],
+                group_list=groups,
+                acting_user=acting_user,
+                project_lookup=project_lookup,
+            )
+        if status in ("resolved", "resolvedInNextRelease"):
+            if any(
+                not group.issue_type.enable_user_status_and_priority_changes for group in groups
+            ):
+                return Response(
+                    {"detail": "Cannot manually resolve one or more issues."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+
+            try:
+                result, res_type = handle_resolve_in_release(
+                    status,
+                    status_details,
+                    groups,
+                    projects,
+                    project_lookup,
+                    acting_user,
+                    result,
+                )
+            except MultipleProjectsError:
+                return Response(
+                    {"detail": "Cannot set resolved for multiple projects."}, status=400
+                )
+        elif status:
+            result = handle_other_status_updates(
+                result,
                 groups,
                 projects,
                 project_lookup,
+                status_details,
                 acting_user,
-                result,
             )
-        except MultipleProjectsError:
-            return Response({"detail": "Cannot set resolved for multiple projects."}, status=400)
-    elif status:
-        result = handle_other_status_updates(
+
+        return prepare_response(
+            request,
             result,
             groups,
-            projects,
             project_lookup,
-            status_details,
+            projects,
             acting_user,
+            data,
+            res_type,
+            request.META.get("HTTP_REFERER", ""),
+            organization,
         )
-
-    return prepare_response(
-        request,
-        result,
-        groups,
-        project_lookup,
-        projects,
-        acting_user,
-        data,
-        res_type,
-        request.META.get("HTTP_REFERER", ""),
-        organization,
-    )
 
 
 def update_groups_with_search_fn(
@@ -323,44 +352,6 @@ def validate_request(
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
     return serializer
-
-
-def get_group_list(
-    organization_id: int,
-    projects: Sequence[Project],
-    group_ids: Sequence[int | str],
-) -> list[Group]:
-    """
-    Gets group list based on provided filters.
-
-    Args:
-        organization_id: ID of the organization
-        projects: Sequence of projects to filter groups by
-        group_ids: Sequence of specific group IDs to fetch
-
-    Returns: List of Group objects filtered to only valid groups in the org/projects
-    """
-    groups: list[Group] = []
-    # Convert all group IDs to integers and filter out any non-integer values
-    group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
-    if group_ids_int:
-        return list(
-            Group.objects.filter(
-                project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
-            ).select_related("project")
-        )
-    else:
-        project_ids = {p.id for p in projects}
-        for group_id in group_ids:
-            if isinstance(group_id, str):
-                try:
-                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
-                except Group.DoesNotExist:
-                    continue
-                if group.project_id in project_ids:
-                    groups.append(group)
-
-    return groups
 
 
 def handle_resolve_in_release(
@@ -486,6 +477,7 @@ def handle_resolve_in_release(
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
+            commit_id=commit.id if commit else None,
             sender=update_groups,
         )
 
@@ -665,6 +657,12 @@ def process_group_resolution(
             data=dict(activity_data),
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
+        publish_action_from_context(
+            ResolveAction(),
+            group_id=group.id,
+            organization_id=group.project.organization_id,
+            project_id=group.project_id,
+        )
 
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
@@ -729,9 +727,10 @@ def handle_other_status_updates(
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
-        status_updated = queryset.exclude(status=new_status).update(
-            status=new_status, substatus=new_substatus
+        status_updated = queryset.exclude(status=new_status).update_with_returning(
+            ["id"], status=new_status, substatus=new_substatus
         )
+        changed_group_ids = {row[0] for row in status_updated}
         GroupResolution.objects.filter(group__in=group_ids).delete()
         # Also delete commit/PR resolution links when unresolving to prevent
         # showing old "resolved by commit" after manual re-resolution
@@ -752,9 +751,10 @@ def handle_other_status_updates(
         else:
             result["statusDetails"] = {}
 
-    if group_list and status_updated:
+    changed_group_list = [group for group in group_list if group.id in changed_group_ids]
+    if changed_group_list:
         handle_status_update(
-            group_list=group_list,
+            group_list=changed_group_list,
             projects=projects,
             project_lookup=project_lookup,
             new_status=new_status,
@@ -831,6 +831,31 @@ def prepare_response(
             acting_user,
             urlparse(referer).path,
         )
+        ctx = get_action_context()
+        if ctx is not None and isinstance(result["merge"], dict):
+            merged = result["merge"]
+            primary_id = int(merged["parent"])
+            child_ids = [int(c) for c in merged["children"]]
+            group_by_id = {g.id: g for g in group_list}
+            primary = group_by_id[primary_id]
+            publish_action(
+                MergeFromOtherAction(counterpart_group_ids=child_ids),
+                source=ctx.source,
+                group_id=primary_id,
+                organization_id=primary.project.organization_id,
+                project_id=primary.project_id,
+                actor=ctx.actor,
+            )
+            for child_id in child_ids:
+                child = group_by_id[child_id]
+                publish_action(
+                    MergeIntoOtherAction(counterpart_group_id=primary_id),
+                    source=ctx.source,
+                    group_id=child_id,
+                    organization_id=child.project.organization_id,
+                    project_id=child.project_id,
+                    actor=ctx.actor,
+                )
 
     inbox = result.get("inbox", None)
     if inbox is not None:
@@ -880,22 +905,15 @@ def greatest_semver_release(project: Project) -> Release | None:
 
 
 def get_semver_releases(project: Project) -> QuerySet[Release]:
-    order_by_build_code = features.has(
-        "organizations:semver-ordering-with-build-code", project.organization
-    )
-
-    semver_cols = (
-        Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
-    )
+    semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
 
     qs = (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
+        .annotate_build_code_column()
     )
-    if order_by_build_code:
-        qs = qs.annotate_build_code_column()
     return qs.order_by(*[f"-{col}" for col in semver_cols])
 
 

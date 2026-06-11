@@ -345,7 +345,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERIES_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ExploreSavedQueryResponse]]:
         """
         Retrieve a list of saved queries that are associated with the given organization.
         """

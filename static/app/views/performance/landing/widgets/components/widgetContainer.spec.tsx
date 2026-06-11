@@ -3,11 +3,11 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';

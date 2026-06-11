@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useImperativeHandle, useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
 import type {AriaSliderProps, AriaSliderThumbOptions} from '@react-aria/slider';
@@ -364,8 +365,16 @@ const SliderLowerTrack = styled('div')<{disabled: boolean; error: boolean}>`
   background: ${p => p.theme.tokens.background.accent.vibrant};
   pointer-events: none;
 
-  ${p => p.error && `background: ${p.theme.tokens.background.danger.vibrant};`}
-  ${p => p.disabled && `background: ${p.theme.tokens.background.secondary};`}
+  ${p =>
+    p.error &&
+    css`
+      background: ${p.theme.tokens.background.danger.vibrant};
+    `}
+  ${p =>
+    p.disabled &&
+    css`
+      background: ${p.theme.tokens.background.secondary};
+    `}
 `;
 
 const SliderTick = styled('div')<{
@@ -387,13 +396,14 @@ const SliderTick = styled('div')<{
 
   ${p =>
     p.inSelection &&
-    `background: ${
-      p.disabled
+    css`
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      background: ${p.disabled
         ? p.theme.tokens.content.disabled
         : p.error
           ? p.theme.tokens.content.danger
-          : p.theme.tokens.interactive.link.accent.active
-    };`}
+          : p.theme.tokens.interactive.link.accent.active};
+    `}
 `;
 
 const SliderTickLabel = styled('small')`

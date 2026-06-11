@@ -1,11 +1,11 @@
 import logging
-import random
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
-from sentry import options, ratelimits
+from sentry import ratelimits
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
+from sentry.options.rollout import in_random_rollout
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 
@@ -91,7 +91,7 @@ class BaseDataForwarder(ABC):
             return
 
         event_payload = self.get_event_payload(event=event, config=config)
-        if random.random() < options.get("data-forwarding.task-rollout-rate"):
+        if in_random_rollout("data-forwarding.task-rollout-rate"):
             task_payload = self.get_task_payload(event=event, config=config)
             forward_event.delay(
                 data_forwarder_project_id=data_forwarder_project.id,
@@ -103,3 +103,6 @@ class BaseDataForwarder(ABC):
             )
         else:
             self.forward_event(event=event, payload=event_payload, config=config)
+            metrics.incr(
+                "data_forwarding.post_process.directly_forwarded", tags={"provider": self.provider}
+            )

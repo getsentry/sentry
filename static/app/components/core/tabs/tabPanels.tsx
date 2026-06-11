@@ -100,7 +100,7 @@ const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
       : css`
           width: 100%;
           padding-left: ${p.theme.space.md};
-        `};
+        `}
 
   &:focus-visible {
     outline: none;

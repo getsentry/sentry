@@ -1,9 +1,11 @@
 import trimStart from 'lodash/trimStart';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {Client} from 'sentry/api';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';

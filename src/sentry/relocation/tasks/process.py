@@ -971,11 +971,11 @@ class NextTask:
     the task to be scheduled at some later point in the execution.
     """
 
-    task: Task
+    task: Task[..., Any]
     args: list[Any]
     countdown: int | None = None
 
-    def schedule(self):
+    def schedule(self) -> None:
         """
         Run the `.apply_async()` call defined by this future.
         """
@@ -1126,7 +1126,7 @@ def validating_start(uuid: str) -> None:
     ):
         cb_client = CloudBuildClient()
 
-        def camel_to_snake_keep_underscores(value):
+        def camel_to_snake_keep_underscores(value: str) -> str:
             match = re.search(r"(_++)$", value)
             converted = camel_to_snake_case(value)
             return converted + (match.group(0) if match else "")
@@ -1708,11 +1708,11 @@ def completed(uuid: str) -> None:
     processing_deadline_duration=FAST_TIME_LIMIT,
     silo_mode=SiloMode.CELL,
 )
-def noop():
+def noop() -> None:
     pass
 
 
-TASK_MAP: dict[OrderedTask, Task] = {
+TASK_MAP: dict[OrderedTask, Task[..., Any]] = {
     OrderedTask.NONE: noop,
     OrderedTask.UPLOADING_START: uploading_start,
     OrderedTask.UPLOADING_COMPLETE: uploading_complete,
@@ -1735,7 +1735,7 @@ TASK_MAP: dict[OrderedTask, Task] = {
 assert set(OrderedTask._member_map_.keys()) == {k.name for k in TASK_MAP.keys()}
 
 
-def get_first_task_for_step(target_step: Relocation.Step) -> Task | None:
+def get_first_task_for_step(target_step: Relocation.Step) -> Task[..., Any] | None:
     min_task: OrderedTask | None = None
     for ordered_task, step in TASK_TO_STEP.items():
         if step == target_step:

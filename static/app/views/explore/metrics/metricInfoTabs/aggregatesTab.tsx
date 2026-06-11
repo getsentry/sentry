@@ -222,6 +222,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
               isAggregate={
                 Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field))
               }
+              source="metricsPage"
               sort={direction}
               handleSortClick={canSort ? updateSort : undefined}
             >
@@ -255,6 +256,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                     key={j}
                     isAggregate={Boolean(parseFunction(field))}
                     offset={j === 0 ? firstColumnOffset : undefined}
+                    source="metricsPage"
                   >
                     <FieldRenderer
                       column={displayColumns.find(column => column.key === field)}

@@ -92,7 +92,8 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
 
     @handled_snuba_exceptions
     @extend_schema(
-        operation_id="List an Organization's Selectors",
+        operation_id="listOrganizationReplaySelectors",
+        summary="List an Organization's Selectors",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
@@ -108,7 +109,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
         },
         examples=ReplayExamples.GET_SELECTORS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[ReplaySelectorResponse]:
         """Return a list of selectors for a given organization."""
         self.check_replay_access(request, organization)
 

@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';

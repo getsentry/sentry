@@ -8,7 +8,11 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 
 interface PlainTextQueryInputProps {
@@ -17,8 +21,9 @@ interface PlainTextQueryInputProps {
 
 export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const {query, parsedQuery, dispatch, handleSearch, size, placeholder, disabled} =
-    useSearchQueryBuilder();
+  const {query, parsedQuery, dispatch, handleSearch} = useSearchQueryBuilderState();
+  const {placeholder, disabled} = useSearchQueryBuilderConfig();
+  const {size} = useSearchQueryBuilderLayout();
   const [cursorPosition, setCursorPosition] = useState(0);
 
   const setCursorPositionOnEvent = (event: SyntheticEvent<HTMLTextAreaElement>) => {

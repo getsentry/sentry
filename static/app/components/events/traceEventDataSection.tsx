@@ -14,12 +14,13 @@ import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),

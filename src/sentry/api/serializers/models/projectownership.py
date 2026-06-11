@@ -41,7 +41,7 @@ class ProjectOwnershipResponse(ProjectOwnershipResponseOptional):
 
 
 @register(ProjectOwnership)
-class ProjectOwnershipSerializer(Serializer):
+class ProjectOwnershipSerializer(Serializer[ProjectOwnershipResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> ProjectOwnershipResponse:
         assignment = (
             "Auto Assign to Suspect Commits"

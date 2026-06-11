@@ -5,7 +5,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/eventGraphWidget';
 
 export type ChartId = keyof typeof CHART_MAP;
 interface Props extends LoadableChartWidgetProps {
@@ -18,8 +18,7 @@ interface Props extends LoadableChartWidgetProps {
 }
 // We need to map the widget id to the dynamic import because we want the import paths to be statically analyzable.
 const CHART_MAP = {
-  [EVENT_GRAPH_WIDGET_ID]: () =>
-    import('sentry/views/issueDetails/streamline/eventGraphWidget'),
+  [EVENT_GRAPH_WIDGET_ID]: () => import('sentry/views/issueDetails/eventGraphWidget'),
 } satisfies Record<string, () => Promise<{default: React.FC<LoadableChartWidgetProps>}>>;
 
 /**

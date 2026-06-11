@@ -18,7 +18,7 @@ class WebhookPresenter(OptionsPresenter):
     be configured to your liking.
     """
 
-    MAX_OPTION_VALUE_LENGTH = 30
+    MAX_OPTION_VALUE_LENGTH = 100
 
     def __init__(self, source: str, timestamp: float | None = None) -> None:
         self.source = source

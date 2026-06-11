@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IntegrationParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.api.serializers.models.integration import (
     IntegrationProviderResponse,
@@ -49,7 +50,9 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         },
         examples=IntegrationExamples.ORGANIZATION_CONFIG_INTEGRATIONS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[OrganizationConfigIntegrationsEndpointResponse] | Response[DetailResponse]:
         """
         Get integration provider information about all available integrations for an organization.
         """

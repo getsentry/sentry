@@ -42,7 +42,7 @@ from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.context import GroupingContext
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 
 logger = logging.getLogger(__name__)
@@ -302,7 +302,7 @@ def get_function_component(
     interface=Frame,
 )
 def frame(
-    interface: Frame, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Frame, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     frame = interface
     platform = frame.platform or event.platform
@@ -413,7 +413,7 @@ def get_contextline_component(
 
 @strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
 def stacktrace(
-    interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Stacktrace, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     assert context.get("variant_name") is None
 
@@ -480,7 +480,7 @@ def stacktrace(
 
 
 def _single_stacktrace_variant(
-    stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
+    stacktrace: Stacktrace, event: BaseEvent, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
     assert variant_name is not None
@@ -552,7 +552,7 @@ def stacktrace_variant_processor(
     interface=SingleException,
 )
 def single_exception(
-    interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
+    interface: SingleException, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     exception = interface
 
@@ -643,7 +643,7 @@ def single_exception(
 
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
-    interface: ChainedException, event: Event, context: GroupingContext, **kwargs: Any
+    interface: ChainedException, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
@@ -721,7 +721,7 @@ def chained_exception(
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
     exception_components: dict[int, dict[str, ExceptionGroupingComponent]],
-    event: Event,
+    event: BaseEvent,
 ) -> list[SingleException]:
     """
     Attempt to filter exceptions in exception groups in order to deduplicate sibling exceptions, and
@@ -870,7 +870,7 @@ def chained_exception_variant_processor(
 
 @strategy(ids=["threads:v1"], interface=Threads, score=1900)
 def threads(
-    interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Threads, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
     thread_components = _get_thread_components(crashed_threads, event, context, **kwargs)
@@ -900,7 +900,10 @@ def threads(
 
 
 def _get_thread_components(
-    threads: list[dict[str, Any]], event: Event, context: GroupingContext, **kwargs: dict[str, Any]
+    threads: list[dict[str, Any]],
+    event: BaseEvent,
+    context: GroupingContext,
+    **kwargs: dict[str, Any],
 ) -> ComponentsByVariant | None:
     if len(threads) != 1:
         return None
@@ -1052,7 +1055,7 @@ MAIN_EXCEPTION_ID_FUNCS = [
 ]
 
 
-def _maybe_override_main_exception_id(event: Event, exceptions: list[SingleException]) -> None:
+def _maybe_override_main_exception_id(event: BaseEvent, exceptions: list[SingleException]) -> None:
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
         main_exception_id = func(exceptions)

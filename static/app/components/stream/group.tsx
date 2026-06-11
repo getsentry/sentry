@@ -37,8 +37,9 @@ import type {
 } from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {defined, percent} from 'sentry/utils';
+import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -762,7 +763,7 @@ const Wrapper = styled(PanelItem)<{
   padding: ${p => p.theme.space.md} 0;
   min-height: 82px;
 
-  &:not(:has(:hover)):not(:has(input:checked)) {
+  &:not(:has(:hover)):not(:has(input:checked)):not(:focus-within) {
     ${CheckboxLabel} {
       ${p => p.theme.visuallyHidden};
     }
@@ -818,7 +819,7 @@ const Wrapper = styled(PanelItem)<{
           background-color: ${p.theme.tokens.background.secondary};
         }
       }
-    `};
+    `}
 `;
 
 const GroupSummary = styled('div')<{canSelect: boolean}>`

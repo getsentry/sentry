@@ -14,7 +14,7 @@ from sentry.utils.safe import get_path
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
     from sentry.grouping.context import GroupingContext
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 
 def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:
@@ -116,7 +116,7 @@ def _trim_extra_lines(input_str: str) -> str:
     return trimmed
 
 
-def get_canonical_message_from_event(event: Event) -> str:
+def get_canonical_message_from_event(event: BaseEvent) -> str:
     """
     Get the event's message for purposes of grouping, i.e., what would be used as the value for
     the `{{ message }}` variable. Returns an empty string if no message can be found.
@@ -129,7 +129,7 @@ def get_canonical_message_from_event(event: Event) -> str:
     )
 
 
-def get_all_messages_from_event(event: Event) -> set[str]:
+def get_all_messages_from_event(event: BaseEvent) -> set[str]:
     """
     Get all messages contained in the event. Looks at log messages and exceptions, including
     exception chains.

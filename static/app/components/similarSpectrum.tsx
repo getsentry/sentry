@@ -35,5 +35,5 @@ const SpectrumItem = styled('span')<ItemProps>`
   border-radius: 2px;
   margin: 5px;
   width: 14px;
-  ${p => `background-color: ${SIMILARITY_SCORE_COLORS[p.colorIndex]};`};
+  background-color: ${p => SIMILARITY_SCORE_COLORS[p.colorIndex]};
 `;

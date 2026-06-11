@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -16,26 +16,23 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
-import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
   ExploreContentSection,
   ExploreControlSection,
-  ExploreSchemaHintsSection,
 } from 'sentry/views/explore/components/styles';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -72,7 +69,6 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {useOurLogsSchemaHintsRemoval} from 'sentry/views/explore/logs/tables/useOurLogsSchemaHintsRemoval';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
@@ -110,7 +106,7 @@ interface LogsSearchBarProps {
 }
 
 function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <LogsTabSeerComboBox />;
@@ -121,15 +117,12 @@ function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) 
 
 interface LogsSearchSectionProps {
   datePageFilterProps: DatePageFilterProps;
-  searchBarWidthOffset?: number;
 }
 
 const LogsSearchSection = memo(function LogsSearchSection({
   datePageFilterProps,
-  searchBarWidthOffset,
 }: LogsSearchSectionProps) {
   const logsSearch = useQueryParamsSearch();
-  const logsSearchQuery = logsSearch.formatString();
   const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
   const [interval] = useChartInterval();
@@ -145,21 +138,12 @@ const LogsSearchSection = memo(function LogsSearchSection({
     sortBys: aggregateSortBys,
   });
 
-  const {
-    attributes: stringAttributes,
-    isLoading: stringAttributesLoading,
-    secondaryAliases: stringSecondaryAliases,
-  } = useLogItemAttributes({}, 'string', HiddenLogSearchFields);
-  const {
-    attributes: numberAttributes,
-    isLoading: numberAttributesLoading,
-    secondaryAliases: numberSecondaryAliases,
-  } = useLogItemAttributes({}, 'number', HiddenLogSearchFields);
-  const {
-    attributes: booleanAttributes,
-    isLoading: booleanAttributesLoading,
-    secondaryAliases: booleanSecondaryAliases,
-  } = useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useLogItemAttributes({}, 'string', HiddenLogSearchFields);
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useLogItemAttributes({}, 'number', HiddenLogSearchFields);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
@@ -171,15 +155,10 @@ const LogsSearchSection = memo(function LogsSearchSection({
       stringSecondaryAliases,
     });
 
-  const supportedAggregates = useMemo<AggregationKey[]>(() => {
-    return [];
-  }, []);
-
   const organization = useOrganization();
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
-  const schemaHintsRemoval = useOurLogsSchemaHintsRemoval();
 
   return (
     <SearchQueryBuilderProvider
@@ -222,24 +201,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             )}
           </LogsFilterSection>
-          {!schemaHintsRemoval && (
-            <ExploreSchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={supportedAggregates}
-                booleanTags={booleanAttributes}
-                numberTags={numberAttributes}
-                stringTags={stringAttributes}
-                isLoading={
-                  numberAttributesLoading ||
-                  stringAttributesLoading ||
-                  booleanAttributesLoading
-                }
-                exploreQuery={logsSearchQuery}
-                source={SchemaHintsSources.LOGS}
-                searchBarWidthOffset={searchBarWidthOffset}
-              />
-            </ExploreSchemaHintsSection>
-          )}
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
@@ -248,6 +209,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
 
 function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const {openModal} = useModal();
+  const organization = useOrganization();
 
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
@@ -283,7 +245,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const [_, setPersistentParams] = usePersistedLogsPageParams();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
-  const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
   const [interval] = useChartInterval();
 
@@ -393,6 +354,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = (tab: 'aggregates' | 'logs') => {
+    trackAnalytics('logs.explorer.table_tab_changed', {organization, tab});
     if (tab === 'aggregates') {
       setSidebarOpen(true);
       setMode(Mode.AGGREGATE);
@@ -402,9 +364,19 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   };
 
   /**
-   * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 hour.
+   * Manual refresh doesn't work for longer relative periods as it hits cacheing.
+   * Only allow manual refresh if the relative period or absolute time range is less than 1 hour,
+   * or if auto-refresh is disabled.
    */
   const {canManuallyRefresh, manualRefreshDisabledReason} = useMemo(() => {
+    if (autorefreshEnabled) {
+      return {
+        canManuallyRefresh: false,
+        manualRefreshDisabledReason: t(
+          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh the table.'
+        ),
+      };
+    }
     if (pageFilters.selection.datetime.period) {
       const parsedPeriod = parsePeriodToHours(pageFilters.selection.datetime.period);
       if (parsedPeriod <= 1) {
@@ -440,16 +412,13 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
         'Manual refresh is only available for time ranges of 1 hour or less.'
       ),
     };
-  }, [pageFilters.selection.datetime]);
+  }, [pageFilters.selection.datetime, autorefreshEnabled]);
 
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
     <LogsSidebarProvider value={setSidebarOpen}>
-      <LogsSearchSection
-        datePageFilterProps={datePageFilterProps}
-        searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
-      />
+      <LogsSearchSection datePageFilterProps={datePageFilterProps} />
       <ViewportConstrainedPage constrained={mode === Mode.SAMPLES} hideFooter>
         <ViewportConstrainedBody>
           <LogsControlSection expanded={sidebarOpen}>

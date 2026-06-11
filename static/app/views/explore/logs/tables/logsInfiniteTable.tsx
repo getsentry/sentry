@@ -27,13 +27,13 @@ import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {defined} from 'sentry/utils/defined';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {
   TableBodyCell,
   TableHead,
-  TableHeadCell,
   TableHeadCellContent,
   TableRow,
   TableStatus,
@@ -48,7 +48,8 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
-import {LogsPinningProvider} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -57,6 +58,7 @@ import {
   LOGS_GRID_BODY_ROW_HEIGHT,
   LogTable,
   LogTableBody,
+  LogTableHeadCell,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
@@ -231,6 +233,7 @@ export function LogsInfiniteTable({
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
+  const {top: backToTopOffset} = useElementOffset(tableBodyRef, tableRef);
   const [expandedLogRows, setExpandedLogRows] = useState(
     new Set(embeddedOptions?.openWithExpandedIds)
   );
@@ -238,6 +241,7 @@ export function LogsInfiniteTable({
     Record<string, number>
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
@@ -445,10 +449,13 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const logsPinning = useLogsPinning();
+  const pinnedLogsQuery = usePinnedLogsQuery({allRows: data, logsPinning});
+
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
-      const pinnedId = dataRow[OurLogKnownFieldKey.ID];
-      const pinnedExpandKey = `pinned-${pinnedId}`;
+      const rowId = dataRow[OurLogKnownFieldKey.ID];
+      const pinnedExpandKey = `pinned-${rowId}`;
       return (
         <LogRowContent
           dataRow={dataRow}
@@ -463,6 +470,10 @@ export function LogsInfiniteTable({
           onExpandHeight={handleExpandHeight}
           logStart={logStart}
           logEnd={logEnd}
+          isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+          isHoverLinked={hoveredRowId === rowId}
+          setHoveredRowId={setHoveredRowId}
+          togglePinnedRow={logsPinning?.togglePinnedRow}
         />
       );
     },
@@ -472,8 +483,10 @@ export function LogsInfiniteTable({
       handleExpand,
       handleExpandHeight,
       highlightTerms,
+      hoveredRowId,
       logEnd,
       logStart,
+      logsPinning,
       meta,
     ]
   );
@@ -505,7 +518,7 @@ export function LogsInfiniteTable({
   }
 
   return (
-    <LogsPinningProvider>
+    <Fragment>
       <LogTable
         ref={tableRef}
         style={initialTableStyles}
@@ -525,7 +538,14 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
-        {!isPending && <PinnedLogs allRows={data} renderRow={renderRow} />}
+        {!isPending && logsPinning && (
+          <PinnedLogs
+            allRows={data}
+            logsPinning={logsPinning}
+            pinnedLogsQuery={pinnedLogsQuery}
+            renderRow={renderRow}
+          />
+        )}
         <LogTableBody
           showHeader={!embedded}
           ref={tableBodyRef}
@@ -593,6 +613,10 @@ export function LogsInfiniteTable({
                   onExpandHeight={handleExpandHeight}
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                  isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  isHoverLinked={hoveredRowId === rowId}
+                  setHoveredRowId={setHoveredRowId}
+                  togglePinnedRow={logsPinning?.togglePinnedRow}
                 />
               </Fragment>
             );
@@ -613,6 +637,7 @@ export function LogsInfiniteTable({
         position="absolute"
         inReplay={!!embeddedOptions?.replay}
         tableWidth={tableWidth}
+        topOffset={backToTopOffset}
       >
         {!embeddedOptions?.replay && (
           <BackToTopButton
@@ -632,7 +657,7 @@ export function LogsInfiniteTable({
           <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBottomContainer>
-    </LogsPinningProvider>
+    </Fragment>
   );
 }
 
@@ -651,6 +676,7 @@ function LogsTableHeader({
   const setSortBys = useSetQueryParamsSortBys();
 
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const pinningEnabled = !!useLogsPinning();
   return (
     <TableHead>
       <LogTableRow>
@@ -670,13 +696,20 @@ function LogsTableHeader({
           );
 
           if (isPending) {
-            return <TableHeadCell key={index} isFirst={index === 0} />;
+            return (
+              <LogTableHeadCell
+                key={index}
+                isFirst={index === 0}
+                reservePinGutter={pinningEnabled && index === fields.length - 1}
+              />
+            );
           }
           return (
-            <TableHeadCell
+            <LogTableHeadCell
               align={index === 0 ? 'left' : align}
               key={index}
               isFirst={index === 0}
+              reservePinGutter={pinningEnabled && index === fields.length - 1}
             >
               <TableHeadCellContent
                 onClick={
@@ -719,7 +752,7 @@ function LogsTableHeader({
                   onMouseDown={e => onResizeMouseDown(e, index)}
                 />
               )}
-            </TableHeadCell>
+            </LogTableHeadCell>
           );
         })}
       </LogTableRow>

@@ -96,7 +96,7 @@ def initialize_integration_pipeline(
             % "\n".join(is_feature_enabled)
         )
 
-    if not pipeline.provider.can_add:
+    if not pipeline.provider.can_add and not pipeline.provider.can_add_externally:
         raise IntegrationPipelineError("Integration cannot be added.", not_found=True)
 
     pipeline.initialize()
@@ -141,7 +141,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
     ) -> Sequence[
         PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
     ]:
-        return self.provider.get_pipeline_views()
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline] | None:
         return self.provider.get_pipeline_api_steps()

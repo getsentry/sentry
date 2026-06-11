@@ -46,7 +46,9 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
         },
     )
-    def get(self, request: AuthenticatedHttpRequest, organization: Organization) -> Response:
+    def get(
+        self, request: AuthenticatedHttpRequest, organization: Organization
+    ) -> Response[DetectorCountResponse]:
         """
         Retrieves the count of detectors for an organization.
         """

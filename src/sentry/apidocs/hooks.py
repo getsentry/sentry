@@ -10,9 +10,6 @@ from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
-from sentry.apidocs.api_publish_status_allowlist_dont_modify import (
-    API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY,
-)
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
 
@@ -80,7 +77,6 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
             ApiPublishStatus.EXPERIMENTAL.value: sorted(
                 ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
             ),
-            ApiPublishStatus.UNKNOWN.value: sorted(ownership_data[team][ApiPublishStatus.UNKNOWN]),
         }
         index += __get_line_count_for_team_stats(ownership_data[team])
     dir = os.path.dirname(os.path.realpath(__file__))
@@ -121,7 +117,6 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         owner_team = callback.view_class.owner
         if owner_team not in ownership_data:
             ownership_data[owner_team] = {
-                ApiPublishStatus.UNKNOWN: set(),
                 ApiPublishStatus.PUBLIC: set(),
                 ApiPublishStatus.PRIVATE: set(),
                 ApiPublishStatus.EXPERIMENTAL: set(),
@@ -135,18 +130,11 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                     + "If you can't find your team in ApiOwners feel free to add the associated github group. ",
                 )
 
-        # Fail if method is not included in publish_status or has unknown status
-        if (
-            method not in callback.view_class.publish_status
-            or callback.view_class.publish_status[method] is ApiPublishStatus.UNKNOWN
-        ):
-            if (
-                path not in API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY
-                or method not in API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY[path]
-            ):
-                raise SentryApiBuildError(
-                    f"All methods must have a known publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
-                )
+        # Fail if a method does not declare a publish_status
+        if method not in callback.view_class.publish_status:
+            raise SentryApiBuildError(
+                f"All methods must declare a publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
+            )
 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass

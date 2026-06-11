@@ -851,7 +851,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-workflow-index"
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(self, request: Request, project: Project) -> Response[list[RuleSerializerResponse]]:
         """
         ## Deprecated
         🚧 Use [Fetch an Organization's Monitors](/api/monitors/fetch-an-organizations-monitors) and [Fetch Alerts](/api/monitors/fetch-alerts) instead.
@@ -1064,7 +1064,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             "organizations:workflow-engine-issue-alert-endpoints-post", project.organization
         ):
             try:
-                workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+                workflow = AlertRuleWorkflow.objects.get(
+                    rule_id=rule.id,
+                    workflow__organization=project.organization,
+                ).workflow
                 return Response(
                     serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
                     status=201,

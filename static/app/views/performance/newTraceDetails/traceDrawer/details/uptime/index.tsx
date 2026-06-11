@@ -95,6 +95,7 @@ function UptimeSpanNodeDetails(props: UptimeSpanNodeDetailsProps) {
     traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.UPTIME_RESULTS,
     referrer: 'api.explore.log-item-details', // TODO: change to span details
+    timestamp: node.value.start_timestamp,
     enabled: true,
   });
 

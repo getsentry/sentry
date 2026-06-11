@@ -1,3 +1,84 @@
+from sentry.utils import json
+
+
+def push_event_with_author(*, name: str, email: str, username: str | None = None) -> str:
+    """Build a minimal push event body with a single commit by the given author.
+
+    Unlike ``PUSH_EVENT_EXAMPLE_INSTALLATION``, this is not a raw string with a precomputed
+    signature: callers are expected to sign the returned body themselves, so field ordering is
+    irrelevant here.
+    """
+    author: dict[str, str] = {"name": name, "email": email}
+    if username is not None:
+        author["username"] = username
+    return json.dumps(
+        {
+            "ref": "refs/heads/main",
+            "installation": {"id": 12345},
+            "commits": [
+                {
+                    "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
+                    "distinct": True,
+                    "message": "Update hello.py",
+                    "timestamp": "2015-05-05T19:45:15-04:00",
+                    "author": author,
+                    "added": [],
+                    "removed": [],
+                    "modified": ["hello.py"],
+                }
+            ],
+            "repository": {
+                "id": 35129377,
+                "full_name": "baxterthehacker/public-repo",
+                "html_url": "https://github.com/baxterthehacker/public-repo",
+            },
+        }
+    )
+
+
+def push_event_with_commit_authors(authors: list[dict[str, str | None]]) -> str:
+    """Build a push event body with one distinct commit per provided author.
+
+    Each entry in ``authors`` is a mapping with ``name`` and ``email`` keys and an
+    optional ``username`` key. This is useful for exercising behavior across
+    multiple distinct commits within a single push (e.g. when a later commit for
+    the same email carries a GitHub username the earlier commit was missing).
+
+    Like ``push_event_with_author``, callers are expected to sign the returned
+    body themselves.
+    """
+    commits = []
+    for i, entry in enumerate(authors):
+        author: dict[str, str] = {"name": entry["name"], "email": entry["email"]}  # type: ignore[dict-item]
+        if entry.get("username") is not None:
+            author["username"] = entry["username"]  # type: ignore[assignment]
+        commits.append(
+            {
+                # Commit keys must be unique within a repository.
+                "id": f"{i:040x}",
+                "distinct": True,
+                "message": "Update hello.py",
+                "timestamp": "2015-05-05T19:45:15-04:00",
+                "author": author,
+                "added": [],
+                "removed": [],
+                "modified": ["hello.py"],
+            }
+        )
+    return json.dumps(
+        {
+            "ref": "refs/heads/main",
+            "installation": {"id": 12345},
+            "commits": commits,
+            "repository": {
+                "id": 35129377,
+                "full_name": "baxterthehacker/public-repo",
+                "html_url": "https://github.com/baxterthehacker/public-repo",
+            },
+        }
+    )
+
+
 # we keep this as a raw string as order matters for hmac signing
 PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
   "ref": "refs/heads/changes",

@@ -8,7 +8,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasZoomOrScroll';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
   useCanvasScheduler,

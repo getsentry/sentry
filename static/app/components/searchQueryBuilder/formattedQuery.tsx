@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderConfig,
 } from 'sentry/components/searchQueryBuilder/context';
 import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
@@ -54,7 +54,7 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
+  const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const label = useMemo(
     () =>
       getOperatorInfo({

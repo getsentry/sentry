@@ -22,6 +22,9 @@ import {MetricsSamplesTableHeader} from 'sentry/views/explore/metrics/metricInfo
 import {SampleTableRow} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTableRow';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
+  DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
+  isEmbeddedMetricsSamplesTableSource,
+  type MetricsSamplesTableSource,
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
@@ -33,19 +36,22 @@ const EMBEDDED_RESULT_LIMIT = 100;
 const TWO_MINUTE_DELAY = 120;
 
 interface MetricsSamplesTableProps {
-  embedded?: boolean;
   isMetricOptionsEmpty?: boolean;
   overrideTableData?: TraceMetricEventsResponseItem[];
+  source?: MetricsSamplesTableSource;
   traceMetric?: TraceMetric;
 }
 
 export function MetricsSamplesTable({
   traceMetric,
-  embedded = false,
+  source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isMetricOptionsEmpty,
   overrideTableData,
 }: MetricsSamplesTableProps) {
-  const columns = embedded ? TraceSamplesTableEmbeddedColumns : TraceSamplesTableColumns;
+  const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
+  const columns = isEmbedded
+    ? TraceSamplesTableEmbeddedColumns
+    : TraceSamplesTableColumns;
   const fields = getTraceSamplesTableFields(columns);
 
   const {
@@ -54,8 +60,10 @@ export function MetricsSamplesTable({
     error,
     isFetching,
   } = useMetricSamplesTable({
-    disabled: embedded ? !!overrideTableData : !traceMetric?.name || isMetricOptionsEmpty,
-    limit: embedded ? EMBEDDED_RESULT_LIMIT : RESULT_LIMIT,
+    disabled: isEmbedded
+      ? !!overrideTableData
+      : !traceMetric?.name || isMetricOptionsEmpty,
+    limit: isEmbedded ? EMBEDDED_RESULT_LIMIT : RESULT_LIMIT,
     traceMetric,
     fields,
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
@@ -78,9 +86,9 @@ export function MetricsSamplesTable({
   }, [meta, traceMetric?.unit]);
 
   return (
-    <SimpleTableGrid embedded={embedded}>
+    <SimpleTableGrid source={source}>
       {isFetching && <TransparentLoadingMask />}
-      <MetricsSamplesTableHeader columns={columns} embedded={embedded} />
+      <MetricsSamplesTableHeader columns={columns} source={source} />
       <StyledSimpleTableBody>
         {!overrideTableData?.length && error ? (
           <SimpleTable.Empty style={{minHeight: '140px'}}>
@@ -93,7 +101,7 @@ export function MetricsSamplesTable({
               row={row}
               columns={columns}
               meta={metaWithValueUnit}
-              embedded={embedded}
+              source={source}
             />
           ))
         ) : isFetching ? (
@@ -111,10 +119,10 @@ export function MetricsSamplesTable({
 }
 
 const SimpleTableGrid = styled(StyledSimpleTable)<{
-  embedded: boolean;
+  source: MetricsSamplesTableSource;
 }>`
   grid-template-columns: ${p =>
-    p.embedded
+    isEmbeddedMetricsSamplesTableSource(p.source)
       ? `${p.theme.space['3xl']} min-content min-content minmax(0, 1fr) min-content min-content`
       : `${p.theme.space['3xl']} min-content minmax(0, 1fr) min-content min-content`};
   grid-column: 1 / -1;

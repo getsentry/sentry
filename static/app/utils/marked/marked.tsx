@@ -4,10 +4,15 @@ import {Lexer as MarkedLexer, Marked, marked} from 'marked'; // eslint-disable-l
 import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
 
+import {extensions} from 'sentry/utils/marked/extensions';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 export {MarkedLexer};
 export type {MarkedToken, Token};
+export type {ExtendedToken} from './extensions';
+
+// globally registered, applies to all instances
+marked.use({extensions: [...extensions]});
 
 const SAFE_LINK_PATTERN = /^(https?:|mailto:)/i;
 const INTERNAL_PATH_PATTERN = /^\/[^/]/;

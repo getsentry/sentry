@@ -13,8 +13,6 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
@@ -60,10 +58,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.potential_parents = {}
         self.previous_span: Span | None = None
@@ -73,10 +70,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span) -> None:
@@ -92,6 +86,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             # Treat it as a potential parent as long as it isn't the root span.
             if span.get("parent_span_id", None):
                 self.potential_parents[span_id] = span
+            return
+
+        # Cached queries never touch the database, so they shouldn't count toward an N+1.
+        if is_cached_span(span):
             return
 
         if not self.source_span:
@@ -263,6 +261,23 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
         ).hexdigest()
         return f"1-{problem_class}-{full_fingerprint}"
+
+
+def is_cached_span(span: Span) -> bool:
+    """
+    Returns True if the span was served from a query cache rather than hitting
+    the database.
+    """
+    for source in (span.get("data"), span.get("tags")):
+        if not source:
+            continue
+        value = source.get("cached")
+        if isinstance(value, str):
+            if value.lower() == "true":
+                return True
+        elif value:
+            return True
+    return False
 
 
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:

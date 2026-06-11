@@ -24,7 +24,15 @@ class WorkflowDeletionTask(ModelDeletionTask[Workflow]):
                     AlertRuleWorkflow, {"workflow_id": instance.id, "rule_id__isnull": False}
                 )
             )
-            model_relations.append(ModelRelation(Rule, {"id__in": rule_ids}))
+            model_relations.append(
+                ModelRelation(
+                    Rule,
+                    {
+                        "id__in": rule_ids,
+                        "project__organization_id": instance.organization_id,
+                    },
+                )
+            )
 
         action_filter_ids = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow_id=instance.id

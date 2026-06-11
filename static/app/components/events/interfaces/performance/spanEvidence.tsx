@@ -12,8 +12,8 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 

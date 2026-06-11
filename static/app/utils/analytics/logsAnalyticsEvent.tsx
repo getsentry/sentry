@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export enum LogsAnalyticsPageSource {
   EXPLORE_LOGS = 'explore',
@@ -42,12 +42,16 @@ export type LogsAnalyticsEventParameters = {
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
-    ai_query_run_id?: number;
+    ai_query_run_id?: number | string;
   };
   'logs.explorer.setup_button_clicked': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
+  };
+  'logs.explorer.table_tab_changed': {
+    organization: Organization;
+    tab: string;
   };
   'logs.export_modal': {
     action: 'cancel' | 'open';
@@ -114,6 +118,7 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.explorer.continue_searching_clicked': 'Log Explorer Continue Searching Clicked',
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
+  'logs.explorer.table_tab_changed': 'Logs Explorer: Table Tab Changed',
   'logs.onboarding': 'Logs Explore Empty State (Onboarding)',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
   'logs.timestamp_tooltip.add_timezone_clicked':

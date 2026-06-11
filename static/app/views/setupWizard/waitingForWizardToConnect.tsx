@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 import {useSetupWizardCompletedAnalytics} from 'sentry/views/setupWizard/utils/setupWizardAnalytics';
 
@@ -15,7 +15,7 @@ export function WaitingForWizardToConnect({
   organizations,
 }: {
   hash: string;
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
 }) {
   const api = useApi();
   const closeTimeoutRef = useRef<number | undefined>(undefined);

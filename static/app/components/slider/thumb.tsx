@@ -108,7 +108,7 @@ const SliderThumbWrap = styled('div')<{
       &:hover {
         background: ${p.theme.tokens.background.secondary};
       }
-    `};
+    `}
 
   /* Extend click area */
   &::before {

@@ -159,7 +159,7 @@ describe('GroupEventAttachments', () => {
     expect(screen.queryByText('12345678')).not.toBeInTheDocument();
   });
 
-  it('filters by date/query when using Streamlined UI', () => {
+  it('filters by date/query on issue details', () => {
     ConfigStore.init();
     const user = UserFixture();
     user.options.prefersIssueDetailsStreamlinedUI = true;

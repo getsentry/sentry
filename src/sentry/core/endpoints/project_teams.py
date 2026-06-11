@@ -37,7 +37,7 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
         },
         examples=TeamExamples.LIST_PROJECT_TEAMS,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[BaseTeamSerializerResponse]]:
         """
         Return a list of teams that have access to this project.
         """

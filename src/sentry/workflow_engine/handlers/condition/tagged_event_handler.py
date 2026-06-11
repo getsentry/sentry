@@ -3,6 +3,7 @@ from typing import Any
 from sentry import tagstore
 from sentry.rules import MATCH_CHOICES, MatchType, match_values
 from sentry.services.eventstore.models import GroupEvent
+from sentry.tagstore.base import TAG_KEY_RE
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -17,10 +18,12 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
     label_template = "The event's tags match {key} {match} {value}"
 
+    _TAG_KEY_SCHEMA = {"type": "string", "pattern": TAG_KEY_RE.pattern}
+
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "key": {"type": "string"},
+            "key": _TAG_KEY_SCHEMA,
             "match": {
                 "type": "string",
                 "enum": [*MatchType],
@@ -33,7 +36,7 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
         "oneOf": [
             {
                 "properties": {
-                    "key": {"type": "string"},
+                    "key": _TAG_KEY_SCHEMA,
                     "match": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]},
                 },
                 "required": ["key", "match"],
@@ -41,7 +44,7 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
             },
             {
                 "properties": {
-                    "key": {"type": "string"},
+                    "key": _TAG_KEY_SCHEMA,
                     "match": {
                         "not": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]},
                     },
@@ -110,7 +113,7 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
         return result
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         data = {
             "key": condition_data["key"],
             "value": condition_data["value"],

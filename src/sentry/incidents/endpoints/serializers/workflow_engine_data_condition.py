@@ -29,7 +29,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class WorkflowEngineDataConditionSerializer(Serializer):
+class WorkflowEngineDataConditionSerializer(Serializer[dict[str, Any]]):
     def get_attrs(
         self,
         item_list: Sequence[DataCondition],

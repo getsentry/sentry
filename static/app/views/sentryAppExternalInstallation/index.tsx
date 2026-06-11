@@ -20,12 +20,12 @@ import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 // Page Layout
 export default function SentryAppExternalInstallation() {

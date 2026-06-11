@@ -29,12 +29,50 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.net.socket import is_safe_hostname
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 logger = logging.getLogger(__name__)
 
 # Default buffer size when fetching changelist ranges to ensure complete coverage
 DEFAULT_REVISION_RANGE = 10
+
+P4PORT_ALLOWED_TRANSPORTS = frozenset(
+    {
+        "tcp",
+        "tcp4",
+        "tcp6",
+        "tcp46",
+        "tcp64",
+        "ssl",
+        "ssl4",
+        "ssl6",
+        "ssl46",
+        "ssl64",
+    }
+)
+
+
+class InvalidP4Port(ValueError):
+    pass
+
+
+def validate_p4port_transport(p4port: str) -> None:
+    parts = [part.strip() for part in p4port.split(":")]
+    if len(parts) < 2 or len(parts) > 3 or not parts[-1].isdigit():
+        raise InvalidP4Port(
+            "P4PORT must be host:port or ssl:host:port with a numeric port. IPv6 is not supported."
+        )
+    transport = parts[0].lower() if len(parts) == 3 else None
+    host = parts[-2]
+    if transport is not None and transport not in P4PORT_ALLOWED_TRANSPORTS:
+        raise InvalidP4Port("Invalid P4PORT transport. Only tcp and ssl transports are allowed.")
+    if not host:
+        raise InvalidP4Port("P4PORT must include a host, e.g. ssl:perforce.example.com:1666.")
+    if not is_safe_hostname(host):
+        raise InvalidP4Port(
+            f"P4PORT host could not be resolved or is not an allowed address: {host}"
+        )
 
 
 class P4ChangeInfo(TypedDict):
@@ -165,6 +203,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             with self._connect() as p4:
                 result = p4.run("info")
         """
+        try:
+            validate_p4port_transport(self.p4port)
+        except InvalidP4Port as e:
+            raise ApiError(str(e))
+
         with tempfile.TemporaryDirectory(prefix="sentry-p4-") as p4_home:
             trust_path = f"{p4_home}/.p4trust"
             ticket_path = f"{p4_home}/.p4tickets"

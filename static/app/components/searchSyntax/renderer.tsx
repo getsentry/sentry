@@ -382,7 +382,7 @@ const Key = styled('span')<{negated: boolean}>`
           border-radius: 2px 0 0 2px;
           padding-left: 1px;
           margin-left: -2px;
-        `};
+        `}
 `;
 
 const ExplicitKey = styled('span')<{prefix: string}>`

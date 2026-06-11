@@ -6,7 +6,7 @@ from sentry.workflow_engine.models import DataCondition
 
 
 @register(DataCondition)
-class DataConditionSerializer(Serializer):
+class DataConditionSerializer(Serializer[dict[str, Any]]):
     def serialize(self, obj: DataCondition, *args: Any, **kwargs: Any) -> dict[str, Any]:
         comparison = obj.comparison
         if isinstance(comparison, dict):

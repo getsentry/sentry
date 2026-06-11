@@ -4,9 +4,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {

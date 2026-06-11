@@ -2,7 +2,10 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {AI_AGENTS_OVERVIEW_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {
   WIDGET_COLUMN_LABELS,
@@ -206,7 +209,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
-const AGENTS_TRACES_TABLE = {
+const AGENTS_TRACES_TABLE: PrebuiltWidget = {
   id: 'ai-agents-traces-table',
   title: t('Traces'),
   description: t('Agent traces with duration, token, cost, and tool usage.'),

@@ -66,7 +66,7 @@ class SerializedIssue(SerializedEvent):
     end_timestamp: NotRequired[float]
     culprit: str | None
     short_id: str | None
-    issue_type: str
+    issue_type: int
 
 
 class SerializedSpan(SerializedEvent):

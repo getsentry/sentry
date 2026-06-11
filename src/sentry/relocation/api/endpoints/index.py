@@ -3,6 +3,7 @@ import re
 from datetime import timedelta
 from functools import reduce
 from string import Template
+from typing import Any
 
 from django.db import router
 from django.db.models import Q
@@ -53,7 +54,7 @@ RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
 RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2
 
 
-def get_relocation_size_category(size) -> str:
+def get_relocation_size_category(size: int) -> str:
     if size < RELOCATION_FILE_SIZE_SMALL:
         return "small"
     elif size < RELOCATION_FILE_SIZE_MEDIUM:
@@ -81,7 +82,7 @@ def should_throttle_relocation(relocation_bucket_size: str) -> bool:
     return True
 
 
-class RelocationsPostSerializer(serializers.Serializer):
+class RelocationsPostSerializer(serializers.Serializer[dict[str, Any]]):
     file = serializers.FileField(required=True)
     orgs = serializers.CharField(required=True, allow_blank=False, allow_null=False)
     owner = serializers.CharField(

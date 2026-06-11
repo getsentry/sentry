@@ -19,8 +19,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceIssueEvent} from 'sentry/views/issueDetails/traceTimeline/traceIssue';
 import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
@@ -92,6 +92,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: undefined,
+    timestamp,
     traceId,
   });
 

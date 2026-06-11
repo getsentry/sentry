@@ -64,9 +64,12 @@ def _render_trampoline(request: HttpRequest, pipeline: object, provider_id: str)
     # trampoline can navigate there if there's no opener window.
     installation_id = request.GET.get("installation_id")
     if request.GET.get("setup_action") == "install" and installation_id:
-        fallback_url = str(
-            dumps_htmlsafe(reverse("integration-installation", args=[provider_id, installation_id]))
+        link_url = reverse(
+            "sentry-integration-installation-link",
+            kwargs={"integration_slug": provider_id},
+            query={"installationId": installation_id},
         )
+        fallback_url = str(dumps_htmlsafe(link_url))
     else:
         fallback_url = "null"
 
@@ -132,7 +135,11 @@ class PipelineAdvancerView(BaseView):
             and installation_id
         ):
             return self.redirect(
-                reverse("integration-installation", args=[provider_id, installation_id])
+                reverse(
+                    "sentry-integration-installation-link",
+                    kwargs={"integration_slug": provider_id},
+                    query={"installationId": installation_id},
+                )
             )
 
         if pipeline is None or not pipeline.is_valid():

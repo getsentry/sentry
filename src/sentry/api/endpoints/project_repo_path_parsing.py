@@ -1,7 +1,8 @@
 from pathlib import PurePath, PureWindowsPath
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,6 +11,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -24,9 +33,24 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 
 
+class RepoPathParsingResponse(TypedDict):
+    # NOTE: API convention is to return identifiers as strings, but this endpoint has
+    # always returned these as integers. Typed to match the existing behavior.
+    integrationId: int
+    repositoryId: int
+    provider: str
+    stackRoot: str
+    sourceRoot: str
+    defaultBranch: str
+
+
 class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
-    stack_path = serializers.CharField()
-    source_url = serializers.URLField()
+    stack_path = serializers.CharField(
+        help_text="A file path as it appears in a stack trace frame."
+    )
+    source_url = serializers.URLField(
+        help_text="The URL of the same file in the connected source code repository."
+    )
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -100,20 +124,33 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
     }
 
 
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
-    """
-    Returns the parameters associated with the RepositoryProjectPathConfig
-    we would create based on a particular stack trace and source code URL.
-    Does validation to make sure we have an integration and repo
-    depending on the source code URL
-    """
 
-    def post(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="Parse a Repository Path Mapping",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=PathMappingSerializer,
+        responses={
+            200: inline_sentry_response_serializer("RepoPathParsing", RepoPathParsingResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(self, request: Request, project: Project) -> Response[RepoPathParsingResponse]:
+        """
+        Derive the code-mapping parameters (stack root, source root, default branch) that
+        Sentry would create for a given stack trace frame and source code URL.
+
+        Validates that a matching integration and repository exist for the provided URL.
+        """
         serializer = PathMappingSerializer(
             context={"organization_id": project.organization_id},
             data=request.data,

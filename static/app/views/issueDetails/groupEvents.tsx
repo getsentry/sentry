@@ -1,7 +1,7 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useParams} from 'sentry/utils/useParams';
-import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
+import {EventList} from 'sentry/views/issueDetails/eventList';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 function IssueEventsList() {

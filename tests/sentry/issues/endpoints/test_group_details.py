@@ -5,6 +5,7 @@ from django.test import override_settings
 from django.utils import timezone
 
 from sentry import audit_log, buffer, tsdb
+from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -27,6 +28,7 @@ from sentry.models.release import Release
 from sentry.plugins.base import plugins
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -290,6 +292,31 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
+
+    def test_user_agent_mcp(self) -> None:
+        with mock.patch("sentry.analytics.record") as mock_record:
+            self.login_as(user=self.user)
+            group = self.create_group()
+            url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+            response = self.client.get(
+                url,
+                headers={
+                    "user-agent": "sentry-mcp/0.35.0 (https://mcp.sentry.dev)",
+                    "X-Sentry-MCP-Client-Family": "cursor",
+                },
+            )
+            assert response.status_code == 200
+            assert_any_analytics_event(
+                mock_record,
+                IssueViewedEvent(
+                    organization_id=group.project.organization.id,
+                    project_id=group.project.id,
+                    group_id=group.id,
+                    client="mcp - cursor",
+                    user_id=self.user.id,
+                ),
+            )
 
 
 class GroupUpdateTest(APITestCase):

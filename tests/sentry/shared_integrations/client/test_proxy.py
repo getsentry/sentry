@@ -14,7 +14,12 @@ from sentry.shared_integrations.client.proxy import (
 )
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import (
+    PROXY_OI_HEADER,
+    PROXY_PATH,
+    PROXY_SIGNATURE_HEADER,
+    PROXY_TIMEOUT_HEADER,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -119,6 +124,33 @@ class IntegrationProxyClientTest(TestCase):
         for header in [PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER, PROXY_PATH]:
             assert header in prepared_request.headers
         assert prepared_request.headers[PROXY_PATH] == "get?query=1&user=me"
+
+    def test_set_proxy_request_options_forwards_timeout(self) -> None:
+        """When proxying to control, the per-call timeout is forwarded as a header."""
+        prepared_request = Request(method="GET", url=self.test_url).prepare()
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = True
+
+        client.set_proxy_request_options(prepared_request, timeout=60.0)
+        assert prepared_request.headers[PROXY_TIMEOUT_HEADER] == "60.0"
+
+    def test_set_proxy_request_options_no_timeout(self) -> None:
+        """A ``None`` timeout omits the header so control falls back to its default."""
+        prepared_request = Request(method="GET", url=self.test_url).prepare()
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = True
+
+        client.set_proxy_request_options(prepared_request, timeout=None)
+        assert PROXY_TIMEOUT_HEADER not in prepared_request.headers
+
+    def test_set_proxy_request_options_noop_without_proxy(self) -> None:
+        """Outside the proxy-to-control path the header is never added."""
+        prepared_request = Request(method="GET", url=self.test_url).prepare()
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = False
+
+        client.set_proxy_request_options(prepared_request, timeout=60.0)
+        assert PROXY_TIMEOUT_HEADER not in prepared_request.headers
 
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
