@@ -222,7 +222,9 @@ describe('useSaveAsItems', () => {
     const {result} = renderHookWithProviders(
       () =>
         useSaveAsItems({
-          visualizes: [new VisualizeFunction('count(message)', {chartType: ChartType.LINE})],
+          visualizes: [
+            new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
+          ],
           groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
