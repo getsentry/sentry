@@ -87,8 +87,8 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
       return true;
     }
 
-    const statusCode = this.value.data?.['http.response.status_code'];
-    if (typeof statusCode === 'number' && statusCode >= 400) {
+    const statusCode = Number(this.value.data?.['http.response.status_code']);
+    if (!isNaN(statusCode) && statusCode >= 400) {
       return true;
     }
 

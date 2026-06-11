@@ -417,6 +417,12 @@ describe('SpanNode', () => {
       expect(node.hasHttpError).toBe(true);
     });
 
+    it('should return true when http.response.status_code is a string >= 400', () => {
+      const span = makeSpan({data: {'http.response.status_code': '500'}});
+      const node = new SpanNode(null, span, createMockExtra());
+      expect(node.hasHttpError).toBe(true);
+    });
+
     it('should return false when http.response.status_code < 400', () => {
       const span = makeSpan({data: {'http.response.status_code': 200}});
       const node = new SpanNode(null, span, createMockExtra());

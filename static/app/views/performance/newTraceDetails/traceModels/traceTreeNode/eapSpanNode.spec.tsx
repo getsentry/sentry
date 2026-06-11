@@ -1058,6 +1058,15 @@ describe('EapSpanNode', () => {
       expect(node.hasHttpError).toBe(true);
     });
 
+    it('should return true when http.response.status_code is a string >= 400', () => {
+      const value = makeEAPSpan({
+        event_id: 'test',
+        additional_attributes: {'http.response.status_code': '502'},
+      });
+      const node = new EapSpanNode(null, value, createMockExtra());
+      expect(node.hasHttpError).toBe(true);
+    });
+
     it('should return false when http.response.status_code is 0 and no span.status', () => {
       const value = makeEAPSpan({
         event_id: 'test',

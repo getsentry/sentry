@@ -159,8 +159,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get hasHttpError(): boolean {
-    const statusCode = this.value.additional_attributes?.['http.response.status_code'];
-    if (typeof statusCode === 'number' && statusCode >= 400) {
+    const statusCode = Number(
+      this.value.additional_attributes?.['http.response.status_code']
+    );
+    if (!isNaN(statusCode) && statusCode >= 400) {
       return true;
     }
 
