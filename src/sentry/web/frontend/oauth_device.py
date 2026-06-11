@@ -268,7 +268,7 @@ class OAuthDeviceView(AuthLoginView):
 
         context = self.get_default_context(request) | {
             "user": request.user,
-            "message": "Authorization denied. You can close this window.",
+            "message": "Authorization denied.",
         }
         return self.respond("sentry/oauth-device-complete.html", context)
 
@@ -355,7 +355,7 @@ class OAuthDeviceView(AuthLoginView):
 
         context = self.get_default_context(request) | {
             "user": request.user,
-            "message": f"Authorization approved! Your device should now be connected to {application.name}. You can close this window.",
+            "message": f"Authorization approved. Your device should now be connected to {application.name}.",
             "application": application,
         }
         return self.respond("sentry/oauth-device-complete.html", context)

@@ -3,22 +3,21 @@
 {% block title %}Device Authorization Complete | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-  <div>
+  <div style="text-align: center; padding: 8px 0 16px;">
     {% if application %}
-      <div class="alert alert-success">
-        <h4>Success!</h4>
-        <p>{{ message }}</p>
-        <p style="margin-top: 1em;">You can now close this tab and return to your device.</p>
-      </div>
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 16px;">
+        <circle cx="28" cy="28" r="26" fill="#f8fcf7" stroke="#57be8c" stroke-width="2"/>
+        <path d="M17 28l9 9 14-18" stroke="#57be8c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>Authorized!</h3>
+      <p>{{ message }}</p>
     {% else %}
-      <div class="alert alert-info">
-        <p>{{ message }}</p>
-        <p style="margin-top: 1em;">You can now close this tab.</p>
-      </div>
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 16px;">
+        <circle cx="28" cy="28" r="26" fill="#fdf6f5" stroke="#e03e2f" stroke-width="2"/>
+        <path d="M19 19l18 18M37 19L19 37" stroke="#e03e2f" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <h3>Authorization Denied</h3>
     {% endif %}
-
-    <div class="auth-footer" style="margin-top: 2em;">
-      <a href="/" class="btn btn-default">Go to Sentry</a>
-    </div>
+    <p style="color: #80708f;">You can close this window and return to your device.</p>
   </div>
 {% endblock %}
