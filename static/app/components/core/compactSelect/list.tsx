@@ -57,6 +57,11 @@ interface BaseListProps<Value extends SelectKey>
     > {
   items: Array<SelectOptionOrSectionWithKey<Value>>;
   /**
+   * Whether this list may highlight its first visible result while searching.
+   * Composite selects use this to keep a single highlighted result across regions.
+   */
+  autoHighlightFirstResult?: boolean;
+  /**
    * Whether to render a grid list rather than a list box.
    *
    * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
@@ -167,6 +172,7 @@ export function List<Value extends SelectKey>({
   sizeLimit,
   sizeLimitMessage,
   closeOnSelect,
+  autoHighlightFirstResult = true,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
   const {
@@ -291,7 +297,10 @@ export function List<Value extends SelectKey>({
   }, [listState.collection, listState.selectionManager]);
 
   const autoHighlightedKey =
-    highlightFirstResult && overlayIsOpen && search.trim().length > 0
+    autoHighlightFirstResult &&
+    highlightFirstResult &&
+    overlayIsOpen &&
+    search.trim().length > 0
       ? firstFocusableKey
       : null;
 
