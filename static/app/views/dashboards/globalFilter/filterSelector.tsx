@@ -399,7 +399,7 @@ export function FilterSelector({
 
   return (
     <CompactSelect
-      grid
+      mode="grid"
       multiple
       {...stagedSelect.compactSelectProps}
       search={{
