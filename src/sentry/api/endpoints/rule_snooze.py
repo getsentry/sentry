@@ -110,7 +110,6 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
 
         return (args, kwargs)
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
     def post(self, request: Request, project: Project, rule: T) -> Response:
         serializer = RuleSnoozeValidator(data=request.data)
         if not serializer.is_valid():
@@ -168,7 +167,6 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
             status=status.HTTP_201_CREATED,
         )
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE)
     def delete(self, request: Request, project: Project, rule: T) -> Response:
         # find if there is a mute for all that I can remove
         shared_snooze = None
