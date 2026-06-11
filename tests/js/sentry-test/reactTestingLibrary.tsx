@@ -137,13 +137,25 @@ function makeAllTheProviders(options: ProviderOptions) {
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;
 
+    // Resolve the theme up-front so we can guarantee it is a real object
+    // before handing it to Emotion's <ThemeProvider>. Since the upgrade to
+    // React 19 / Emotion 11.14, @emotion/weak-memoize is strict about
+    // WeakMap keys and will throw "Invalid value used as weak map key" if
+    // `theme` is not an object.
+    const theme = ThemeFixture();
+    if (theme === null || typeof theme !== 'object') {
+      throw new Error(
+        `customRender: ThemeFixture() must return an object, got ${typeof theme}.`
+      );
+    }
+
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
           <SentryNuqsTestingAdapter defaultOptions={{shallow: false}}>
             <ScrapsTestingProviders>
               <CommandPaletteProvider>
-                <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+                <ThemeProvider theme={theme}>{wrappedContent}</ThemeProvider>
               </CommandPaletteProvider>
             </ScrapsTestingProviders>
           </SentryNuqsTestingAdapter>
