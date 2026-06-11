@@ -1194,12 +1194,6 @@ register(
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "seer.night_shift.use_feature_delivery",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "seer.supergroups_backfill_lightweight.killswitch",
