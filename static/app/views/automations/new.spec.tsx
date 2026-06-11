@@ -393,7 +393,7 @@ describe('AutomationNewSettings', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
-    const EXPECTED_ACTION_PAYLOADS: Record<ActionType, any> = {
+    const EXPECTED_ACTION_PAYLOADS: Partial<Record<ActionType, any>> = {
       slack: {
         type: 'slack',
         integrationId: 'slack-1',
