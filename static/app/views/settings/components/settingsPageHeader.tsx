@@ -26,7 +26,7 @@ type Props =
       subtitle?: React.ReactNode;
     };
 
-export function SettingsPageHeader({title, subtitle, action, marginBottom}: Props) {
+export function SettingsPageHeader({title, subtitle, action, marginBottom = '0'}: Props) {
   return (
     <Fragment>
       {typeof title === 'string' ? (
