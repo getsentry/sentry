@@ -180,14 +180,14 @@ export class InstalledIntegration extends Component<Props> {
                     disabled={!hasAccess || isPendingDeletion}
                     {...removeConfirmProps}
                   >
-                    <StyledButton
+                    <Button
                       disabled={!hasAccess || isPendingDeletion}
                       variant="transparent"
                       icon={<IconDelete />}
                       data-test-id="integration-remove-button"
                     >
                       {t('Uninstall')}
-                    </StyledButton>
+                    </Button>
                   </Confirm>
                 </Tooltip>
               </div>
@@ -203,10 +203,6 @@ export class InstalledIntegration extends Component<Props> {
     );
   }
 }
-
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
 
 const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};
