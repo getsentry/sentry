@@ -1335,8 +1335,6 @@ def get_issue_details(
     if issue_id.isdigit():
         group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
     else:
-        # Scope the short id lookup to the same projects as the numeric branch so both
-        # paths enforce the same project boundary.
         group = Group.objects.by_qualified_short_id(
             organization_id, issue_id, project_ids=project_ids
         )
@@ -1452,8 +1450,6 @@ def get_event_details(
         if issue_id.isdigit():
             group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
         else:
-            # Scope the short id lookup to the same projects as the numeric branch so both
-            # paths enforce the same project boundary.
             group = Group.objects.by_qualified_short_id(
                 organization_id, issue_id, project_ids=project_ids
             )
