@@ -1,6 +1,7 @@
 import {applySeerWidgetDefaults} from 'sentry/views/dashboards/createFromSeerUtils';
 import {
   extractDashboardFromSession,
+  splitDashboardPrompt,
   statusIsTerminal,
 } from 'sentry/views/dashboards/createFromSeerUtils';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -79,6 +80,29 @@ describe('statusIsTerminal', () => {
 
   it.each(['processing', 'pending', undefined, null])('returns false for %s', status => {
     expect(statusIsTerminal(status)).toBe(false);
+  });
+});
+
+describe('splitDashboardPrompt', () => {
+  it('splits instructions from the user query when the marker is present', () => {
+    const content =
+      'You are generating a Sentry dashboard. Follow these rules strictly:\n\nUser Query:\nShow me error rates by project\n';
+
+    const {instructions, query} = splitDashboardPrompt(content);
+
+    expect(instructions).toBe(
+      'You are generating a Sentry dashboard. Follow these rules strictly:'
+    );
+    expect(query).toBe('Show me error rates by project');
+  });
+
+  it('returns no instructions when the marker is absent', () => {
+    const content = 'Show me error rates by project';
+
+    const {instructions, query} = splitDashboardPrompt(content);
+
+    expect(instructions).toBeNull();
+    expect(query).toBe('Show me error rates by project');
   });
 });
 

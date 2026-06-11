@@ -14,6 +14,7 @@ const MAX_PROJECT_CHIPS = 3;
 
 export function QueryTokens({
   groupBys,
+  interval,
   query,
   sort,
   statsPeriod,
@@ -57,6 +58,22 @@ export function QueryTokens({
             <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
           ))
         )}
+      </Flex>
+    );
+  }
+
+  if (interval) {
+    tokens.push(
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="interval"
+      >
+        <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
+        <ExploreGroupBys>{interval}</ExploreGroupBys>
       </Flex>
     );
   }

@@ -16,6 +16,7 @@ interface ScmFeatureInfoCardsProps {
   featureMeta: Record<ProductSolution, FeatureMeta>;
   isVolumeLoading?: boolean;
   platformName?: string;
+  showVolume?: boolean;
 }
 
 // Informational variant of the SCM feature card list. Renders the products
@@ -29,6 +30,7 @@ export function ScmFeatureInfoCards({
   featureMeta,
   platformName,
   isVolumeLoading,
+  showVolume = true,
 }: ScmFeatureInfoCardsProps) {
   return (
     <Stack gap="xl" width="100%" justify="center">
@@ -101,26 +103,28 @@ export function ScmFeatureInfoCards({
                   >
                     {meta.description}
                   </Text>
-                  <Container>
-                    {isVolumeLoading ? (
-                      <Placeholder height="20px" width="100px" />
-                    ) : (
-                      <Tooltip
-                        title={meta.volumeTooltip}
-                        delay={100}
-                        disabled={isDisabled}
-                      >
-                        <Text
-                          variant="muted"
-                          underline="dotted"
-                          size="sm"
-                          density="comfortable"
+                  {showVolume ? (
+                    <Container>
+                      {isVolumeLoading ? (
+                        <Placeholder height="20px" width="100px" />
+                      ) : (
+                        <Tooltip
+                          title={meta.volumeTooltip}
+                          delay={100}
+                          disabled={isDisabled}
                         >
-                          {meta.volume}
-                        </Text>
-                      </Tooltip>
-                    )}
-                  </Container>
+                          <Text
+                            variant="muted"
+                            underline="dotted"
+                            size="sm"
+                            density="comfortable"
+                          >
+                            {meta.volume}
+                          </Text>
+                        </Tooltip>
+                      )}
+                    </Container>
+                  ) : null}
                 </Stack>
               </Grid>
             </Tooltip>

@@ -58,6 +58,18 @@ const sanitizeBranch = (value: string) =>
 const resolveBranch = (branch: string) =>
   sanitizeBranch(branch).replace(/[./]+$/, '') || DEFAULT_BRANCH;
 
+/**
+ * Ensures a root reads as a path prefix that joins cleanly with the rest of a
+ * file path (e.g. `app` -> `app/`, avoiding `appviews/index.tsx`).
+ */
+const withTrailingSlash = (root: string) => (root.endsWith('/') ? root : `${root}/`);
+
+/**
+ * Normalizes a path root: a non-empty root is given a trailing slash, while an
+ * empty root is left empty since it matches every path.
+ */
+const normalizeRoot = (root: string) => (root === '' ? '' : withTrailingSlash(root));
+
 const schema = z.object({
   stackRoot: z.string(),
   sourceRoot: z.string(),
@@ -65,16 +77,23 @@ const schema = z.object({
 });
 
 /**
+ * Canonical form of a mapping, used for the preview, duplicate detection, and
+ * the on-blur normalization of the editable fields. Path roots are given a
+ * trailing slash and the branch is resolved to its effective value (an empty
+ * branch becomes `main`), so mappings that differ only by that normalization
+ * parse to the same values.
+ */
+const normalizedPathMappingSchema = schema.extend({
+  stackRoot: z.string().transform(normalizeRoot),
+  sourceRoot: z.string().transform(normalizeRoot),
+  branch: z.string().transform(resolveBranch),
+});
+
+/**
  * Sample stack frame path used to illustrate how the stack trace root is
  * rewritten to the source code root in the preview.
  */
 const PREVIEW_SUFFIX = 'views/index.tsx';
-
-/**
- * Ensures a root reads as a path prefix in the preview so it joins cleanly with
- * the example suffix (e.g. `app` -> `app/`, avoiding `appviews/index.tsx`).
- */
-const withTrailingSlash = (root: string) => (root.endsWith('/') ? root : `${root}/`);
 
 /**
  * Flex-grow weights for how the summary row divides between the two paths and
@@ -138,22 +157,40 @@ function PathMappingEdit({
       <Container padding="xl">
         <Stack gap="xl">
           <Grid columns="1fr 1fr" gap="xl">
-            <form.AppField name="stackRoot">
+            <form.AppField
+              name="stackRoot"
+              listeners={{
+                onBlur: ({value}) =>
+                  form.setFieldValue('stackRoot', normalizeRoot(value)),
+              }}
+            >
               {field => (
                 <field.Layout.Stack
-                  label={t('Stack trace root')}
-                  hintText={t('The start of the path in an error')}
+                  label={t('Stack trace prefix')}
+                  variant="compact"
+                  hintText={t(
+                    'Any stack trace starting with this file prefix is mapped with this rule. An empty prefix matches any stack trace path.'
+                  )}
                 >
                   <field.Input value={field.state.value} onChange={field.handleChange} />
                 </field.Layout.Stack>
               )}
             </form.AppField>
 
-            <form.AppField name="sourceRoot">
+            <form.AppField
+              name="sourceRoot"
+              listeners={{
+                onBlur: ({value}) =>
+                  form.setFieldValue('sourceRoot', normalizeRoot(value)),
+              }}
+            >
               {field => (
                 <field.Layout.Stack
-                  label={t('Source code root')}
-                  hintText={t('What to look for in your repository')}
+                  label={t('Source code replacement')}
+                  variant="compact"
+                  hintText={t(
+                    'When a stack trace prefix matches, it is replaced with this path to resolve the file path in your repository. Leaving it empty replaces the prefix with an empty string.'
+                  )}
                 >
                   <field.Input value={field.state.value} onChange={field.handleChange} />
                 </field.Layout.Stack>
@@ -195,12 +232,17 @@ function PathMappingEdit({
                 sourceRoot: state.values.sourceRoot,
               })}
             >
-              {previewValue => (
-                <PathMappingPreview
-                  stackRoot={previewValue.stackRoot}
-                  sourceRoot={previewValue.sourceRoot}
-                />
-              )}
+              {previewValue => {
+                const {stackRoot: previewStackRoot, sourceRoot: previewSourceRoot} =
+                  normalizedPathMappingSchema.parse({...previewValue, branch: ''});
+
+                return (
+                  <PathMappingPreview
+                    stackRoot={previewStackRoot}
+                    sourceRoot={previewSourceRoot}
+                  />
+                );
+              }}
             </form.Subscribe>
           </Stack>
         </Stack>
@@ -228,15 +270,19 @@ function SummaryContent({
   onDelete,
   onExpandToggle,
 }: SummaryContentProps) {
-  const branchName = resolveBranch(branch);
+  const {
+    stackRoot: normalizedStackRoot,
+    sourceRoot: normalizedSourceRoot,
+    branch: branchName,
+  } = normalizedPathMappingSchema.parse({stackRoot, sourceRoot, branch});
 
   return (
     <Flex align="center" gap="md" minWidth={0}>
-      <PathSegment value={stackRoot} />
+      <PathSegment value={normalizedStackRoot} />
       <Container flexShrink={0}>
         {props => <IconArrow direction="right" size="xs" {...props} />}
       </Container>
-      <PathSegment value={sourceRoot} />
+      <PathSegment value={normalizedSourceRoot} />
 
       {/* Absorbs leftover space so the branch + actions stay right-anchored
           when the paths don't overflow, and collapses when they do. */}
@@ -365,12 +411,12 @@ function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
         </Text>
 
         <Text monospace variant="muted">
-          {stackRoot && <AccentPathSegment value={withTrailingSlash(stackRoot)} />}
+          {stackRoot && <AccentPathSegment value={stackRoot} />}
           {PREVIEW_SUFFIX}
         </Text>
         <IconArrow direction="right" />
         <Text monospace variant="muted">
-          {sourceRoot && <AccentPathSegment value={withTrailingSlash(sourceRoot)} />}
+          {sourceRoot && <AccentPathSegment value={sourceRoot} />}
           {PREVIEW_SUFFIX}
         </Text>
       </Grid>

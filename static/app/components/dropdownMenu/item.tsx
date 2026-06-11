@@ -139,6 +139,7 @@ export function DropdownMenuItem({
       if (resolvedCloseOnSelect) {
         requestAnimationFrame(() => rootOverlayState?.close());
       }
+      onAction?.();
       return;
     }
     if (isSubmenu) {

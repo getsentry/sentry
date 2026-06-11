@@ -13,6 +13,7 @@ from typing import Any, Final, Literal
 
 from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
+from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
@@ -140,6 +141,25 @@ def _resolved_group_ids(pull_request: PullRequest) -> list[int]:
     )
 
 
+def _merge_commit_id(pull_request: PullRequest) -> int | None:
+    """The Sentry Commit row id for the PR's merge commit, if Sentry tracks it.
+
+    Resolved from merge_commit_sha via the (repository_id, key) unique key. Null
+    when the PR wasn't merged or Sentry never recorded the landed commit — the
+    pr_metrics module never creates Commit rows, so a match isn't guaranteed.
+    """
+    if pull_request.merge_commit_sha is None:
+        return None
+    return (
+        Commit.objects.filter(
+            repository_id=pull_request.repository_id,
+            key=pull_request.merge_commit_sha,
+        )
+        .values_list("id", flat=True)
+        .first()
+    )
+
+
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
@@ -178,6 +198,7 @@ def build_pr_metrics_row(
         head_commit_sha=head_commit_sha,
         closed_at=closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
+        merge_commit_id=_merge_commit_id(pull_request),
         merged_at=_iso(pull_request.merged_at),
         opened_at=_iso(pull_request.opened_at),
         draft=bool(pull_request.draft),
