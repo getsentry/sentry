@@ -15,7 +15,7 @@ from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.constants import ALERTS_API_DEPRECATION_DATE
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.incidents.endpoints.bases import WorkflowEngineOrganizationAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     DetailedWorkflowEngineDetectorSerializer,
@@ -289,7 +289,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
-        key="api.deprecation.alerts",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     @_check_project_access
     def get(
@@ -318,7 +318,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
-        key="api.deprecation.alerts",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     @_check_project_access
     def put(
@@ -352,7 +352,7 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
-        key="api.deprecation.alerts",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     @_check_project_access
     def delete(

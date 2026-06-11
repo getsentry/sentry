@@ -21,7 +21,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.api.utils import to_valid_int_id
-from sentry.constants import ALERTS_API_DEPRECATION_DATE
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.db.models.base import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.alert_rule import AlertRule
@@ -248,13 +248,13 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     rule_field = "rule"
 
     @track_alert_endpoint_execution("POST", "sentry-api-0-rule-snooze")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def post(self, request: Request, project: Project, rule: Rule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-rule-snooze")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def delete(self, request: Request, project: Project, rule: Rule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list and fetch_instance
         return super().delete(request, project, rule)
@@ -305,13 +305,13 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     rule_field = "alert_rule"
 
     @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def post(self, request: Request, project: Project, rule: AlertRule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
         return super().post(request, project, rule)
 
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:  # type: ignore[override]
         # Tracking happens in fetch_rule_list and fetch_instance
         return super().delete(request, project, rule)

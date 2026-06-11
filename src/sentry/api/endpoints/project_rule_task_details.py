@@ -8,7 +8,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
-from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
@@ -25,7 +25,7 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    @deprecated(ALERTS_API_DEPRECATION_DATE, key="api.deprecation.alerts")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-task-details")
     def get(self, request: Request, project, task_uuid) -> Response:
         """

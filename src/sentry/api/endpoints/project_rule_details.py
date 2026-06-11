@@ -31,7 +31,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
-from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
@@ -127,7 +127,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
-        key="api.deprecation.alerts",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def get(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
@@ -184,7 +184,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
-        key="api.deprecation.alerts",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
@@ -369,7 +369,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
-        key="api.deprecation.alerts",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def delete(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
