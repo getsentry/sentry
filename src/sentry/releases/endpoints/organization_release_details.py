@@ -1,7 +1,7 @@
 import sentry_sdk
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
-from rest_framework.exceptions import ParseError
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_serializer
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
@@ -17,6 +17,7 @@ from sentry.api.endpoints.organization_releases import (
     get_stats_period_detail,
 )
 from sentry.api.exceptions import ConflictError, InvalidRepository, ResourceDoesNotExist
+from sentry.api.helpers.projects import ProjectIdOrSlugField, parse_id_or_slug_params
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
@@ -314,7 +315,13 @@ class OrganizationReleaseDetailsEndpoint(
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
-            ReleaseParams.PROJECT_ID,
+            OpenApiParameter(
+                name="project",
+                location="query",
+                required=False,
+                type=str,
+                description="The project ID or slug to filter by.",
+            ),
             ReleaseParams.HEALTH,
             ReleaseParams.ADOPTION_STAGES,
             ReleaseParams.SUMMARY_STATS_PERIOD,
@@ -362,15 +369,21 @@ class OrganizationReleaseDetailsEndpoint(
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        # Validate project access when project_id is provided
+        # Validate project access when a project identifier is provided.
         project = None
         if project_id:
             try:
-                project_id_int = int(project_id)
-            except ValueError:
+                project_id_or_slug = ProjectIdOrSlugField().run_validation(project_id)
+            except ValidationError:
+                raise ParseError(detail="Invalid project")
+            requested_project = parse_id_or_slug_params([project_id_or_slug])
+            if not requested_project.has_values or requested_project.has_all_projects_sentinel:
                 raise ParseError(detail="Invalid project")
             validated_projects = self.get_projects(
-                request, organization, project_ids={project_id_int}
+                request,
+                organization,
+                project_ids=requested_project.ids or None,
+                project_slugs=requested_project.slugs or None,
             )
             if not validated_projects:
                 raise ResourceDoesNotExist

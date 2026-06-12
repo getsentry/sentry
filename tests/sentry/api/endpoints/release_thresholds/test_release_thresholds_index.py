@@ -49,6 +49,21 @@ class ReleaseThresholdTest(APITestCase):
         assert created_threshold["environment"]["id"] == str(self.canary_environment.id)
         assert created_threshold["environment"]["name"] == self.canary_environment.name
 
+    def test_get_valid_project_slug(self) -> None:
+        ReleaseThreshold.objects.create(
+            threshold_type=0,
+            trigger_type=0,
+            value=100,
+            window_in_seconds=1800,
+            project=self.project,
+            environment=self.canary_environment,
+        )
+
+        response = self.get_success_response(self.organization.slug, project=self.project.slug)
+
+        assert len(response.data) == 1
+        assert response.data[0]["project"]["id"] == str(self.project.id)
+
     def test_get_invalid_environment(self) -> None:
         self.get_error_response(self.organization.slug, environment="foo bar", project="-1")
 
