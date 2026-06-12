@@ -162,19 +162,23 @@ class OrganizationReportContextFactory:
             )
 
             if use_batched:
-                key_errors_by_project = org_key_errors(
-                    ctx, referrer=Referrer.REPORTS_KEY_ERRORS_BATCHED.value
-                )
-                for project_id, key_errors in key_errors_by_project.items():
-                    if project_id not in ctx.projects_context_map:
-                        continue
-                    project_ctx = ctx.projects_context_map[project_id]
-                    assert isinstance(project_ctx, ProjectContext), (
-                        f"Expected a ProjectContext, received {type(project_ctx)}"
+                try:
+                    key_errors_by_project = org_key_errors(
+                        ctx, referrer=Referrer.REPORTS_KEY_ERRORS_BATCHED.value
                     )
-                    project_ctx.key_errors_by_id = [
-                        (e["events.group_id"], e["count()"]) for e in key_errors
-                    ]
+                    for project_id, key_errors in key_errors_by_project.items():
+                        if project_id not in ctx.projects_context_map:
+                            continue
+                        project_ctx = ctx.projects_context_map[project_id]
+                        assert isinstance(project_ctx, ProjectContext), (
+                            f"Expected a ProjectContext, received {type(project_ctx)}"
+                        )
+                        project_ctx.key_errors_by_id = [
+                            (e["events.group_id"], e["count()"]) for e in key_errors
+                        ]
+                except Exception:
+                    sentry_sdk.capture_exception()
+                    use_batched = False
 
             for project in organization.project_set.all():
                 if project.id not in ctx.projects_context_map:
