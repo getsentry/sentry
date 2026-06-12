@@ -3,7 +3,8 @@ from functools import partial
 from typing import Any, assert_never
 
 from django.db import router, transaction
-from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.db.models import Count, F, IntegerField, OuterRef, Q, Subquery
+from django.db.models.expressions import RawSQL
 from django.db.models.query import QuerySet
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
@@ -67,6 +68,9 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+
+# Cap the count query used for sorting by open issues to avoid full scans.
+OPEN_ISSUES_COUNT_CAP = 5000
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -301,9 +305,19 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             )
         elif sort_by_field == "openIssues":
             queryset = queryset.annotate(
-                open_issues_count=Count(
-                    "detectorgroup__group",
-                    filter=Q(detectorgroup__group__status=GroupStatus.UNRESOLVED),
+                open_issues_count=RawSQL(
+                    """
+                    (SELECT COUNT(*) FROM (
+                        SELECT 1
+                        FROM workflow_engine_detectorgroup dg
+                        INNER JOIN sentry_groupedmessage g ON dg.group_id = g.id
+                        WHERE dg.detector_id = workflow_engine_detector.id
+                          AND g.status = %s
+                        LIMIT %s
+                    ) sub)
+                    """,
+                    (GroupStatus.UNRESOLVED, OPEN_ISSUES_COUNT_CAP),
+                    output_field=IntegerField(),
                 )
             )
 
