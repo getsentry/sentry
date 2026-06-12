@@ -518,9 +518,6 @@ class TestTriggerAutofixAgent(TestCase):
     def test_code_review_disabled_without_flag(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        # Guard against this test passing because the step stopped enabling coding.
-        assert STEP_CONFIGS[AutofixStep.CODE_CHANGES].enable_coding is True
-
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
@@ -561,11 +558,11 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_code_review_stays_disabled_on_non_coding_step_with_flag(
+    def test_code_review_enabled_on_non_coding_step_with_flag(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        # The review tool only operates on accumulated patches, so it should stay
-        # off for steps that don't enable coding, even when the flag is on.
+        # code_review_enabled is gated purely on the option, so it is set even on
+        # steps that don't enable coding. Seer decides where the tool is useful.
         assert STEP_CONFIGS[AutofixStep.ROOT_CAUSE].enable_coding is False
 
         mock_client = MagicMock()
@@ -580,7 +577,7 @@ class TestTriggerAutofixAgent(TestCase):
                 run_id=None,
             )
 
-        assert mock_client_class.call_args.kwargs["code_review_enabled"] is False
+        assert mock_client_class.call_args.kwargs["code_review_enabled"] is True
 
 
 class TestTriggerCodingAgentHandoff(TestCase):

@@ -241,10 +241,10 @@ def _default_reasoning_effort(
     return step_default
 
 
-def _code_review_enabled(organization: Organization, enable_coding: bool) -> bool:
-    # The review_code_changes tool only operates on accumulated patches, so it is
-    # only useful on coding-enabled steps.
-    return enable_coding and features.has("organizations:seer-autofix-code-review", organization)
+def _code_review_enabled(organization: Organization) -> bool:
+    # Gated purely on the option: Seer decides where the review_code_changes tool
+    # is actually useful (e.g. only once code edits have accumulated).
+    return features.has("organizations:seer-autofix-code-review", organization)
 
 
 def trigger_autofix_agent(
@@ -297,7 +297,7 @@ def trigger_autofix_agent(
         intelligence_level=resolved_intelligence_level,
         reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
-        code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
+        code_review_enabled=_code_review_enabled(group.organization),
     )
     if run_id is not None:
         _get_group_run_state(client, group, run_id)
