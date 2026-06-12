@@ -59,17 +59,7 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
         except NoProjects:
             return Response({"data": []}, status=200)
 
-        # Preserve legacy projectSlug precedence while treating blank project filters as absent.
-        query_params = request.GET.copy()
-        project_slug_params = [slug for slug in query_params.getlist("projectSlug") if slug]
-        if "projectSlug" in query_params:
-            query_params.setlist("projectSlug", project_slug_params)
-        if project_slug_params:
-            query_params.pop("project", None)
-        elif "project" in query_params:
-            query_params.setlist(
-                "project", [project for project in query_params.getlist("project") if project]
-            )
+        query_params = self.get_query_params_with_project_slug_precedence(request)
 
         result = ReplayValidator(data=query_params)
         if not result.is_valid():
