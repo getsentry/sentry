@@ -1,7 +1,9 @@
 import {useEffect} from 'react';
 import type {QueryFunctionContext, UseInfiniteQueryResult} from '@tanstack/react-query';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {sentryCellFetch, sentryCellFetchInfinite} from 'sentry/utils/api/sentryCellFetch';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
@@ -17,6 +19,12 @@ export type ApiResponse<TResponseData = unknown> = {
 export async function apiFetch<TQueryFnData = unknown>(
   context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResponse<TQueryFnData>> {
+  const systemFeatures = ConfigStore.get('features');
+  const isCellFetchEnabled = systemFeatures.has('organizations:api-fetch-v2');
+  if (isCellFetchEnabled) {
+    return sentryCellFetch(context);
+  }
+
   const [url, options] = context.queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
@@ -44,6 +52,12 @@ export async function apiFetch<TQueryFnData = unknown>(
 export async function apiFetchInfinite<TQueryFnData = unknown>(
   context: QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>
 ): Promise<ApiResponse<TQueryFnData>> {
+  const systemFeatures = ConfigStore.get('features');
+  const isCellFetchEnabled = systemFeatures.has('organizations:api-fetch-v2');
+  if (isCellFetchEnabled) {
+    return sentryCellFetchInfinite(context);
+  }
+
   const [url, options] = context.queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
