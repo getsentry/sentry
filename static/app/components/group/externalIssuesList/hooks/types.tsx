@@ -31,11 +31,6 @@ export interface ExternalIssueAction {
   disabled?: boolean;
   disabledText?: string;
   /**
-   * Used with pluginActions to link to specific url
-   * This is an external link
-   */
-  href?: string;
-  /**
    * Optional subtext to display in the dropdown
    * Helps differentiate between actions with the same name
    */
@@ -43,7 +38,7 @@ export interface ExternalIssueAction {
 }
 
 /**
- * Integrations, apps, or plugins that can create external issues.
+ * Integrations or apps that can create external issues.
  * Each integration can have one or more configurations.
  */
 export interface ExternalIssueIntegration extends BaseIssueAction {

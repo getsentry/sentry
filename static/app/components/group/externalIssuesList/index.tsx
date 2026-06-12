@@ -14,20 +14,17 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ExternalIssueListProps {
   event: Event;
   group: Group;
-  project: Project;
 }
 
-export function ExternalIssueList({group, event, project}: ExternalIssueListProps) {
+export function ExternalIssueList({group, event}: ExternalIssueListProps) {
   const externalIssueData = useGroupExternalIssues({
     group,
     event,
-    project,
   });
 
   return (

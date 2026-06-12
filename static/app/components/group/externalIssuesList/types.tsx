@@ -8,7 +8,6 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 interface BaseIssueComponent {
   key: string;
@@ -40,24 +39,4 @@ export interface IntegrationComponent extends BaseIssueComponent {
   type: 'integration-issue';
 }
 
-export interface PluginIssueComponent extends BaseIssueComponent {
-  props: {
-    group: Group;
-    plugin: Group['pluginIssues'][number];
-    project: Project;
-  };
-  type: 'plugin-issue';
-}
-
-export interface PluginActionComponent extends BaseIssueComponent {
-  props: {
-    plugin: Group['pluginActions'][number];
-  };
-  type: 'plugin-action';
-}
-
-export type ExternalIssueComponent =
-  | SentryAppIssueComponent
-  | IntegrationComponent
-  | PluginIssueComponent
-  | PluginActionComponent;
+export type ExternalIssueComponent = SentryAppIssueComponent | IntegrationComponent;
