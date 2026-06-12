@@ -341,6 +341,56 @@ class ProcessChunkTest(TestCase):
         assert comparison.chunks_done_indices == [0]
         assert not finalize.called
 
+    def test_chunk_with_unchanged_diff_hash_writes_result(self):
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+        from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
+
+        comparison, head_artifact, base_artifact = self._comparison(1)
+        plan = self._single_chunk_plan(head_artifact, base_artifact)
+        prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        session = _mock_session_with_manifests(stored)
+        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
+            key, contents
+        )
+
+        unchanged_diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=0,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                return_value=({"h": b"img", "b": b"img"}, set()),
+            ),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                return_value=[unchanged_diff],
+            ),
+            self.assertLogs("sentry.preprod.snapshots.tasks", level="INFO"),
+        ):
+            process_snapshot_comparison_chunk(
+                comparison_id=comparison.id,
+                chunk_index=0,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        chunk_key = f"{prefix}/chunks/0.json"
+        assert chunk_key in stored
+        result = orjson.loads(stored[chunk_key])
+        assert result["images"]["a.png"]["status"] == "unchanged"
+
     def test_chunk_hard_failure_still_recorded_and_triggers_finalize(self):
         from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
 

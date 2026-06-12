@@ -620,7 +620,7 @@ def _process_chunk(
                 logger.info(
                     "preprod.snapshots.odiff.unchanged_with_diff_hash",
                     extra={
-                        "name": name,
+                        "image_name": name,
                         "org_id": org_id,
                         "head_artifact_id": head_artifact_id,
                         "base_artifact_id": base_artifact_id,
