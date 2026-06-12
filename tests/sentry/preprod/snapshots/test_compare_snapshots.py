@@ -427,6 +427,43 @@ class ProcessChunkTest(TestCase):
         assert f"{prefix}/chunks/0.json" not in stored
         assert finalize.call_count == 1
 
+    def test_chunk_failure_logs_exception_details(self):
+        from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
+
+        comparison, head_artifact, base_artifact = self._comparison(1)
+        plan = self._single_chunk_plan(head_artifact, base_artifact)
+        prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        session = _mock_session_with_manifests(stored)
+        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
+            key, contents
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks._process_chunk",
+                side_effect=ValueError("odiff exploded"),
+            ),
+            patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
+            self.assertLogs("sentry.preprod.snapshots.tasks", level="INFO") as logs,
+        ):
+            process_snapshot_comparison_chunk(
+                comparison_id=comparison.id,
+                chunk_index=0,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        [record] = [r for r in logs.records if r.getMessage() == "compare_snapshots: chunk failed"]
+        extra = record.__dict__
+        assert extra["error_type"] == "ValueError"
+        assert extra["error"] == "odiff exploded"
+        assert extra["comparison_id"] == comparison.id
+        assert extra["chunk_index"] == 0
+
 
 @cell_silo_test
 class FinalizeSnapshotComparisonTest(TestCase):
