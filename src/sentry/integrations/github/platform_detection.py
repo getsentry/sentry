@@ -147,9 +147,8 @@ def _parse_gemfile(content: str) -> _PackageManifest:
 _SINGLE_METRICS_PREFIX = "onboarding-scm.platform_detection.single"
 
 
-def _bucket_languages_count(languages: dict[str, int]) -> str:
-    """Count distinct Sentry base platforms among a repo's languages and bucket
-    the result into a low-cardinality metric tag.
+def _count_language_groups(languages: dict[str, int]) -> int:
+    """Count distinct Sentry base platforms among a repo's languages.
 
     SDK-less languages are ignored and related languages collapse to a single
     base platform (e.g. TypeScript + JavaScript -> javascript).
@@ -161,14 +160,7 @@ def _bucket_languages_count(languages: dict[str, int]) -> str:
         base_platform = GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get(language)
         if base_platform is not None:
             language_groups.add(base_platform)
-    count = len(language_groups)
-    return "4+" if count >= 4 else str(count)
-
-
-def _bucket_content_reads(needed_paths: set[str]) -> str:
-    """Bucket the number of content-fetch API calls into a metric tag."""
-    count = len(needed_paths)
-    return "6+" if count >= 6 else str(count)
+    return len(language_groups)
 
 
 def detect_platforms(
@@ -299,14 +291,23 @@ def detect_platforms(
         (time.monotonic() - start_time) * 1000,
         unit="millisecond",
     )
+    sentry_sdk.metrics.distribution(
+        f"{_SINGLE_METRICS_PREFIX}.languages_count",
+        _count_language_groups(languages),
+    )
+    sentry_sdk.metrics.distribution(
+        f"{_SINGLE_METRICS_PREFIX}.detected_platforms_count",
+        len(results),
+    )
+    sentry_sdk.metrics.distribution(
+        f"{_SINGLE_METRICS_PREFIX}.content_reads",
+        len(needed_paths),
+    )
     sentry_sdk.metrics.count(
         f"{_SINGLE_METRICS_PREFIX}.completed",
         1,
         attributes={
             "confidence": results[0]["confidence"] if results else "none",
-            "detected_platforms_count": len(results),
-            "languages_count": _bucket_languages_count(languages),
-            "content_reads": _bucket_content_reads(needed_paths),
         },
     )
 
