@@ -7,6 +7,9 @@ class CellConfig(TypedDict):
     name: str
     snowflake_id: int
     address: str
+    # TODO(cells): category moved to LocalityConfig and is ignored here
+    # Remove once all callsites in getsentry are updated
+    category: NotRequired[str]
     api_gateway_address: NotRequired[str]
     visible: NotRequired[bool]
 
