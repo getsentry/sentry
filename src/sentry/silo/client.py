@@ -105,6 +105,7 @@ class CellSiloClient(BaseApiClient):
     metrics_prefix = "silo_client.cell"
     logger = logging.getLogger("sentry.silo.client.cell")
     silo_client_name = "cell"
+    timeout: int = 20
 
     def __init__(self, cell: Cell, retry: bool = False) -> None:
         super().__init__()
@@ -130,6 +131,11 @@ class CellSiloClient(BaseApiClient):
     def proxy_request(self, incoming_request: HttpRequest) -> HttpResponse:
         """
         Directly proxy the provided request to the appropriate silo with minimal header changes.
+
+        Retries are intentionally disabled here: this method is called synchronously within a
+        Django request cycle, so retry backoff would block the thread for multiple seconds.
+        The ``retry`` flag (and its associated Retry adapter) only applies to non-proxy RPC calls
+        that can tolerate extra latency (e.g. webhook delivery tasks).
         """
         full_url = self.build_url(incoming_request.get_full_path())
         prepared_request = Request(
@@ -139,12 +145,19 @@ class CellSiloClient(BaseApiClient):
             data=incoming_request.body,
         ).prepare()
         assert incoming_request.method is not None
-        raw_response = super()._request(
-            incoming_request.method,
-            incoming_request.get_full_path(),
-            prepared_request=prepared_request,
-            raw_response=True,
-        )
+        # Temporarily disable retries for this synchronous proxy call so that
+        # urllib3 backoff does not accumulate inside the Django request thread.
+        original_retry = self.retry
+        self.retry = False
+        try:
+            raw_response = super()._request(
+                incoming_request.method,
+                incoming_request.get_full_path(),
+                prepared_request=prepared_request,
+                raw_response=True,
+            )
+        finally:
+            self.retry = original_retry
         self.logger.info(
             "proxy_request",
             extra={"method": incoming_request.method, "path": incoming_request.path},
