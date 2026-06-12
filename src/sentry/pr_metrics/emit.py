@@ -11,6 +11,8 @@ import logging
 from datetime import datetime
 from typing import Any, Final, Literal
 
+from django.db.models import Q
+
 from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
@@ -127,18 +129,81 @@ def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     ]
 
 
+def _commit_shas_from_activity(pull_request: PullRequest) -> set[str]:
+    """SHAs reachable from SYNCHRONIZED activity, stopping at any force push.
+
+    Walks the SYNCHRONIZED chain newest→oldest. A force push is detected
+    when an event's after_sha doesn't continue from the expected point;
+    traversal stops there. Returns an empty set when there are no events.
+    """
+    payloads = list(
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request,
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+        )
+        .order_by("-date_added", "-id")
+        .values_list("payload", flat=True)
+    )
+
+    shas: set[str] = set()
+    seen_first = False
+    expected_after: str | None = None
+
+    for payload in payloads:  # newest → oldest
+        after_sha = payload.get("after_sha") or ""
+        before_sha = payload.get("before_sha") or ""
+        if not after_sha:
+            continue
+        if not seen_first:
+            seen_first = True
+            shas.add(after_sha)
+        elif after_sha != expected_after:
+            # Gap in chain — force push rewrote history before this point.
+            break
+        else:
+            shas.add(after_sha)
+        if not before_sha:
+            # Can't verify further without a before_sha.
+            expected_after = None
+            break
+        expected_after = before_sha
+
+    # The oldest before_sha is a commit that predates any tracked push.
+    if expected_after:
+        shas.add(expected_after)
+
+    return shas
+
+
 def _resolved_group_ids(pull_request: PullRequest) -> list[int]:
     """Group IDs this PR resolves, from the resolving GroupLink rows.
 
+    Includes groups linked directly to the PR and groups linked to commits
+    reachable from SYNCHRONIZED activity (stopping at any force push). Both
+    lookup paths are merged into a single GroupLink query via a subquery.
     Sorted for a deterministic row; empty when the PR resolves no issues.
     """
-    return sorted(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=pull_request.id,
-        ).values_list("group_id", flat=True)
+    pr_filter = Q(
+        linked_type=GroupLink.LinkedType.pull_request,
+        relationship=GroupLink.Relationship.resolves,
+        linked_id=pull_request.id,
     )
+
+    shas = _commit_shas_from_activity(pull_request)
+    if shas:
+        commit_ids = Commit.objects.filter(
+            repository_id=pull_request.repository_id,
+            key__in=shas,
+        ).values("id")
+        combined = pr_filter | Q(
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id__in=commit_ids,
+        )
+    else:
+        combined = pr_filter
+
+    return sorted(GroupLink.objects.filter(combined).values_list("group_id", flat=True).distinct())
 
 
 def _merge_commit_id(pull_request: PullRequest) -> int | None:
