@@ -8,17 +8,13 @@ import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {DataUnit} from 'sentry/utils/discover/fields';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {millisecondsToClosestInterval} from 'sentry/utils/duration/millisecondsToInterval';
 import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
@@ -26,6 +22,8 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
+import {getHeatmapYAxisBucketCount} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYAxisBucketCount';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -74,7 +72,6 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
-const PIXELS_PER_X_BUCKET = 15;
 
 const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
   [ChartType.LINE]: 'line',
@@ -178,13 +175,18 @@ export function MetricPanel({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
-  const xBucketInterval = getHeatmapXBucketInterval(
+  const xBucketInterval = getHeatmapXAxisBucketInterval(
     selection,
     interval,
     chartContainerWidth,
     intervalOptions
   );
-  const yBuckets = getHeatmapYBuckets(selection, xBucketInterval, chartContainerWidth);
+  const yBuckets = getHeatmapYAxisBucketCount(
+    selection,
+    xBucketInterval,
+    chartContainerWidth,
+    STACKED_GRAPH_HEIGHT
+  );
 
   const heatmapApiOptions = metricHeatmapApiOptions({
     traceMetric,
@@ -389,52 +391,6 @@ function DnDPlaceholder({
       </Grid>
     </Container>
   );
-}
-
-/**
- * Computes the number of Y-axis buckets for the heatmap API so that cells
- * are roughly square. The X-axis bucket count comes from the time range
- * divided by the selected interval. We derive Y buckets by scaling
- * xBuckets by the container's height/width aspect ratio.
- */
-function getHeatmapYBuckets(
-  selection: PageFilters,
-  interval: string,
-  chartContainerWidth: number
-): number {
-  const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
-  const intervalInMs = intervalToMilliseconds(interval);
-  if (intervalInMs <= 0 || chartContainerWidth <= 0) {
-    return 0;
-  }
-  const xBuckets = Math.round(timeRangeInMs / intervalInMs);
-  if (xBuckets <= 0) {
-    return 0;
-  }
-
-  return Math.max(1, Math.round(xBuckets * (STACKED_GRAPH_HEIGHT / chartContainerWidth)));
-}
-
-/**
- * Computes the X-axis bucket interval for the heatmap API.
- * The X-axis bucket interval is derived from the container width and the number of
- * pixels per X bucket.
- */
-function getHeatmapXBucketInterval(
-  selection: PageFilters,
-  interval: string,
-  chartContainerWidth: number,
-  intervalOptions: Array<{label: string; value: string}>
-): string {
-  const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
-  const msPerXBucket = Math.round(
-    timeRangeInMs / (chartContainerWidth / PIXELS_PER_X_BUCKET)
-  );
-  const xBucketInterval = millisecondsToClosestInterval(
-    msPerXBucket,
-    intervalOptions.map(option => option.value)
-  );
-  return xBucketInterval || interval;
 }
 
 /**

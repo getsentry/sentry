@@ -26,6 +26,10 @@ type TraceMetricsWidgetQueriesProps = {
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
+  // Heat map X-axis bucket interval, derived from the rendered chart width.
+  heatmapInterval?: string;
+  // Heat map Y-axis bucket count, derived from the rendered chart dimensions.
+  heatmapYBuckets?: number;
   limit?: number;
   onBestEffortDataFetched?: () => void;
   onDataFetchStart?: () => void;
@@ -80,6 +84,8 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
   getConfidenceInformation,
   selection,
   widgetInterval,
+  heatmapInterval,
+  heatmapYBuckets,
 }: TraceMetricsWidgetQueriesImplProps) {
   const config = TraceMetricsConfig;
   const [confidence, setConfidence] = useState<Confidence | null>(null);
@@ -140,6 +146,8 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     loading: disabled,
     selection,
     widgetInterval,
+    heatmapInterval,
+    heatmapYBuckets,
   });
 
   return getDynamicText({

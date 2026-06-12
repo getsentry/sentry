@@ -305,11 +305,20 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization
   ) => Series[];
   /**
+   * Hook-based approach for fetching heat map data. Heat maps fetch from a
+   * dedicated endpoint and need the rendered chart dimensions (`yBuckets` and
+   * `interval`) to size their X/Y buckets. Only datasets that expose
+   * `DisplayType.HEATMAP` in `supportedDisplayTypes` need to implement this.
+   */
+  useHeatmapQuery?: (
+    params: WidgetQueryParams & {interval?: string; yBuckets?: number}
+  ) => HookWidgetQueryResult;
+
+  /**
    * Data provider hook that provides methods
    * to retrieve tags and values for the search bar.
    */
   useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
-
   /**
    * Hook-based approach for fetching series data.
    * Returns transformed data, raw responses for callbacks, and refetch function.

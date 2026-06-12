@@ -1,13 +1,20 @@
 import {useMemo, useRef} from 'react';
-import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  queryOptions,
+  useQueries,
+  useQuery,
+} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {
+  explodeField,
   getEquationAliasIndex,
   isEquation,
   isEquationAlias,
@@ -27,12 +34,16 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
+import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TraceMetricsSeriesResponse = EventsTimeSeriesResponse;
@@ -413,4 +424,90 @@ export function useTraceMetricsTableQuery(
   })();
 
   return transformedData;
+}
+
+/**
+ * Fetches heat map data for a trace metrics widget. Heat maps render a
+ * time (X) x value-bucket (Y) grid colored by count (Z), so they use the
+ * dedicated `/events-heatmap/` endpoint rather than the timeseries/table flow.
+ *
+ * The `yBuckets` and `interval` are derived from the widget's rendered width
+ * (see `getHeatmapBuckets`) and are passed in from the chart container, since
+ * the query layer has no access to the rendered dimensions.
+ */
+export function useTraceMetricsHeatmapQuery(
+  params: WidgetQueryParams & {
+    interval?: string;
+    skipDashboardFilterParens?: boolean;
+    yBuckets?: number;
+  }
+): HookWidgetQueryResult {
+  const {
+    widget,
+    organization,
+    pageFilters,
+    enabled,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    interval = '',
+    yBuckets = 0,
+  } = params;
+
+  const filteredWidget = useMemo(
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
+    [widget, dashboardFilters, skipDashboardFilterParens]
+  );
+
+  // Heat maps render a single Visualize. When multiple aggregates exist, the
+  // radio selection (`selectedAggregate`) determines which one is plotted, so
+  // the metric comes from the selected aggregate of the first (and only) query.
+  const query = filteredWidget.queries[0];
+  const selectedIndex = getSelectedAggregateIndex(
+    query?.selectedAggregate,
+    query?.aggregates.length ?? 0
+  );
+  const aggregate = query?.aggregates?.[selectedIndex];
+  const traceMetric = aggregate
+    ? extractTraceMetricFromColumn(explodeField({field: aggregate}))
+    : undefined;
+
+  const heatmapEnabled =
+    enabled && defined(traceMetric) && yBuckets > 0 && Boolean(interval);
+
+  const {data, isFetching, error} = useQuery(
+    metricHeatmapApiOptions({
+      traceMetric: traceMetric ?? {name: '', type: '', unit: NONE_UNIT},
+      enabled: heatmapEnabled,
+      organization,
+      selection: pageFilters,
+      query: query?.conditions ?? '',
+      interval,
+      yBuckets,
+    })
+  );
+
+  // Keep a stable `rawData` reference so the `onDataFetched` effect in
+  // genericWidgetQueries doesn't re-fire every render (which would otherwise
+  // cause an infinite update loop). `data` is referentially stable from
+  // react-query, so memoizing on it is enough.
+  const rawData = useMemo(() => (data ? [data] : EMPTY_ARRAY), [data]);
+
+  if (!heatmapEnabled) {
+    return {loading: false, rawData: EMPTY_ARRAY};
+  }
+
+  if (error) {
+    return {loading: false, errorMessage: error.message, rawData: EMPTY_ARRAY};
+  }
+
+  if (isFetching || !data) {
+    return {loading: true, rawData: EMPTY_ARRAY};
+  }
+
+  return {
+    loading: false,
+    heatmapResults: data,
+    rawData,
+  };
 }

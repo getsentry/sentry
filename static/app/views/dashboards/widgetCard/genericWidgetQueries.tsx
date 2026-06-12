@@ -24,6 +24,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export function getReferrer(displayType: DisplayType) {
@@ -43,6 +44,7 @@ export function getReferrer(displayType: DisplayType) {
 export type OnDataFetchedProps = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
+  heatmapResults?: HeatMapSeries;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
@@ -59,6 +61,7 @@ export type GenericWidgetQueriesResult = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
+  heatmapResults?: HeatMapSeries;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
@@ -91,6 +94,12 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   disabled?: boolean;
+  // Heat map X-axis bucket interval, derived from the rendered chart width.
+  // Only used for heat map widgets.
+  heatmapInterval?: string;
+  // Heat map Y-axis bucket count, derived from the rendered chart dimensions.
+  // Only used for heat map widgets.
+  heatmapYBuckets?: number;
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
@@ -173,6 +182,8 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     selection: propsSelection,
     skipDashboardFilterParens,
     widgetInterval,
+    heatmapInterval,
+    heatmapYBuckets,
   } = props;
 
   const organization = useOrganization();
@@ -181,6 +192,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   // Use override selection if provided (for modal zoom), otherwise use hook
   const selection = propsSelection ?? hookPageFilters.selection;
 
+  const isHeatmap = widget.displayType === DisplayType.HEATMAP;
   const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
   const enableSeriesHook = isTimeSeriesData && !disabled && !propsLoading;
@@ -225,7 +237,27 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     widgetInterval,
   });
 
-  const hookResults = isTimeSeriesData ? hookSeriesResults : hookTableResults;
+  const hookHeatmapResults = config.useHeatmapQuery?.({
+    widget,
+    organization,
+    pageFilters: selection,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    onDemandControlContext,
+    mepSetting,
+    samplingMode,
+    enabled: isHeatmap && !disabled && !propsLoading,
+    limit,
+    cursor,
+    interval: heatmapInterval,
+    yBuckets: heatmapYBuckets,
+  });
+
+  const hookResults = isHeatmap
+    ? hookHeatmapResults
+    : isTimeSeriesData
+      ? hookSeriesResults
+      : hookTableResults;
 
   // Track previous raw data to detect when new data arrives
   const prevRawDataRef = useRef<any[] | undefined>(undefined);
@@ -258,7 +290,12 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     prevRawDataRef.current = hookResults.rawData;
 
     // Call afterFetch callbacks with raw data
-    if (isTimeSeriesData) {
+    if (isHeatmap) {
+      // Heat maps have no afterFetch transforms; just surface the result.
+      onDataFetched?.({
+        heatmapResults: (hookResults as any).heatmapResults,
+      });
+    } else if (isTimeSeriesData) {
       hookResults.rawData.forEach((data: any) => {
         afterFetchSeriesData?.(data as SeriesResponse);
       });
@@ -288,6 +325,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     }
   }, [
     hookResults,
+    isHeatmap,
     isTimeSeriesData,
     afterFetchSeriesData,
     afterFetchTableData,

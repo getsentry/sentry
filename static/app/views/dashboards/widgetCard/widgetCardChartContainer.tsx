@@ -1,4 +1,5 @@
-import {Fragment} from 'react';
+import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 
 import type {Client} from 'sentry/api';
@@ -13,13 +14,23 @@ import type {
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import {
+  ChartIntervalUnspecifiedStrategy,
+  useChartInterval,
+} from 'sentry/utils/useChartInterval';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData, widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  HeatMapSeries,
+  TabularColumn,
+} from 'sentry/views/dashboards/widgets/common/types';
+import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
+import {getHeatmapYAxisBucketCount} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYAxisBucketCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import WidgetCardChart from './chart';
@@ -95,6 +106,38 @@ export function WidgetCardChartContainer({
 }: Props) {
   const onWidgetError = useWidgetErrorCallback();
 
+  const isHeatmap = widget.displayType === DisplayType.HEATMAP;
+
+  // Heat maps size their X/Y buckets from the rendered chart dimensions. We
+  // measure the container here (above the data loader) because the query needs
+  // these values before it fires. The query stays disabled until the container
+  // has a non-zero width (see `useTraceMetricsHeatmapQuery`).
+  const heatmapContainerRef = useRef<HTMLDivElement>(null);
+  const {width: heatmapWidth, height: heatmapHeight} = useDimensions({
+    elementRef: heatmapContainerRef,
+  });
+  // Use the biggest interval as the fallback, matching Explore's heat map.
+  const [, , intervalOptions] = useChartInterval({
+    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_BIGGEST,
+  });
+  const fallbackInterval = intervalOptions[intervalOptions.length - 1]?.value ?? '';
+  const heatmapInterval = isHeatmap
+    ? getHeatmapXAxisBucketInterval(
+        selection,
+        fallbackInterval,
+        heatmapWidth,
+        intervalOptions
+      )
+    : undefined;
+  const heatmapYBuckets = isHeatmap
+    ? getHeatmapYAxisBucketCount(
+        selection,
+        heatmapInterval ?? '',
+        heatmapWidth,
+        heatmapHeight
+      )
+    : undefined;
+
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
   };
@@ -103,13 +146,24 @@ export function WidgetCardChartContainer({
     errorMessage: string | undefined,
     timeseriesResults: Series[] | undefined,
     tableResults: TableDataWithTitle[] | undefined,
+    heatmapResults: HeatMapSeries | undefined,
     widgetType: DisplayType
   ) {
-    // non-chart widgets need to look at tableResults
-    const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
     if (widgetFetchesOwnData(widgetType)) {
       return;
     }
+
+    // Heat maps return a single series object rather than table/timeseries rows.
+    if (widgetType === DisplayType.HEATMAP) {
+      return errorMessage
+        ? errorMessage
+        : heatmapResults === undefined || heatmapResults.values.length === 0
+          ? t('No data found')
+          : undefined;
+    }
+
+    // non-chart widgets need to look at tableResults
+    const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
 
     return errorMessage
       ? errorMessage
@@ -118,7 +172,7 @@ export function WidgetCardChartContainer({
         : undefined;
   }
 
-  return (
+  const dataLoader = (
     <WidgetCardDataLoader
       widget={widget}
       selection={selection}
@@ -128,10 +182,13 @@ export function WidgetCardChartContainer({
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
       widgetInterval={widgetInterval}
+      heatmapInterval={heatmapInterval}
+      heatmapYBuckets={heatmapYBuckets}
     >
       {({
         tableResults,
         timeseriesResults,
+        heatmapResults,
         errorMessage,
         loading,
         timeseriesResultsTypes,
@@ -145,12 +202,18 @@ export function WidgetCardChartContainer({
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
 
-        const errorOrEmptyMessage = loading
+        // The heat map query can't fire until the container has been measured,
+        // so treat it as loading until then to avoid a "No data found" flash.
+        const isLoading =
+          loading || (isHeatmap && (!heatmapYBuckets || heatmapYBuckets <= 0));
+
+        const errorOrEmptyMessage = isLoading
           ? errorMessage
           : getErrorOrEmptyMessage(
               errorMessage,
               modifiedTimeseriesResults,
               tableResults,
+              heatmapResults,
               widget.displayType
             );
 
@@ -172,8 +235,9 @@ export function WidgetCardChartContainer({
               disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
+              heatmapResults={heatmapResults}
               errorMessage={errorOrEmptyMessage}
-              loading={loading}
+              loading={isLoading}
               widget={widget}
               selection={selection}
               isMobile={isMobile}
@@ -210,4 +274,22 @@ export function WidgetCardChartContainer({
       }}
     </WidgetCardDataLoader>
   );
+
+  // Heat maps need their rendered dimensions measured before the query fires,
+  // so wrap them in a full-size measured container that stays mounted
+  // regardless of the query/loading state.
+  if (isHeatmap) {
+    return (
+      <HeatmapMeasureContainer ref={heatmapContainerRef}>
+        {dataLoader}
+      </HeatmapMeasureContainer>
+    );
+  }
+
+  return dataLoader;
 }
+
+const HeatmapMeasureContainer = styled('div')`
+  height: 100%;
+  width: 100%;
+`;

@@ -398,7 +398,9 @@ export function useWidgetBuilderState(): {
       // if it hasn't been explicitly set.
       // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
       selectedAggregate:
-        displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
+        (displayType === DisplayType.BIG_NUMBER || displayType === DisplayType.HEATMAP) &&
+        defined(fields) &&
+        fields.length > 1
           ? (selectedAggregate ?? fields.length - 1)
           : displayType === DisplayType.CATEGORICAL_BAR && defined(fields)
             ? (() => {
@@ -520,14 +522,31 @@ export function useWidgetBuilderState(): {
                 options
               );
             }
-          } else if (action.payload === DisplayType.BIG_NUMBER) {
+          } else if (
+            action.payload === DisplayType.BIG_NUMBER ||
+            action.payload === DisplayType.HEATMAP
+          ) {
             // TODO: Reset the selected aggregate here for widgets with equations
+            // Heat maps behave like Big Number here: aggregates (the "Visualize")
+            // live in fields with radio selection, there's no grouping/X-axis
+            // category, and only a single filter is supported.
             setLimit(undefined, options);
             setSort([], options);
             setYAxis([], options);
             setLegendAlias([], options);
-            // Columns are ignored for big number widgets because there is no grouping
-            setFields([...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])], options);
+            // Columns are ignored because there is no grouping
+            let nextFields = [...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])];
+            // Heat maps don't support equations, so drop any equation fields.
+            if (action.payload === DisplayType.HEATMAP) {
+              nextFields = nextFields.filter(
+                field => field.kind !== FieldValueKind.EQUATION
+              );
+              // If stripping equations left nothing, fall back to the default.
+              if (nextFields.length === 0) {
+                nextFields.push({...currentDatasetConfig.defaultField, alias: undefined});
+              }
+            }
+            setFields(nextFields, options);
             setQuery(query?.slice(0, 1), options);
           } else if (action.payload === DisplayType.DETAILS) {
             setLimit(1, options);
@@ -717,7 +736,8 @@ export function useWidgetBuilderState(): {
               options
             );
             setSort(
-              nextDisplayType === DisplayType.BIG_NUMBER
+              nextDisplayType === DisplayType.BIG_NUMBER ||
+                nextDisplayType === DisplayType.HEATMAP
                 ? []
                 : decodeSorts(config.defaultWidgetQuery.orderby),
               options
@@ -1165,11 +1185,12 @@ export function useWidgetBuilderState(): {
             }
           }
 
-          // Adjust selectedAggregate index for Big Number and Categorical Bar
-          // (these are the widget types that use radio selection)
+          // Adjust selectedAggregate index for Big Number, Categorical Bar, and
+          // Heat Map (the widget types that use radio selection)
           if (
             (displayType === DisplayType.BIG_NUMBER ||
-              displayType === DisplayType.CATEGORICAL_BAR) &&
+              displayType === DisplayType.CATEGORICAL_BAR ||
+              displayType === DisplayType.HEATMAP) &&
             selectedAggregate !== undefined
           ) {
             if (deleteIndex < selectedAggregate) {
