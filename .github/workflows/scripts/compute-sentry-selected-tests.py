@@ -123,10 +123,13 @@ EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
 # Tests that should always be run even if not explicitly selected.
 ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/taskworker/test_config.py",
-    # apigw routing must stay in sync with sentry's url -> silo mapping, so any
-    # backend change can affect it. Coverage can't attribute this test to source
-    # files: both the django url conf and the apigw routing table are built at
-    # import time, before any per-test coverage context is active.
+    # apigw must stay in sync with sentry (url -> silo mapping, model queries),
+    # so any backend change can affect it. Coverage can't attribute the routing
+    # test to source files: both the django url conf and the apigw routing
+    # table are built at import time, before any per-test coverage context is
+    # active.
+    "tests/apigw/test_db.py",
+    "tests/apigw/test_proxy.py",
     "tests/apigw/test_routing.py",
 }
 

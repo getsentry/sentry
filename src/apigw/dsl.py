@@ -8,7 +8,7 @@ from sentry.types.cell import get_cell_by_name as get_cell_by_name
 from .db import pgq_from_djq
 
 
-async def get_cell_for_organization(db: Any, org_id_or_slug: str) -> Cell:
+def cell_for_organization_query(org_id_or_slug: str) -> tuple[str, Any]:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if org_id_or_slug.isdecimal():
@@ -18,6 +18,11 @@ async def get_cell_for_organization(db: Any, org_id_or_slug: str) -> Cell:
     qs.query.set_limits(0, 1)
     q, qp = qs.query.sql_with_params()
     q = pgq_from_djq(q, len(qp))
+    return q, qp
+
+
+async def get_cell_for_organization(db: Any, org_id_or_slug: str) -> Cell:
+    q, qp = cell_for_organization_query(org_id_or_slug)
     cell_name = await db.fetchval(q, *qp)
     if not cell_name:
         raise CellResolutionError(f"Organization {org_id_or_slug} has no associated mapping.")
