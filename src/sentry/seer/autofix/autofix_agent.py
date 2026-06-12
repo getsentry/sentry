@@ -69,6 +69,7 @@ class AutofixStep(StrEnum):
     ROOT_CAUSE = "root_cause"
     SOLUTION = "solution"
     CODE_CHANGES = "code_changes"
+    PR_ITERATION = "pr_iteration"
 
     @staticmethod
     def from_autofix_stopping_point(
@@ -179,6 +180,10 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
         AutofixStep.CODE_CHANGES: {
             False: SeerActionType.CODING_STARTED,
             True: SeerActionType.CODING_COMPLETED,
+        },
+        AutofixStep.PR_ITERATION: {
+            False: SeerActionType.ITERATION_STARTED,
+            True: SeerActionType.ITERATION_COMPLETED,
         },
     }
     return step_to_action_type[step][is_completed]

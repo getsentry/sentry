@@ -193,10 +193,17 @@ def poll_github_copilot_agents(
             client = GithubCopilotAgentClient(user_access_token)
             task_status = client.get_task_status(owner, repo, task_id)
 
-            # Find PR in artifacts - look for artifact with data.type == 'pull'
+            # Find PR and branch artifacts
             pr_artifact = next(
                 (a for a in (task_status.artifacts or []) if a.data and a.data.type == "pull"),
                 None,
+            )
+            branch_artifact = next(
+                (a for a in (task_status.artifacts or []) if a.type == "branch"),
+                None,
+            )
+            branch_name = (
+                branch_artifact.data.head_ref if branch_artifact and branch_artifact.data else None
             )
 
             if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
@@ -211,6 +218,7 @@ def poll_github_copilot_agents(
                         repo_provider="github",
                         repo_full_name=f"{owner}/{repo}",
                         pr_url=pr_url,
+                        branch_name=branch_name,
                     )
 
                     # The Copilot API uses `state` (not `status`) for task lifecycle.
@@ -420,15 +428,18 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
     return client
 
 
-def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | None, str | None]:
+def extract_result_from_events(
+    events: list[ClaudeSessionEvent],
+) -> tuple[str | None, str | None, str | None]:
     """Extract a GitHub PR or branch URL and its surrounding text block from session events.
 
     Returns:
-        Tuple of (url, text_block). text_block is the full text content of the agent
-        event block that contained the URL, suitable for display as a result description.
+        Tuple of (url, text_block, branch_name). branch_name is populated when the agent
+        returned a branch URL instead of a PR URL (i.e. auto_create_pr=False).
+        text_block is the full text content of the agent event block that contained the URL.
     """
     pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
-    branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
+    branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/([-\w./]*[-\w])")
 
     for event in reversed(events):
         if event.type != "agent.message":
@@ -438,12 +449,12 @@ def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | 
                 text = block.get("text", "")
                 pr_match = pr_pattern.search(text)
                 if pr_match:
-                    return pr_match.group(0), text
+                    return pr_match.group(0), text, None
                 branch_match = branch_pattern.search(text)
                 if branch_match:
-                    return branch_match.group(0), text
+                    return branch_match.group(0), text, branch_match.group(1)
 
-    return None, None
+    return None, None, None
 
 
 def build_result_from_events(
@@ -455,9 +466,10 @@ def build_result_from_events(
 ) -> tuple[Any | None, CodingAgentStatus]:
     result = None
     pr_url = None
+    branch_name = None
     description: str | None = None
     if new_status == CodingAgentStatus.COMPLETED:
-        pr_url, description = extract_result_from_events(events)
+        pr_url, description, branch_name = extract_result_from_events(events)
         if not pr_url:
             logger.warning(
                 "coding_agent.claude_code.no_result_url_in_response",
@@ -472,6 +484,7 @@ def build_result_from_events(
         )
         if result:
             result.description = description or ""
+            result.branch_name = branch_name
     except Exception:
         logger.exception(
             "coding_agent.claude_code.build_result_error",

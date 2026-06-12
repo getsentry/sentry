@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any, cast
 
+from django.core.cache import cache
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -43,13 +44,17 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.base import MCP_USER_AGENT_PREFIX
 from sentry.issues.action_log.types import ViewAction
-from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.constants import (
+    ISSUE_VIEW_CACHE_KEY_TTL,
+    cache_key_for_issue_view,
+    get_issue_tsdb_group_model,
+)
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models.activity import Activity
@@ -348,9 +353,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 organization_id=group.organization.id,
                 project_id=group.project_id,
-                actor=GroupActionActor.user(request.user.id)
-                if request.user.is_authenticated
-                else SYSTEM_ACTOR,
+                actor=resolve_action_actor(request),
             )
 
             metrics.incr(
@@ -505,14 +508,18 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
         return
 
     user_agent = request.META.get("HTTP_USER_AGENT", "")
-    if isinstance(user_agent, str) and user_agent.startswith("sentry-mcp/"):
-        client_family = request.headers.get("x-sentry-mcp-client-family")
+    if isinstance(user_agent, str) and user_agent.startswith(MCP_USER_AGENT_PREFIX):
+        client_family = request.headers.get("x-sentry-mcp-client-family") or "unknown"
         analytics.record(
             IssueViewedEvent(
                 organization_id=group.project.organization_id,
                 project_id=group.project.id,
                 group_id=group.id,
-                client=f"mcp - {client_family or 'unknown'}",
+                client=f"mcp - {client_family}",
                 user_id=request.user.id,
             )
         )
+        if features.has("organizations:mcp-issue-view-attribution", group.project.organization):
+            cache.set(
+                cache_key_for_issue_view(group.id, "mcp"), client_family, ISSUE_VIEW_CACHE_KEY_TTL
+            )

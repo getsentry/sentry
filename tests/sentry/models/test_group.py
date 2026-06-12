@@ -139,18 +139,22 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert short_id.startswith("FOO-BAR-")
 
-        group2 = Group.objects.by_qualified_short_id(group.organization.id, short_id)
+        group2 = Group.objects.by_qualified_short_id(
+            group.organization.id, short_id, project_ids=None
+        )
 
         assert group2 == group
 
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(
-                group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
+                group.organization.id,
+                "server_name:my-server-with-dashes-0ac14dadda3b428cf",
+                project_ids=None,
             )
 
         group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
-            Group.objects.by_qualified_short_id(group.organization.id, short_id)
+            Group.objects.by_qualified_short_id(group.organization.id, short_id, project_ids=None)
 
     def test_qualified_share_id_bulk(self) -> None:
         project = self.create_project(name="foo bar")
@@ -159,19 +163,20 @@ class GroupTest(TestCase, SnubaTestCase):
         group_short_id = group.qualified_short_id
         group_2_short_id = group_2.qualified_short_id
         assert [group] == Group.objects.by_qualified_short_id_bulk(
-            group.organization.id, [group_short_id]
+            group.organization.id, [group_short_id], project_ids=None
         )
         assert {group, group_2} == set(
             Group.objects.by_qualified_short_id_bulk(
                 group.organization.id,
                 [group_short_id, group_2_short_id],
+                project_ids=None,
             )
         )
 
         group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id_bulk(
-                group.organization.id, [group_short_id, group_2_short_id]
+                group.organization.id, [group_short_id, group_2_short_id], project_ids=None
             )
 
     def test_by_qualified_short_id_bulk_missing_id_colliding_short_id_across_projects(
@@ -194,7 +199,9 @@ class GroupTest(TestCase, SnubaTestCase):
         group_b.update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
         with pytest.raises(Group.DoesNotExist):
-            Group.objects.by_qualified_short_id_bulk(org_id, [a_short_id, b_short_id])
+            Group.objects.by_qualified_short_id_bulk(
+                org_id, [a_short_id, b_short_id], project_ids=None
+            )
 
     def test_by_qualified_short_id_scoped_to_projects(self) -> None:
         project_a = self.create_project(name="proj a")
@@ -252,7 +259,9 @@ class GroupTest(TestCase, SnubaTestCase):
         short_id = group.qualified_short_id
 
         # Should resolve via case-insensitive slug fallback
-        resolved = Group.objects.by_qualified_short_id_bulk(group.organization.id, [short_id])
+        resolved = Group.objects.by_qualified_short_id_bulk(
+            group.organization.id, [short_id], project_ids=None
+        )
         assert resolved == [group]
 
     def test_first_last_release(self) -> None:

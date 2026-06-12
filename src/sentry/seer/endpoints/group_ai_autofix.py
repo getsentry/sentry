@@ -30,9 +30,8 @@ from sentry.apidocs.response_types import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.types import TriggerAutofixAction
@@ -64,6 +63,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +74,12 @@ def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
     return getattr(error, "message", None) == UNKNOWN_RUN_ID_FOR_GROUP
 
 
-def _parse_autofix_referrer(raw: str | None) -> AutofixReferrer:
+def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferrer:
     if raw is None:
+        # Fall back to the request origin: requests from the Sentry MCP server are
+        # attributed to MCP, everything else to the generic endpoint referrer.
+        if is_mcp_request(request):
+            return AutofixReferrer.MCP
         return AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
     try:
         return AutofixReferrer(raw)
@@ -236,7 +240,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 handoff_result: AutofixHandoffResponse = trigger_coding_agent_handoff(
                     group=group,
                     run_id=run_id,
-                    referrer=_parse_autofix_referrer(data.get("referrer")),
+                    referrer=_parse_autofix_referrer(data.get("referrer"), request),
                     integration_id=integration_id,
                     provider=provider,
                     user_id=request.user.id if request.user else None,
@@ -258,7 +262,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 trigger_push_changes(
                     group,
                     run_id,
-                    referrer=_parse_autofix_referrer(data.get("referrer")),
+                    referrer=_parse_autofix_referrer(data.get("referrer"), request),
                     repo_name=repo_name,
                 )
             except SeerPermissionError:
@@ -273,7 +277,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             run_id = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep(step),
-                referrer=_parse_autofix_referrer(data.get("referrer")),
+                referrer=_parse_autofix_referrer(data.get("referrer"), request),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
                 user_context=data.get("user_context"),
@@ -288,11 +292,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     group_id=group.id,
                     organization_id=group.project.organization_id,
                     project_id=group.project_id,
-                    actor=(
-                        GroupActionActor.user(request.user.id)
-                        if request.user and request.user.is_authenticated
-                        else SYSTEM_ACTOR
-                    ),
+                    actor=resolve_action_actor(request),
                 )
             kickoff_body: AutofixPostResponse = {"run_id": run_id}
             return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)

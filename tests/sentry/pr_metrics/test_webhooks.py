@@ -5,9 +5,12 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.issues.constants import ISSUE_VIEW_CACHE_KEY_TTL, cache_key_for_issue_view
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestActivity,
     PullRequestActivityType,
@@ -143,6 +146,79 @@ class HandleWebhookForPrMetricsTest(TestCase):
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
 
+    # --- MCP attribution ---
+
+    def test_mcp_attribution_recorded_when_referenced_issue_viewed_via_mcp(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        attr = PullRequestAttribution.objects.get(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        )
+        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
+        assert attr.signal_details == {"group_ids": {str(group.id): "cursor"}}
+
+    def test_mcp_attribution_not_recorded_without_cache_hit(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
+    def test_mcp_attribution_not_recorded_without_group_link(self) -> None:
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
+    def test_mcp_and_app_attribution_coexist(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+        ).exists()
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
     # --- Feature flag ---
 
     def test_feature_flag_off_skips_attribution(self) -> None:
@@ -185,6 +261,7 @@ CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
 @with_feature("organizations:pr-metrics-emit")
+@with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
@@ -232,22 +309,49 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def test_emits_on_merge(self, mock_record: MagicMock) -> None:
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
-        assert mock_record.call_args_list[-1].args[0].close_action == "merged"
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.close_action == "merged"
+        assert row.verdict == "merged_unchanged"
 
     @patch("sentry.analytics.record")
     def test_emits_on_close_unmerged(self, mock_record: MagicMock) -> None:
         self._call(merged=False)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
-        assert mock_record.call_args_list[-1].args[0].close_action == "closed"
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.close_action == "closed"
+        assert row.verdict == "closed_unmerged"
 
-    @patch(f"{MODULE}.needs_judge", return_value=True)
+    def _add_synchronize(self) -> None:
+        # A push to the PR branch after it opened — makes a merge non-deterministic.
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="sync-1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={},
+        )
+
+    def test_claims_verdict_on_metrics_row(self) -> None:
+        with patch("sentry.analytics.record"):
+            self._call(merged=True)
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.verdict == "merged_unchanged"
+
     @patch("sentry.analytics.record")
-    def test_falls_back_to_immediate_emit_when_judge_needed(
-        self, mock_record: MagicMock, _needs_judge: MagicMock
-    ) -> None:
-        # Until the judge path is wired, a judge-needed PR still emits immediately.
+    def test_skips_emit_when_judge_needed(self, mock_record: MagicMock) -> None:
+        # A merge with later commits can't be settled deterministically — it needs
+        # a judge. The forward isn't wired, so it's skipped and no verdict is set.
+        self._add_synchronize()
         self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch("sentry.analytics.record")
+    def test_skips_emit_when_metrics_row_missing(self, mock_record: MagicMock) -> None:
+        # A missing metrics row (handle_metrics failed) is deferred to a judge, not
+        # silently dropped as a redelivery — for a merge as much as a close.
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
     def test_ignores_non_terminal_actions(self, mock_record: MagicMock) -> None:
@@ -263,18 +367,57 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
+    def test_skips_emit_when_activity_tracking_disabled(self, mock_record: MagicMock) -> None:
+        # Without activity tracking the commits-after-open signal is absent, so the
+        # verdict can't be settled deterministically — defer rather than emit a
+        # possibly-wrong merged_unchanged. No verdict is claimed either.
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch("sentry.analytics.record")
     def test_skips_untracked_pr(self, mock_record: MagicMock) -> None:
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        # No verdict is claimed for an untracked PR, so the redelivery guard stays open.
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
     @patch("sentry.analytics.record")
-    def test_redelivery_emits_each_time(self, mock_record: MagicMock) -> None:
-        # Emission is stateless — it does not dedupe webhook redeliveries; that
-        # guard lives at the terminal-event/PR-status check, not here.
+    def test_untracked_pr_emits_once_attribution_lands(self, mock_record: MagicMock) -> None:
+        # An untracked PR claims no verdict; once attribution arrives (e.g. a Seer
+        # backfill), a later delivery still emits — the claim was never burned.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+        )
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+
+    @patch("sentry.analytics.record")
+    def test_redelivery_dropped_after_first_terminal_event(self, mock_record: MagicMock) -> None:
         self._call(merged=True)
         self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 2
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_judge_needed_pr_never_emits_on_redelivery(self, mock_record: MagicMock) -> None:
+        # A judge-needed PR writes no verdict, so every redelivery re-evaluates to
+        # "needs judge" and skips — it never emits a row from this path.
+        self._add_synchronize()
+        self._call(merged=True)
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch(f"{MODULE}.logger")
     @patch("sentry.analytics.record")

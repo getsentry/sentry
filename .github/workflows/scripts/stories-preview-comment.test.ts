@@ -53,6 +53,7 @@ interface Scenario {
   prs?: Array<{number: number; state: string; head?: {sha: string}}>;
   files?: Array<{filename: string; status: string}>;
   comments?: Array<{id: number; body: string}>;
+  dirContents?: Record<string, Array<{name: string; path: string}>>;
   url?: string;
 }
 
@@ -66,6 +67,7 @@ function run({
   prs = [{number: 42, state: 'open', head: {sha: DEPLOY_SHA}}],
   files = [],
   comments = [],
+  dirContents = {},
   url = 'https://sentry-abc.sentry.dev',
 }: Scenario) {
   const calls = {
@@ -76,7 +78,16 @@ function run({
   const core = {info: () => {}};
   const github = {
     rest: {
-      repos: {listPullRequestsAssociatedWithCommit: async () => ({data: prs})},
+      repos: {
+        listPullRequestsAssociatedWithCommit: async () => ({data: prs}),
+        getContent: async ({path}: {path: string}) => {
+          const entries = dirContents[path];
+          if (!entries) {
+            throw new Error('Not Found');
+          }
+          return {data: entries};
+        },
+      },
       pulls: {listFiles: 'listFiles'},
       issues: {
         listComments: 'listComments',
@@ -177,6 +188,56 @@ describe('syncStoriesPreviewComment', () => {
     });
     assert.equal(calls.create.length, 1);
     assert.match(calls.create[0].body!, /components\/foo\\\]\//);
+  });
+
+  it('links a colocated story when only the component changed', async () => {
+    const calls = await run({
+      files: [{filename: 'static/app/components/foo/foo.tsx', status: 'modified'}],
+      dirContents: {
+        'static/app/components/foo': [
+          {name: 'foo.tsx', path: 'static/app/components/foo/foo.tsx'},
+          {name: 'foo.stories.tsx', path: 'static/app/components/foo/foo.stories.tsx'},
+        ],
+      },
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(calls.create[0].body!, /foo\.stories\.tsx/);
+    assert.match(calls.create[0].body!, /stories\/product\/components\/foo\/foo\//);
+  });
+
+  it('links a directory-named story when index.tsx changed', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/app/components/core/disclosure/index.tsx',
+          status: 'modified',
+        },
+      ],
+      dirContents: {
+        'static/app/components/core/disclosure': [
+          {name: 'index.tsx', path: 'static/app/components/core/disclosure/index.tsx'},
+          {
+            name: 'disclosure.mdx',
+            path: 'static/app/components/core/disclosure/disclosure.mdx',
+          },
+        ],
+      },
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(calls.create[0].body!, /stories\/core\/disclosure\//);
+  });
+
+  it('ignores an unrelated story in the changed component directory', async () => {
+    const calls = await run({
+      files: [{filename: 'static/app/components/foo/foo.tsx', status: 'modified'}],
+      dirContents: {
+        'static/app/components/foo': [
+          {name: 'foo.tsx', path: 'static/app/components/foo/foo.tsx'},
+          {name: 'bar.stories.tsx', path: 'static/app/components/foo/bar.stories.tsx'},
+        ],
+      },
+    });
+    assert.deepEqual(calls, {create: [], update: [], delete: []});
   });
 
   it('neutralizes markdown-injecting paths in both the label and the URL', async () => {

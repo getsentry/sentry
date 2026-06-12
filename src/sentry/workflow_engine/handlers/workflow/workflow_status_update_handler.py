@@ -22,6 +22,8 @@ SEER_ACTIVITIES = [
     ActivityType.SEER_CODING_STARTED.value,
     ActivityType.SEER_CODING_COMPLETED.value,
     ActivityType.SEER_PR_CREATED.value,
+    ActivityType.SEER_ITERATION_STARTED.value,
+    ActivityType.SEER_ITERATION_COMPLETED.value,
 ]
 
 SUPPORTED_ACTIVITIES = [
