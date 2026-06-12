@@ -520,7 +520,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             DashboardWidgetDisplayTypes.BAR_CHART,
         }:
             for query in data.get("queries"):
-                aggregates = query.get("aggregates", [])
+                aggregates = query.get("aggregates") or []
                 if any(is_equation(aggregate) for aggregate in aggregates) and len(aggregates) > 1:
                     raise serializers.ValidationError(
                         {"queries": "Tracemetrics timeseries widgets support at most one equation."}
