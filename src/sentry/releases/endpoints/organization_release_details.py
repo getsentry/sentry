@@ -383,14 +383,14 @@ class OrganizationReleaseDetailsEndpoint(
 
         # Validate project access when a project identifier is provided.
         project = None
+        project_ids: set[int] | None = None
+        project_slugs: set[str] | None = None
         if project_id:
             try:
                 project_id_or_slug = ProjectIdOrSlugField().run_validation(project_id)
             except ValidationError:
                 raise ParseError(detail="Invalid project")
 
-            project_ids: set[int] | None = None
-            project_slugs: set[str] | None = None
             if isinstance(project_id_or_slug, int):
                 if project_id_or_slug == ALL_ACCESS_PROJECT_ID:
                     raise ParseError(detail="Invalid project")
@@ -429,7 +429,12 @@ class OrganizationReleaseDetailsEndpoint(
 
             # Get prev and next release to current release
             try:
-                filter_params = self.get_filter_params(request, organization)
+                filter_params = self.get_filter_params(
+                    request,
+                    organization,
+                    project_ids=project_ids,
+                    project_slugs=project_slugs,
+                )
                 current_project_meta.update(
                     {
                         **self.get_adjacent_releases_to_current_release(

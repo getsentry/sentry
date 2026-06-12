@@ -314,6 +314,48 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@2.0.0"
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
 
+    def test_project_id_scopes_adjacent_releases(self) -> None:
+        other_project = self.create_project(teams=[self.team1], organization=self.organization)
+        now = datetime.now(UTC)
+
+        other_newer_release = Release.objects.create(
+            date_added=now,
+            organization_id=self.organization.id,
+            version="other@2.0.0",
+        )
+        other_newer_release.add_project(other_project)
+
+        current_release = Release.objects.create(
+            date_added=now - timedelta(days=1),
+            organization_id=self.organization.id,
+            version="project@2.0.0",
+        )
+        current_release.add_project(self.project1)
+
+        previous_release = Release.objects.create(
+            date_added=now - timedelta(days=2),
+            organization_id=self.organization.id,
+            version="project@1.0.0",
+        )
+        previous_release.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+        self.login_as(user=self.user1)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "version": current_release.version,
+            },
+        )
+
+        response = self.client.get(url, {"project_id": self.project1.id})
+
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == previous_release.version
+
     def test_get_prev_and_next_release_to_current_release_on_date_sort_with_same_date(self) -> None:
         """
         Test that ensures that in the case we are trying to get prev and next release to a current
