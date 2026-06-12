@@ -165,9 +165,6 @@
       text-align: center;
     }
 
-    .project-breakdown .col-errors-dropped {
-      padding-right: 2rem;
-    }
   </style>
 
   <style type="text/css" inline="false">
@@ -185,10 +182,6 @@
 
       .header td {
         text-align: center !important;
-      }
-
-      .project-breakdown .col-dropped {
-        display: none;
       }
 
       #events-by-issue-type .legend {
@@ -391,9 +384,7 @@
           <th style="width: 2em; padding-right: 0.5em"></th>
           <th>Project</th>
           <th style="width: 5em;" class="numeric">Errors</th>
-          <th style="width: 5em;" class="numeric col-dropped col-errors-dropped">Dropped</th>
           <th style="width: 7em;" class="numeric">Transactions</th>
-          <th style="width: 7em;" class="numeric col-dropped">Dropped</th>
         </tr>
       </thead>
       <tbody>
@@ -406,9 +397,7 @@
               {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
           </td>
           <td class="numeric">{{ project.accepted_error_count|small_count:1 }}</td>
-          <td class="numeric col-dropped col-errors-dropped">{{ project.dropped_error_count|small_count:1 }}</td>
           <td class="numeric">{{ project.accepted_transaction_count|small_count:1 }}</td>
-          <td class="numeric col-dropped">{{ project.dropped_transaction_count|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>
