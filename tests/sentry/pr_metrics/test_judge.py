@@ -8,6 +8,8 @@ from urllib3.exceptions import HTTPError
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.pullrequest import (
+    PullRequestActivity,
+    PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
@@ -339,6 +341,31 @@ class ForwardPrToSeerJudgeTest(TestCase):
         }
         assert body["additions"] == 12
         assert body["comments_count"] == 5
+
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_forwards_activity_timeline(self, mock_request: Any) -> None:
+        # The captured activity rides along verbatim (text-free payloads), giving
+        # the judge the actors/outcomes the end-state counters flatten away.
+        mock_request.return_value = self._response(202)
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="d1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={"sender_type": "Bot", "after_sha": "c" * 40},
+        )
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="d2",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            payload={"review_state": "changes_requested"},
+        )
+        forward_pr_to_seer_judge(self.pull_request, self.repo)
+
+        activity = orjson.loads(mock_request.call_args.kwargs["body"])["activity"]
+        by_type = {e["event_type"]: e["payload"] for e in activity}
+        assert len(activity) == 2
+        assert by_type["synchronized"]["sender_type"] == "Bot"
+        assert by_type["review_submitted"]["review_state"] == "changes_requested"
 
     @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
     def test_close_action_is_closed_when_unmerged(self, mock_request: Any) -> None:

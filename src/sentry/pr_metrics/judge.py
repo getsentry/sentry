@@ -23,6 +23,7 @@ from urllib3.exceptions import HTTPError
 
 from sentry.models.pullrequest import (
     PullRequest,
+    PullRequestActivity,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestMetrics,
@@ -63,6 +64,19 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
+class PrActivityEvent(BaseModel):
+    """One captured ``PullRequestActivity`` row, projected for the judge.
+
+    The stored payloads are structural-only — titles, bodies, and comment text are
+    excluded at capture — so the whole payload is safe to forward as-is.
+    """
+
+    event_type: str
+    # When Sentry recorded the activity (≈ webhook arrival); preserves event order.
+    timestamp: str
+    payload: dict[str, Any]
+
+
 class PrCloseJudgeRequest(BaseModel):
     """The Sentry → Seer judge request body; mirrors Seer's ``PrCloseJudgeRequest``.
 
@@ -94,6 +108,21 @@ class PrCloseJudgeRequest(BaseModel):
     is_assigned: bool
     attributions: list[dict[str, Any]]
     group_ids: list[int]
+    # The captured activity timeline, oldest first. Carries the event sequence and
+    # actors that the end-state counters above flatten away: who pushed the
+    # post-open commits (Bot vs human), review outcomes, labels, draft transitions.
+    activity: list[PrActivityEvent]
+
+
+def _pr_activity_timeline(pull_request: PullRequest) -> list[PrActivityEvent]:
+    """The PR's captured activity rows, oldest first, projected for the judge."""
+    rows = PullRequestActivity.objects.filter(pull_request=pull_request).order_by("date_added")
+    return [
+        PrActivityEvent(
+            event_type=row.event_type, timestamp=row.date_added.isoformat(), payload=row.payload
+        )
+        for row in rows
+    ]
 
 
 def _build_judge_request(pull_request: PullRequest, repository: Repository) -> PrCloseJudgeRequest:
@@ -144,6 +173,7 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> P
         is_assigned=metrics_row.is_assigned,
         attributions=active_attributions(pull_request),
         group_ids=resolved_group_ids(pull_request),
+        activity=_pr_activity_timeline(pull_request),
     )
 
 
