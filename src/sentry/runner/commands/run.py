@@ -415,9 +415,6 @@ def taskbroker_send_tasks(
     help="Which sliced kafka topic to use. This only applies if the target topic is configured in SLICED_KAFKA_TOPICS.",
 )
 @click.option(
-    "--cluster", type=str, help="Which cluster definition from settings to use for this consumer."
-)
-@click.option(
     "--consumer-group",
     "group_id",
     required=True,
@@ -592,7 +589,6 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             consumer_name,
             [],
             topic=None,
-            cluster=None,
             group_id="sentry-consumer",
             auto_offset_reset="latest",
             strict_offset_reset=False,
