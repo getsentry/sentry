@@ -4,7 +4,6 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
@@ -30,7 +29,6 @@ describe('ExternalIssueSidebarList', () => {
   });
   const event = EventFixture();
   const group = GroupFixture();
-  const project = ProjectFixture();
 
   function mockLinkedPullRequestsFeatureRequests(integrations: GroupIntegration[]) {
     MockApiClient.addMockResponse({
@@ -87,7 +85,7 @@ describe('ExternalIssueSidebarList', () => {
       method: 'DELETE',
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: issueKey})).toBeInTheDocument();
     await userEvent.hover(screen.getByRole('button', {name: issueKey}));
@@ -149,7 +147,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(
       await screen.findByRole('button', {name: 'ClickUp: hello#1'})
@@ -188,7 +186,7 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: 'GitHub'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
@@ -231,7 +229,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
@@ -270,7 +268,7 @@ describe('ExternalIssueSidebarList', () => {
       body: {createIssueConfig: [], linkIssueConfig: []},
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
     renderGlobalModal({organization: organizationWithLinkedPullRequestsFeature});
@@ -302,7 +300,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
@@ -327,7 +325,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
@@ -351,7 +349,7 @@ describe('ExternalIssueSidebarList', () => {
       body: [],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+    render(<ExternalIssueSidebarList event={event} group={group} />, {
       organization: organizationWithLinkedPullRequestsFeature,
     });
 
@@ -389,7 +387,7 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} project={project} />);
+    render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: 'Jira'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'Jira'}));
@@ -402,35 +400,5 @@ describe('ExternalIssueSidebarList', () => {
 
     // Item with name matching integration name should only show subtext
     expect(screen.getByRole('menuitemradio', {name: 'example.com'})).toBeInTheDocument();
-  });
-
-  it('should render links to group.pluginActions', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
-      body: [],
-    });
-
-    const groupWithPluginActions = GroupFixture({
-      pluginActions: [['Create Redmine Issue', '/path/to/redmine']],
-    });
-    render(
-      <ExternalIssueSidebarList
-        event={event}
-        group={groupWithPluginActions}
-        project={project}
-      />
-    );
-
-    expect(
-      await screen.findByRole('button', {name: 'Create Redmine Issue'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create Redmine Issue'})).toHaveAttribute(
-      'href',
-      '/path/to/redmine'
-    );
   });
 });

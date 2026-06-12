@@ -4,17 +4,15 @@ import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsSt
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 type Props = {
   event: Event;
   group: Group;
-  project: Project;
 };
 
-export function useHasLinkedIssues({group, event, project}: Props) {
+export function useHasLinkedIssues({group, event}: Props) {
   const organization = useOrganization();
   const issueTrackingFilter = useIssueTrackingFilter();
   const components = useSentryAppComponentsStore({componentType: 'issue-link'});
@@ -28,7 +26,6 @@ export function useHasLinkedIssues({group, event, project}: Props) {
         const installation = sentryAppInstallations.find(
           i => i.app.uuid === sentryApp.uuid
         );
-        // should always find a match but TS complains if we don't handle this case
         if (!installation) {
           return null;
         }
@@ -74,48 +71,10 @@ export function useHasLinkedIssues({group, event, project}: Props) {
     );
   };
 
-  const renderPluginIssues = (): ExternalIssueComponent[] => {
-    return group.pluginIssues?.map((plugin, i) => ({
-      type: 'plugin-issue',
-      key: `plugin-issue-${i}`,
-      disabled: false,
-      hasLinkedIssue: true,
-      props: {
-        group,
-        project,
-        plugin,
-      },
-    }));
-  };
-
-  const renderPluginActions = (): ExternalIssueComponent[] => {
-    return (
-      group.pluginActions?.map((plugin, i) => ({
-        type: 'plugin-action',
-        key: `plugin-action-${i}`,
-        disabled: false,
-        hasLinkedIssue: false,
-        props: {plugin},
-      })) ?? []
-    );
-  };
-
-  const linkedIssues = [
-    ...renderSentryAppIssues(),
-    ...renderIntegrationIssues(),
-    ...renderPluginIssues(),
-    ...renderPluginActions(),
-  ].filter(issue => !issueTrackingFilter || issue.key === issueTrackingFilter);
-
-  // Plugins: need to do some extra logic to detect if the issue is linked,
-  // by checking if there exists an issue object
-  const plugins = linkedIssues.filter(
-    a =>
-      (a.type === 'plugin-issue' || a.type === 'plugin-action') &&
-      'issue' in a.props.plugin
+  const linkedIssues = [...renderSentryAppIssues(), ...renderIntegrationIssues()].filter(
+    issue => !issueTrackingFilter || issue.key === issueTrackingFilter
   );
 
-  // Sentry app issues: read from `hasLinkedIssue` property
   const sentryAppIssues = linkedIssues.filter(
     a =>
       a.hasLinkedIssue &&
@@ -123,8 +82,7 @@ export function useHasLinkedIssues({group, event, project}: Props) {
       a.props.externalIssue?.issueId === group.id
   );
 
-  // Integration issues
   const integrationIssues = linkedIssues.filter(a => a.type === 'integration-issue');
 
-  return {linkedIssues: plugins.concat(integrationIssues).concat(sentryAppIssues)};
+  return {linkedIssues: integrationIssues.concat(sentryAppIssues)};
 }

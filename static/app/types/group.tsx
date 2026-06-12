@@ -1125,8 +1125,9 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
+  // Deprecated: legacy plugin system is being removed. These fields are still sent by the backend.
   pluginActions: Array<[title: string, actionLink: string]>;
-  pluginContexts: any[]; // TODO(ts)
+  pluginContexts: any[];
   pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
   priorityLockedAt: string | null;
