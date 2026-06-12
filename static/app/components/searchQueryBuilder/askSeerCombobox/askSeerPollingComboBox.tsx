@@ -121,7 +121,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
@@ -384,7 +384,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     position: 'bottom-start',
     offset: 2,
     shouldCloseOnBlur: true,
-    shouldApplyMinWidth: false,
     isKeyboardDismissDisabled: true,
     preventOverflowOptions: {boundary: document.body},
     flipOptions: {
@@ -458,7 +457,15 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const hasResults = queries.length > 0;
 
   return (
-    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
+    <Wrapper
+      ref={
+        mergeRefs(
+          containerRef,
+          triggerProps.ref as React.Ref<HTMLDivElement>
+        ) as React.Ref<HTMLInputElement & HTMLDivElement>
+      }
+      isDropdownOpen={state.isOpen}
+    >
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
@@ -468,7 +475,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           autoComplete="off"
           onClick={() => state.open()}
           placeholder={t('Ask Seer with Natural Language')}
-          ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
+          ref={inputRef}
         />
       </InputWrapper>
       <ButtonsWrapper>
