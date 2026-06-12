@@ -13,7 +13,9 @@ from sentry.tasks.store import (
     process_event,
     save_event,
     save_event_transaction,
+    should_process,
 )
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -395,3 +397,85 @@ def test_store_consumer_type(
     mock_transaction_processing_store.get.assert_called_once_with("tx:3")
     mock_transaction_processing_store.delete_by_key.assert_called_once_with("tx:3")
     mock_transaction_processing_store.store.assert_not_called()
+
+
+@django_db_all
+@with_feature("organizations:event-preprocessors-without-plugins")
+def test_should_process_new_path_js(default_project):
+    data = {
+        "project": default_project.id,
+        "platform": "javascript",
+        "event_id": EVENT_ID,
+    }
+    assert should_process(data) is True
+
+
+@django_db_all
+@with_feature("organizations:event-preprocessors-without-plugins")
+def test_should_process_new_path_java_proguard(default_project):
+    data = {
+        "project": default_project.id,
+        "platform": "java",
+        "event_id": EVENT_ID,
+        "debug_meta": {"images": [{"type": "proguard", "uuid": "1234-abcd"}]},
+    }
+    assert should_process(data) is True
+
+
+@django_db_all
+@with_feature("organizations:event-preprocessors-without-plugins")
+def test_should_process_new_path_no_preprocessor(default_project):
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "event_id": EVENT_ID,
+    }
+    assert should_process(data) is False
+
+
+@django_db_all
+@with_feature("organizations:event-preprocessors-without-plugins")
+def test_should_process_new_path_still_runs_non_language_plugins(default_project, register_plugin):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "mattlang",
+        "event_id": EVENT_ID,
+    }
+    assert should_process(data) is True
+
+
+@django_db_all
+@with_feature("organizations:event-preprocessors-without-plugins")
+def test_process_event_new_path_js(default_project, mock_event_processing_store, mock_save_event):
+    data = {
+        "project": default_project.id,
+        "platform": "javascript",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+
+    mock_event_processing_store.get.return_value = data
+    mock_event_processing_store.store.return_value = "e:1"
+
+    process_event(cache_key="e:1", start_time=1)
+
+    mock_save_event.delay.assert_called_once()
+
+
+@django_db_all
+@with_feature("organizations:event-preprocessors-without-plugins")
+def test_preprocess_routes_to_save_new_path_python(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event
+):
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+
+    preprocess_event(cache_key="", data=data)
+
+    assert mock_process_event.delay.call_count == 0
+    assert mock_save_event.delay.call_count == 1

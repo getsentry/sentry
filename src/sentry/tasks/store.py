@@ -10,9 +10,10 @@ import orjson
 import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import options, reprocessing2
+from sentry import features, options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
+from sentry.event_preprocessors import get_event_preprocessors
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
@@ -46,6 +47,9 @@ class RetryProcessing(Exception):
     pass
 
 
+LANGUAGE_PLUGIN_SLUGS = frozenset({"javaplugin", "javascriptplugin", "dartplugin"})
+
+
 def should_process(data: Mapping[str, Any]) -> bool:
     """Quick check if processing is needed at all."""
     from sentry.plugins.base import plugins
@@ -53,10 +57,24 @@ def should_process(data: Mapping[str, Any]) -> bool:
     if data.get("type") == "transaction":
         return False
 
-    for plugin in plugins.all(version=2):
-        processors = safe_execute(plugin.get_event_preprocessors, data=data)
-        if processors:
+    project = Project.objects.get_from_cache(id=data["project"])
+    project.set_cached_field_value(
+        "organization", Organization.objects.get_from_cache(id=project.organization_id)
+    )
+    if features.has("organizations:event-preprocessors-without-plugins", project.organization):
+        if get_event_preprocessors(data):
             return True
+        for plugin in plugins.all(version=2):
+            if plugin.slug in LANGUAGE_PLUGIN_SLUGS:
+                continue
+            processors = safe_execute(plugin.get_event_preprocessors, data=data)
+            if processors:
+                return True
+    else:
+        for plugin in plugins.all(version=2):
+            processors = safe_execute(plugin.get_event_preprocessors, data=data)
+            if processors:
+                return True
 
     if should_process_for_stacktraces(data):
         return True
@@ -395,24 +413,45 @@ def do_process_event(
         if new_data is not None:
             data = new_data
 
-    # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
-    for plugin in plugins.all(version=2):
-        with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-            span.set_data("plugin", plugin.slug)
-            span.set_data("from_symbolicate", from_symbolicate)
-            processors = safe_execute(plugin.get_event_preprocessors, data=data)
-            for processor in processors or ():
-                try:
-                    result = processor(data)
-                except Exception:
-                    error_logger.exception("tasks.store.preprocessors.error")
-                    data.setdefault("_metrics", {})["flag.processing.error"] = True
+    use_new_preprocessors = features.has(
+        "organizations:event-preprocessors-without-plugins", project.organization
+    )
+    if use_new_preprocessors:
+        preprocessors = get_event_preprocessors(data)
+        for plugin in plugins.all(version=2):
+            if plugin.slug in LANGUAGE_PLUGIN_SLUGS:
+                continue
+            preprocessors.extend(safe_execute(plugin.get_event_preprocessors, data=data) or ())
+    else:
+        preprocessors = []
+        for plugin in plugins.all(version=2):
+            preprocessors.extend(safe_execute(plugin.get_event_preprocessors, data=data) or ())
+
+    preprocessor_span_op = (
+        "task.store.process_event.new_preprocessors"
+        if use_new_preprocessors
+        else "task.store.process_event.preprocessors"
+    )
+    preprocessor_log_msg = (
+        "tasks.store.new_preprocessors.error"
+        if use_new_preprocessors
+        else "tasks.store.preprocessors.error"
+    )
+
+    with sentry_sdk.start_span(op=preprocessor_span_op) as span:
+        span.set_data("from_symbolicate", from_symbolicate)
+        for processor in preprocessors:
+            try:
+                result = processor(data)
+            except Exception:
+                error_logger.exception(preprocessor_log_msg)
+                data.setdefault("_metrics", {})["flag.processing.error"] = True
+                has_changed = True
+            else:
+                if result:
+                    data = result
                     has_changed = True
-                else:
-                    if result:
-                        data = result
-                        has_changed = True
 
     assert data["project"] == project_id, "Project cannot be mutated by plugins"
 

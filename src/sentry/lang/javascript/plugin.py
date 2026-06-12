@@ -33,6 +33,8 @@ def generate_modules(data):
                 frame["module"] = generate_module(abs_path)
 
 
+# Deprecated: preprocessor logic moved to sentry.event_preprocessors and sentry.lang.javascript.preprocessing.
+# TODO(christinarlong): Delete after organizations:event-preprocessors-without-plugins is fully rolled out.
 class JavascriptPlugin(Plugin2):
     can_disable = False
 
