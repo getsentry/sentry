@@ -8,6 +8,7 @@ class AiAutofixPhaseEvent(analytics.Event):
     group_id: int
     referrer: str | None
     iteration_index: int | None = None
+    pr_iteration_enabled: bool | None = None
 
 
 @analytics.eventclass("ai.autofix.root_cause.started")
