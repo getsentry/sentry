@@ -69,7 +69,10 @@ def _calculate_event_grouping(
             )
 
         with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+            with sentry_sdk.traces.start_span(
+                name="event_manager.normalize_stacktraces_for_grouping",
+                attributes={"sentry.op": "event_manager.normalize_stacktraces_for_grouping"},
+            ):
                 event.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
@@ -109,9 +112,9 @@ def _calculate_secondary_hashes(
     """
     secondary_hashes: list[str] = []
     try:
-        with sentry_sdk.start_span(
-            op="event_manager",
+        with sentry_sdk.traces.start_span(
             name="event_manager.save.secondary_calculate_event_grouping",
+            attributes={"sentry.op": "event_manager"},
         ):
             # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
             # of grouping info and we don't want the secondary grouping data in there
@@ -136,9 +139,9 @@ def run_primary_grouping(
         job["data"]["grouping_config"] = grouping_config
 
     with (
-        sentry_sdk.start_span(
-            op="event_manager",
+        sentry_sdk.traces.start_span(
             name="event_manager.save.calculate_event_grouping",
+            attributes={"sentry.op": "event_manager"},
         ),
         metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
     ):

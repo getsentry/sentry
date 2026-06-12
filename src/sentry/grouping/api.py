@@ -148,7 +148,7 @@ class SecondaryGroupingConfigLoader(ProjectGroupingConfigLoader):
     cache_prefix = "secondary-grouping-enhancements:"
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def get_grouping_config_dict_for_project(project: Project) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on

@@ -49,11 +49,12 @@ def rebucket_histogram(
 
     rv = {bucket: 0.0 for bucket in buckets}
 
-    with sentry_sdk.start_span(
-        op="sentry.snuba.metrics.fields.histogram.rebucket_histogram"
+    with sentry_sdk.traces.start_span(
+        name="sentry.snuba.metrics.fields.histogram.rebucket_histogram",
+        attributes={"sentry.op": "sentry.snuba.metrics.fields.histogram.rebucket_histogram"},
     ) as span:
-        span.set_data("len_data", len(data))
-        span.set_data("len_rv", len(rv))
+        span.set_attribute("len_data", len(data))
+        span.set_attribute("len_rv", len(rv))
 
         # XXX: quadratic function
         assert len(data) < 300

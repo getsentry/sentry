@@ -260,7 +260,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             return False
         return True
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _call_third_party_api(
         self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
     ) -> StreamingHttpResponse:
@@ -301,7 +301,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             reason=resp.reason,
         )
 
-    @sentry_sdk.trace(op="integration_proxy.http_method_not_allowed")
+    @sentry_sdk.traces.trace(
+        name="integration_proxy.http_method_not_allowed",
+        attributes={"sentry.op": "integration_proxy.http_method_not_allowed"},
+    )
     def http_method_not_allowed(self, request):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)

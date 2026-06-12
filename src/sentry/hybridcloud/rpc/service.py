@@ -659,9 +659,9 @@ class _RemoteSiloCall:
     @contextmanager
     def _open_request_context(self) -> Generator[None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
-        span = sentry_sdk.start_span(
-            op="hybrid_cloud.dispatch_rpc",
+        span = sentry_sdk.traces.start_span(
             name=f"rpc to {self.service_name}.{self.method_name}",
+            attributes={"sentry.op": "hybrid_cloud.dispatch_rpc"},
         )
         with span, timer:
             yield

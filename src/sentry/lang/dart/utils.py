@@ -36,7 +36,10 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
     Fetches and returns the dart symbols mapping for the first available debug_id.
     There should only be one mapping file per Flutter build, so we return the first mapping found.
     """
-    with sentry_sdk.start_span(op="dartsymbolmap.generate_dart_symbols_map") as span:
+    with sentry_sdk.traces.start_span(
+        name="dartsymbolmap.generate_dart_symbols_map",
+        attributes={"sentry.op": "dartsymbolmap.generate_dart_symbols_map"},
+    ) as span:
         dif_paths = ProjectDebugFile.difcache.fetch_difs(project, debug_ids, features=["mapping"])
         if not dif_paths:
             return None
@@ -45,7 +48,7 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
 
         try:
             dart_symbols_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
-            span.set_tag("dartsymbolmap_file_size_in_mb", dart_symbols_file_size_in_mb)
+            span.set_attribute("dartsymbolmap_file_size_in_mb", dart_symbols_file_size_in_mb)
 
             with open(debug_file_path, "rb") as f:
                 data = orjson.loads(f.read())
@@ -83,7 +86,10 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
     if not exceptions:
         return None
 
-    with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
+    with sentry_sdk.traces.start_span(
+        name="dartsymbolmap.deobfuscate_exception_type",
+        attributes={"sentry.op": "dartsymbolmap.deobfuscate_exception_type"},
+    ):
         symbol_map = generate_dart_symbols_map(list(debug_ids), project)
         if symbol_map is None:
             return None

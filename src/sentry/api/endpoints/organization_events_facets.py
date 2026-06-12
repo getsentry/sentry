@@ -46,7 +46,9 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         dataset = self.get_dataset(request, organization)
 
         def data_fn(offset, limit):
-            with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
+            with sentry_sdk.traces.start_span(
+                name="discover_query", attributes={"sentry.op": "discover.endpoint"}
+            ):
                 with handle_query_errors():
                     facets = dataset.get_facets(
                         query=request.GET.get("query"),
@@ -56,8 +58,10 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                         cursor=offset,
                     )
 
-            with sentry_sdk.start_span(op="discover.endpoint", name="populate_results") as span:
-                span.set_data("facet_count", len(facets or []))
+            with sentry_sdk.traces.start_span(
+                name="populate_results", attributes={"sentry.op": "discover.endpoint"}
+            ) as span:
+                span.set_attribute("facet_count", len(facets or []))
                 resp: dict[str, _KeyTopValues]
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:

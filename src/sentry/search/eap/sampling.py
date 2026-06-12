@@ -29,10 +29,14 @@ def events_meta_from_rpc_request_meta(meta: ResponseMeta) -> EventsMeta:
         sum(info.stats.progress_bytes for info in meta.query_info) if meta.query_info else None
     )
 
-    span = sentry_sdk.get_current_span()
+    span = sentry_sdk.traces.get_current_span()
     if span:
-        span.set_data("data_scanned", "full" if full_scan else "partial")
-        span.set_data("bytes_scanned", bytes_scanned)
+        span.set_attributes(
+            {
+                "data_scanned": "full" if full_scan else "partial",
+                "bytes_scanned": bytes_scanned or 0,
+            }
+        )
 
     return EventsMeta(
         fields={},

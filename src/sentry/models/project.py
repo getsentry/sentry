@@ -381,11 +381,13 @@ class Project(Model):
         from sentry.models.counter import Counter
 
         with (
-            sentry_sdk.start_span(op="project.next_short_id") as span,
+            sentry_sdk.traces.start_span(
+                name="project.next_short_id", attributes={"sentry.op": "project.next_short_id"}
+            ) as span,
             metrics.timer("project.next_short_id"),
         ):
-            span.set_data("project_id", self.id)
-            span.set_data("project_slug", self.slug)
+            span.set_attribute("project_id", self.id)
+            span.set_attribute("project_slug", self.slug)
             return Counter.increment(self, delta)
 
     def _save_project(self, *args, **kwargs):

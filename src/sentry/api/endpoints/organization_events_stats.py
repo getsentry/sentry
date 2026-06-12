@@ -123,8 +123,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             },
         )
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+        with sentry_sdk.traces.start_span(
+            name="filter_params", attributes={"sentry.op": "discover.endpoint"}
+        ) as span:
+            span.set_attribute("organization", organization)
 
             top_events = 0
 

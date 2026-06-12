@@ -101,7 +101,9 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         else:
             dataset = Dataset.Discover
 
-        with sentry_sdk.start_span(op="tagstore", name="get_tag_keys_for_projects"):
+        with sentry_sdk.traces.start_span(
+            name="get_tag_keys_for_projects", attributes={"sentry.op": "tagstore"}
+        ):
             with handle_query_errors():
                 start = filter_params["start"]
                 end = filter_params["end"]

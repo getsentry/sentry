@@ -125,7 +125,7 @@ def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
     return response
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
@@ -354,7 +354,7 @@ def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
     return response
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def _make_rpc_request(
     endpoint_name: str,
     class_version: str,
@@ -394,10 +394,12 @@ def _make_rpc_request(
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
+            with sentry_sdk.traces.start_span(
+                name=req.__class__.__name__, attributes={"sentry.op": "snuba_rpc.run"}
+            ) as span:
                 if referrer:
-                    span.set_tag("snuba.referrer", referrer)
-                    span.set_data("snuba.query", req)
+                    span.set_attribute("snuba.referrer", referrer)
+                    span.set_attribute("snuba.query", req)
                 try:
                     http_resp = _snuba_pool.urlopen(
                         "POST",
@@ -416,7 +418,7 @@ def _make_rpc_request(
                         metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
                         raise SnubaRPCTimeout(err)
                     raise SnubaRPCError(err)
-                span.set_tag("timeout", "False")
+                span.set_attribute("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
                     error = _parse_error(http_resp)
                     if SNUBA_INFO:

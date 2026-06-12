@@ -68,7 +68,10 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             continue
 
         is_eligible = False
-        with sentry_sdk.start_span(op="seer_explorer_index.has_feature"):
+        with sentry_sdk.traces.start_span(
+            name="seer_explorer_index.has_feature",
+            attributes={"sentry.op": "seer_explorer_index.has_feature"},
+        ):
             batch_result = features.batch_has(FEATURE_NAMES, organization=project.organization)
 
             if batch_result:

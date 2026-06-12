@@ -20,7 +20,6 @@ class SdkConfig(TypedDict):
     send_client_reports: NotRequired[bool]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     before_send: NotRequired[Callable[[Event, Hint], Event | None]]
-    before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
     enable_logs: NotRequired[bool]
     before_send_log: NotRequired[Callable[[Log, Hint], Log | None]]
     profiles_sample_rate: NotRequired[float]

@@ -223,7 +223,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 max_per_page=100,
             )
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _get_conversations(
         self,
         snuba_params,
@@ -251,7 +251,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         return self._get_conversations_data(snuba_params, conversation_ids)
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _fetch_conversation_ids(
         self,
         snuba_params,
@@ -272,7 +272,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             sampling_mode=sampling_mode,
         )
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _get_conversations_data(self, snuba_params, conversation_ids: list[str]) -> list[dict]:
         config = SearchResolverConfig(auto_fields=True)
         resolver = Spans.get_resolver(snuba_params, config)
@@ -285,13 +285,15 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         ]
 
         # Execute all queries in a single bulk RPC call
-        with sentry_sdk.start_span(
-            op="ai_conversations.bulk_rpc", name="Execute bulk table queries"
+        with sentry_sdk.traces.start_span(
+            name="Execute bulk table queries", attributes={"sentry.op": "ai_conversations.bulk_rpc"}
         ):
             results = Spans.run_bulk_table_queries(queries)
 
         # Process results
-        with sentry_sdk.start_span(op="ai_conversations.process", name="Process query results"):
+        with sentry_sdk.traces.start_span(
+            name="Process query results", attributes={"sentry.op": "ai_conversations.process"}
+        ):
             conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
             self._apply_enrichment(conversations_map, results["enrichment"])
             self._apply_first_last_io(conversations_map, results["first_last_io"])
@@ -378,9 +380,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
     ) -> dict[str, dict[str, Any]]:
-        with sentry_sdk.start_span(
-            op="ai_conversations.build_from_aggregations",
+        with sentry_sdk.traces.start_span(
             name="Build conversations from aggregations",
+            attributes={"sentry.op": "ai_conversations.build_from_aggregations"},
         ):
             conversations_map: dict[str, dict[str, Any]] = {}
 
@@ -419,12 +421,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_enrichment(
         self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
-            op="ai_conversations.apply_enrichment",
+        with sentry_sdk.traces.start_span(
             name="Apply enrichment data",
+            attributes={"sentry.op": "ai_conversations.apply_enrichment"},
         ) as span:
             enrichment_rows = enrichment_data.get("data", [])
-            span.set_data("rows_count", len(enrichment_rows))
+            span.set_attribute("rows_count", len(enrichment_rows))
 
             flows_by_conversation: dict[str, list[str]] = defaultdict(list)
             traces_by_conversation: dict[str, set[str]] = defaultdict(set)
@@ -478,12 +480,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
-            op="ai_conversations.apply_first_last_io",
+        with sentry_sdk.traces.start_span(
             name="Apply first/last IO data",
+            attributes={"sentry.op": "ai_conversations.apply_first_last_io"},
         ) as span:
             io_rows = first_last_io_data.get("data", [])
-            span.set_data("rows_count", len(io_rows))
+            span.set_attribute("rows_count", len(io_rows))
 
             first_input_by_conv: dict[str, str] = {}
             last_output_by_conv: dict[str, tuple[float, str]] = {}

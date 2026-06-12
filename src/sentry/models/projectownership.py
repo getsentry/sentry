@@ -184,7 +184,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     @metrics.wraps("projectownership.get_issue_owners")
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def get_issue_owners(
         cls, project_id: int, data: Mapping[str, Any], limit: int = 2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:

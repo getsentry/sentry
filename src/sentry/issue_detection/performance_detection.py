@@ -196,7 +196,9 @@ def detect_performance_problems(
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
             with (
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
-                sentry_sdk.start_span(op="py.detect_performance_issue", name="none") as sdk_span,
+                sentry_sdk.traces.start_span(
+                    name="none", attributes={"sentry.op": "py.detect_performance_issue"}
+                ) as sdk_span,
             ):
                 return _detect_performance_problems(data, sdk_span, project, standalone=standalone)
     except Exception:
@@ -743,7 +745,9 @@ def _detect_performance_problems(
     event_id = data.get("event_id", None)
     organization = project.organization
 
-    with sentry_sdk.start_span(op="function", name="get_detection_settings"):
+    with sentry_sdk.traces.start_span(
+        name="get_detection_settings", attributes={"sentry.op": "function"}
+    ):
         detection_settings = get_detection_settings(project)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
@@ -751,11 +755,15 @@ def _detect_performance_problems(
     # So we build a tree and flatten it depth first.
     # TODO: See if we can update the detectors to work without this assumption so we can
     # just pass it a list of spans.
-    with sentry_sdk.start_span(op="performance_detection", name="sort_spans"):
+    with sentry_sdk.traces.start_span(
+        name="sort_spans", attributes={"sentry.op": "performance_detection"}
+    ):
         tree, segment_id = build_tree(data.get("spans", []))
         data = {**data, "spans": flatten_tree(tree, segment_id)}
 
-    with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
+    with sentry_sdk.traces.start_span(
+        name="PerformanceDetector", attributes={"sentry.op": "initialize"}
+    ):
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings[detector_class.settings_key], data)
             for detector_class in DETECTOR_CLASSES
@@ -763,12 +771,14 @@ def _detect_performance_problems(
         ]
 
     for detector in detectors:
-        with sentry_sdk.start_span(
-            op="function", name=f"run_detector_on_data.{detector.type.value}"
+        with sentry_sdk.traces.start_span(
+            name=f"run_detector_on_data.{detector.type.value}", attributes={"sentry.op": "function"}
         ):
             run_detector_on_data(detector, data)
 
-    with sentry_sdk.start_span(op="function", name="report_metrics_for_detectors"):
+    with sentry_sdk.traces.start_span(
+        name="report_metrics_for_detectors", attributes={"sentry.op": "function"}
+    ):
         # Metrics reporting only for detection, not created issues.
         report_metrics_for_detectors(
             data,
@@ -781,7 +791,9 @@ def _detect_performance_problems(
         )
 
     problems: list[PerformanceProblem] = []
-    with sentry_sdk.start_span(op="performance_detection", name="is_creation_allowed"):
+    with sentry_sdk.traces.start_span(
+        name="is_creation_allowed", attributes={"sentry.op": "performance_detection"}
+    ):
         for detector in detectors:
             if detector.is_creation_allowed():
                 problems.extend(detector.stored_problems.values())
@@ -885,7 +897,7 @@ def report_metrics_for_detectors(
 
     try:
         # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
-        set_tag = sdk_span.containing_transaction.set_tag
+        set_tag = sdk_span._segment.set_attribute
     except AttributeError:
         set_tag = lambda *args: None
 

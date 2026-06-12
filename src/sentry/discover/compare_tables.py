@@ -116,7 +116,7 @@ def compare_table_results(
     )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def compare_tables_for_dashboard_widget_queries(
     widget_query: DashboardWidgetQuery,
 ) -> CompareTableResultDict:

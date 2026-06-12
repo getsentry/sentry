@@ -34,7 +34,10 @@ class OrganizationUsersEndpoint(OrganizationEndpoint):
         """
         projects = self.get_projects(request, organization)
 
-        with sentry_sdk.start_span(op="OrganizationUsersEndpoint.get_members") as span:
+        with sentry_sdk.traces.start_span(
+            name="OrganizationUsersEndpoint.get_members",
+            attributes={"sentry.op": "OrganizationUsersEndpoint.get_members"},
+        ) as span:
             qs = OrganizationMember.objects.filter(
                 user_id__isnull=False,
                 user_is_active=True,
@@ -48,8 +51,8 @@ class OrganizationUsersEndpoint(OrganizationEndpoint):
 
             organization_members = list(qs)
 
-            span.set_data("Project Count", len(projects))
-            span.set_data("Member Count", len(organization_members))
+            span.set_attribute("Project Count", len(projects))
+            span.set_attribute("Member Count", len(organization_members))
 
         return Response(
             serialize(

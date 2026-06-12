@@ -445,7 +445,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     silo_mode=SiloMode.CELL,
     silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@sentry_sdk.trace(name="process_resource_change_bound")
+@sentry_sdk.traces.trace(name="process_resource_change_bound")
 def process_resource_change_bound(
     action: str, sender: str, instance_id: str, **kwargs: Any
 ) -> None:

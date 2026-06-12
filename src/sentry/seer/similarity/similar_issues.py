@@ -56,7 +56,7 @@ def make_similar_issues_request(
     )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,

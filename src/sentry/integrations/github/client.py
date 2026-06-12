@@ -771,9 +771,9 @@ class GitHubBaseClient(
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with sentry_sdk.start_span(
-            op=f"{self.integration_type}.http.pagination",
+        with sentry_sdk.traces.start_span(
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
+            attributes={"sentry.op": f"{self.integration_type}.http.pagination"},
         ):
             output: list[dict[str, Any]] = []
 

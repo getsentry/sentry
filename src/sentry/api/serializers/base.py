@@ -126,10 +126,14 @@ def serialize(
                 pass
         else:
             return objects
-    with sentry_sdk.start_span(op="serialize", name=type(serializer).__name__) as span:
-        span.set_data("Object Count", len(objects))
+    with sentry_sdk.traces.start_span(
+        name=type(serializer).__name__, attributes={"sentry.op": "serialize"}
+    ) as span:
+        span.set_attribute("Object Count", len(objects))
 
-        with sentry_sdk.start_span(op="serialize.get_attrs", name=type(serializer).__name__):
+        with sentry_sdk.traces.start_span(
+            name=type(serializer).__name__, attributes={"sentry.op": "serialize.get_attrs"}
+        ):
             attrs = serializer.get_attrs(
                 # avoid passing NoneType's to the serializer as they're allowed and
                 # filtered out of serialize()
@@ -138,7 +142,9 @@ def serialize(
                 **kwargs,
             )
 
-        with sentry_sdk.start_span(op="serialize.iterate", name=type(serializer).__name__):
+        with sentry_sdk.traces.start_span(
+            name=type(serializer).__name__, attributes={"sentry.op": "serialize.iterate"}
+        ):
             return [serializer(o, attrs=attrs.get(o, {}), user=user, **kwargs) for o in objects]
 
 

@@ -111,7 +111,9 @@ def get_from_profiling_service(
                 "Content-Type": "application/json",
             }
         )
-        with sentry_sdk.start_span(op="json.dumps"):
+        with sentry_sdk.traces.start_span(
+            name="json.dumps", attributes={"sentry.op": "json.dumps"}
+        ):
             data = json.dumps(json_data).encode("utf-8")
         set_span_attribute("payload.size", len(data))
         if metric:

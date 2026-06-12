@@ -100,7 +100,9 @@ class TreeClusterer(Clusterer):
 
     def _extract_rules(self) -> None:
         """Merge high-cardinality nodes in the graph and extract rules"""
-        with sentry_sdk.start_span(op="cluster_merge"):
+        with sentry_sdk.traces.start_span(
+            name="cluster_merge", attributes={"sentry.op": "cluster_merge"}
+        ):
             self._tree.merge(self._merge_threshold)
 
         # Generate exactly 1 rule for every merge

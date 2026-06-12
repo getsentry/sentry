@@ -149,7 +149,9 @@ def timeseries_query(
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     """
 
-    with sentry_sdk.start_span(op="issueplatform", name="timeseries.filter_transform"):
+    with sentry_sdk.traces.start_span(
+        name="timeseries.filter_transform", attributes={"sentry.op": "issueplatform"}
+    ):
         equations, columns = categorize_columns(selected_columns)
 
         column_resolver = functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform)
@@ -194,7 +196,9 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with sentry_sdk.start_span(op="issueplatform", name="timeseries.transform_results"):
+    with sentry_sdk.traces.start_span(
+        name="timeseries.transform_results", attributes={"sentry.op": "issueplatform"}
+    ):
         results = []
         for snql_query, result in zip(query_list, query_results):
             assert snql_query.params.start is not None

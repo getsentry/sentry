@@ -50,7 +50,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 logger = logging.getLogger(__name__)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -122,7 +122,7 @@ class IssueArgs(TypedDict):
     priority: int | None
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
@@ -155,7 +155,7 @@ class OccurrenceMetadata(TypedDict):
     last_received: str
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
     """
     Returns the materialized metadata to be merged with issue.
@@ -192,7 +192,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     }
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 @metrics.wraps("issues.ingest.save_issue_from_occurrence")
 def save_issue_from_occurrence(
     occurrence: IssueOccurrence, event: Event, release: Release | None
@@ -243,7 +243,10 @@ def save_issue_from_occurrence(
             return None
 
         with (
-            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
+            sentry_sdk.traces.start_span(
+                name="issues.save_issue_from_occurrence.transaction",
+                attributes={"sentry.op": "issues.save_issue_from_occurrence.transaction"},
+            ) as span,
             metrics.timer(
                 "issues.save_issue_from_occurrence.transaction",
                 tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
@@ -269,7 +272,7 @@ def save_issue_from_occurrence(
                     data={**open_period.data, "highest_seen_priority": highest_seen_priority}
                 )
             is_regression = False
-            span.set_tag("save_issue_from_occurrence.outcome", "new_group")
+            span.set_attribute("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
             metrics.incr(
                 "group.created",
@@ -379,7 +382,7 @@ def save_issue_from_occurrence(
     return group_info
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def send_issue_occurrence_to_eventstream(
     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:

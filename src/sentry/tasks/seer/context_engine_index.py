@@ -92,13 +92,22 @@ def index_org_project_knowledge(org_id: int) -> None:
         )
         return
 
-    with sentry_sdk.start_span(op="explorer.context_engine.get_top_transactions_for_org_projects"):
+    with sentry_sdk.traces.start_span(
+        name="explorer.context_engine.get_top_transactions_for_org_projects",
+        attributes={"sentry.op": "explorer.context_engine.get_top_transactions_for_org_projects"},
+    ):
         transactions_by_project = get_top_transactions_for_org_projects(
             high_volume_projects, start, end
         )
-    with sentry_sdk.start_span(op="explorer.context_engine.get_top_span_ops_for_org_projects"):
+    with sentry_sdk.traces.start_span(
+        name="explorer.context_engine.get_top_span_ops_for_org_projects",
+        attributes={"sentry.op": "explorer.context_engine.get_top_span_ops_for_org_projects"},
+    ):
         span_ops_by_project = get_top_span_ops_for_org_projects(high_volume_projects, start, end)
-    with sentry_sdk.start_span(op="explorer.context_engine.get_sdk_names_for_org_projects"):
+    with sentry_sdk.traces.start_span(
+        name="explorer.context_engine.get_sdk_names_for_org_projects",
+        attributes={"sentry.op": "explorer.context_engine.get_sdk_names_for_org_projects"},
+    ):
         sdk_names_by_project = get_sdk_names_for_org_projects(high_volume_projects, start, end)
 
     project_data: list[OrgProjectKnowledgeProjectData] = []
@@ -309,8 +318,11 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     Only the bucket matching the current hour is checked for the seer-explorer-index
     feature flag, keeping feature check volume at ~1/24th of total orgs.
     """
-    with sentry_sdk.start_span(
-        op="explorer.context_engine.get_allowed_org_ids_context_engine_indexing"
+    with sentry_sdk.traces.start_span(
+        name="explorer.context_engine.get_allowed_org_ids_context_engine_indexing",
+        attributes={
+            "sentry.op": "explorer.context_engine.get_allowed_org_ids_context_engine_indexing"
+        },
     ):
         now = datetime.now(UTC)
         TOTAL_HOURLY_SLOTS = 24

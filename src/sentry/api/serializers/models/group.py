@@ -777,7 +777,10 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+        with sentry_sdk.traces.start_span(
+            name="GroupSerializerBase.serialize.permalink.build",
+            attributes={"sentry.op": "GroupSerializerBase.serialize.permalink.build"},
+        ):
             return obj.get_absolute_url()
 
     @staticmethod

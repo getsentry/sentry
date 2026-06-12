@@ -1322,12 +1322,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # clause.
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
 
-        with sentry_sdk.start_span(op="snuba_group_query") as span:
+        with sentry_sdk.traces.start_span(
+            name="snuba_group_query", attributes={"sentry.op": "snuba_group_query"}
+        ) as span:
             group_ids = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-            span.set_data("Max Candidates", max_candidates)
-            span.set_data("Result Size", len(group_ids))
+            span.set_attribute("Max Candidates", max_candidates)
+            span.set_attribute("Result Size", len(group_ids))
         metrics.distribution("snuba.search.num_candidates", len(group_ids))
         too_many_candidates = False
         original_group_ids: list[int] | None = None

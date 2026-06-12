@@ -24,7 +24,7 @@ class PreprodSize(rpc_dataset_common.RPCBase):
     DEFINITIONS = PREPROD_SIZE_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query(
         cls,
         *,

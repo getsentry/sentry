@@ -399,7 +399,7 @@ def _get_widget_query_low_cardinality(
     return all(field_cardinality.values())
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def check_field_cardinality(
     query_columns: list[str] | None,
     organization: Organization,
@@ -470,7 +470,7 @@ def check_field_cardinality(
     return {key: cardinality_map.get(value, True) for key, value in cache_keys.items()}
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _query_cardinality(
     query_columns: list[str], organization: Organization, period: str = "30m"
 ) -> tuple[EventsResponse, list[str]]:

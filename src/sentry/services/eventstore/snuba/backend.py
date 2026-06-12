@@ -239,7 +239,10 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        with sentry_sdk.start_span(op="eventstore.snuba.get_events"):
+        with sentry_sdk.traces.start_span(
+            name="eventstore.snuba.get_events",
+            attributes={"sentry.op": "eventstore.snuba.get_events"},
+        ):
             return self.__get_events(
                 filter,
                 eap_conditions=eap_conditions,

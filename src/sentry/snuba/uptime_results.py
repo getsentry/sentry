@@ -19,7 +19,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
     DEFINITIONS = UPTIME_RESULT_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query(
         cls,
         *,
@@ -73,7 +73,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
         raise NotImplementedError()
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_top_events_timeseries_query(
         cls,
         *,

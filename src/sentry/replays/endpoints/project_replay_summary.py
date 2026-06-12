@@ -158,12 +158,12 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
 
-        with sentry_sdk.start_transaction(
+        if self.sample_rate_get:
+            sentry_sdk.Scope.set_custom_sampling_context({"sample_rate": self.sample_rate_get})
+        with sentry_sdk.traces.start_span(
             name="replays.endpoints.project_replay_summary.get",
-            op="replays.endpoints.project_replay_summary.get",
-            custom_sampling_context=(
-                {"sample_rate": self.sample_rate_get} if self.sample_rate_get else None
-            ),
+            attributes={"sentry.op": "replays.endpoints.project_replay_summary.get"},
+            parent_span=None,
         ):
             self.check_replay_access(request, project)
 
@@ -193,12 +193,12 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
 
-        with sentry_sdk.start_transaction(
+        if self.sample_rate_post:
+            sentry_sdk.Scope.set_custom_sampling_context({"sample_rate": self.sample_rate_post})
+        with sentry_sdk.traces.start_span(
             name="replays.endpoints.project_replay_summary.post",
-            op="replays.endpoints.project_replay_summary.post",
-            custom_sampling_context=(
-                {"sample_rate": self.sample_rate_post} if self.sample_rate_post else None
-            ),
+            attributes={"sentry.op": "replays.endpoints.project_replay_summary.post"},
+            parent_span=None,
         ):
             self.check_replay_access(request, project)
 

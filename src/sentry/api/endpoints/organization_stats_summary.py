@@ -150,14 +150,20 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
         """
         with self.handle_query_errors():
             tenant_ids = {"organization_id": organization.id}
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="build_outcomes_query"):
+            with sentry_sdk.traces.start_span(
+                name="build_outcomes_query", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="run_outcomes_query"):
+            with sentry_sdk.traces.start_span(
+                name="run_outcomes_query", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
-            with sentry_sdk.start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
+            with sentry_sdk.traces.start_span(
+                name="massage_outcomes_result", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 projects, result = massage_sessions_result_summary(
                     query, result_totals, request.GET.getlist("outcome")
                 )

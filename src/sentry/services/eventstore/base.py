@@ -341,7 +341,10 @@ class EventStorage(Service):
         """
         sentry_sdk.set_tag("eventstore.backend", "nodestore")
 
-        with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
+        with sentry_sdk.traces.start_span(
+            name="eventstore.base.bind_nodes",
+            attributes={"sentry.op": "eventstore.base.bind_nodes"},
+        ):
             object_node_list = [(i, i.data) for i in object_list if i.data.id]
 
             # Remove duplicates from the list of nodes to be fetched

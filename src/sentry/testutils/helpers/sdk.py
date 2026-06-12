@@ -9,12 +9,8 @@ import sentry_sdk
 @contextmanager
 def reset_trace_context() -> Generator[None]:
     """
-    Context manager that isolates the SDK scope AND clears any inherited span.
-
-    ``sentry_sdk.isolation_scope()`` forks (shallow-copies) the current scope,
-    which means any active span is carried over.  This wrapper also sets
-    ``scope.span = None`` so that ``get_trace_id()`` returns ``None`` inside
-    the block — which is the expected state when no span is active.
+    Context manager that isolates the SDK scope and starts a new trace
+    so that ``get_trace_id()`` returns ``None`` inside the block.
 
     Usage::
 
@@ -22,5 +18,5 @@ def reset_trace_context() -> Generator[None]:
             handler.emit(record, logger=logger)
     """
     with sentry_sdk.isolation_scope():
-        sentry_sdk.get_current_scope().span = None
+        sentry_sdk.traces.new_trace()
         yield

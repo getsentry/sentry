@@ -207,7 +207,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         return project
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _dispatch_to_local_method(
         self,
         request: Request,
@@ -240,7 +240,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         raise RpcResolutionException(f"Unknown method {method_name}")
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def post(self, request: Request, organization: Organization, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         seer_referrer = request.headers.get("X-Seer-Referrer")

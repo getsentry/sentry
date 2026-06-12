@@ -59,7 +59,9 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsEndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="parse params"):
+        with sentry_sdk.traces.start_span(
+            name="parse params", attributes={"sentry.op": "discover.endpoint"}
+        ):
             try:
                 snuba_params = self.get_snuba_params(request, organization)
 

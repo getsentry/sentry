@@ -79,7 +79,7 @@ class AssembleResult(NamedTuple):
         self.bundle_temp_file.close()
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
@@ -188,7 +188,7 @@ def _get_redis_cluster_for_assemble() -> RedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def get_assemble_status(task, scope, checksum):
     """
     Checks the current status of an assembling task.
@@ -208,7 +208,7 @@ def get_assemble_status(task, scope, checksum):
     return tuple(orjson.loads(rv))
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def set_assemble_status(task, scope, checksum, state, detail=None):
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
@@ -218,7 +218,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     redis_client.set(name=cache_key, value=orjson.dumps([state, detail]), ex=600)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def delete_assemble_status(task, scope, checksum):
     """
     Deletes the status of an assembling task.
@@ -360,7 +360,7 @@ class ArtifactBundlePostAssembler:
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
         # contents.
@@ -483,7 +483,7 @@ class ArtifactBundlePostAssembler:
                 dist=(self.dist or NULL_STRING),
             )
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
     ) -> tuple[ArtifactBundle, bool]:
@@ -566,7 +566,7 @@ class ArtifactBundlePostAssembler:
         # fire the on_delete signal.
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def _index_bundle_if_needed(self, artifact_bundle: ArtifactBundle, release: str, dist: str):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")

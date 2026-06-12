@@ -309,7 +309,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 query_source=query_source,
             )
 
-        @sentry_sdk.tracing.trace
+        @sentry_sdk.traces.trace
         def _dashboards_data_fn(
             scoped_dataset_query: DatasetQuery,
             offset: int,
@@ -396,7 +396,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 sentry_sdk.capture_exception(e)
                 return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
-        @sentry_sdk.tracing.trace
+        @sentry_sdk.traces.trace
         def _discover_data_fn(
             scoped_dataset_query: DatasetQuery,
             offset: int,

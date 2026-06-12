@@ -33,7 +33,9 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         """
         Assembles an artifact bundle and stores the debug ids in the database.
         """
-        with sentry_sdk.start_span(op="artifact_bundle.assemble"):
+        with sentry_sdk.traces.start_span(
+            name="artifact_bundle.assemble", attributes={"sentry.op": "artifact_bundle.assemble"}
+        ):
             schema = {
                 "type": "object",
                 "properties": {
@@ -86,7 +88,10 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 else:
                     input_project_slug.add(project)
 
-            with sentry_sdk.start_span(op="artifact_bundle.assemble.find_projects"):
+            with sentry_sdk.traces.start_span(
+                name="artifact_bundle.assemble.find_projects",
+                attributes={"sentry.op": "artifact_bundle.assemble.find_projects"},
+            ):
                 project_ids = Project.objects.filter(
                     (Q(id__in=input_project_id) | Q(slug__in=input_project_slug)),
                     organization=organization,
@@ -96,7 +101,10 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             if len(project_ids) != len(input_projects):
                 return Response({"error": "One or more projects are invalid"}, status=400)
 
-            with sentry_sdk.start_span(op="artifact_bundle.assemble.check_release_permission"):
+            with sentry_sdk.traces.start_span(
+                name="artifact_bundle.assemble.check_release_permission",
+                attributes={"sentry.op": "artifact_bundle.assemble.check_release_permission"},
+            ):
                 if not self.has_release_permission(
                     request, organization, project_ids=set(project_ids)
                 ):
@@ -152,7 +160,10 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                     {"error": "You need to specify a release together with a dist"}, status=400
                 )
 
-            with sentry_sdk.start_span(op="artifact_bundle.assemble.start_assemble_artifacts"):
+            with sentry_sdk.traces.start_span(
+                name="artifact_bundle.assemble.start_assemble_artifacts",
+                attributes={"sentry.op": "artifact_bundle.assemble.start_assemble_artifacts"},
+            ):
                 assemble_artifacts.apply_async(
                     kwargs={
                         "org_id": organization.id,

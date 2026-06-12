@@ -39,7 +39,10 @@ class OrganizationReportContextFactory:
         """Find the projects associated with each user.
         Populates context.project_ownership which is { user_id: set<project_id> }
         """
-        with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
+        with sentry_sdk.traces.start_span(
+            name="weekly_reports.user_project_ownership",
+            attributes={"sentry.op": "weekly_reports.user_project_ownership"},
+        ):
             for project_id, user_id in OrganizationMember.objects.filter(
                 organization_id=ctx.organization.id,
                 teams__projectteam__project__isnull=False,
@@ -50,7 +53,10 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.project_event_counts")
     def _append_project_event_counts(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
+        with sentry_sdk.traces.start_span(
+            name="weekly_reports.project_event_counts_for_organization",
+            attributes={"sentry.op": "weekly_reports.project_event_counts_for_organization"},
+        ):
             event_counts = project_event_counts_for_organization(
                 start=ctx.start, end=ctx.end, ctx=ctx, referrer=Referrer.REPORTS_OUTCOMES.value
             )
@@ -147,14 +153,20 @@ class OrganizationReportContextFactory:
     def _append_organization_project_issue_substatus_summaries(
         self, ctx: OrganizationReportContext
     ) -> None:
-        with sentry_sdk.start_span(
-            op="weekly_reports.organization_project_issue_substatus_summaries"
+        with sentry_sdk.traces.start_span(
+            name="weekly_reports.organization_project_issue_substatus_summaries",
+            attributes={
+                "sentry.op": "weekly_reports.organization_project_issue_substatus_summaries"
+            },
         ):
             organization_project_issue_substatus_summaries(ctx)
 
     @metrics.wraps("weekly_report.create_context.project_key_errors")
     def _append_project_key_errors(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.project_passes"):
+        with sentry_sdk.traces.start_span(
+            name="weekly_reports.project_passes",
+            attributes={"sentry.op": "weekly_reports.project_passes"},
+        ):
             organization = ctx.organization
             # Run project passes
             for project in organization.project_set.all():
@@ -204,12 +216,18 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.hydrate_key_error_groups")
     def _hydrate_key_error_groups(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
+        with sentry_sdk.traces.start_span(
+            name="weekly_reports.fetch_key_error_groups",
+            attributes={"sentry.op": "weekly_reports.fetch_key_error_groups"},
+        ):
             fetch_key_error_groups(ctx)
 
     @metrics.wraps("weekly_report.create_context.hydrate_key_performance_issues")
     def _hydrate_key_performance_issue_groups(self, ctx: OrganizationReportContext) -> None:
-        with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
+        with sentry_sdk.traces.start_span(
+            name="weekly_reports.fetch_key_performance_issue_groups",
+            attributes={"sentry.op": "weekly_reports.fetch_key_performance_issue_groups"},
+        ):
             fetch_key_performance_issue_groups(ctx)
 
     def create_context(self) -> OrganizationReportContext:

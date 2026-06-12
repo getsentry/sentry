@@ -93,7 +93,7 @@ def test_get_uses_5s_timeout_for_retry() -> None:
     mock_table = mock.Mock()
     with (
         mock.patch.object(store, "_get_table", return_value=mock_table),
-        mock.patch("sentry_sdk.start_span"),
+        mock.patch("sentry_sdk.traces.start_span"),
     ):
         mock_table.read_row.return_value = None
 

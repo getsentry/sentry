@@ -1,6 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import start_span
+from sentry_sdk.traces import start_span
 
 from sentry import search
 from sentry.api.api_owners import ApiOwner
@@ -44,7 +44,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     def _count(
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
     ):
-        with start_span(op="_count"):
+        with start_span(name="_count", attributes={"sentry.op": "_count"}):
             query_kwargs = {
                 "projects": projects,
                 "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
@@ -67,8 +67,8 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
             query_kwargs["max_hits"] = ISSUES_COUNT_MAX_HITS_LIMIT
 
             query_kwargs["actor"] = request.user
-        with start_span(op="start_search") as span:
-            span.set_data("query_kwargs", query_kwargs)
+        with start_span(name="start_search", attributes={"sentry.op": "start_search"}) as span:
+            span.set_attribute("query_kwargs", str(query_kwargs))
             result = search.backend.query(**query_kwargs)
             return result.hits
 

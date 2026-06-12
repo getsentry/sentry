@@ -516,7 +516,7 @@ class SqlFormatEventSerializer(EventSerializer):
         include_full_release_data = kwargs.pop("include_full_release_data", False)
         result = super().serialize(obj, attrs, user, **kwargs)
 
-        with sentry_sdk.start_span(op="serialize", name="Format SQL"):
+        with sentry_sdk.traces.start_span(name="Format SQL", attributes={"sentry.op": "serialize"}):
             result = self._format_breadcrumb_messages(result, obj, user)
             result = self._format_db_spans(result, obj, user)
             release_info = self._get_release_info(user, obj, include_full_release_data)

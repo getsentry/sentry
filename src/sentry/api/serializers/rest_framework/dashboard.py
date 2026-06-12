@@ -946,7 +946,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return instance
 
     def update_widgets(self, instance, widget_data):
-        with sentry_sdk.start_span(op="function", name="dashboard.update_widgets"):
+        with sentry_sdk.traces.start_span(
+            name="dashboard.update_widgets", attributes={"sentry.op": "function"}
+        ):
             widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
 
             existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
@@ -1089,8 +1091,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         organization = self.context["organization"]
         linked_dashboards = linked_dashboards or []
 
-        with sentry_sdk.start_span(
-            op="function", name="dashboard.update_or_create_field_links"
+        with sentry_sdk.traces.start_span(
+            name="dashboard.update_or_create_field_links", attributes={"sentry.op": "function"}
         ) as span:
             # Get the set of fields that should exist
             new_fields = set()
@@ -1098,16 +1100,16 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
             widget_display_type = widget.display_type
             legend_type = widget.detail.get("legend_type") if widget.detail else None
-            span.set_data(
+            span.set_attribute(
                 "linked_dashboards",
                 [
                     {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
                     for ld in linked_dashboards
                 ],
             )
-            span.set_data("widget_display_type", widget_display_type)
-            span.set_data("query_id", query.id)
-            span.set_data("widget_id", widget.id)
+            span.set_attribute("widget_display_type", widget_display_type)
+            span.set_attribute("query_id", query.id)
+            span.set_attribute("widget_id", widget.id)
 
             is_breakdown_chart = (
                 widget_display_type
@@ -1180,21 +1182,22 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 field__in=new_fields
             ).delete()
 
-            with sentry_sdk.start_span(
-                op="db.bulk_create", name="dashboard.update_or_create_field_links.bulk_create"
+            with sentry_sdk.traces.start_span(
+                name="dashboard.update_or_create_field_links.bulk_create",
+                attributes={"sentry.op": "db.bulk_create"},
             ) as span:
-                span.set_data("new_fields", list(new_fields))
-                span.set_data("query_id", query.id)
-                span.set_data("widget_id", widget.id)
-                span.set_data("widget_display_type", widget.display_type)
-                span.set_data(
+                span.set_attribute("new_fields", list(new_fields))
+                span.set_attribute("query_id", query.id)
+                span.set_attribute("widget_id", widget.id)
+                span.set_attribute("widget_display_type", widget.display_type)
+                span.set_attribute(
                     "linked_dashboards",
                     [
                         {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
                         for ld in linked_dashboards
                     ],
                 )
-                span.set_data("field_links_count", len(field_links_to_create))
+                span.set_attribute("field_links_count", len(field_links_to_create))
 
                 # Use bulk_create with update_conflicts to effectively upsert (i.e bulk update or create)
                 if field_links_to_create:

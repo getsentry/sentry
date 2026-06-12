@@ -262,7 +262,7 @@ def invalidate_project_config(
     projectconfig_cache.backend.set_many(updated_configs)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def schedule_invalidate_project_config(
     *,
     trigger,
@@ -338,10 +338,13 @@ def schedule_invalidate_project_config(
             countdown=countdown,
         )
 
-    with sentry_sdk.start_span(
-        op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+    with sentry_sdk.traces.start_span(
+        name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+        attributes={
+            "sentry.op": "relay.projectconfig_cache.invalidation.schedule_after_db_transaction"
+        },
     ) as span:
-        span.set_tag("transaction_db", transaction_db)
+        span.set_attribute("transaction_db", transaction_db)
         if (
             options.get("relay.invalidation-direct-outside-atomic")
             and not connections[transaction_db].in_atomic_block

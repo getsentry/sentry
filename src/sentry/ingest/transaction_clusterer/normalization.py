@@ -83,7 +83,7 @@ class Remark:
 
 # Ported from Relay:
 # https://github.com/getsentry/relay/blob/aad4b6099d12422e88dd5df49abae11247efdd99/relay-event-normalization/src/transactions/processor.rs#L350
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def _scrub_identifiers(segment_span: CompatibleSpan, segment_name: str):
     matches = TRANSACTION_NAME_NORMALIZER_REGEX.finditer(segment_name)
     remarks = []
@@ -127,7 +127,7 @@ def _scrub_identifiers(segment_span: CompatibleSpan, segment_name: str):
     segment_span["attributes"] = attributes
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def _apply_clustering_rules(
     project: Project, segment_span: CompatibleSpan, original_segment_name: str
 ):

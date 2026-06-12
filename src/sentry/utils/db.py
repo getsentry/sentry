@@ -58,9 +58,12 @@ class DjangoAtomicIntegration(Integration):
         original_exit = Atomic.__exit__
 
         def _enter(self):
-            self._sentry_sdk_span = sentry_sdk.start_span(op="transaction.atomic")
-            self._sentry_sdk_span.set_data("using", self.using)
-            self._sentry_sdk_span.__enter__()
+            if sentry_sdk.get_client().is_active():
+                self._sentry_sdk_span = sentry_sdk.traces.start_span(
+                    name="transaction.atomic", attributes={"sentry.op": "transaction.atomic"}
+                )
+                self._sentry_sdk_span.set_attribute("using", self.using)
+                self._sentry_sdk_span.__enter__()
             return original_enter(self)
 
         def _exit(self, exc_type, exc_value, traceback):

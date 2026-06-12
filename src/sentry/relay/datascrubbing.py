@@ -88,7 +88,7 @@ def get_all_pii_configs(project):
     yield convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def scrub_data(project: Project, event: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     for config in get_all_pii_configs(project):
         metrics.distribution(

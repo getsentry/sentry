@@ -90,14 +90,13 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 def process_and_commit_message(message: Message[KafkaPayload], context: ProcessorContext) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
+        sentry_sdk.Scope.set_custom_sampling_context(
+            {"sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)}
+        )
+        with sentry_sdk.traces.start_span(
             name="replays.consumer.recording.process_and_commit_message",
-            op="replays.consumer.recording.process_and_commit_message",
-            custom_sampling_context={
-                "sample_rate": getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
-                )
-            },
+            attributes={"sentry.op": "replays.consumer.recording.process_and_commit_message"},
+            parent_span=None,
         ):
             processed_message = process_message(message.payload.value)
             if processed_message:
@@ -107,7 +106,7 @@ def process_and_commit_message(message: Message[KafkaPayload], context: Processo
 # Processing Task
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def process_message(message: bytes) -> ProcessedEvent | None:
     try:
         recording_event = parse_recording_event(message)
@@ -124,7 +123,7 @@ def process_message(message: bytes) -> ProcessedEvent | None:
         return None
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def parse_recording_event(message: bytes) -> Event:
     recording = parse_request_message(message)
     segment_id, payload = parse_headers(cast(bytes, recording["payload"]), recording["replay_id"])
@@ -172,7 +171,7 @@ def parse_recording_event(message: bytes) -> Event:
     }
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def parse_request_message(message: bytes) -> ReplayRecording:
     try:
         return RECORDINGS_CODEC.decode(message)
@@ -181,7 +180,7 @@ def parse_request_message(message: bytes) -> ReplayRecording:
         raise DropSilently()
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
     try:
         return (segment, zlib.decompress(segment))
@@ -193,7 +192,7 @@ def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
             raise DropSilently()
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
     try:
         recording_headers_json, recording_segment = recording.split(b"\n", 1)
@@ -206,7 +205,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 # I/O Task
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def commit_message(message: ProcessedEvent, context: ProcessorContext) -> None:
     try:
         commit_recording_message(message, context)

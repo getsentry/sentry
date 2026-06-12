@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import logging
 import os
 import re
@@ -637,7 +638,6 @@ class EnhancementsConfig:
             )
 
     @classmethod
-    @sentry_sdk.tracing.trace
     def from_rules_text(
         cls,
         rules_text: str,
@@ -648,7 +648,15 @@ class EnhancementsConfig:
     ) -> EnhancementsConfig:
         """Create an `EnhancementsConfig` object from a text blob containing stacktrace rules"""
 
-        with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
+        span_ctx = (
+            sentry_sdk.traces.start_span(
+                name="EnhancementsConfig.from_rules_text",
+                attributes={"sentry.op": "function"},
+            )
+            if sentry_sdk.get_client().is_active()
+            else contextlib.nullcontext()
+        )
+        with span_ctx, metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
             metrics_timer_tags.update(
                 {"split": version == 3, "source": "rules_text", "referrer": referrer}
             )

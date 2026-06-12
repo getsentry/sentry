@@ -23,7 +23,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         return get_has_trace_metrics(project)
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query(
         cls,
         *,

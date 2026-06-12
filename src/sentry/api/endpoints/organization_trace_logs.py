@@ -50,7 +50,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
             include_all_accessible=True,
         )
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def query_logs_data(
         self,
         snuba_params: SnubaParams,

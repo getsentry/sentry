@@ -16,7 +16,7 @@ class ProcessingErrors(rpc_dataset_common.RPCBase):
     DEFINITIONS = PROCESSING_ERROR_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query(
         cls,
         *,

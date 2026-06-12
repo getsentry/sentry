@@ -136,7 +136,9 @@ def get_access_by_project(
 
     result: dict[Project, dict[str, Any]] = {}
     has_team_roles_cache: dict[int, bool] = {}
-    with sentry_sdk.start_span(op="project.check-access"):
+    with sentry_sdk.traces.start_span(
+        name="project.check-access", attributes={"sentry.op": "project.check-access"}
+    ):
         for project in projects:
             member_teams = [
                 memberships_by_team[tid]
@@ -367,8 +369,11 @@ class ProjectSerializer(Serializer):
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
-            span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
-            span.set_data("Object Count", len(item_list))
+            span = sentry_sdk.traces.start_span(
+                name=f"serialize.get_attrs.project.{op_tag}",
+                attributes={"sentry.op": f"serialize.get_attrs.project.{op_tag}"},
+            )
+            span.set_attribute("Object Count", len(item_list))
             return span
 
         with measure_span("preamble"):

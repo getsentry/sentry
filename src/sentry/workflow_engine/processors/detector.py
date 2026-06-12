@@ -225,7 +225,7 @@ def create_issue_platform_payload(result: DetectorEvaluationResult, detector_typ
     )
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:

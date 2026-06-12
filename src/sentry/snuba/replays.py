@@ -16,7 +16,7 @@ class Replays(rpc_dataset_common.RPCBase):
     DEFINITIONS = REPLAYS_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query(
         cls,
         *,

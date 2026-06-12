@@ -47,7 +47,9 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
 )
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
-    with sentry_sdk.start_span(op="txcluster_spawn"):
+    with sentry_sdk.traces.start_span(
+        name="txcluster_spawn", attributes={"sentry.op": "txcluster_spawn"}
+    ):
         project_count = 0
         project_iter = redis.get_active_project_ids(ClustererNamespace.TRANSACTIONS)
         while batch := list(islice(project_iter, PROJECTS_PER_TASK)):
@@ -69,8 +71,10 @@ def cluster_projects(project_ids: Sequence[int]) -> None:
     num_clustered = 0
     try:
         for project in projects:
-            with sentry_sdk.start_span(op="txcluster_project") as span:
-                span.set_data("project_id", project.id)
+            with sentry_sdk.traces.start_span(
+                name="txcluster_project", attributes={"sentry.op": "txcluster_project"}
+            ) as span:
+                span.set_attribute("project_id", project.id)
                 tx_names = list(redis.get_transaction_names(project))
                 new_rules = []
                 if len(tx_names) >= MERGE_THRESHOLD:

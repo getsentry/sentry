@@ -219,7 +219,7 @@ def _get_data_conditions_for_group_shim(data_condition_group_id: int) -> list[Da
     return get_data_conditions_for_group(data_condition_group_id)
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
 ) -> dict[int, list[DataCondition]]:

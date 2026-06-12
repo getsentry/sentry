@@ -496,7 +496,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
         )
-        with sentry_sdk.start_span(op="filter", name="hardcoded_aliases") as span:
+        with sentry_sdk.traces.start_span(
+            name="hardcoded_aliases", attributes={"sentry.op": "filter"}
+        ) as span:
             all_aliased_attributes = []
             # our aliases don't exist in the db, so filter over our aliases
             # virtually page through defined aliases before we hit the db
@@ -546,7 +548,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
                             )
             aliased_attributes = all_aliased_attributes[offset : offset + limit]
-        with sentry_sdk.start_span(op="query", name="attribute_names") as span:
+        with sentry_sdk.traces.start_span(
+            name="attribute_names", attributes={"sentry.op": "query"}
+        ) as span:
             if len(aliased_attributes) < limit:
                 offset -= len(all_aliased_attributes) - len(aliased_attributes)
                 limit -= len(aliased_attributes)
@@ -570,7 +574,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             else:
                 rpc_response = TraceItemAttributeNamesResponse()
 
-        with sentry_sdk.start_span(op="query", name="serialize") as span:
+        with sentry_sdk.traces.start_span(
+            name="serialize", attributes={"sentry.op": "query"}
+        ) as span:
             attributes = self.serialize_trace_attributes(
                 rpc_response,
                 attribute_type,
@@ -582,8 +588,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             )
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
-            span.set_data("attribute_count", len(attributes))
-            span.set_data("attribute_type", attribute_type)
+            span.set_attribute("attribute_count", len(attributes))
+            span.set_attribute("attribute_type", attribute_type)
         return attributes, debug_info
 
     def serialize_trace_attributes(

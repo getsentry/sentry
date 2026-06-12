@@ -253,7 +253,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             delete=delete,
         )
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def getfile(self, mode=None, prefetch=False):
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched
@@ -262,7 +262,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         impl = self._get_chunked_blob(mode, prefetch)
         return FileObj(impl, self.name)
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def save_to(self, path) -> None:
         """Fetches the file and emplaces it at a certain location.  The
         write is done atomically to a tempfile first and then moved over.
@@ -298,7 +298,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                 except Exception:
                     pass
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
         """
         Save a fileobj into a number of chunks.
@@ -328,7 +328,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             self.save()
         return results
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def assemble_from_file_blob_ids(self, file_blob_ids, checksum):
         """
         This creates a file, from file blobs and returns a temp file with the
@@ -382,7 +382,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         tf.seek(0)
         return tf
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def delete(self, *args, **kwargs):
         blob_ids = [blob.id for blob in self.blobs.all()]
         ret = super().delete(*args, **kwargs)

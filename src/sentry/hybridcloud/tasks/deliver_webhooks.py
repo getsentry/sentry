@@ -370,10 +370,11 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
     Remove payloads in this mailbox that are older than MAX_DELIVERY_AGE.
     Once payloads are this old they are low value, and we're better off prioritizing new work.
     """
-    with sentry_sdk.start_span(
-        op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads"
+    with sentry_sdk.traces.start_span(
+        name="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads",
+        attributes={"sentry.op": "hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads"},
     ) as span:
-        span.set_tag("mailbox_name", payload.mailbox_name)
+        span.set_attribute("mailbox_name", payload.mailbox_name)
         max_age = timezone.now() - MAX_DELIVERY_AGE
         if payload.date_added >= max_age:
             return

@@ -40,7 +40,7 @@ class EventDict(TypedDict):
     category: str
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict]:
     """Fetch error details given error IDs and return a list of EventDict objects."""
     try:
@@ -80,7 +80,7 @@ def _parse_iso_timestamp_to_ms(timestamp: str | None) -> float:
         return 0.0
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
@@ -201,7 +201,7 @@ def fetch_trace_connected_errors(
     return events
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | None:
     """
     Fetch user feedback associated with a specific feedback event ID.
@@ -245,7 +245,7 @@ def generate_feedback_log_message(feedback: EventDict) -> str:
     return f"User submitted feedback: '{message}' at {timestamp}"
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def get_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
@@ -514,7 +514,7 @@ def _parse_url(s: str, trunc_length: int) -> str:
     return s
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def rpc_get_replay_summary_logs(
     project_id: int,
     replay_id: str,

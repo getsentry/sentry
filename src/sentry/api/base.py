@@ -370,7 +370,9 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with sentry_sdk.start_span(op="base.dispatch.setup", name=type(self).__name__):
+        with sentry_sdk.traces.start_span(
+            name=type(self).__name__, attributes={"sentry.op": "base.dispatch.setup"}
+        ):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
@@ -396,7 +398,9 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with sentry_sdk.start_span(op="base.dispatch.request", name=type(self).__name__):
+            with sentry_sdk.traces.start_span(
+                name=type(self).__name__, attributes={"sentry.op": "base.dispatch.request"}
+            ):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -429,11 +433,11 @@ class Endpoint(APIView):
                 else:
                     handler = self.http_method_not_allowed
 
-            with sentry_sdk.start_span(
-                op="base.dispatch.execute",
+            with sentry_sdk.traces.start_span(
                 name=".".join(
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
+                attributes={"sentry.op": "base.dispatch.execute"},
             ) as span:
                 response = handler(request, *args, **kwargs)
 
@@ -449,11 +453,13 @@ class Endpoint(APIView):
             duration = time.time() - start_time
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
-                with sentry_sdk.start_span(
-                    op="base.dispatch.sleep",
+                with sentry_sdk.traces.start_span(
                     name=type(self).__name__,
+                    attributes={"sentry.op": "base.dispatch.sleep"},
                 ) as span:
-                    span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
+                    span.set_attribute(
+                        "SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY
+                    )
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         # Only enforced in dev environment
@@ -537,9 +543,9 @@ class Endpoint(APIView):
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)
-            with sentry_sdk.start_span(
-                op="base.paginate.get_result",
+            with sentry_sdk.traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.get_result"},
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
                 paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
@@ -557,9 +563,9 @@ class Endpoint(APIView):
 
         # map results based on callback
         if on_results:
-            with sentry_sdk.start_span(
-                op="base.paginate.on_results",
+            with sentry_sdk.traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.on_results"},
             ):
                 results = on_results(cursor_result.results)
         else:

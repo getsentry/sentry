@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
-from sentry_sdk.tracing import NoOpSpan, Span, Transaction
+from sentry_sdk.traces import StreamedSpan
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -254,9 +254,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     return {"status_change": data}
 
 
-def process_status_change_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
-) -> Group | None:
+def process_status_change_message(message: Mapping[str, Any], txn: StreamedSpan) -> Group | None:
     with metrics.timer("occurrence_consumer._process_message.status_change._get_kwargs"):
         kwargs = _get_status_change_kwargs(message)
     status_change_data = kwargs["status_change"]
@@ -266,15 +264,15 @@ def process_status_change_message(
         sample_rate=1.0,
         tags={"new_status": status_change_data["new_status"]},
     )
-    txn.set_tag("new_status", status_change_data["new_status"])
+    txn.set_attribute("new_status", status_change_data["new_status"])
 
     project = Project.objects.get_from_cache(id=status_change_data["project_id"])
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    txn.set_tag("organization_id", organization.id)
-    txn.set_tag("organization_slug", organization.slug)
-    txn.set_tag("project_id", project.id)
-    txn.set_tag("project_slug", project.slug)
+    txn.set_attribute("organization_id", organization.id)
+    txn.set_attribute("organization_slug", organization.slug)
+    txn.set_attribute("project_id", project.id)
+    txn.set_attribute("project_slug", project.slug)
 
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
         fingerprint = status_change_data["fingerprint"]
@@ -293,7 +291,7 @@ def process_status_change_message(
                 sample_rate=1.0,
             )
             return None
-        txn.set_tag("group_id", group.id)
+        txn.set_attribute("group_id", group.id)
 
     sentry_sdk.set_tag("group_type", group.issue_type.slug)
 

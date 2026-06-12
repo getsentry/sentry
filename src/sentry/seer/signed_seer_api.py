@@ -115,7 +115,7 @@ def _resolve_viewer_context(
     )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,

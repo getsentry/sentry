@@ -55,11 +55,10 @@ def process_segment(
         settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
         * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
     )
-    with sentry_sdk.start_transaction(
+    sentry_sdk.Scope.set_custom_sampling_context({"sample_rate": sample_rate})
+    with sentry_sdk.traces.start_span(
         name="spans.consumers.process_segments.process_segment",
-        custom_sampling_context={
-            "sample_rate": sample_rate,
-        },
+        parent_span=None,
     ):
         return _process_segment(unprocessed_spans, skip_produce, skip_enrichment)
 

@@ -96,7 +96,7 @@ class EventContext(TypedDict):
     user_geo_subdivision: str | None
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def parse_events(
     context: EventContext, events: list[dict[str, Any]]
 ) -> tuple[ParsedEventMeta, list[TraceItem]]:

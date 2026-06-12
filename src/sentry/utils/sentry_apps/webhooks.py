@@ -208,7 +208,7 @@ def _send_webhook_request(
         )
 
 
-@sentry_sdk.trace(name="send_and_save_webhook_request")
+@sentry_sdk.traces.trace(name="send_and_save_webhook_request")
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,

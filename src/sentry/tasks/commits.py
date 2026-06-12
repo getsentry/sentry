@@ -300,9 +300,9 @@ def fetch_commits_for_ref_with_lifecycle(
             except IntegrationResourceNotFoundError:
                 repo_commits = None
             except Exception as e:
-                span = sentry_sdk.get_current_span()
+                span = sentry_sdk.traces.get_current_span()
                 if span:
-                    span.set_status("unknown_error")
+                    span.status = "error"
 
                 if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                     handle_invalid_identity(identity=e.identity)

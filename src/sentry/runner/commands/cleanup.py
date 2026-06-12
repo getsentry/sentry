@@ -126,8 +126,10 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with sentry_sdk.start_transaction(
-                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker"
+            with sentry_sdk.traces.start_span(
+                name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
+                attributes={"sentry.op": "cleanup"},
+                parent_span=None,
             ):
                 task_execution(model_name, chunk, project_id)
         except Exception:
@@ -346,9 +348,11 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with sentry_sdk.start_transaction(
-        op="cleanup", name=f"{TRANSACTION_PREFIX}.main"
-    ) as transaction:
+    with sentry_sdk.traces.start_span(
+        name=f"{TRANSACTION_PREFIX}.main",
+        attributes={"sentry.op": "cleanup"},
+        parent_span=None,
+    ) as span:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):
@@ -385,9 +389,9 @@ def _cleanup(
                 project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
-                transaction.set_tag("organization_id", organization_id)
+                span.set_attribute("organization_id", organization_id)
             if project_id is not None:
-                transaction.set_tag("project_id", project_id)
+                span.set_attribute("project_id", project_id)
 
             run_bulk_query_deletes(
                 bulk_query_deletes,

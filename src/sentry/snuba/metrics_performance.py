@@ -56,7 +56,7 @@ def query(
     *,
     referrer: str,
 ) -> EventsResponse:
-    with sentry_sdk.start_span(op="mep", name="MetricQueryBuilder"):
+    with sentry_sdk.traces.start_span(name="MetricQueryBuilder", attributes={"sentry.op": "mep"}):
         metrics_query = MetricsQueryBuilder(
             dataset=Dataset.PerformanceMetrics,
             params={},
@@ -85,7 +85,9 @@ def query(
         results = metrics_query.run_query(
             referrer=metrics_referrer, query_source=query_source, use_cache=True
         )
-    with sentry_sdk.start_span(op="mep", name="query.transform_results"):
+    with sentry_sdk.traces.start_span(
+        name="query.transform_results", attributes={"sentry.op": "mep"}
+    ):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
         results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
@@ -165,7 +167,9 @@ def bulk_timeseries_query(
         metrics_compatible = True
 
     if metrics_compatible:
-        with sentry_sdk.start_span(op="mep", name="TimeseriesMetricQueryBuilder"):
+        with sentry_sdk.traces.start_span(
+            name="TimeseriesMetricQueryBuilder", attributes={"sentry.op": "mep"}
+        ):
             metrics_queries = []
             for query in queries:
                 metrics_query = TimeseriesMetricQueryBuilder(
@@ -193,7 +197,9 @@ def bulk_timeseries_query(
             for br in bulk_result:
                 _result["data"] = [*_result["data"], *br["data"]]
                 _result["meta"] = br["meta"]
-        with sentry_sdk.start_span(op="mep", name="query.transform_results"):
+        with sentry_sdk.traces.start_span(
+            name="query.transform_results", attributes={"sentry.op": "mep"}
+        ):
             result = metrics_query.process_results(_result)
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
@@ -273,7 +279,9 @@ def timeseries_query(
     metrics_compatible = not equations
 
     def run_metrics_query(inner_params: SnubaParams):
-        with sentry_sdk.start_span(op="mep", name="TimeseriesMetricQueryBuilder"):
+        with sentry_sdk.traces.start_span(
+            name="TimeseriesMetricQueryBuilder", attributes={"sentry.op": "mep"}
+        ):
             metrics_query = TimeseriesMetricQueryBuilder(
                 params={},
                 interval=rollup,
@@ -293,7 +301,9 @@ def timeseries_query(
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
-        with sentry_sdk.start_span(op="mep", name="query.transform_results"):
+        with sentry_sdk.traces.start_span(
+            name="query.transform_results", attributes={"sentry.op": "mep"}
+        ):
             result = metrics_query.process_results(result)
             result["data"] = (
                 discover.zerofill(

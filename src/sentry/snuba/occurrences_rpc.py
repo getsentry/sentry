@@ -55,7 +55,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
     DEFINITIONS = OCCURRENCE_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query(
         cls,
         *,
@@ -99,7 +99,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query_with_tags(
         cls,
         tag_names: set[str],
@@ -161,7 +161,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_grouped_timeseries_query(
         cls,
         *,
@@ -269,7 +269,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         return results
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_stats_query(
         cls,
         *,

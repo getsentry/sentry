@@ -63,7 +63,9 @@ def _try_get_from_cache(
 def get_all_merged_group_ids(
     group_ids: Iterable[str | int], threshold=SIZE_THRESHOLD_FOR_CLICKHOUSE
 ) -> set[str | int]:
-    with sentry_sdk.start_span(op="get_all_merged_group_ids") as span:
+    with sentry_sdk.traces.start_span(
+        name="get_all_merged_group_ids", attributes={"sentry.op": "get_all_merged_group_ids"}
+    ) as span:
         # Initialize all IDs with a future time to ensure they aren't filtered out.
         running_data = {
             (group_id, datetime.now(UTC) + timedelta(minutes=1)) for group_id in group_ids
@@ -99,7 +101,7 @@ def get_all_merged_group_ids(
         #         date_added and only return newest threshold # of results.
         output_set = {datum[0] for datum in running_data}
         original_count = len(output_set)
-        span.set_data("true_group_id_len", original_count)
+        span.set_attribute("true_group_id_len", original_count)
 
         if original_count > threshold:
             # Sort by datetime, decreasing, and then take first threshold results
@@ -118,7 +120,7 @@ def get_all_merged_group_ids(
                 threshold,
                 truncated_count,
             )
-        span.set_data("returned_group_id_len", len(output_set))
+        span.set_attribute("returned_group_id_len", len(output_set))
 
     return output_set
 
