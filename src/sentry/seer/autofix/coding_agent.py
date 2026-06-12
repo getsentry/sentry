@@ -242,6 +242,7 @@ def poll_github_copilot_agents(
                                 repo_provider="github",
                                 pr_url=pr_url,
                                 agent_id=agent_id,
+                                run_id=autofix_state.run_id if autofix_state else None,
                             )
                         except Exception:
                             logger.exception(
@@ -307,11 +308,15 @@ def poll_claude_code_agents(
         logger.warning("coding_agent.claude_code.no_client_class_configured")
         return
 
+    run_id = autofix_state.run_id if autofix_state else None
+
     for agent_id, agent_state in agents.items():
-        poll_claude_agent(clients, agent_id, org_id, agent_state)
+        poll_claude_agent(clients, agent_id, org_id, agent_state, run_id=run_id)
 
 
-def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) -> None:
+def poll_claude_agent(
+    clients, agent_id, org_id, agent_state: CodingAgentState, run_id: int | None = None
+) -> None:
     if agent_state.provider != CodingAgentProviderType.CLAUDE_CODE_AGENT:
         return
 
@@ -357,6 +362,7 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
                         repo_provider=result.repo_provider,
                         pr_url=result.pr_url,
                         agent_id=agent_id,
+                        run_id=run_id,
                     )
                 except Exception:
                     logger.exception(

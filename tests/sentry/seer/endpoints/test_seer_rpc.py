@@ -1693,11 +1693,14 @@ class TestRecordPrAttribution(APITestCase):
             key="10",
         )
 
+    _DEFAULT_PR_URL = "https://github.com/getsentry/sentry/pull/99"
+
     def _call(self, **overrides: Any) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
             "organization_id": self.organization.id,
             "pull_request_id": self.pr.id,
             "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            "signal_details": {"pr_url": self._DEFAULT_PR_URL},
         }
         kwargs.update(overrides)
         return record_pr_attribution(**kwargs)
@@ -1710,14 +1713,43 @@ class TestRecordPrAttribution(APITestCase):
         assert attr.is_valid is True
         assert result == {"attribution_id": attr.id}
 
-    def test_stores_signal_details(self) -> None:
-        self._call(signal_details={"agent_id": "agent-abc-123"})
+    def test_stores_typed_signal_details_for_delegated_signals(self) -> None:
+        self._call(
+            signal_details={
+                "agent_id": "agent-abc-123",
+                "pr_url": self._DEFAULT_PR_URL,
+                "run_id": 42,
+            }
+        )
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
-        assert attr.signal_details == {"agent_id": "agent-abc-123"}
+        assert attr.signal_details == {
+            "agent_id": "agent-abc-123",
+            "pr_url": self._DEFAULT_PR_URL,
+            "run_id": 42,
+        }
 
-    def test_no_signal_details_leaves_signal_details_null(self) -> None:
-        self._call()
+    def test_delegated_signal_details_defaults_nullable_fields(self) -> None:
+        self._call(signal_details={"pr_url": self._DEFAULT_PR_URL})
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details == {
+            "agent_id": None,
+            "pr_url": self._DEFAULT_PR_URL,
+            "run_id": None,
+        }
+
+    def test_invalid_delegated_signal_details_raises(self) -> None:
+        from rest_framework.exceptions import ParseError
+
+        with pytest.raises(ParseError):
+            self._call(signal_details={"agent_id": "x"})  # missing required pr_url
+
+    def test_no_signal_details_for_non_delegated_type_leaves_null(self) -> None:
+        self._call(
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            signal_details=None,
+        )
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.signal_details is None
