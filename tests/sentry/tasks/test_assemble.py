@@ -92,8 +92,7 @@ class AssembleDifTest(BaseAssembleTest):
             project_id=self.project.id, checksum=total_checksum
         ).get()
 
-        assert dif.file is not None
-        assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
+        assert dif.get_headers() == {"Content-Type": "text/x-breakpad"}
 
     def test_assemble_from_files(self) -> None:
         files = []
@@ -204,8 +203,7 @@ class AssembleDifTest(BaseAssembleTest):
             project_id=self.project.id, checksum=total_checksum
         ).get()
 
-        assert dif.file is not None
-        assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
+        assert dif.get_headers() == {"Content-Type": "text/x-breakpad"}
         assert dif.debug_id == "67e9247c-814e-392b-a027-dbde6748fcbf-beef"
 
 
