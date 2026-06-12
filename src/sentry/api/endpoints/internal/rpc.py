@@ -42,7 +42,8 @@ class InternalRpcServiceEndpoint(Endpoint):
         return False
 
     def post(self, request: Request, service_name: str, method_name: str) -> Response:
-        sentry_sdk.get_isolation_scope().set_tag("rpc_method", f"{service_name}.{method_name}")
+        sentry_sdk.set_tag("rpc_method", f"{service_name}.{method_name}")
+        sentry_sdk.set_attribute("rpc_method", f"{service_name}.{method_name}")
         if not self._is_authorized(request):
             raise PermissionDenied
 
