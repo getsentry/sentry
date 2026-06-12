@@ -19,7 +19,11 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
-from sentry.api.helpers.projects import ProjectIdOrSlugField, parse_id_or_slug_params
+from sentry.api.helpers.projects import (
+    PROJECT_ID_OR_SLUG_SCHEMA,
+    ProjectIdOrSlugField,
+    parse_id_or_slug_params,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -53,7 +57,7 @@ LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
         "description": "Set to '1' or 'true' to strip image metadata to display_name, image_file_name, group, description",
     },
     "project": {
-        "type": "string",
+        "type": "integer|string",
         "required": False,
         "description": "Project ID or slug to scope the lookup when app_id is not unique across projects or project inference is unavailable.",
     },
@@ -94,7 +98,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             ),
             OpenApiParameter(
                 name="project",
-                type=str,
+                type=PROJECT_ID_OR_SLUG_SCHEMA,
                 location="query",
                 required=False,
                 description="Project ID or slug to scope the lookup.",

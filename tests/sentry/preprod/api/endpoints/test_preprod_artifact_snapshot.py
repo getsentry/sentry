@@ -909,7 +909,7 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
 
     def test_query_params_document_project_id_or_slug(self):
         assert LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS["project"] == {
-            "type": "string",
+            "type": "integer|string",
             "required": False,
             "description": "Project ID or slug to scope the lookup when app_id is not unique across projects or project inference is unavailable.",
         }
