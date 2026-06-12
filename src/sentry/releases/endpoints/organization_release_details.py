@@ -17,7 +17,11 @@ from sentry.api.endpoints.organization_releases import (
     get_stats_period_detail,
 )
 from sentry.api.exceptions import ConflictError, InvalidRepository, ResourceDoesNotExist
-from sentry.api.helpers.projects import ProjectIdOrSlugField, parse_id_or_slug_params
+from sentry.api.helpers.projects import (
+    PROJECT_ID_OR_SLUG_SCHEMA,
+    ProjectIdOrSlugField,
+    parse_id_or_slug_params,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
@@ -319,7 +323,7 @@ class OrganizationReleaseDetailsEndpoint(
                 name="project",
                 location="query",
                 required=False,
-                type=str,
+                type=PROJECT_ID_OR_SLUG_SCHEMA,
                 description="The project ID or slug to filter by.",
             ),
             ReleaseParams.HEALTH,
