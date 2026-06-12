@@ -40,6 +40,7 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
+from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
@@ -433,6 +434,13 @@ class SeerAgentClient:
         ):
             agent_run_options["use_agent_sandbox"] = True
 
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["embed_widgets"] = get_embed_widgets()
+
         user_id = (
             self.user.id
             if self.user and hasattr(self.user, "id") and self.user.id is not None
@@ -579,6 +587,13 @@ class SeerAgentClient:
             actor=self.user,
         ):
             agent_run_options["use_agent_sandbox"] = True
+
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["embed_widgets"] = get_embed_widgets()
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
