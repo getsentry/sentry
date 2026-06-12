@@ -61,10 +61,10 @@ export function IssueTrackingSignals({group}: Props) {
   }
 
   const issue = linkedIssues[0]!;
-  const {name, icon} = {
-    'integration-issue': getIntegrationNames,
-    'sentry-app-issue': getAppIntegrationNames,
-  }[issue.type](issue);
+  const {name, icon} =
+    issue.type === 'integration-issue'
+      ? getIntegrationNames(issue)
+      : getAppIntegrationNames(issue);
 
   return (
     <Tooltip title={t('Linked %s Issue', name)} containerDisplayMode="flex">
