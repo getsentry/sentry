@@ -32,20 +32,25 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             return Response({"detail": f'Invalid tag key format for "{key}"'}, status=400)
 
         sentry_sdk.set_tag("query.tag_key", key)
+        sentry_sdk.set_attribute("query.tag_key", key)
 
         dataset = None
         if request.GET.get("dataset"):
             try:
                 dataset = Dataset(request.GET.get("dataset"))
                 sentry_sdk.set_tag("dataset", dataset.value)
+                sentry_sdk.set_attribute("dataset", dataset.value)
             except ValueError:
                 raise ParseError(detail="Invalid dataset parameter")
         elif request.GET.get("includeTransactions") == "1":
             sentry_sdk.set_tag("dataset", Dataset.Discover.value)
+            sentry_sdk.set_attribute("dataset", Dataset.Discover.value)
         elif request.GET.get("includeReplays") == "1":
             sentry_sdk.set_tag("dataset", Dataset.Replays.value)
+            sentry_sdk.set_attribute("dataset", Dataset.Replays.value)
         else:
             sentry_sdk.set_tag("dataset", Dataset.Events.value)
+            sentry_sdk.set_attribute("dataset", Dataset.Events.value)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

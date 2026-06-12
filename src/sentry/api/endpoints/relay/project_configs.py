@@ -2,6 +2,7 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import set_tag, start_span
@@ -48,6 +49,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
+        sentry_sdk.set_attribute("relay_protocol_version", version)
 
         if version == "3" and request.relay_request_data.get("global"):
             response["global"] = get_global_config()
@@ -79,8 +81,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
         considering them for the full build.
         """
         set_tag("relay_endpoint_version", version)
+        sentry_sdk.set_attribute("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
+        sentry_sdk.set_attribute("relay_no_cache", no_cache)
 
         post_or_schedule = True
         reason = "version"
@@ -94,7 +98,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
             version = "2"  # Downgrade to 2 for reporting metrics
 
         set_tag("relay_use_post_or_schedule", post_or_schedule)
+        sentry_sdk.set_attribute("relay_use_post_or_schedule", post_or_schedule)
         set_tag("relay_use_post_or_schedule_rejected", reason)
+        sentry_sdk.set_attribute("relay_use_post_or_schedule_rejected", reason)
         if version == "2":
             metrics.incr(
                 "api.endpoints.relay.project_configs.post",
