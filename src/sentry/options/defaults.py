@@ -271,6 +271,12 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
+register(
+    "auth.signup-verification-email-salt",
+    type=String,
+    default="signup-verification-email-salt",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
