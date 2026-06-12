@@ -1095,6 +1095,36 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
+    def test_put_tracemetrics_line_chart_rejects_equation_with_aggregate(self) -> None:
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Metrics Equation",
+                    "displayType": "line",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "columns": [],
+                            "aggregates": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data["widgets"][0], response.data
+
     def test_add_widget_with_field_aliases(self) -> None:
         data: dict[str, Any] = {
             "title": "First dashboard",
