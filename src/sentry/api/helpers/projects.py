@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import NamedTuple, TypeAlias
 
-from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -11,6 +10,8 @@ from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE, MIXED_SLUG_REGEX
 
 ProjectIdOrSlug: TypeAlias = int | str
+
+PROJECT_ID_OR_SLUG_SCHEMA = {"anyOf": [{"type": "integer"}, {"type": "string"}]}
 
 
 class ParsedProjectIdOrSlugParams(NamedTuple):
@@ -52,7 +53,7 @@ def parse_id_or_slug_params(
     return ParsedProjectIdOrSlugParams(ids=ids, slugs=slugs)
 
 
-@extend_schema_field(field=OpenApiTypes.STR)
+@extend_schema_field(field=PROJECT_ID_OR_SLUG_SCHEMA)
 class ProjectIdOrSlugField(serializers.Field[ProjectIdOrSlug, object, ProjectIdOrSlug, object]):
     default_error_messages = {
         "invalid": "Expected a project ID or slug.",

@@ -5,6 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 
 from sentry import constants
+from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
@@ -164,7 +165,7 @@ class OrganizationParams:
         location="query",
         required=False,
         many=True,
-        type=str,
+        type=PROJECT_ID_OR_SLUG_SCHEMA,
         description="""The IDs or slugs of projects to filter by. Project slugs are unique within each organization. Omit this parameter to include all accessible projects. `-1` is also accepted to include all accessible projects.
 For example, the following are valid parameters:
 - `/?project=1234&project=56789`
