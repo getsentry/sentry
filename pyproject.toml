@@ -1026,7 +1026,6 @@ module = [
     "sentry.lang.java.apps",
     "sentry.lang.java.exceptions",
     "sentry.lang.java.plugin",
-    "sentry.lang.java.proguard",
     "sentry.lang.java.utils",
     "sentry.lang.java.view_hierarchies",
     "sentry.lang.javascript.*",
