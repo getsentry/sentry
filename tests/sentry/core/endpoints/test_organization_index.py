@@ -315,14 +315,12 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             Cell(
                 name="ja",
                 snowflake_id=3,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.2",
                 visible=False,
             ),
             Cell(
                 name="acme",
                 snowflake_id=4,
-                category=RegionCategory.SINGLE_TENANT,
                 address="10.0.0.4",
                 visible=True,
             ),
