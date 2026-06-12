@@ -62,6 +62,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
+            OrganizationParams.PROJECT_SLUG,
             NotificationParams.TRIGGER_TYPE,
         ],
         responses={
@@ -81,6 +82,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         For example, organization owners and managers can receive an email when a spike occurs.
 
         You can use the `project` query parameter with project IDs or slugs to filter for certain projects.
+        The legacy `projectSlug` query parameter is also supported and takes priority if both are present.
         """
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions
