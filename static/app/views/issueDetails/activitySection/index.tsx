@@ -18,10 +18,11 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
+import type {Actor} from 'sentry/types/core';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
-import type {AvatarUser, User} from 'sentry/types/user';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,21 +38,6 @@ import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-function getPullRequestAuthor(item: GroupActivity) {
-  if (
-    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
-    item.data.pullRequest?.author?.name &&
-    !item.data.pullRequest.author.email?.endsWith('@localhost')
-  ) {
-    return item.data.pullRequest.author;
-  }
-  return null;
-}
-
-function isAvatarUser(author: unknown): author is AvatarUser {
-  return !!author && typeof author === 'object' && 'id' in author;
-}
-
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
     return item.sentry_app.name;
@@ -59,9 +45,12 @@ function getAuthorName(item: GroupActivity) {
   if (item.user) {
     return item.user.name;
   }
-  const pullRequestAuthor = getPullRequestAuthor(item);
-  if (pullRequestAuthor?.name) {
-    return pullRequestAuthor.name!;
+  if (
+    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    item.data.pullRequest?.author?.name &&
+    !item.data.pullRequest.author.email?.endsWith('@localhost')
+  ) {
+    return item.data.pullRequest.author.name;
   }
   return 'Sentry';
 }
@@ -85,15 +74,21 @@ function getActivityMarker(item: GroupActivity, color: string) {
       </AvatarMarker>
     );
   }
-  const pullRequestAuthor = getPullRequestAuthor(item);
-  if (isAvatarUser(pullRequestAuthor)) {
+  if (
+    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    item.data.pullRequest?.author &&
+    'id' in item.data.pullRequest.author
+  ) {
+    const author = item.data.pullRequest.author;
+    const actor: Actor = {
+      id: String(author.id),
+      name: author.name ?? author.email ?? '',
+      type: 'user',
+      email: author.email,
+    };
     return (
       <AvatarMarker color={color}>
-        <UserAvatar
-          data-test-id="user-activity-marker"
-          user={pullRequestAuthor}
-          size={22}
-        />
+        <UserAvatar data-test-id="user-activity-marker" user={actor} size={22} />
       </AvatarMarker>
     );
   }
