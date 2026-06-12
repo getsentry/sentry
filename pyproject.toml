@@ -465,7 +465,6 @@ module = [
     "sentry.api.endpoints.broadcast_details",
     "sentry.api.endpoints.broadcast_index",
     "sentry.api.endpoints.builtin_symbol_sources",
-    "sentry.api.endpoints.catchall",
     "sentry.api.endpoints.chunk",
     "sentry.api.endpoints.data_scrubbing_selector_suggestions",
     "sentry.api.endpoints.debug_files",
