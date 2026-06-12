@@ -620,7 +620,7 @@ def _process_chunk(
                 logger.info(
                     "preprod.snapshots.odiff.unchanged_with_diff_hash",
                     extra={
-                        "name": name,
+                        "image_name": name,
                         "org_id": org_id,
                         "head_artifact_id": head_artifact_id,
                         "base_artifact_id": base_artifact_id,
@@ -681,14 +681,19 @@ def process_snapshot_comparison_chunk(
                 org_id, project_id, head_artifact_id, base_artifact_id, chunk_index
             )
             _put_json(session, result_key, ChunkResult(chunk_index=chunk_index, images=images))
-    except Exception:
+    except Exception as e:
         # Record the chunk as terminally failed so the comparison can still
         # complete: finalize degrades a done chunk with no result blob to errored.
         # Processing-deadline timeouts raise BaseException and propagate past this
         # handler, so the broker can still retry them.
         logger.exception(
             "compare_snapshots: chunk failed",
-            extra={"comparison_id": comparison_id, "chunk_index": chunk_index},
+            extra={
+                "comparison_id": comparison_id,
+                "chunk_index": chunk_index,
+                "error_type": type(e).__name__,
+                "error": str(e),
+            },
         )
 
     _mark_chunk_done(comparison_id, chunk_index)

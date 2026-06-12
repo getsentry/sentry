@@ -8,6 +8,7 @@ from sentry.seer.agent.client_models import (
     Artifact,
     MemoryBlock,
     Message,
+    RepoPRState,
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import (
@@ -16,6 +17,9 @@ from sentry.seer.autofix.autofix_agent import (
     NoSeerQuotaException,
     build_step_prompt,
     generate_autofix_handoff_prompt,
+    get_iteration_for_insert_index,
+    get_latest_iteration_index,
+    recover_iteration_feedback,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -24,6 +28,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class TestGenerateAutofixHandoffPrompt(TestCase):
@@ -242,6 +247,92 @@ class TestBuildStepPrompt(TestCase):
             assert not prompt.startswith("\t"), f"{step} prompt starts with tab"
 
 
+def _iteration_block(
+    iteration_index: int | None = None, feedback: str | None = None
+) -> MemoryBlock:
+    metadata: dict[str, str] = {"step": AutofixStep.PR_ITERATION.value}
+    if iteration_index is not None:
+        metadata["iteration_index"] = str(iteration_index)
+    if feedback is not None:
+        metadata["feedback"] = json.dumps(
+            {
+                "text": feedback,
+                "source": "user",
+                "timestamp": "2024-01-01T00:00:00Z",
+            }
+        )
+    return MemoryBlock(
+        id=f"block-{iteration_index}",
+        message=Message(role="assistant", content="iteration", metadata=metadata),
+        timestamp="2024-01-01T00:00:00Z",
+    )
+
+
+def _state_with_blocks(blocks: list[MemoryBlock], group_id: int | None = None) -> SeerRunState:
+    return SeerRunState(
+        run_id=67890,
+        blocks=blocks,
+        status="completed",
+        updated_at="2024-01-01T00:00:00Z",
+        metadata={"group_id": group_id} if group_id is not None else None,
+    )
+
+
+class TestIterationHelpers(TestCase):
+    def test_get_latest_iteration_index_returns_zero_without_iterations(self) -> None:
+        state = _state_with_blocks([])
+        assert get_latest_iteration_index(state) == 0
+
+    def test_get_latest_iteration_index_returns_most_recent(self) -> None:
+        state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
+        assert get_latest_iteration_index(state) == 2
+
+    def test_get_iteration_for_insert_index(self) -> None:
+        state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
+        assert get_iteration_for_insert_index(state, 1) == 2
+
+    def test_recover_iteration_feedback_returns_feedback(self) -> None:
+        state = _state_with_blocks([_iteration_block(1, feedback="please fix the tests")])
+        assert recover_iteration_feedback(state, 0) == "please fix the tests"
+
+    def test_recover_iteration_feedback_out_of_range(self) -> None:
+        state = _state_with_blocks([])
+        assert recover_iteration_feedback(state, 0) is None
+        assert recover_iteration_feedback(state, -1) is None
+
+    def test_recover_iteration_feedback_no_metadata(self) -> None:
+        block = MemoryBlock(
+            id="block-none",
+            message=Message(role="assistant", content="x", metadata=None),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        state = _state_with_blocks([block])
+        assert recover_iteration_feedback(state, 0) is None
+
+
+class TestPrIterationPrompt(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project, message="Test error message")
+
+    def test_pr_iteration_prompt_includes_pr_links(self) -> None:
+        state = _state_with_blocks([])
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", pr_url="https://example.com/pull/7")
+        }
+        prompt = build_step_prompt(AutofixStep.PR_ITERATION, self.group, run_state=state)
+
+        assert "Iterate on the pull request" in prompt
+        assert "owner/repo" in prompt
+        assert "https://example.com/pull/7" in prompt
+
+    def test_pr_iteration_prompt_without_run_state_omits_pr_links(self) -> None:
+        prompt = build_step_prompt(AutofixStep.PR_ITERATION, self.group)
+
+        assert "Iterate on the pull request" in prompt
+        assert "pull request(s)" not in prompt
+
+
 class TestTriggerAutofixAgent(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -359,7 +450,59 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client.start_run.assert_called_once()
         call_kwargs = mock_client.start_run.call_args.kwargs
-        assert call_kwargs["metadata"] == {"referrer": "unknown"}
+        assert call_kwargs["metadata"] == {
+            "group_id": self.group.id,
+            "referrer": "unknown",
+            "pr_iteration_enabled": False,
+        }
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_new_run_records_pr_iteration_enabled_in_metadata(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        """The pr_iteration feature flag value is persisted in the run metadata."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+
+        assert mock_client.start_run.call_args.kwargs["metadata"]["pr_iteration_enabled"] is True
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_continued_run_increments_iteration_index(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        """Continuing a PR iteration run computes the next iteration index and surfaces it."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = _state_with_blocks(
+            [_iteration_block(1)], group_id=self.group.id
+        )
+        mock_client.continue_run.return_value = 67890
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.PR_ITERATION,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=67890,
+        )
+
+        call_kwargs = mock_broadcast.call_args.kwargs
+        assert call_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
+        assert call_kwargs["payload"]["iteration_index"] == 2
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)

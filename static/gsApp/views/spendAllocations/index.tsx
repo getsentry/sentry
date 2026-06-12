@@ -28,7 +28,7 @@ import PlanFeature from 'getsentry/components/features/planFeature';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {AllocationTargetTypes} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
-import {displayPlanName, isAmEnterprisePlan} from 'getsentry/utils/billing';
+import {displayPlanName} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
@@ -334,7 +334,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
                       <strong>
                         {t(
                           'requires %s %s Plan',
-                          isAmEnterprisePlan(plan?.id) ? 'an' : 'a',
+                          plan?.isEnterprise ? 'an' : 'a',
                           displayPlanName(plan)
                         )}
                       </strong>

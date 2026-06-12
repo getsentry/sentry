@@ -103,6 +103,35 @@ describe('ActionNodeList', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Jira'})).toBeInTheDocument();
   });
 
+  it('does not show plugin actions in the dropdown', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/available-actions/`,
+      body: [
+        ...actionHandlers,
+        ActionHandlerFixture({
+          type: ActionType.PLUGIN,
+          handlerGroup: ActionGroup.OTHER,
+          integrations: undefined,
+        }),
+      ],
+    });
+
+    render(
+      <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
+        <ActionNodeList {...defaultProps} />
+      </AutomationBuilderErrorContext.Provider>,
+      {
+        organization,
+      }
+    );
+    await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
+
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(5);
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Legacy integrations'})
+    ).not.toBeInTheDocument();
+  });
+
   it('adds actions', async () => {
     render(
       <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
