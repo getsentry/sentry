@@ -52,7 +52,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
-OBJECTSTORE_DEBUGFILES_WRITE_FEATURE = "organizations:objectstore-debugfiles-write"
 OBJECTSTORE_MULTIPART_PART_SIZE = 32 * 1024 * 1024
 OBJECTSTORE_MULTIPART_MAX_RETRIES = 3
 
@@ -166,6 +165,7 @@ class ProjectDebugFile(Model):
     __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
     def get_checksum(self) -> str:
+        """Returns the SHA-1 checksum, reading from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.checksum is not None
             return self.checksum
@@ -175,6 +175,7 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_content_type(self) -> str:
+        """Returns the MIME content type, reading from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.content_type is not None
             return str(self.content_type)
@@ -183,6 +184,7 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_file_size(self) -> int:
+        """Returns the file size in bytes, reading from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.file_size is not None
             return int(self.file_size)
@@ -191,6 +193,7 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_date_created(self) -> datetime:
+        """Returns the creation timestamp, reading from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.date_created is not None
             return self.date_created
@@ -249,6 +252,7 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get("features", []))
 
     def _get_objectstore_session(self) -> Session:
+        """Returns an Objectstore session scoped to this debug file's project."""
         from sentry.models.project import Project
 
         try:
@@ -273,6 +277,7 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def save_to(self, path: str) -> None:
+        """Downloads the debug file contents to a local path, atomically via a temp file."""
         if self.storage_path is not None:
             path = os.path.abspath(path)
             base = os.path.dirname(path)
@@ -318,13 +323,13 @@ class ProjectDebugFile(Model):
         ret = super().delete(*args, **kwargs)
 
         if self.storage_path is not None:
-            from sentry.models.project import Project
-
             # Objectstore-backed files cannot be referenced by multiple debug file rows.
             try:
                 self._get_objectstore_session().delete(self.storage_path)
-            except (Project.DoesNotExist, RequestError, HTTPError):
-                logger.info("Failed to delete ProjectDebugFile, will be cleaned up by TTI")
+            except Exception:
+                logger.info(
+                    "Failed to delete debug file from Objectstore, will be cleaned up by TTI"
+                )
         elif self.file is not None:
             # If another debug file row still references this File, keep the File.
             # Concurrent last-reference deletes can still leave an unreferenced File
@@ -396,44 +401,10 @@ def create_dif_from_file(
     return create_dif_from_id(project, result[0], file=file)
 
 
-def _fileobj_is_seekable(fileobj: IO[bytes]) -> bool:
-    try:
-        return fileobj.seekable()
-    except AttributeError:
-        try:
-            pos = fileobj.tell()
-            fileobj.seek(pos, 0)
-        except (OSError, AttributeError):
-            return False
-        return True
-
-
-def _prepare_fileobj_for_reuse(fileobj: IO[bytes]) -> tuple[IO[bytes], int, str, IO[bytes] | None]:
-    checksum = hashlib.sha1()
-    size = 0
-    reusable_fileobj = fileobj if _fileobj_is_seekable(fileobj) else tempfile.TemporaryFile()
-
-    while True:
-        chunk = fileobj.read(16384)
-        if not chunk:
-            break
-        size += len(chunk)
-        checksum.update(chunk)
-        if reusable_fileobj is not fileobj:
-            reusable_fileobj.write(chunk)
-
-    reusable_fileobj.seek(0, 0)
-    return (
-        reusable_fileobj,
-        size,
-        checksum.hexdigest(),
-        reusable_fileobj if reusable_fileobj is not fileobj else None,
-    )
-
-
 def _put_objectstore_part_with_retry(
     upload: MultipartUpload, chunk: bytes, part_number: int
 ) -> CompletePart:
+    """Uploads a single multipart part, retrying with exponential backoff on transient errors."""
     for attempt in range(OBJECTSTORE_MULTIPART_MAX_RETRIES):
         try:
             return upload.put_part(chunk, part_number=part_number, content_length=len(chunk))
@@ -450,6 +421,10 @@ def _upload_dif_to_objectstore(
     fileobj: IO[bytes],
     content_type: str,
 ) -> tuple[str, int]:
+    """Uploads a debug file to Objectstore via multipart upload, aborting on failure.
+
+    Returns (storage_path, file_size). Raises BadDif if the file exceeds MAX_FILE_SIZE.
+    """
     upload = session.initiate_multipart_upload(content_type=content_type)
     try:
         parts: list[CompletePart] = []
@@ -478,6 +453,7 @@ def _upload_dif_to_objectstore(
 
 
 def _delete_source_file_if_unreferenced(file: File) -> None:
+    """Deletes the File model instance, silently ignoring if it's still referenced by another row."""
     try:
         file.delete()
     except ProtectedError:
@@ -493,11 +469,14 @@ def create_dif_from_id(
     """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
 
     This creates the :class:`ProjectDebugFile` entry for the DIF provided in `meta` (a
-    :class:`DifMeta` object).  If the correct entry already exists this simply returns the
+    :class:`DifMeta` object). If the correct entry already exists, this simply returns the
     existing entry.
 
-    It intentionally does not validate the file, only will ensure a :class:`File` entry
-    exists and set its `ContentType` according to the provided :class:DifMeta`.
+    It intentionally does not validate the file, only will ensure a :class:`File` entry or
+    a `storage_path` exists, and set the `ContentType` according to the provided :class:DifMeta`.
+
+    It can be passed either an existing `File` model, or an actual stream of bytes, depending on
+    whether the a `File` already exists.
 
     Returns a tuple of `(dif, created)` where `dif` is the `ProjectDebugFile` instance and
     `created` is a bool.
@@ -523,12 +502,20 @@ def create_dif_from_id(
     else:
         raise TypeError(f"unknown dif type {meta.file_format!r}")
 
-    fileobj_to_close = None
     if file is not None:
         file_size = file.size
         checksum = file.checksum
     elif fileobj is not None:
-        fileobj, file_size, checksum, fileobj_to_close = _prepare_fileobj_for_reuse(fileobj)
+        h = hashlib.sha1()
+        file_size = 0
+        while True:
+            chunk = fileobj.read(16384)
+            if not chunk:
+                break
+            h.update(chunk)
+            file_size += len(chunk)
+        checksum = h.hexdigest()
+        fileobj.seek(0, 0)
     else:
         raise RuntimeError("missing file object")
 
@@ -545,16 +532,12 @@ def create_dif_from_id(
     )
 
     if dif is not None:
-        if fileobj_to_close is not None:
-            fileobj_to_close.close()
         return dif, False
 
     content_type = DIF_MIMETYPES[meta.file_format]
 
-    if features.has(OBJECTSTORE_DEBUGFILES_WRITE_FEATURE, project.organization):
+    if features.has("organizations:objectstore-debugfiles-write", project.organization):
         if file_size is not None and file_size > MAX_FILE_SIZE:
-            if fileobj_to_close is not None:
-                fileobj_to_close.close()
             raise BadDif(f"Object exceeds maximum size ({file_size} > {MAX_FILE_SIZE})")
 
         session = get_debug_files_session(project.organization_id, project.id)
@@ -564,13 +547,9 @@ def create_dif_from_id(
                     session, source_fileobj, content_type
                 )
         elif fileobj is not None:
-            try:
-                storage_path, uploaded_file_size = _upload_dif_to_objectstore(
-                    session, fileobj, content_type
-                )
-            finally:
-                if fileobj_to_close is not None:
-                    fileobj_to_close.close()
+            storage_path, uploaded_file_size = _upload_dif_to_objectstore(
+                session, fileobj, content_type
+            )
         else:
             raise RuntimeError("missing file object")
 
@@ -614,8 +593,6 @@ def create_dif_from_id(
             headers={"Content-Type": content_type},
         )
         file.putfile(fileobj)
-        if fileobj_to_close is not None:
-            fileobj_to_close.close()
     else:
         file.type = "project.dif"
         file.headers["Content-Type"] = content_type
