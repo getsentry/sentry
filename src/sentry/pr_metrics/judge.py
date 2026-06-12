@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 
 import orjson
 from django.conf import settings
@@ -31,7 +31,12 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.pr_metrics.attribution import record_attribution_signal
-from sentry.pr_metrics.emit import active_attributions, emit_pr_metrics_row, resolved_group_ids
+from sentry.pr_metrics.emit import (
+    CloseAction,
+    active_attributions,
+    emit_pr_metrics_row,
+    resolved_group_ids,
+)
 from sentry.seer.code_review.utils import build_repo_definition
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import metrics
@@ -57,7 +62,39 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
-def _build_judge_request(pull_request: PullRequest, repository: Repository) -> dict[str, Any]:
+class PrCloseJudgeRequest(TypedDict):
+    """The Sentry → Seer judge request body; mirrors Seer's ``PrCloseJudgeRequest``.
+
+    Typed so mypy catches contract drift — a renamed, dropped, or wrong-typed field
+    fails the build rather than silently shipping a body Seer rejects.
+    """
+
+    organization_id: int
+    repository_id: int
+    pull_request_id: int
+    # The Seer RepoDefinition, assembled by ``build_repo_definition`` (its shape is
+    # owned and validated on the Seer side), so it stays a plain mapping here.
+    repo: dict[str, Any]
+    pr_number: str
+    close_action: CloseAction
+    head_commit_sha: str
+    merge_commit_sha: str | None
+    opened_at: str | None
+    closed_at: str
+    merged_at: str | None
+    draft: bool
+    additions: int
+    deletions: int
+    files_changed: int
+    commits_count: int
+    comments_count: int
+    review_comments_count: int
+    is_assigned: bool
+    attributions: list[dict[str, Any]]
+    group_ids: list[int]
+
+
+def _build_judge_request(pull_request: PullRequest, repository: Repository) -> PrCloseJudgeRequest:
     """Assemble the Sentry → Seer judge request for a needs-judge terminal event.
 
     Hands Seer the PR's terminal facts, stored counters, attribution snapshot, and
@@ -77,7 +114,7 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> d
     metrics_row = (
         PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
     )
-    close_action = "merged" if pull_request.merged_at is not None else "closed"
+    close_action: CloseAction = "merged" if pull_request.merged_at is not None else "closed"
     return {
         "organization_id": pull_request.organization_id,
         "repository_id": pull_request.repository_id,
