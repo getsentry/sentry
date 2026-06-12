@@ -756,6 +756,23 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         assert result.ids == {1, 42}
         assert result.slugs == {"my-slug"}
 
+    def test_query_params_with_project_slug_precedence(self) -> None:
+        request = self.build_request(project=["1", ""], projectSlug=["", "my-slug"])
+
+        result = self.endpoint.get_query_params_with_project_slug_precedence(request)
+
+        assert result.getlist("projectSlug") == ["my-slug"]
+        assert "project" not in result
+        assert request.GET.getlist("project") == ["1", ""]
+
+    def test_query_params_with_empty_project_slug_keeps_project(self) -> None:
+        request = self.build_request(project=["", "1"], projectSlug=[""])
+
+        result = self.endpoint.get_query_params_with_project_slug_precedence(request)
+
+        assert result.getlist("projectSlug") == []
+        assert result.getlist("project") == ["1"]
+
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self) -> None:

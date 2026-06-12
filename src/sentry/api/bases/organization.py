@@ -7,7 +7,7 @@ from typing import Any, Literal, NotRequired, TypedDict, overload
 import sentry_sdk
 from django.core.cache import cache
 from django.db.models import Q
-from django.http.request import HttpRequest
+from django.http.request import HttpRequest, QueryDict
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -509,6 +509,26 @@ class OrganizationEndpoint(Endpoint):
         if project_slugs:
             return ParsedProjectIdOrSlugParams(ids=set(), slugs=project_slugs)
         return self.get_requested_project_ids_and_slugs_unchecked(request)
+
+    def get_query_params_with_project_slug_precedence(self, request: HttpRequest) -> QueryDict:
+        """
+        Return query params for serializers that accept project and projectSlug.
+
+        This mirrors get_projects() precedence: non-empty legacy projectSlug
+        filters win over project filters, and blank project filters are treated
+        as absent.
+        """
+        query_params = request.GET.copy()
+        project_slug_params = [slug for slug in query_params.getlist("projectSlug") if slug]
+        if "projectSlug" in query_params:
+            query_params.setlist("projectSlug", project_slug_params)
+        if project_slug_params:
+            query_params.pop("project", None)
+        elif "project" in query_params:
+            query_params.setlist(
+                "project", [project for project in query_params.getlist("project") if project]
+            )
+        return query_params
 
     def get_environments(
         self, request: Request, organization: Organization | RpcOrganization
