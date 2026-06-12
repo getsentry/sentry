@@ -54,6 +54,9 @@ class PrCloseMetricsEvent(analytics.Event):
     # The Seer judge verdict (one of ``PullRequestVerdict``). Null on the no-judge
     # path and until the judge callback lands a result for a forwarded PR.
     verdict: str | None = None
+    # The judge's evidence/reasoning behind ``verdict``, as a JSON-encoded object.
+    # Null whenever ``verdict`` is (no judge ran, or no result yet).
+    verdict_details: str | None = None
 
 
 analytics.register(PrCloseMetricsEvent)

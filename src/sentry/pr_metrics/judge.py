@@ -173,15 +173,18 @@ def update_pr_metrics(
     organization_id: int,
     repository_id: int,
     verdict: str | None = None,
+    # Untrusted RPC input validated at runtime below, hence Any (see signal_details).
+    verdict_details: Any = None,
     attributions: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Persist Seer's judge result for a PR and emit the enriched metrics row.
 
     Inbound Seer RPC (Seer → Sentry), invoked once Seer has judged a forwarded
-    terminal PR event. Updates the ``verdict`` on the PR's ``PullRequestMetrics``
-    row (the webhook creates and keeps the row's activity counters current, so
-    this leaves them untouched), records any ``attributions`` Seer produced while
-    judging, then re-emits the now judge-enriched ``pr_metrics.row``.
+    terminal PR event. Updates the ``verdict`` (and the optional ``verdict_details``
+    evidence/reasoning) on the PR's ``PullRequestMetrics`` row — the webhook creates
+    and keeps the row's activity counters current, so this leaves them untouched —
+    records any ``attributions`` Seer produced while judging, then re-emits the now
+    judge-enriched ``pr_metrics.row``.
 
     ``attributions`` are new signals Seer surfaced during judging (recorded with
     a ``seer_*`` source), additive to the ones the webhook already detected — not
@@ -208,6 +211,13 @@ def update_pr_metrics(
         logger.warning("pr_metrics.update.invalid_verdict", extra={**log_extra, "verdict": verdict})
         metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_verdict"})
         return {"success": False, "error": "invalid_verdict"}
+
+    # verdict_details is persisted as a JSON object; reject scalars/arrays at the
+    # trust boundary so the write below can't store a non-object.
+    if verdict_details is not None and not isinstance(verdict_details, Mapping):
+        logger.warning("pr_metrics.update.invalid_verdict_details", extra=log_extra)
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_verdict_details"})
+        return {"success": False, "error": "invalid_verdict_details"}
 
     try:
         parsed_attributions = _parse_attributions(attributions or ())
@@ -237,7 +247,7 @@ def update_pr_metrics(
         metrics.incr("pr_metrics.update.skipped", tags={"reason": "not_terminal"})
         return {"success": False, "error": "pull_request_not_terminal"}
 
-    # Only the verdict is written here; the webhook keeps the activity counters
+    # Only the judge result is written here; the webhook keeps the activity counters
     # current, so this partial update must not clobber them.
     with transaction.atomic(using=router.db_for_write(PullRequestMetrics)):
         # Ensure the row exists so the guard below has something to compare-and-set
@@ -250,7 +260,10 @@ def update_pr_metrics(
         settled = (
             PullRequestMetrics.objects.filter(pull_request=pull_request)
             .filter(Q(verdict=PullRequestVerdict.JUDGE_IN_PROGRESS) | Q(verdict__isnull=True))
-            .update(verdict=verdict)
+            .update(
+                verdict=verdict,
+                verdict_details=dict(verdict_details) if verdict_details is not None else None,
+            )
         )
         if not settled:
             logger.info(

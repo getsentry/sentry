@@ -19,6 +19,7 @@ from sentry.pr_metrics.judge import forward_pr_to_seer_judge, update_pr_metrics
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import get_event_count
 from sentry.testutils.silo import cell_silo_test
+from sentry.utils import json
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
@@ -229,6 +230,31 @@ class UpdatePrMetricsTest(TestCase):
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
             "closed_unmerged"
         )
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_persists_and_emits_verdict_details(self, mock_record: Any) -> None:
+        # Seer's evidence/reasoning is stored on the row and rides the analytics
+        # row as a JSON-encoded object alongside the verdict.
+        self._track()
+        details = {"reason": "iterated after open", "confidence": 0.8}
+        result = self._call(verdict="merged_with_iteration", verdict_details=details)
+
+        assert result == {"success": True}
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict_details == (
+            details
+        )
+        assert json.loads(_last_row(mock_record).verdict_details) == details
+
+    @patch("sentry.analytics.record")
+    def test_rejects_non_object_verdict_details(self, mock_record: Any) -> None:
+        # verdict_details is persisted as a JSON object; a scalar is malformed input
+        # and must be rejected before any write.
+        self._track()
+        result = self._call(verdict="merged_unchanged", verdict_details="not-an-object")
+
+        assert result == {"success": False, "error": "invalid_verdict_details"}
+        assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
     @patch("sentry.analytics.record")

@@ -216,6 +216,29 @@ class PrMetricsEmissionTest(TestCase):
         assert row.review_comments_count == 6
         assert row.is_assigned is True
 
+    def test_build_row_carries_verdict_details(self) -> None:
+        # The judge's reasoning rides the row as a JSON-encoded object.
+        details = {"reason": "iterated after open"}
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).update(
+            verdict_details=details
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert json.loads(row.verdict_details) == details
+
+    def test_build_row_verdict_details_null_when_unset(self) -> None:
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.verdict_details is None
+
     def test_build_row_counters_default_to_zero_when_metrics_row_absent(self) -> None:
         # A PR Sentry never saw active has no PullRequestMetrics row; emit
         # coalesces every counter to its zero/false default.
