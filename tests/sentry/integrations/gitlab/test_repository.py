@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest import mock
 
 import orjson
 import pytest
@@ -6,6 +7,7 @@ import responses
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
+from sentry.integrations.services.repository.service import repository_service
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -14,6 +16,7 @@ from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import IntegrationRepositoryTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
@@ -199,6 +202,58 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             self.default_repository_config, self.integration.id, add_responses=False
         )
         assert response.status_code == 503
+
+    @responses.activate
+    def test_on_create_repository_skips_if_webhook_id_already_in_db(self) -> None:
+        """If the fresh DB read finds a webhook_id, no GitLab API call should be made."""
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.get(pk=response.data["id"])
+            assert repo.config.get("webhook_id") == 99
+
+        # Simulate a second call with a stale repo object that has no webhook_id in memory
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            rpc_repo = repository_service.get_repository(
+                organization_id=self.organization.id, id=repo.id
+            )
+        assert rpc_repo is not None
+        # Strip webhook_id from the in-memory object to simulate stale state
+        stale_config = {k: v for k, v in rpc_repo.config.items() if k != "webhook_id"}
+        rpc_repo.config = stale_config
+
+        with (
+            mock.patch.object(
+                self.provider, "get_installation"
+            ) as mock_installation,
+        ):
+            self.provider.on_create_repository(rpc_repo, self.organization)
+            # Should not call GitLab because fresh DB read reveals webhook_id already set
+            mock_installation.assert_not_called()
+
+    @responses.activate
+    def test_on_create_repository_propagates_lock_timeout(self) -> None:
+        """UnableToAcquireLock propagates so the Celery task can retry."""
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.get(pk=response.data["id"])
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            rpc_repo = repository_service.get_repository(
+                organization_id=self.organization.id, id=repo.id
+            )
+        assert rpc_repo is not None
+        stale_config = {k: v for k, v in rpc_repo.config.items() if k != "webhook_id"}
+        rpc_repo.config = stale_config
+
+        with mock.patch(
+            "sentry.integrations.gitlab.repository.locks"
+        ) as mock_locks:
+            mock_lock = mock.MagicMock()
+            mock_lock.blocking_acquire.side_effect = UnableToAcquireLock
+            mock_locks.get.return_value = mock_lock
+
+            with pytest.raises(UnableToAcquireLock):
+                self.provider.on_create_repository(rpc_repo, self.organization)
 
     @responses.activate
     def test_on_delete_repository_remove_webhook(self) -> None:

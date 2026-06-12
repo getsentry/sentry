@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.locks import locks
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
 from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration  # NOQA
@@ -60,14 +64,37 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
     def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
         if repo.config.get("webhook_id"):
             return
-        installation = self.get_installation(repo.integration_id, repo.organization_id)
-        client = installation.get_client()
-        try:
-            hook_id = client.create_project_webhook(repo.config["project_id"])
-        except Exception as e:
-            raise installation.raise_error(e)
-        repo.config["webhook_id"] = hook_id
-        repository_service.update_repository(organization_id=organization.id, update=repo)
+
+        project_id = repo.config["project_id"]
+
+        # Use a per-project lock + fresh DB read to prevent duplicate webhook creation.
+        # Two concurrent callers (e.g. a manual "Sync now" and the autosync beat both
+        # dispatching create_repos_batch before either has written to DB) could both
+        # pass the stale in-memory guard above and race to call create_project_webhook.
+        # blocking_acquire serialises them; the loser re-reads from DB, finds webhook_id
+        # already present, and returns without touching GitLab.
+        lock = locks.get(
+            f"gitlab-webhook-create:{repo.integration_id}:{project_id}",
+            duration=300,
+            name="gitlab.on_create_repository",
+        )
+        with lock.blocking_acquire(initial_delay=1, timeout=30):
+            fresh_repo = repository_service.get_repository(
+                organization_id=organization.id, id=repo.id
+            )
+            if fresh_repo is None or fresh_repo.config.get("webhook_id"):
+                return
+
+            installation = self.get_installation(
+                fresh_repo.integration_id, fresh_repo.organization_id
+            )
+            client = installation.get_client()
+            try:
+                hook_id = client.create_project_webhook(project_id)
+            except Exception as e:
+                raise installation.raise_error(e)
+            fresh_repo.config["webhook_id"] = hook_id
+            repository_service.update_repository(organization_id=organization.id, update=fresh_repo)
 
     def on_delete_repository(self, repo):
         """Clean up the attached webhook"""
