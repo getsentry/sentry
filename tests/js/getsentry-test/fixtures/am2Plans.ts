@@ -5074,7 +5074,7 @@ export const AM2_PLANS = {
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
-    hasOnDemandModes: false,
+    hasOnDemandModes: true,
   },
   am2_business_ent: {
     ...commonFields,
@@ -5183,6 +5183,6 @@ export const AM2_PLANS = {
     },
     dashboardLimit: -1,
     metricDetectorLimit: -1,
-    hasOnDemandModes: false,
+    hasOnDemandModes: true,
   },
 } as const satisfies Record<string, Plan>;
