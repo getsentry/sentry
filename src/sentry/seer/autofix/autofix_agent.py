@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
@@ -80,9 +81,20 @@ class UserUIFeedbackSource(TypedDict):
     user: NotRequired[Any]
 
 
+class GithubPrCommentFeedbackSource(TypedDict):
+    """Feedback submitted as a GitHub PR comment (``@sentry <feedback>``)."""
+
+    type: Literal["github-pr-comment"]
+    # The raw GitHub ``issue_comment`` ``comment`` payload. We store it verbatim
+    # rather than cherry-picking fields so the UI can render whatever it needs
+    # (e.g. ``comment.user.login`` for attribution, ``comment.html_url`` to link
+    # back to the comment) without the backend threading each field through.
+    comment: Mapping[str, Any]
+
+
 # Discriminated on ``type``. Add new TypedDict variants to this union as more
 # feedback sources are introduced.
-FeedbackSource = UserUIFeedbackSource
+FeedbackSource = UserUIFeedbackSource | GithubPrCommentFeedbackSource
 
 
 class Feedback(BaseModel):
