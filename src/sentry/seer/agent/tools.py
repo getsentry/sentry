@@ -1334,22 +1334,24 @@ def get_issue_details(
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
+
+    project_ids = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
+    )
+    if not project_ids:
+        return None
+
     group: Group
     if issue_id.isdigit():
-        project_ids = list(
-            Project.objects.filter(
-                organization=organization,
-                status=ObjectStatus.ACTIVE,
-                **({"slug": project_slug} if project_slug else {}),
-            ).values_list("id", flat=True)
-        )
-        if not project_ids:
-            return None
-
         group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
     else:
-        # Note short IDs are already scoped to a project so no need for project filtering.
-        group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+        group = Group.objects.by_qualified_short_id(
+            organization_id, issue_id, project_ids=project_ids
+        )
 
     # Get the issue metadata.
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
@@ -1462,7 +1464,9 @@ def get_event_details(
         if issue_id.isdigit():
             group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
         else:
-            group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+            group = Group.objects.by_qualified_short_id(
+                organization_id, issue_id, project_ids=project_ids
+            )
         assert group is not None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
@@ -1564,7 +1568,11 @@ def get_issue_and_event_details_v2(
         if issue_id.isdigit():
             group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
         else:
-            group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+            # Scope the short id lookup to the same projects as the numeric branch so both
+            # paths enforce the same project boundary.
+            group = Group.objects.by_qualified_short_id(
+                organization_id, issue_id, project_ids=project_ids
+            )
         assert group is not None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
