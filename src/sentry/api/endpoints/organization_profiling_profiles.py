@@ -116,7 +116,8 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
     }
 
     @extend_schema(
-        operation_id="Retrieve a Flamegraph for an Organization",
+        operation_id="getOrganizationProfilingFlamegraph",
+        summary="Retrieve a Flamegraph for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -212,7 +213,8 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve Profile Chunks for an Organization",
+        operation_id="listOrganizationProfilingChunks",
+        summary="Retrieve Profile Chunks for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             CHUNKS_PROJECT_PARAM,

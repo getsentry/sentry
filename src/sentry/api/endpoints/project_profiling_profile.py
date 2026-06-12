@@ -44,7 +44,8 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Profile",
+        operation_id="getProjectProfilingProfile",
+        summary="Retrieve a Profile",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

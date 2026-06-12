@@ -39,7 +39,8 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="List an Event's Attachments",
+        operation_id="listProjectEventAttachments",
+        summary="List an Event's Attachments",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

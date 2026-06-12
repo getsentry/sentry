@@ -130,7 +130,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
     logger = logging.getLogger("team-project.create")
 
     @extend_schema(
-        operation_id="List an Organization's Projects",
+        operation_id="listOrganizationProjects",
+        summary="List an Organization's Projects",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             CursorQueryParam,
@@ -291,7 +292,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         tags=["Projects"],
-        operation_id="Create a Project for an Organization",
+        operation_id="createOrganizationProject",
+        summary="Create a Project for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ProjectPostSerializer,
         responses={

@@ -129,7 +129,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             return None
 
     @extend_schema(
-        operation_id="Query Explore Events in Timeseries Format",
+        operation_id="listOrganizationEventsTimeseries",
+        summary="Query Explore Events in Timeseries Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,

@@ -72,7 +72,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return self._allow_idp_changes
 
     @extend_schema(
-        operation_id="Retrieve a Team",
+        operation_id="getTeam",
+        summary="Retrieve a Team",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
@@ -106,7 +107,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return Response(body)
 
     @extend_schema(
-        operation_id="Update a Team",
+        operation_id="updateTeam",
+        summary="Update a Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         request=TeamDetailsSerializer,
         responses={
@@ -154,7 +156,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
         return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        operation_id="Delete a Team",
+        operation_id="deleteTeam",
+        summary="Delete a Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         responses={
             204: RESPONSE_NO_CONTENT,

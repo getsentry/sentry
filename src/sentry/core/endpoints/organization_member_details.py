@@ -111,7 +111,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             raise OrganizationMember.DoesNotExist()
 
     @extend_schema(
-        operation_id="Retrieve an Organization Member",
+        operation_id="getOrganizationMember",
+        summary="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member."),
@@ -144,7 +145,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         return Response(body)
 
     @extend_schema(
-        operation_id="Update an Organization Member's Roles",
+        operation_id="updateOrganizationMember",
+        summary="Update an Organization Member's Roles",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
@@ -456,7 +458,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         return Response(status=204)
 
     @extend_schema(
-        operation_id="Delete an Organization Member",
+        operation_id="deleteOrganizationMember",
+        summary="Delete an Organization Member",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to delete."),

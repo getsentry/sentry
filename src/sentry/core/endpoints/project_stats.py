@@ -67,7 +67,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
     )
 
     @extend_schema(
-        operation_id="Retrieve Event Counts for a Project",
+        operation_id="listProjectStats",
+        summary="Retrieve Event Counts for a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

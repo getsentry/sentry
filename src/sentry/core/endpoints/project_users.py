@@ -51,7 +51,8 @@ class ProjectUsersEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAndStaffPermission,)
 
     @extend_schema(
-        operation_id="List a Project's Users",
+        operation_id="listProjectUsers",
+        summary="List a Project's Users",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

@@ -125,7 +125,8 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         )
 
     @extend_schema(
-        operation_id="Retrieve a Trace",
+        operation_id="getOrganizationTrace",
+        summary="Retrieve a Trace",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             TRACE_ID_PATH_PARAM,
