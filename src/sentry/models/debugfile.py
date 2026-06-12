@@ -309,8 +309,13 @@ class ProjectDebugFile(Model):
         ret = super().delete(*args, **kwargs)
 
         if self.storage_path is not None:
+            from sentry.models.project import Project
+
             # Objectstore-backed files cannot be referenced by multiple debug file rows.
-            self._get_objectstore_session().delete(self.storage_path)
+            try:
+                self._get_objectstore_session().delete(self.storage_path)
+            except Project.DoesNotExist:
+                logger.info("Project already deleted, object will be cleaned up by TTI")
         elif self.file is not None:
             # If another debug file row still references this File, keep the File.
             # Concurrent last-reference deletes can still leave an unreferenced File
