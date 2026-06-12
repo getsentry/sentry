@@ -302,8 +302,8 @@ importers:
         specifier: 3.2.3
         version: 3.2.3
       '@types/react-mentions':
-        specifier: 4.1.13
-        version: 4.1.13
+        specifier: 4.4.1
+        version: 4.4.1
       '@types/react-select':
         specifier: 4.0.18
         version: 4.0.18
@@ -3661,8 +3661,8 @@ packages:
   '@types/react-lazyload@3.2.3':
     resolution: {integrity: sha512-s03gWlHXiFqZr7TEFDTx8Lkl+ZEYrwTkXP9MNZ3Z3blzsPrnkYjgeSK2tjfzVv/TYVCnDk6TZwNRDHQlHy/1Ug==}
 
-  '@types/react-mentions@4.1.13':
-    resolution: {integrity: sha512-kRulAAjlmhCtsJ9bapO0foocknaE/rEuFKpmFEU81fBfnXZmZNBaJ9J/DBjwigT3WDHjQVUmYoi5sxEXrcdzAw==}
+  '@types/react-mentions@4.4.1':
+    resolution: {integrity: sha512-65QdcZYkGe2I4GnOLY2OhlXCGz/Csd8NhytwE5r59CoFeYafMltAE/WqFB/Y6SoPU8LvF7EyUrq6Rxrf0Kzxkg==}
 
   '@types/react-select@4.0.18':
     resolution: {integrity: sha512-uCPRMPshd96BwHuT7oCrFduiv5d6km3VwmtW7rVl9g4XetS3VoJ9nZo540LiwtQgaFcW96POwaxQDZDAyYaepg==}
@@ -12156,7 +12156,7 @@ snapshots:
     dependencies:
       '@types/react': 19.2.1
 
-  '@types/react-mentions@4.1.13':
+  '@types/react-mentions@4.4.1':
     dependencies:
       '@types/react': 19.2.1
 
