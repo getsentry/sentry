@@ -147,7 +147,12 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             Cell("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
             Cell(org_region_name, 2, "http://moo", RegionCategory.MULTI_TENANT),
         ]
-        with override_cells(regions), override_settings(SENTRY_MONOLITH_REGION=org_region_name):
+        with (
+            override_cells(regions),
+            override_settings(
+                SENTRY_MONOLITH_REGION=org_region_name, SENTRY_FALLBACK_CELL=org_region_name
+            ),
+        ):
             with unguarded_write(using=router.db_for_write(OrganizationMapping)):
                 self.create_organization_mapping(
                     organization_id=101010,

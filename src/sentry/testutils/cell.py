@@ -55,7 +55,9 @@ class TestEnvCellDirectory(CellDirectory):
             self._default_cell = local_cell or cells[0]
             self._apply_cells(cells, localities)
             monolith_cell = cells[0]
-            with override_settings(SENTRY_MONOLITH_REGION=monolith_cell.name):
+            with override_settings(
+                SENTRY_MONOLITH_REGION=monolith_cell.name, SENTRY_FALLBACK_CELL=monolith_cell.name
+            ):
                 if local_cell:
                     with override_settings(SENTRY_LOCAL_CELL=local_cell.name):
                         yield
