@@ -308,9 +308,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 user_context=data.get("user_context"),
                 insert_index=data.get("insert_index"),
             )
-            # Only record the action when autofix is actually kicked off, not on each
-            # subsequent step advancement within the same run.
             if is_autofix_kickoff:
+                # Record the trigger action only on kickoff, not on each subsequent
+                # step advancement within the same run.
                 publish_action(
                     TriggerAutofixAction(),
                     source=resolve_action_source(request),
@@ -323,7 +323,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         else SYSTEM_ACTOR
                     ),
                 )
-            if is_autofix_kickoff:
                 # Kickoff returns only the numeric id; fetch the mirror for its UUID.
                 # TODO(telkins): start_run already returns this SeerRun — have
                 # trigger_autofix_agent return it so we can drop this lookup and
