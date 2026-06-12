@@ -2,21 +2,16 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {WidgetBuilderDatasetSelector as DatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 
 describe('DatasetSelector', () => {
   it('changes the dataset', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <DatasetSelector />
@@ -27,11 +22,10 @@ describe('DatasetSelector', () => {
 
     await userEvent.click(await screen.findByRole('option', {name: 'Issues'}));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({dataset: 'issue'}),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -61,9 +55,6 @@ describe('DatasetSelector', () => {
   });
 
   it('allows selection of transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     const organizationWithoutDeprecation = OrganizationFixture({
       features: [], // No discover-saved-queries-deprecation feature
     });
@@ -87,11 +78,10 @@ describe('DatasetSelector', () => {
 
     await userEvent.click(transactionsOption);
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({dataset: 'transaction-like'}),
-      }),
-      expect.anything()
+      })
     );
   });
 });

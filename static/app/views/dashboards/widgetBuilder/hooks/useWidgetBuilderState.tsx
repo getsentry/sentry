@@ -1,5 +1,8 @@
-import {useCallback, useMemo} from 'react';
+import {useEffect, useMemo, useState, useSyncExternalStore} from 'react';
+import * as Sentry from '@sentry/react';
+import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
+import * as qs from 'query-string';
 
 import {defined} from 'sentry/utils/defined';
 import {
@@ -18,8 +21,9 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
-import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
+import {useLocation} from 'sentry/utils/useLocation';
+import {readStorageValue, writeStorageValue} from 'sentry/utils/useSessionStorage';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DEFAULT_CATEGORICAL_BAR_LIMIT,
@@ -299,89 +303,143 @@ function fixupTableSortOnRemoval(
     : [];
 }
 
-export function useWidgetBuilderState(): {
+const URL_UPDATE_DEBOUNCE = 300;
+
+type QueryParams = Record<string, string | string[] | null | undefined>;
+
+type SerializedUrlParams = Record<string, string | string[] | undefined>;
+
+export interface WidgetBuilderStore {
+  /**
+   * Applies an action to the widget builder state and (unless `updateUrl` is
+   * false) queues the corresponding query param updates for the URL.
+   */
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
-  state: WidgetBuilderState;
-} {
-  const [title, setTitle] = useQueryParamState({fieldName: 'title'});
-  const [description, setDescription] = useQueryParamState({
-    fieldName: 'description',
-  });
-  const [displayType, setDisplayType] = useQueryParamState<DisplayType>({
-    fieldName: 'displayType',
-    deserializer: deserializeDisplayType,
-  });
-  const [dataset, setDataset] = useQueryParamState<WidgetType>({
-    fieldName: 'dataset',
-    deserializer: deserializeDataset,
-  });
-  const [fields, setFields] = useQueryParamState<Column[]>({
-    fieldName: 'field',
-    decoder: decodeList,
-    deserializer: deserializeFields,
-    serializer: serializeFields,
-  });
-  const [yAxis, setYAxis] = useQueryParamState<Column[]>({
-    fieldName: 'yAxis',
-    decoder: decodeList,
-    deserializer: deserializeFields,
-    serializer: serializeFields,
-  });
-  const [query, setQuery] = useQueryParamState<string[]>({
-    fieldName: 'query',
-    decoder: decodeList,
-    deserializer: deserializeQuery,
-  });
-  const [sort, setSort] = useQueryParamState<Sort[]>({
-    fieldName: 'sort',
-    decoder: decodeSorts,
-    deserializer: deserializeSorts(dataset),
-    serializer: serializeSorts(dataset),
-  });
-  const [limit, setLimit] = useQueryParamState<number>({
-    fieldName: 'limit',
-    decoder: decodeScalar,
-    deserializer: deserializeLimit,
-  });
-  const [legendAlias, setLegendAlias] = useQueryParamState<string[]>({
-    fieldName: 'legendAlias',
-    decoder: decodeList,
-  });
-  const [legendType, setLegendType] = useQueryParamState<LegendType | undefined>({
-    fieldName: 'legendType',
-    deserializer: deserializeLegendType,
-  });
-  const [selectedAggregate, setSelectedAggregate] = useQueryParamState<number>({
-    fieldName: 'selectedAggregate',
-    decoder: decodeScalar,
-    deserializer: deserializeSelectedAggregate,
-  });
-  const [thresholds, setThresholds] = useQueryParamState<ThresholdsConfig | null>({
-    fieldName: 'thresholds',
-    decoder: decodeScalar,
-    deserializer: deserializeThresholds,
-    serializer: serializeThresholds,
-  });
-  const [linkedDashboards, setLinkedDashboards] = useQueryParamState<LinkedDashboard[]>({
-    fieldName: 'linkedDashboards',
-    decoder: decodeList,
-    deserializer: deserializeLinkedDashboards,
-    serializer: serializeLinkedDashboards,
-  });
-  const [axisRange, setAxisRange] = useQueryParamState<AxisRange | undefined>({
-    fieldName: 'axisRange',
-    decoder: decodeScalar,
-    deserializer: getAxisRange,
-  });
-  const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
-    string | undefined
-  >(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key, undefined);
+  /**
+   * Returns the current state snapshot. The snapshot object is only replaced
+   * when the state changes, so it is safe to use with `useSyncExternalStore`.
+   */
+  getState: () => WidgetBuilderState;
+  /**
+   * Returns the serialized widget builder query params that have been written
+   * (or are pending a debounced write) to the URL by this store.
+   */
+  getUrlParams: () => SerializedUrlParams;
+  subscribe: (listener: () => void) => () => void;
+  /**
+   * Re-asserts the store's query params onto the current browser URL. Used
+   * after router navigations (e.g. page filter changes), which rebuild the
+   * URL from the router's location and would otherwise drop the params this
+   * store wrote with `replaceUrlWithoutNavigation`.
+   */
+  syncUrlParams: () => void;
+  /**
+   * Cancels any pending URL updates. Call on unmount.
+   */
+  teardown: () => void;
+}
 
-  const state = useMemo(
-    () => ({
-      title,
+/**
+ * Hydrates the widget builder state from query params, mirroring the decoding
+ * behavior `useLocationQuery`/`useQueryParamState` previously applied to each
+ * field.
+ */
+function hydrateWidgetBuilderState(query: QueryParams): WidgetBuilderState {
+  // The dataset is decoded first because decoding the sorts depends on it
+  const dataset = deserializeDataset(decodeScalar(query.dataset, ''));
+  return {
+    title: decodeScalar(query.title, ''),
+    description: decodeScalar(query.description, ''),
+    displayType: deserializeDisplayType(decodeScalar(query.displayType, '')),
+    dataset,
+    fields: deserializeFields(decodeList(query.field)),
+    yAxis: deserializeFields(decodeList(query.yAxis)),
+    query: deserializeQuery(decodeList(query.query)),
+    sort: deserializeSorts(dataset)(decodeSorts(query.sort)),
+    limit: deserializeLimit(decodeScalar(query.limit, '')),
+    legendAlias: decodeList(query.legendAlias),
+    legendType: deserializeLegendType(decodeScalar(query.legendType, '')),
+    selectedAggregate: deserializeSelectedAggregate(
+      decodeScalar(query.selectedAggregate, '')
+    ),
+    thresholds: deserializeThresholds(decodeScalar(query.thresholds, '')),
+    linkedDashboards: deserializeLinkedDashboards(decodeList(query.linkedDashboards)),
+    axisRange: getAxisRange(decodeScalar(query.axisRange, '')),
+    textContent: readStorageValue<string | undefined>(
+      WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key,
+      undefined
+    ),
+  };
+}
+
+/**
+ * Builds the public state snapshot from the raw state, deriving the default
+ * selected aggregate for big number and categorical bar widgets.
+ */
+function buildStateSnapshot(rawState: WidgetBuilderState): WidgetBuilderState {
+  const {displayType, fields, selectedAggregate} = rawState;
+  return {
+    ...rawState,
+    // The selected aggregate is the last aggregate for big number and categorical bar widgets
+    // if it hasn't been explicitly set.
+    // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
+    selectedAggregate:
+      displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
+        ? (selectedAggregate ?? fields.length - 1)
+        : displayType === DisplayType.CATEGORICAL_BAR && defined(fields)
+          ? (() => {
+              const aggregateCount = fields.filter(
+                f =>
+                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+              ).length;
+              return aggregateCount > 1
+                ? Math.min(selectedAggregate ?? aggregateCount - 1, aggregateCount - 1)
+                : undefined;
+            })()
+          : undefined,
+  };
+}
+
+/**
+ * Creates a store holding the widget builder state.
+ *
+ * State updates are pushed to subscribers synchronously, and the
+ * corresponding query param updates are written to the URL on a debounce via
+ * `replaceUrlWithoutNavigation`, so persisting the state never re-renders
+ * router location subscribers (e.g. the dashboard underneath the builder).
+ */
+export function createWidgetBuilderStore(initialQuery: QueryParams): WidgetBuilderStore {
+  let rawState = hydrateWidgetBuilderState(initialQuery);
+  let snapshot = buildStateSnapshot(rawState);
+  // Mirror of the serialized params this store has written (or queued) for
+  // the URL. Used to re-assert them after router navigations and to know
+  // whether the URL describes a widget.
+  let urlParams: SerializedUrlParams = {};
+  let pendingUrlUpdates: SerializedUrlParams = {};
+  const listeners = new Set<() => void>();
+
+  const flushUrlUpdates = () => {
+    if (Object.keys(pendingUrlUpdates).length === 0) {
+      return;
+    }
+
+    replaceUrlWithoutNavigation({
+      pathname: window.location.pathname,
+      query: {
+        ...qs.parse(window.location.search),
+        ...pendingUrlUpdates,
+      },
+    });
+    pendingUrlUpdates = {};
+  };
+
+  const debouncedFlushUrlUpdates = debounce(flushUrlUpdates, URL_UPDATE_DEBOUNCE);
+
+  const dispatch = (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => {
+    // Reads within the reducer see the state as of the start of the dispatch,
+    // matching the render-closure reads of the previous hook implementation
+    const {
       description,
-      textContent,
       displayType,
       dataset,
       fields,
@@ -389,52 +447,82 @@ export function useWidgetBuilderState(): {
       query,
       sort,
       limit,
-      legendAlias,
       legendType,
-      thresholds,
-      linkedDashboards,
-      axisRange,
-      // The selected aggregate is the last aggregate for big number and categorical bar widgets
-      // if it hasn't been explicitly set.
-      // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
-      selectedAggregate:
-        displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
-          ? (selectedAggregate ?? fields.length - 1)
-          : displayType === DisplayType.CATEGORICAL_BAR && defined(fields)
-            ? (() => {
-                const aggregateCount = fields.filter(
-                  f =>
-                    f.kind === FieldValueKind.FUNCTION ||
-                    f.kind === FieldValueKind.EQUATION
-                ).length;
-                return aggregateCount > 1
-                  ? Math.min(selectedAggregate ?? aggregateCount - 1, aggregateCount - 1)
-                  : undefined;
-              })()
-            : undefined,
-    }),
-    [
-      title,
-      displayType,
-      textContent,
-      description,
-      dataset,
-      fields,
-      yAxis,
-      query,
-      sort,
-      limit,
-      legendAlias,
-      legendType,
-      thresholds,
-      linkedDashboards,
-      axisRange,
       selectedAggregate,
-    ]
-  );
+      linkedDashboards,
+    } = rawState;
 
-  const dispatch = useCallback(
-    (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => {
+    const changes: Partial<WidgetBuilderState> = {};
+    const urlUpdates: SerializedUrlParams = {};
+
+    // Mirrors the update behavior of the previous `useQueryParamState`
+    // setters: stage the state change and, unless `updateUrl` is false, queue
+    // the serialized value for the URL (`undefined` removes the param).
+    function makeSetter<K extends keyof WidgetBuilderState>(
+      stateKey: K,
+      paramName: string,
+      serializer?: (value: NonNullable<WidgetBuilderState[K]>) => string | string[]
+    ) {
+      return (
+        value: WidgetBuilderState[K],
+        setterOptions: WidgetBuilderStateActionOptions = {updateUrl: true}
+      ) => {
+        changes[stateKey] = value;
+
+        if (!setterOptions?.updateUrl) {
+          return;
+        }
+
+        if (!defined(value)) {
+          urlUpdates[paramName] = undefined;
+        } else if (serializer) {
+          urlUpdates[paramName] = serializer(value);
+        } else if (
+          ['string', 'number', 'boolean'].includes(typeof value) ||
+          Array.isArray(value)
+        ) {
+          urlUpdates[paramName] = value as any;
+        } else {
+          Sentry.captureException(
+            new Error(
+              'useWidgetBuilderState: value is not a primitive value and not provided a serializer'
+            )
+          );
+          urlUpdates[paramName] = undefined;
+        }
+      };
+    }
+
+    const setTitle = makeSetter('title', 'title');
+    const setDescription = makeSetter('description', 'description');
+    const setDisplayType = makeSetter('displayType', 'displayType');
+    const setDataset = makeSetter('dataset', 'dataset');
+    const setFields = makeSetter('fields', 'field', serializeFields);
+    const setYAxis = makeSetter('yAxis', 'yAxis', serializeFields);
+    const setQuery = makeSetter('query', 'query');
+    const setSort = makeSetter('sort', 'sort', serializeSorts(dataset));
+    const setLimit = makeSetter('limit', 'limit');
+    const setLegendAlias = makeSetter('legendAlias', 'legendAlias');
+    const setLegendType = makeSetter('legendType', 'legendType');
+    const setSelectedAggregate = makeSetter('selectedAggregate', 'selectedAggregate');
+    const setThresholds = makeSetter('thresholds', 'thresholds', serializeThresholds);
+    const setLinkedDashboards = makeSetter(
+      'linkedDashboards',
+      'linkedDashboards',
+      serializeLinkedDashboards
+    );
+    const setAxisRange = makeSetter('axisRange', 'axisRange');
+
+    // Text content is persisted in session storage instead of the URL to
+    // avoid excessively long URLs
+    const setTextContent = (value: string | undefined) => {
+      changes.textContent = value;
+      writeStorageValue(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key, value);
+    };
+
+    // The reducer is wrapped in a function so early `return`s in the switch
+    // still fall through to the commit below
+    const run = () => {
       const currentDatasetConfig = getDatasetConfig(dataset);
       switch (action.type) {
         case BuilderStateAction.SET_TITLE:
@@ -1185,42 +1273,84 @@ export function useWidgetBuilderState(): {
           break;
         }
       }
-    },
-    [
-      dataset,
-      setTitle,
-      setDescription,
-      setQuery,
-      displayType,
-      setLimit,
-      setLegendAlias,
-      setLegendType,
-      setSelectedAggregate,
-      fields,
-      setDataset,
-      setDisplayType,
-      setSort,
-      setAxisRange,
-      setThresholds,
-      yAxis,
-      setLinkedDashboards,
-      setTextContent,
-      setYAxis,
-      setFields,
-      sort,
-      query,
-      description,
-      limit,
-      legendType,
-      linkedDashboards,
-      selectedAggregate,
-    ]
-  );
+    };
+
+    run();
+
+    if (Object.keys(changes).length > 0) {
+      rawState = {...rawState, ...changes};
+      snapshot = buildStateSnapshot(rawState);
+    }
+
+    if (Object.keys(urlUpdates).length > 0) {
+      urlParams = {...urlParams, ...urlUpdates};
+      pendingUrlUpdates = {...pendingUrlUpdates, ...urlUpdates};
+      debouncedFlushUrlUpdates();
+    }
+
+    if (Object.keys(changes).length > 0) {
+      listeners.forEach(listener => listener());
+    }
+  };
 
   return {
-    state,
     dispatch,
+    getState: () => snapshot,
+    getUrlParams: () => urlParams,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    syncUrlParams: () => {
+      if (
+        Object.keys(urlParams).length === 0 &&
+        Object.keys(pendingUrlUpdates).length === 0
+      ) {
+        return;
+      }
+      replaceUrlWithoutNavigation({
+        pathname: window.location.pathname,
+        query: {
+          ...qs.parse(window.location.search),
+          ...urlParams,
+          ...pendingUrlUpdates,
+        },
+      });
+    },
+    teardown: () => {
+      debouncedFlushUrlUpdates.cancel();
+      pendingUrlUpdates = {};
+    },
   };
+}
+
+export function useWidgetBuilderState(): {
+  dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
+  state: WidgetBuilderState;
+  store: WidgetBuilderStore;
+} {
+  const location = useLocation();
+
+  const [store] = useState(() => {
+    // On widget builder routes, window.location may be fresher than the
+    // router's location because the store writes the URL without notifying
+    // the router. Outside the browser builder route (e.g. tests), fall back
+    // to the router's location alone.
+    const windowQuery = window.location.pathname.includes('/widget-builder/')
+      ? qs.parse(window.location.search)
+      : {};
+    return createWidgetBuilderStore({...location.query, ...windowQuery});
+  });
+
+  // Cancel pending URL updates on unmount; the widget builder cleans up its
+  // own params when it closes
+  useEffect(() => () => store.teardown(), [store]);
+
+  const state = useSyncExternalStore(store.subscribe, store.getState);
+
+  return useMemo(() => ({state, dispatch: store.dispatch, store}), [state, store]);
 }
 
 /**

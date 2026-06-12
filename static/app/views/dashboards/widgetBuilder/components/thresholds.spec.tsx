@@ -1,20 +1,17 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {ThresholdsSection as Thresholds} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate');
-describe('Thresholds', () => {
-  let mockNavigate!: jest.Mock;
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
 
-  beforeEach(() => {
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
-  });
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
+describe('Thresholds', () => {
+  beforeEach(() => {});
 
   it('sets thresholds to undefined if the thresholds are fully wiped', async () => {
     render(
@@ -35,13 +32,12 @@ describe('Thresholds', () => {
 
     await userEvent.clear(screen.getByLabelText('First Maximum'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           thresholds: undefined,
         }),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -56,13 +52,12 @@ describe('Thresholds', () => {
     await userEvent.type(screen.getByLabelText('Second Maximum'), '200');
     await userEvent.tab();
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
         }),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -86,13 +81,12 @@ describe('Thresholds', () => {
     await userEvent.click(screen.getAllByText('millisecond')[0]!);
     await userEvent.click(screen.getByText('second'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"second"}',
         }),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -134,13 +128,12 @@ describe('Thresholds', () => {
     expect((await screen.findAllByDisplayValue('0.5'))[0]).toBeInTheDocument();
     expect((await screen.findAllByDisplayValue('100.5456'))[0]).toBeInTheDocument();
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           thresholds: '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}',
         }),
-      }),
-      expect.anything()
+      })
     );
   });
 

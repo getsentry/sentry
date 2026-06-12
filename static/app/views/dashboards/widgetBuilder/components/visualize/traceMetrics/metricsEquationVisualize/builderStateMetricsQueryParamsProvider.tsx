@@ -2,7 +2,10 @@ import {useCallback} from 'react';
 
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
@@ -38,7 +41,8 @@ export function BuilderStateMetricsQueryParamsProvider({
   onSubcomponentChanged,
   children,
 }: BuilderStateMetricsQueryParamsProviderProps) {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('displayType', 'fields', 'yAxis');
+  const dispatch = useWidgetBuilderDispatch();
 
   const aggregateSource = getTraceMetricAggregateSource(
     state.displayType,

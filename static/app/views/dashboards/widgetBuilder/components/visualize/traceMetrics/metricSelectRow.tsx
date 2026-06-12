@@ -8,7 +8,10 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   buildTraceMetricAggregate,
@@ -66,7 +69,8 @@ export function MetricSelectRow({
   field: QueryFieldValue;
   index: number;
 }) {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('displayType', 'fields', 'yAxis');
+  const dispatch = useWidgetBuilderDispatch();
   const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
   const aggregateSource = getTraceMetricAggregateSource(

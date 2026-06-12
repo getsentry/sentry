@@ -9,7 +9,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   getTraceMetricAggregateActionType,
@@ -56,7 +59,15 @@ export interface TraceMetricsVisualizeModeState {
  */
 export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeState {
   const organization = useOrganization();
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice(
+    'dataset',
+    'displayType',
+    'fields',
+    'legendAlias',
+    'query',
+    'yAxis'
+  );
+  const dispatch = useWidgetBuilderDispatch();
 
   const hasEquations = canUseMetricsEquationsInDashboards(organization);
 

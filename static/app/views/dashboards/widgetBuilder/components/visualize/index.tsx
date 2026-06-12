@@ -51,7 +51,10 @@ import {
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {VisualizeGhostField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -289,7 +292,14 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const theme = useTheme();
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice(
+    'dataset',
+    'displayType',
+    'fields',
+    'selectedAggregate',
+    'yAxis'
+  );
+  const dispatch = useWidgetBuilderDispatch();
   const tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
   const source = useDashboardWidgetSource();

@@ -3,8 +3,8 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {AggregationKeyWithAlias, Column} from 'sentry/utils/discover/fields';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
@@ -15,16 +15,13 @@ import {
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
 
 const mockedUsedLocation = jest.mocked(useLocation);
-const mockedUseNavigate = jest.mocked(useNavigate);
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 
 describe('useWidgetBuilderState', () => {
-  let mockNavigate!: jest.Mock;
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
     jest.useFakeTimers();
   });
 
@@ -71,17 +68,15 @@ describe('useWidgetBuilderState', () => {
 
     jest.runAllTimers();
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({title: 'new title'}),
-      }),
-      expect.anything()
+      })
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({description: 'new description'}),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -100,7 +95,7 @@ describe('useWidgetBuilderState', () => {
       );
     });
 
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockReplaceUrl).not.toHaveBeenCalled();
   });
 
   describe('display type', () => {
@@ -146,11 +141,10 @@ describe('useWidgetBuilderState', () => {
 
       jest.runAllTimers();
 
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({displayType: DisplayType.AREA}),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -883,11 +877,10 @@ describe('useWidgetBuilderState', () => {
 
       jest.runAllTimers();
 
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({dataset: WidgetType.METRICS}),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -1919,11 +1912,10 @@ describe('useWidgetBuilderState', () => {
       // If selectedAggregate is undefined in the URL, then the widget builder state
       // will set the selectedAggregate to the last aggregate
       expect(result.current.state.selectedAggregate).toBe(1);
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({selectedAggregate: undefined}),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -2049,17 +2041,16 @@ describe('useWidgetBuilderState', () => {
       jest.runAllTimers();
 
       // yAxis should be cleared
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: [],
           }),
-        }),
-        expect.anything()
+        })
       );
 
       // fields should contain the default X-axis (project) plus both aggregates with args
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             field: serializeFields([
@@ -2080,18 +2071,16 @@ describe('useWidgetBuilderState', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
 
       // sort should reference the full aggregate string with args
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             sort: ['-per_second(value,my.metric,counter,none)'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -2127,7 +2116,7 @@ describe('useWidgetBuilderState', () => {
       jest.runAllTimers();
 
       // Should preserve aggregates while updating X-axis
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             field: serializeFields([
@@ -2138,8 +2127,7 @@ describe('useWidgetBuilderState', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -2174,13 +2162,12 @@ describe('useWidgetBuilderState', () => {
       jest.runAllTimers();
 
       // Sort should be reset to first aggregate
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             sort: ['-count()'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -2215,13 +2202,12 @@ describe('useWidgetBuilderState', () => {
       jest.runAllTimers();
 
       // Sort should NOT change since it was already on an aggregate
-      expect(mockNavigate).not.toHaveBeenCalledWith(
+      expect(mockReplaceUrl).not.toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             sort: expect.anything(),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -2249,7 +2235,7 @@ describe('useWidgetBuilderState', () => {
       jest.runAllTimers();
 
       // Equation should be preserved as the aggregate
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             field: serializeFields([
@@ -2257,18 +2243,16 @@ describe('useWidgetBuilderState', () => {
               {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
 
       // Sort should use equation[0] alias format
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             sort: ['-equation[0]'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -2300,7 +2284,7 @@ describe('useWidgetBuilderState', () => {
       jest.runAllTimers();
 
       // Equation should be preserved in fields
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             field: serializeFields([
@@ -2308,18 +2292,16 @@ describe('useWidgetBuilderState', () => {
               {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
 
       // Sort should NOT be reset since equation[0] is still valid
-      expect(mockNavigate).not.toHaveBeenCalledWith(
+      expect(mockReplaceUrl).not.toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             sort: expect.anything(),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -2354,13 +2336,12 @@ describe('useWidgetBuilderState', () => {
       jest.runAllTimers();
 
       // Sort should be reset to first aggregate since there are no equations in fields
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             sort: ['-count()'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -2389,7 +2370,7 @@ describe('useWidgetBuilderState', () => {
       jest.runAllTimers();
 
       // Both the function and equation should be preserved
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             field: serializeFields([
@@ -2401,18 +2382,16 @@ describe('useWidgetBuilderState', () => {
               {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
 
       // Sort should be on the last aggregate (equation) by default
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             sort: ['-equation[0]'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -2498,7 +2477,7 @@ describe('useWidgetBuilderState', () => {
 
       // Each state setter makes a separate navigate call - check each one
       // Should set default X-axis field and aggregate for new dataset
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             // Errors dataset defaults: title (X-axis) + count_unique(user) (aggregate)
@@ -2510,24 +2489,21 @@ describe('useWidgetBuilderState', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             sort: ['-count_unique(user)'],
           }),
-        }),
-        expect.anything()
+        })
       );
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             limit: 20,
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -2664,7 +2640,7 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.textContent!).toBe('new text content');
       // Text content must not be written to the URL to avoid excessive URL length
-      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(mockReplaceUrl).not.toHaveBeenCalled();
     });
   });
 });

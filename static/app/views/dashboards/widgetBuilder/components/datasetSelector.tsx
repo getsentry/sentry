@@ -11,7 +11,7 @@ import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEv
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderStateSlice} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -19,7 +19,7 @@ import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 export function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
-  const {state} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('dataset');
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();

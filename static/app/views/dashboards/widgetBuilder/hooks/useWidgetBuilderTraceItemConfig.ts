@@ -1,7 +1,7 @@
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderStateSlice} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromColumn,
@@ -14,7 +14,7 @@ import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
-  const {state} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('dataset', 'displayType', 'fields', 'yAxis');
   const organization = useOrganization();
   const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 

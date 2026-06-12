@@ -8,7 +8,10 @@ import {
   Thresholds,
 } from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 type ThresholdsSectionProps = {
@@ -24,7 +27,8 @@ export function ThresholdsSection({
   error,
   setError,
 }: ThresholdsSectionProps) {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('thresholds');
+  const dispatch = useWidgetBuilderDispatch();
 
   const prevDataTypeRef = useRef<string | undefined>(undefined);
   useEffect(() => {

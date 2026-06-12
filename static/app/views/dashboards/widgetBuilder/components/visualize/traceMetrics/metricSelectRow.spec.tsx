@@ -4,25 +4,21 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-jest.mock('sentry/utils/useNavigate');
-const mockedUseNavigate = jest.mocked(useNavigate);
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 
 describe('MetricSelectRow', () => {
-  let mockNavigate!: jest.Mock;
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       method: 'GET',
@@ -216,7 +212,7 @@ describe('MetricSelectRow', () => {
 
     // p50 is invalid for counter, so it should be replaced with sum
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -226,8 +222,7 @@ describe('MetricSelectRow', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -268,7 +263,7 @@ describe('MetricSelectRow', () => {
 
     // sum should remain since it's valid for distribution, but args updated
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -278,8 +273,7 @@ describe('MetricSelectRow', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -324,7 +318,7 @@ describe('MetricSelectRow', () => {
 
     // per_second stays, p99 replaced with sum, count replaced with sum
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -348,8 +342,7 @@ describe('MetricSelectRow', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -388,7 +381,7 @@ describe('MetricSelectRow', () => {
 
     // avg is invalid for counter, replaced with sum
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             field: serializeFields([
@@ -398,8 +391,7 @@ describe('MetricSelectRow', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -440,7 +432,7 @@ describe('MetricSelectRow', () => {
 
     // p50 is invalid for counter, replaced with avg
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -450,8 +442,7 @@ describe('MetricSelectRow', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -486,7 +477,7 @@ describe('MetricSelectRow', () => {
     await userEvent.click(metricSelector);
     await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           yAxis: serializeFields([
@@ -496,8 +487,7 @@ describe('MetricSelectRow', () => {
             },
           ]),
         }),
-      }),
-      expect.anything()
+      })
     );
   });
 });

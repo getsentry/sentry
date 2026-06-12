@@ -3,16 +3,14 @@ import debounce from 'lodash/debounce';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {testableDebounce} from 'sentry/utils/url/testUtils';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
 jest.mock('lodash/debounce');
 
 jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
@@ -29,7 +27,7 @@ jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
   ]),
 }));
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 const mockGetDefaultWidgets = jest.mocked(getDefaultWidgets);
 
 jest.mock('sentry/actionCreators/indicator');
@@ -39,9 +37,6 @@ describe('WidgetTemplatesList', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
 
     jest.mocked(debounce).mockImplementation(testableDebounce);
 
@@ -101,9 +96,6 @@ describe('WidgetTemplatesList', () => {
   it('should put widget in url when clicking a template', async () => {
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
 
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <WidgetTemplatesList
@@ -120,7 +112,7 @@ describe('WidgetTemplatesList', () => {
 
     jest.runAllTimers();
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           description: 'some description',
@@ -128,8 +120,7 @@ describe('WidgetTemplatesList', () => {
           displayType: 'line',
           dataset: 'transactions-like',
         }),
-      }),
-      expect.anything()
+      })
     );
   });
 

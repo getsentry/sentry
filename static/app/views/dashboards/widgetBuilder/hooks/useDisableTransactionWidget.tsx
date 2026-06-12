@@ -1,9 +1,9 @@
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderStateSlice} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 export function useDisableTransactionWidget() {
-  const {state} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('dataset');
   const organization = useOrganization();
 
   return (

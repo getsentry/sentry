@@ -11,7 +11,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {WidgetBuilderDescriptionField} from 'sentry/views/dashboards/widgetBuilder/components/descriptionField';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -26,7 +29,13 @@ export function WidgetBuilderNameAndDescription({
   setError,
 }: WidgetBuilderNameAndDescriptionProps) {
   const organization = useOrganization();
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice(
+    'title',
+    'description',
+    'displayType',
+    'dataset'
+  );
+  const dispatch = useWidgetBuilderDispatch();
   const [isDescSelected, setIsDescSelected] = useState(state.description ? true : false);
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();

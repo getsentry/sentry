@@ -19,7 +19,10 @@ import {
 } from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {SortBySelectors} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderQueryState,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -33,7 +36,8 @@ import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTrace
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 export function WidgetBuilderSortBySelector() {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderQueryState();
+  const dispatch = useWidgetBuilderDispatch();
   const widget = convertBuilderStateToWidget(state);
   const organization = useOrganization();
   const source = useDashboardWidgetSource();

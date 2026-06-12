@@ -8,7 +8,7 @@ describe('WidgetBuilder', () => {
   it('edits name and description', async () => {
     setWindowLocation('http://localhost/organizations/org-slug/dashboard/1/?project=-1');
 
-    const {router} = render(
+    render(
       <WidgetBuilderProvider>
         <WidgetBuilderNameAndDescription />
       </WidgetBuilderProvider>
@@ -18,11 +18,9 @@ describe('WidgetBuilder', () => {
 
     // trigger blur
     await userEvent.tab();
-    expect(router.location).toEqual(
-      expect.objectContaining({
-        query: expect.objectContaining({title: 'some name'}),
-      })
-    );
+    // The widget builder writes its params to the URL without notifying the
+    // router, so assert against the browser URL
+    expect(window.location.search).toContain('title=some%20name');
 
     await userEvent.click(await screen.findByTestId('add-description'));
 
@@ -33,11 +31,7 @@ describe('WidgetBuilder', () => {
 
     // trigger blur
     await userEvent.tab();
-    expect(router.location).toEqual(
-      expect.objectContaining({
-        query: expect.objectContaining({description: 'some description'}),
-      })
-    );
+    expect(window.location.search).toContain('description=some%20description');
   });
 
   it('displays error', async () => {

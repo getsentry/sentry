@@ -15,7 +15,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderDispatch} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -48,7 +48,7 @@ export function WidgetTemplatesList({
     : null;
   const [selectedWidget, setSelectedWidget] = useState(initialSelectedIndex);
 
-  const {dispatch} = useWidgetBuilderContext();
+  const dispatch = useWidgetBuilderDispatch();
   const {widgetIndex} = useParams();
   const api = useApi();
 

@@ -10,8 +10,8 @@ import {
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -19,7 +19,9 @@ import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTrace
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
-jest.mock('sentry/utils/useNavigate');
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
+
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
@@ -27,7 +29,6 @@ const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/wid
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
-  let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -87,9 +88,6 @@ describe('Visualize', () => {
           isLoading: false,
         };
       });
-
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
   });
 
   afterEach(() => {
@@ -536,9 +534,8 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count'
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
-      expect.anything()
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
+      expect.objectContaining({query: expect.objectContaining({field: ['count()']})})
     );
   });
 
@@ -573,11 +570,10 @@ describe('Visualize', () => {
       'count_miserable'
     );
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({field: ['count_miserable(user,300)']}),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -922,11 +918,10 @@ describe('Visualize', () => {
     // The second field is now selected, but the URL param for selectedAggregate
     // is cleared, so the last field is selected
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({selectedAggregate: undefined}),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -1531,11 +1526,10 @@ describe('Visualize', () => {
       });
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -1582,11 +1576,10 @@ describe('Visualize', () => {
       });
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
-        expect.anything()
+        })
       );
     });
   });

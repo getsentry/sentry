@@ -4,7 +4,7 @@ import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricQueryRows} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricQueryRows';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderStateSlice} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -34,7 +34,7 @@ export function MetricsEquationVisualize({
 }: MetricsEquationVisualizeProps) {
   const organization = useOrganization();
   const hasEquations = canUseMetricsEquationsInDashboards(organization);
-  const {state} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('displayType', 'fields', 'query', 'yAxis');
 
   const aggregateSource = getTraceMetricAggregateSource(
     state.displayType,

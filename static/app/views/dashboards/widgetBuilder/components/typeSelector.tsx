@@ -13,7 +13,11 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+  useWidgetBuilderStore,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -39,7 +43,9 @@ export function WidgetBuilderTypeSelector({
   error,
   setError,
 }: WidgetBuilderTypeSelectorProps) {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('dataset', 'displayType', 'query');
+  const dispatch = useWidgetBuilderDispatch();
+  const store = useWidgetBuilderStore();
   const config = getDatasetConfig(state.dataset);
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
@@ -123,7 +129,7 @@ export function WidgetBuilderTypeSelector({
             ],
             displayType: newValue,
             interval: '',
-            title: state.title ?? '',
+            title: store.getState().title ?? '',
           }),
         });
       }
@@ -142,7 +148,7 @@ export function WidgetBuilderTypeSelector({
         ],
         displayType: newValue,
         interval: '',
-        title: state.title ?? '',
+        title: store.getState().title ?? '',
       }),
     });
   };

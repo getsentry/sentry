@@ -8,15 +8,15 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-jest.mock('sentry/utils/useNavigate');
-const mockedUseNavigate = jest.mocked(useNavigate);
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 
 const EQUATION_FEATURES = [
   'tracemetrics-enabled',
@@ -59,11 +59,7 @@ function setupMockApis() {
 }
 
 describe('MetricsEquationVisualize', () => {
-  let mockNavigate!: jest.Mock;
-
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
     setupMockApis();
   });
 
@@ -100,7 +96,7 @@ describe('MetricsEquationVisualize', () => {
     await userEvent.click(radioButtons[1]!);
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -110,8 +106,7 @@ describe('MetricsEquationVisualize', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });

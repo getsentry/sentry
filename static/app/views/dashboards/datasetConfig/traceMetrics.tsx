@@ -32,7 +32,7 @@ import {
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderStateSlice} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromColumn,
@@ -192,7 +192,7 @@ function useTraceMetricsSearchBarDataProvider(
 }
 
 function useTraceMetricsSearchScope() {
-  const {state: widgetBuilderState} = useWidgetBuilderContext();
+  const widgetBuilderState = useWidgetBuilderStateSlice('displayType', 'fields', 'yAxis');
   const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
   const aggregateSource = getTraceMetricAggregateSource(

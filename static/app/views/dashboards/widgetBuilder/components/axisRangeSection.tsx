@@ -5,12 +5,16 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 export function AxisRangeSection() {
   const theme = useTheme();
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('axisRange', 'dataset');
+  const dispatch = useWidgetBuilderDispatch();
   const datasetConfig = getDatasetConfig(state.dataset);
   const value = state.axisRange ?? datasetConfig.axisRange ?? 'auto';
 
