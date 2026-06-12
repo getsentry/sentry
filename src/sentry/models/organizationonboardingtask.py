@@ -57,6 +57,8 @@ class OnboardingTaskStatus(enum.IntEnum):
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
+    ONBOARDING_TASK_CACHE_TTL = 60 * 60 * 24 * 7  # 1 week
+
     def record(
         self,
         organization_id: int,
@@ -89,6 +91,16 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
                     },
                     sample_rate=1.0,
                 )
+
+            existing_status = (
+                self.filter(organization_id=organization_id, task=task)
+                .values_list("status", flat=True)
+                .first()
+            )
+            if existing_status == OnboardingTaskStatus.COMPLETE:
+                cache.set(cache_key, 1, self.ONBOARDING_TASK_CACHE_TTL)
+                return False
+
             defaults = {
                 **kwargs,
                 "status": status,
@@ -100,7 +112,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
             )
 
             # Store marker to prevent running all the time
-            cache.set(cache_key, 1, 60 * 60 * 24 * 7)  # 1 week
+            cache.set(cache_key, 1, self.ONBOARDING_TASK_CACHE_TTL)
             return created
         return False
 
