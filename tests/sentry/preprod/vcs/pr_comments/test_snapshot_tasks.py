@@ -214,6 +214,33 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
 
         mock_delay.assert_called_once()
 
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
+    @patch("sentry.preprod.models.PreprodArtifact.get_base_artifacts_for_commit")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    def test_posts_when_all_images_errored(
+        self, mock_get_client, mock_get_base, mock_format, mock_delay
+    ):
+        mock_get_client.return_value = Mock()
+        mock_format.return_value = "body"
+
+        artifact, metrics = self._create_artifact_with_metrics()
+        base_artifact, base_metrics = self._create_artifact_with_metrics(
+            with_commit_comparison=False, app_id="com.example.base"
+        )
+        mock_get_base.return_value = {artifact.id: base_artifact}
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            images_errored=3,
+        )
+
+        with self.feature(self._feature):
+            create_preprod_snapshot_pr_comment_task(artifact.id)
+
+        mock_delay.assert_called_once()
+
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     def test_skips_when_feature_flag_disabled(self, mock_get_client):
         artifact, metrics = self._create_artifact_with_metrics()
