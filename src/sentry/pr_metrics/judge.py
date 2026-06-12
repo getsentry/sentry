@@ -64,6 +64,11 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
+# The models below are a manual mirror of Seer's PR-metrics contract — keep them
+# in sync with getsentry/seer:src/seer/pr_metrics/models.py. There's no shared
+# package or codegen; both sides validate with pydantic, so drift surfaces as a
+# ValidationError here or a 4xx from Seer rather than silent corruption.
+# https://github.com/getsentry/seer/blob/main/src/seer/pr_metrics/models.py
 class PrActivityEvent(BaseModel):
     """One captured ``PullRequestActivity`` row, projected for the judge.
 
