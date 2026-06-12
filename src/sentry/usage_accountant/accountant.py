@@ -12,8 +12,8 @@ import logging
 
 from usageaccountant import UsageAccumulator, UsageUnit
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
-from sentry.options import get
 from sentry.utils.arroyo_producer import get_arroyo_producer
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ def record(
     """
 
     global _accountant_backend
-    if resource_id not in get("shared_resources_accounting_enabled"):
+    if resource_id not in options.get("shared_resources_accounting_enabled"):
         return
 
     if _accountant_backend is None:
