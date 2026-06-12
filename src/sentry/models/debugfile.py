@@ -4,11 +4,13 @@ import enum
 import errno
 import hashlib
 import logging
+import math
 import os
 import os.path
 import re
 import shutil
 import tempfile
+import threading
 import time
 import uuid
 import zipfile
@@ -54,6 +56,7 @@ logger = logging.getLogger(__name__)
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 OBJECTSTORE_MULTIPART_PART_SIZE = 32 * 1024 * 1024
 OBJECTSTORE_MULTIPART_MAX_RETRIES = 3
+OBJECTSTORE_MULTIPART_MAX_WORKERS = 4
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
@@ -420,27 +423,35 @@ def _upload_dif_to_objectstore(
     session: Session,
     fileobj: IO[bytes],
     content_type: str,
+    file_size: int,
 ) -> tuple[str, int]:
-    """Uploads a debug file to Objectstore via multipart upload, aborting on failure.
+    """Uploads a debug file to Objectstore via parallel multipart upload, aborting on failure.
 
-    Returns (storage_path, file_size). Raises BadDif if the file exceeds MAX_FILE_SIZE.
+    Parts are uploaded concurrently with up to OBJECTSTORE_MULTIPART_MAX_WORKERS threads.
+    Each worker reads its chunk from fileobj under a lock, so memory usage is bounded to
+    roughly max_workers * OBJECTSTORE_MULTIPART_PART_SIZE.
+
+    Returns (storage_path, uploaded_size).
     """
+    from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+
     upload = session.initiate_multipart_upload(content_type=content_type)
-    try:
-        parts: list[CompletePart] = []
-        part_number = 1
-        file_size = 0
-        while True:
+    read_lock = threading.Lock()
+    num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_PART_SIZE))
+
+    def _read_and_upload_part(part_number: int) -> CompletePart | None:
+        with read_lock:
             chunk = fileobj.read(OBJECTSTORE_MULTIPART_PART_SIZE)
-            if not chunk:
-                break
+        if not chunk:
+            return None
+        return _put_objectstore_part_with_retry(upload, chunk, part_number)
 
-            file_size += len(chunk)
-            if file_size > MAX_FILE_SIZE:
-                raise BadDif(f"Object exceeds maximum size ({file_size} > {MAX_FILE_SIZE})")
-
-            parts.append(_put_objectstore_part_with_retry(upload, chunk, part_number))
-            part_number += 1
+    try:
+        with ContextPropagatingThreadPoolExecutor(
+            max_workers=OBJECTSTORE_MULTIPART_MAX_WORKERS
+        ) as executor:
+            futures = [executor.submit(_read_and_upload_part, i + 1) for i in range(num_parts)]
+            parts = [part for f in futures if (part := f.result()) is not None]
 
         storage_path = upload.complete(parts)
         return storage_path, file_size
@@ -544,11 +555,11 @@ def create_dif_from_id(
         if file is not None:
             with file.getfile() as source_fileobj:
                 storage_path, uploaded_file_size = _upload_dif_to_objectstore(
-                    session, source_fileobj, content_type
+                    session, source_fileobj, content_type, file_size
                 )
         elif fileobj is not None:
             storage_path, uploaded_file_size = _upload_dif_to_objectstore(
-                session, fileobj, content_type
+                session, fileobj, content_type, file_size
             )
         else:
             raise RuntimeError("missing file object")
