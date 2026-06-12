@@ -58,7 +58,11 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.models.repository import Repository
-from sentry.pr_metrics.attribution import record_attribution_signal
+from sentry.pr_metrics.attribution import (
+    DELEGATED_SIGNAL_TYPES,
+    DelegatedAgentSignalDetails,
+    record_attribution_signal,
+)
 from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
@@ -953,6 +957,14 @@ def record_pr_attribution(
         raise ObjectDoesNotExist(
             f"PullRequest {pull_request_id} not found in org {organization_id}"
         )
+
+    if signal in DELEGATED_SIGNAL_TYPES:
+        try:
+            signal_details = DelegatedAgentSignalDetails.parse_obj(signal_details or {}).dict()
+        except Exception:
+            raise ParseError(
+                detail="signal_details does not match DelegatedAgentSignalDetails schema"
+            )
 
     attribution = record_attribution_signal(
         pull_request=pull_request,
