@@ -89,6 +89,7 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
     images_unchanged = BoundedPositiveIntegerField(default=0)
     images_renamed = BoundedPositiveIntegerField(default=0)
     images_skipped = BoundedPositiveIntegerField(default=0, db_default=0)
+    images_errored = BoundedPositiveIntegerField(default=0, db_default=0)
 
     # Set once by the orchestrator after the plan is written and all chunk tasks dispatched.
     # NULL means orchestration did not finish; also the poll's done-counting denominator.

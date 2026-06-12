@@ -117,6 +117,17 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
 
 @cell_silo_test
 class ProcessChunkTest(TestCase):
+    def test_comparison_defaults_images_errored_to_zero(self):
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head,
+            base_snapshot_metrics=base,
+        )
+        assert comparison.images_errored == 0
+
     def test_chunk_processes_slice_and_records_done_index(self):
         from sentry.preprod.snapshots.image_diff.types import DiffResult
         from sentry.preprod.snapshots.manifest import (
