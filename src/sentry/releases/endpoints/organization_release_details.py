@@ -319,7 +319,14 @@ class OrganizationReleaseDetailsEndpoint(
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
-            ReleaseParams.PROJECT_ID,
+            OpenApiParameter(
+                name="project_id",
+                location="query",
+                required=False,
+                type=str,
+                deprecated=True,
+                description="Deprecated. Use project instead.",
+            ),
             OpenApiParameter(
                 name="project",
                 location="query",
