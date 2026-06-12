@@ -118,7 +118,9 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
         except NoProjects:
             return Response({"data": []}, status=200)
 
-        result = ReplaySelectorValidator(data=request.GET)
+        query_params = self.get_query_params_with_project_slug_precedence(request)
+
+        result = ReplaySelectorValidator(data=query_params)
         if not result.is_valid():
             raise ParseError(result.errors)
 
