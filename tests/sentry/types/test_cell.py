@@ -168,7 +168,7 @@ class CellDirectoryTest(TestCase):
     def test_invalid_historic_cell_setting(self) -> None:
         with pytest.raises(CellConfigurationError):
             with override_settings(SENTRY_MONOLITH_REGION="nonexistent"):
-                load_from_config(self._INPUTS, [])
+                load_from_config(self._INPUTS, []).validate_all()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_user(self) -> None:
