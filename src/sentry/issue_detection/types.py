@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Required, TypedDict
 
-from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
+    SpanEvent,
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue,
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueType,
+)
 
 # Ideally this would be fully aligned with sentry_kafka_schemas, but many mutations
 # happen in the ingestion pipeline (adding new attributes and removing required
@@ -26,7 +30,13 @@ class Span(TypedDict, total=False):
 # Alias `SpanEvent` so it's clear these are not spans from transaction events, they're very
 # specifically spans which are *not* from an event, but from segments produced by the span buffer.
 StandaloneSpan = SpanEvent
-
+# Alias these because... jeez
+Attribute = (
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue
+)
+AttributeType = (
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueType
+)
 
 #: Sentry tags used in performance issue detection.
 #:
