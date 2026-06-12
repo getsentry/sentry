@@ -7,7 +7,6 @@ import {IconBusiness} from 'sentry/icons';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {isEnterprise} from 'getsentry/utils/billing';
 
 const SSO = 'sso';
 const ALLOCATIONS = 'allocations-upsell';
@@ -67,7 +66,7 @@ function LabelWithPowerIcon({children, id, subscription}: Props) {
     return children as React.ReactElement;
   }
 
-  if (!subscription?.plan || isEnterprise(subscription.plan)) {
+  if (!subscription?.plan || subscription.planDetails?.isEnterprise) {
     return children as React.ReactElement;
   }
 
