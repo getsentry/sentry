@@ -3,13 +3,13 @@ import {useMutation} from '@tanstack/react-query';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
-import type {OrganizationSummaryWithRegion} from 'sentry/views/setupWizard/types';
+import type {OrganizationSummaryWithLocality} from 'sentry/views/setupWizard/types';
 export function useCreateProjectFromWizard() {
   const api = useApi();
   return useMutation({
     mutationFn: (params: {
       name: string;
-      organization: OrganizationSummaryWithRegion;
+      organization: OrganizationSummaryWithLocality;
       platform: string;
       team: string | null;
     }): Promise<Project> => {

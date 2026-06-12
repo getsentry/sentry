@@ -12,8 +12,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineDetailedIncidentSerializer,
@@ -120,6 +122,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         return args, kwargs
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-details")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(
         self,
         request: Request,

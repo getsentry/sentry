@@ -1,6 +1,7 @@
 import {useLayoutEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -66,6 +67,11 @@ export interface SearchQueryBuilderProps {
    * Defaults to 'beta'.
    */
   aiSearchBadgeType?: 'alpha' | 'beta';
+  /**
+   * Query key used to scope async filter key metadata. When omitted, metadata is
+   * scoped to this query builder instance.
+   */
+  asyncFilterKeyRegistryQueryKey?: QueryKey;
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.

@@ -6,7 +6,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
@@ -24,6 +26,7 @@ class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(self, request: Request, project: Project, task_uuid: str) -> Response:
         """
         Retrieve the status of the async task

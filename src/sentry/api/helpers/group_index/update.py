@@ -25,12 +25,11 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
     publish_action_from_context,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
@@ -224,7 +223,7 @@ def update_groups(
         actor = existing_ctx.actor
     else:
         source = resolve_action_source(request)
-        actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+        actor = resolve_action_actor(request)
 
     with action_context_scope(source=source, actor=actor):
         status_details = result.pop("statusDetails", result)
@@ -727,9 +726,10 @@ def handle_other_status_updates(
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
-        status_updated = queryset.exclude(status=new_status).update(
-            status=new_status, substatus=new_substatus
+        status_updated = queryset.exclude(status=new_status).update_with_returning(
+            ["id"], status=new_status, substatus=new_substatus
         )
+        changed_group_ids = {row[0] for row in status_updated}
         GroupResolution.objects.filter(group__in=group_ids).delete()
         # Also delete commit/PR resolution links when unresolving to prevent
         # showing old "resolved by commit" after manual re-resolution
@@ -750,9 +750,10 @@ def handle_other_status_updates(
         else:
             result["statusDetails"] = {}
 
-    if group_list and status_updated:
+    changed_group_list = [group for group in group_list if group.id in changed_group_ids]
+    if changed_group_list:
         handle_status_update(
-            group_list=group_list,
+            group_list=changed_group_list,
             projects=projects,
             project_lookup=project_lookup,
             new_status=new_status,

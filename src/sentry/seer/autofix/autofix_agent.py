@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
 
+from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
@@ -14,6 +14,8 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
     AiAutofixCodeChangesStartedEvent,
+    AiAutofixIterationCompletedEvent,
+    AiAutofixIterationStartedEvent,
     AiAutofixPhaseEvent,
     AiAutofixPrCreatedStartedEvent,
     AiAutofixRootCauseCompletedEvent,
@@ -31,7 +33,9 @@ from sentry.seer.autofix.artifact_schemas import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
+    PromptBuilder,
     code_changes_prompt,
+    pr_iteration_prompt,
     root_cause_prompt,
     solution_prompt,
 )
@@ -47,7 +51,7 @@ from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -57,6 +61,26 @@ logger = logging.getLogger(__name__)
 
 _UNSET: Any = object()
 UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
+
+
+class UserUIFeedbackSource(TypedDict):
+    """Feedback submitted by a user through the Sentry UI."""
+
+    type: Literal["user-ui"]
+    # Identify the user by id rather than username: usernames are mutable, so we
+    # use the same stable key (`user_id`) that `GroupSeen` uses to track which
+    # users have viewed an issue.
+    user_id: int
+
+
+# Discriminated on ``type``. Add new TypedDict variants to this union as more
+# feedback sources are introduced.
+FeedbackSource = UserUIFeedbackSource
+
+
+class Feedback(BaseModel):
+    message: str
+    source: FeedbackSource
 
 
 class NoSeerQuotaException(Exception):
@@ -69,6 +93,7 @@ class AutofixStep(StrEnum):
     ROOT_CAUSE = "root_cause"
     SOLUTION = "solution"
     CODE_CHANGES = "code_changes"
+    PR_ITERATION = "pr_iteration"
 
     @staticmethod
     def from_autofix_stopping_point(
@@ -96,7 +121,7 @@ class StepConfig:
     def __init__(
         self,
         artifact_schema: type[BaseModel] | None,
-        prompt_fn: Callable[..., str],
+        prompt_fn: PromptBuilder,
         enable_coding: bool = False,
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         started_event: type[AiAutofixPhaseEvent] | None = None,
@@ -132,16 +157,29 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
         started_event=AiAutofixCodeChangesStartedEvent,
         completed_event=AiAutofixCodeChangesCompletedEvent,
     ),
+    AutofixStep.PR_ITERATION: StepConfig(
+        artifact_schema=None,  # Iteration changes read from file_patches
+        prompt_fn=pr_iteration_prompt,
+        enable_coding=True,
+        started_event=AiAutofixIterationStartedEvent,
+        completed_event=AiAutofixIterationCompletedEvent,
+    ),
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
+def build_step_prompt(
+    step: AutofixStep,
+    group: Group,
+    user_context: str | None = None,
+    run_state: SeerRunState | None = None,
+) -> str:
     """
     Build the prompt for a step using issue details.
 
     Args:
         step: The autofix step to build prompt for
         group: The Sentry group (issue) being analyzed
+        run_state: The current run state, used to surface PR links for iteration
 
     Returns:
         Formatted prompt string
@@ -152,6 +190,7 @@ def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None 
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
+        run_state=run_state,
     )
 
     parts = [prompt]
@@ -180,8 +219,47 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
             False: SeerActionType.CODING_STARTED,
             True: SeerActionType.CODING_COMPLETED,
         },
+        AutofixStep.PR_ITERATION: {
+            False: SeerActionType.ITERATION_STARTED,
+            True: SeerActionType.ITERATION_COMPLETED,
+        },
     }
     return step_to_action_type[step][is_completed]
+
+
+def get_latest_iteration_index(state: SeerRunState) -> int:
+    for block in reversed(state.blocks):
+        metadata = block.message.metadata or {}
+        if metadata.get("step") == AutofixStep.PR_ITERATION.value:
+            return int(metadata["iteration_index"])
+    return 0
+
+
+def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
+    block = state.blocks[insert_index]
+    metadata = block.message.metadata or {}
+    return int(metadata["iteration_index"])
+
+
+def recover_iteration_feedback(state: SeerRunState, insert_index: int) -> str | None:
+    """
+    Recover the user feedback that originally triggered a PR iteration.
+
+    When a PR iteration is retried, the frontend truncates the run at the
+    iteration's first block (``insert_index``). That block carries the original
+    feedback in its metadata, so we reuse it to retry with the same feedback
+    rather than dropping it.
+    """
+    if insert_index < 0 or insert_index >= len(state.blocks):
+        return None
+    metadata = state.blocks[insert_index].message.metadata
+    if metadata is None:
+        return None
+    raw = metadata.get("feedback")
+    if raw is None:
+        return None
+    # Feedback is stored as a JSON object (``{"text", "username", "timestamp"}``).
+    return json.loads(raw).get("text")
 
 
 def get_autofix_agent_client(
@@ -198,6 +276,7 @@ def get_autofix_agent_client(
     return SeerAgentClient(
         organization=group.organization,
         project=group.project,
+        group=group,
         user=None,  # No user personalization for autofix
         category_key="autofix",
         category_value=str(group.id),
@@ -256,6 +335,7 @@ def trigger_autofix_agent(
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
+    feedback: Feedback | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -291,6 +371,8 @@ def trigger_autofix_agent(
         else reasoning_effort
     )
 
+    pr_iteration_enabled = features.has("organizations:autofix-pr-iteration", group.organization)
+
     client = get_autofix_agent_client(
         group,
         intelligence_level=resolved_intelligence_level,
@@ -298,8 +380,19 @@ def trigger_autofix_agent(
         enable_coding=config.enable_coding,
         code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
     )
+    run_state: SeerRunState | None = None
     if run_id is not None:
-        _get_group_run_state(client, group, run_id)
+        run_state = _get_group_run_state(client, group, run_id)
+
+    if run_state is not None and run_state.metadata:
+        pr_iteration_enabled = run_state.metadata.get("pr_iteration_enabled", pr_iteration_enabled)
+
+    iteration_index: int | None = None
+    if step == AutofixStep.PR_ITERATION and run_state is not None:
+        if insert_index is not None:
+            iteration_index = get_iteration_for_insert_index(run_state, insert_index)
+        else:
+            iteration_index = get_latest_iteration_index(run_state) + 1
 
     if config.started_event is not None:
         analytics.record(
@@ -308,21 +401,39 @@ def trigger_autofix_agent(
                 project_id=group.project_id,
                 group_id=group.id,
                 referrer=referrer.value,
+                iteration_index=iteration_index,
             )
         )
 
-    prompt = build_step_prompt(step, group, user_context)
+    prompt = build_step_prompt(step, group, user_context, run_state=run_state)
     prompt_metadata = {
         "step": step.value,
         "referrer": referrer.value,
         "has_user_context": "no" if user_context is None else "yes",
         "is_retry": "no" if insert_index is None else "yes",
     }
+    if step == AutofixStep.PR_ITERATION and feedback is not None:
+        # Stored as a JSON object so the UI can attribute the feedback to its
+        # source and show when it was submitted. See ``recover_iteration_feedback``
+        # for the read side.
+        prompt_metadata["feedback"] = json.dumps(
+            {
+                "text": feedback.message,
+                "source": feedback.source,
+                "timestamp": timezone.now().isoformat(),
+            }
+        )
+    if iteration_index is not None:
+        prompt_metadata["iteration_index"] = str(iteration_index)
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"group_id": group.id, "referrer": referrer.value}
+        metadata: dict[str, Any] = {
+            "group_id": group.id,
+            "referrer": referrer.value,
+            "pr_iteration_enabled": pr_iteration_enabled,  # value of the option since we're creating a new one
+        }
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
@@ -347,10 +458,12 @@ def trigger_autofix_agent(
             insert_index=insert_index,
         )
 
-    payload = {
+    payload: dict[str, Any] = {
         "run_id": run_id,
         "group_id": group.id,
     }
+    if iteration_index is not None:
+        payload["iteration_index"] = iteration_index
 
     webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
     event_name = webhook_action_type.value
@@ -392,7 +505,14 @@ def trigger_autofix_agent(
             },
         )
 
-    metrics.incr("autofix.explorer.trigger", tags={"step": step.value, "referrer": referrer.value})
+    metrics.incr(
+        "autofix.explorer.trigger",
+        tags={
+            "step": step.value,
+            "referrer": referrer.value,
+            "iteration_index": iteration_index,
+        },
+    )
 
     return run_id
 

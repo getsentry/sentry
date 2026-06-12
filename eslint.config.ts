@@ -655,6 +655,20 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/service-worker-allow-sentry-browser',
+    files: ['static/app/serviceWorker/worker/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [restrictedThemeImportPattern],
+          paths: restrictedImportPaths.filter(p => p.name !== '@sentry/browser'),
+        },
+      ],
+      'import/no-extraneous-dependencies': 'off',
+    },
+  },
+  {
     name: 'files/chartcuterie-no-browser-imports',
     files: ['static/app/chartcuterie/**/*.{ts,tsx}'],
     rules: {
@@ -979,7 +993,7 @@ export default typescript.config([
   },
   {
     name: 'files/scripts',
-    files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
+    files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/*.ts'],
     languageOptions: {
       sourceType: 'module',
       globals: globals.node,
@@ -994,6 +1008,8 @@ export default typescript.config([
     files: [
       'tests/js/jest-pegjs-transform.js',
       'tests/js/sentry-test/jest-environment.js',
+      'tests/js/sentry-test/jest-environment-node.js',
+      'tests/js/sentry-test/wrapWithStructuredClone.js',
       'tests/js/sentry-test/mocks/*',
       'tests/js/sentry-test/loadFixtures.ts',
       'tests/js/setup.ts',

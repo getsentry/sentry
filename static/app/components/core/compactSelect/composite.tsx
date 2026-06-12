@@ -30,7 +30,7 @@ interface BaseCompositeSelectRegion<Value extends SelectKey> {
  */
 type SingleCompositeSelectRegion<Value extends SelectKey> =
   BaseCompositeSelectRegion<Value> &
-    DistributedOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
+    DistributedOmit<SingleListProps<Value>, 'children' | 'items' | 'mode' | 'size'>;
 
 /**
  * A multiple-selection (multiple options can be selected at the same time) "region"
@@ -40,7 +40,7 @@ type SingleCompositeSelectRegion<Value extends SelectKey> =
  */
 type MultipleCompositeSelectRegion<Value extends SelectKey> =
   BaseCompositeSelectRegion<Value> &
-    DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'size'>;
+    DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'mode' | 'size'>;
 
 /**
  * A "region" inside a composite select. Each "region" is a separated, self-contained
@@ -80,14 +80,14 @@ export interface CompositeSelectProps extends Omit<
 function CompositeSelect({
   children,
   // Control props
-  grid,
+  mode,
   disabled,
   emptyMessage,
   size = 'md',
   ...controlProps
 }: CompositeSelectProps) {
   return (
-    <Control {...controlProps} grid={grid} size={size} disabled={disabled}>
+    <Control {...controlProps} mode={mode} size={size} disabled={disabled}>
       <FocusScope>
         <RegionsWrap>
           {Children.map(children, child => {
@@ -95,7 +95,7 @@ function CompositeSelect({
               return null;
             }
 
-            return <Region {...child.props} grid={grid} size={size} />;
+            return <Region {...child.props} mode={mode} size={size} />;
           })}
 
           {/* Only displayed when all lists (regions) are empty */}
@@ -133,7 +133,7 @@ CompositeSelect.ClearButton = function CompositeSelectClearButton(
 export {CompositeSelect};
 
 type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
-  grid: SingleListProps<Value>['grid'];
+  mode: SingleListProps<Value>['mode'];
   size: SingleListProps<Value>['size'];
 };
 

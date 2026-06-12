@@ -22,6 +22,7 @@ import {GroupActivityType, IssueCategory as IssueCategoryEnum} from 'sentry/type
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
@@ -287,13 +288,20 @@ export function getGroupActivityItem(
           message: resolvedMessage,
         };
       }
-      case GroupActivityType.SET_RESOLVED_BY_AGE:
+      case GroupActivityType.SET_RESOLVED_BY_AGE: {
+        const duration = formatAutoResolveAge(activity.data.age);
         return {
           title: t('Resolved'),
-          message: tct('by [author] due to inactivity', {
-            author,
-          }),
+          message: duration
+            ? tct('by [author] after [duration] of inactivity', {
+                author,
+                duration,
+              })
+            : tct('by [author] due to inactivity', {
+                author,
+              }),
         };
+      }
       case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
         const hasIntegration =
           'integration_id' in activity.data && activity.data.integration_id;
@@ -567,10 +575,8 @@ export function getGroupActivityItem(
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
-        let title = t('Created Issue');
-        if (data.new === true) {
-          title = t('Linked Issue');
-        }
+        const isLinkedIssue = data.new === false;
+        const title = isLinkedIssue ? t('Linked Issue') : t('Created Issue');
 
         return {
           title,
@@ -684,12 +690,13 @@ export function getGroupActivityItem(
         };
       }
       case GroupActivityType.AUTO_SET_ONGOING: {
+        const afterDays = activity.data?.after_days;
         return {
           title: t('Marked as Ongoing'),
-          message: activity.data?.afterDays
+          message: afterDays
             ? tct('automatically by [author] after [afterDays] days', {
                 author,
-                afterDays: activity.data.afterDays,
+                afterDays,
               })
             : tct('automatically by [author]', {
                 author,
@@ -785,6 +792,22 @@ export function getGroupActivityItem(
     }
   }
   return renderContent();
+}
+
+function formatAutoResolveAge(age: number | string | undefined) {
+  const resolveAge = Number(age);
+  if (!Number.isFinite(resolveAge) || resolveAge <= 0) {
+    return null;
+  }
+
+  const precision = resolveAge > 23 && resolveAge % 24 === 0 ? 'day' : 'hour';
+  const count = Number(
+    formatDuration({duration: [resolveAge, 'hour'], precision, style: 'count'})
+  );
+
+  return precision === 'day'
+    ? tn('%s day', '%s days', count)
+    : tn('%s hour', '%s hours', count);
 }
 
 function ActivityRelease({project, version}: {project: Project; version: string}) {

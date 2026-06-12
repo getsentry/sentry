@@ -85,6 +85,7 @@ def process_commit_context(
             project = Project.objects.get_from_cache(id=project_id)
             group = Group.objects.get_from_cache(id=group_id)
             set_tag("organization.slug", project.organization.slug)
+            sentry_sdk.set_attribute("organization.slug", project.organization.slug)
             basic_logging_details = {
                 "event": event_id,
                 "group": group_id,
