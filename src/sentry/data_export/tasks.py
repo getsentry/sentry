@@ -475,7 +475,13 @@ def export_data_to_stored_blobs_sync(
         "requested_rows": export_limit,
     }
     sentry_sdk.set_tag("download_type", "sync")
+    sentry_sdk.set_attribute("download_type", "sync")
     sentry_sdk.set_context("data_export", extra)
+    sentry_sdk.set_attribute("data_export.data_export_id", data_export.id)
+    sentry_sdk.set_attribute("data_export.query", str(data_export.payload))
+    sentry_sdk.set_attribute("data_export.organization_id", data_export.organization_id)
+    sentry_sdk.set_attribute("data_export.download_type", "sync")
+    sentry_sdk.set_attribute("data_export.requested_rows", export_limit)
     _set_data_on_scope(data_export)
     with sentry_sdk.start_span(op="assemble", name="Sync Export Data"):
         logger.info("dataexport.start", extra=extra)
@@ -858,9 +864,14 @@ def _set_data_on_scope(data_export: ExportedData) -> None:
         user = dict(id=data_export.user_id)
         scope.set_user(user)
     scope.set_tag("organization.slug", data_export.organization.slug)
+    sentry_sdk.set_attribute("organization.slug", data_export.organization.slug)
     scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+    sentry_sdk.set_attribute("export.type", ExportQueryType.as_str(data_export.query_type))
     scope.set_tag("export.format", data_export.export_format)
+    sentry_sdk.set_attribute("export.format", data_export.export_format)
     qi = data_export.query_info
     if qi.get("dataset") is not None:
         scope.set_tag("export.dataset", str(qi.get("dataset")))
+        sentry_sdk.set_attribute("export.dataset", str(qi.get("dataset")))
     scope.set_extra("export.query", data_export.query_info)
+    sentry_sdk.set_attribute("export.query", str(data_export.query_info))
