@@ -28,12 +28,15 @@ export function useUpdateSeerSettings(project: Project) {
     mutationFn: (settings: SeerSettingsPayload) =>
       fetchMutation({
         method: 'PUT',
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
-        }),
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }
+        ),
         data: settings,
       }),
     onSettled: () => {

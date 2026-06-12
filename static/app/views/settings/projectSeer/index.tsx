@@ -12,7 +12,6 @@ import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeC
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateSeerSettings} from 'sentry/utils/seer/useUpdateSeerSettings';
 import {
   CodingAgentProvider,
   type ProjectSeerPreferences,
@@ -37,6 +36,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateSeerSettings} from 'sentry/utils/seer/useUpdateSeerSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
