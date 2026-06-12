@@ -28,6 +28,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class TestGenerateAutofixHandoffPrompt(TestCase):
@@ -253,7 +254,13 @@ def _iteration_block(
     if iteration_index is not None:
         metadata["iteration_index"] = str(iteration_index)
     if feedback is not None:
-        metadata["feedback"] = feedback
+        metadata["feedback"] = json.dumps(
+            {
+                "text": feedback,
+                "source": "user",
+                "timestamp": "2024-01-01T00:00:00Z",
+            }
+        )
     return MemoryBlock(
         id=f"block-{iteration_index}",
         message=Message(role="assistant", content="iteration", metadata=metadata),
