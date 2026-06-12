@@ -481,6 +481,19 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert called_manifest.head_artifact_id == h.id
         assert called_session is session
 
+    def test_finalize_writes_images_errored_column(self):
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b = self._comparison(1, done_indices=[1])
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
+        session = _dict_backed_session(stored)
+        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.images_errored == 1
+
     def test_finalize_is_exactly_once(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 

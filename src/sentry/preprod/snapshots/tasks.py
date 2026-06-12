@@ -1185,6 +1185,7 @@ def finalize_snapshot_comparison(
         images_removed=counts["removed"],
         images_renamed=counts["renamed"],
         images_skipped=counts["skipped"],
+        images_errored=counts["errored"],
         extras=extras,
         date_updated=timezone.now(),
     )
