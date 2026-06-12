@@ -10,6 +10,7 @@ import {
   EventStickyControls,
 } from 'sentry/components/events/eventDrawer';
 import {IconSort} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -85,8 +86,13 @@ export function TagsDistributionDrawer({
               />
               {includeFeatureFlagsTab ? (
                 <Fragment>
-                  <Tooltip title="Highlighted tags are shown first">
-                    <Button aria-label="" disabled size="xs" icon={<IconSort />} />
+                  <Tooltip title={t('Highlighted tags first')}>
+                    <Button
+                      aria-label={t('Highlighted tags first')}
+                      disabled
+                      size="xs"
+                      icon={<IconSort />}
+                    />
                   </Tooltip>
                 </Fragment>
               ) : null}
