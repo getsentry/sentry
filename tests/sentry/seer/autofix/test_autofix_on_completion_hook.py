@@ -99,7 +99,11 @@ def code_changes_memory_block(referrer: str | None = None) -> MemoryBlock:
     )
 
 
-def pr_iteration_memory_block(referrer: str | None = None, iteration_index: int = 1) -> MemoryBlock:
+def pr_iteration_memory_block(
+    referrer: str | None = None,
+    iteration_index: int = 1,
+    commit_sha: str | None = None,
+) -> MemoryBlock:
     metadata: dict[str, str] = {
         "step": "pr_iteration",
         "iteration_index": str(iteration_index),
@@ -121,6 +125,7 @@ def pr_iteration_memory_block(referrer: str | None = None, iteration_index: int 
                 patch=FilePatch(path="test.py", type="M", added=2, removed=1),
             )
         ],
+        pr_commit_shas={"test-repo": commit_sha} if commit_sha is not None else None,
     )
 
 
@@ -465,7 +470,10 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 root_cause_memory_block(),
                 solution_memory_block(),
                 code_changes_memory_block(),
-                pr_iteration_memory_block(referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value),
+                pr_iteration_memory_block(
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
+                    commit_sha="synced-sha",
+                ),
             ]
         )
         state.repo_pr_states = {
@@ -475,6 +483,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 pr_number=7,
                 pr_url="https://example.com/pull/7",
                 pr_creation_status="completed",
+                commit_sha="synced-sha",
             )
         }
 
@@ -499,7 +508,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         state = run_state(
             blocks=[
                 code_changes_memory_block(),
-                pr_iteration_memory_block(),
+                pr_iteration_memory_block(commit_sha="synced-sha"),
             ]
         )
         state.repo_pr_states = {
@@ -509,6 +518,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 pr_number=7,
                 pr_url="https://example.com/pull/7",
                 pr_creation_status="completed",
+                commit_sha="synced-sha",
             )
         }
 
