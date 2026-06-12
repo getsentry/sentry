@@ -237,7 +237,7 @@ class OrganizationsControlListTest(OrganizationIndexTest):
 class OrganizationsCreateCellTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
-    def is_not_found(self) -> None:
+    def test_is_not_found(self) -> None:
         response = self.get_error_response(name="implicit org", slug="implicit-org")
         assert response.status_code == 404
 
