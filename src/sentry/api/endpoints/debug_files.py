@@ -836,17 +836,18 @@ def _clone_proguard_debug_file_for_reupload(
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
     if debug_file.file is not None:
         dif, created = create_dif_from_id(project, meta, file=debug_file.file)
-    else:
-        # Objectstore streams are not seekable, but create_dif_from_id needs to
-        # read the file twice (checksum + upload). Buffer into a temp file.
+    if debug_file.storage_path is not None:
         source_fileobj = debug_file.getfile()
         try:
+            # Spool into a temporary file to get a seekable stream.
             with tempfile.SpooledTemporaryFile(max_size=5 * 1024 * 1024) as tmp:
                 shutil.copyfileobj(source_fileobj, tmp)
                 tmp.seek(0)
                 dif, created = create_dif_from_id(project, meta, fileobj=tmp)
         finally:
             source_fileobj.close()
+    else:
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     if created:
         record_last_upload(project)

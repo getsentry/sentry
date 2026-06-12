@@ -4,11 +4,8 @@ import os
 import tempfile
 import time
 import zipfile
-from datetime import timedelta
 from io import BytesIO
-from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -16,14 +13,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 from objectstore_client import RequestError
-from objectstore_client.multipart import CompletePart
-from urllib3.exceptions import ProtocolError
 
-import sentry.models.debugfile as debugfile_model
-from sentry.api.endpoints.debug_files import _clone_proguard_debug_file_for_reupload
-from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.models.debugfile import (
-    BadDif,
     DifMeta,
     ProjectDebugFile,
     create_dif_from_file,
@@ -32,7 +23,7 @@ from sentry.models.debugfile import (
     get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
-from sentry.objectstore import _DEBUG_FILES_USECASE, get_debug_files_session
+from sentry.objectstore import get_debug_files_session
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.skips import requires_objectstore
 
@@ -317,28 +308,6 @@ class DebugFileObjectstoreTest(TestCase):
             with open(path, "rb") as f:
                 assert f.read() == b"objectstore-content"
 
-    def test_save_to_closes_objectstore_payload(self):
-        dif = ProjectDebugFile.objects.create(
-            debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75",
-            project_id=self.project.id,
-            object_name="test.dSYM",
-            cpu_name="x86_64",
-            checksum="a" * 40,
-            storage_path="debug-files/key",
-            content_type="application/x-mach-binary",
-            file_size=len(b"objectstore-content"),
-            date_created=timezone.now(),
-        )
-        payload = BytesIO(b"objectstore-content")
-        session = MagicMock()
-        session.get.return_value = SimpleNamespace(payload=payload)
-
-        with patch.object(dif, "_get_objectstore_session", return_value=session):
-            with tempfile.TemporaryDirectory() as tmpdir:
-                dif.save_to(os.path.join(tmpdir, "output"))
-
-        assert payload.closed
-
     @requires_objectstore
     def test_delete(self):
         dif = self._create_objectstore_dif()
@@ -350,94 +319,6 @@ class DebugFileObjectstoreTest(TestCase):
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
         with pytest.raises(RequestError):
             self._get_session().get(storage_path)
-
-    def test_delete_logs_objectstore_delete_failure(self):
-        dif = ProjectDebugFile.objects.create(
-            debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75",
-            project_id=self.project.id,
-            object_name="test.dSYM",
-            cpu_name="x86_64",
-            checksum="a" * 40,
-            storage_path="debug-files/key",
-            content_type="application/x-mach-binary",
-            file_size=len(b"objectstore-content"),
-            date_created=timezone.now(),
-        )
-        session = MagicMock()
-        session.delete.side_effect = RequestError("down", status=500, response="")
-
-        with (
-            patch.object(dif, "_get_objectstore_session", return_value=session),
-            self.assertLogs("sentry.models.debugfile", level="INFO") as logs,
-        ):
-            dif.delete()
-
-        assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
-        assert "Failed to delete debug file from Objectstore" in logs.output[0]
-
-    def test_maybe_renew_debug_files_skips_objectstore_rows_when_tti_bump_fails(self):
-        old_date = timezone.now() - timedelta(days=999)
-        renewed_dif = ProjectDebugFile.objects.create(
-            debug_id="00000000-0000-0000-0000-000000000000",
-            project_id=self.project.id,
-            object_name="test.dSYM",
-            cpu_name="x86_64",
-            checksum="a" * 40,
-            date_accessed=old_date,
-            storage_path="renewed",
-            content_type="application/x-mach-binary",
-            file_size=len(b"objectstore-content"),
-            date_created=timezone.now(),
-        )
-        failed_dif = ProjectDebugFile.objects.create(
-            debug_id="11111111-1111-1111-1111-111111111111",
-            project_id=self.project.id,
-            object_name="test.dSYM",
-            cpu_name="x86_64",
-            checksum="b" * 40,
-            date_accessed=old_date,
-            storage_path="failed",
-            content_type="application/x-mach-binary",
-            file_size=len(b"objectstore-content"),
-            date_created=timezone.now(),
-        )
-        file_backed_dif = self._create_non_objectstore_dif(
-            debug_id="22222222-2222-2222-2222-222222222222",
-            date_accessed=old_date,
-        )
-        renewed_session = MagicMock()
-        failed_session = MagicMock()
-        failed_session.head.side_effect = RequestError("down", status=500, response="")
-        sessions = {
-            renewed_dif.id: renewed_session,
-            failed_dif.id: failed_session,
-        }
-
-        with (
-            patch("sentry.debug_files.debug_files.options.get", return_value=30),
-            patch.object(
-                ProjectDebugFile,
-                "_get_objectstore_session",
-                autospec=True,
-                side_effect=lambda dif: sessions[dif.id],
-            ),
-            self.assertLogs("sentry.debug_files.debug_files", level="ERROR") as logs,
-        ):
-            maybe_renew_debug_files([renewed_dif, failed_dif, file_backed_dif])
-
-        renewed_dif.refresh_from_db()
-        failed_dif.refresh_from_db()
-        file_backed_dif.refresh_from_db()
-
-        assert renewed_dif.date_accessed > old_date
-        assert file_backed_dif.date_accessed > old_date
-        assert failed_dif.date_accessed == old_date
-        renewed_session.head.assert_called_once_with("renewed")
-        failed_session.head.assert_called_once_with("failed")
-        assert "debugfile.objectstore_tti_renewal_failed" in logs.output[0]
-
-    def test_debug_files_usecase_disables_default_compression(self):
-        assert _DEBUG_FILES_USECASE._compression == "none"
 
 
 class CreateDebugFileTest(APITestCase):
@@ -479,18 +360,8 @@ class CreateDebugFileTest(APITestCase):
         assert "Content-Type" in dif.file.headers
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
 
-    def test_feature_off_creates_file_backed_dif(self) -> None:
-        with self.feature({"organizations:objectstore-debugfiles-write": False}):
-            with open(self.file_path, "rb") as f:
-                dif, created = self.create_dif(fileobj=f)
-
-        assert created
-        assert dif.file_id is not None
-        assert dif.storage_path is None
-        assert dif.getfile().read()
-
     @requires_objectstore
-    def test_feature_on_create_dif_from_file_creates_objectstore_backed_dif(self) -> None:
+    def test_objectstore_backed_create_dif_from_file(self) -> None:
         with open(self.file_path, "rb") as f:
             content = f.read()
 
@@ -510,7 +381,7 @@ class CreateDebugFileTest(APITestCase):
         assert dif.getfile().read() == content
 
     @requires_objectstore
-    def test_feature_on_creates_objectstore_backed_dif(self) -> None:
+    def test_objectstore_backed_create_dif(self) -> None:
         content = b"objectstore-dif-content"
         checksum = "46b15fc7714307c2d13a1e42651ba92245662ab0"
 
@@ -525,164 +396,6 @@ class CreateDebugFileTest(APITestCase):
         assert dif.checksum == checksum
         assert dif.get_file_size() == len(content)
         assert dif.getfile().read() == content
-
-    def test_feature_on_initiates_multipart_upload_without_compression(self) -> None:
-        upload = MagicMock()
-        upload.put_part.return_value = CompletePart(part_number=1, etag="e1")
-        upload.complete.return_value = "debug-files/key"
-        session = MagicMock()
-        session.initiate_multipart_upload.return_value = upload
-
-        with (
-            self.feature("organizations:objectstore-debugfiles-write"),
-            patch.object(debugfile_model, "get_debug_files_session", return_value=session),
-        ):
-            dif, created = self.create_dif(fileobj=BytesIO(b"content"))
-
-        assert created
-        assert dif.storage_path == "debug-files/key"
-        session.initiate_multipart_upload.assert_called_once_with(
-            content_type="application/x-mach-binary"
-        )
-
-    def test_feature_on_deletes_supplied_unreferenced_file(self) -> None:
-        file = self.create_file(
-            name="temporary.dSYM",
-            type="default",
-            headers={"Content-Type": "application/octet-stream"},
-        )
-        file.putfile(ContentFile(b"temporary-content"))
-
-        with self.feature("organizations:objectstore-debugfiles-write"):
-            dif, created = self.create_dif(file=file)
-
-        assert created
-        assert dif.file_id is None
-        assert dif.storage_path is not None
-        assert not File.objects.filter(id=file.id).exists()
-
-    @requires_objectstore
-    def test_file_backed_proguard_clone_creates_objectstore_backed_dif(self) -> None:
-        source_file = self.create_file(
-            name="mapping.txt",
-            type="project.dif",
-            headers={"Content-Type": "text/x-proguard+plain"},
-        )
-        source_file.putfile(ContentFile(PROGUARD_SOURCE))
-        source = self.create_dif_file(
-            debug_id="00000000-0000-0000-0000-000000000000",
-            object_name="proguard-mapping",
-            file=source_file,
-            cpu_name="any",
-            data={"features": ["mapping"]},
-        )
-
-        with self.feature("organizations:objectstore-debugfiles-write"):
-            response = _clone_proguard_debug_file_for_reupload(
-                self.project,
-                source,
-                "11111111-1111-1111-1111-111111111111",
-                is_proguard_clone_source=True,
-            )
-
-        clone = ProjectDebugFile.objects.get(debug_id="11111111-1111-1111-1111-111111111111")
-        assert response["state"] == "ok"
-        assert clone.file_id is None
-        assert clone.storage_path is not None
-        assert clone.getfile().read() == PROGUARD_SOURCE
-        assert File.objects.filter(id=source_file.id).exists()
-
-    @requires_objectstore
-    def test_objectstore_proguard_clone_uses_distinct_key(self) -> None:
-        with self.feature("organizations:objectstore-debugfiles-write"):
-            source, created = create_dif_from_id(
-                self.project,
-                DifMeta(
-                    file_format="proguard",
-                    arch="any",
-                    debug_id="00000000-0000-0000-0000-000000000000",
-                    path="proguard-mapping",
-                    name="proguard-mapping",
-                    data={"features": ["mapping"]},
-                ),
-                fileobj=BytesIO(PROGUARD_SOURCE),
-            )
-            assert created
-
-            response = _clone_proguard_debug_file_for_reupload(
-                self.project,
-                source,
-                "22222222-2222-2222-2222-222222222222",
-                is_proguard_clone_source=True,
-            )
-
-        clone = ProjectDebugFile.objects.get(debug_id="22222222-2222-2222-2222-222222222222")
-        assert response["state"] == "ok"
-        assert source.storage_path != clone.storage_path
-        assert source.getfile().read() == PROGUARD_SOURCE
-        assert clone.getfile().read() == PROGUARD_SOURCE
-
-        clone.delete()
-
-        source.refresh_from_db()
-        assert source.getfile().read() == PROGUARD_SOURCE
-
-    def test_objectstore_part_retry_succeeds_after_transient_failure(self) -> None:
-        upload = MagicMock()
-        upload.put_part.side_effect = [
-            RequestError("down", status=500, response=""),
-            CompletePart(part_number=1, etag="e1"),
-            CompletePart(part_number=2, etag="e2"),
-        ]
-        upload.complete.return_value = "debug-files/key"
-        session = MagicMock()
-        session.initiate_multipart_upload.return_value = upload
-
-        with (
-            self.feature("organizations:objectstore-debugfiles-write"),
-            patch.object(debugfile_model, "OBJECTSTORE_MULTIPART_PART_SIZE", 4),
-            patch.object(debugfile_model, "get_debug_files_session", return_value=session),
-            patch("sentry.models.debugfile.time.sleep"),
-        ):
-            dif, created = self.create_dif(fileobj=BytesIO(b"abcdefgh"))
-
-        assert created
-        assert dif.storage_path == "debug-files/key"
-        assert upload.put_part.call_count == 3
-        upload.abort.assert_not_called()
-
-    def test_objectstore_exhausted_part_retries_abort_and_create_no_row(self) -> None:
-        upload = MagicMock()
-        upload.put_part.side_effect = ProtocolError("connection aborted")
-        session = MagicMock()
-        session.initiate_multipart_upload.return_value = upload
-
-        with (
-            self.feature("organizations:objectstore-debugfiles-write"),
-            patch.object(debugfile_model, "OBJECTSTORE_MULTIPART_PART_SIZE", 4),
-            patch.object(debugfile_model, "get_debug_files_session", return_value=session),
-            patch("sentry.models.debugfile.time.sleep"),
-            pytest.raises(ProtocolError),
-        ):
-            self.create_dif(fileobj=BytesIO(b"abcdefgh"))
-
-        upload.abort.assert_called_once()
-        upload.complete.assert_not_called()
-        assert not ProjectDebugFile.objects.filter(
-            debug_id="67e9247c-814e-392b-a027-dbde6748fcbf"
-        ).exists()
-
-    def test_objectstore_oversized_input_rejected_before_row_created(self) -> None:
-        with (
-            self.feature("organizations:objectstore-debugfiles-write"),
-            patch.object(debugfile_model, "MAX_FILE_SIZE", 3),
-            pytest.raises(BadDif),
-        ):
-            self.create_dif(fileobj=BytesIO(b"1234"))
-
-        assert not ProjectDebugFile.objects.filter(
-            debug_id="67e9247c-814e-392b-a027-dbde6748fcbf"
-        ).exists()
 
     def test_keep_disjoint_difs(self) -> None:
         file = self.create_file(

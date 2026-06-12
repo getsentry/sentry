@@ -23,30 +23,31 @@ def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]) -> None:
         days=options.get("system.debug-files-renewal-age-threshold-days")
     )
 
+    # We first check if any file needs renewal, before going to the database.
+    needs_bump = any(dif.date_accessed <= threshold_date for dif in debug_files)
+    if not needs_bump:
+        return
+
     ids_to_renew = []
     for dif in debug_files:
         if dif.date_accessed > threshold_date:
             continue
+        ids_to_renew.append(dif.id)
 
-        # For Objectstore-backed files, issue a HEAD request to bump the TTI.
-        if dif.storage_path is not None:
+        # For Objectstore-backed files, issue a HEAD request to bump TTI.
+        if dif.storage_path is not None and dif.date_accessed <= threshold_date:
             try:
                 dif._get_objectstore_session().head(dif.storage_path)
             except Exception:
-                logger.exception(
-                    "debugfile.objectstore_tti_renewal_failed",
+                logger.warning(
+                    "Failed to bump TTI for debug file",
                     extra={
-                        "project_debug_file_id": dif.id,
+                        "dif_id": dif.id,
                         "project_id": dif.project_id,
                         "storage_path": dif.storage_path,
                     },
+                    exc_info=True,
                 )
-                continue
-
-        ids_to_renew.append(dif.id)
-
-    if not ids_to_renew:
-        return
 
     # Update `date_accessed` in the db.
     with metrics.timer("debug_files_renewal"):

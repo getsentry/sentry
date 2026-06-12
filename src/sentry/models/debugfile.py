@@ -44,6 +44,7 @@ from sentry.models.files.file import File
 from sentry.models.files.utils import MAX_FILE_SIZE, clear_cached_files
 from sentry.objectstore import get_debug_files_session
 from sentry.utils import json, metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
@@ -54,11 +55,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
-OBJECTSTORE_MULTIPART_PART_SIZE = 32 * 1024 * 1024
-OBJECTSTORE_MULTIPART_MAX_RETRIES = 3
-OBJECTSTORE_MULTIPART_MAX_WORKERS = 4
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
+
+OBJECTSTORE_MULTIPART_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
 
 
 class BadDif(Exception):
@@ -168,7 +168,6 @@ class ProjectDebugFile(Model):
     __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
     def get_checksum(self) -> str:
-        """Returns the SHA-1 checksum, reading from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.checksum is not None
             return self.checksum
@@ -178,7 +177,6 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_content_type(self) -> str:
-        """Returns the MIME content type, reading from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.content_type is not None
             return str(self.content_type)
@@ -187,7 +185,6 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_file_size(self) -> int:
-        """Returns the file size in bytes, reading from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.file_size is not None
             return int(self.file_size)
@@ -196,7 +193,6 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_date_created(self) -> datetime:
-        """Returns the creation timestamp, reading from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.date_created is not None
             return self.date_created
@@ -205,7 +201,6 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_headers(self) -> dict[str, str]:
-        """Returns file headers (currently just Content-Type), from the denormalized column or the linked File."""
         if self.storage_path is not None:
             assert self.content_type is not None
             return {"Content-Type": self.content_type}
@@ -264,14 +259,12 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get("features", []))
 
     def _get_objectstore_session(self) -> Session:
-        """Returns an Objectstore session scoped to this debug file's project."""
         from sentry.models.project import Project
 
         org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
         return get_debug_files_session(org=org_id, project=self.project_id)
 
     def getfile(self) -> IO[bytes]:
-        """Returns a file-like object with the debug file contents, from Objectstore or the linked File."""
         if self.storage_path is not None:
             try:
                 response = self._get_objectstore_session().get(self.storage_path)
@@ -284,7 +277,6 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def save_to(self, path: str) -> None:
-        """Downloads the debug file contents to a local path, atomically via a temp file."""
         if self.storage_path is not None:
             path = os.path.abspath(path)
             base = os.path.dirname(path)
@@ -404,57 +396,48 @@ def create_dif_from_file(
     return create_dif_from_id(project, result[0], file=file)
 
 
-def _put_objectstore_part_with_retry(
-    upload: MultipartUpload, chunk: bytes, part_number: int
-) -> CompletePart:
-    """Uploads a single multipart part, retrying with exponential backoff on transient errors."""
-    for attempt in range(OBJECTSTORE_MULTIPART_MAX_RETRIES):
-        try:
-            return upload.put_part(chunk, part_number=part_number, content_length=len(chunk))
-        except (RequestError, HTTPError):
-            if attempt == OBJECTSTORE_MULTIPART_MAX_RETRIES - 1:
-                raise
-            time.sleep(2**attempt)
-
-    raise AssertionError("unreachable")
-
-
 def _upload_dif_to_objectstore(
     session: Session,
     fileobj: IO[bytes],
     content_type: str,
     file_size: int,
-) -> tuple[str, int]:
-    """Uploads a debug file to Objectstore via parallel multipart upload, aborting on failure.
-
-    Parts are uploaded concurrently with up to OBJECTSTORE_MULTIPART_MAX_WORKERS threads.
-    Each worker reads its chunk from fileobj under a lock, so memory usage is bounded to
-    roughly max_workers * OBJECTSTORE_MULTIPART_PART_SIZE.
-
-    Returns (storage_path, uploaded_size).
-    """
-    from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-
+) -> str:
+    """Uploads a debug file to Objectstore via parallel multipart upload, returning the key under which the file was uploaded."""
     upload = session.initiate_multipart_upload(content_type=content_type)
-    read_lock = threading.Lock()
+
+    lock = threading.Lock()
     num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_PART_SIZE))
 
-    def _read_and_upload_part(part_number: int) -> CompletePart | None:
-        with read_lock:
+    def put_part_with_retry(
+        upload: MultipartUpload, chunk: bytes, part_number: int
+    ) -> CompletePart:
+        for attempt in range(3):
+            try:
+                return upload.put_part(chunk, part_number=part_number, content_length=len(chunk))
+            except (RequestError, HTTPError):
+                if attempt == 2:
+                    raise
+                time.sleep(2**attempt)
+        raise AssertionError("unreachable")
+
+    def read_and_put_part(part_number: int) -> CompletePart | None:
+        offset = (part_number - 1) * OBJECTSTORE_MULTIPART_PART_SIZE
+        with lock:
+            fileobj.seek(offset)
             chunk = fileobj.read(OBJECTSTORE_MULTIPART_PART_SIZE)
         if not chunk:
             return None
-        return _put_objectstore_part_with_retry(upload, chunk, part_number)
+        return put_part_with_retry(upload, chunk, part_number)
 
     try:
         with ContextPropagatingThreadPoolExecutor(
-            max_workers=OBJECTSTORE_MULTIPART_MAX_WORKERS
+            max_workers=4,
         ) as executor:
-            futures = [executor.submit(_read_and_upload_part, i + 1) for i in range(num_parts)]
+            futures = [executor.submit(read_and_put_part, i + 1) for i in range(num_parts)]
             parts = [part for f in futures if (part := f.result()) is not None]
 
         storage_path = upload.complete(parts)
-        return storage_path, file_size
+        return storage_path
     except Exception:
         try:
             upload.abort()
@@ -554,19 +537,17 @@ def create_dif_from_id(
         session = get_debug_files_session(project.organization_id, project.id)
         if file is not None:
             with file.getfile() as source_fileobj:
-                storage_path, uploaded_file_size = _upload_dif_to_objectstore(
+                storage_path = _upload_dif_to_objectstore(
                     session, source_fileobj, content_type, file_size
                 )
         elif fileobj is not None:
-            storage_path, uploaded_file_size = _upload_dif_to_objectstore(
-                session, fileobj, content_type, file_size
-            )
+            storage_path = _upload_dif_to_objectstore(session, fileobj, content_type, file_size)
         else:
             raise RuntimeError("missing file object")
 
         metrics.distribution(
             "storage.put.size",
-            uploaded_file_size,
+            file_size,
             tags={"usecase": "debug-files", "compression": "none"},
             unit="byte",
         )
@@ -575,7 +556,7 @@ def create_dif_from_id(
             file=None,
             storage_path=storage_path,
             content_type=content_type,
-            file_size=uploaded_file_size,
+            file_size=file_size,
             date_created=timezone.now(),
             checksum=checksum,
             debug_id=meta.debug_id,
