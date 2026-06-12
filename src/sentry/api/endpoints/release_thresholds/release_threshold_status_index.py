@@ -148,17 +148,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # NOTE: start/end parameters determine window to query for releases
         # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
-        # Preserve legacy projectSlug precedence while treating blank project filters as absent.
-        query_params = request.query_params.copy()
-        project_slug_params = [slug for slug in query_params.getlist("projectSlug") if slug]
-        if "projectSlug" in query_params:
-            query_params.setlist("projectSlug", project_slug_params)
-        if project_slug_params:
-            query_params.pop("project", None)
-        elif "project" in query_params:
-            query_params.setlist(
-                "project", [project for project in query_params.getlist("project") if project]
-            )
+        query_params = self.get_query_params_with_project_slug_precedence(request)
 
         serializer = ReleaseThresholdStatusIndexSerializer(data=query_params)
         if not serializer.is_valid():
