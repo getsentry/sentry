@@ -165,10 +165,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         project_ids: set[int] | None = None
         project_slugs: list[str] | set[str] | None = project_slug_list
         if project_slug_list is None:
-            if requested_project.ids and not requested_project.slugs:
-                project_ids = requested_project.ids
-            elif requested_project.slugs and not requested_project.ids:
-                project_slugs = requested_project.slugs
+            project_ids = requested_project.ids or None
+            project_slugs = requested_project.slugs or None
 
         try:
             filter_params = self.get_filter_params(

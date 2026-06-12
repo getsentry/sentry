@@ -22,6 +22,11 @@ class ReleaseThresholdTest(APITestCase):
     def test_get_invalid_project(self) -> None:
         self.get_error_response(self.organization.slug, project="foo bar")
 
+    def test_get_all_projects_slug_is_invalid(self) -> None:
+        response = self.get_error_response(self.organization.slug, project="$all")
+
+        assert response.status_code == 400
+
     def test_get_no_project(self) -> None:
         self.get_error_response(self.organization.slug)
 
