@@ -294,6 +294,7 @@ export const AM3_PLANS = {
   am3_business: {
     ...commonFields,
     id: 'am3_business',
+    isEnterprise: false,
     name: 'Business',
     description: '',
     price: 8900,
@@ -1028,6 +1029,7 @@ export const AM3_PLANS = {
   am3_business_auf: {
     ...commonFields,
     id: 'am3_business_auf',
+    isEnterprise: false,
     name: 'Business',
     description: '',
     price: 96000,
@@ -1546,6 +1548,7 @@ export const AM3_PLANS = {
   am3_business_ent: {
     ...commonFields,
     id: 'am3_business_ent',
+    isEnterprise: true,
     name: 'Enterprise (Business)',
     description: '',
     price: 10_000_00,
@@ -1662,6 +1665,7 @@ export const AM3_PLANS = {
   am3_business_ent_auf: {
     ...commonFields,
     id: 'am3_business_ent_auf',
+    isEnterprise: true,
     name: 'Enterprise (Business)',
     description: '',
     price: 10_000_00,
@@ -1778,6 +1782,7 @@ export const AM3_PLANS = {
   am3_business_ent_ds: {
     ...commonFieldsForDs,
     id: 'am3_business_ent_ds',
+    isEnterprise: true,
     name: 'Enterprise (Business)',
     description: '',
     price: 10_000_00,
@@ -1902,6 +1907,7 @@ export const AM3_PLANS = {
   am3_business_ent_ds_auf: {
     ...commonFieldsForDs,
     id: 'am3_business_ent_ds_auf',
+    isEnterprise: true,
     name: 'Enterprise (Business)',
     description: '',
     price: 10_000_00,
@@ -2026,6 +2032,7 @@ export const AM3_PLANS = {
   am3_f: {
     ...commonFields,
     id: 'am3_f',
+    isEnterprise: false,
     name: 'Developer',
     description: '',
     price: 0,
@@ -2142,6 +2149,7 @@ export const AM3_PLANS = {
   am3_t_ent: {
     ...commonFields,
     id: 'am3_t_ent',
+    isEnterprise: true,
     name: 'Enterprise Trial',
     description: '',
     price: 0,
@@ -2258,6 +2266,7 @@ export const AM3_PLANS = {
   am3_t_ent_ds: {
     ...commonFieldsForDs,
     id: 'am3_t_ent_ds',
+    isEnterprise: true,
     name: 'Enterprise Trial',
     description: '',
     price: 0,
@@ -2382,6 +2391,7 @@ export const AM3_PLANS = {
   am3_team: {
     ...commonFields,
     id: 'am3_team',
+    isEnterprise: false,
     name: 'Team',
     description: '',
     price: 2900,
@@ -2900,6 +2910,7 @@ export const AM3_PLANS = {
   am3_team_auf: {
     ...commonFields,
     id: 'am3_team_auf',
+    isEnterprise: false,
     name: 'Team',
     description: '',
     price: 31200,
@@ -3418,6 +3429,7 @@ export const AM3_PLANS = {
   am3_t: {
     ...commonFields,
     id: 'am3_t',
+    isEnterprise: false,
     name: 'Trial',
     description: '',
     price: 0,

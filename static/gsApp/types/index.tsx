@@ -193,6 +193,11 @@ export type Plan = {
 
   hasOnDemandModes: boolean;
   id: string;
+  /**
+   * Whether the plan is treated as enterprise in the UI (display name,
+   * upsell suppression, provisioning).
+   */
+  isEnterprise: boolean;
   isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;

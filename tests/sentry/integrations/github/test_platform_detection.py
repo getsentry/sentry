@@ -6,6 +6,14 @@ from unittest import mock
 import pytest
 
 from sentry.integrations.github.platform_detection import (
+    _get_repo_file_content,
+    _get_root_entries,
+    _parse_gemfile,
+    _parse_package_manifest,
+    _parse_pubspec_yaml,
+    detect_platforms,
+)
+from sentry.integrations.github.platform_registry import (
     FRAMEWORKS,
     GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectedPlatform,
@@ -13,15 +21,9 @@ from sentry.integrations.github.platform_detection import (
     FrameworkDef,
     _apply_supersession,
     _framework_matches,
-    _get_repo_file_content,
-    _get_root_entries,
     _package_in_manifest,
     _PackageManifest,
-    _parse_gemfile,
-    _parse_package_manifest,
-    _parse_pubspec_yaml,
     _rule_matches,
-    detect_platforms,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
