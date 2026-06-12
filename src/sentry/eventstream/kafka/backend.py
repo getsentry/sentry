@@ -5,13 +5,16 @@ import time
 from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
 from datetime import datetime
+from functools import partial
 from typing import TYPE_CHECKING, Any, cast
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue
 from arroyo.types import Topic as ArroyoTopic
+from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from taskbroker_client.worker.producer import TaskProducer
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -19,6 +22,8 @@ from sentry.eventstream.base import GroupStates
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.eventstream.types import EventStreamEventType
 from sentry.killswitches import killswitch_matches_context
+from sentry.options.rollout import in_random_rollout
+from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json
 from sentry.utils.arroyo_producer import get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
@@ -38,20 +43,34 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.transactions_topic = Topic.TRANSACTIONS
         self.issue_platform_topic = Topic.EVENTSTREAM_GENERIC
         self.__producers: MutableMapping[Topic, KafkaProducer] = {}
+        # TEMP(benm): separate list of task producers used during rollout
+        self.__task_producers: MutableMapping[Topic, TaskProducer] = {}
         self.error_last_logged_time: int | None = None
 
     def get_transactions_topic(self, project_id: int) -> Topic:
         return self.transactions_topic
 
-    def get_producer(self, topic: Topic) -> KafkaProducer:
+    def get_producer(self, topic: Topic) -> KafkaProducer | TaskProducer:
         if topic not in self.__producers:
+            # TEMP(benm): instantiate both producers in taskworkers during TaskProducer rollout
+            if settings.TASKWORKER_USE_TASK_PRODUCER:
+                producer_name = "sentry.eventstream.kafka.taskproducer"
+                self.__task_producers[topic] = get_task_producer(
+                    producer_name=producer_name,
+                    producer_factory=partial(get_arroyo_producer, name=producer_name, topic=topic),
+                )
             self.__producers[topic] = get_arroyo_producer(
                 name="sentry.eventstream.kafka",
                 topic=topic,
                 use_simple_futures=False,
             )
 
-        return self.__producers[topic]
+        producer: KafkaProducer | TaskProducer = self.__producers[topic]
+        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
+            "tasks.producer.eventstream.rollout"
+        ):
+            producer = self.__task_producers[topic]
+        return producer
 
     def delivery_callback(self, error: BaseException | None) -> None:
         now = int(time.time())
@@ -62,6 +81,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "Could not publish message (error: %s)",
                     error,
                 )
+
+    def _on_produce_future_done(self, future: Future[BrokerValue[KafkaPayload]]) -> None:
+        self.delivery_callback(future.exception())
 
     def _get_headers_for_insert(
         self,
@@ -194,20 +216,39 @@ class KafkaEventStream(SnubaProtocolEventStream):
         real_topic = get_topic_definition(topic)["real_topic_name"]
 
         try:
-            produce_future = producer.produce(
-                destination=ArroyoTopic(real_topic),
-                payload=KafkaPayload(
-                    key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
-                    value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data).encode(
-                        "utf-8"
+            if isinstance(producer, TaskProducer):
+                # TaskProducer handles the producer future internally,
+                # so we attach the callback at the produce callsite
+                producer.produce(
+                    topic=ArroyoTopic(real_topic),
+                    payload=KafkaPayload(
+                        key=str(project_id).encode("utf-8")
+                        if not skip_semantic_partitioning
+                        else None,
+                        value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data).encode(
+                            "utf-8"
+                        ),
+                        headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
                     ),
-                    headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
-                ),
-            )
-            # Since use_simple_futures=False, we know this is a Future
-            cast(Future[BrokerValue[KafkaPayload]], produce_future).add_done_callback(
-                lambda future: self.delivery_callback(future.exception())
-            )
+                    callbacks=[self._on_produce_future_done],
+                )
+            else:
+                produce_future = producer.produce(
+                    destination=ArroyoTopic(real_topic),
+                    payload=KafkaPayload(
+                        key=str(project_id).encode("utf-8")
+                        if not skip_semantic_partitioning
+                        else None,
+                        value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data).encode(
+                            "utf-8"
+                        ),
+                        headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
+                    ),
+                )
+                # Since use_simple_futures=False, we know this is a Future
+                cast(Future[BrokerValue[KafkaPayload]], produce_future).add_done_callback(
+                    self._on_produce_future_done
+                )
         except Exception as error:
             logger.exception("Could not publish message: %s", error)
             return
