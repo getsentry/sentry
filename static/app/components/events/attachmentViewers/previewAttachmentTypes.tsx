@@ -82,3 +82,12 @@ export const getInlineAttachmentRenderer = (
 export const hasInlineAttachmentRenderer = (attachment: IssueAttachment): boolean => {
   return !!getInlineAttachmentRenderer(attachment);
 };
+
+const MAX_TEXT_PREVIEW_SIZE = 20 * 1024 * 1024; // 20 MiB
+
+export const isAttachmentTooLargeForPreview = (attachment: IssueAttachment): boolean => {
+  if (getImageAttachmentRenderer(attachment)) {
+    return false;
+  }
+  return attachment.size > MAX_TEXT_PREVIEW_SIZE;
+};

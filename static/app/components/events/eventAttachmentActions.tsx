@@ -3,7 +3,10 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {Confirm} from 'sentry/components/confirm';
-import {hasInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {
+  hasInlineAttachmentRenderer,
+  isAttachmentTooLargeForPreview,
+} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -30,21 +33,27 @@ export function EventAttachmentActions({
   const {hasRole: hasAttachmentRole} = useRole({role: 'attachmentsRole'});
   const url = `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/`;
   const hasPreview = hasInlineAttachmentRenderer(attachment);
+  const isTooLarge = isAttachmentTooLargeForPreview(attachment);
+  const canPreview = hasPreview && !isTooLarge;
 
   return (
     <Grid flow="column" align="center" gap="md">
       {withPreviewButton && (
         <Button
           size="xs"
-          disabled={!hasAttachmentRole || !hasPreview}
+          disabled={!hasAttachmentRole || !canPreview}
           variant={previewIsOpen ? 'primary' : 'secondary'}
           icon={<IconShow />}
           onClick={onPreviewClick}
           tooltipProps={{
             title: hasAttachmentRole
-              ? hasPreview
+              ? canPreview
                 ? undefined
-                : t('This attachment cannot be previewed')
+                : hasPreview
+                  ? isTooLarge
+                    ? t('This file is too large to preview')
+                    : t('This attachment cannot be previewed')
+                  : t('This attachment cannot be previewed')
               : t('Insufficient permissions to preview attachments'),
           }}
         >
