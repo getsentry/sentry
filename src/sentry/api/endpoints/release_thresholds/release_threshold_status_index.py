@@ -154,17 +154,14 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
-        environments_list = serializer.validated_data.get(
-            "environment"
-        )  # list of environment names
-        project_slug_list = [
-            slug for slug in serializer.validated_data.get("projectSlug", []) if slug
-        ] or None
-        requested_project = parse_id_or_slug_params(serializer.validated_data.get("project", []))
-        releases_list = serializer.validated_data.get("release")  # list of release versions
+        validated_data = serializer.validated_data
+        environments_list = validated_data.get("environment")  # list of environment names
+        releases_list = validated_data.get("release")  # list of release versions
+
         project_ids: set[int] | None = None
-        project_slugs: list[str] | set[str] | None = project_slug_list
-        if project_slug_list is None:
+        project_slugs = {slug for slug in validated_data.get("projectSlug", []) if slug} or None
+        if project_slugs is None:
+            requested_project = parse_id_or_slug_params(validated_data.get("project", []))
             project_ids = requested_project.ids or None
             project_slugs = requested_project.slugs or None
 
@@ -179,9 +176,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         except NoProjects:
             raise NoProjects("No projects available")
 
-        # Use validated project IDs from get_filter_params instead of raw user input.
-        # The raw project_slug_list could contain slugs for projects the user doesn't
-        # have access to, bypassing the permission checks in get_projects().
+        # Use project IDs from get_filter_params instead of raw project filters so
+        # project access is checked before fetching threshold data.
         validated_project_ids = set(filter_params["project_id"])
 
         start: datetime | None = filter_params["start"]
@@ -228,7 +224,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             "Fetched releases",
             extra={
                 "results": len(queryset),
-                "project_slugs": project_slug_list,
+                "project_slugs": project_slugs,
                 "releases": releases_list,
                 "environments": environments_list,
             },

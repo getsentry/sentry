@@ -20,7 +20,6 @@ from sentry.api.exceptions import ConflictError, InvalidRepository, ResourceDoes
 from sentry.api.helpers.projects import (
     PROJECT_ID_OR_SLUG_SCHEMA,
     ProjectIdOrSlugField,
-    parse_id_or_slug_params,
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -43,6 +42,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus
@@ -380,14 +380,23 @@ class OrganizationReleaseDetailsEndpoint(
                 project_id_or_slug = ProjectIdOrSlugField().run_validation(project_id)
             except ValidationError:
                 raise ParseError(detail="Invalid project")
-            requested_project = parse_id_or_slug_params([project_id_or_slug])
-            if not requested_project.has_values or requested_project.has_all_projects_sentinel:
-                raise ParseError(detail="Invalid project")
+
+            project_ids: set[int] | None = None
+            project_slugs: set[str] | None = None
+            if isinstance(project_id_or_slug, int):
+                if project_id_or_slug == ALL_ACCESS_PROJECT_ID:
+                    raise ParseError(detail="Invalid project")
+                project_ids = {project_id_or_slug}
+            else:
+                if project_id_or_slug == ALL_ACCESS_PROJECTS_SLUG:
+                    raise ParseError(detail="Invalid project")
+                project_slugs = {project_id_or_slug}
+
             validated_projects = self.get_projects(
                 request,
                 organization,
-                project_ids=requested_project.ids or None,
-                project_slugs=requested_project.slugs or None,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
             )
             if not validated_projects:
                 raise ResourceDoesNotExist
