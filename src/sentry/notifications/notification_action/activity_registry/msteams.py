@@ -26,7 +26,7 @@ class MSTeamsActivityHandler(ActivityHandler):
         target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.MSTEAMS,
             resource_type=NotificationTargetResourceType.CHANNEL,
-            resource_id=require_config(action, "target_display"),
+            resource_id=require_config(action, "target_identifier"),
             integration_id=require_integration_id(action),
             organization_id=invocation.detector.project.organization.id,
         )
