@@ -5,9 +5,12 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.issues.constants import ISSUE_VIEW_CACHE_KEY_TTL, cache_key_for_issue_view
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestActivity,
     PullRequestActivityType,
@@ -142,6 +145,79 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
+
+    # --- MCP attribution ---
+
+    def test_mcp_attribution_recorded_when_referenced_issue_viewed_via_mcp(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        attr = PullRequestAttribution.objects.get(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        )
+        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
+        assert attr.signal_details == {"group_ids": {str(group.id): "cursor"}}
+
+    def test_mcp_attribution_not_recorded_without_cache_hit(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
+    def test_mcp_attribution_not_recorded_without_group_link(self) -> None:
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
+    def test_mcp_and_app_attribution_coexist(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+        ).exists()
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
 
     # --- Feature flag ---
 
