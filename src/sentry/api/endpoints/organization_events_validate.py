@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass
 from dataclasses import field as dataclass_field
 from typing import Any
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
@@ -112,6 +114,8 @@ def check_attributes_exist(
     return found
 
 
+@extend_schema(tags=["Explore"])
+@cell_silo_endpoint
 class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
