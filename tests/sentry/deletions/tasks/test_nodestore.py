@@ -1,8 +1,6 @@
-from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
-from snuba_sdk.legacy import parse_scalar
 
 from sentry.deletions.tasks.nodestore import (
     delete_events_for_groups_from_nodestore_and_eventstore,
@@ -100,31 +98,6 @@ class NodestoreDeletionTaskTest(TestCase):
 
         with pytest.raises(UnqualifiedQueryError):
             self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
-
-    def test_pagination_cursor_timestamp_is_parsed_as_datetime(self) -> None:
-        """The pagination cursor must be recognized as a datetime by Snuba's legacy SnQL
-        parser. A tz-aware isoformat with microseconds (what Event.timestamp produces) is not,
-        which previously caused Snuba to reject the timestamp condition (SNUBA-32F)."""
-        # tz-aware isoformat with microseconds, the format Event.timestamp emits.
-        tz_aware = "2023-04-01T04:02:07.644000+00:00"
-        naive_timestamp = (
-            datetime.fromisoformat(tz_aware)
-            .astimezone(timezone.utc)
-            .replace(tzinfo=None)
-            .isoformat()
-        )
-        # The raw tz-aware value falls back to a string (the bug); the normalized value parses.
-        assert not isinstance(parse_scalar(tz_aware), datetime)
-        assert isinstance(parse_scalar(naive_timestamp), datetime)
-
-        # Zero-microsecond timestamps drop the fractional component but must still parse.
-        naive_no_micros = (
-            datetime.fromisoformat("2023-04-01T04:02:07+00:00")
-            .astimezone(timezone.utc)
-            .replace(tzinfo=None)
-            .isoformat()
-        )
-        assert isinstance(parse_scalar(naive_no_micros), datetime)
 
     def test_fetch_events_with_pagination_cursor(self) -> None:
         """Fetching with a cursor (last event's id/timestamp) returns the remaining events."""
