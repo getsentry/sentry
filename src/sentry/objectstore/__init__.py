@@ -20,7 +20,7 @@ from sentry import options
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.env import in_test_environment
 
-__all__ = ["get_attachments_session", "parse_accept_encoding"]
+__all__ = ["get_attachments_session", "get_debug_files_session", "parse_accept_encoding"]
 
 
 def default_attachment_retention() -> int:
@@ -63,6 +63,7 @@ class SentryMetricsBackend(MetricsBackend):
 
 _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE: Usecase | None = None
+_DEBUG_FILES_USECASE = Usecase("debug_files", expiration_policy=TimeToIdle(timedelta(days=90)))
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
 
 
@@ -114,6 +115,10 @@ def get_attachments_usecase() -> Usecase:
 
 def get_attachments_session(org: int, project: int) -> Session:
     return get_client().session(get_attachments_usecase(), org=org, project=project)
+
+
+def get_debug_files_session(org: int, project: int) -> Session:
+    return get_client().session(_DEBUG_FILES_USECASE, org=org, project=project)
 
 
 def get_preprod_session(org: int, project: int) -> Session:
