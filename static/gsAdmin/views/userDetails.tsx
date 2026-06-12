@@ -24,6 +24,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {MergeAccountsModal} from 'admin/components/mergeAccounts';
 import {SelectableContainer} from 'admin/components/selectableContainer';
+import {UserAuthorizedApps} from 'admin/components/users/userAuthorizedApps';
 import {UserCustomers} from 'admin/components/users/userCustomers';
 import {UserEmailLog} from 'admin/components/users/userEmailLog';
 import {UserEmails} from 'admin/components/users/userEmails';
@@ -52,6 +53,11 @@ export function UserDetails() {
     {query: {userId}},
   ];
 
+  const makeFetchAuthorizationsQueryKey = (): ApiQueryKey => [
+    getApiUrl('/api-authorizations/'),
+    {query: {userId}},
+  ];
+
   const {
     data: user,
     isPending: isUserPending,
@@ -77,10 +83,20 @@ export function UserDetails() {
     staleTime: 0,
   });
 
+  const {
+    data: authorizations,
+    isPending: isAuthorizationsPending,
+    isError: isAuthorizationsError,
+    refetch: refetchAuthorizations,
+  } = useApiQuery<any[]>(makeFetchAuthorizationsQueryKey(), {
+    staleTime: 0,
+  });
+
   const refetchData = () => {
     refetchUser();
     refetchIdentities();
     refetchTokens();
+    refetchAuthorizations();
   };
 
   const onUpdateMutation = useMutation({
@@ -143,11 +159,11 @@ export function UserDetails() {
     },
   });
 
-  if (isUserPending || isIdentitiesPending || isTokensPending) {
+  if (isUserPending || isIdentitiesPending || isTokensPending || isAuthorizationsPending) {
     return <LoadingIndicator />;
   }
 
-  if (isUserError || isIdentitiesError || isTokensError) {
+  if (isUserError || isIdentitiesError || isTokensError || isAuthorizationsError) {
     return <LoadingError onRetry={refetchData} />;
   }
 
@@ -332,6 +348,10 @@ export function UserDetails() {
         {
           noPanel: true,
           content: userEmails,
+        },
+        {
+          noPanel: true,
+          content: <UserAuthorizedApps authorizations={authorizations ?? []} />,
         },
       ]}
     />

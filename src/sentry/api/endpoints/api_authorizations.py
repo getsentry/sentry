@@ -6,9 +6,11 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
@@ -30,8 +32,15 @@ class ApiAuthorizationsEndpoint(Endpoint):
         if not request.user.is_authenticated:
             return Response(status=400)
 
+        user_id = request.user.id
+        if has_elevated_mode(request):
+            try:
+                user_id = int(request.GET.get("userId", user_id))
+            except (ValueError, TypeError):
+                raise ResourceDoesNotExist(detail="Invalid user ID")
+
         queryset = ApiAuthorization.objects.filter(
-            user_id=request.user.id, application__status=ApiApplicationStatus.active
+            user_id=user_id, application__status=ApiApplicationStatus.active
         ).select_related("application")
 
         return self.paginate(
