@@ -3724,14 +3724,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TODO(cells): Fully rolled out and no longer read anywhere. Unregister once the
-# value is removed from sentry-options-automator.
-register(
-    "cells.use-control-org-listing",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # SCM
 
