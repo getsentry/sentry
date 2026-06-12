@@ -957,7 +957,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         }
     )
     def test_payload_contains_trigger_comment_id_and_type(self) -> None:
-        """trigger_comment_id must be the note id; trigger_comment_type must be issue_comment."""
+        """trigger_comment_id must be the note id; trigger_comment_type must be pull_request_review_comment."""
         self._setup_code_review()
         event = _make_note_event()
 
@@ -966,7 +966,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         config = self.mock_seer.call_args[1]["payload"]["data"]["config"]
         assert config["trigger_comment_id"] == 1243
-        assert config["trigger_comment_type"] == "issue_comment"
+        assert config["trigger_comment_type"] == "pull_request_review_comment"
 
     @with_feature(
         {

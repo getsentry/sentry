@@ -7,7 +7,6 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import StrEnum
 
-from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 
 from sentry import options
@@ -140,10 +139,6 @@ def get_action_context() -> ActionContext | None:
     return _action_context.get()
 
 
-class DuplicateActionError(Exception):
-    """Raised when an idempotency_key conflicts with an existing entry."""
-
-
 def publish_action(
     action: GroupAction,
     *,
@@ -152,11 +147,9 @@ def publish_action(
     organization_id: int,
     project_id: int,
     actor: GroupActionActor = SYSTEM_ACTOR,
-    idempotency_key: str | None = None,
 ) -> None:
     """
-    Record an issue action. Raises DuplicateActionError if an idempotency_key
-    conflicts with an existing entry.
+    Record an issue action.
 
     Use this for shallow endpoint-level actions where the request is in scope
     (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation sites deeper in the stack,
@@ -177,7 +170,6 @@ def publish_action(
             "actor_type": actor.actor_type.name.lower(),
             "actor_id": str(actor.actor_id),
             "metadata": action.dict(),
-            "idempotency_key": idempotency_key,
         },
     )
 
@@ -185,7 +177,7 @@ def publish_action(
     if not options.get("issues.action-log.write-to-db"):
         return
 
-    kwargs = dict(
+    GroupActionLogEntry.objects.create(
         group_id=group_id,
         project_id=project_id,
         type=action.get_type().value,
@@ -193,25 +185,7 @@ def publish_action(
         actor_id=actor.actor_id,
         source=source,
         data=action.dict(),
-        idempotency_key=idempotency_key,
     )
-
-    if idempotency_key is None:
-        GroupActionLogEntry.objects.create(**kwargs)
-        return
-
-    try:
-        with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
-            GroupActionLogEntry.objects.create(**kwargs)
-    except IntegrityError as e:
-        cause = e.__cause__
-        constraint = getattr(getattr(cause, "diag", None), "constraint_name", None)
-        if constraint == "uniq_groupactionlogentry_group_idempotency_key":
-            raise DuplicateActionError(
-                f"Action already recorded for group {group_id} "
-                f"with idempotency_key={idempotency_key!r}"
-            ) from e
-        raise
 
 
 def publish_action_from_context(

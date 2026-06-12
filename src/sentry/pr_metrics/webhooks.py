@@ -37,6 +37,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestMetrics,
+    PullRequestVerdict,
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
@@ -61,8 +62,10 @@ from sentry.pr_metrics.activity_types import (
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
-    needs_judge,
+    is_pr_tracked,
+    select_verdict,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -136,6 +139,35 @@ def handle_attribution(
     _write_mcp_attribution(pr)
 
 
+def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
+    """Atomically claim a PR's terminal (close/merge) event for emission.
+
+    The redelivery guard. GitHub redelivers webhooks, and
+    ``PullRequestEventWebhook._handle`` stamps ``closed_at``/``state`` from every
+    payload, so the PR row can't tell whether the terminal event was already
+    processed. The pipeline-owned ``PullRequestMetrics.verdict`` can: it stays
+    null until we settle one, so a compare-and-set on ``verdict IS NULL`` lets
+    exactly one delivery claim the event and write ``verdict``, even under
+    concurrent redeliveries. Returns True if this call won the claim.
+
+    The verdict is never cleared, so the guard coalesces *every* repeat terminal
+    event to that one claim — not just GitHub redeliveries but also a reopen
+    followed by another close/merge. That's deliberate: we emit one analytics row
+    per PR (its first terminal state is authoritative), since multiple emissions
+    have meant costly dedup downstream for little benefit. A PR reopened after a
+    close and later merged is thus recorded by its first close — an accepted loss
+    on the rare reopened PR.
+
+    Only called once a deterministic ``verdict`` is in hand. A PR that needs a
+    judge is guarded the same way once the forward path lands — it claims the
+    event with a sentinel verdict before forwarding — but that isn't wired yet.
+    """
+    claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
+        verdict=verdict
+    )
+    return bool(claimed)
+
+
 def handle_emission(
     *,
     github_event: GithubWebhookType,
@@ -150,6 +182,14 @@ def handle_emission(
     GitHub's single ``closed`` action covers both merges and plain closes; emit
     derives which from the stored row, so this handler only filters for ``closed``
     and delegates. All non-terminal actions are ignored.
+
+    Untracked PRs (no valid attribution) are dropped first, before any verdict is
+    claimed: claiming would burn the redelivery guard, so a PR that gained
+    attribution only later (e.g. a Seer backfill) could never emit. ``select_verdict``
+    then decides the outcome: a deterministic verdict is claimed (the redelivery
+    guard) and emitted. A PR that needs a judge is forwarded to Seer instead; that
+    path — including its own redelivery guard — isn't wired yet, so for now a
+    judge-needed PR is skipped here.
     """
     if event.get("action") != "closed":
         return
@@ -161,15 +201,27 @@ def handle_emission(
     if pr is None:
         return
 
-    if needs_judge(pr):
-        # The judge path (forward to Seer, emit on the judge result) isn't wired
-        # yet, so fall through to immediate emit — a judge-eligible PR still
-        # produces a row rather than none.
+    if not is_pr_tracked(pr):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
+        return
+
+    verdict = select_verdict(pr, organization)
+    if verdict is None:
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
         logger.info(
-            "pr_metrics.emit.judge_path_not_implemented",
+            "pr_metrics.emit.needs_judge",
             extra={"organization_id": organization.id, "pull_request_id": pr.id},
         )
+        return
 
+    if not _claim_terminal_event(pr, verdict):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        return
+
+    # Claim before emit so build_pr_metrics_row reads the verdict back onto the row.
+    # analytics.record is best-effort, async-batched telemetry; if it raises the
+    # claim still stands and the row is forgone — an acceptable loss for telemetry,
+    # not worth a rollback that would reopen the redelivery race.
     emit_pr_metrics_row(pull_request=pr)
 
 

@@ -38,7 +38,7 @@ from sentry.notifications.platform.slack.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -364,11 +364,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         """
         return self.identity_oauth_scopes
 
-    setup_dialog_config = {"width": 600, "height": 900}
     setup_url_path = "/extensions/slack/setup/"
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def _make_identity_provider(self) -> SlackIdentityProvider:
         return SlackIdentityProvider(

@@ -33,7 +33,7 @@ from sentry.notifications.platform.provider import (
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.signing import unsign
 
@@ -187,9 +187,6 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = MsTeamsIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [MsTeamsApiStep()]

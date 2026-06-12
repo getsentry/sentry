@@ -10,7 +10,6 @@ from typing import Any, Literal, TypedDict
 import sentry_sdk
 from django.utils import timezone
 
-import sentry
 from sentry import features, options, quotas
 from sentry.constants import (
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
@@ -36,7 +35,6 @@ from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy, priority_label
 from sentry.tasks.seer.night_shift.tweaks import (
@@ -304,13 +302,7 @@ def run_night_shift_execution(
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
         return None
 
-    # sentry.options.get (not options.get) because the `options` param shadows the module here.
-    if sentry.options.get("seer.night_shift.use_feature_delivery"):
-        _dispatch_to_seer_feature(
-            run, organization, eligible, resolved_options, log_extra, start_time
-        )
-    else:
-        _run_triage_in_process(run, organization, eligible, resolved_options, log_extra, start_time)
+    _dispatch_to_seer_feature(run, organization, eligible, resolved_options, log_extra, start_time)
 
 
 def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
@@ -508,86 +500,6 @@ def _dispatch_to_seer_feature(
             "agent_run_id": agent_run_id,
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(scored),
-        },
-    )
-
-
-def _run_triage_in_process(
-    run: SeerNightShiftRun,
-    organization: Organization,
-    eligible: Sequence[EligibleProject],
-    resolved_options: SeerNightShiftRunOptions,
-    log_extra: dict[str, object],
-    start_time: float,
-) -> None:
-    """DEPRECATED: run the triage agent in-process and trigger autofix directly.
-    Superseded by _dispatch_to_seer_feature; kept behind the
-    seer.night_shift.use_feature_delivery option until the cutover is complete."""
-    eligible_projects = [ep.project for ep in eligible]
-    agent_run_id: int | None = None
-    try:
-        candidates, agent_run_id = agentic_triage_strategy(
-            eligible_projects,
-            organization,
-            resolved_options["max_candidates"],
-            intelligence_level=resolved_options["intelligence_level"],
-            reasoning_effort=resolved_options["reasoning_effort"],
-            extra_triage_instructions=resolved_options["extra_triage_instructions"],
-            run=run,
-        )
-        if agent_run_id is not None:
-            log_extra["agent_run_id"] = agent_run_id
-    except Exception:
-        sentry_sdk.metrics.count("night_shift.run_error", 1)
-        _fail_run(
-            run,
-            message="Night shift run failed",
-            event="night_shift.run_failed",
-            extra={**log_extra, "agent_run_id": agent_run_id},
-        )
-        return
-
-    sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(candidates))
-    sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
-
-    seer_run_id_by_group: dict[int, str | None] = {}
-    if not resolved_options["dry_run"]:
-        # Populate each candidate group's FK cache so trigger_autofix_agent doesn't
-        # re-fetch group.project on every call. Group.organization is a property that
-        # delegates to self.project.organization, so caching the org on the project is
-        # enough to avoid both lookups.
-        projects_by_id = {}
-        for p in eligible_projects:
-            p.organization = organization
-            projects_by_id[p.id] = p
-        for c in candidates:
-            c.group.project = projects_by_id[c.group.project_id]
-
-        stopping_point_by_project_id = {ep.project.id: ep.stopping_point for ep in eligible}
-        results = _run_autofix_for_candidates(
-            run=run,
-            candidates=candidates,
-            stopping_point_by_project_id=stopping_point_by_project_id,
-            log_extra=log_extra,
-        )
-        seer_run_id_by_group = {r.group_id: r.seer_run_id for r in results}
-
-    logger.info(
-        "night_shift.candidates_selected",
-        extra={
-            **log_extra,
-            "num_eligible_projects": len(eligible_projects),
-            "num_candidates": len(candidates),
-            "dry_run": resolved_options["dry_run"],
-            "candidates": [
-                {
-                    "group_id": c.group.id,
-                    "action": c.action,
-                    "seer_run_id": seer_run_id_by_group.get(c.group.id),
-                    "num_occurrences": c.group.times_seen,
-                }
-                for c in candidates
-            ],
         },
     )
 

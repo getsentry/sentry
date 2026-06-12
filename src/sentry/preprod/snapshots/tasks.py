@@ -18,6 +18,11 @@ from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.snapshots.categorize import categorize_image_sets
+from sentry.preprod.snapshots.constants import (
+    MISSING_BASE_GRACE_PERIOD_SECONDS,
+    RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
+)
 from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
@@ -34,6 +39,7 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.preprod.snapshots.reconstruction import reconstruct_base_manifest
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -186,21 +192,7 @@ def categorize_image_diff(
     head_by_name = {key: meta.content_hash for key, meta in head_manifest.images.items()}
     base_by_name = {key: meta.content_hash for key, meta in base_manifest.images.items()}
 
-    all_image_file_names = head_manifest.all_image_file_names
-
-    matched = head_by_name.keys() & base_by_name.keys()
-    added = head_by_name.keys() - base_by_name.keys()
-
-    if all_image_file_names is not None:
-        all_names_set = set(all_image_file_names)
-        removed = base_by_name.keys() - all_names_set
-        skipped = (all_names_set - head_by_name.keys()) & base_by_name.keys()
-    elif head_manifest.selective:
-        removed = set()
-        skipped = base_by_name.keys() - head_by_name.keys()
-    else:
-        removed = base_by_name.keys() - head_by_name.keys()
-        skipped = set()
+    matched, added, removed, skipped = categorize_image_sets(head_manifest, base_manifest)
 
     added_hash_to_names: dict[str, list[str]] = {}
     for name in added:
@@ -793,6 +785,7 @@ def compare_snapshots(
             return
         created = False
 
+    prior_state = None if created else comparison.state
     if not created:
         logger.info(
             "compare_snapshots: existing comparison found (id=%d, state=%s)",
@@ -834,11 +827,31 @@ def compare_snapshots(
             extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
         )
 
-    update_preprod_snapshot_vcs(
-        preprod_artifact_id=head_artifact_id,
-        caller="compare_start",
-        update_pr_comment=False,
-    )
+    # Skip re-posting the start status when resuming a self-parked PENDING comparison: the
+    # deferral loop reschedules every 60s for up to the grace window, and the start was
+    # already posted on the first attempt. Re-running the full status recompute (~6 queries)
+    # and re-posting IN_PROGRESS on each cycle would burn GitHub rate limits for no change.
+    if prior_state != PreprodSnapshotComparison.State.PENDING:
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=head_artifact_id,
+            caller="compare_start",
+            update_pr_comment=False,
+        )
+
+    def _fail_comparison(error_code: PreprodSnapshotComparison.ErrorCode, message: str) -> None:
+        failed = PreprodSnapshotComparison.objects.filter(
+            id=comparison.id,
+            state=PreprodSnapshotComparison.State.PROCESSING,
+        ).update(
+            state=PreprodSnapshotComparison.State.FAILED,
+            error_code=error_code,
+            error_message=message,
+            date_updated=timezone.now(),
+        )
+        if failed:
+            update_preprod_snapshot_vcs(
+                preprod_artifact_id=head_artifact_id, caller="compare_failure"
+            )
 
     try:
         session = get_preprod_session(org_id, project_id)
@@ -870,20 +883,88 @@ def compare_snapshots(
                     "base_artifact_id": base_artifact_id,
                 },
             )
-            failed = PreprodSnapshotComparison.objects.filter(
-                id=comparison.id,
-                state=PreprodSnapshotComparison.State.PROCESSING,
-            ).update(
-                state=PreprodSnapshotComparison.State.FAILED,
-                error_code=PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                date_updated=timezone.now(),
+            _fail_comparison(
+                PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+                "Failed to load or parse snapshot manifest.",
             )
-            if failed:
-                update_preprod_snapshot_vcs(
-                    preprod_artifact_id=head_artifact_id,
-                    caller="compare_failure",
-                )
             return
+
+        # Not flag-gated here: a selective base only reaches this task when the
+        # feature flag was on at dispatch (find_base_snapshot_artifact/fan-out are gated),
+        # or via staff recompare. An in-flight comparison should finish correctly.
+        #
+        # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of
+        # truth (reconstruct_base_manifest distrusts the DB flag because it can drift). If the
+        # DB flag drifts to False while the manifest is selective, the DB gate would skip
+        # reconstruction and silently diff against the partial base. This mirrors the
+        # completeness check in reconstruct_base_manifest.
+        if base_manifest.selective or base_manifest.all_image_file_names is not None:
+            reconstruction = reconstruct_base_manifest(base_artifact, session)
+            if reconstruction.manifest is not None:
+                base_manifest = reconstruction.manifest
+            elif reconstruction.incomplete:
+                # Anchor the grace window to the comparison, not the head build. The head can
+                # be arbitrarily old by the time the comparison is dispatched (out-of-order
+                # fan-out, staff recompare, janitor-resurrected retries) — anchoring to its
+                # age would burn the entire retry budget before the first attempt runs.
+                # comparison.date_added is set once at creation and never reset (deferral only
+                # bumps date_updated), so this measures "how long this comparison has been
+                # waiting for the chain to complete."
+                comparison_age = (timezone.now() - comparison.date_added).total_seconds()
+                if comparison_age <= MISSING_BASE_GRACE_PERIOD_SECONDS:
+                    logger.info(
+                        "compare_snapshots: base chain incomplete, deferring",
+                        extra={
+                            "head_artifact_id": head_artifact_id,
+                            "base_artifact_id": base_artifact_id,
+                            "comparison_id": comparison.id,
+                        },
+                    )
+                    PreprodSnapshotComparison.objects.filter(
+                        id=comparison.id,
+                        state=PreprodSnapshotComparison.State.PROCESSING,
+                    ).update(
+                        state=PreprodSnapshotComparison.State.PENDING,
+                        date_updated=timezone.now(),
+                    )
+                    compare_snapshots.apply_async(
+                        kwargs={
+                            "project_id": project_id,
+                            "org_id": org_id,
+                            "head_artifact_id": head_artifact_id,
+                            "base_artifact_id": base_artifact_id,
+                        },
+                        countdown=RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
+                    )
+                    return
+                logger.warning(
+                    "compare_snapshots: base chain incomplete past grace window, failing",
+                    extra={
+                        "head_artifact_id": head_artifact_id,
+                        "base_artifact_id": base_artifact_id,
+                        "comparison_id": comparison.id,
+                    },
+                )
+                _fail_comparison(
+                    PreprodSnapshotComparison.ErrorCode.TIMEOUT,
+                    "Base snapshot chain incomplete (missing ancestor build).",
+                )
+                return
+            elif reconstruction.unresolvable:
+                logger.warning(
+                    "compare_snapshots: base chain unresolvable, failing",
+                    extra={
+                        "head_artifact_id": head_artifact_id,
+                        "base_artifact_id": base_artifact_id,
+                        "comparison_id": comparison.id,
+                    },
+                )
+                _fail_comparison(
+                    PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+                    reconstruction.error_message
+                    or "No complete base snapshot exists in the ancestry chain.",
+                )
+                return
 
         plan = _build_comparison_plan(
             head_manifest, base_manifest, head_artifact_id, base_artifact_id
