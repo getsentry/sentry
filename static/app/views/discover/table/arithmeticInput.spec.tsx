@@ -164,6 +164,34 @@ describe('ArithmeticInput', () => {
     );
   });
 
+  it('quotes unsafe function arguments in autocomplete options', async () => {
+    const optionValue = 'count_if(transaction.duration,equals,"foo bar")';
+
+    render(
+      <ArithmeticInput
+        name="refinement"
+        key="parameter:text"
+        type="text"
+        value=""
+        onUpdate={jest.fn()}
+        options={[
+          {
+            kind: 'function',
+            function: ['count_if', 'transaction.duration', 'equals', 'foo bar'],
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('textbox'));
+
+    expect(screen.getByRole('listitem', {name: optionValue})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText(optionValue));
+
+    expect(screen.getByRole('textbox')).toHaveValue(`${optionValue} `);
+  });
+
   it('autocompletes the current term when it is in the front', async () => {
     render(
       <ArithmeticInput
