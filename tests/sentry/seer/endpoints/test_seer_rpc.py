@@ -1723,7 +1723,8 @@ class TestGetMonitoringProviderToken(APITestCase):
 
         result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
 
-        assert result == {"error": "identity_data_missing"}
+        assert result["error"] == "identity_not_valid"
+        assert result["identity_id"] == self.identity.id
 
     def test_no_expires_skips_refresh(self) -> None:
         self.identity.data = {"access_token": "access-token", "refresh_token": "refresh-token"}
@@ -1841,7 +1842,7 @@ class TestRefreshMonitoringProviderToken(APITestCase):
 
         assert result == {"error": "identity_not_found"}
 
-    def test_identity_not_valid_missing_refresh_token(self) -> None:
+    def test_missing_refresh_token(self) -> None:
         self.identity.data.pop("refresh_token", None)
         self._save_identity()
 
@@ -1850,7 +1851,7 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         assert result == {"error": "identity_not_valid"}
 
     @responses.activate
-    def test_refresh_api_error(self) -> None:
+    def test_api_error(self) -> None:
         responses.add(
             responses.POST,
             "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
@@ -1863,7 +1864,7 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         assert result == {"error": "refresh_failed"}
 
     @responses.activate
-    def test_refresh_malformed_response(self) -> None:
+    def test_malformed_response(self) -> None:
         responses.add(
             responses.POST,
             "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
@@ -1872,4 +1873,17 @@ class TestRefreshMonitoringProviderToken(APITestCase):
 
         result = refresh_monitoring_provider_token(identity_id=self.identity.id)
 
+        assert result == {"error": "refresh_failed"}
+
+    @responses.activate
+    def test_missing_access_token_after_refresh(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={"refresh_token": "ref-456", "expires_in": 3600},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        # Not "identity_not_valid" due to KeyError from get_oauth_data before reaching the .get() guard
         assert result == {"error": "refresh_failed"}

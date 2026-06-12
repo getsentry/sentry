@@ -915,7 +915,7 @@ def get_monitoring_provider_token(*, user_id: int, provider_type: str) -> dict:
 
     access_token = identity.data.get("access_token")
     if not access_token:
-        return {"error": "identity_data_missing"}
+        return {"error": "identity_not_valid", "identity_id": identity.id}
 
     expires = identity.data.get("expires")
     if expires is not None and time() >= expires:
@@ -926,7 +926,7 @@ def get_monitoring_provider_token(*, user_id: int, provider_type: str) -> dict:
 
             access_token = identity.data.get("access_token")
             if not access_token:
-                return {"error": "identity_data_missing"}
+                raise IdentityNotValid()
             expires = identity.data.get("expires")
         except IdentityNotValid:
             return {"error": "identity_not_valid", "identity_id": identity.id}
@@ -959,8 +959,12 @@ def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
     except (ApiError, KeyError, ConnectionError):
         return {"error": "refresh_failed"}
 
+    access_token = identity.data.get("access_token")
+    if not access_token:
+        return {"error": "identity_not_valid"}
+
     return {
-        "access_token": identity.data["access_token"],
+        "access_token": access_token,
         "expires": identity.data.get("expires"),
     }
 
