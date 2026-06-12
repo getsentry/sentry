@@ -1539,7 +1539,6 @@ module = [
     "sentry.utils.flag",
     "sentry.utils.glob",
     "sentry.utils.groupreference",
-    "sentry.utils.hashlib",
     "sentry.utils.http",
     "sentry.utils.in_app",
     "sentry.utils.integrationdocs",
