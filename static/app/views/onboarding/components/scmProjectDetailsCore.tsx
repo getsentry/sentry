@@ -67,7 +67,7 @@ export function ScmProjectDetailsCore({
   return (
     <Stack gap="3xl" width="100%" maxWidth={contentMaxWidth}>
       <Stack gap="md">
-        <Flex gap="md" align="center" justify="center">
+        <Flex gap="md" align="center">
           <IconProject size="md" variant="secondary" />
           <Container>
             <Text bold size="lg" density="comfortable">
@@ -86,7 +86,7 @@ export function ScmProjectDetailsCore({
 
       {!isOrgMemberWithNoAccess && (
         <Stack gap="md">
-          <Flex gap="md" align="center" justify="center">
+          <Flex gap="md" align="center">
             <IconGroup size="md" />
             <Container>
               <Text bold size="lg" density="comfortable">
@@ -108,7 +108,7 @@ export function ScmProjectDetailsCore({
       )}
 
       <Stack gap="md">
-        <Flex gap="md" align="center" justify="center">
+        <Flex gap="md" align="center">
           <IconSiren size="md" />
           <Container>
             <Text bold size="lg" density="comfortable">
@@ -117,7 +117,7 @@ export function ScmProjectDetailsCore({
           </Container>
         </Flex>
         <Container>
-          <Text variant="muted" size="lg" density="comfortable" align="center">
+          <Text variant="muted" size="lg" density="comfortable">
             {t('Get notified when things go wrong')}
           </Text>
         </Container>
