@@ -1,6 +1,8 @@
 import logging
 import posixpath
 import re
+import shutil
+import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
@@ -835,9 +837,14 @@ def _clone_proguard_debug_file_for_reupload(
     if debug_file.file is not None:
         dif, created = create_dif_from_id(project, meta, file=debug_file.file)
     else:
+        # Objectstore streams are not seekable, but create_dif_from_id needs to
+        # read the file twice (checksum + upload). Buffer into a temp file.
         source_fileobj = debug_file.getfile()
         try:
-            dif, created = create_dif_from_id(project, meta, fileobj=source_fileobj)
+            with tempfile.SpooledTemporaryFile(max_size=5 * 1024 * 1024) as tmp:
+                shutil.copyfileobj(source_fileobj, tmp)
+                tmp.seek(0)
+                dif, created = create_dif_from_id(project, meta, fileobj=tmp)
         finally:
             source_fileobj.close()
 

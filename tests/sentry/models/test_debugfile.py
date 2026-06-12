@@ -368,12 +368,12 @@ class DebugFileObjectstoreTest(TestCase):
 
         with (
             patch.object(dif, "_get_objectstore_session", return_value=session),
-            self.assertLogs("sentry.models.debugfile", level="ERROR") as logs,
+            self.assertLogs("sentry.models.debugfile", level="INFO") as logs,
         ):
             dif.delete()
 
         assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
-        assert "debugfile.objectstore_delete_failed" in logs.output[0]
+        assert "Failed to delete debug file from Objectstore" in logs.output[0]
 
     def test_maybe_renew_debug_files_skips_objectstore_rows_when_tti_bump_fails(self):
         old_date = timezone.now() - timedelta(days=999)
