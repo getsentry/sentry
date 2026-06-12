@@ -319,12 +319,13 @@ class OrganizationReleaseDetailsEndpoint(
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
+            ReleaseParams.PROJECT_ID,
             OpenApiParameter(
                 name="project",
                 location="query",
                 required=False,
                 type=PROJECT_ID_OR_SLUG_SCHEMA,
-                description="The project ID or slug to filter by.",
+                description="The project ID or slug to filter by. Overrides project_id when both are sent.",
             ),
             ReleaseParams.HEALTH,
             ReleaseParams.ADOPTION_STAGES,
@@ -351,7 +352,7 @@ class OrganizationReleaseDetailsEndpoint(
         """
         # Dictionary responsible for storing selected project meta data
         current_project_meta = {}
-        project_id = request.GET.get("project")
+        project_id = request.GET.get("project") or request.GET.get("project_id")
         with_health = request.GET.get("health") == "1"
         with_adoption_stages = request.GET.get("adoptionStages") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"

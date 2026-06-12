@@ -130,6 +130,9 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url, {"project": self.project1.id})
         assert response.status_code == 200
 
+        response = self.client.get(url, {"project_id": self.project1.id})
+        assert response.status_code == 200
+
         response = self.client.get(url, {"project": self.project1.slug})
         assert response.status_code == 200
 

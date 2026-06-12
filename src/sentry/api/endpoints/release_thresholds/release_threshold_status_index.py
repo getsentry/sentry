@@ -59,9 +59,9 @@ class ReleaseThresholdStatusIndexData(TypedDict, total=False):
     start: datetime
     end: datetime
     environment: list[str]
-    project: list[ProjectIdOrSlug]
     projectSlug: list[str]
     release: list[str]
+    project: list[ProjectIdOrSlug]
 
 
 class ReleaseThresholdStatusIndexSerializer(
@@ -91,17 +91,17 @@ class ReleaseThresholdStatusIndexSerializer(
         child=serializers.CharField(allow_blank=True),
         help_text=("A list of project slugs to filter your results by."),
     )
-    project = serializers.ListField(
-        required=False,
-        allow_empty=True,
-        child=ProjectIdOrSlugField(),
-        help_text=("A list of project IDs or slugs to filter your results by."),
-    )
     release = serializers.ListField(
         required=False,
         allow_empty=True,
         child=serializers.CharField(),
         help_text=("A list of release versions to filter your results by."),
+    )
+    project = serializers.ListField(
+        required=False,
+        allow_empty=True,
+        child=ProjectIdOrSlugField(),
+        help_text=("A list of project IDs or slugs to filter your results by."),
     )
 
     def validate(self, data: ReleaseThresholdStatusIndexData) -> ReleaseThresholdStatusIndexData:
