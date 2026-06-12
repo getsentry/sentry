@@ -28,6 +28,11 @@ from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
     get_new_issue_counts,
 )
+from sentry.api.helpers.projects import (
+    ProjectIdOrSlug,
+    ProjectIdOrSlugField,
+    parse_id_or_slug_params,
+)
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.release_threshold_examples import ReleaseThresholdExamples
@@ -56,6 +61,7 @@ class ReleaseThresholdStatusIndexData(TypedDict, total=False):
     environment: list[str]
     projectSlug: list[str]
     release: list[str]
+    project: list[ProjectIdOrSlug]
 
 
 class ReleaseThresholdStatusIndexSerializer(
@@ -82,7 +88,7 @@ class ReleaseThresholdStatusIndexSerializer(
     projectSlug = serializers.ListField(
         required=False,
         allow_empty=True,
-        child=serializers.CharField(),
+        child=serializers.CharField(allow_blank=True),
         help_text=("A list of project slugs to filter your results by."),
     )
     release = serializers.ListField(
@@ -90,6 +96,12 @@ class ReleaseThresholdStatusIndexSerializer(
         allow_empty=True,
         child=serializers.CharField(),
         help_text=("A list of release versions to filter your results by."),
+    )
+    project = serializers.ListField(
+        required=False,
+        allow_empty=True,
+        child=ProjectIdOrSlugField(),
+        help_text=("A list of project IDs or slugs to filter your results by."),
     )
 
     def validate(self, data: ReleaseThresholdStatusIndexData) -> ReleaseThresholdStatusIndexData:
@@ -136,27 +148,36 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # NOTE: start/end parameters determine window to query for releases
         # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
-        serializer = ReleaseThresholdStatusIndexSerializer(
-            data=request.query_params,
-        )
+        query_params = self.get_query_params_with_project_slug_precedence(request)
+
+        serializer = ReleaseThresholdStatusIndexSerializer(data=query_params)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
-        environments_list = serializer.validated_data.get(
-            "environment"
-        )  # list of environment names
-        project_slug_list = serializer.validated_data.get("projectSlug")
-        releases_list = serializer.validated_data.get("release")  # list of release versions
+        validated_data = serializer.validated_data
+        environments_list = validated_data.get("environment")  # list of environment names
+        releases_list = validated_data.get("release")  # list of release versions
+
+        project_ids: set[int] | None = None
+        project_slugs = {slug for slug in validated_data.get("projectSlug", []) if slug} or None
+        if project_slugs is None:
+            requested_project = parse_id_or_slug_params(validated_data.get("project", []))
+            project_ids = requested_project.ids or None
+            project_slugs = requested_project.slugs or None
+
         try:
             filter_params = self.get_filter_params(
-                request, organization, date_filter_optional=True, project_slugs=project_slug_list
+                request,
+                organization,
+                date_filter_optional=True,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
             )
         except NoProjects:
             raise NoProjects("No projects available")
 
-        # Use validated project IDs from get_filter_params instead of raw user input.
-        # The raw project_slug_list could contain slugs for projects the user doesn't
-        # have access to, bypassing the permission checks in get_projects().
+        # Use project IDs from get_filter_params instead of raw project filters so
+        # project access is checked before fetching threshold data.
         validated_project_ids = set(filter_params["project_id"])
 
         start: datetime | None = filter_params["start"]
@@ -203,7 +224,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             "Fetched releases",
             extra={
                 "results": len(queryset),
-                "project_slugs": project_slug_list,
+                "project_slugs": project_slugs,
                 "releases": releases_list,
                 "environments": environments_list,
             },
