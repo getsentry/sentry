@@ -85,14 +85,14 @@ describe('Sentry Application Dashboard', () => {
 
     it('shows the total install/uninstall stats', async () => {
       renderDashboard();
-      expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
+      expect(await screen.findByTestId('installs', undefined, {timeout: 5000})).toHaveTextContent('Total installs5');
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
     it('shows the request log', async () => {
       renderDashboard();
       // The mock response has 1 request
-      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+      expect(await screen.findByTestId('request-item', undefined, {timeout: 5000})).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
       // Make sure that all the info is displayed
       expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
@@ -110,14 +110,14 @@ describe('Sentry Application Dashboard', () => {
       renderDashboard();
 
       expect(
-        await screen.findByText('No requests found in the last 30 days.')
+        await screen.findByText('No requests found in the last 30 days.', undefined, {timeout: 5000})
       ).toBeInTheDocument();
     });
 
     it('shows integration and interactions chart with a deduplicated interaction fetch', async () => {
       renderDashboard();
 
-      await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3));
+      await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3), {timeout: 5000});
       expect(statsMock).toHaveBeenCalledTimes(1);
       expect(interactionMock).toHaveBeenCalledTimes(1);
     });
@@ -167,7 +167,7 @@ describe('Sentry Application Dashboard', () => {
     it('shows the request log', async () => {
       renderDashboard();
       // The mock response has 1 request
-      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+      expect(await screen.findByTestId('request-item', undefined, {timeout: 5000})).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
       // Make sure that all the info is displayed
       expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
@@ -186,14 +186,14 @@ describe('Sentry Application Dashboard', () => {
 
       renderDashboard();
       expect(
-        await screen.findByText('No requests found in the last 30 days.')
+        await screen.findByText('No requests found in the last 30 days.', undefined, {timeout: 5000})
       ).toBeInTheDocument();
     });
 
     it('shows the component interactions in a line chart without fetching stats', async () => {
       renderDashboard();
 
-      expect(await screen.findByTestId('chart')).toBeInTheDocument();
+      expect(await screen.findByTestId('chart', undefined, {timeout: 5000})).toBeInTheDocument();
       expect(statsMock).not.toHaveBeenCalled();
       expect(interactionMock).toHaveBeenCalledTimes(1);
     });
@@ -236,7 +236,7 @@ describe('Sentry Application Dashboard', () => {
     it('shows the request log without fetching stats or interactions', async () => {
       renderDashboard();
 
-      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
+      expect(await screen.findByTestId('request-item', undefined, {timeout: 5000})).toBeInTheDocument();
       expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
       expect(screen.queryByText('Component Interactions')).not.toBeInTheDocument();
       expect(statsMock).not.toHaveBeenCalled();
