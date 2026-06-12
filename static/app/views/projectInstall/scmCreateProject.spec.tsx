@@ -154,7 +154,9 @@ describe('ScmCreateProject', () => {
   });
 
   it('names the single missing field on the disabled Create CTA', async () => {
-    persistRevealedWizard();
+    // All steps render at once now, so a plain restored session (platform set)
+    // is enough; no separate "revealed" state to seed.
+    persistWizardSession();
 
     render(<ScmCreateProject />, {
       organization,

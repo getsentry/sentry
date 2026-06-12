@@ -216,7 +216,11 @@ export function useScmProjectDetails({
   const missingFields = {
     platform: !selectedPlatform,
     projectName: projectNameResolved.length === 0,
-    team: !isOrgMemberWithNoAccess && teamSlugResolved.length === 0,
+    // While teams load, teamSlugResolved is empty only because firstAdminTeam
+    // isn't available yet, not because the user must pick one. Don't report it
+    // as missing so the disabled-CTA tooltip stays silent for this transient
+    // blocker (canSubmit gates on !isLoadingTeams independently).
+    team: !isOrgMemberWithNoAccess && !isLoadingTeams && teamSlugResolved.length === 0,
   };
 
   // Block submission until teams and the projects store have loaded so the
