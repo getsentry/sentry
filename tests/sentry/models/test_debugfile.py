@@ -11,6 +11,8 @@ import pytest
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
+from objectstore_client import RequestError
 
 from sentry.models.debugfile import (
     DifMeta,
@@ -20,7 +22,9 @@ from sentry.models.debugfile import (
     get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
+from sentry.objectstore import get_debug_files_session
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.skips import requires_objectstore
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -234,6 +238,84 @@ class DebugFileTest(TestCase):
         )
 
         assert dif.file_extension == ""
+
+
+class DebugFileObjectstoreTest(TestCase):
+    """Tests for Objectstore-backed debug files."""
+
+    def _get_session(self):
+        return get_debug_files_session(org=self.organization.id, project=self.project.id)
+
+    def _create_objectstore_dif(self, content=b"objectstore-content", **kwargs):
+        storage_path = self._get_session().put(content, compression="zstd")
+        defaults = {
+            "debug_id": "dfb8e43a-f242-3d73-a453-aeb6a777ef75",
+            "project_id": self.project.id,
+            "object_name": "test.dSYM",
+            "cpu_name": "x86_64",
+            "checksum": "a" * 40,
+            "storage_path": storage_path,
+            "content_type": "application/x-mach-binary",
+            "file_size": len(content),
+            "date_created": timezone.now(),
+        }
+        defaults.update(kwargs)
+        return ProjectDebugFile.objects.create(**defaults)
+
+    def _create_non_objectstore_dif(self, **kwargs):
+        return self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75", **kwargs)
+
+    @requires_objectstore
+    def test_metadata_reads_from_new_columns_when_storage_path_set(self):
+        ts = timezone.now()
+        dif = self._create_objectstore_dif(
+            content_type="text/x-proguard+plain",
+            file_size=9999,
+            date_created=ts,
+        )
+
+        assert dif.get_content_type() == "text/x-proguard+plain"
+        assert dif.get_file_size() == 9999
+        assert dif.get_date_created() == ts
+        assert dif.get_headers() == {"Content-Type": "text/x-proguard+plain"}
+        assert dif.file_format == "proguard"
+
+    def test_metadata_coalescing_falls_back_to_file(self):
+        dif = self._create_non_objectstore_dif()
+
+        assert dif.get_content_type() == "application/x-mach-binary"
+        assert dif.get_file_size() == dif.file.size
+        assert dif.get_date_created() == dif.file.timestamp
+        assert dif.get_headers() == {"Content-Type": "application/x-mach-binary"}
+
+    @requires_objectstore
+    def test_getfile(self):
+        dif = self._create_objectstore_dif()
+
+        assert dif.getfile().read() == b"objectstore-content"
+
+    @requires_objectstore
+    def test_save_to(self):
+        dif = self._create_objectstore_dif()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "output")
+            dif.save_to(path)
+
+            with open(path, "rb") as f:
+                assert f.read() == b"objectstore-content"
+
+    @requires_objectstore
+    def test_delete(self):
+        dif = self._create_objectstore_dif()
+        storage_path = dif.storage_path
+        assert storage_path is not None
+        dif_id = dif.id
+        dif.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
+        with pytest.raises(RequestError):
+            self._get_session().get(storage_path)
 
 
 class CreateDebugFileTest(APITestCase):
