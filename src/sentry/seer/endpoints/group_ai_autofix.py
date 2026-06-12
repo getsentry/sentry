@@ -10,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -42,8 +43,10 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
     UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
+    Feedback,
     NoSeerQuotaException,
     get_autofix_agent_state,
+    get_autofix_run_state,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -94,6 +97,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "root_cause",
             "solution",
             "code_changes",
+            "pr_iteration",
             "open_pr",
             "coding_agent_handoff",
         ],
@@ -295,9 +299,47 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             }
             return Response(open_pr_body, status=status.HTTP_202_ACCEPTED)
 
+        if step == "pr_iteration":
+            if not features.has("organizations:autofix-pr-iteration", group.organization):
+                return Response(
+                    {"detail": "PR iteration is not enabled for this organization"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            if not run_id:
+                return Response(
+                    {"detail": "run_id is required for pr_iteration"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                state = get_autofix_run_state(group, run_id)
+            except SeerPermissionError as e:
+                if _is_unknown_run_id_error(e):
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+                raise PermissionDenied(SEER_PERMISSION_DENIED)
+            if not state.repo_pr_states:
+                return Response(
+                    {"detail": "Cannot iterate on a PR before one has been created"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         # Handle all built-in Seer steps. A missing run_id means this call starts a new
         # autofix run (the kickoff); a provided run_id is advancing an existing run.
         is_autofix_kickoff = resolved_run_id is None
+        user_context = data.get("user_context")
+        feedback = None
+        if (
+            step == "pr_iteration"
+            and user_context is not None
+            and request.user
+            and request.user.is_authenticated
+        ):
+            feedback = Feedback(
+                message=user_context,
+                source={
+                    "type": "user-ui",
+                    "user_id": request.user.id,
+                },
+            )
         try:
             run_id = trigger_autofix_agent(
                 group=group,
@@ -305,8 +347,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=resolved_run_id,
-                user_context=data.get("user_context"),
+                user_context=user_context,
                 insert_index=data.get("insert_index"),
+                feedback=feedback,
             )
             if is_autofix_kickoff:
                 # Record the trigger action only on kickoff, not on each subsequent
