@@ -120,18 +120,17 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         try:
             config = _get_pipeline_config(provider_key, request.data)
+            idp = _get_identity_provider(provider_key, config)
+            pipeline = IdentityPipeline(
+                request=request._request,
+                provider_key=provider_key,
+                organization=organization,
+                provider_model=idp,
+                config=config,
+            )
         except ValueError:
             return Response({"detail": "Invalid provider configuration."}, status=400)
 
-        idp = _get_identity_provider(provider_key, config)
-
-        pipeline = IdentityPipeline(
-            request=request._request,
-            provider_key=provider_key,
-            organization=organization,
-            provider_model=idp,
-            config=config,
-        )
         pipeline.initialize()
 
         response = pipeline.current_step()
