@@ -204,7 +204,8 @@ class ProjectEndpoint(Endpoint):
 
         self.check_object_permissions(request, project)
 
-        sentry_sdk.get_isolation_scope().set_tag("project", project.id)
+        sentry_sdk.set_tag("project", project.id)
+        sentry_sdk.set_attribute("project", project.id)
 
         bind_organization_context(project.organization)
 
