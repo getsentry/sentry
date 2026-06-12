@@ -19,7 +19,6 @@ from sentry.seer.autofix.autofix_agent import (
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
     get_latest_iteration_index,
-    recover_iteration_feedback,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -28,7 +27,6 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
 class TestGenerateAutofixHandoffPrompt(TestCase):
@@ -247,20 +245,10 @@ class TestBuildStepPrompt(TestCase):
             assert not prompt.startswith("\t"), f"{step} prompt starts with tab"
 
 
-def _iteration_block(
-    iteration_index: int | None = None, feedback: str | None = None
-) -> MemoryBlock:
+def _iteration_block(iteration_index: int | None = None) -> MemoryBlock:
     metadata: dict[str, str] = {"step": AutofixStep.PR_ITERATION.value}
     if iteration_index is not None:
         metadata["iteration_index"] = str(iteration_index)
-    if feedback is not None:
-        metadata["feedback"] = json.dumps(
-            {
-                "text": feedback,
-                "source": "user",
-                "timestamp": "2024-01-01T00:00:00Z",
-            }
-        )
     return MemoryBlock(
         id=f"block-{iteration_index}",
         message=Message(role="assistant", content="iteration", metadata=metadata),
@@ -290,24 +278,6 @@ class TestIterationHelpers(TestCase):
     def test_get_iteration_for_insert_index(self) -> None:
         state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
         assert get_iteration_for_insert_index(state, 1) == 2
-
-    def test_recover_iteration_feedback_returns_feedback(self) -> None:
-        state = _state_with_blocks([_iteration_block(1, feedback="please fix the tests")])
-        assert recover_iteration_feedback(state, 0) == "please fix the tests"
-
-    def test_recover_iteration_feedback_out_of_range(self) -> None:
-        state = _state_with_blocks([])
-        assert recover_iteration_feedback(state, 0) is None
-        assert recover_iteration_feedback(state, -1) is None
-
-    def test_recover_iteration_feedback_no_metadata(self) -> None:
-        block = MemoryBlock(
-            id="block-none",
-            message=Message(role="assistant", content="x", metadata=None),
-            timestamp="2024-01-01T00:00:00Z",
-        )
-        state = _state_with_blocks([block])
-        assert recover_iteration_feedback(state, 0) is None
 
 
 class TestPrIterationPrompt(TestCase):
