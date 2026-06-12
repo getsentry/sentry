@@ -2949,19 +2949,6 @@ SENTRY_GITHUB_APP_USER_ID = 39604003
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
-# PR Merge Live Metrics: signals used to flag a freshly-opened PR as a possible
-# delegated coding-agent PR (created by a Seer Autofix session that handed off to
-# Claude Code or GitHub Copilot). Keyed by provider hint.
-PR_METRICS_DELEGATED_AGENT_BRANCH_PREFIXES: dict[str, str] = {
-    "claude_code": "claude/",
-    "github_copilot": "copilot/",
-}
-# GitHub bot login -> provider hint. Copilot opens PRs as a distinct bot user, so
-# the author login is a reliable signal; other providers rely on the branch prefix.
-PR_METRICS_DELEGATED_AGENT_AUTHOR_LOGINS: dict[str, str] = {
-    "copilot-swe-agent[bot]": "github_copilot",
-}
-
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 

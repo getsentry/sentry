@@ -62,7 +62,11 @@ from sentry.pr_metrics.emit import (
     is_pr_tracked,
     select_verdict,
 )
-from sentry.pr_metrics.utils import resolved_group_ids
+from sentry.pr_metrics.utils import (
+    DELEGATED_AGENT_AUTHOR_LOGINS,
+    DELEGATED_AGENT_BRANCH_PREFIXES,
+    resolved_group_ids,
+)
 from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
@@ -545,12 +549,12 @@ def _is_delegated_agent_candidate(
     Seer downstream.
     """
     head_ref = (pull_request.get("head") or {}).get("ref") or ""
-    for provider, prefix in settings.PR_METRICS_DELEGATED_AGENT_BRANCH_PREFIXES.items():
+    for provider, prefix in DELEGATED_AGENT_BRANCH_PREFIXES.items():
         if prefix and head_ref.startswith(prefix):
             return provider
 
     login = github_user.get("login") or ""
-    return settings.PR_METRICS_DELEGATED_AGENT_AUTHOR_LOGINS.get(login)
+    return DELEGATED_AGENT_AUTHOR_LOGINS.get(login)
 
 
 def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType | None:
