@@ -361,7 +361,11 @@ def detect_platforms_multi(
     seen_platforms: set[str] = set()
 
     for base_platform, lang_entries in active_platforms.items():
-        language, byte_count = max(lang_entries, key=lambda x: x[1])
+        # Use the dominant language as the label, but sum all bytes in the
+        # bucket so the sort reflects the platform's true weight (e.g. TS +
+        # JS combined, not just the larger of the two).
+        language = max(lang_entries, key=lambda x: x[1])[0]
+        byte_count = sum(b for _, b in lang_entries)
 
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
             # Pass empty file_contents and no manifest so only path/dir/ext
