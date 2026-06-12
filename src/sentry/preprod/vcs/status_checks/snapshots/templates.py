@@ -15,6 +15,7 @@ from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     _format_name_cell,
     _name_cell,
     _section_cell,
+    format_errored_note,
 )
 
 _SNAPSHOT_TITLE_BASE = _("Snapshot Testing")
@@ -138,15 +139,8 @@ def format_snapshot_status_check_messages(
         approvals_map=approvals_map,
     )
 
-    if total_errored > 0:
-        errored_note = str(
-            ngettext(
-                "⚠️ %(count)d image failed to compare",
-                "⚠️ %(count)d images failed to compare",
-                total_errored,
-            )
-            % {"count": total_errored}
-        )
+    errored_note = format_errored_note(total_errored)
+    if errored_note:
         summary += "\n\n" + errored_note
 
     settings_url = _get_settings_url(project)
