@@ -272,6 +272,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             raise Http404
 
         try:
+            assert debug_file.file is not None
             fp = debug_file.file.getfile()
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
