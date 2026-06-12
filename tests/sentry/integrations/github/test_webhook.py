@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
+from django.test import override_settings
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
@@ -43,7 +44,6 @@ from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -922,7 +922,7 @@ class PushEventWebhookTest(APITestCase):
         assert_success_metric(mock_record)
 
     @responses.activate
-    @override_options({"viewer-context.enabled": True})
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_viewer_context_set_during_handler(self, mock_record: MagicMock) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during webhook processing."""

@@ -19,10 +19,6 @@ from sentry.testutils.silo import no_silo_test
 
 class SubdomainMiddlewareTest(TestCase):
     def test_attaches_subdomain_attribute(self) -> None:
-        options = {
-            "system.base-hostname": "us.dev.getsentry.net:8000",
-        }
-
         def request_with_host(host: str) -> tuple[HttpRequest, HttpResponseBase]:
             got_request = None
 
@@ -42,7 +38,7 @@ class SubdomainMiddlewareTest(TestCase):
         def run_response(host: str) -> HttpResponseBase:
             return request_with_host(host)[1]
 
-        with self.options(options):
+        with override_settings(SENTRY_BASE_HOSTNAME="us.dev.getsentry.net:8000"):
             assert run_request("foobar").subdomain is None
             assert run_request("dev.getsentry.net:8000").subdomain is None
             assert run_request("us.dev.getsentry.net:8000").subdomain is None
@@ -55,7 +51,7 @@ class SubdomainMiddlewareTest(TestCase):
                 run_response("_smtp._tcp.us.dev.getsentry.net:8000"), HttpResponseRedirect
             )
 
-        with self.options({}):
+        with override_settings(SENTRY_BASE_HOSTNAME="testserver"):
             assert run_request("foobar").subdomain is None
             assert run_request("dev.getsentry.net:8000").subdomain is None
             assert run_request("us.dev.getsentry.net:8000").subdomain is None

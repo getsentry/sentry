@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
@@ -48,7 +49,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         with (
             self.feature("organizations:preprod-snapshots"),
-            self.options({"system.region-api-url-template": "https://{region}.testserver"}),
+            override_settings(SENTRY_REGION_API_URL_TEMPLATE="https://{region}.testserver"),
         ):
             response = self.client.get(self.url)
 

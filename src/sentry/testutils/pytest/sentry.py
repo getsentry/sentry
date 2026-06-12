@@ -273,15 +273,20 @@ def pytest_configure(config: pytest.Config) -> None:
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
+    # These were migrated from options to Django settings. Set them directly so
+    # consumers (which now read the settings) see the test values; the
+    # option->setting bridge in bootstrap_options would otherwise let a deploy
+    # default (e.g. getsentry's dev.py) win over an option set here.
+    settings.SENTRY_BASE_HOSTNAME = "testserver"
+    settings.SENTRY_ORGANIZATION_BASE_HOSTNAME = "{slug}.testserver"
+    settings.SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
+    settings.SENTRY_REGION_API_URL_TEMPLATE = "http://{region}.testserver"
+
     settings.SENTRY_OPTIONS.update(
         {
             "redis.clusters": {"default": {"hosts": {0: {"db": xdist.get_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
-            "system.base-hostname": "testserver",
-            "system.organization-base-hostname": "{slug}.testserver",
-            "system.organization-url-template": "http://{hostname}",
-            "system.region-api-url-template": "http://{region}.testserver",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",

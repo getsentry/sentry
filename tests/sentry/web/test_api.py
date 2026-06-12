@@ -391,7 +391,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.options({"system.organization-base-hostname": "invalid"}):
+        with override_settings(SENTRY_ORGANIZATION_BASE_HOSTNAME="invalid"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -406,7 +406,7 @@ class ClientConfigViewTest(TestCase):
                 "sentryUrl": "http://testserver",
             }
 
-        with self.options({"system.organization-base-hostname": "{slug}.testserver"}):
+        with override_settings(SENTRY_ORGANIZATION_BASE_HOSTNAME="{slug}.testserver"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -431,7 +431,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.options({"system.organization-url-template": "invalid"}):
+        with override_settings(SENTRY_ORGANIZATION_URL_TEMPLATE="invalid"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -446,7 +446,7 @@ class ClientConfigViewTest(TestCase):
                 "sentryUrl": "http://testserver",
             }
 
-        with self.options({"system.organization-url-template": None}):
+        with override_settings(SENTRY_ORGANIZATION_URL_TEMPLATE=None):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -461,7 +461,7 @@ class ClientConfigViewTest(TestCase):
                 "sentryUrl": "http://testserver",
             }
 
-        with self.options({"system.organization-url-template": "ftp://{hostname}"}):
+        with override_settings(SENTRY_ORGANIZATION_URL_TEMPLATE="ftp://{hostname}"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -626,7 +626,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.options({"system.region-api-url-template": "http://foobar.{region}.testserver"}):
+        with override_settings(SENTRY_REGION_API_URL_TEMPLATE="http://foobar.{region}.testserver"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"

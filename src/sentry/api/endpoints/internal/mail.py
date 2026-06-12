@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -28,7 +29,7 @@ class InternalMailEndpoint(Endpoint):
             "mailUseTls": options.get("mail.use-tls"),
             "mailUseSsl": options.get("mail.use-ssl"),
             "mailFrom": options.get("mail.from"),
-            "mailListNamespace": options.get("mail.list-namespace"),
+            "mailListNamespace": settings.SENTRY_MAIL_LIST_NAMESPACE,
             "testMailEmail": request.user.email,
         }
 

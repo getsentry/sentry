@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import orjson
 import responses
 from django.http import HttpResponse
+from django.test import override_settings
 from django.urls import reverse
 from requests import PreparedRequest
 from rest_framework.response import Response
@@ -25,7 +26,6 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial, assert_slo_metric
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
@@ -441,7 +441,7 @@ class StatusActionTest(APITestCase):
         assert_mock_called_once_with_partial(client_put, data=expected_data)
 
     @responses.activate
-    @override_options({"viewer-context.enabled": True})
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_action_submitted_sets_viewer_context(self, verify: MagicMock) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during action handling."""
