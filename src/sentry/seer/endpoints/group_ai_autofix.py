@@ -325,6 +325,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 )
             if is_autofix_kickoff:
                 # Kickoff returns only the numeric id; fetch the mirror for its UUID.
+                # TODO(telkins): start_run already returns this SeerRun — have
+                # trigger_autofix_agent return it so we can drop this lookup and
+                # the branch (also lets night_shift drop its post-call lookup).
                 run = get_seer_run(run_id, group.organization)
                 sentry_run_id = str(run.uuid) if run else None
             else:
