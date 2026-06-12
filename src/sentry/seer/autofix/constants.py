@@ -57,6 +57,7 @@ class AutofixReferrer(enum.StrEnum):
     LINEAR_AGENT = "api.linear_agent"
     MCP = "api.mcp"
     WEB = "api.web"
+    GITHUB_PR_COMMENT = "github.pr_comment"
     UNKNOWN = "unknown"
 
 

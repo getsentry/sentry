@@ -942,6 +942,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.sentry_apps.services.legacy_webhook.tasks",
     "sentry.seer.autofix.issue_summary",
+    "sentry.seer.autofix.pr_iteration_webhook",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
