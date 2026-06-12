@@ -2802,6 +2802,14 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Store the regression-triggering event's metadata in the activity data so
+# notifications show the correct title/message instead of stale group data.
+register(
+    "groups.regression-activity-event-metadata",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
