@@ -408,10 +408,11 @@ class ProcessChunkTest(TestCase):
             )
 
         [record] = [r for r in logs.records if r.getMessage() == "compare_snapshots: chunk failed"]
-        assert record.error_type == "ValueError"
-        assert record.error == "odiff exploded"
-        assert record.comparison_id == comparison.id
-        assert record.chunk_index == 0
+        extra = record.__dict__
+        assert extra["error_type"] == "ValueError"
+        assert extra["error"] == "odiff exploded"
+        assert extra["comparison_id"] == comparison.id
+        assert extra["chunk_index"] == 0
 
 
 @cell_silo_test
