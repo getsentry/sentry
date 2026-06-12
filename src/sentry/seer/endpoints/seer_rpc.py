@@ -4,6 +4,7 @@ import hmac
 import logging
 import uuid
 from collections.abc import Callable
+from time import time
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -14,6 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
+from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -42,11 +44,14 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.identity import default_manager as identity_manager
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -116,6 +121,7 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
@@ -897,6 +903,73 @@ def deliver_feature_result(
     handler(organization_id, run_uuid, status, result, error)
 
 
+def get_monitoring_provider_token(*, user_id: int, provider_type: str) -> dict:
+    """Fetch the current access token for a monitoring provider identity.
+
+    If the token is expired, proactively refreshes it before returning.
+    """
+    identity = identity_service.get_identity(
+        filter={"user_id": user_id, "provider_type": provider_type}
+    )
+    if identity is None:
+        return {"error": "identity_not_found"}
+
+    access_token = identity.data.get("access_token")
+    if not access_token:
+        return {"error": "identity_not_valid", "identity_id": identity.id}
+
+    expires = identity.data.get("expires")
+    if expires is not None and time() >= expires:
+        # Access token has expired--use the refresh token to get a new one.
+        try:
+            provider = identity_manager.get(provider_type)
+            provider.refresh_identity(identity)
+
+            access_token = identity.data.get("access_token")
+            if not access_token:
+                raise IdentityNotValid()
+            expires = identity.data.get("expires")
+        except IdentityNotValid:
+            return {"error": "identity_not_valid", "identity_id": identity.id}
+        except (ApiError, KeyError, RequestException):
+            return {"error": "refresh_failed"}
+
+    return {
+        "identity_id": identity.id,
+        "access_token": access_token,
+        "expires": expires,
+        "site": identity.data.get("site"),
+    }
+
+
+def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
+    """Refresh the access token for a monitoring provider identity."""
+    identity = identity_service.get_identity(filter={"id": identity_id})
+    if identity is None:
+        return {"error": "identity_not_found"}
+
+    idp = identity_service.get_provider(provider_id=identity.idp_id)
+    if idp is None:
+        return {"error": "identity_not_found"}
+
+    try:
+        provider = identity_manager.get(idp.type)
+        provider.refresh_identity(identity)
+    except IdentityNotValid:
+        return {"error": "identity_not_valid"}
+    except (ApiError, KeyError, RequestException):
+        return {"error": "refresh_failed"}
+
+    access_token = identity.data.get("access_token")
+    if not access_token:
+        return {"error": "identity_not_valid"}
+
+    return {
+        "access_token": access_token,
+        "expires": identity.data.get("expires"),
+    }
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
@@ -969,6 +1042,10 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # PR metrics (judge path)
     "update_pr_metrics": update_pr_metrics,
+    #
+    # Monitoring provider tokens (MCP)
+    "get_monitoring_provider_token": get_monitoring_provider_token,
+    "refresh_monitoring_provider_token": refresh_monitoring_provider_token,
 }
 
 
