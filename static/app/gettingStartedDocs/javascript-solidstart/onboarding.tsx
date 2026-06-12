@@ -33,9 +33,9 @@ Sentry.init({
         profileSessionSampleRate: 1.0,`
       : ''
   }
-  // To disable sending user data, uncomment the line below. For more info visit:
+  // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
   // https://docs.sentry.io/platforms/javascript/guides/solidstart/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false },
+  // dataCollection: { userInfo: false, httpBodies: [] },
 });
 `;
 }
