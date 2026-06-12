@@ -270,8 +270,6 @@ def _sync_project_debug_file(
                 date_accessed=source_project_debug_file.date_accessed,
             )
     except IntegrityError as e:
-        if target_project is not None and target_storage_path is not None:
-            get_debug_files_session(target_org.id, target_project.id).delete(target_storage_path)
         sentry_sdk.capture_exception(e)
         return None
 

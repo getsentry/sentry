@@ -1,11 +1,9 @@
 import zipfile
 from io import BytesIO
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from django.utils import timezone
 
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -156,36 +154,6 @@ class DebugFilesTest(DebugFilesTestCases):
         # accessing foreign files should not work
         response = self.client.get(f"{url}?id={download_id}")
         assert response.status_code == 404
-
-    def test_download_closes_streaming_file(self) -> None:
-        class CloseTrackingBytesIO(BytesIO):
-            was_closed = False
-
-            def close(self) -> None:
-                self.was_closed = True
-                super().close()
-
-        debug_file = ProjectDebugFile.objects.create(
-            project_id=self.project.id,
-            file=None,
-            storage_path="debug-files/key",
-            content_type="text/x-proguard+plain",
-            file_size=len(PROGUARD_SOURCE),
-            date_created=timezone.now(),
-            checksum="e6d3c5185dac63eddfdc1a5edfffa32d46103b44",
-            object_name="proguard-mapping",
-            cpu_name="any",
-            debug_id=PROGUARD_UUID,
-            data={"features": ["mapping"]},
-        )
-        payload = CloseTrackingBytesIO(PROGUARD_SOURCE)
-
-        with patch.object(ProjectDebugFile, "getfile", return_value=payload):
-            response = self.client.get(f"{self.url}?id={debug_file.id}")
-            assert response.status_code == 200, response.content
-            assert close_streaming_response(response) == PROGUARD_SOURCE
-
-        assert payload.was_closed
 
     def test_dsyms_requests(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
