@@ -383,7 +383,7 @@
         <tr>
           <th style="width: 2em; padding-right: 0.5em"></th>
           <th>Project</th>
-          <th style="width: 5em;" class="numeric">Errors</th>
+          <th style="width: 5em; padding-right: 2em;" class="numeric">Errors</th>
           <th style="width: 7em;" class="numeric">Transactions</th>
         </tr>
       </thead>
@@ -396,7 +396,7 @@
           <td>
               {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
           </td>
-          <td class="numeric">{{ project.accepted_error_count|small_count:1 }}</td>
+          <td class="numeric" style="padding-right: 2em;">{{ project.accepted_error_count|small_count:1 }}</td>
           <td class="numeric">{{ project.accepted_transaction_count|small_count:1 }}</td>
         </tr>
       {% endfor %}
