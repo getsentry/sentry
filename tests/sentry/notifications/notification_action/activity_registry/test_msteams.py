@@ -21,10 +21,8 @@ class TestMSTeamsActivityHandlerRegistration:
 class TestMSTeamsActivityHandler(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
-        self.project = self.create_project()
         self.group = self.create_group()
-        self.detector = self.create_detector(project=self.project)
-        self.workflow = self.create_workflow()
+        self.workflow, self.detector, _, _ = self.create_detector_and_workflow()
         self.integration = self.create_integration(
             organization=self.organization, provider="msteams", external_id="msteams_ext_id"
         )
