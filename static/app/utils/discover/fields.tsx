@@ -1193,7 +1193,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   const slicedFunction = value.function.slice(1);
   const parameters: string[] = [];
   for (const parameter of slicedFunction) {
-    if (parameter) {
+    if (typeof parameter === 'string') {
       parameters.push(generateFunctionArgument(parameter));
     }
   }
