@@ -360,6 +360,11 @@ def detect_platforms_multi(
     results: list[DetectedPlatform] = []
     seen_platforms: set[str] = set()
 
+    # Pass 1: framework (existence) matches across all base-platform buckets.
+    # Running this before the medium fallback pass ensures a framework match
+    # from any bucket (e.g. Swift firing apple-ios high) claims the platform
+    # id before the bare-language fallback for a differently-keyed bucket
+    # (e.g. Objective-C → base "apple-ios" medium) can occupy it first.
     for base_platform, lang_entries in active_platforms.items():
         # Use the dominant language as the label, but sum all bytes in the
         # bucket so the sort reflects the platform's true weight (e.g. TS +
@@ -384,7 +389,11 @@ def detect_platforms_multi(
                         )
                     )
 
+    # Pass 2: bare-language fallbacks for base platforms not resolved above.
+    for base_platform, lang_entries in active_platforms.items():
         if base_platform not in seen_platforms:
+            language = max(lang_entries, key=lambda x: x[1])[0]
+            byte_count = sum(b for _, b in lang_entries)
             seen_platforms.add(base_platform)
             results.append(
                 DetectedPlatform(
