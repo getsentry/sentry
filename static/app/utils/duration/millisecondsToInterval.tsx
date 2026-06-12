@@ -22,7 +22,16 @@ export function millisecondsToClosestInterval(
     (a, b) => intervalToMilliseconds(a) - intervalToMilliseconds(b)
   );
 
-  // calculate the MIDPOINT value ranges to allow the interval to be chosen
+  // calculate the MIDPOINT value ranges to allow the interval to be chosen.
+  // For example if the available intervals are [1m, 5m, 1h, 4h, 6h, 1d], the valid interval range
+  // boundaries would be the numbers exactly in between the intervals.
+  // so for example:
+  // - anything from 0 -> 3m would give the 1m interval,
+  // - anything from 3m -> 32.5m would give the 5m interval (because it's closer to 5m than to 1h),
+  // - anything from 32.5m -> 2.5h would give the 1h interval,
+  // - anything from 2.5h -> 5h would give the 4h interval,
+  // - anything from 5h -> 12h would give the 6h interval,
+  // - anything from 12h -> Infinity would give the 1d interval,
   const intervalRanges: Array<Range<string>> = [];
   for (let i = 0; i < sortedIntervals.length; i++) {
     const range: Range<string> = {min: 0, max: 0, value: sortedIntervals[i]!};
