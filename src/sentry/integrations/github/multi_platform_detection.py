@@ -360,6 +360,10 @@ def detect_platforms_multi(
     results: list[DetectedPlatform] = []
     seen_platforms: set[str] = set()
 
+    # Materialise once — _TreeIndex.files rebuilds a set from dict keys on
+    # every access; with up to 35 frameworks per bucket and a 100k-entry tree
+    tree_files = index.files
+
     # Pass 1: framework (existence) matches across all base-platform buckets.
     # Running this before the medium fallback pass ensures a framework match
     # from any bucket (e.g. Swift firing apple-ios high) claims the platform
@@ -375,7 +379,7 @@ def detect_platforms_multi(
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
             # Pass empty file_contents and no manifest so only path/dir/ext
             # existence rules fire; content/package rules return False here.
-            if _framework_matches(fw, index.files, {}, None, index.dirs):
+            if _framework_matches(fw, tree_files, {}, None, index.dirs):
                 platform_id = fw["platform"]
                 if platform_id not in seen_platforms:
                     seen_platforms.add(platform_id)
