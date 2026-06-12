@@ -53,7 +53,7 @@ class WorkflowEngineExamples:
                             {
                                 "id": "234567",
                                 "type": "issue_priority_deescalating",
-                                "comparison": True,
+                                "comparison": 25,
                                 "conditionResult": True,
                             }
                         ],
@@ -135,7 +135,7 @@ class WorkflowEngineExamples:
                             {
                                 "id": "345678",
                                 "type": "issue_priority_deescalating",
-                                "comparison": True,
+                                "comparison": 25,
                                 "conditionResult": True,
                             }
                         ],
