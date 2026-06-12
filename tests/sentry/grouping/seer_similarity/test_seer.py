@@ -62,6 +62,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "model": GroupingVersion.V1,
                 "training_mode": False,
                 "platform": "python",
+                "skip_fallback": False,
             },
             {
                 "platform": "python",
@@ -200,6 +201,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                     "model": GroupingVersion.V1,
                     "training_mode": False,
                     "platform": "python",
+                    "skip_fallback": False,
                 },
                 {
                     "platform": "python",
