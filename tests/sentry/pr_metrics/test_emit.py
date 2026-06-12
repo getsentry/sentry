@@ -16,11 +16,11 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.emit import (
-    _active_attributions,
-    _resolved_group_ids,
+    active_attributions,
     build_pr_metrics_row,
     emit_pr_metrics_row,
     is_pr_tracked,
+    resolved_group_ids,
     select_verdict,
 )
 from sentry.testutils.cases import TestCase
@@ -324,7 +324,7 @@ class PrMetricsEmissionTest(TestCase):
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             is_valid=False,
         )
-        assert _active_attributions(self.pull_request) == [SENTRY_APP_ATTRIBUTION]
+        assert active_attributions(self.pull_request) == [SENTRY_APP_ATTRIBUTION]
 
     def test_active_attributions_ordered_by_priority_with_source_and_details(self) -> None:
         # Lower-confidence signal recorded first, but ordered second.
@@ -334,7 +334,7 @@ class PrMetricsEmissionTest(TestCase):
             signal_details={"group_ids": [7]},
         )
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
-        assert _active_attributions(self.pull_request) == [
+        assert active_attributions(self.pull_request) == [
             SENTRY_APP_ATTRIBUTION,
             {
                 "signal_type": "referenced_issue",
@@ -345,15 +345,15 @@ class PrMetricsEmissionTest(TestCase):
 
     def test_resolved_group_ids_returns_sorted_resolving_links(self) -> None:
         ids = sorted([self._link_group(), self._link_group()])
-        assert _resolved_group_ids(self.pull_request) == ids
+        assert resolved_group_ids(self.pull_request) == ids
 
     def test_resolved_group_ids_excludes_non_resolving_links(self) -> None:
         # Only resolving links count; a "references" link is not a resolution.
         self._link_group(relationship=GroupLink.Relationship.references)
-        assert _resolved_group_ids(self.pull_request) == []
+        assert resolved_group_ids(self.pull_request) == []
 
     def test_resolved_group_ids_empty_when_pr_resolves_nothing(self) -> None:
-        assert _resolved_group_ids(self.pull_request) == []
+        assert resolved_group_ids(self.pull_request) == []
 
     def test_build_row_carries_group_ids(self) -> None:
         row = build_pr_metrics_row(
