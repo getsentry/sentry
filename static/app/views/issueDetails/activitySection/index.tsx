@@ -130,6 +130,7 @@ function TimelineItem({
   teams,
   size,
   inputVariant,
+  timestampUnitStyle,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
@@ -138,6 +139,7 @@ function TimelineItem({
   item: GroupActivity;
   size: 'sm' | 'md';
   teams: Team[];
+  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const organization = useOrganization();
   const theme = useTheme();
@@ -183,7 +185,7 @@ function TimelineItem({
           )}
         </Flex>
       }
-      timestamp={<Timestamp date={item.dateCreated} />}
+      timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
       marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
       colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
@@ -386,6 +388,7 @@ export function ActivitySection({
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
+  const timestampUnitStyle = variant === 'sidebar' ? 'extraShort' : undefined;
 
   const renderActivityItem = (item: GroupActivity) => (
     <TimelineItem
@@ -397,6 +400,7 @@ export function ActivitySection({
       key={item.id}
       size={size}
       inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
     />
   );
 

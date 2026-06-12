@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getLocalityDataFromOrganization,
   shouldDisplayLocalities,
-} from 'sentry/utils/regions';
+} from 'sentry/utils/cells';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

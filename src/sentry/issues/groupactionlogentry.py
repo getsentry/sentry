@@ -59,7 +59,8 @@ class GroupActionLogEntry(Model):
     # for invalidation.
     date_updated = models.DateTimeField(auto_now=True)
 
-    # Partial unique index with group_id prevents duplicate events.
+    # Unique identifier for external action this corresponds to.
+    # Primarly exists to make backfilling third party actions simpler.
     idempotency_key = models.CharField(max_length=64, null=True)
 
     class Meta:

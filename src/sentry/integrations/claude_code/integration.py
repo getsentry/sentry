@@ -185,9 +185,6 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     metadata = metadata
     requires_feature_flag = False
 
-    def get_pipeline_views(self):
-        return []
-
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [ClaudeCodeApiKeyApiStep()]
 

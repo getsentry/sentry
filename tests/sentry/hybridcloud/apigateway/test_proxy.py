@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import NoReturn
 from unittest.mock import Mock
 from urllib.parse import urlencode
 
@@ -7,8 +8,11 @@ import pytest
 import responses
 from asgiref.sync import async_to_sync
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import JsonResponse
 from django.test.client import RequestFactory
 from requests import PreparedRequest
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import ConnectTimeout
 
 from sentry.hybridcloud.apigateway import proxy as sync_proxy
 from sentry.hybridcloud.apigateway_async.proxy import proxy_request as _proxy_request
@@ -336,6 +340,60 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         resp = proxy_request(request, self.organization.slug, url_name)
         assert not any([header in resp for header in INVALID_OUTBOUND_HEADERS])
+
+    @responses.activate
+    def test_sync_connect_timeout_returns_500(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/unreachable",
+            body=ConnectTimeout("connection timed out"),
+        )
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Proxied request timed out"
+
+    @responses.activate
+    def test_sync_connection_error_returns_500(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/unreachable",
+            body=RequestsConnectionError("connection refused"),
+        )
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
+
+    def test_async_timeout_returns_500(self) -> None:
+        def raise_timeout(request: httpx.Request) -> NoReturn:
+            raise httpx.ConnectTimeout("connection timed out", request=request)
+
+        self.httpx_router.add_callback(
+            "GET", "http://us.internal.sentry.io/unreachable", raise_timeout
+        )
+
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Proxied request timed out"
+
+    def test_async_connection_error_returns_500(self) -> None:
+        def raise_connect_error(request: httpx.Request) -> NoReturn:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        self.httpx_router.add_callback(
+            "GET", "http://us.internal.sentry.io/unreachable", raise_connect_error
+        )
+
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
 
 
 api_gateway_address_cell = Cell(

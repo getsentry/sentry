@@ -771,6 +771,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if serializer.is_valid():
             result = serializer.validated_data
             scope.set_tag("version", result["version"])
+            scope.set_attribute("version", result["version"])
 
             # Get all projects that are available to the user/token
             # Note: Does not use the "projects" data param from the request
@@ -878,9 +879,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     for r in result.get("headCommits", [])
                 ]
             scope.set_tag("has_refs", bool(refs))
+            scope.set_attribute("has_refs", bool(refs))
             if refs:
                 if not request.user.is_authenticated and not request.auth:
                     scope.set_tag("failure_reason", "user_not_authenticated")
+                    scope.set_attribute("failure_reason", "user_not_authenticated")
                     return Response(
                         {"refs": ["You must use an authenticated API token to fetch refs"]},
                         status=400,
@@ -890,6 +893,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     release.set_refs(refs, request.user.id, fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
+                    scope.set_attribute("failure_reason", "InvalidRepository")
                     return Response({"refs": [str(e)]}, status=400)
 
             if not created and not new_releaseprojects:
@@ -916,11 +920,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 update_org_auth_token_last_used(request.auth, [project.id for project in projects])
 
             scope.set_tag("success_status", status)
+            scope.set_attribute("success_status", status)
             data: ReleaseSerializerResponse = serialize(
                 release, request.user, no_snuba_for_release_creation=True
             )
             return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
+        scope.set_attribute("failure_reason", "serializer_error")
         return Response(as_validation_errors(serializer), status=400)
 
 

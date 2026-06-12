@@ -48,10 +48,12 @@ export function WidgetCardConfidenceFooter({
     seriesName?.match(/.* : Other$|^Other$/)
   );
 
+  // All queries share the same aggregates, so queries[0] is representative.
+  // Fallback to 1 to guard against division by zero (DAIN-1712).
+  const aggregatesCount = widget.queries[0]?.aggregates.length || 1;
   const topEventsCountExcludingOther =
     timeseriesResults?.length && widget.queries[0]?.columns.length
-      ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (hasOtherSeries ? 1 : 0)
+      ? Math.floor(timeseriesResults.length / aggregatesCount) - (hasOtherSeries ? 1 : 0)
       : undefined;
 
   const isTopN =
