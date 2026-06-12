@@ -105,9 +105,7 @@ describe('ScmCreateProject', () => {
     expect(
       await screen.findByRole('heading', {name: 'Platform & features'})
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: 'Project details'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Project details'})).toBeInTheDocument();
 
     // Nothing is filled in yet, so the primary action stays disabled.
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
