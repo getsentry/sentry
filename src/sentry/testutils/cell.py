@@ -94,13 +94,22 @@ def get_test_env_directory() -> TestEnvCellDirectory:
 
 
 @contextmanager
-def override_cells(cells: Sequence[Cell], local_cell: Cell | None = None) -> Generator[None]:
+def override_cells(
+    cells: Sequence[Cell],
+    local_cell: Cell | None = None,
+    localities: Sequence[Locality] | None = None,
+) -> Generator[None]:
     """Override the global set of existing cells.
 
     The overriding value takes the place of the `SENTRY_CELLS` setting and
     changes the behavior of the module-level functions in `sentry.types.cell`. This
     is preferable to overriding the `SENTRY_CELLS` setting value directly
     because the cell mapping may already be cached.
+
+    When `localities` is omitted, a visible multi-tenant 1:1 locality is
+    generated for each cell, mirroring `SENTRY_LOCALITIES` defaults. Pass
+    explicit localities to test locality-level attributes such as category,
+    visibility, or cell grouping.
     """
-    with get_test_env_directory().swap_state(cells, local_cell=local_cell):
+    with get_test_env_directory().swap_state(cells, localities=localities, local_cell=local_cell):
         yield

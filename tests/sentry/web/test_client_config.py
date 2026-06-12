@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import urllib.parse
+from collections.abc import Collection
 from typing import Any
 
 import pytest
@@ -63,8 +64,28 @@ def none_request() -> None:
     return None
 
 
+def create_test_localities(
+    cells: tuple[cell.Cell, ...], single_tenants: Collection[str] = ()
+) -> tuple[cell.Locality, ...]:
+    return tuple(
+        cell.Locality(
+            name=c.name,
+            cells=frozenset([c.name]),
+            category=(
+                cell.RegionCategory.SINGLE_TENANT
+                if c.name in single_tenants
+                else cell.RegionCategory.MULTI_TENANT
+            ),
+            new_org_cell=c.name,
+        )
+        for c in cells
+    )
+
+
+multiregion_cells = create_test_cells("us", "eu", "acme")
 multiregion_client_config_test = control_silo_test(
-    cells=create_test_cells("us", "eu", "acme", single_tenants=["acme"]),
+    cells=multiregion_cells,
+    localities=create_test_localities(multiregion_cells, single_tenants={"acme"}),
     include_monolith_run=True,
 )
 
@@ -400,8 +421,12 @@ def test_client_config_links_regionurl() -> None:
         assert result["links"]["regionUrl"] == "http://eu.testserver"
 
 
+display_order_cells = create_test_cells("us", "eu", "acme", "de", "apac")
+
+
 @control_silo_test(
-    cells=create_test_cells("us", "eu", "acme", "de", "apac", single_tenants=["acme"]),
+    cells=display_order_cells,
+    localities=create_test_localities(display_order_cells, single_tenants={"acme"}),
     include_monolith_run=True,
 )
 @django_db_all

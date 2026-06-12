@@ -23,7 +23,7 @@ from django.test import override_settings
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
 from sentry.testutils.cell import get_test_env_directory, override_cells
-from sentry.types.cell import Cell
+from sentry.types.cell import Cell, Locality
 from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
@@ -160,6 +160,7 @@ class SiloModeTestDecorator:
         self,
         *,
         cells: Sequence[Cell] = (),
+        localities: Sequence[Locality] = (),
         include_monolith_run: bool = False,
     ) -> Callable[[T], T]: ...
 
@@ -168,13 +169,16 @@ class SiloModeTestDecorator:
         decorated_obj: Any = None,
         *,
         cells: Sequence[Cell] = (),
+        localities: Sequence[Locality] = (),
         include_monolith_run: bool = False,
     ) -> Any:
         silo_modes = self.silo_modes
         if include_monolith_run:
             silo_modes |= frozenset([SiloMode.MONOLITH])
 
-        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=tuple(cells))
+        mod = _SiloModeTestModification(
+            silo_modes=silo_modes, cells=tuple(cells), localities=tuple(localities)
+        )
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
@@ -184,15 +188,22 @@ class _SiloModeTestModification:
 
     silo_modes: frozenset[SiloMode]
     cells: tuple[Cell, ...]
+    localities: tuple[Locality, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.silo_modes:
             raise ValueError("silo_modes must not be empty")
+        if self.localities and not self.cells:
+            raise ValueError("localities can only be passed along with cells")
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
         with (
-            override_cells(self.cells) if self.cells else nullcontext(),
+            (
+                override_cells(self.cells, localities=self.localities or None)
+                if self.cells
+                else nullcontext()
+            ),
             assume_test_silo_mode(silo_mode, can_be_monolith=False),
         ):
             yield
