@@ -17,6 +17,7 @@ from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -214,12 +215,12 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             return [p.id for p in projects]
 
     def _is_org_total_query(self, request: Request, requested_projects):
-        return all(
-            [
-                (not requested_projects.ids and not requested_projects.slugs)
-                or requested_projects.has_all_projects_sentinel,
-                "project" not in request.GET.get("groupBy", []),
-            ]
+        no_project_filter = not requested_projects.has_values
+        all_access_filter = (
+            requested_projects.ids == ALL_ACCESS_PROJECTS and not requested_projects.slugs
+        ) or (requested_projects.slugs == {ALL_ACCESS_PROJECTS_SLUG} and not requested_projects.ids)
+        return (no_project_filter or all_access_filter) and "project" not in request.GET.getlist(
+            "groupBy"
         )
 
     @contextmanager
