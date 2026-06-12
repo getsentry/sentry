@@ -1,6 +1,5 @@
 from collections.abc import Generator, Sequence
 
-from sentry import features
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import LegacyPluginService
@@ -20,15 +19,11 @@ class NotifyEventAction(EventAction):
     def get_plugins(self) -> Sequence[LegacyPluginService]:
         from sentry.plugins.bases.notify import NotificationPlugin
 
-        skip_webhooks = features.has(
-            "organizations:legacy-webhook-disable-old-path", self.project.organization
-        )
-
         results = []
         for plugin in plugins.for_project(self.project, version=1):
             if not isinstance(plugin, NotificationPlugin):
                 continue
-            if skip_webhooks and plugin.slug == "webhooks":
+            if plugin.slug == "webhooks":
                 continue
             results.append(LegacyPluginService(plugin))
 
