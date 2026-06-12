@@ -25,10 +25,12 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.autofix.utils import (
     add_seer_project_repos,
-    replace_all_branch_overrides,
     replace_all_seer_project_repos,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.project_repository import (
+    SeerProjectRepository,
+    SeerProjectRepositoryBranchOverride,
+)
 from sentry.seer.seer_setup import get_supported_scm_providers
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
@@ -253,7 +255,24 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
                 project_repo.save()
 
             if "branch_overrides" in data:
-                replace_all_branch_overrides(project_repo, data["branch_overrides"])
+                SeerProjectRepositoryBranchOverride.objects.filter(
+                    seer_project_repository=project_repo
+                ).delete()
+                if data["branch_overrides"]:
+                    SeerProjectRepositoryBranchOverride.objects.bulk_create(
+                        [
+                            SeerProjectRepositoryBranchOverride(
+                                seer_project_repository=project_repo,
+                                tag_name=override["tag_name"],
+                                tag_value=override["tag_value"],
+                                branch_name=override["branch_name"],
+                            )
+                            for override in data["branch_overrides"]
+                        ],
+                        update_conflicts=True,
+                        update_fields=["branch_name"],
+                        unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+                    )
 
         return Response(_serialize_project_repo(project_repo))
 

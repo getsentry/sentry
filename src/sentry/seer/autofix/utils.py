@@ -733,48 +733,73 @@ class ProjectRepoCreateData(TypedDict):
     branch_overrides: NotRequired[list[BranchOverrideData]]
 
 
-def replace_all_branch_overrides(
-    seer_project_repo: SeerProjectRepository, branch_overrides: list[BranchOverrideData]
-) -> None:
-    """Replace all branch overrides for the given Seer project repo."""
-    SeerProjectRepositoryBranchOverride.objects.filter(
-        seer_project_repository=seer_project_repo
-    ).delete()
-    if branch_overrides:
-        SeerProjectRepositoryBranchOverride.objects.bulk_create(
-            [
-                SeerProjectRepositoryBranchOverride(
-                    seer_project_repository=seer_project_repo,
-                    tag_name=override["tag_name"],
-                    tag_value=override["tag_value"],
-                    branch_name=override["branch_name"],
-                )
-                for override in branch_overrides
-            ]
-        )
-
-
 def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
     """Upsert Seer project repos."""
-    result_ids = []
+    if not repos_data:
+        return []
+
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
+        seer_project_repos_to_add: list[SeerProjectRepository] = []
+        branch_overrides_by_key: dict[tuple[int, int], list[BranchOverrideData]] = {}
+
+        # Collect SeerProjectRepository objects to upsert, linking each to its ProjectRepository.
         for data in repos_data:
             project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
                 project_id=project.id,
                 repository_id=data["repository_id"],
                 source=ProjectRepositorySource.SEER_PREFERENCE,
             )
-            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
-                project_repository=project_repo,
-                defaults={
-                    "branch_name": data.get("branch_name"),
-                    "instructions": data.get("instructions"),
-                },
+            seer_project_repos_to_add.append(
+                SeerProjectRepository(
+                    project_repository=project_repo,
+                    branch_name=data.get("branch_name"),
+                    instructions=data.get("instructions"),
+                )
             )
-            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
-            result_ids.append(seer_project_repo.id)
 
-    return result_ids
+            # Key branch overrides by project id and repo id so we can link them to
+            # the right SeerProjectRepository later.
+            if data.get("branch_overrides"):
+                branch_overrides_by_key[(project.id, data["repository_id"])] = data[
+                    "branch_overrides"
+                ]
+
+        seer_project_repos = SeerProjectRepository.objects.bulk_create(
+            seer_project_repos_to_add,
+            update_conflicts=True,
+            update_fields=["branch_name", "instructions"],
+            unique_fields=["project_repository"],
+        )
+
+        # Upsert branch overrides using the upserted SeerProjectRepository rows.
+        branch_overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+        for seer_project_repo in seer_project_repos:
+            project_repo = seer_project_repo.project_repository
+            for override in branch_overrides_by_key.get(
+                (project_repo.project_id, project_repo.repository_id), []
+            ):
+                branch_overrides_to_create.append(
+                    SeerProjectRepositoryBranchOverride(
+                        seer_project_repository=seer_project_repo,
+                        tag_name=override["tag_name"],
+                        tag_value=override["tag_value"],
+                        branch_name=override["branch_name"],
+                    )
+                )
+
+        SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository__in=seer_project_repos
+        ).delete()
+
+        if branch_overrides_to_create:
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(
+                branch_overrides_to_create,
+                update_conflicts=True,
+                update_fields=["branch_name"],
+                unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+            )
+
+    return [sr.id for sr in seer_project_repos]
 
 
 def replace_all_seer_project_repos(
@@ -787,20 +812,7 @@ def replace_all_seer_project_repos(
             project_repository__repository__status=ObjectStatus.ACTIVE,
         ).delete()
 
-        for data in repos_data:
-            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
-                project_id=project.id,
-                repository_id=data["repository_id"],
-                source=ProjectRepositorySource.SEER_PREFERENCE,
-            )
-            seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
-                project_repository=project_repo,
-                defaults={
-                    "branch_name": data.get("branch_name"),
-                    "instructions": data.get("instructions"),
-                },
-            )
-            replace_all_branch_overrides(seer_project_repo, data.get("branch_overrides", []))
+        add_seer_project_repos(project, repos_data)
 
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
