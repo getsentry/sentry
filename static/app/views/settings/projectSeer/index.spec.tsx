@@ -108,9 +108,10 @@ describe('ProjectSeer', () => {
   });
 
   it('can add a repository', async () => {
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
+    const seerReposPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+      method: 'PUT',
+      status: 204,
     });
 
     render(<ProjectSeer />, {
@@ -164,46 +165,36 @@ describe('ProjectSeer', () => {
     expect(await screen.findByText('getsentry/seer')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+      expect(seerReposPutRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: expect.objectContaining({
-            automated_run_stopping_point: 'root_cause',
-            repositories: [
+          data: {
+            repos: [
               {
-                organization_id: 3,
-                branch_name: '',
-                external_id: '101',
-                instructions: '',
-                name: 'sentry',
-                owner: 'getsentry',
-                provider: 'github',
-                integration_id: '201',
-                branch_overrides: [],
+                repositoryId: 1,
+                branchName: null,
+                instructions: null,
+                branchOverrides: [],
               },
               {
-                organization_id: 3,
-                branch_name: '',
-                external_id: '102',
-                instructions: '',
-                name: 'seer',
-                owner: 'getsentry',
-                provider: 'github',
-                integration_id: '202',
-                branch_overrides: [],
+                repositoryId: 2,
+                branchName: null,
+                instructions: null,
+                branchOverrides: [],
               },
             ],
-          }),
+          },
         })
       );
     });
-    expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
+    expect(seerReposPutRequest).toHaveBeenCalledTimes(1);
   });
 
   it('can update repository settings', async () => {
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
+    const seerReposPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+      method: 'PUT',
+      status: 204,
     });
 
     render(<ProjectSeer />, {
@@ -229,35 +220,30 @@ describe('ProjectSeer', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+      expect(seerReposPutRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: expect.objectContaining({
-            automated_run_stopping_point: 'root_cause',
-            repositories: [
+          data: {
+            repos: [
               {
-                organization_id: 3,
-                external_id: '101',
-                name: 'sentry',
-                owner: 'getsentry',
-                provider: 'github',
-                branch_name: 'develop',
+                repositoryId: 1,
+                branchName: 'develop',
                 instructions: 'Use Conventional Commits',
-                integration_id: '201',
-                branch_overrides: [],
+                branchOverrides: [],
               },
             ],
-          }),
+          },
         })
       );
     });
-    expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
+    expect(seerReposPutRequest).toHaveBeenCalledTimes(1);
   });
 
   it('can remove a repository', async () => {
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
+    const seerReposPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+      method: 'PUT',
+      status: 204,
     });
 
     render(<ProjectSeer />, {
@@ -290,17 +276,14 @@ describe('ProjectSeer', () => {
     });
 
     await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+      expect(seerReposPutRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: expect.objectContaining({
-            automated_run_stopping_point: 'root_cause',
-            repositories: [],
-          }),
+          data: {repos: []},
         })
       );
     });
-    expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
+    expect(seerReposPutRequest).toHaveBeenCalledTimes(1);
   });
 
   it('can update the autofix autorun threshold setting', async () => {
