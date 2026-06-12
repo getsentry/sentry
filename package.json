@@ -284,7 +284,7 @@
     "playwright": "^1.58.2",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.18.0",
-    "run-on-changed": "0.3.0",
+    "run-on-changed": "0.4.0",
     "selfsigned": "5.5.0",
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",

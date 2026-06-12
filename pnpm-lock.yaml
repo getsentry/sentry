@@ -711,8 +711,8 @@ importers:
         specifier: 0.18.0
         version: 0.18.0
       run-on-changed:
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: 0.4.0
+        version: 0.4.0
       selfsigned:
         specifier: 5.5.0
         version: 5.5.0
@@ -8163,8 +8163,8 @@ packages:
   rslog@1.3.2:
     resolution: {integrity: sha512-1YyYXBvN0a2b1MSIDLwDTqqgjDzRKxUg/S/+KO6EAgbtZW1B3fdLHAMhEEtvk1patJYMqcRvlp3HQwnxj7AdGQ==}
 
-  run-on-changed@0.3.0:
-    resolution: {integrity: sha512-X5LBDwKqvScEyjuyeVToc7zoSMvyy2ZOTtt2zw9OF5n6KIdTDY1CEFdjNUGGoJmPjWdbdZjLsIU1nJXCodLpgw==}
+  run-on-changed@0.4.0:
+    resolution: {integrity: sha512-W8oqSnqT6Y7EtU7M7sSrTXbuEiPAkJ5JwoWEAMtcAvP3acTeVieCObWuPyw8dKI0bWjeheVC+ZkaeEhPs/LbIg==}
     engines: {node: '>=20.19.0'}
     hasBin: true
 
@@ -18040,7 +18040,7 @@ snapshots:
     dependencies:
       find-up-simple: 1.0.1
       read-pkg: 10.1.0
-      type-fest: 5.2.0
+      type-fest: 5.7.0
 
   read-pkg@10.1.0:
     dependencies:
@@ -18325,7 +18325,7 @@ snapshots:
 
   rslog@1.3.2: {}
 
-  run-on-changed@0.3.0:
+  run-on-changed@0.4.0:
     dependencies:
       debug-for-file: 0.4.1
       oxc-parser: 0.134.0

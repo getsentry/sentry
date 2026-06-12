@@ -120,7 +120,7 @@ jobs:
       - name: eslint (impacted files)
         id: eslint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm exec run-on-changed --since "$MERGE_BASE..HEAD^2" -- eslint --concurrency=3
+        run: pnpm exec run-on-changed --since "$MERGE_BASE..HEAD^2" -- eslint --concurrency=3 --no-warn-ignored
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
