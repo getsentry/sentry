@@ -187,6 +187,66 @@ describe('ScmProjectDetails', () => {
     });
   });
 
+  it('stays busy while linking the repo so a second click cannot duplicate', async () => {
+    const created = ProjectFixture({
+      slug: 'javascript-nextjs',
+      name: 'javascript-nextjs',
+    });
+    const createRequest = MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: created,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    // The repo link runs after the project POST resolves, i.e. while the create
+    // mutation is no longer pending. Delaying it holds the flow in exactly the
+    // window where the button used to re-enable and accept a duplicate create.
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${created.slug}/repo/`,
+      method: 'POST',
+      body: {
+        id: '1',
+        projectId: created.id,
+        repositoryId: mockRepository.id,
+        source: 'scm_onboarding',
+        created: true,
+      },
+      asyncDelay: 50,
+    });
+
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      selectedRepository: mockRepository,
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    await userEvent.click(createButton);
+
+    // Project POST resolved, repo link still in flight: the button must remain
+    // disabled, so this second click is a no-op.
+    expect(createButton).toBeDisabled();
+    await userEvent.click(createButton);
+
+    await waitFor(() => {
+      expect(props.onComplete).toHaveBeenCalledTimes(1);
+    });
+    expect(createRequest).toHaveBeenCalledTimes(1);
+    expect(repoLinkRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('links selected repository to project after creation', async () => {
     const createdProject = ProjectFixture({
       slug: 'javascript-nextjs',
