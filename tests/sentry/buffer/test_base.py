@@ -2,7 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 import psycopg2.errors
-from django.db import DataError
+from django.db import DataError, IntegrityError
 from django.utils import timezone
 
 from sentry.buffer.base import Buffer, BufferField
@@ -14,7 +14,9 @@ from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.team import Team
 from sentry.receivers import create_default_projects
+from sentry.signals import buffer_incr_complete
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 
 
 class BufferTest(TestCase):
@@ -75,8 +77,7 @@ class BufferTest(TestCase):
         release_project_ = ReleaseProject.objects.get(id=release_project.id)
         assert release_project_.new_groups == 1
 
-    @mock.patch("sentry.models.Group.objects.create_or_update")
-    def test_signal_only(self, create_or_update: mock.MagicMock) -> None:
+    def test_signal_only(self) -> None:
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
         filters = {"id": group.id, "project_id": 1}
@@ -85,6 +86,76 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters, {"last_seen": the_date}, signal_only=True)
         group.refresh_from_db()
         assert group.times_seen == prev_times_seen
+
+    @override_options({"buffer.update-or-create.rollout": 1.0})
+    def test_process_non_group_update_increments_column(self) -> None:
+        """Buffer.process() increments a column on an existing non-Group row via F() expression."""
+        # self.release already has a ReleaseProject for self.project (created by add_project)
+        rp = ReleaseProject.objects.get(project=self.project, release=self.release)
+        ReleaseProject.objects.filter(id=rp.id).update(new_groups=5)
+
+        received: list[bool] = []
+
+        def on_signal(sender, created, **kw):
+            received.append(created)
+
+        buffer_incr_complete.connect(on_signal, weak=False)
+        try:
+            self.buf.process(
+                ReleaseProject,
+                {"new_groups": 3},
+                {"project_id": self.project.id, "release_id": self.release.id},
+            )
+        finally:
+            buffer_incr_complete.disconnect(on_signal)
+
+        rp.refresh_from_db()
+        assert rp.new_groups == 8
+        assert received == [False]
+
+    @override_options({"buffer.update-or-create.rollout": 1.0})
+    def test_process_non_group_create_sets_initial_value(self) -> None:
+        """Buffer.process() creates a row with the column's raw initial value when it doesn't exist."""
+        # Create a release that has no ReleaseProject yet
+        new_release = Release.objects.create(
+            version="buffer-test-v1", organization_id=self.project.organization_id
+        )
+        received: list[bool] = []
+
+        def on_signal(sender, created, **kw):
+            received.append(created)
+
+        buffer_incr_complete.connect(on_signal, weak=False)
+        try:
+            self.buf.process(
+                ReleaseProject,
+                {"new_groups": 4},
+                {"project_id": self.project.id, "release_id": new_release.id},
+            )
+        finally:
+            buffer_incr_complete.disconnect(on_signal)
+
+        rp = ReleaseProject.objects.get(project=self.project, release=new_release)
+        assert rp.new_groups == 4
+        assert received == [True]
+
+    @override_options({"buffer.update-or-create.rollout": 1.0})
+    def test_process_race_condition_integrity_error_handled(self) -> None:
+        """IntegrityError during create (concurrent insert race) is caught and retried as update."""
+        # Create a release that has no ReleaseProject so filter().update() returns 0
+        new_release = Release.objects.create(
+            version="buffer-test-race", organization_id=self.project.organization_id
+        )
+        columns = {"new_groups": 2}
+        filters = {"project_id": self.project.id, "release_id": new_release.id}
+
+        # No row exists → filter().update() returns 0 → triggers create path.
+        # Mock create to raise IntegrityError (simulating a concurrent insert winning the race).
+        # The code must catch it and retry with filter().update() — without propagating.
+        with mock.patch.object(
+            ReleaseProject.objects, "create", side_effect=IntegrityError("duplicate key")
+        ):
+            self.buf.process(ReleaseProject, columns, filters)
 
     def test_process_caps_times_seen_on_overflow(self) -> None:
         """Test that times_seen is capped to BoundedPositiveIntegerField.MAX_VALUE when increment would cause overflow.
