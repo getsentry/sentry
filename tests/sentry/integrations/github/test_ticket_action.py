@@ -9,6 +9,7 @@ from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.models.activity import Activity
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
@@ -17,6 +18,7 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 
 pytestmark = [requires_snuba]
@@ -37,6 +39,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             name="Github",
             external_id="1",
             metadata={
+                "domain_name": "github.com/foo",
                 "verify_ssl": True,
             },
         )
@@ -151,8 +154,22 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         # assert ticket created in DB
         key = self.get_key(event)
         assert key == f"{self.repo}#{self.issue_num}"
+        external_issue = ExternalIssue.objects.get(key=key)
         external_issue_count = len(ExternalIssue.objects.filter(key=key))
         assert external_issue_count == 1
+
+        activity = Activity.objects.get(
+            group_id=event.group_id, type=ActivityType.CREATE_ISSUE.value
+        )
+        assert activity.project_id == event.project_id
+        assert activity.user_id is None
+        assert activity.data == {
+            "title": external_issue.title,
+            "provider": self.installation.model.get_provider().name,
+            "location": self.installation.get_issue_url(external_issue.key),
+            "label": self.installation.get_issue_display_name(external_issue) or external_issue.key,
+            "new": True,
+        }
 
         # assert ticket created in GitHub
         data = self.installation.get_issue(
@@ -165,6 +182,12 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # assert new ticket NOT created in DB
         assert ExternalIssue.objects.count() == external_issue_count
+        assert (
+            Activity.objects.filter(
+                group_id=event.group_id, type=ActivityType.CREATE_ISSUE.value
+            ).count()
+            == 1
+        )
 
     @responses.activate()
     def test_fails_validation(self) -> None:
