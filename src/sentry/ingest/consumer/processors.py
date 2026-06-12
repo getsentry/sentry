@@ -77,7 +77,8 @@ def process_event(
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
-    inline: bool = False,
+    inline_save_event: bool = False,
+    inline_save_event_transaction: bool = False,
 ) -> None:
     """
     Perform some initial filtering and deserialize the message payload.
@@ -232,7 +233,7 @@ def process_event(
                 "event_id": event_id,
                 "project_id": project_id,
             }
-            if inline:
+            if inline_save_event_transaction:
                 save_event_transaction(**save_transaction_kwargs)
             else:
                 save_event_transaction.delay(**save_transaction_kwargs)
@@ -265,8 +266,8 @@ def process_event(
                     "project": project,
                     "has_attachments": bool(attachments),
                 }
-                if inline:
-                    preprocess_kwargs["inline"] = True
+                if inline_save_event:
+                    preprocess_kwargs["inline_save_event"] = True
                 preprocess_event(**preprocess_kwargs)
 
         # remember for an 1 hour that we saved this event (deduplication protection)

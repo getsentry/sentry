@@ -72,23 +72,7 @@ def submit_process(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
-    data: MutableMapping[str, Any] | None = None,
-    inline: bool = False,
 ) -> None:
-    if inline:
-        do_process_event(
-            cache_key=cache_key,
-            start_time=start_time,
-            event_id=event_id,
-            from_reprocessing=from_reprocessing,
-            data=data,
-            data_has_changed=data_has_changed,
-            from_symbolicate=from_symbolicate,
-            has_attachments=has_attachments,
-            inline=inline,
-        )
-        return
-
     if from_reprocessing:
         task = process_event_from_reprocessing
     else:
@@ -149,7 +133,7 @@ def _do_preprocess_event(
     from_reprocessing: bool,
     project: Project | None,
     has_attachments: bool = False,
-    inline: bool = False,
+    inline_save_event: bool = False,
 ) -> None:
     from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
@@ -238,8 +222,6 @@ def _do_preprocess_event(
             start_time=start_time,
             data_has_changed=False,
             has_attachments=has_attachments,
-            data=data,
-            inline=inline,
         )
         return
 
@@ -253,7 +235,7 @@ def _do_preprocess_event(
         event_id=event_id,
         start_time=start_time,
         data=original_data,
-        inline=inline,
+        inline=inline_save_event,
     )
 
 
@@ -264,7 +246,7 @@ def preprocess_event(
     event_id: str | None = None,
     project: Project | None = None,
     has_attachments: bool = False,
-    inline: bool = False,
+    inline_save_event: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -275,7 +257,7 @@ def preprocess_event(
         from_reprocessing=False,
         project=project,
         has_attachments=has_attachments,
-        inline=inline,
+        inline_save_event=inline_save_event,
     )
 
 
@@ -336,7 +318,6 @@ def do_process_event(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
-    inline: bool = False,
 ) -> None:
     from sentry.plugins.base import plugins
 
@@ -372,7 +353,6 @@ def do_process_event(
             event_id=data_event_id,
             start_time=start_time,
             data=data,
-            inline=inline,
         )
 
     if is_process_disabled(project_id, data_event_id, data.get("platform") or "null"):
