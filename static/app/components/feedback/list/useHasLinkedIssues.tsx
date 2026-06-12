@@ -84,5 +84,5 @@ export function useHasLinkedIssues({group, event}: Props) {
 
   const integrationIssues = linkedIssues.filter(a => a.type === 'integration-issue');
 
-  return {linkedIssues: integrationIssues.concat(sentryAppIssues)};
+  return {linkedIssues: [...integrationIssues, ...sentryAppIssues]};
 }
