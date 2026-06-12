@@ -208,7 +208,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         if self._is_org_total_query(request, requested_projects):
             return None
         else:
-            projects = self.get_projects(request, organization, project_ids=requested_projects.ids)
+            projects = self.get_projects(request, organization)
             if not projects:
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
