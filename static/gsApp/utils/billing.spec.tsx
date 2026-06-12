@@ -34,7 +34,6 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isDeveloperPlan,
-  isEnterprise,
   isNewPayingCustomer,
   isTeamPlanFamily,
   MILLISECONDS_IN_HOUR,
@@ -1061,23 +1060,6 @@ describe('getOnDemandCategories - AM2 logBytes support', () => {
       budgetMode: OnDemandBudgetMode.SHARED,
     });
     expect(categories).toContain('logBytes');
-  });
-});
-
-describe('isEnterprise', () => {
-  it('returns true for enterprise plans', () => {
-    expect(isEnterprise('e1')).toBe(true);
-    expect(isEnterprise('enterprise')).toBe(true);
-    expect(isEnterprise('am1_business_ent')).toBe(true);
-    expect(isEnterprise('am2_team_ent_auf')).toBe(true);
-    expect(isEnterprise('am3_business_ent_ds_auf')).toBe(true);
-  });
-
-  it('returns false for non-enterprise plans', () => {
-    expect(isEnterprise('_e1')).toBe(false);
-    expect(isEnterprise('_enterprise')).toBe(false);
-    expect(isEnterprise('am1_business')).toBe(false);
-    expect(isEnterprise('am2_team')).toBe(false);
   });
 });
 
