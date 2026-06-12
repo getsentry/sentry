@@ -1,4 +1,4 @@
-import {isRequestFrame} from 'sentry/utils/replays/resourceFrame';
+import {getFrameStatus, isRequestFrame} from 'sentry/utils/replays/resourceFrame';
 import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
 import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
 import type {TabKey} from 'sentry/views/explore/replays/detail/network/details/tabs';
@@ -55,6 +55,18 @@ export function getOutputType({
   if (respWarnings?.includes('UNPARSEABLE_BODY_TYPE')) {
     // Differs from BODY_PARSE_ERROR in that we did not attempt to parse it
     return Output.UNPARSEABLE_BODY_TYPE;
+  }
+
+  const didNotComplete = getFrameStatus(item) === 0;
+  const hasExplicitUrlSkip =
+    request?._meta?.warnings?.includes('URL_SKIPPED') ||
+    response?._meta?.warnings?.includes('URL_SKIPPED');
+  if (
+    didNotComplete &&
+    !hasExplicitUrlSkip &&
+    ['request', 'response'].includes(visibleTab)
+  ) {
+    return Output.INCOMPLETE;
   }
 
   if (isReqUrlSkipped || isRespUrlSkipped) {

@@ -26,6 +26,8 @@ const [
   fetchEmptyBody,
   fetchWithHeaders,
   fetchWithRespBody,
+  fetchAborted,
+  fetchAbortedUrlSkipped,
 ] = hydrateSpans(ReplayRecordFixture(), [
   ReplayResourceFrameFixture({
     op: 'resource.img',
@@ -106,6 +108,28 @@ const [
       },
     },
   }),
+  ReplayRequestFrameFixture({
+    op: 'resource.fetch',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
+    description: '/api/0/organizations/1/issues/1234',
+    data: {
+      method: 'GET',
+      statusCode: 0,
+    },
+  }),
+  ReplayRequestFrameFixture({
+    op: 'resource.fetch',
+    startTimestamp: new Date(),
+    endTimestamp: new Date(),
+    description: '/api/0/organizations/1/issues/1234',
+    data: {
+      method: 'GET',
+      statusCode: 0,
+      request: {_meta: {warnings: ['URL_SKIPPED']}, headers: {}},
+      response: {_meta: {warnings: ['URL_SKIPPED']}, headers: {}},
+    },
+  }),
 ]);
 
 const mockItems = {
@@ -115,6 +139,8 @@ const mockItems = {
   fetchEmptyBody: fetchEmptyBody!,
   fetchWithHeaders: fetchWithHeaders!,
   fetchWithRespBody: fetchWithRespBody!,
+  fetchAborted: fetchAborted!,
+  fetchAbortedUrlSkipped: fetchAbortedUrlSkipped!,
 };
 
 function basicSectionProps() {
@@ -394,6 +420,44 @@ describe('NetworkDetailsContent', () => {
           });
         }
       );
+
+      it('should render the `did not complete` message instead of the setup message when the request did not complete', () => {
+        render(
+          <NetworkDetailsContent
+            {...basicSectionProps()}
+            isCaptureBodySetup
+            isSetup
+            item={mockItems.fetchAborted}
+            visibleTab={visibleTab}
+          />
+        );
+
+        expect(
+          screen.getByText(
+            'No response body was captured for this request.'
+          )
+        ).toBeInTheDocument();
+        expect(queryScreenState().isShowingSetup).toBe(false);
+      });
+
+      it('should still render the setup message when the request did not complete and the URL is not allow-listed', () => {
+        render(
+          <NetworkDetailsContent
+            {...basicSectionProps()}
+            isCaptureBodySetup
+            isSetup
+            item={mockItems.fetchAbortedUrlSkipped}
+            visibleTab={visibleTab}
+          />
+        );
+
+        expect(queryScreenState().isShowingSetup).toBe(true);
+        expect(
+          screen.queryByText(
+            'No response body was captured for this request.'
+          )
+        ).not.toBeInTheDocument();
+      });
     });
   });
 
@@ -534,6 +598,44 @@ describe('NetworkDetailsContent', () => {
           });
         }
       );
+
+      it('should render the `did not complete` message instead of the setup message when the request did not complete', () => {
+        render(
+          <NetworkDetailsContent
+            {...basicSectionProps()}
+            isCaptureBodySetup
+            isSetup
+            item={mockItems.fetchAborted}
+            visibleTab={visibleTab}
+          />
+        );
+
+        expect(
+          screen.getByText(
+            'No response body was captured for this request.'
+          )
+        ).toBeInTheDocument();
+        expect(queryScreenState().isShowingSetup).toBe(false);
+      });
+
+      it('should still render the setup message when the request did not complete and the URL is not allow-listed', () => {
+        render(
+          <NetworkDetailsContent
+            {...basicSectionProps()}
+            isCaptureBodySetup
+            isSetup
+            item={mockItems.fetchAbortedUrlSkipped}
+            visibleTab={visibleTab}
+          />
+        );
+
+        expect(queryScreenState().isShowingSetup).toBe(true);
+        expect(
+          screen.queryByText(
+            'No response body was captured for this request.'
+          )
+        ).not.toBeInTheDocument();
+      });
     });
   });
 });
