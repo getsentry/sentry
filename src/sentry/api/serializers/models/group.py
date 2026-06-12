@@ -202,7 +202,7 @@ def _make_group_project_response(project: Project) -> GroupProjectResponse:
     }
 
 
-def _get_status_label(group: Group):
+def get_status_label(group: Group):
     status = group.get_status()
 
     if status == GroupStatus.RESOLVED:
@@ -221,7 +221,7 @@ def _get_status_label(group: Group):
     return status_label
 
 
-def _get_substatus_label(group: Group):
+def get_substatus_label(group: Group):
     return SUBSTATUS_TO_STR[group.substatus] if group.substatus else None
 
 
@@ -411,7 +411,7 @@ class GroupSerializerBase(Serializer, ABC):
             "level": _get_level_label(obj),
             "status": status_label,
             "statusDetails": status_details,
-            "substatus": _get_substatus_label(obj),
+            "substatus": get_substatus_label(obj),
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": _make_group_project_response(obj.project),
@@ -1234,8 +1234,8 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
             culprit=obj.culprit,
             shortId=obj.qualified_short_id,
             level=_get_level_label(obj),
-            status=_get_status_label(obj),
-            substatus=_get_substatus_label(obj),
+            status=get_status_label(obj),
+            substatus=get_substatus_label(obj),
             platform=obj.platform,
             project=_make_group_project_response(obj.project),
             type=obj.get_event_type(),

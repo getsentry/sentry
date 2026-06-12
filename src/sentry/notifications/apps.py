@@ -5,7 +5,8 @@ class Config(AppConfig):
     name = "sentry.notifications"
 
     def ready(self) -> None:
-        # Register the providers and templates for the new platform
+        # Imports to populate registries
+        import sentry.notifications.notification_action.activity_registry  # noqa: F401
         import sentry.notifications.platform.discord.provider  # noqa: F401
         import sentry.notifications.platform.email.provider  # noqa: F401
         import sentry.notifications.platform.msteams.provider  # noqa: F401
