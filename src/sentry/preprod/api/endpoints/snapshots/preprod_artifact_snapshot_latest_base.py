@@ -7,6 +7,7 @@ import orjson
 from django.conf import settings
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,13 +19,17 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.api.helpers.projects import (
+    PROJECT_ID_OR_SLUG_SCHEMA,
+    ProjectIdOrSlugField,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
-from sentry.constants import ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
@@ -51,9 +56,9 @@ LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
         "description": "Set to '1' or 'true' to strip image metadata to display_name, image_file_name, group, description",
     },
     "project": {
-        "type": "integer",
+        "type": "integer|string",
         "required": False,
-        "description": "Project ID to scope the lookup. Use either project or projectSlug when app_id is not unique across projects or project inference is unavailable.",
+        "description": "Project ID or slug to scope the lookup when app_id is not unique across projects or project inference is unavailable.",
     },
     "projectSlug": {
         "type": "string",
@@ -92,10 +97,10 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             ),
             OpenApiParameter(
                 name="project",
-                type=int,
+                type=PROJECT_ID_OR_SLUG_SCHEMA,
                 location="query",
                 required=False,
-                description="Project ID to scope the lookup.",
+                description="Project ID or slug to scope the lookup.",
             ),
             OpenApiParameter(
                 name="compact_metadata",
@@ -147,10 +152,24 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         branch = request.GET.get("branch")
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
-        try:
-            project_id = int(request.GET["project"]) if "project" in request.GET else None
-        except (ValueError, TypeError):
-            return Response({"detail": "Invalid project parameter"}, status=400)
+        # This is a single-project lookup: projectSlug wins, and all-project sentinels are invalid.
+        project_id = None
+        project_slug = None
+        if project_slug_param := request.GET.get("projectSlug"):
+            if project_slug_param in (str(ALL_ACCESS_PROJECT_ID), ALL_ACCESS_PROJECTS_SLUG):
+                return Response({"detail": "Invalid project parameter"}, status=400)
+            project_slug = project_slug_param
+        elif project_param := request.GET.get("project"):
+            try:
+                project_id_or_slug = ProjectIdOrSlugField().run_validation(project_param)
+            except ValidationError:
+                return Response({"detail": "Invalid project parameter"}, status=400)
+            if project_id_or_slug in (ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG):
+                return Response({"detail": "Invalid project parameter"}, status=400)
+            if isinstance(project_id_or_slug, int):
+                project_id = project_id_or_slug
+            else:
+                project_slug = project_id_or_slug
 
         qs = (
             PreprodArtifact.objects.filter(
@@ -172,6 +191,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
 
         if project_id is not None:
             qs = qs.filter(project_id=project_id)
+        if project_slug is not None:
+            qs = qs.filter(project__slug=project_slug)
         if branch:
             qs = qs.filter(commit_comparison__head_ref=branch)
 
