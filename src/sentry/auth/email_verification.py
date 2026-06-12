@@ -21,7 +21,20 @@ logger = logging.getLogger("sentry.auth.email_verification")
 DEFAULT_MAX_AGE_MINUTES = 120
 
 
+def _get_salt() -> str:
+    return options.get("auth.signup-verification-email-salt")
+
+
+def _format_expiry(minutes: int) -> str:
+    """Convert minutes to a human-friendly expiry string."""
+    if minutes >= 60 and minutes % 60 == 0:
+        hours = minutes // 60
+        return f"{hours} hour{'s' if hours != 1 else ''}"
+    return f"{minutes} minute{'s' if minutes != 1 else ''}"
+
+
 def send_signup_verification_email(
+    request: HttpRequest,
     email: str,
     max_age_minutes: int = DEFAULT_MAX_AGE_MINUTES,
 ) -> None:
@@ -32,8 +45,12 @@ def send_signup_verification_email(
     Pure send function — callers are responsible for session state
     (setting request.session[PENDING_VERIFICATION_SESSION_KEY])
     """
+    if not request.session.session_key:
+        request.session.create()
+
     payload = {
         "email": email,
+        "session_id": request.session.session_key,
         "expires_at": time.time() + (max_age_minutes * 60),
     }
     signed_data = sign(salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, **payload)
@@ -83,4 +100,6 @@ def verify_signup_link(signed_data: str) -> dict[str, Any]:
         raise BadSignature("Malformed verification link") from e
     if time.time() > payload["expires_at"]:
         raise SignatureExpired("Verification link expired")
+    if payload["session_id"] != request.session.session_key:
+        raise ValueError("Session mismatch")
     return payload
