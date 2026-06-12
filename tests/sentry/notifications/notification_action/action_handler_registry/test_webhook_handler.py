@@ -42,36 +42,10 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
         webhook_plugin.set_option("enabled", True, self.project)
 
     @responses.activate
-    def test_default_no_flags_fires_old_path_only(self) -> None:
-        responses.add(responses.POST, "http://example.com/hook")
-
-        with self.tasks():
-            WebhookActionHandler.execute(self.invocation)
-
-        assert len(responses.calls) == 1
-
-    @responses.activate
-    def test_new_path_fires_both_paths(self) -> None:
+    def test_sends_webhook(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
 
         with self.tasks(), self.feature("organizations:legacy-webhook-new-path"):
-            WebhookActionHandler.execute(self.invocation)
-
-        assert len(responses.calls) == 2
-
-    @responses.activate
-    def test_new_path_disable_old_fires_new_only(self) -> None:
-        responses.add(responses.POST, "http://example.com/hook")
-
-        with (
-            self.tasks(),
-            self.feature(
-                {
-                    "organizations:legacy-webhook-new-path": True,
-                    "organizations:legacy-webhook-disable-old-path": True,
-                }
-            ),
-        ):
             WebhookActionHandler.execute(self.invocation)
 
         assert len(responses.calls) == 1
@@ -87,7 +61,6 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             self.feature(
                 {
                     "organizations:legacy-webhook-new-path": True,
-                    "organizations:legacy-webhook-disable-old-path": True,
                     "organizations:legacy-webhook-dry-run": True,
                 }
             ),
@@ -96,24 +69,10 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
 
         assert len(responses.calls) == 0
 
-    @responses.activate
-    def test_disable_old_without_new_path_fires_nothing(self) -> None:
-        responses.add(responses.POST, "http://example.com/hook")
-
-        with self.tasks(), self.feature("organizations:legacy-webhook-disable-old-path"):
-            WebhookActionHandler.execute(self.invocation)
-
-        assert len(responses.calls) == 0
-
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
     )
-    @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.execute_via_group_type_registry"
-    )
-    def test_non_group_event_skips_new_path_but_old_path_still_runs(
-        self, mock_old_path: mock.MagicMock, mock_new_path: mock.MagicMock
-    ) -> None:
+    def test_non_group_event_does_nothing(self, mock_new_path: mock.MagicMock) -> None:
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -133,7 +92,6 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             WebhookActionHandler.execute(invocation)
 
         mock_new_path.assert_not_called()
-        mock_old_path.assert_called_once_with(invocation)
 
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_sentry_app_webhook"
@@ -156,14 +114,7 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             workflow_id=self.workflow.id,
         )
 
-        with (
-            self.feature(
-                {
-                    "organizations:legacy-webhook-new-path": True,
-                    "organizations:legacy-webhook-disable-old-path": True,
-                }
-            ),
-        ):
+        with self.feature("organizations:legacy-webhook-new-path"):
             WebhookActionHandler.execute(invocation)
 
         mock_sentry_app.assert_called_once()
@@ -176,7 +127,6 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
     @with_feature(
         {
             "organizations:legacy-webhook-new-path": True,
-            "organizations:legacy-webhook-disable-old-path": True,
             "organizations:legacy-webhook-dry-run": True,
         }
     )
@@ -213,26 +163,14 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
     def test_new_path_webhooks_action_routes_to_legacy_webhook(
         self, mock_legacy: mock.MagicMock, mock_sentry_app: mock.MagicMock
     ) -> None:
-        with (
-            self.feature(
-                {
-                    "organizations:legacy-webhook-new-path": True,
-                    "organizations:legacy-webhook-disable-old-path": True,
-                }
-            ),
-        ):
+        with self.feature("organizations:legacy-webhook-new-path"):
             WebhookActionHandler.execute(self.invocation)
 
         mock_legacy.assert_called_once_with(self.invocation)
         mock_sentry_app.assert_not_called()
 
     @responses.activate
-    @with_feature(
-        {
-            "organizations:legacy-webhook-new-path": True,
-            "organizations:legacy-webhook-disable-old-path": True,
-        }
-    )
+    @with_feature("organizations:legacy-webhook-new-path")
     def test_new_path_disabled_webhooks_does_not_send(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
         webhook_plugin = plugins.get("webhooks")
@@ -242,21 +180,3 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             WebhookActionHandler.execute(self.invocation)
 
         assert len(responses.calls) == 0
-
-    @responses.activate
-    @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.execute_via_group_type_registry",
-        side_effect=Exception("legacy path error"),
-    )
-    def test_old_path_exception_does_not_block_new_path(
-        self, mock_old_path: mock.MagicMock
-    ) -> None:
-        responses.add(responses.POST, "http://example.com/hook")
-
-        with self.tasks(), self.feature("organizations:legacy-webhook-new-path"):
-            WebhookActionHandler.execute(self.invocation)
-
-        mock_old_path.assert_called_once()
-        assert len(responses.calls) == 1
-        body = json.loads(responses.calls[0].request.body)
-        assert body["id"] == str(self.group.id)
