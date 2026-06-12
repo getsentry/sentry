@@ -1,7 +1,6 @@
 import logging
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -15,9 +14,9 @@ from sentry.api.bases.organization import (
     OrganizationCodeMappingsBulkPermission,
     OrganizationEndpoint,
 )
-from sentry.api.helpers.projects import ProjectIdOrSlugField, parse_id_or_slug_params
+from sentry.api.helpers.projects import ProjectIdOrSlugField
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.constants import ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     BRANCH_NAME_ERROR_MESSAGE,
     gen_path_regex_field,
@@ -168,21 +167,26 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
 
-        # Resolve project by ID or slug.
-        parsed_project = parse_id_or_slug_params([data["project"]])
-        if parsed_project.has_all_projects_sentinel:
+        project_id_or_slug = data["project"]
+        if project_id_or_slug in (ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG):
             return Response(
                 {"detail": "Invalid project"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        project_filter = Q(organization=organization, status=ObjectStatus.ACTIVE)
-        if parsed_project.ids:
-            project_filter &= Q(id__in=parsed_project.ids)
+        project_ids: set[int] | None = None
+        project_slugs: set[str] | None = None
+        project_queryset = Project.objects.filter(
+            organization=organization, status=ObjectStatus.ACTIVE
+        )
+        if isinstance(project_id_or_slug, int):
+            project_ids = {project_id_or_slug}
+            project_exists = project_queryset.filter(id=project_id_or_slug).exists()
         else:
-            project_filter &= Q(slug__in=parsed_project.slugs)
+            project_slugs = {project_id_or_slug}
+            project_exists = project_queryset.filter(slug=project_id_or_slug).exists()
 
-        if not Project.objects.filter(project_filter).exists():
+        if not project_exists:
             return Response(
                 {"detail": f"Project not found or not active: {data['project']}"},
                 status=status.HTTP_404_NOT_FOUND,
@@ -192,8 +196,8 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             project = self.get_projects(
                 request,
                 organization,
-                project_ids=parsed_project.ids or None,
-                project_slugs=parsed_project.slugs or None,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
             )[0]
         except PermissionDenied:
             return Response(

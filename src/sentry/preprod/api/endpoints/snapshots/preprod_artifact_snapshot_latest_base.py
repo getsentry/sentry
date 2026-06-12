@@ -22,7 +22,6 @@ from sentry.api.bases.organization import (
 from sentry.api.helpers.projects import (
     PROJECT_ID_OR_SLUG_SCHEMA,
     ProjectIdOrSlugField,
-    parse_id_or_slug_params,
 )
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
@@ -30,7 +29,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
-from sentry.constants import ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
@@ -157,7 +156,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         project_id = None
         project_slug = None
         if project_slug_param := request.GET.get("projectSlug"):
-            if parse_id_or_slug_params([project_slug_param]).has_all_projects_sentinel:
+            if project_slug_param in (str(ALL_ACCESS_PROJECT_ID), ALL_ACCESS_PROJECTS_SLUG):
                 return Response({"detail": "Invalid project parameter"}, status=400)
             project_slug = project_slug_param
         elif project_param := request.GET.get("project"):
@@ -165,13 +164,12 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
                 project_id_or_slug = ProjectIdOrSlugField().run_validation(project_param)
             except ValidationError:
                 return Response({"detail": "Invalid project parameter"}, status=400)
-            requested_project = parse_id_or_slug_params([project_id_or_slug])
-            if requested_project.has_all_projects_sentinel:
+            if project_id_or_slug in (ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG):
                 return Response({"detail": "Invalid project parameter"}, status=400)
-            if requested_project.ids:
-                project_id = next(iter(requested_project.ids))
-            elif requested_project.slugs:
-                project_slug = next(iter(requested_project.slugs))
+            if isinstance(project_id_or_slug, int):
+                project_id = project_id_or_slug
+            else:
+                project_slug = project_id_or_slug
 
         qs = (
             PreprodArtifact.objects.filter(
