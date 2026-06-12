@@ -7,9 +7,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type SeerRepoEntry = {
-  repositoryId: number;
+type SeerRepoEntry = {
   branchName: string | null;
+  repositoryId: number;
   branchOverrides?: BranchOverride[];
   instructions?: string | null;
 };
