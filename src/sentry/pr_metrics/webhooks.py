@@ -197,11 +197,22 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
 
-    forward_pr_to_seer.delay(
-        pull_request_id=pr.id,
-        organization_id=organization.id,
-        repository_id=pr.repository_id,
-    )
+    try:
+        forward_pr_to_seer.delay(
+            pull_request_id=pr.id,
+            organization_id=organization.id,
+            repository_id=pr.repository_id,
+        )
+    except Exception:
+        # The claim committed but the enqueue didn't, so no task will settle this
+        # PR. Release the sentinel (only if it's still ours) so a webhook
+        # redelivery re-forwards rather than the PR sticking in JUDGE_IN_PROGRESS.
+        PullRequestMetrics.objects.filter(
+            pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
+        ).update(verdict=None)
+        metrics.incr("pr_metrics.judge.enqueue_failed")
+        logger.exception("pr_metrics.judge.enqueue_failed", extra={"pull_request_id": pr.id})
+        return
     metrics.incr("pr_metrics.judge.enqueued")
 
 

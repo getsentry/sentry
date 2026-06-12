@@ -1286,6 +1286,25 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 
     @patch(f"{MODULE}.forward_pr_to_seer.delay")
     @patch("sentry.analytics.record")
+    def test_enqueue_failure_releases_claim_for_retry(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # If the claim commits but the task enqueue fails, the sentinel is released
+        # so the PR doesn't stick in judge_in_progress with no task to settle it.
+        mock_delay.side_effect = RuntimeError("broker down")
+        self._call()
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+        # A later webhook redelivery can then re-forward.
+        mock_delay.side_effect = None
+        self._call()
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "judge_in_progress"
+        )
+        assert mock_delay.call_count == 2
+
+    @patch(f"{MODULE}.forward_pr_to_seer.delay")
+    @patch("sentry.analytics.record")
     def test_untracked_pr_is_not_forwarded(
         self, mock_record: MagicMock, mock_delay: MagicMock
     ) -> None:
