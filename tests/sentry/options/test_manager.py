@@ -469,9 +469,7 @@ class OptionsManagerTest(TestCase):
             lambda key, opt: "hook-value" if key == "hooked" else READ_HOOK_FALLBACK
         )
         try:
-            assert (
-                self.manager.can_update("hooked", "stored", UpdateChannel.AUTOMATOR) is None
-            )
+            assert self.manager.can_update("hooked", "stored", UpdateChannel.AUTOMATOR) is None
         finally:
             self.manager.set_read_hook(None)
             self.manager.unregister("hooked")
