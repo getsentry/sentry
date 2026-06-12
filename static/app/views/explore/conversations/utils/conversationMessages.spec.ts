@@ -64,6 +64,23 @@ function createMockToolNode(overrides: {
   };
 }
 
+type Turn = Parameters<typeof turnsToMessages>[0][number];
+
+function makeTurn(overrides: Partial<Turn> = {}): Turn {
+  return {
+    generation: {
+      id: 'gen-1',
+      value: {start_timestamp: 1000, end_timestamp: 1100},
+    } as any,
+    userContent: null,
+    assistantContent: null,
+    toolCalls: [],
+    reasoning: null,
+    userEmail: undefined,
+    ...overrides,
+  };
+}
+
 describe('conversationMessages utilities', () => {
   describe('getNodeTimestamp', () => {
     it('returns end_timestamp from node value', () => {
@@ -483,22 +500,17 @@ describe('conversationMessages utilities', () => {
   describe('mergeEmptyTurns', () => {
     it('merges tool calls from empty turns into next turn', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {id: 'gen-1'} as any,
           userContent: 'Question 1',
-          assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {id: 'gen-2'} as any,
           userContent: 'Question 2',
           assistantContent: 'Answer',
           toolCalls: [{name: 'calc', nodeId: 'tool-2', hasError: false}],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const merged = mergeEmptyTurns(turns);
@@ -510,30 +522,21 @@ describe('conversationMessages utilities', () => {
 
     it('chains multiple empty turns', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {id: 'gen-1'} as any,
           userContent: 'Q1',
-          assistantContent: null,
           toolCalls: [{name: 'tool-a', nodeId: 't-1', hasError: false}],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {id: 'gen-2'} as any,
-          userContent: null,
-          assistantContent: null,
           toolCalls: [{name: 'tool-b', nodeId: 't-2', hasError: false}],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {id: 'gen-3'} as any,
           userContent: 'Q2',
           assistantContent: 'Final answer',
           toolCalls: [{name: 'tool-c', nodeId: 't-3', hasError: false}],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const merged = mergeEmptyTurns(turns);
@@ -552,22 +555,15 @@ describe('conversationMessages utilities', () => {
 
     it('flushes pending tool calls onto last turn when no subsequent turn has content', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {id: 'gen-1'} as any,
           userContent: 'Question',
           assistantContent: 'Answer',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {id: 'gen-2'} as any,
-          userContent: null,
-          assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const merged = mergeEmptyTurns(turns);
@@ -580,14 +576,10 @@ describe('conversationMessages utilities', () => {
 
     it('preserves user content turns even without assistant response', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {id: 'gen-1'} as any,
           userContent: 'Question without answer',
-          assistantContent: null,
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const merged = mergeEmptyTurns(turns);
@@ -600,17 +592,15 @@ describe('conversationMessages utilities', () => {
   describe('turnsToMessages', () => {
     it('creates user and assistant messages from turns', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi there',
-          toolCalls: [],
-          reasoning: null,
           userEmail: 'user@example.com',
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -629,28 +619,22 @@ describe('conversationMessages utilities', () => {
 
     it('deduplicates user messages by exact content', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
           assistantContent: 'Response 1',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: 'Hello', // Exact same content
           assistantContent: 'Response 2',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -665,28 +649,22 @@ describe('conversationMessages utilities', () => {
 
     it('does not deduplicate user messages with different whitespace or case', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
           assistantContent: 'Response 1',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: '  HELLO  ', // Different due to whitespace and case
           assistantContent: 'Response 2',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -697,28 +675,22 @@ describe('conversationMessages utilities', () => {
 
     it('deduplicates assistant messages by exact content', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Question 1',
           assistantContent: 'Same response',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: 'Question 2',
           assistantContent: 'Same response', // Exact same content
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -729,28 +701,22 @@ describe('conversationMessages utilities', () => {
 
     it('does not deduplicate [Filtered] messages across turns', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: '[Filtered]',
           assistantContent: '[Filtered]',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: '[Filtered]',
           assistantContent: '[Filtered]',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -764,7 +730,7 @@ describe('conversationMessages utilities', () => {
 
     it('includes agentName from gen_ai.agent.name', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
@@ -774,10 +740,7 @@ describe('conversationMessages utilities', () => {
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -787,7 +750,7 @@ describe('conversationMessages utilities', () => {
 
     it('falls back agentName to gen_ai.function_id', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
@@ -797,10 +760,7 @@ describe('conversationMessages utilities', () => {
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -810,7 +770,7 @@ describe('conversationMessages utilities', () => {
 
     it('prefers gen_ai.agent.name over gen_ai.function_id for agentName', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
@@ -821,10 +781,7 @@ describe('conversationMessages utilities', () => {
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -834,7 +791,7 @@ describe('conversationMessages utilities', () => {
 
     it('includes modelName from gen_ai.response.model', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
@@ -844,10 +801,7 @@ describe('conversationMessages utilities', () => {
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -857,17 +811,14 @@ describe('conversationMessages utilities', () => {
 
     it('leaves agentName and modelName undefined when not set', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -878,7 +829,7 @@ describe('conversationMessages utilities', () => {
 
     it('attaches tool calls to assistant messages', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
@@ -886,9 +837,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question',
           assistantContent: 'Answer',
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -900,28 +849,22 @@ describe('conversationMessages utilities', () => {
 
     it('sorts messages by timestamp', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: 'Second',
           assistantContent: 'Second response',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'First',
           assistantContent: 'First response',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -934,17 +877,14 @@ describe('conversationMessages utilities', () => {
 
     it('creates assistant message for tool-call-only turns without text', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Do something',
-          assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -958,17 +898,13 @@ describe('conversationMessages utilities', () => {
 
     it('does not create assistant message when no content and no tool calls', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
-          assistantContent: null,
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -982,44 +918,62 @@ describe('conversationMessages utilities', () => {
       // start, assistant at span end, so pairing must hold even when turns
       // are tightly packed.
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 0, end_timestamp: 1.1},
           } as any,
           userContent: 'Q1',
           assistantContent: 'A1',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 1.2, end_timestamp: 1.97},
           } as any,
           userContent: 'Q2',
           assistantContent: 'A2',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-3',
             value: {start_timestamp: 2, end_timestamp: 2.64},
           } as any,
           userContent: 'Q3',
           assistantContent: 'A3',
-          toolCalls: [],
-          reasoning: null,
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
 
       expect(messages.map(m => m.content)).toEqual(['Q1', 'A1', 'Q2', 'A2', 'Q3', 'A3']);
+    });
+
+    it('attaches reasoning to the assistant message', () => {
+      const turns = [
+        makeTurn({
+          userContent: 'Question',
+          assistantContent: 'Answer',
+          reasoning: 'Let me think step by step...',
+        }),
+      ];
+
+      const assistant = turnsToMessages(turns).find(m => m.role === 'assistant');
+      expect(assistant?.reasoning).toBe('Let me think step by step...');
+    });
+
+    it('attaches reasoning to tool-call-only turns without text', () => {
+      const turns = [
+        makeTurn({
+          userContent: 'Question',
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          reasoning: 'Thinking out loud',
+        }),
+      ];
+
+      const assistant = turnsToMessages(turns).find(m => m.role === 'assistant');
+      expect(assistant?.content).toBe('');
+      expect(assistant?.reasoning).toBe('Thinking out loud');
     });
   });
 
