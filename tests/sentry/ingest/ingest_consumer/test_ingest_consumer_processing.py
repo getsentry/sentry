@@ -144,7 +144,60 @@ def test_process_event_from_kafka(default_project, preprocess_event) -> None:
         "project": default_project,
         "start_time": start_time,
         "has_attachments": False,
+        "inline": True,
     }
+
+
+@django_db_all
+def test_process_event_from_kafka_transaction_saves_inline(
+    default_project,
+    preprocess_event,
+    save_event_transaction,
+) -> None:
+    project_id = default_project.id
+    now = datetime.datetime.now()
+    event = {
+        "type": "transaction",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "trace": {
+                "parent_span_id": "8988cec7cc0779c1",
+                "type": "trace",
+                "op": "foobar",
+                "trace_id": "a7d67cf796774551a95be6543cacd459",
+                "span_id": "babaae0d4b7512d9",
+                "status": "ok",
+            }
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    event_id = payload["event_id"]
+    start_time = time.time() - 3600
+    message = msgpack.packb(
+        {
+            "payload": orjson.dumps(payload).decode(),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+            "type": "event",
+        }
+    )
+
+    process_event_from_kafka(message)
+
+    assert not len(preprocess_event)
+    assert save_event_transaction.call_args[0] == ()
+    assert save_event_transaction.call_args[1] == dict(
+        cache_key=f"e:{event_id}:{project_id}",
+        data=None,
+        start_time=start_time,
+        event_id=event_id,
+        project_id=project_id,
+    )
+    assert save_event_transaction.delay.call_count == 0
 
 
 @django_db_all

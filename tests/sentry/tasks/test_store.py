@@ -127,6 +127,60 @@ def test_move_to_save_event(
 
 
 @django_db_all
+def test_move_to_save_event_inline(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
+):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "NOTMATTLANG",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    preprocess_event(cache_key="e:1", data=data, event_id=EVENT_ID, inline=True)
+
+    assert mock_symbolicate_event.delay.call_count == 0
+    assert mock_process_event.delay.call_count == 0
+    mock_save_event.assert_called_once_with(
+        cache_key="e:1",
+        data=None,
+        start_time=None,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+    )
+    assert mock_save_event.delay.call_count == 0
+
+
+@django_db_all
+def test_move_to_process_event_inline_saves_inline(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
+):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "noop",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    preprocess_event(cache_key="e:1", data=data, event_id=EVENT_ID, inline=True)
+
+    assert mock_symbolicate_event.delay.call_count == 0
+    assert mock_process_event.delay.call_count == 0
+    mock_save_event.assert_called_once_with(
+        cache_key="e:1",
+        data=None,
+        start_time=None,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+    )
+    assert mock_save_event.delay.call_count == 0
+
+
+@django_db_all
 def test_process_event_mutate_and_save(
     default_project, mock_event_processing_store, mock_save_event, register_plugin
 ):

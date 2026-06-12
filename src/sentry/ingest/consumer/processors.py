@@ -77,6 +77,7 @@ def process_event(
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
+    inline: bool = False,
 ) -> None:
     """
     Perform some initial filtering and deserialize the message payload.
@@ -224,13 +225,17 @@ def process_event(
             assert cache_key is not None
             # No need for preprocess/process for transactions thus submit
             # directly transaction specific save_event task.
-            save_event_transaction.delay(
-                cache_key=cache_key,
-                data=None,
-                start_time=start_time,
-                event_id=event_id,
-                project_id=project_id,
-            )
+            task_kwargs: dict[str, Any] = {
+                "cache_key": cache_key,
+                "data": None,
+                "start_time": start_time,
+                "event_id": event_id,
+                "project_id": project_id,
+            }
+            if inline:
+                save_event_transaction(**task_kwargs)
+            else:
+                save_event_transaction.delay(**task_kwargs)
 
             try:
                 collect_span_metrics(project, data)
@@ -252,14 +257,17 @@ def process_event(
             # save_event. Pass data explicitly to avoid fetching it again from the
             # cache.
             with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-                preprocess_event(
-                    cache_key=cache_key or "",
-                    data=data,
-                    start_time=start_time,
-                    event_id=event_id,
-                    project=project,
-                    has_attachments=bool(attachments),
-                )
+                task_kwargs: dict[str, Any] = {
+                    "cache_key": cache_key or "",
+                    "data": data,
+                    "start_time": start_time,
+                    "event_id": event_id,
+                    "project": project,
+                    "has_attachments": bool(attachments),
+                }
+                if inline:
+                    task_kwargs["inline"] = True
+                preprocess_event(**task_kwargs)
 
         # remember for an 1 hour that we saved this event (deduplication protection)
         with sentry_sdk.start_span(op="cache.set"):

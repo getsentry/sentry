@@ -81,7 +81,7 @@ def process_simple_event_message(
 @instrumented_task(
     name="sentry.ingest.consumer.simple_event.process_event_from_kafka",
     namespace=ingest_events_passthrough_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=150,
     retry=Retry(times=2, delay=5, on=(Retriable,)),
     compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
@@ -114,4 +114,5 @@ def process_event_from_kafka(message_bytes: bytes) -> None:
         message,
         project,
         reprocess_only_stuck_events=False,
+        inline=True,
     )
