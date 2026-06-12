@@ -28,6 +28,11 @@ const RUNTIME_CONFIG: Record<
     peerDep: '@sentry/bun',
     label: 'the Bun runtime',
   },
+  [Runtime.DENO]: {
+    importPath: '@sentry/hono/deno',
+    peerDep: '@sentry/deno',
+    label: 'the Deno runtime',
+  },
 };
 
 function getNodeInstrumentSnippet(params: Params): string {
@@ -127,6 +132,60 @@ app.get("/", (c) => {
 });
 
 export default app;`;
+}
+
+function getDenoAppSnippet(params: Params): string {
+  return `import { Hono } from "hono";
+import { sentry } from "${RUNTIME_CONFIG[Runtime.DENO].importPath}";
+
+const app = new Hono();
+
+app.use(
+  sentry(app, {
+    dsn: "${params.dsn.public}",${
+      params.isPerformanceSelected
+        ? `
+    tracesSampleRate: 1.0,`
+        : ''
+    }${
+      params.isLogsSelected
+        ? `
+    enableLogs: true,`
+        : ''
+    }
+    // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
+    // dataCollection: { userInfo: false, httpBodies: [] },
+  }),
+);
+
+// Your routes here
+
+Deno.serve(app.fetch);`;
+}
+
+function getDenoInstallStep() {
+  return {
+    type: StepType.INSTALL as const,
+    content: [
+      {
+        type: 'text' as const,
+        text: tct(
+          'Install the [sentryHono] package and the [peerDep] peer dependency for [label]:',
+          {
+            sentryHono: <code>@sentry/hono</code>,
+            peerDep: <code>{RUNTIME_CONFIG[Runtime.DENO].peerDep}</code>,
+            label: RUNTIME_CONFIG[Runtime.DENO].label,
+          }
+        ),
+      },
+      {
+        type: 'code' as const,
+        language: 'bash',
+        code: `deno add npm:@sentry/hono npm:${RUNTIME_CONFIG[Runtime.DENO].peerDep}`,
+      },
+    ],
+  };
 }
 
 function getWranglerSnippet(): string {
@@ -374,6 +433,38 @@ const runtimeOnboarding: Record<Runtime, OnboardingConfig<PlatformOptions>> = {
                 filename: 'index.ts',
                 value: 'typescript',
                 code: getInlineInitAppSnippet(Runtime.BUN, params),
+              },
+            ],
+          },
+        ],
+      },
+      getSourceMapsStep(params),
+    ],
+    verify: (params: Params) => [getVerifyStep(params)],
+  },
+  [Runtime.DENO]: {
+    install: () => [getDenoInstallStep()],
+    configure: (params: Params) => [
+      {
+        type: StepType.CONFIGURE,
+        content: [
+          getProfilingAlert(params),
+          {
+            type: 'text',
+            text: tct(
+              'Add the [code:sentry()] middleware as early as possible in your Hono app. On Deno, you pass your Sentry options directly to the middleware:',
+              {code: <code />}
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'TypeScript',
+                language: 'typescript',
+                filename: 'index.ts',
+                value: 'typescript',
+                code: getDenoAppSnippet(params),
               },
             ],
           },

@@ -301,6 +301,83 @@ describe('hono onboarding docs', () => {
     });
   });
 
+  describe('Deno runtime', () => {
+    let denoDocs: typeof docs;
+    beforeAll(() => {
+      denoDocs = {
+        ...docs,
+        platformOptions: {
+          ...docs.platformOptions,
+          runtime: {
+            ...docs.platformOptions!.runtime,
+            defaultValue: Runtime.DENO,
+          },
+        },
+      };
+    });
+
+    it('renders onboarding docs correctly', () => {
+      renderWithOnboardingLayout(denoDocs);
+
+      expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {name: /Upload Source Maps/i})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+
+      expect(
+        screen.getAllByText(textWithMarkupMatcher(/@sentry\/deno/)).length
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/import { sentry } from "@sentry\/hono\/deno"/)
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(textWithMarkupMatcher(/Deno\.serve\(app\.fetch\)/))
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(textWithMarkupMatcher(/sentry\(app, \{/))
+      ).toBeInTheDocument();
+    });
+
+    it('displays tracesSampleRate when performance is selected', () => {
+      renderWithOnboardingLayout(denoDocs, {
+        selectedProducts: [
+          ProductSolution.ERROR_MONITORING,
+          ProductSolution.PERFORMANCE_MONITORING,
+        ],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+      ).toBeInTheDocument();
+    });
+
+    it('enables logs by setting enableLogs to true', () => {
+      renderWithOnboardingLayout(denoDocs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+      ).toBeInTheDocument();
+    });
+
+    it('shows profiling info alert when profiling is selected', () => {
+      renderWithOnboardingLayout(denoDocs, {
+        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
+      });
+
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(/Profiling is only available on the Node.js runtime/)
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('shared behavior', () => {
     it('displays logs integration next step when logs are selected', () => {
       renderWithOnboardingLayout(docs, {
