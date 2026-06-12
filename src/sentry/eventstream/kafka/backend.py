@@ -220,7 +220,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 # TaskProducer handles the producer future internally,
                 # so we attach the callback at the produce callsite
                 producer.produce(
-                    topic=ArroyoTopic(real_topic),
+                    dest=ArroyoTopic(real_topic),
                     payload=KafkaPayload(
                         key=str(project_id).encode("utf-8")
                         if not skip_semantic_partitioning
@@ -253,7 +253,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             logger.exception("Could not publish message: %s", error)
             return
 
-        if not asynchronous:
+        if not asynchronous and not isinstance(producer, TaskProducer):
             try:
                 produce_future.result()  # Wait for the message to be delivered to Kafka
             except Exception as error:
@@ -266,8 +266,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
         producer = self.get_producer(Topic.SNUBA_ITEMS)
         real_topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
         try:
-            _ = producer.produce(
-                destination=ArroyoTopic(real_topic),
+            producer.produce(
+                ArroyoTopic(real_topic),
                 payload=KafkaPayload(
                     key=None, value=EAP_ITEMS_CODEC.encode(trace_item), headers=[]
                 ),
