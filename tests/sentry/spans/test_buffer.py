@@ -2122,7 +2122,11 @@ def test_record_segment_loss_metrics_records_empty_expired_segments(
     )
 
     with (
-        mock.patch.object(buffer.store, "get_current_queue_deadline", return_value=deadline),
+        mock.patch.object(
+            buffer.store,
+            "get_current_queue_deadlines",
+            return_value={segment_key: deadline},
+        ),
         mock.patch("sentry.spans.buffer.metrics.incr") as metrics_incr,
     ):
         buffer._record_segment_loss_metrics(
