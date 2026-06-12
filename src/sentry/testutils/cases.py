@@ -1019,14 +1019,6 @@ class IntegrationTestCase(TestCase):
             provider_key=self.provider.key,
         )
 
-        self.init_path = reverse(
-            "sentry-organization-integrations-setup",
-            kwargs={
-                "organization_slug": self.organization.slug,
-                "provider_id": self.provider.key,
-            },
-        )
-
         self.setup_path = reverse(
             "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
         )

@@ -176,6 +176,7 @@ build-utils/                                             @getsentry/owners-js-bu
 eslint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
+/tests/js/test-balancer/                                 @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
@@ -832,6 +833,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/settings/                           @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
 /static/app/bootstrap/                                @getsentry/design-engineering
+/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
 /static/app/components/commandPalette/                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering

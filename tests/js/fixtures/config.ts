@@ -9,6 +9,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     messages: [],
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',
+    cells: [],
     superUserCookieName: 'su-test-cookie',
     superUserCookieDomain: '.sentry.io',
     validateSUForm: true,
@@ -28,6 +29,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     isSelfHostedErrorsOnly: false,
     sentryMode: 'SAAS',
     lastOrganization: null,
+    localities: [{name: 'us', url: 'https://sentry.io'}],
     gravatarBaseUrl: 'https://gravatar.com',
     initialTrace: {
       baggage: 'baggage',
@@ -63,8 +65,6 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
       organizationUrl: undefined,
       regionUrl: undefined,
     },
-    memberRegions: [{name: 'us', url: 'https://sentry.io'}],
-    regions: [{name: 'us', url: 'https://sentry.io'}],
     ...params,
   };
 }

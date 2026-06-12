@@ -5,13 +5,34 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {defined} from 'sentry/utils';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {MIN_HEIGHT, MIN_WIDTH} from 'sentry/views/dashboards/widgets/common/settings';
 
 import {WidgetDescription} from './widgetDescription';
 import {WidgetError} from './widgetError';
 import {WidgetTitle} from './widgetTitle';
 import {WidgetToolbar} from './widgetToolbar';
+
+const RENDER_ERROR_MESSAGE = t('Something went wrong displaying this widget.');
+
+function FeedbackAction() {
+  return (
+    <FeedbackButton
+      size="xs"
+      feedbackOptions={{
+        messagePlaceholder: t('What were you doing when this widget broke?'),
+        tags: {
+          ['feedback.source']: 'dashboards-widget-render-error',
+          ['feedback.owner']: 'dashboards',
+        },
+      }}
+    >
+      {t('Give Feedback')}
+    </FeedbackButton>
+  );
+}
 
 export interface Widget {
   /**
@@ -85,9 +106,13 @@ function WidgetLayout(props: Widget) {
       {props.Visualization && (
         <VisualizationWrapper noPadding={props.noVisualizationPadding}>
           <ErrorBoundary
-            customComponent={({error}) => (
+            // The error itself is reported to Sentry by the ErrorBoundary. We
+            // deliberately don't surface the raw error to the user — it's an
+            // internal code/render error that isn't actionable for them — and
+            // instead show a friendly message with a way to send us feedback.
+            customComponent={() => (
               <Container position="absolute" inset={0}>
-                <WidgetError error={error ?? undefined} />
+                <WidgetError error={RENDER_ERROR_MESSAGE} action={<FeedbackAction />} />
               </Container>
             )}
           >
@@ -99,7 +124,7 @@ function WidgetLayout(props: Widget) {
       {props.Footer && (
         <FooterWrapper noPadding={props.noFooterPadding}>
           <ErrorBoundary
-            customComponent={({error}) => <WidgetError error={error ?? undefined} />}
+            customComponent={() => <WidgetError error={RENDER_ERROR_MESSAGE} />}
           >
             {props.Footer}
           </ErrorBoundary>

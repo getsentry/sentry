@@ -738,6 +738,13 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
     },
     {
+      path: 'legacy-webhooks/',
+      name: t('Webhooks'),
+      component: make(
+        () => import('sentry/views/settings/projectPlugins/legacyWebhookDetails')
+      ),
+    },
+    {
       path: 'plugins/',
       name: t('Legacy Integrations'),
       children: [
@@ -1018,6 +1025,14 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () =>
               import('sentry/views/settings/organizationIntegrations/integrationListDirectory')
+          ),
+        },
+        {
+          path: 'legacy-webhooks/',
+          name: t('Webhooks'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationIntegrations/webhookDetailedView')
           ),
         },
         {
@@ -2513,6 +2528,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: `${IssueTaxonomy.SENTRY_CONFIGURATION}/`,
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
+    },
+    {
+      path: 'awaiting-input/',
+      component: make(() => import('sentry/views/issueList/pages/awaitingInput')),
     },
     {
       path: 'views/',

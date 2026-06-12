@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from sentry.api.serializers import (
     OrganizationMemberSerializer,
     OrganizationMemberWithProjectsSerializer,
@@ -11,6 +9,7 @@ from sentry.api.serializers.models.organization_member import (
 )
 from sentry.models.organizationmember import InviteStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
 
 
@@ -55,45 +54,21 @@ class OrganizationMemberSerializerTest(TestCase):
         assert result["user"]["id"] == str(user.id)
         assert result["user"]["name"] == "bob"
 
-    def test_member_with_deleted_user(self) -> None:
-        """
-        Test that documents current serializer behavior when a member's user has been deleted.
-
-        During hybrid cloud user deletion, there's an eventual consistency window where
-        the user may be deleted from the control silo but the OrganizationMember still
-        exists in the region silo with a user_id reference.
-
-        CURRENT BEHAVIOR (as of 2026-02-17):
-        When user_service.serialize_many() returns empty (user deleted), the serializer
-        fails with AssertionError because:
-        1. serialized_user is None (user was deleted)
-        2. OrganizationMember.email is also None (cleared when user_id was set)
-        3. The code hits: assert email is not None
-
-        The base serializer catches the exception and returns None for the member.
-
-        This test documents the current behavior, not necessarily the desired behavior.
-        Future improvements might include:
-        - Using user_email field as fallback
-        - Returning a partial serialization with user=None but other fields populated
-        """
+    def test_member_with_missing_user_and_no_denormalized_email(self) -> None:
+        # Tests the case where we have no user to resolve, and need to have
+        # _something_ to populate the user email field with.
         user = self.create_user(name="deleted_user", email="deleted@example.com")
-        member = self.create_member(
-            organization=self.org,
-            user_id=user.id,
-        )
+        member = self.create_member(organization=self.org, user_id=user.id)
+        member.update(user_email=None)
 
-        # Simulate the user being deleted but OrganizationMember still existing
-        # by mocking the user service to return empty for this user
-        with patch(
-            "sentry.api.serializers.models.organization_member.base.user_service.serialize_many"
-        ) as mock_serialize:
-            mock_serialize.return_value = []  # No users returned (deleted)
-            result = serialize(member, self.user_2, OrganizationMemberSerializer())
+        with assume_test_silo_mode_of(User):
+            user.delete()
 
-        # Current behavior: serializer returns None when email cannot be determined
-        # This happens because both user.email (from deleted user) and member.email are None
-        assert result is None
+        result = serialize(member, self.user_2, OrganizationMemberSerializer())
+
+        assert result is not None
+        assert result["email"] == ""
+        assert result["user"] is None
 
 
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):

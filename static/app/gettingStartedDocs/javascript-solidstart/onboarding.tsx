@@ -33,9 +33,9 @@ Sentry.init({
         profileSessionSampleRate: 1.0,`
       : ''
   }
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,
+  // To disable sending user data, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/solidstart/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false },
 });
 `;
 }

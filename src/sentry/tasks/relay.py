@@ -48,6 +48,7 @@ def build_project_config(public_key=None, **kwargs):
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
     sentry_sdk.set_tag("public_key", public_key)
+    sentry_sdk.set_attribute("public_key", public_key)
 
     try:
         from sentry.models.projectkey import ProjectKey
@@ -250,11 +251,16 @@ def invalidate_project_config(
         # Cannot use bind_organization_context here because we do not have a
         # model and don't want to fetch one
         sentry_sdk.set_tag("organization_id", organization_id)
+        sentry_sdk.set_attribute("organization_id", organization_id)
     if public_key:
         sentry_sdk.set_tag("public_key", public_key)
+        sentry_sdk.set_attribute("public_key", public_key)
     sentry_sdk.set_tag("trigger", trigger)
+    sentry_sdk.set_attribute("trigger", trigger)
     sentry_sdk.set_tag("trigger_details", trigger_details)
+    sentry_sdk.set_attribute("trigger_details", trigger_details)
     sentry_sdk.set_context("kwargs", kwargs)
+    sentry_sdk.set_attribute("kwargs", str(kwargs))
 
     updated_configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key

@@ -1074,31 +1074,74 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {linked_group2}
 
-    def test_issue_agent(self) -> None:
+    def test_issue_progress(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
         self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
 
-        results = self.make_query(search_filter_query="issue.agent:has_root_cause")
+        results = self.make_query(search_filter_query="issue.progress:diagnosed")
         assert set(results) == {self.group1}
 
-        results = self.make_query(search_filter_query="issue.agent:pr_created")
+        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
         assert set(results) == {self.group2}
 
-        results = self.make_query(search_filter_query="issue.agent:has_plan")
+        results = self.make_query(search_filter_query="issue.progress:fix_applied")
         assert set(results) == set()
 
-    def test_issue_agent_multiple_values(self) -> None:
+    def test_issue_progress_multiple_values(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
         self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
 
-        results = self.make_query(search_filter_query="issue.agent:[has_root_cause, pr_created]")
+        results = self.make_query(search_filter_query="issue.progress:[diagnosed, fix_proposed]")
         assert set(results) == {self.group1, self.group2}
 
-    def test_issue_agent_negation(self) -> None:
+    def test_issue_progress_identified(self) -> None:
+        results = self.make_query(search_filter_query="issue.progress:identified")
+        assert self.group1 in set(results)
+        assert self.group2 not in set(results)
+
+    def test_issue_progress_triaged(self) -> None:
+        results = self.make_query(search_filter_query="issue.progress:triaged")
+        assert self.group2 in set(results)
+        assert self.group1 not in set(results)
+
+    def test_issue_progress_assigned_with_activity(self) -> None:
+        self.create_group_activity(group=self.group2, type=ActivityType.SEER_RCA_COMPLETED.value)
+
+        results = self.make_query(search_filter_query="issue.progress:diagnosed")
+        assert self.group2 in set(results)
+
+        results = self.make_query(search_filter_query="issue.progress:triaged")
+        assert self.group2 not in set(results)
+
+    def test_issue_progress_negation(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
 
-        results = self.make_query(search_filter_query="!issue.agent:has_root_cause")
-        assert set(results) == {self.group2}
+        results = self.make_query(search_filter_query="!issue.progress:diagnosed")
+        assert self.group2 in set(results)
+        assert self.group1 not in set(results)
+
+    def test_issue_progress_regression_resets(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(group=self.group1, type=ActivityType.SET_REGRESSION.value)
+
+        results = self.make_query(search_filter_query="issue.progress:identified")
+        assert self.group1 in set(results)
+
+        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
+        assert self.group1 not in set(results)
+
+    def test_issue_progress_regression_preserves_triaged(self) -> None:
+        GroupAssignee.objects.create(
+            user_id=self.user.id, group=self.group1, project=self.group1.project
+        )
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(group=self.group1, type=ActivityType.SET_REGRESSION.value)
+
+        results = self.make_query(search_filter_query="issue.progress:triaged")
+        assert self.group1 in set(results)
+
+        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
+        assert self.group1 not in set(results)
 
     def test_unassigned(self) -> None:
         results = self.make_query(search_filter_query="is:unassigned")
@@ -4163,6 +4206,43 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
             referrer=Referrer.TESTING_TEST,
         )[0]
         return {gid: score for gid, score in results}
+
+    def test_recommended_message_penalty(self) -> None:
+        ts = before_now(hours=1).isoformat()
+        exception_event = self.store_event(
+            data={
+                "fingerprint": ["exception-group"],
+                "event_id": "a" * 32,
+                "timestamp": ts,
+                "message": "exception-group",
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "something broke",
+                            "stacktrace": {"frames": [{"module": "app.main"}]},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        message_event = self.store_event(
+            data={
+                "fingerprint": ["message-group"],
+                "event_id": "b" * 32,
+                "timestamp": ts,
+                "message": "message-group",
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        with self.options({"snuba.search.recommended.message-penalty-weight": 0.10}):
+            scores = self._recommended_scores([exception_event.group.id, message_event.group.id])
+
+        assert scores[exception_event.group.id] > scores[message_event.group.id]
 
     def test_recommended_zero_weight_factor_excluded(self) -> None:
         ts = before_now(hours=1).isoformat()

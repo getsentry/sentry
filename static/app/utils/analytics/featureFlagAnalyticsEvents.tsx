@@ -1,5 +1,5 @@
 import type {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export type FeatureFlagEventParameters = {
   'flags.cta_dismissed': {surface: string; type: string};

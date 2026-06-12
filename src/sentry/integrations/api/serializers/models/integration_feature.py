@@ -18,7 +18,7 @@ class IntegrationFeatureResponse(TypedDict):
 
 
 @register(IntegrationFeature)
-class IntegrationFeatureSerializer(Serializer):
+class IntegrationFeatureSerializer(Serializer[IntegrationFeatureResponse]):
     def get_attrs(
         self,
         item_list: Sequence[IntegrationFeature],

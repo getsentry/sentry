@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from concurrent.futures import as_completed
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -29,6 +29,7 @@ from sentry.apidocs.parameters import (
     OrganizationParams,
     VisibilityParams,
 )
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
@@ -79,11 +80,24 @@ class DiscoverDatasetSplitException(Exception):
     pass
 
 
-class EventsMeta(TypedDict):
+class EventsMeta(TypedDict, total=False):
+    """Meta envelope emitted by `handle_results_with_meta` and the
+    empty-projects short-circuit. Every key is optional because the path
+    that emits it depends on flags (`standard_meta`, debug, dataset) — the
+    no-projects path only carries `tips`, the standard path carries
+    everything below."""
+
     fields: dict[str, str]
-    datasetReason: NotRequired[str]
-    isMetricsData: NotRequired[bool]
-    isMetricsExtractedData: NotRequired[bool]
+    units: dict[str, str | None]
+    tips: dict[str, str]
+    datasetReason: str
+    isMetricsData: bool
+    isMetricsExtractedData: bool
+    dataset: str
+    discoverSplitDecision: Any
+    dataScanned: str
+    bytesScanned: int
+    debug_info: Any
 
 
 # Only used for api docs
@@ -166,7 +180,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[EventsApiResponse] | Response[DetailResponse]:
         """
         Retrieves explore data for a given organization.
 
@@ -193,16 +209,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 organization,
             )
         except NoProjects:
-            return Response(
-                {
-                    "data": [],
-                    "meta": {
-                        "tips": {
-                            "query": "Need at least one valid project to query.",
-                        },
+            empty_body: EventsApiResponse = {
+                "data": [],
+                "meta": {
+                    "tips": {
+                        "query": "Need at least one valid project to query.",
                     },
-                }
-            )
+                },
+            }
+            return Response(empty_body)
 
         batch_features = self.get_features(organization, request)
 
@@ -226,6 +241,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+        sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
@@ -236,6 +252,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 and referrer.startswith("seer.")
             ):
                 sentry_sdk.set_tag("query.from_seer", True)
+                sentry_sdk.set_attribute("query.from_seer", True)
             else:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
@@ -348,6 +365,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     if has_errors and has_other_data and not using_metrics:
                         # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                         sentry_sdk.set_tag("third_split_query", True)
+                        sentry_sdk.set_attribute("third_split_query", True)
                         transaction_results = _data_fn(
                             transactions.query, offset, limit, scoped_query
                         )
@@ -677,7 +695,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             if request.GET.get("noPagination"):
                 per_page = self.get_per_page(request)
                 result = paginator.get_result(limit=per_page, cursor=None)
-                return Response(_handle_results(result.results))
+                body: EventsApiResponse = _handle_results(result.results)
+                return Response(body)
             else:
                 return self.paginate(
                     request=request,

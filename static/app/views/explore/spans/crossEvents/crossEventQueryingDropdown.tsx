@@ -5,8 +5,8 @@ import {Container} from '@sentry/scraps/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {

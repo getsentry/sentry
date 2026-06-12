@@ -245,6 +245,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         conversation_ids = _extract_conversation_ids(conversation_ids_results)
 
         sentry_sdk.set_tag("ai_conversations.count", len(conversation_ids))
+        sentry_sdk.set_attribute("ai_conversations.count", len(conversation_ids))
 
         if not conversation_ids:
             return []

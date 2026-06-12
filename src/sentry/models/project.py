@@ -442,7 +442,9 @@ class Project(Model):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        return self.option_manager.get_value(self, key, default, validate)
+        from sentry.models.options.project_option import get_option
+
+        return get_option(self.id, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
         """
@@ -497,6 +499,7 @@ class Project(Model):
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
+        from sentry.integrations.services.integration import integration_service
         from sentry.models.environment import Environment, EnvironmentProject
         from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectrepository import ProjectRepository
@@ -506,7 +509,18 @@ class Project(Model):
         from sentry.models.rule import Rule
         from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
         from sentry.snuba.models import SnubaQuery
-        from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector, Workflow
+        from sentry.workflow_engine.models import (
+            AlertRuleWorkflow,
+            DataConditionGroup,
+            DataSource,
+            Detector,
+            DetectorWorkflow,
+            Workflow,
+        )
+        from sentry.workflow_engine.processors.project_transfer import (
+            clone_workflow_to_organization,
+            reconnect_moved_workflow_actions,
+        )
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -634,114 +648,171 @@ class Project(Model):
 
         AlertRule.objects.fetch_for_project(self).update(organization=organization)
 
-        # Transfer DataSource, Workflow, and DataConditionGroup objects for Detectors attached to this project.
-        # * DataSources link detectors to their data sources (QuerySubscriptions, Monitors, etc.).
-        # * Workflows are connected to detectors and define what actions to take.
-        # * DataConditionGroups are connected to workflows (unique 1:1 via WorkflowDataConditionGroup).
-        # Since Detectors are project-scoped and their DataSources are project-specific,
-        # we need to update all related organization-scoped workflow_engine models.
+        # Transfer DataSource, Workflow, and DataConditionGroup objects for Detectors attached to
+        # this project. Detectors are project-scoped (they move with the project via their project
+        # FK), but Workflows and their DataConditionGroups are organization-scoped, so they need to
+        # be moved into the new org explicitly.
         #
-        # IMPORTANT: Workflows and DataConditionGroups can be shared across multiple projects
-        # in the same organization. We only transfer them if they're exclusively used by
-        # detectors in this project. Shared workflows remain in the original organization.
-        # There are certainly more correct ways to do this, but this should cover most cases.
-
-        detector_ids = Detector.objects.filter(project_id=self.id).values_list("id", flat=True)
+        # Workflows can be shared across multiple projects in the same org if connected to detectors in multiple projects.
+        # To keep every workflow in the same org as the detectors and legacy Rule/AlertRule it fires for, we handle two cases:
+        # * A workflow used ONLY by detectors in this project is moved into the new org as-is.
+        # * A workflow shared with detectors in other projects is cloned into the new org; we then
+        #   re-point just this project's DetectorWorkflow and AlertRuleWorkflow links onto the clone
+        #   and leave the original behind for the projects that remain.
+        #
+        # The whole block runs in a transaction so a crash can't leave a half-cloned workflow
+        detector_ids = list(
+            Detector.objects.filter(project_id=self.id).values_list("id", flat=True)
+        )
         if detector_ids:
-            # Update DataSources
-            # DataSources are 1:1 with their source (e.g., QuerySubscription) so they always transfer
-            data_source_ids = (
-                DataSource.objects.filter(detectors__id__in=detector_ids)
-                .distinct()
-                .values_list("id", flat=True)
-            )
-            DataSource.objects.filter(id__in=data_source_ids).update(
-                organization_id=organization.id
-            )
-
-            # Update Workflows connected to these detectors
-            # Only transfer workflows that are exclusively used by detectors in this project
-            all_workflow_ids = (
-                Workflow.objects.filter(detectorworkflow__detector_id__in=detector_ids)
-                .distinct()
-                .values_list("id", flat=True)
-            )
-
-            # Find workflows that are ONLY connected to detectors in this project
-            exclusive_workflow_ids = (
-                Workflow.objects.filter(id__in=all_workflow_ids)
-                .annotate(
-                    detector_count=Count("detectorworkflow__detector"),
-                    project_detector_count=Count(
-                        "detectorworkflow__detector",
-                        filter=Q(detectorworkflow__detector_id__in=detector_ids),
-                    ),
+            # grab the destination org's integrations outside of the transaction since it's an RPC call
+            destination_integration_ids_by_provider: dict[str, list[int]] = defaultdict(list)
+            for integration in integration_service.get_integrations(
+                organization_id=organization.id, status=ObjectStatus.ACTIVE
+            ):
+                destination_integration_ids_by_provider[integration.provider].append(integration.id)
+            with transaction.atomic(router.db_for_write(Workflow)):
+                # DataSources are 1:1 with their source (e.g. QuerySubscription, Monitor) and are
+                # detector-scoped, so they always transfer.
+                data_source_ids = list(
+                    DataSource.objects.filter(detectors__id__in=detector_ids)
+                    .distinct()
+                    .values_list("id", flat=True)
                 )
-                .filter(detector_count=models.F("project_detector_count"))
-                .values_list("id", flat=True)
-            )
-
-            # Update org and environment references for transferred workflows
-            workflows_with_env = dict(
-                Workflow.objects.filter(
-                    id__in=exclusive_workflow_ids, environment_id__isnull=False
-                ).values_list("id", "environment_id")
-            )
-            for workflow_id, env_id in workflows_with_env.items():
-                Workflow.objects.filter(id=workflow_id).update(
-                    organization_id=organization.id,
-                    environment_id=Environment.get_or_create(
-                        self, name=environment_names.get(env_id)
-                    ).id,
+                DataSource.objects.filter(id__in=data_source_ids).update(
+                    organization_id=organization.id
                 )
-            Workflow.objects.filter(id__in=exclusive_workflow_ids).exclude(
-                id__in=workflows_with_env.keys()
-            ).update(organization_id=organization.id)
 
-            # Update DataConditionGroups connected to the transferred workflows
-            # These are linked via WorkflowDataConditionGroup with a unique constraint on condition_group
-            workflow_condition_group_ids = (
-                DataConditionGroup.objects.filter(
-                    workflowdataconditiongroup__workflow_id__in=exclusive_workflow_ids
+                all_workflow_ids = set(
+                    Workflow.objects.filter(
+                        detectorworkflow__detector_id__in=detector_ids,
+                    )
+                    .exclude(organization_id=organization.id)
+                    .distinct()
+                    .values_list("id", flat=True)
                 )
-                .distinct()
-                .values_list("id", flat=True)
-            )
-            DataConditionGroup.objects.filter(id__in=workflow_condition_group_ids).update(
-                organization_id=organization.id
-            )
 
-            # Update DataConditionGroups that are directly owned by detectors
-            # These are linked via Detector.workflow_condition_group (unique FK)
-            # and are exclusively owned by the detector, so they always transfer
-            detector_condition_group_ids = (
-                Detector.objects.filter(
-                    id__in=detector_ids, workflow_condition_group_id__isnull=False
+                # Workflows whose detector links are ALL in this project can be moved as-is.
+                exclusive_workflow_ids = set(
+                    Workflow.objects.filter(id__in=all_workflow_ids)
+                    .annotate(
+                        detector_count=Count("detectorworkflow__detector"),
+                        project_detector_count=Count(
+                            "detectorworkflow__detector",
+                            filter=Q(detectorworkflow__detector_id__in=detector_ids),
+                        ),
+                    )
+                    .filter(detector_count=models.F("project_detector_count"))
+                    .values_list("id", flat=True)
                 )
-                .values_list("workflow_condition_group_id", flat=True)
-                .distinct()
-            )
-            DataConditionGroup.objects.filter(id__in=detector_condition_group_ids).update(
-                organization_id=organization.id
-            )
+                shared_workflow_ids = all_workflow_ids - exclusive_workflow_ids
 
-            # Update DataConditionGroups used as when_condition_group in transferred workflows
-            # DataConditionGroups are never shared, so transfer all when_condition_groups
-            when_condition_group_ids = (
-                Workflow.objects.filter(
-                    id__in=exclusive_workflow_ids, when_condition_group_id__isnull=False
+                def resolve_environment_id(environment_id: int | None) -> int | None:
+                    if environment_id is None:
+                        return None
+                    return Environment.get_or_create(
+                        self, name=environment_names.get(environment_id)
+                    ).id
+
+                # Move the exclusive workflows (and their org/environment references) into the new org.
+                workflows_with_env = dict(
+                    Workflow.objects.filter(
+                        id__in=exclusive_workflow_ids, environment_id__isnull=False
+                    ).values_list("id", "environment_id")
                 )
-                .values_list("when_condition_group_id", flat=True)
-                .distinct()
-            )
-            DataConditionGroup.objects.filter(id__in=when_condition_group_ids).update(
-                organization_id=organization.id
-            )
+                for workflow_id, env_id in workflows_with_env.items():
+                    Workflow.objects.filter(id=workflow_id).update(
+                        organization_id=organization.id,
+                        environment_id=resolve_environment_id(env_id),
+                    )
+                Workflow.objects.filter(id__in=exclusive_workflow_ids).exclude(
+                    id__in=workflows_with_env.keys()
+                ).update(organization_id=organization.id)
 
-            # Null out detector owners — the owning team/user won't belong to the new org
-            Detector.objects.filter(id__in=detector_ids).exclude(
-                owner_team_id__isnull=True, owner_user_id__isnull=True
-            ).update(owner_team_id=None, owner_user_id=None)
+                # DataConditionGroups attached to the moved workflows (the "if" filters, linked via
+                # WorkflowDataConditionGroup) move with them.
+                exclusive_condition_group_ids = list(
+                    DataConditionGroup.objects.filter(
+                        workflowdataconditiongroup__workflow_id__in=exclusive_workflow_ids
+                    )
+                    .distinct()
+                    .values_list("id", flat=True)
+                )
+                DataConditionGroup.objects.filter(id__in=exclusive_condition_group_ids).update(
+                    organization_id=organization.id
+                )
+
+                # when_condition_groups of the moved workflows are never shared, so move them too.
+                when_condition_group_ids = (
+                    Workflow.objects.filter(
+                        id__in=exclusive_workflow_ids, when_condition_group_id__isnull=False
+                    )
+                    .values_list("when_condition_group_id", flat=True)
+                    .distinct()
+                )
+                DataConditionGroup.objects.filter(id__in=when_condition_group_ids).update(
+                    organization_id=organization.id
+                )
+
+                # update the integration id or disable the action. Actions only ever attach to
+                # the if_condition_groups, not the when_condition_groups
+                reconnect_moved_workflow_actions(
+                    exclusive_condition_group_ids,
+                    destination_integration_ids_by_provider,
+                )
+
+                # Clone the shared workflows into the new org and re-point only this project's links.
+                # we use DetectorWorkflow to identify Workflows that need to be cloned, but once we clone
+                # we remove the DetectorWorkflow links to the old Workflow so that in a re-run these cloned
+                # workflows will be treated as exclusive and no-op transferred
+                if shared_workflow_ids:
+                    project_rule_ids = list(
+                        Rule.objects.filter(project_id=self.id).values_list("id", flat=True)
+                    )
+                    project_alert_rule_ids = list(
+                        AlertRule.objects.fetch_for_project(self).values_list("id", flat=True)
+                    )
+                    for workflow in Workflow.objects.filter(id__in=shared_workflow_ids):
+                        clone = clone_workflow_to_organization(
+                            workflow,
+                            organization,
+                            resolve_environment_id(workflow.environment_id),
+                            destination_integration_ids_by_provider,
+                        )
+                        # Detectors are project-scoped and move with this project, so re-point all
+                        # of their workflow links (cron, issue_stream, error, ...) onto the clone.
+                        DetectorWorkflow.objects.filter(
+                            workflow=workflow, detector_id__in=detector_ids
+                        ).update(workflow=clone)
+                        # Re-point the legacy lookups for this project's Rule/AlertRule. Each Rule is
+                        # single-project and AlertRule is functionally single-project, so re-pointing
+                        # this project's rows is unambiguous.
+                        if project_rule_ids:
+                            AlertRuleWorkflow.objects.filter(
+                                workflow=workflow, rule_id__in=project_rule_ids
+                            ).update(workflow=clone)
+                        if project_alert_rule_ids:
+                            AlertRuleWorkflow.objects.filter(
+                                workflow=workflow, alert_rule_id__in=project_alert_rule_ids
+                            ).update(workflow=clone)
+
+                # DataConditionGroups directly owned by detectors (Detector.workflow_condition_group,
+                # a unique FK) are exclusively owned by the detector, so they always transfer.
+                detector_condition_group_ids = (
+                    Detector.objects.filter(
+                        id__in=detector_ids, workflow_condition_group_id__isnull=False
+                    )
+                    .values_list("workflow_condition_group_id", flat=True)
+                    .distinct()
+                )
+                DataConditionGroup.objects.filter(id__in=detector_condition_group_ids).update(
+                    organization_id=organization.id
+                )
+
+                # Null out detector owners — the owning team/user won't belong to the new org.
+                Detector.objects.filter(id__in=detector_ids).exclude(
+                    owner_team_id__isnull=True, owner_user_id__isnull=True
+                ).update(owner_team_id=None, owner_user_id=None)
 
         # Manually move over external issues to the new org
         linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(

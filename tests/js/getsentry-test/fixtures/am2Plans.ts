@@ -135,6 +135,7 @@ export const AM2_PLANS = {
   am2_business: {
     ...commonFields,
     id: 'am2_business',
+    isEnterprise: false,
     name: 'Business',
     description: '',
     price: 8900,
@@ -874,6 +875,7 @@ export const AM2_PLANS = {
   am2_f: {
     ...commonFields,
     id: 'am2_f',
+    isEnterprise: false,
     name: 'Developer',
     description: '',
     price: 0,
@@ -981,6 +983,7 @@ export const AM2_PLANS = {
   am2_team: {
     ...commonFields,
     id: 'am2_team',
+    isEnterprise: false,
     name: 'Team',
     description: '',
     price: 2900,
@@ -1720,6 +1723,7 @@ export const AM2_PLANS = {
   am2_t: {
     ...commonFields,
     id: 'am2_t',
+    isEnterprise: false,
     name: 'Trial',
     description: '',
     price: 0,
@@ -1827,6 +1831,7 @@ export const AM2_PLANS = {
   am2_team_auf: {
     ...commonFields,
     id: 'am2_team_auf',
+    isEnterprise: false,
     name: 'Team',
     description: '',
     price: 31200,
@@ -2529,6 +2534,7 @@ export const AM2_PLANS = {
   am2_business_auf: {
     ...commonFields,
     id: 'am2_business_auf',
+    isEnterprise: false,
     name: 'Business',
     description: '',
     price: 96000,
@@ -3232,6 +3238,7 @@ export const AM2_PLANS = {
     ...commonFields,
     // NOTE: being deprecated
     id: 'am2_sponsored',
+    isEnterprise: false,
     name: 'Sponsored',
     description: '',
     price: 0,
@@ -3271,6 +3278,7 @@ export const AM2_PLANS = {
   am2_sponsored_team_auf: {
     ...commonFields,
     id: 'am2_sponsored_team_auf',
+    isEnterprise: false,
     name: 'Sponsored Team',
     description: '',
     price: 0,
@@ -3310,6 +3318,7 @@ export const AM2_PLANS = {
   am2_business_bundle: {
     ...commonFields,
     id: 'am2_business_bundle',
+    isEnterprise: false,
     name: 'Business Bundle',
     description: '',
     price: 50000,
@@ -3822,6 +3831,7 @@ export const AM2_PLANS = {
   am2_business_249_bundle: {
     ...commonFields,
     id: 'am2_business_249_bundle',
+    isEnterprise: false,
     name: 'Business Bundle',
     description: '',
     price: 24900,
@@ -4384,6 +4394,7 @@ export const AM2_PLANS = {
   am2_team_bundle: {
     ...commonFields,
     id: 'am2_team_bundle',
+    isEnterprise: false,
     name: 'Team Bundle',
     description: '',
     price: 9900,
@@ -4961,6 +4972,7 @@ export const AM2_PLANS = {
   am2_business_ent_auf: {
     ...commonFields,
     id: 'am2_business_ent_auf',
+    isEnterprise: true,
     name: 'Enterprise (Business)',
     description: '',
     price: 0,
@@ -5067,6 +5079,7 @@ export const AM2_PLANS = {
   am2_business_ent: {
     ...commonFields,
     id: 'am2_business_ent',
+    isEnterprise: true,
     name: 'Enterprise (Business)',
     description: '',
     price: 0,

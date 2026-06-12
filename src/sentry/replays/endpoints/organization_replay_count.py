@@ -28,6 +28,7 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.replay_counts import get_replay_counts
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -40,6 +41,7 @@ class ReplayCountQueryParamsValidator(serializers.Serializer):
             Dataset.Events.value,
             Dataset.Transactions.value,
             Dataset.IssuePlatform.value,
+            SupportedTraceItemType.SPANS.value,
         ),
         default=Dataset.Discover.value,
     )
@@ -71,13 +73,15 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
 
     @extend_schema(
         examples=ReplayExamples.GET_REPLAY_COUNTS,
-        operation_id="Retrieve a Count of Replays for a Given Issue or Transaction",
+        operation_id="getOrganizationReplayCount",
+        summary="Retrieve a Count of Replays for a Given Issue or Transaction",
         parameters=[
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.START,
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
+            OrganizationParams.PROJECT,
             OrganizationParams.PROJECT_ID_OR_SLUG,
             VisibilityParams.QUERY,
             ReplayParams.DATA_SOURCE,

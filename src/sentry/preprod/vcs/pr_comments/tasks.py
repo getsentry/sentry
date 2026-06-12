@@ -194,6 +194,39 @@ def find_existing_comment_id(
     return None
 
 
+def lock_pr_comparisons_for_update(
+    *,
+    organization_id: int,
+    head_repo_name: str,
+    pr_number: int,
+    target_id: int,
+    comment_type: str,
+) -> tuple[CommitComparison, str | None]:
+    """Lock every CommitComparison row for the PR and return the target row
+    along with the existing comment id for ``comment_type``.
+
+    Must be called inside an open transaction. The ``SELECT ... FOR UPDATE``
+    serializes tasks operating on the same PR (ordered by id for a stable lock
+    order), so the comment id is read from a consistent committed view rather
+    than a value captured earlier by another task.
+    """
+    all_for_pr = list(
+        CommitComparison.objects.select_for_update()
+        .filter(
+            organization_id=organization_id,
+            head_repo_name=head_repo_name,
+            pr_number=pr_number,
+        )
+        .order_by("id")
+    )
+    cc = next((c for c in all_for_pr if c.id == target_id), None)
+    if cc is None:
+        raise CommitComparison.DoesNotExist(
+            f"CommitComparison {target_id} was deleted before lock acquisition"
+        )
+    return cc, find_existing_comment_id(all_for_pr, comment_type)
+
+
 def save_pr_comment_result(
     commit_comparison: CommitComparison,
     comment_type: str,

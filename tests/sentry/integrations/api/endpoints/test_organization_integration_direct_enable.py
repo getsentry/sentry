@@ -14,8 +14,7 @@ class OrganizationIntegrationDirectEnableTest(APITestCase):
         self.login_as(self.user)
 
     def test_enables_github_copilot(self):
-        with self.feature("organizations:integrations-github-copilot-agent"):
-            response = self.get_success_response(self.organization.slug, "github_copilot")
+        response = self.get_success_response(self.organization.slug, "github_copilot")
 
         integration = Integration.objects.get(provider="github_copilot")
         assert OrganizationIntegration.objects.filter(
@@ -34,14 +33,10 @@ class OrganizationIntegrationDirectEnableTest(APITestCase):
         self.get_error_response(self.organization.slug, "cursor", status_code=400)
 
     def test_prevents_duplicate_installation(self):
-        with self.feature("organizations:integrations-github-copilot-agent"):
-            self.get_success_response(self.organization.slug, "github_copilot")
-            self.get_error_response(self.organization.slug, "github_copilot", status_code=400)
+        self.get_success_response(self.organization.slug, "github_copilot")
+        self.get_error_response(self.organization.slug, "github_copilot", status_code=400)
 
         assert Integration.objects.filter(provider="github_copilot").count() == 1
-
-    def test_returns_404_when_feature_flag_disabled(self):
-        self.get_error_response(self.organization.slug, "github_copilot", status_code=404)
 
     def test_requires_org_write_permission(self):
         member = self.create_user()

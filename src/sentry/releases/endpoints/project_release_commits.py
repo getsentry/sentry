@@ -46,7 +46,7 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         },
         examples=ReleaseExamples.LIST_RELEASE_COMMITS,
     )
-    def get(self, request: Request, project, version) -> Response:
+    def get(self, request: Request, project, version) -> Response[list[CommitSerializerResponse]]:
         """
         Retrieve a list of commits for a given release.
         """

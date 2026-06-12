@@ -1,7 +1,7 @@
 import type {RefObject} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {

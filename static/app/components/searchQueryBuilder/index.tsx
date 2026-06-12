@@ -1,6 +1,7 @@
 import {useLayoutEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -28,7 +29,7 @@ import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -66,6 +67,11 @@ export interface SearchQueryBuilderProps {
    * Defaults to 'beta'.
    */
   aiSearchBadgeType?: 'alpha' | 'beta';
+  /**
+   * Query key used to scope async filter key metadata. When omitted, metadata is
+   * scoped to this query builder instance.
+   */
+  asyncFilterKeyRegistryQueryKey?: QueryKey;
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.

@@ -7,6 +7,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Collapsible} from 'sentry/components/collapsible';
 import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -52,6 +53,11 @@ const INSIGHTS_WITH_MORE_INFO_MODAL = [
 ];
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
+
+// Show this many duplicate files within a group before collapsing the rest
+// behind a toggle, so one heavily-duplicated group can't render hundreds of
+// rows at once and push every other insight off-screen.
+const DUPLICATE_GROUP_VISIBLE_FILE_COUNT = 15;
 
 export function AppSizeInsightsSidebarRow({
   insight,
@@ -281,22 +287,36 @@ function DuplicateGroupFileRow({
         </Text>
       </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
-        {group.files.map((duplicateFile, index) => (
-          <Flex key={`${duplicateFile.file_path}-${index}`} align="center" gap="sm">
-            <Text size="xs" variant="muted" ellipsis style={{flex: 1, minWidth: 0}}>
-              {duplicateFile.file_path}
-            </Text>
-            <Text
-              size="xs"
-              variant="muted"
-              tabular
-              align="right"
-              style={{minWidth: '80px'}}
-            >
-              {formatBytesBase10(duplicateFile.total_savings)}
-            </Text>
-          </Flex>
-        ))}
+        <Collapsible
+          maxVisibleItems={DUPLICATE_GROUP_VISIBLE_FILE_COUNT}
+          expandButton={({onExpand, numberOfHiddenItems}) => (
+            <Button variant="link" size="xs" onClick={onExpand}>
+              {tn('Show %s more file', 'Show %s more files', numberOfHiddenItems)}
+            </Button>
+          )}
+          collapseButton={({onCollapse}) => (
+            <Button variant="link" size="xs" onClick={onCollapse}>
+              {t('Collapse')}
+            </Button>
+          )}
+        >
+          {group.files.map(duplicateFile => (
+            <Flex key={duplicateFile.file_path} align="center" gap="sm">
+              <Text size="xs" variant="muted" ellipsis style={{flex: 1, minWidth: 0}}>
+                {duplicateFile.file_path}
+              </Text>
+              <Text
+                size="xs"
+                variant="muted"
+                tabular
+                align="right"
+                style={{minWidth: '80px'}}
+              >
+                {formatBytesBase10(duplicateFile.total_savings)}
+              </Text>
+            </Flex>
+          ))}
+        </Collapsible>
       </Flex>
     </Fragment>
   );

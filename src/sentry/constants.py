@@ -729,7 +729,7 @@ SEER_DEFAULT_CODING_AGENT_DEFAULT = "seer"
 SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT = "code_changes"
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
-DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT = 15
+DASHBOARDS_ASYNC_QUEUE_PARALLEL_LIMIT_DEFAULT = 10
 
 INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
@@ -809,6 +809,9 @@ HEALTH_CHECK_GLOBS = [
     "*/readyz{/,}",
     "*/ping{/,}",
     "*/up{/,}",
+    # Globs for Spring Boot: https://docs.spring.io/spring-boot/api/rest/actuator/health.html
+    "*/actuator/health{/*,}",
+    "*/manage/health{/*,}",
 ]
 
 
@@ -1070,3 +1073,5 @@ EXTENSION_LANGUAGE_MAP = {
 # will begin periodic brownouts.
 CELL_API_DEPRECATION_DATE = datetime(2026, 5, 15, 0, 0, 0, tzinfo=UTC)
 ALERTS_API_DEPRECATION_DATE = datetime(2026, 5, 14, 0, 0, 0, tzinfo=UTC)
+# Option key prefix for the deprecated alerts API brownout schedule and duration.
+ALERTS_API_DEPRECATION_KEY = "api.deprecation.alerts"

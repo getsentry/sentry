@@ -2,32 +2,6 @@
 
 > **IMPORTANT**: AGENTS.md files are the source of truth for AI agent instructions. Always update the relevant AGENTS.md file when adding or modifying agent guidance. Do not add to CLAUDE.md or Cursor rules.
 
-## Overview
-
-Sentry is a developer-first error tracking and performance monitoring platform. This repository contains the main Sentry application, which is a large-scale Django application with a React frontend.
-
-## Project Structure
-
-```
-sentry/
-├── src/
-│   ├── sentry/           # Main Django application
-│   │   ├── api/          # REST API endpoints
-│   │   ├── models/       # Django models
-│   │   ├── tasks/        # Celery tasks
-│   │   ├── integrations/ # Third-party integrations
-│   │   ├── issues/       # Issue tracking logic
-│   │   └── web/          # Web views and middleware
-│   ├── sentry_plugins/   # Plugin system
-│   └── social_auth/      # Social authentication
-├── static/               # Frontend application
-├── tests/                # Backend test suite
-├── fixtures/             # Test fixtures
-├── devenv/               # Development environment config
-├── migrations/           # Database migrations
-└── config/               # Configuration files
-```
-
 ## Command Execution Guide
 
 This section contains critical command execution instructions that apply across all Sentry development.
@@ -77,6 +51,8 @@ That is all that is required to run `pytest`.
 
 `devservices serve` starts the development server.
 
+When the devserver is running, its full console output (all honcho-managed processes — `server`, `taskworker`, kafka consumers, webpack/watchers, etc.) is teed to `.artifacts/dev.log`, ANSI-stripped and gitignored. Agents can't see the devserver terminal, so `tail`/`grep` this file to inspect what's happening (startup, reloads, request logs, tracebacks). The file is truncated on each devserver process start (in-process granian reloads keep appending); override its path with `SENTRY_DEV_LOG_FILE`. Dev-only — this teeing lives in `sentry devserver` and is not used in production.
+
 #### Linting
 
 prek is the single entrypoint for all lint, format, and type-checking tools.
@@ -90,7 +66,7 @@ cd /path/to/sentry && .venv/bin/prek run -q
 prek detects changed files automatically. To run a specific hook:
 
 ```bash
-.venv/bin/prek run -q mypy --files src/sentry/foo/bar.py
+SENTRY_MYPY_PRE_PUSH=1 .venv/bin/prek run -q mypy --files src/sentry/foo/bar.py --stage pre-push
 .venv/bin/prek run -q ruff --files src/sentry/foo/bar.py
 ```
 

@@ -1,9 +1,9 @@
 import {Input} from '@sentry/scraps/input';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Action, MetricActionTemplate} from 'sentry/views/alerts/rules/metric/types';

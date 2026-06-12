@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any
 
 from drf_spectacular.utils import extend_schema
@@ -22,8 +23,19 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.autofix_examples import AutofixExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import (
+    publish_action,
+    resolve_action_actor,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import TriggerAutofixAction
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
@@ -41,11 +53,16 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
+from sentry.seer.autofix.types import (
+    AutofixHandoffResponse,
+    AutofixPostResponse,
+    AutofixStateResponse,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
+from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -90,7 +107,18 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     )
     run_id = serializers.IntegerField(
         required=False,
-        help_text="Existing run ID to continue. If not provided, starts a new run.",
+        help_text=(
+            "**Deprecated** in favor of sentry_run_id; retained for backward "
+            "compatibility. The existing run's numeric Seer id to continue. If "
+            "neither run_id nor sentry_run_id is provided, starts a new run."
+        ),
+    )
+    sentry_run_id = serializers.UUIDField(
+        required=False,
+        help_text=(
+            "Existing run's UUID to continue. Preferred over run_id, and takes "
+            "precedence when both are given."
+        ),
     )
     integration_id = serializers.IntegerField(
         required=False,
@@ -169,7 +197,16 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
-    def post(self, request: Request, group: Group) -> Response:
+    def post(
+        self, request: Request, group: Group
+    ) -> (
+        Response[AutofixPostResponse]
+        | Response[AutofixHandoffResponse]
+        | Response[None]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+        | Response[str]
+    ):
         """
         Trigger a Seer Issue Fix run for a specific issue.
 
@@ -183,18 +220,32 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         """
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
-        run_id = data.get("run_id")
+
+        # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
+        sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
+        run_ref: str | int | None = (
+            str(sentry_run_id_param) if sentry_run_id_param is not None else data.get("run_id")
+        )
+
+        resolved_run_id: int | None = None
+        resolved_sentry_run_id: str | None = None
+        if run_ref is not None:
+            resolved = resolve_seer_run(run_ref, group.organization, for_continue=True)
+            if isinstance(resolved, Response):
+                return resolved
+            resolved_run_id = resolved.seer_run_state_id
+            resolved_sentry_run_id = resolved.uuid
 
         # Handle third-party coding agent handoff separately
         if step == "coding_agent_handoff":
             integration_id = data.get("integration_id")
             provider = data.get("provider")
-            if not run_id or (not integration_id and not provider):
+            if resolved_run_id is None or (not integration_id and not provider):
                 return Response(
                     {
                         "detail": "run_id and either integration_id or provider are required for coding_agent_handoff"
@@ -208,9 +259,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 )
 
             try:
-                result = trigger_coding_agent_handoff(
+                handoff_result: AutofixHandoffResponse = trigger_coding_agent_handoff(
                     group=group,
-                    run_id=run_id,
+                    run_id=resolved_run_id,
                     referrer=_parse_autofix_referrer(data.get("referrer")),
                     integration_id=integration_id,
                     provider=provider,
@@ -221,10 +272,10 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 if _is_unknown_run_id_error(e):
                     return Response(status=status.HTTP_404_NOT_FOUND)
                 raise PermissionDenied(SEER_PERMISSION_DENIED)
-            return Response(result, status=status.HTTP_202_ACCEPTED)
+            return Response(handoff_result, status=status.HTTP_202_ACCEPTED)
 
         if step == "open_pr":
-            if not run_id:
+            if resolved_run_id is None:
                 return Response(
                     {"detail": "run_id is required for open_pr"}, status=status.HTTP_400_BAD_REQUEST
                 )
@@ -232,27 +283,55 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             try:
                 trigger_push_changes(
                     group,
-                    run_id,
+                    resolved_run_id,
                     referrer=_parse_autofix_referrer(data.get("referrer")),
                     repo_name=repo_name,
                 )
             except SeerPermissionError:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-            return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
+            open_pr_body: AutofixPostResponse = {
+                "run_id": resolved_run_id,
+                "sentry_run_id": resolved_sentry_run_id,
+            }
+            return Response(open_pr_body, status=status.HTTP_202_ACCEPTED)
 
-        # Handle all built-in Seer steps
+        # Handle all built-in Seer steps. A missing run_id means this call starts a new
+        # autofix run (the kickoff); a provided run_id is advancing an existing run.
+        is_autofix_kickoff = resolved_run_id is None
         try:
             run_id = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep(step),
                 referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
-                run_id=run_id,
-                intelligence_level="medium",
+                run_id=resolved_run_id,
                 user_context=data.get("user_context"),
                 insert_index=data.get("insert_index"),
             )
-            return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
+            if is_autofix_kickoff:
+                # Record the trigger action only on kickoff, not on each subsequent
+                # step advancement within the same run.
+                publish_action(
+                    TriggerAutofixAction(),
+                    source=resolve_action_source(request),
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                    actor=resolve_action_actor(request),
+                )
+                # Kickoff returns only the numeric id; fetch the mirror for its UUID.
+                # TODO(telkins): start_run already returns this SeerRun — have
+                # trigger_autofix_agent return it so we can drop this lookup and
+                # the branch (also lets night_shift drop its post-call lookup).
+                run = get_seer_run(run_id, group.organization)
+                sentry_run_id = str(run.uuid) if run else None
+            else:
+                sentry_run_id = resolved_sentry_run_id
+            kickoff_body: AutofixPostResponse = {
+                "run_id": run_id,
+                "sentry_run_id": sentry_run_id,
+            }
+            return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
         except NoSeerQuotaException:
             return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
         except SeerPermissionError as e:
@@ -276,7 +355,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[AutofixStateResponse]:
         """
         Retrieve the current detailed state of an issue fix process for a specific issue including:
 
@@ -301,7 +380,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             agent_providers = {a.provider for a in state.coding_agents.values()}
             if CodingAgentProviderType.GITHUB_COPILOT_AGENT in agent_providers:
                 poll_github_copilot_agents(
-                    coding_agents=state.coding_agents, user_id=request.user.id
+                    coding_agents=state.coding_agents,
+                    user_id=request.user.id,
+                    organization_id=group.organization.id,
                 )
             if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
                 poll_claude_code_agents(
@@ -309,10 +390,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     organization_id=group.organization.id,
                 )
 
+        run = get_seer_run(state.run_id, group.organization)
         return Response(
             {
                 "autofix": {
                     "run_id": state.run_id,
+                    "sentry_run_id": str(run.uuid) if run else None,
                     "status": state.status,
                     "blocks": [block.dict() for block in state.blocks],
                     "updated_at": state.updated_at,

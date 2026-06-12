@@ -14,7 +14,7 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {
   useMaxPickableDays,

@@ -8,6 +8,9 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
+    STATUS_CHANGE_VIA_ACTIVITY_FLAG,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +22,8 @@ SEER_ACTIVITIES = [
     ActivityType.SEER_CODING_STARTED.value,
     ActivityType.SEER_CODING_COMPLETED.value,
     ActivityType.SEER_PR_CREATED.value,
+    ActivityType.SEER_ITERATION_STARTED.value,
+    ActivityType.SEER_ITERATION_COMPLETED.value,
 ]
 
 SUPPORTED_ACTIVITIES = [
@@ -62,6 +67,14 @@ def workflow_status_update_handler(
         return
 
     organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
+
+    if activity.type == ActivityType.SET_RESOLVED.value and features.has(
+        STATUS_CHANGE_VIA_ACTIVITY_FLAG, organization
+    ):
+        # The generic activity_handler (invoked via create_group_activity) now owns
+        # status change activities. Skip here to avoid queuing the task twice.
+        return
+
     can_process_seer_activities = features.has(
         "organizations:workflow-engine-evaluate-seer-activities", organization
     )

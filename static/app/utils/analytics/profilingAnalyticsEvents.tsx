@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 type ProfilingEventSource =
   | 'discover.transactions_table'

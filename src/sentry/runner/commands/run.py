@@ -346,15 +346,15 @@ def taskbroker_send_tasks(
     namespace: str,
     extra_arg_bytes: int | None,
 ) -> None:
-    from sentry import options
     from sentry.conf.server import KAFKA_CLUSTERS
+    from sentry.taskworker.adapters import set_route_overrides
     from sentry.utils.imports import import_string
 
     if bootstrap_servers:
         KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
 
     if kafka_topic and namespace:
-        options.set("taskworker.route.overrides", {namespace: kafka_topic})
+        set_route_overrides({namespace: kafka_topic})
 
     try:
         func = import_string(task_function_path)
@@ -413,9 +413,6 @@ def taskbroker_send_tasks(
     "--kafka-slice-id",
     type=int,
     help="Which sliced kafka topic to use. This only applies if the target topic is configured in SLICED_KAFKA_TOPICS.",
-)
-@click.option(
-    "--cluster", type=str, help="Which cluster definition from settings to use for this consumer."
 )
 @click.option(
     "--consumer-group",
@@ -592,7 +589,6 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             consumer_name,
             [],
             topic=None,
-            cluster=None,
             group_id="sentry-consumer",
             auto_offset_reset="latest",
             strict_offset_reset=False,

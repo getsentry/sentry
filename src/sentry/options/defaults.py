@@ -1,6 +1,5 @@
 import os
 
-from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
@@ -46,7 +45,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
-register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -279,11 +277,6 @@ register(
     "user-settings.signed-url-confirmation-emails-salt",
     type=String,
     default="signed-url-confirmation-emails-salt",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "user-settings.signed-url-confirmation-emails",
-    default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -779,13 +772,6 @@ register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Azure DevOps Integration Social Login Flow
-register(
-    "vsts.social-auth-migration",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Add consent prompt for Azure DevOps Integration
 register(
@@ -815,6 +801,10 @@ register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # Debug values are used for the Notification Debug CLI
 register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# GCP MCP Integration
+register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -896,6 +886,26 @@ register(
     type=Dict,
     default={7001: 0.15},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.message-penalty-weight",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.assignment-weight",
+    default=0.30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.fixability-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.agent-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
@@ -1172,6 +1182,18 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.severity.cpu-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.fixability.cpu-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.night_shift.enable",
     type=Bool,
     default=False,
@@ -1299,6 +1321,9 @@ register(
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
+# Whether Relay requests sent from internal ip addresses should be allowed even if the
+# credentials can not be verified.
+register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
@@ -1516,6 +1541,21 @@ register(
 # Used when a deprecation doesn't have a custom key defined.
 register(
     "api.deprecation.brownout-duration",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Brownout schedule for the deprecated alerts API endpoints.
+# 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
+register(
+    "api.deprecation.alerts-cron",
+    default="0 */4 * * *",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "api.deprecation.alerts-duration",
     type=Int,
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2086,6 +2126,13 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.project-balancing-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
@@ -2770,6 +2817,14 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Store the regression-triggering event's metadata in the activity data so
+# notifications show the correct title/message instead of stale group data.
+register(
+    "groups.regression-activity-event-metadata",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -2817,6 +2872,13 @@ register(
     "spans.process-spans.profiling.rate",
     type=Float,
     default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Skip the script_exists check in ensure_script and trust the cached SHA.
+register(
+    "spans.buffer.ensure-script.skip-exists-check",
+    type=Bool,
+    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Timeout for stale segments without a root span to be flushed.
@@ -3112,7 +3174,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
     "workflow_engine.ensure_detector_association",
     type=Bool,
@@ -3664,7 +3725,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 # SCM
 
 register(
@@ -3700,12 +3760,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables cell resolver in APIGateway, should be removed after rollout
+# When True, publish_action writes to the GroupActionLogEntry table.
 register(
-    "apigateway.cell_resolver.enabled",
+    "issues.action-log.write-to-db",
     default=False,
     type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
@@ -3714,4 +3774,35 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
+register(
+    "tasks.producer.occurrences.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to the clock_pulse task
+register(
+    "tasks.producer.clock-pulse.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_snapshot_to_kafka from within taskworkers
+register(
+    "tasks.producer.snapshots.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "github-enterprise.disallow-domain-mismatch",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

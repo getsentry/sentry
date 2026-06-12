@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useQueryClient, type UseQueryOptions} from '@tanstack/react-query';
 
-import {defined} from 'sentry/utils';
 import {type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
   type ApiQueryKey,
@@ -9,6 +8,7 @@ import {
   safeParseQueryKey,
 } from 'sentry/utils/api/apiQueryKey';
 import {uniq} from 'sentry/utils/array/uniq';
+import {defined} from 'sentry/utils/defined';
 
 const BUFFER_WAIT_MS = 20;
 

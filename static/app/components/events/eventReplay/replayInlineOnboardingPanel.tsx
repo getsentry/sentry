@@ -11,7 +11,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useMedia} from 'sentry/utils/useMedia';

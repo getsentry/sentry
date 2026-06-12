@@ -14,9 +14,7 @@ describe('ClaudeCodeIntegrationCta', () => {
     seerScannerAutomation: true,
     autofixAutomationTuning: 'medium',
   });
-  const organization = OrganizationFixture({
-    features: ['integrations-claude-code'],
-  });
+  const organization = OrganizationFixture();
 
   function mockDetailedProject(projectBody = enabledProject) {
     return MockApiClient.addMockResponse({
@@ -47,20 +45,8 @@ describe('ClaudeCodeIntegrationCta', () => {
     });
   });
 
-  describe('Feature Flag', () => {
-    it('does not render without integrations-claude-code feature flag', () => {
-      const orgWithoutFlag = OrganizationFixture({
-        features: [],
-      });
-
-      const {container} = render(<ClaudeCodeIntegrationCta project={project} />, {
-        organization: orgWithoutFlag,
-      });
-
-      expect(container).toBeEmptyDOMElement();
-    });
-
-    it('renders with integrations-claude-code feature flag', async () => {
+  describe('Availability', () => {
+    it('renders without a feature flag', async () => {
       render(<ClaudeCodeIntegrationCta project={project} />, {
         organization,
       });

@@ -31,7 +31,7 @@ class RuleGroupHistoryResponse(TypedDict):
     eventId: str | None
 
 
-class RuleGroupHistorySerializer(Serializer):
+class RuleGroupHistorySerializer(Serializer[RuleGroupHistoryResponse]):
     def get_attrs(
         self, item_list: Sequence[RuleGroupHistory], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:

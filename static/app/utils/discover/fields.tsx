@@ -1,8 +1,9 @@
 import isEqual from 'lodash/isEqual';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {
@@ -934,14 +935,6 @@ export function measurementType(field: string): MeasurementType {
   }
 
   return FieldValueType.NUMBER;
-}
-
-export function getMeasurementSlug(field: string): string | null {
-  const results = field.match(MEASUREMENT_PATTERN);
-  if (results && results.length >= 2) {
-    return results[1]!;
-  }
-  return null;
 }
 
 const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;

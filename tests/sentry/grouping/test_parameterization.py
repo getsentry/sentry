@@ -28,6 +28,8 @@ standard_cases = [
     ("email", "maisey@dogsaregreat.com", "<email>"),
     ("email - with period", "maisey.thedog@dogsaregreat.com", "<email>"),
     ("email - with plus sign", "maisey+thedog@dogsaregreat.com", "<email>"),
+    ("email - 254-char local part", "a" * 254 + "@example.com", "<email>"),
+    ("email - 255-char local part partially matched", "a" * 255 + "@example.com", "a<email>"),
     ("url - no subdomain", "http://dogsaregreat.com", "<url>"),
     ("url - with subdomain", "http://dogs.squirrelchasers.net", "<url>"),
     ("url - with path", "http://dogsaregreat.com/adopt/dont/shop", "<url>"),
@@ -180,6 +182,20 @@ standard_cases = [
     ("duration - 1.234s", "1.234s", "<duration>"),
     ("duration - 10s", "10s", "<duration>"),
     ("duration - 100.0000s", "100.0000s", "<duration>"),
+    ("duration - 20-digit ms", "9" * 20 + "ms", "<duration>"),
+    ("duration - 20-digit s", "9" * 20 + "s", "<duration>"),
+    ("duration - 20-digit decimal s", "9" * 20 + "." + "9" * 20 + "s", "<duration>"),
+    ("duration - 21-digit ms not matched", "9" * 21 + "ms", "9" * 21 + "ms"),
+    ("duration - 21-digit s not matched", "9" * 21 + "s", "9" * 21 + "s"),
+    ("duration - s glued to preceding word", "retry10s", "retry10s"),
+    ("duration - ms glued to following word", "123msabc", "123msabc"),
+    ("duration - two durations glued together", "5ms10s", "5ms10s"),
+    ("duration - with surrounding spaces", "took 500ms to complete", "took <duration> to complete"),
+    (
+        "duration - with surrounding spaces s",
+        "took 1.5s to complete",
+        "took <duration> to complete",
+    ),
     # OpenStack Swift transaction IDs
     ("swift_txn_id - base", "tx274a77a8975c4a66aeb24-0052d95365", "<swift_txn_id>"),
     (
@@ -831,3 +847,20 @@ def test_example_data_logging(mock_logger: MagicMock) -> None:
         )
         == 100
     )
+
+
+def test_parameterization_skips_long_input() -> None:
+    long_input = "error code 12345 " * 1000  # 18000 chars, well over the limit
+    assert len(long_input) > Parameterizer.MAX_INPUT_LENGTH
+    result = parameterizer.parameterize(long_input)
+    assert result == long_input
+
+
+def test_parameterization_at_max_length_still_works() -> None:
+    base = "error code 12345 "
+    repeats = Parameterizer.MAX_INPUT_LENGTH // len(base)
+    at_limit_input = base * repeats
+    assert len(at_limit_input) <= Parameterizer.MAX_INPUT_LENGTH
+    result = parameterizer.parameterize(at_limit_input)
+    assert result != at_limit_input
+    assert "<int>" in result

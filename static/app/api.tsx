@@ -10,16 +10,16 @@ import {
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
-import {controlsiloUrlPatterns} from 'sentry/data/controlsiloUrlPatterns';
+import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import {metric} from 'sentry/utils/analytics';
+import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-
-import {ConfigStore} from './stores/configStore';
 
 /**
  * `api.tsx` is consumed outside React, so it can't use the `useNavigate` hook.
@@ -60,69 +60,12 @@ export class Request {
   }
 }
 
-export type ApiResult<Data = any> = [
-  data: Data,
-  statusText: string | undefined,
-  resp: ResponseMeta | undefined,
-];
-
-export type ResponseMeta<R = any> = {
-  /**
-   * Get a header value from the response
-   */
-  getResponseHeader: (header: string) => string | null;
-  /**
-   * The response body decoded from json
-   */
-  responseJSON: R;
-  /**
-   * The string value of the response
-   */
-  responseText: string;
-  /**
-   * The response status code
-   */
-  status: Response['status'];
-  /**
-   * The response status code text
-   */
-  statusText: Response['statusText'];
-};
-
 /**
  * Check if the requested method does not require CSRF tokens
  */
 function csrfSafeMethod(method?: string): boolean {
   // these HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
-}
-
-/**
- * Check if we a request is going to the same or similar origin.
- * similar origins are those that share an ancestor. Example `sentry.sentry.io` and `us.sentry.io`
- * are similar origins, but sentry.sentry.io and sentry.example.io are not.
- */
-export function isSimilarOrigin(target: string, origin: string): boolean {
-  const targetUrl = new URL(target, origin);
-  const originUrl = new URL(origin);
-  // If one of the domains is a child of the other.
-  if (
-    originUrl.hostname.endsWith(targetUrl.hostname) ||
-    targetUrl.hostname.endsWith(originUrl.hostname)
-  ) {
-    return true;
-  }
-  // Check if the target and origin are on sibiling subdomains.
-  const targetHost = targetUrl.hostname.split('.');
-  const originHost = originUrl.hostname.split('.');
-
-  // Remove the subdomains. If don't have at least 2 segments we aren't subdomains.
-  targetHost.shift();
-  originHost.shift();
-  if (targetHost.length < 2 || originHost.length < 2) {
-    return false;
-  }
-  return targetHost.join('.') === originHost.join('.');
 }
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
@@ -721,67 +664,4 @@ export class Client {
       })
     );
   }
-}
-
-export function resolveHostname(path: string, hostname?: string): string {
-  const configLinks = ConfigStore.get('links');
-  const systemFeatures = ConfigStore.get('features');
-
-  hostname = hostname ?? '';
-  if (!hostname && systemFeatures.has('system:multi-region')) {
-    // /_admin/ is special: since it doesn't update OrganizationStore, it's
-    // commonly the case that requests will be made for data which does not
-    // exist in the same region as the one in configLinks.regionUrl. Because of
-    // this we want to explicitly default those requests to be proxied through
-    // the control silo which can handle region resolution in exchange for a
-    // bit of latency.
-    const isAdmin = window.location.pathname.startsWith('/_admin/');
-    const isControlSilo = detectControlSiloPath(path);
-    if (!isAdmin && !isControlSilo && configLinks.regionUrl) {
-      hostname = configLinks.regionUrl;
-    }
-    if (isControlSilo && configLinks.sentryUrl) {
-      hostname = configLinks.sentryUrl;
-    }
-  }
-
-  // If we're making a request to the applications' root
-  // domain, we can drop the domain as webpack devserver will add one.
-  // TODO(hybridcloud) This can likely be removed when sentry.types.cell.Region.to_url()
-  // loses the monolith mode condition.
-  if (window.__SENTRY_DEV_UI && hostname === configLinks.sentryUrl) {
-    hostname = '';
-  }
-
-  // When running as pnpm dev-ui we can't spread requests across domains because
-  // of CORS. Instead we extract the subdomain from the hostname
-  // and prepend the URL with `/region/$name` so that webpack-devserver proxy
-  // can route requests to the regions.
-  if (hostname && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?:\/\/([^.]*)\.sentry\.io/;
-    const domainmatch = hostname.match(domainpattern);
-    if (domainmatch) {
-      hostname = '';
-      path = `/region/${domainmatch[1]}${path}`;
-    }
-  }
-  if (hostname) {
-    path = `${hostname}${path}`;
-  }
-
-  return path;
-}
-
-function detectControlSiloPath(path: string): boolean {
-  // We sometimes include querystrings in paths.
-  // Using URL() to avoid handrolling URL parsing
-  const url = new URL(path, 'https://sentry.io');
-  path = url.pathname;
-  path = path.startsWith('/') ? path.substring(1) : path;
-  for (const pattern of controlsiloUrlPatterns) {
-    if (pattern.test(path)) {
-      return true;
-    }
-  }
-  return false;
 }

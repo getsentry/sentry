@@ -236,6 +236,8 @@ jobs:
 
       - name: jest
         env:
+          SENTRY_DSN: ${{ secrets.SENTRY_JEST_DSN }}
+
           CI_NODE_TOTAL: ${{ matrix.total }}
           CI_NODE_INDEX: ${{ matrix.index }}
 

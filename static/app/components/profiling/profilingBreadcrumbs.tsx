@@ -7,7 +7,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   generateProfileFlamechartRouteWithQuery,
   generateProfilingRouteWithQuery,

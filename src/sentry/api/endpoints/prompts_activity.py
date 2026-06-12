@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -28,6 +29,12 @@ from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.prompts import prompt_config
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed", "visible"))
+
+
+class _NoFeatureSpecifiedResponse(TypedDict):
+    # XXX: this is a legacy typo — the field is `details`, not the standard
+    # DRF `detail`. Kept as-is to preserve wire compatibility.
+    details: str
 
 
 class PromptsActivityResponse(TypedDict):
@@ -102,7 +109,13 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization, **kwargs) -> Response:
+    def get(
+        self, request: Request, organization: Organization, **kwargs
+    ) -> (
+        Response[PromptsActivityResponse]
+        | Response[DetailResponse]
+        | Response[_NoFeatureSpecifiedResponse]
+    ):
         """
         Return whether feature prompts have been dismissed or are currently snoozed.
         """

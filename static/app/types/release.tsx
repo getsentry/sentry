@@ -1,6 +1,6 @@
 import type {TimeseriesValue} from './core';
 import type {Commit} from './integrations';
-import type {PlatformKey} from './project';
+import type {PlatformKey} from './platform';
 import type {User} from './user';
 
 export enum ReleaseStatus {

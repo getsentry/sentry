@@ -25,6 +25,7 @@ from sentry.apidocs.parameters import (
     GlobalParams,
     VisibilityParams,
 )
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.endpoints.bases import (
     DiscoverSavedQueryPermission,
@@ -50,7 +51,8 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     @extend_schema(
-        operation_id="List an Organization's Discover Saved Queries",
+        operation_id="listOrganizationDiscoverSavedQueries",
+        summary="List an Organization's Discover Saved Queries",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             VisibilityParams.PER_PAGE,
@@ -159,7 +161,8 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a New Saved Query",
+        operation_id="createOrganizationDiscoverSavedQuery",
+        summary="Create a New Saved Query",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=DiscoverSavedQuerySerializer,
         responses={
@@ -170,7 +173,9 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         },
         examples=DiscoverExamples.DISCOVER_SAVED_QUERY_POST_RESPONSE,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(
+        self, request: Request, organization
+    ) -> Response[DiscoverSavedQueryResponse] | Response[ValidationErrorResponse]:
         """
         Create a new saved query for the given organization.
         """
@@ -190,7 +195,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         user_selected_dataset = data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
@@ -211,4 +216,6 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
 
         model.set_projects(data["project_ids"])
 
-        return Response(serialize(model), status=201)
+        return Response(
+            serialize(model, serializer=DiscoverSavedQueryModelSerializer()), status=201
+        )

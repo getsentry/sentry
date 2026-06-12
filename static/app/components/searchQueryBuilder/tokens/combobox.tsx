@@ -42,7 +42,7 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOverlay} from 'sentry/utils/useOverlay';
 

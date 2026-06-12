@@ -42,7 +42,9 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
         },
         examples=ReleaseExamples.LIST_RELEASE_COMMITS,
     )
-    def get(self, request: Request, organization, version) -> Response:
+    def get(
+        self, request: Request, organization, version
+    ) -> Response[list[CommitSerializerResponse]]:
         """
         Retrieve a list of commits for a given release.
         """

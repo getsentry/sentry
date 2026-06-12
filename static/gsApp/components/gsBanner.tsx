@@ -44,7 +44,6 @@ import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialA
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
-import {ZendeskLink} from 'getsentry/components/zendeskLink';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
@@ -72,9 +71,7 @@ import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
   USAGE_EXCEEDED = 'usage-exceeded',
-  GRACE_PERIOD = 'grace-period',
   PAST_DUE = 'past-due',
-  MEMBER_LIMIT = 'member-limit',
 }
 
 /**
@@ -108,16 +105,12 @@ function SuspensionModal({
   organization,
   subscription,
 }: SuspensionModalProps) {
-  const hasIntercom = organization.features.includes('intercom-support');
-
   useEffect(() => {
-    if (hasIntercom) {
-      trackGetsentryAnalytics('intercom_link.viewed', {
-        organization,
-        source: 'account-suspension',
-      });
-    }
-  }, [hasIntercom, organization]);
+    trackGetsentryAnalytics('intercom_link.viewed', {
+      organization,
+      source: 'account-suspension',
+    });
+  }, [organization]);
 
   async function handleIntercomClick() {
     trackGetsentryAnalytics('intercom_link.clicked', {
@@ -154,17 +147,7 @@ function SuspensionModal({
         </p>
       </Body>
       <Footer>
-        {hasIntercom ? (
-          <Button onClick={handleIntercomClick}>{t('Contact Support')}</Button>
-        ) : (
-          <ZendeskLink
-            subject="Account Suspension"
-            Component={props => <LinkButton {...props} href={props.href ?? ''} />}
-            source="account-suspension"
-          >
-            {t('Contact Support')}
-          </ZendeskLink>
-        )}
+        <Button onClick={handleIntercomClick}>{t('Contact Support')}</Button>
       </Footer>
     </Fragment>
   );
@@ -226,17 +209,6 @@ function NoticeModal({
   let primaryButtonMessage: React.ReactNode;
 
   switch (whichModal) {
-    case ModalType.GRACE_PERIOD:
-      title = t('Grace period started');
-      body = tct(
-        `Your organization has depleted its error capacity for the current usage period.
-          We've put your account into a one time grace period, which will continue to accept errors at a limited rate.
-          This grace period ends on [gracePeriodEnd].`,
-        {gracePeriodEnd: moment(subscription.gracePeriodEnd).format('ll')}
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
     case ModalType.USAGE_EXCEEDED:
       title = t('Usage exceeded');
       body = t(
@@ -263,20 +235,10 @@ function NoticeModal({
         ? t('Update Billing Details')
         : t('See Who Can Update');
       break;
-    case ModalType.MEMBER_LIMIT:
-      title = t('Member limit exceeded');
-      body = t(
-        `You organization has more members than your current subscription
-          allows. You will need to upgrade your subscription to ensure everyone
-          has access to Sentry.`
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
     default:
   }
 
-  if (subscription.usageExceeded || subscription.isGracePeriod) {
+  if (subscription.usageExceeded) {
     if (subscription.isFree) {
       subText = subscription.canTrial
         ? t(
@@ -538,13 +500,11 @@ class GSBanner extends Component<Props, State> {
   tryTriggerNoticeModal() {
     const {organization, subscription} = this.props;
 
-    const whichModal = subscription.isGracePeriod
-      ? ModalType.GRACE_PERIOD
-      : subscription.usageExceeded
-        ? ModalType.USAGE_EXCEEDED
-        : subscription.isPastDue && subscription.canSelfServe
-          ? ModalType.PAST_DUE
-          : null;
+    const whichModal = subscription.usageExceeded
+      ? ModalType.USAGE_EXCEEDED
+      : subscription.isPastDue && subscription.canSelfServe
+        ? ModalType.PAST_DUE
+        : null;
 
     if (whichModal === null) {
       return;
@@ -565,7 +525,6 @@ class GSBanner extends Component<Props, State> {
     }
 
     const modalAnalytics = {
-      [ModalType.GRACE_PERIOD]: 'grace_period_modal.seen',
       [ModalType.USAGE_EXCEEDED]: 'usage_exceeded_modal.seen',
       [ModalType.PAST_DUE]: 'past_due_modal.seen',
     } as const;

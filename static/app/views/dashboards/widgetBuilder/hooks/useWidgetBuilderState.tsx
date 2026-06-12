@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import partition from 'lodash/partition';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   explodeField,
   generateFieldAsString,
@@ -450,6 +450,9 @@ export function useWidgetBuilderState(): {
             setTextContent(undefined);
           }
           const [aggregates, columns] = partition(fields, field => {
+            if (field.kind === FieldValueKind.EQUATION) {
+              return true;
+            }
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
           });

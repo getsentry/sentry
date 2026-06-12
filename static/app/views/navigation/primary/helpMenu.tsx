@@ -26,7 +26,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import {
   NavigationTourReminder,
   useNavigationTour,
@@ -38,14 +37,11 @@ export function PrimaryNavigationHelpMenu() {
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const hasIntercom = organization.features.includes('intercom-support');
   const {startTour} = useNavigationTour();
 
   useEffect(() => {
-    if (hasIntercom) {
-      trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
-    }
-  }, [hasIntercom, organization]);
+    trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
+  }, [organization]);
 
   const items: MenuItemProps[] = [
     {
@@ -233,48 +229,22 @@ function getContactSupportItem(organization: Organization): MenuItemProps | null
     return null;
   }
 
-  const hasIntercom = organization.features.includes('intercom-support');
-
-  // Use Intercom if feature flag is enabled (lazily initialized on first click)
-  if (hasIntercom) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      async onAction() {
-        trackAnalytics('intercom_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-        try {
-          await showIntercom(organization.slug);
-        } catch {
-          // Fall back to mailto
-          window.location.href = `mailto:${supportEmail}`;
-        }
-      },
-    };
-  }
-
-  // Fall back to Zendesk if available
-  if (hasZendesk()) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      onAction() {
-        activateZendesk();
-        trackAnalytics('zendesk_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-      },
-    };
-  }
-
-  // Fall back to mailto
+  // Use Intercom (lazily initialized on first click)
   return {
     key: 'support',
     label: t('Contact Support'),
-    externalHref: `mailto:${supportEmail}`,
+    async onAction() {
+      trackAnalytics('intercom_link.clicked', {
+        organization,
+        source: 'sidebar',
+      });
+      try {
+        await showIntercom(organization.slug);
+      } catch {
+        // Fall back to mailto
+        window.location.href = `mailto:${supportEmail}`;
+      }
+    },
   };
 }
 

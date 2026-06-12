@@ -163,6 +163,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         sentry_sdk.set_tag("query.dataset", dataset_label)
+        sentry_sdk.set_attribute("query.dataset", dataset_label)
         return result
 
     def get_snuba_params(
@@ -190,6 +191,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     raise ParseError(f"sampling mode: {sampling_mode} is not supported")
                 sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
                 sentry_sdk.set_tag("sampling_mode", sampling_mode)
+                sentry_sdk.set_attribute("sampling_mode", sampling_mode)
 
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
@@ -289,16 +291,20 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if has_errors and not has_transactions_data:
             decision = DashboardWidgetTypes.ERROR_EVENTS
             sentry_sdk.set_tag("discover.split_reason", "query_result")
+            sentry_sdk.set_attribute("discover.split_reason", "query_result")
         elif not has_errors and has_transactions_data:
             decision = DashboardWidgetTypes.TRANSACTION_LIKE
             sentry_sdk.set_tag("discover.split_reason", "query_result")
+            sentry_sdk.set_attribute("discover.split_reason", "query_result")
         else:
             # In the case that neither side has data, or both sides have data, default to errors.
             decision = DashboardWidgetTypes.ERROR_EVENTS
             source = DashboardDatasetSourcesTypes.FORCED.value
             sentry_sdk.set_tag("discover.split_reason", "default")
+            sentry_sdk.set_attribute("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
+        sentry_sdk.set_attribute("discover.split_decision", decision)
         if decision is not None and widget.discover_widget_split != decision:
             widget.discover_widget_split = decision
             widget.dataset_source = source
@@ -322,20 +328,25 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if dataset_inferred_from_query is not None:
             decision = dataset_inferred_from_query
             sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")
+            sentry_sdk.set_attribute("discover.split_reason", "inferred_from_query")
         elif has_errors and not has_transactions_data:
             decision = DiscoverSavedQueryTypes.ERROR_EVENTS
             sentry_sdk.set_tag("discover.split_reason", "query_result")
+            sentry_sdk.set_attribute("discover.split_reason", "query_result")
         elif not has_errors and has_transactions_data:
             decision = DiscoverSavedQueryTypes.TRANSACTION_LIKE
             sentry_sdk.set_tag("discover.split_reason", "query_result")
+            sentry_sdk.set_attribute("discover.split_reason", "query_result")
         else:
             # In the case that neither or both datasets return data,
             # default to Errors.
             decision = DiscoverSavedQueryTypes.ERROR_EVENTS
             dataset_source = DatasetSourcesTypes.FORCED.value
             sentry_sdk.set_tag("discover.split_reason", "default")
+            sentry_sdk.set_attribute("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
+        sentry_sdk.set_attribute("discover.split_decision", decision)
         if query.dataset != decision:
             query.dataset = decision
             query.dataset_source = dataset_source
@@ -556,6 +567,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             if use_rpc:
                 raise
             sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
+            if request.GET.get("interval"):
+                sentry_sdk.set_attribute("user.invalid_interval", request.GET.get("interval"))
             date_range = snuba_params.date_range
             stats_period = parse_stats_period(get_interval_from_range(date_range, False))
             rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600

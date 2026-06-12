@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from typing import Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -18,7 +17,7 @@ from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -27,6 +26,7 @@ from sentry.snuba.outcomes import (
     COLUMN_MAP,
     GROUPBY_MAP,
     QueryDefinition,
+    StatsApiResponse,
     massage_outcomes_result,
     run_outcomes_query_timeseries,
     run_outcomes_query_totals,
@@ -139,19 +139,6 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
 
-class _StatsGroup(TypedDict):  # this response is pretty dynamic, leaving generic
-    by: dict[str, Any]
-    totals: dict[str, Any]
-    series: dict[str, Any]
-
-
-class StatsApiResponse(TypedDict):
-    start: str
-    end: str
-    intervals: list[str]
-    groups: list[_StatsGroup]
-
-
 @extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
@@ -182,7 +169,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[StatsApiResponse]:
         """
         Query event counts for your Organization.
         Select a field, define a date range, and group or filter by columns.
@@ -218,21 +205,22 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         # look at the raw project_id filter passed in, if its empty
         # and project_id is not in groupBy filter, treat it as an
         # org wide query and don't pass project_id in to QueryDefinition
-        req_proj_ids = self.get_requested_project_ids_unchecked(request)
-        if self._is_org_total_query(request, req_proj_ids):
+        requested_projects = self.get_requested_project_params_unchecked(request)
+        if self._is_org_total_query(request, requested_projects):
             return None
         else:
-            projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+            projects = self.get_projects(request, organization)
             if not projects:
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
 
-    def _is_org_total_query(self, request: Request, project_ids):
-        return all(
-            [
-                not project_ids or project_ids == ALL_ACCESS_PROJECTS,
-                "project" not in request.GET.get("groupBy", []),
-            ]
+    def _is_org_total_query(self, request: Request, requested_projects):
+        no_project_filter = not requested_projects.has_values
+        all_access_filter = (
+            requested_projects.ids == ALL_ACCESS_PROJECTS and not requested_projects.slugs
+        ) or (requested_projects.slugs == {ALL_ACCESS_PROJECTS_SLUG} and not requested_projects.ids)
+        return (no_project_filter or all_access_filter) and "project" not in request.GET.getlist(
+            "groupBy"
         )
 
     @contextmanager

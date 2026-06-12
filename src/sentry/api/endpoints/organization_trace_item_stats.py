@@ -17,6 +17,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_STATS_TYPES
@@ -31,7 +33,8 @@ from sentry.search.eap.spans.attributes import (
     SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
@@ -56,6 +59,7 @@ class TraceItemStatsConfig:
     excluded_attributes: set[str]
     referrer: Referrer
     id_column: str
+    visibility_item_type: SupportedTraceItemType
 
 
 def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsConfig:
@@ -67,6 +71,7 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
             excluded_attributes=OCCURRENCE_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
             referrer=Referrer.API_OCCURRENCES_FREQUENCY_STATS_RPC,
             id_column="id",
+            visibility_item_type=SupportedTraceItemType.OCCURRENCES,
         )
     return TraceItemStatsConfig(
         rpc_class=Spans,
@@ -75,6 +80,7 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
         excluded_attributes=SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
         referrer=Referrer.API_SPANS_FREQUENCY_STATS_RPC,
         id_column="span_id",
+        visibility_item_type=SupportedTraceItemType.SPANS,
     )
 
 
@@ -154,6 +160,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
         value_substring_match = translate_escape_sequences(substring_match)
 
         max_attributes = options.get("explore.trace-items.keys.max")
+        include_internal = is_active_superuser(request) or is_active_staff(request)
 
         def get_table_results():
             with handle_query_errors():
@@ -217,6 +224,13 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
                 )
 
                 if public_alias in stats_config.excluded_attributes:
+                    continue
+
+                if not can_expose_attribute_to_api(
+                    public_alias,
+                    stats_config.visibility_item_type,
+                    include_internal=include_internal,
+                ):
                     continue
 
                 if value_substring_match:

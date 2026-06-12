@@ -22,7 +22,7 @@ from sentry.event_manager import (
     save_grouphash_and_group,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
@@ -298,7 +298,7 @@ def save_issue_from_occurrence(
             try:
                 # Since this calls hybrid cloud it has to be run outside the transaction
                 assignee = occurrence.assignee.resolve()
-                with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
+                with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
                     GroupAssignee.objects.assign(group, assignee, create_only=True)
             except Exception:
                 logger.exception("Failed to process assignment for occurrence")
@@ -336,7 +336,7 @@ def save_issue_from_occurrence(
             and group.priority != issue_kwargs["priority"]
             and group.priority_locked_at is None
         ):
-            with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
                 update_priority(
                     group=group,
                     priority=PriorityLevel(issue_kwargs["priority"]),

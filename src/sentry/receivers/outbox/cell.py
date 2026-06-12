@@ -33,12 +33,10 @@ from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import _trigger_explorer_indexes_if_needed
 from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
-from sentry.seer.autofix.utils import make_autofix_start_request
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
-from sentry.utils import json as sentry_json
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -235,10 +233,6 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         return
 
     match run_type:
-        case SeerRunType.AUTOFIX:
-            response = make_autofix_start_request(
-                sentry_json.dumps(body).encode(), viewer_context=viewer_context
-            )
         case SeerRunType.EXPLORER:
             response = make_agent_chat_request(
                 cast(AgentChatRequest, body), viewer_context=viewer_context

@@ -1,4 +1,5 @@
-import type {SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {Organization} from 'sentry/types/organization';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';

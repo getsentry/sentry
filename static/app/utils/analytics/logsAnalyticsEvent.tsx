@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export enum LogsAnalyticsPageSource {
   EXPLORE_LOGS = 'explore',
@@ -42,7 +42,7 @@ export type LogsAnalyticsEventParameters = {
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
-    ai_query_run_id?: number;
+    ai_query_run_id?: number | string;
   };
   'logs.explorer.setup_button_clicked': {
     organization: Organization;

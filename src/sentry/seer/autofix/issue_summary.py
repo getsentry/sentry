@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
+from urllib3.connectionpool import HTTPConnectionPool
 
 from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
@@ -18,10 +19,12 @@ from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
+from sentry.options.rollout import in_random_rollout
 from sentry.seer.autofix.autofix import get_trace_tree_for_event
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
+    get_autofix_agent_state,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
@@ -32,7 +35,6 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
@@ -257,6 +259,11 @@ fixability_connection_pool_gpu = connection_from_url(
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
 )
 
+fixability_connection_pool_cpu = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL,
+    timeout=settings.SEER_FIXABILITY_TIMEOUT,
+)
+
 
 class FixabilityScoreRequest(TypedDict):
     group_id: int
@@ -268,11 +275,12 @@ class FixabilityScoreRequest(TypedDict):
 
 def make_fixability_score_request(
     body: FixabilityScoreRequest,
+    connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        fixability_connection_pool_gpu,
+        connection_pool or fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
@@ -292,9 +300,17 @@ def _generate_fixability_score(
     )
     if summary is not None:
         body["summary"] = summary
+    pool = (
+        fixability_connection_pool_cpu
+        if in_random_rollout("seer.fixability.cpu-rollout")
+        else fixability_connection_pool_gpu
+    )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     response = make_fixability_score_request(
-        body, timeout=settings.SEER_FIXABILITY_TIMEOUT, viewer_context=viewer_context
+        body,
+        connection_pool=pool,
+        timeout=settings.SEER_FIXABILITY_TIMEOUT,
+        viewer_context=viewer_context,
     )
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
@@ -386,7 +402,7 @@ def run_automation(
         }
     )
 
-    autofix_state = get_autofix_state(group_id=group.id, organization_id=group.organization.id)
+    autofix_state = get_autofix_agent_state(group.organization, group.id)
     if autofix_state:
         return  # already have an autofix on this issue
 

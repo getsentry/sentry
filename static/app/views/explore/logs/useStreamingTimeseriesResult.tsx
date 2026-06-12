@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import type {

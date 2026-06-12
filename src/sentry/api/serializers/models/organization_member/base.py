@@ -100,8 +100,11 @@ class OrganizationMemberSerializer(Serializer):
         if obj.user_id:
             # if the OrganizationMember has a user_id, the user has an account
             # `email` on the OrganizationMember will be null, so we need to pull
-            # the email address from the user's actual account
-            email = serialized_user["email"] if serialized_user else obj.email
+            # the email address from the user's actual account. When the
+            # control-silo User cannot be resolved (deleted, replication lag),
+            # fall back to the org member's email, or empty string if none
+            # exists to ensure serialization still succeeds.
+            email = serialized_user["email"] if serialized_user else obj.email or ""
         else:
             # when there is no user_id, the OrganizationMember is an invited user
             # and the email field on OrganizationMember will be populated, so we
@@ -116,7 +119,6 @@ class OrganizationMemberSerializer(Serializer):
         # invited users do not yet have a full account and the email field
         # on OrganizationMember will be populated in such cases
         assert email is not None
-
         inviter_name = None
         if obj.inviter_id:
             inviter = attrs["inviter"]

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {IconUser} from 'sentry/icons/iconUser';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';

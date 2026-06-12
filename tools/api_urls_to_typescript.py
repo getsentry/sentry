@@ -6,6 +6,14 @@ from typing import Any
 
 from django.urls import URLPattern, URLResolver
 
+EXCLUDED_ROUTE_PREFIXES = (
+    # Prefer org scoped endpoints
+    "/groups/$issueId/",
+    "/issues/$issueId/",
+    # Prefer /issues/ instead of /groups/
+    "/organizations/$organizationIdOrSlug/groups/",
+)
+
 
 def snake_to_camel_case(value: str) -> str:
     """
@@ -166,6 +174,11 @@ def main() -> int:
     from sentry.api.urls import urlpatterns
 
     route_patterns = sorted(set(urls_to_routes("/", urlpatterns)))
+    route_patterns = [
+        route_pattern
+        for route_pattern in route_patterns
+        if not route_pattern.startswith(EXCLUDED_ROUTE_PREFIXES)
+    ]
 
     command = len(sys.argv) > 1 and sys.argv[1]
     if command == "list":
