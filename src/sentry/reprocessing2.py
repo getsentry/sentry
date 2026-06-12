@@ -392,10 +392,12 @@ def buffered_delete_old_primary_hash(
             old_primary_hashes.add(old_primary_hash)
             reprocessing_store.add_hash(project_id, group_id, old_primary_hash)
 
-    scope = sentry_sdk.get_isolation_scope()
-    scope.set_tag("project_id", project_id)
-    scope.set_tag("old_group_id", group_id)
-    scope.set_tag("old_primary_hash", old_primary_hash)
+    sentry_sdk.set_tag("project_id", project_id)
+    sentry_sdk.set_attribute("project_id", project_id)
+    sentry_sdk.set_tag("old_group_id", group_id)
+    sentry_sdk.set_attribute("old_group_id", group_id)
+    sentry_sdk.set_tag("old_primary_hash", old_primary_hash)
+    sentry_sdk.set_attribute("old_primary_hash", old_primary_hash)
 
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
@@ -678,6 +680,7 @@ def start_group_reprocessing(
         )
 
     sentry_sdk.set_extra("event_count", event_count)
+    sentry_sdk.set_attribute("event_count", event_count)
 
     if max_events is not None:
         event_count = min(max_events, event_count)
