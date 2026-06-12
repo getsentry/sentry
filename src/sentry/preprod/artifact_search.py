@@ -17,6 +17,7 @@ from sentry.api.event_search import (
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.preprod.build_distribution_utils import build_install_groups_q
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactQuerySet,
@@ -85,6 +86,7 @@ search_config = SearchConfig.create_from(
         "images_renamed",
         "images_skipped",
         "images_unchanged",
+        "install_groups",
         "install_size",
         "installable",
         "is",
@@ -329,6 +331,20 @@ def apply_filters(
         if name == "distribution_error_code":
             values = token.value.value if token.is_in_filter else [token.value.value]
             q = Q(**{f"{db_field}__in": [_translate_distribution_error_code(v) for v in values]})
+            if token.is_negation:
+                queryset = queryset.exclude(q)
+            else:
+                queryset = queryset.filter(q)
+            continue
+
+        if name == "install_groups":
+            if token.value.value == "":
+                raise InvalidSearchQuery("has:install_groups is not supported")
+            elif token.is_in_filter:
+                q = build_install_groups_q(token.value.value)
+            else:
+                q = build_install_groups_q([token.value.value])
+
             if token.is_negation:
                 queryset = queryset.exclude(q)
             else:
