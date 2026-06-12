@@ -169,7 +169,7 @@
     "downsample": "1.4.0",
     "echarts": "6.1.0",
     "echarts-for-react": "3.0.6",
-    "esbuild": "0.25.10",
+    "esbuild": "0.28.1",
     "focus-trap": "7.6.5",
     "framer-motion": "12.38.0",
     "fuse.js": "^6.6.2",
