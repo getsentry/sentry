@@ -2,9 +2,9 @@ import logging
 import re
 from collections.abc import Iterator
 
-from django.urls.base import get_resolver, resolve
+from django.urls.base import resolve
 from django.urls.exceptions import Resolver404
-from django.urls.resolvers import URLPattern, URLResolver
+from django.urls.resolvers import URLPattern, URLResolver, get_resolver
 from django.utils.regex_helper import normalize
 
 from apigw.web import app as apigw_app
