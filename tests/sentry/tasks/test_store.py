@@ -107,6 +107,34 @@ def test_move_to_process_event(
 
 
 @django_db_all
+def test_move_to_process_event_inline_save_event_still_submits_process_event(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
+):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "noop",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    preprocess_event(cache_key="e:1", data=data, event_id=EVENT_ID, inline_save_event=True)
+
+    assert mock_symbolicate_event.delay.call_count == 0
+    mock_process_event.delay.assert_called_once_with(
+        cache_key="e:1",
+        start_time=None,
+        event_id=EVENT_ID,
+        data_has_changed=False,
+        from_symbolicate=False,
+        has_attachments=False,
+    )
+    assert mock_save_event.call_count == 0
+    assert mock_save_event.delay.call_count == 0
+
+
+@django_db_all
 def test_move_to_save_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
@@ -124,6 +152,33 @@ def test_move_to_save_event(
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 1
+
+
+@django_db_all
+def test_move_to_save_event_inline(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
+):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "NOTMATTLANG",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    preprocess_event(cache_key="e:1", data=data, event_id=EVENT_ID, inline_save_event=True)
+
+    assert mock_symbolicate_event.delay.call_count == 0
+    assert mock_process_event.delay.call_count == 0
+    mock_save_event.assert_called_once_with(
+        cache_key="e:1",
+        data=None,
+        start_time=None,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+    )
+    assert mock_save_event.delay.call_count == 0
 
 
 @django_db_all

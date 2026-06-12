@@ -100,6 +100,7 @@ def submit_save_event(
     event_id: str | None,
     start_time: float | None,
     data: MutableMapping[str, Any] | None,
+    inline: bool = False,
 ) -> None:
     if cache_key:
         data = None
@@ -118,7 +119,10 @@ def submit_save_event(
         "project_id": project_id,
     }
 
-    task.delay(**task_kwargs)  # type: ignore[arg-type]
+    if inline:
+        task(**task_kwargs)  # type: ignore[arg-type]
+    else:
+        task.delay(**task_kwargs)  # type: ignore[arg-type]
 
 
 def _do_preprocess_event(
@@ -129,6 +133,7 @@ def _do_preprocess_event(
     from_reprocessing: bool,
     project: Project | None,
     has_attachments: bool = False,
+    inline_save_event: bool = False,
 ) -> None:
     from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
@@ -230,6 +235,7 @@ def _do_preprocess_event(
         event_id=event_id,
         start_time=start_time,
         data=original_data,
+        inline=inline_save_event,
     )
 
 
@@ -240,6 +246,7 @@ def preprocess_event(
     event_id: str | None = None,
     project: Project | None = None,
     has_attachments: bool = False,
+    inline_save_event: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -250,6 +257,7 @@ def preprocess_event(
         from_reprocessing=False,
         project=project,
         has_attachments=has_attachments,
+        inline_save_event=inline_save_event,
     )
 
 
