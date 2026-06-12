@@ -283,6 +283,31 @@ class TestCursorWebhook(APITestCase):
         assert mock_update_state.call_count == 1
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_invalid_pr_url_is_dropped(self, mock_update_state):
+        # Non-https scheme must be rejected — the pr_url is nulled out so no attribution fires.
+        mock_update_state.return_value = True
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+
+        for bad_url in [
+            "not-a-url-at-all",
+            "http://github.com/testorg/testrepo/pull/1",
+            "https://github.com/otherorg/otherrepo/pull/1",
+            "https://github.com/testorg/testrepo/tree/main",
+        ]:
+            mock_update_state.reset_mock()
+            body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=bad_url))
+            headers = self._signed_headers(body)
+
+            with self.feature("organizations:pr-metrics-attribution"):
+                response = self._post_with_headers(body, headers)
+
+            assert response.status_code == 204, bad_url
+            # The Seer state update still happens, but with no pr_url.
+            assert mock_update_state.call_count == 1, bad_url
+            assert mock_update_state.call_args[1]["result"].pr_url is None, bad_url
+            assert not PullRequestAttribution.objects.exists(), bad_url
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_signature_without_prefix(self, mock_update_state):
         payload = self._build_status_payload(status="FINISHED")
         body = orjson.dumps(payload)

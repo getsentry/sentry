@@ -220,6 +220,13 @@ class CursorWebhookEndpoint(Endpoint):
             )
             return
 
+        if pr_url and not self._validate_pr_url(pr_url, repo_full_name):
+            logger.warning(
+                "cursor_webhook.invalid_pr_url",
+                extra={"agent_id": agent_id, "pr_url": pr_url},
+            )
+            pr_url = None
+
         result = CodingAgentResult(
             repo_full_name=repo_full_name,
             repo_provider=repo_provider,
@@ -249,6 +256,10 @@ class CursorWebhookEndpoint(Endpoint):
                     "cursor_webhook.pr_attribution_failed",
                     extra={"agent_id": agent_id, "pr_url": pr_url},
                 )
+
+    def _validate_pr_url(self, pr_url: str, repo_full_name: str) -> bool:
+        """Validates that the URL points to the expected repo."""
+        return pr_url.startswith(f"https://github.com/{repo_full_name}/pull/")
 
     def _update_coding_agent_status(
         self,
