@@ -10,7 +10,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 from sentry.utils import json
 
 
@@ -40,7 +40,6 @@ test_cell = Cell(
     "us",
     1,
     "https://test",
-    RegionCategory.MULTI_TENANT,
 )
 
 

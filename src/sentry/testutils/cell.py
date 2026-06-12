@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 from django.test import override_settings
 
-from sentry.types.cell import Cell, CellDirectory, Locality, get_global_directory
+from sentry.types.cell import Cell, CellDirectory, Locality, RegionCategory, get_global_directory
 
 
 class TestEnvCellDirectory(CellDirectory):
@@ -24,7 +24,7 @@ class TestEnvCellDirectory(CellDirectory):
                 Locality(
                     name=c.name,
                     cells=frozenset([c.name]),
-                    category=c.category,
+                    category=RegionCategory.MULTI_TENANT,
                     visible=c.visible,
                     new_org_cell=c.name,
                 )
@@ -94,13 +94,22 @@ def get_test_env_directory() -> TestEnvCellDirectory:
 
 
 @contextmanager
-def override_cells(cells: Sequence[Cell], local_cell: Cell | None = None) -> Generator[None]:
+def override_cells(
+    cells: Sequence[Cell],
+    local_cell: Cell | None = None,
+    localities: Sequence[Locality] | None = None,
+) -> Generator[None]:
     """Override the global set of existing cells.
 
     The overriding value takes the place of the `SENTRY_CELLS` setting and
     changes the behavior of the module-level functions in `sentry.types.cell`. This
     is preferable to overriding the `SENTRY_CELLS` setting value directly
     because the cell mapping may already be cached.
+
+    When `localities` is omitted, a visible multi-tenant 1:1 locality is
+    generated for each cell, mirroring `SENTRY_LOCALITIES` defaults. Pass
+    explicit localities to test locality-level attributes such as category,
+    visibility, or cell grouping.
     """
-    with get_test_env_directory().swap_state(cells, local_cell=local_cell):
+    with get_test_env_directory().swap_state(cells, localities=localities, local_cell=local_cell):
         yield

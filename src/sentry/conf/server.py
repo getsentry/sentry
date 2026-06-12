@@ -3291,8 +3291,6 @@ if SILO_DEVSERVER:
         {
             "name": "us",
             "snowflake_id": 1,
-            # TODO(cells): Deprecate category
-            "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
         }
     ]
