@@ -350,64 +350,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             )
             assert cache.get(cache_key_for_issue_view(group.id, "mcp")) is None
 
-    def test_user_agent_mcp_sanitizes_client_family(self) -> None:
-        with (
-            mock.patch("sentry.analytics.record") as mock_record,
-            self.feature("organizations:mcp-issue-view-attribution"),
-        ):
-            self.login_as(user=self.user)
-            group = self.create_group()
-            url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
-
-            response = self.client.get(
-                url,
-                headers={
-                    "user-agent": "sentry-mcp/0.35.0 (https://mcp.sentry.dev)",
-                    "X-Sentry-MCP-Client-Family": "  CURSOR  ",
-                },
-            )
-            assert response.status_code == 200
-            assert_any_analytics_event(
-                mock_record,
-                IssueViewedEvent(
-                    organization_id=group.project.organization.id,
-                    project_id=group.project.id,
-                    group_id=group.id,
-                    client="mcp - cursor",
-                    user_id=self.user.id,
-                ),
-            )
-            assert cache.get(cache_key_for_issue_view(group.id, "mcp")) == "cursor"
-
-    def test_user_agent_mcp_unrecognized_family_falls_back_to_unknown(self) -> None:
-        with (
-            mock.patch("sentry.analytics.record") as mock_record,
-            self.feature("organizations:mcp-issue-view-attribution"),
-        ):
-            self.login_as(user=self.user)
-            group = self.create_group()
-            url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
-
-            response = self.client.get(
-                url,
-                headers={
-                    "user-agent": "sentry-mcp/0.35.0 (https://mcp.sentry.dev)",
-                    "X-Sentry-MCP-Client-Family": "some-new-editor",
-                },
-            )
-            assert response.status_code == 200
-            assert_any_analytics_event(
-                mock_record,
-                IssueViewedEvent(
-                    organization_id=group.project.organization.id,
-                    project_id=group.project.id,
-                    group_id=group.id,
-                    client="mcp - unknown",
-                    user_id=self.user.id,
-                ),
-            )
-            assert cache.get(cache_key_for_issue_view(group.id, "mcp")) == "unknown"
-
 
 class GroupUpdateTest(APITestCase):
     def test_resolve(self) -> None:

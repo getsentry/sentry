@@ -5,9 +5,12 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.issues.constants import cache_key_for_issue_view
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestActivity,
     PullRequestActivityType,
@@ -146,11 +149,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
     # --- MCP attribution ---
 
     def test_mcp_attribution_recorded_when_referenced_issue_viewed_via_mcp(self) -> None:
-        from django.core.cache import cache
-
-        from sentry.issues.constants import cache_key_for_issue_view
-        from sentry.models.grouplink import GroupLink
-
         group = self.create_group(project=self.project)
         GroupLink.objects.create(
             group_id=group.id,
@@ -161,7 +159,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
         )
         cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", 4 * 60 * 60)
 
-        self._call(user_id=999)
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
 
         attr = PullRequestAttribution.objects.get(
             pull_request=self.pr,
@@ -171,8 +170,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
         assert attr.signal_details == {"group_ids": {str(group.id): "cursor"}}
 
     def test_mcp_attribution_not_recorded_without_cache_hit(self) -> None:
-        from sentry.models.grouplink import GroupLink
-
         group = self.create_group(project=self.project)
         GroupLink.objects.create(
             group_id=group.id,
@@ -182,7 +179,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
             linked_id=self.pr.id,
         )
 
-        self._call(user_id=999)
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
 
         assert not PullRequestAttribution.objects.filter(
             pull_request=self.pr,
@@ -190,7 +188,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
         ).exists()
 
     def test_mcp_attribution_not_recorded_without_group_link(self) -> None:
-        self._call(user_id=999)
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
 
         assert not PullRequestAttribution.objects.filter(
             pull_request=self.pr,
@@ -198,11 +197,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
         ).exists()
 
     def test_mcp_and_app_attribution_coexist(self) -> None:
-        from django.core.cache import cache
-
-        from sentry.issues.constants import cache_key_for_issue_view
-        from sentry.models.grouplink import GroupLink
-
         group = self.create_group(project=self.project)
         GroupLink.objects.create(
             group_id=group.id,
@@ -213,7 +207,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
         )
         cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", 4 * 60 * 60)
 
-        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
         assert PullRequestAttribution.objects.filter(
             pull_request=self.pr,

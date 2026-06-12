@@ -118,7 +118,7 @@ def handle_attribution(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record GH-App author attribution signals from the pull_request webhook payload."""
+    """Record attribution signals (app-authored PR + MCP issue views) from the pull_request webhook."""
     pull_request = event.get("pull_request")
     action = event.get("action")
     github_user = (pull_request or {}).get("user")
@@ -136,7 +136,8 @@ def handle_attribution(
         return
 
     _write_author_attribution(pr, github_user)
-    _write_mcp_attribution(pr)
+    if features.has("organizations:mcp-issue-view-attribution", organization):
+        _write_mcp_attribution(pr)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -557,6 +558,8 @@ def _write_mcp_attribution(pr: PullRequest) -> None:
     if not group_ids:
         return
 
+    # We do not check the PR author here as we cannot accurately map a PR author
+    # to a sentry user 100 % of the time
     key_to_group_id = {cache_key_for_issue_view(gid, "mcp"): gid for gid in group_ids}
     hits = cache.get_many(key_to_group_id.keys())
     if not hits:

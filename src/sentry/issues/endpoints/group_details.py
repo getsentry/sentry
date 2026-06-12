@@ -48,7 +48,6 @@ from sentry.issues.action_log import (
     GroupActionActor,
     publish_action,
     resolve_action_source,
-    sanitize_mcp_client_family,
 )
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import cache_key_for_issue_view, get_issue_tsdb_group_model
@@ -508,9 +507,7 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
 
     user_agent = request.META.get("HTTP_USER_AGENT", "")
     if isinstance(user_agent, str) and user_agent.startswith("sentry-mcp/"):
-        client_family = sanitize_mcp_client_family(
-            request.headers.get("x-sentry-mcp-client-family")
-        )
+        client_family = request.headers.get("x-sentry-mcp-client-family") or "unknown"
         analytics.record(
             IssueViewedEvent(
                 organization_id=group.project.organization_id,
@@ -524,5 +521,6 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
             cache.set(
                 cache_key_for_issue_view(group.id, "mcp"),
                 client_family,
-                int(timedelta(days=1).total_seconds()),
+                # TODO: slowly increase to 1 day if possible
+                int(timedelta(hours=2).total_seconds()),
             )

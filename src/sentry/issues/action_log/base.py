@@ -39,18 +39,6 @@ KNOWN_MCP_CLIENT_FAMILIES = frozenset(
 MCP_CATCHALL_CLIENT_FAMILIES = frozenset({"other", "unknown"})
 
 
-def sanitize_mcp_client_family(raw_value: str | None) -> str:
-    family = (raw_value or "").strip().lower()
-    if family in KNOWN_MCP_CLIENT_FAMILIES:
-        return family
-    if family and family not in MCP_CATCHALL_CLIENT_FAMILIES:
-        logger.warning(
-            "mcp.unrecognized_client_family",
-            extra={"client_family": family},
-        )
-    return "unknown"
-
-
 class ActionSource(StrEnum):
     WEB = "web"
     SENTRY_CLI = "sentry-cli"
@@ -86,9 +74,15 @@ def resolve_action_source(request: Request) -> str:
     user_agent = request.META.get("HTTP_USER_AGENT", "")
 
     if user_agent.startswith(MCP_USER_AGENT_PREFIX):
-        family = sanitize_mcp_client_family(request.META.get(MCP_CLIENT_FAMILY_HEADER, ""))
-        if family != "unknown":
+        family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
+        if family in KNOWN_MCP_CLIENT_FAMILIES:
             return f"{ActionSource.MCP}:{family}"
+        if family and family not in MCP_CATCHALL_CLIENT_FAMILIES:
+            # Values outside this set are logged so we know to add new ones
+            logger.warning(
+                "group.action_log.unrecognized_mcp_client_family",
+                extra={"client_family": family},
+            )
         return ActionSource.MCP
 
     seer_referrer = request.META.get(SEER_REFERRER_HEADER, "")
