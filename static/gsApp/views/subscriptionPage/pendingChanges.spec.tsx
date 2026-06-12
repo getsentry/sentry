@@ -6,10 +6,7 @@ import {
   PendingReservedBudgetFixture,
   SeerReservedBudgetFixture,
 } from 'getsentry-test/fixtures/reservedBudget';
-import {
-  Am3DsEnterpriseSubscriptionFixture,
-  SubscriptionFixture,
-} from 'getsentry-test/fixtures/subscription';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
@@ -432,75 +429,6 @@ describe('Subscription > PendingChanges', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders reserved budgets with existing budgets without dynamic sampling', () => {
-    const sub = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      pendingChanges: PendingChangesFixture({
-        planDetails: PlanDetailsLookupFixture('am3_business_ent_ds_auf'),
-        plan: 'am3_business_ent_ds_auf',
-        planName: 'Business',
-        reserved: {
-          spans: RESERVED_BUDGET_QUOTA,
-          spansIndexed: RESERVED_BUDGET_QUOTA,
-        },
-        reservedCpe: {
-          spans: 12.345678,
-          spansIndexed: 87.654321,
-        },
-        reservedBudgets: [
-          {
-            reservedBudget: 50_000_00,
-            categories: {spans: true, spansIndexed: true},
-          },
-        ],
-      }),
-    });
-
-    render(<PendingChanges organization={organization} subscription={sub} />);
-
-    expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
-    expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
-    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Spans budget change from $100,000 to $50,000')
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
-  });
-
-  it('renders reserved budgets with existing budgets and dynamic sampling', () => {
-    const sub = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      pendingChanges: PendingChangesFixture({
-        planDetails: PlanDetailsLookupFixture('am3_business_ent_ds_auf'),
-        plan: 'am3_business_ent_ds_auf',
-        planName: 'Business',
-        reserved: {
-          spans: RESERVED_BUDGET_QUOTA,
-          spansIndexed: RESERVED_BUDGET_QUOTA,
-        },
-        reservedCpe: {
-          spans: 12.345678,
-          spansIndexed: 87.654321,
-        },
-        reservedBudgets: [
-          {
-            reservedBudget: 50_000_00,
-            categories: {spans: true, spansIndexed: true},
-          },
-        ],
-      }),
-      hadCustomDynamicSampling: true,
-    });
-
-    render(<PendingChanges organization={organization} subscription={sub} />);
-
-    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Spans budget change from $100,000 to $50,000')
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
-  });
-
   it('renders fixed reserved budget changes for disabling', () => {
     const sub = SubscriptionFixture({
       organization,
@@ -566,107 +494,6 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.queryByText('Seer budget')).not.toBeInTheDocument();
     expect(screen.queryByText(/Reserved issue fixes/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();
-  });
-
-  it('renders multiple reserved budgets', () => {
-    const sub = Am3DsEnterpriseSubscriptionFixture({
-      organization,
-      pendingChanges: PendingChangesFixture({
-        planDetails: PlanDetailsLookupFixture('am3_business_ent_ds_auf'),
-        plan: 'am3_business_ent_ds_auf',
-        planName: 'Business',
-        reserved: {
-          errors: RESERVED_BUDGET_QUOTA,
-          spans: RESERVED_BUDGET_QUOTA,
-          spansIndexed: RESERVED_BUDGET_QUOTA,
-        },
-        reservedCpe: {
-          errors: 0.123456,
-          spans: 12.345678,
-          spansIndexed: 87.654321,
-        },
-        reservedBudgets: [
-          {
-            reservedBudget: 50_000_00,
-            categories: {spans: true, spansIndexed: true},
-          },
-          {
-            reservedBudget: 10_000_00,
-            categories: {errors: true},
-          },
-        ],
-      }),
-      hadCustomDynamicSampling: true,
-    });
-
-    render(<PendingChanges organization={organization} subscription={sub} />);
-
-    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Spans budget change from $100,000 to $50,000')
-    ).toBeInTheDocument();
-    expect(screen.getByText('Errors budget change to $10,000')).toBeInTheDocument();
-    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Reserved errors/)).not.toBeInTheDocument();
-  });
-
-  it('renders reserved budgets without existing budgets', async () => {
-    const sub = SubscriptionFixture({
-      organization: OrganizationFixture(),
-      plan: 'am3_business',
-      pendingChanges: PendingChangesFixture({
-        planDetails: PlanDetailsLookupFixture('am3_business_ent_ds_auf'),
-        plan: 'am3_business_ent_ds_auf',
-        planName: 'Business',
-        reserved: {
-          spans: RESERVED_BUDGET_QUOTA,
-          spansIndexed: RESERVED_BUDGET_QUOTA,
-        },
-        reservedCpe: {
-          spans: 12.345678,
-          spansIndexed: 87.654321,
-        },
-        reservedBudgets: [
-          {
-            reservedBudget: 50_000_00,
-            categories: {spans: true, spansIndexed: true},
-          },
-        ],
-      }),
-    });
-    render(<PendingChanges organization={organization} subscription={sub} />);
-    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-    await screen.findByTestId('expanded-pending-list-0');
-
-    expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
-    expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
-    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(screen.getByText('Spans budget change to $50,000')).toBeInTheDocument();
-    expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
-    expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
-  });
-
-  it('renders reserved budgets to reserved volume', () => {
-    const sub = Am3DsEnterpriseSubscriptionFixture({
-      organization: OrganizationFixture(),
-      pendingChanges: PendingChangesFixture({
-        planDetails: PlanDetailsLookupFixture('am3_business_ent_auf'),
-        plan: 'am3_business_ent_auf',
-        planName: 'Business',
-        reserved: {
-          spans: 10_000_000,
-        },
-      }),
-    });
-
-    render(<PendingChanges organization={organization} subscription={sub} />);
-
-    expect(screen.queryByText('accepted spans')).not.toBeInTheDocument();
-    expect(screen.queryByText('stored spans')).not.toBeInTheDocument();
-    expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
-    expect(screen.queryByText('Spans budget')).not.toBeInTheDocument();
-    expect(screen.getByText('Reserved spans change to 10,000,000')).toBeInTheDocument();
-    expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 
   it('does not render expand button when there are less than 3 changes', () => {

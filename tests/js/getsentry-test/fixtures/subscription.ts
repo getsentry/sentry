@@ -3,11 +3,7 @@ import {
   PlanDetailsLookupFixture,
   type PlanIds,
 } from 'getsentry-test/fixtures/planDetailsLookup';
-import {
-  DynamicSamplingReservedBudgetFixture,
-  ReservedBudgetMetricHistoryFixture,
-  SeerReservedBudgetFixture,
-} from 'getsentry-test/fixtures/reservedBudget';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -343,41 +339,6 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
     accountBalance: 0,
     isFree: false,
   });
-
-  return subscription;
-}
-
-export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription {
-  const {organization: _organization, ...params} = props;
-  const planData = {plan: 'am3_business_ent_ds_auf', ...params};
-
-  const subscription = InvoicedSubscriptionFixture({
-    ...props,
-    plan: planData.plan,
-    planTier: planData.planTier,
-  });
-  subscription.reservedBudgets = [
-    ...(subscription.reservedBudgets || []),
-    DynamicSamplingReservedBudgetFixture({
-      id: '11',
-      reservedBudget: 100_000_00,
-      totalReservedSpend: 60_000_00,
-      freeBudget: 0,
-      percentUsed: 0.6,
-      categories: {
-        spans: ReservedBudgetMetricHistoryFixture({
-          reservedCpe: 1,
-          reservedSpend: 40_000_00,
-        }),
-        spansIndexed: ReservedBudgetMetricHistoryFixture({
-          reservedCpe: 2,
-          reservedSpend: 20_000_00,
-        }),
-      },
-    }),
-  ];
-  subscription.categories.spans!.reserved = RESERVED_BUDGET_QUOTA;
-  subscription.categories.spansIndexed!.reserved = RESERVED_BUDGET_QUOTA;
 
   return subscription;
 }

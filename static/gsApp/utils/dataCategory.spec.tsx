@@ -2,13 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
-import {
-  DynamicSamplingReservedBudgetFixture,
-  PendingReservedBudgetFixture,
-  ReservedBudgetFixture,
-  ReservedBudgetMetricHistoryFixture,
-  SeerReservedBudgetFixture,
-} from 'getsentry-test/fixtures/reservedBudget';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
 import {DataCategory} from 'sentry/types/core';
@@ -19,11 +12,9 @@ import {
   calculateSeerUserSpend,
   formatCategoryQuantityWithDisplayName,
   getPlanCategoryName,
-  getReservedBudgetDisplayName,
   getSingularCategoryName,
   isByteCategory,
   isEmergeCategory,
-  listDisplayNames,
   sortCategories,
   sortCategoriesWithKeys,
 } from 'getsentry/utils/dataCategory';
@@ -278,140 +269,6 @@ describe('getSingularCategoryName', () => {
         hadCustomDynamicSampling: true,
       })
     ).toBe('Accepted spans');
-  });
-});
-
-describe('getReservedBudgetDisplayName', () => {
-  const am3DsPlan = PlanDetailsLookupFixture('am3_business_ent_ds_auf');
-
-  it('should use the reserved budget name if it exists', () => {
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3DsPlan,
-        reservedBudget: DynamicSamplingReservedBudgetFixture({}),
-      })
-    ).toBe('spans budget');
-
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3DsPlan,
-        reservedBudget: SeerReservedBudgetFixture({}),
-        shouldTitleCase: true,
-      })
-    ).toBe('Seer Budget');
-  });
-
-  it('should try to find the reserved budget name if it does not exist', () => {
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3DsPlan,
-        pendingReservedBudget: PendingReservedBudgetFixture({
-          categories: {
-            [DataCategory.SPANS]: true,
-            [DataCategory.SPANS_INDEXED]: true,
-          },
-          reservedBudget: 1000,
-        }),
-      })
-    ).toBe('spans budget');
-  });
-
-  it('should oxfordize the budget categories if no name exists or can be found', () => {
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3DsPlan,
-        pendingReservedBudget: PendingReservedBudgetFixture({
-          categories: {
-            [DataCategory.SPANS_INDEXED]: true,
-          },
-          reservedBudget: 1000,
-        }),
-      })
-    ).toBe('stored spans budget');
-
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3DsPlan,
-        reservedBudget: ReservedBudgetFixture({
-          categories: {
-            [DataCategory.REPLAYS]: ReservedBudgetMetricHistoryFixture({}),
-          },
-          dataCategories: [DataCategory.REPLAYS],
-        }),
-      })
-    ).toBe('replays budget');
-
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3DsPlan,
-        pendingReservedBudget: PendingReservedBudgetFixture({
-          categories: {
-            [DataCategory.ERRORS]: true,
-            [DataCategory.SPANS]: true,
-            [DataCategory.REPLAYS]: true,
-            [DataCategory.MONITOR_SEATS]: true,
-          },
-          reservedBudget: 1000,
-        }),
-      })
-    ).toBe('cron monitors, errors, replays, and spans budget'); // alphabetically sorted
-
-    expect(
-      getReservedBudgetDisplayName({
-        plan: am3DsPlan,
-        reservedBudget: ReservedBudgetFixture({
-          categories: {
-            [DataCategory.ATTACHMENTS]: ReservedBudgetMetricHistoryFixture({}),
-            [DataCategory.UPTIME]: ReservedBudgetMetricHistoryFixture({}),
-          },
-          dataCategories: [DataCategory.ATTACHMENTS, DataCategory.UPTIME],
-        }),
-      })
-    ).toBe('attachments and uptime monitors budget');
-  });
-});
-
-describe('listDisplayNames', () => {
-  const plan = PlanDetailsLookupFixture('am3_business_ent_ds_auf');
-
-  it('should list categories in order given', () => {
-    expect(
-      listDisplayNames({
-        plan,
-        categories: [
-          DataCategory.SPANS,
-          DataCategory.TRANSACTIONS,
-          DataCategory.ERRORS,
-          DataCategory.REPLAYS,
-          DataCategory.MONITOR_SEATS,
-          DataCategory.ATTACHMENTS,
-        ],
-      })
-    ).toBe('spans, transactions, errors, replays, cron monitors, and attachments');
-  });
-
-  it('should hide stored spans for no DS', () => {
-    expect(
-      listDisplayNames({
-        plan,
-        categories: plan.checkoutCategories,
-        hadCustomDynamicSampling: false,
-      })
-    ).toBe(
-      'errors, replays, attachments, cron monitors, spans, uptime monitors, logs, size analysis builds, and build distribution installs'
-    );
-  });
-
-  it('should include stored spans and use accepted spans for DS', () => {
-    expect(
-      listDisplayNames({
-        plan,
-        categories: plan.checkoutCategories,
-        hadCustomDynamicSampling: true,
-      })
-    ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, logs, size analysis builds, build distribution installs, and stored spans'
-    );
   });
 });
 

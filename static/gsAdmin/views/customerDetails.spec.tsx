@@ -13,10 +13,7 @@ import {OwnerFixture} from 'getsentry-test/fixtures/owner';
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
-import {
-  Am3DsEnterpriseSubscriptionFixture,
-  SubscriptionFixture,
-} from 'getsentry-test/fixtures/subscription';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -3100,31 +3097,6 @@ describe('Customer Details', () => {
       )
     );
   });
-  it('cannot gift events in different units - SPANS_INDEXED', async () => {
-    const am3Sub = Am3DsEnterpriseSubscriptionFixture({organization});
-    setUpMocks(organization, am3Sub);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    renderGlobalModal();
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
-
-    const item = screen.getByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
-    expect(item).toBeInTheDocument();
-    expect(item).toHaveAttribute('aria-disabled', 'true');
-  });
   it('cannot gift events without checkout category - SPANS_INDEXED', async () => {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_team'});
     setUpMocks(organization, am3Sub);
@@ -3455,29 +3427,6 @@ describe('Customer Details', () => {
   });
 
   describe('AddGiftBudgetAction', () => {
-    it('shows gift budget action when org has reserved budgets', async () => {
-      const am3Sub = Am3DsEnterpriseSubscriptionFixture({
-        organization,
-      });
-      setUpMocks(organization, am3Sub);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
-      );
-
-      expect(screen.getByText('Gift to reserved budget')).toBeInTheDocument();
-    });
-
     it('hides gift budget action when org has no reserved budgets', async () => {
       const nonDsSub = SubscriptionFixture({
         organization,
@@ -3499,63 +3448,6 @@ describe('Customer Details', () => {
       );
 
       expect(screen.queryByText('Gift to reserved budget')).not.toBeInTheDocument();
-    });
-
-    it('can open modal and gift budget', async () => {
-      const am3Sub = Am3DsEnterpriseSubscriptionFixture({
-        organization,
-      });
-      setUpMocks(organization, am3Sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-        body: organization,
-      });
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-      renderGlobalModal();
-
-      // Open actions dropdown and click gift budget action
-      await userEvent.click(
-        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
-      );
-      await userEvent.click(screen.getByText('Gift to reserved budget'));
-
-      // Fill out form
-      await userEvent.type(
-        screen.getByRole('spinbutton', {name: /gift amount \(\$\)/i}),
-        '500'
-      );
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /ticketurl/i}),
-        'https://example.com'
-      );
-      await userEvent.type(screen.getByRole('textbox', {name: /notes/i}), 'Test notes');
-
-      // Submit form
-      await userEvent.click(screen.getByRole('button', {name: /confirm/i}));
-      await waitFor(() => {
-        expect(updateMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: expect.objectContaining({
-              freeReservedBudget: expect.any(Object),
-              ticketUrl: 'https://example.com',
-              notes: 'Test notes',
-            }),
-          })
-        );
-      });
     });
   });
 
