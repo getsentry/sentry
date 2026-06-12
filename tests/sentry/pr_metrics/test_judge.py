@@ -317,7 +317,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
         forward_pr_to_seer_judge(self.pull_request, self.repo)
 
         kwargs = mock_request.call_args.kwargs
-        assert kwargs["path"] == "/v1/code_review/pr-metrics-judge"
+        assert kwargs["path"] == "/v1/pr-metrics/pr-close-judge"
         body = orjson.loads(kwargs["body"])
         assert body["pull_request_id"] == self.pull_request.id
         assert body["organization_id"] == self.organization.id
