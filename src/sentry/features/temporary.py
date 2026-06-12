@@ -276,6 +276,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-ui-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer to generate rich component embeds from an adjusted prompt
     manager.add("organizations:seer-explorer-embeds", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:seer-explorer-stream", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable structured LLM context (JSON snapshot) instead of ASCII DOM snapshot
     manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
