@@ -1190,10 +1190,13 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   const aggregation = value.function[0];
-  const parameters = value.function
-    .slice(1)
-    .filter(Boolean)
-    .map(parameter => generateFunctionArgument(parameter!));
+  const slicedFunction = value.function.slice(1);
+  const parameters: string[] = [];
+  for (const parameter of slicedFunction) {
+    if (parameter) {
+      parameters.push(generateFunctionArgument(parameter));
+    }
+  }
   return `${aggregation}(${parameters.join(',')})`;
 }
 
