@@ -58,6 +58,11 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
         target = attrs.get("target")
 
         target_type = obj.config.get("target_type")
+        # Some actions (e.g. webhook/integration actions) have no target_type in their
+        # config. ActionTarget(None) raises ValueError, so default to SPECIFIC, which
+        # matches the legacy AlertRuleTriggerAction default for these actions.
+        if target_type is None:
+            target_type = ActionTarget.SPECIFIC.value
         target_identifier = obj.config.get("target_identifier")
         target_display = obj.config.get("target_display")
 
