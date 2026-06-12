@@ -14,6 +14,7 @@ from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActio
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
 from sentry.utils import metrics
+from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,6 @@ logger = logging.getLogger(__name__)
 # If you're adding a new caller to an instrumented function (e.g. GroupAssignee.objects.assign),
 # wrap it with action_context_scope() so the action gets proper source attribution.
 
-MCP_USER_AGENT_PREFIX = "sentry-mcp/"
 MCP_CLIENT_FAMILY_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_FAMILY"
 SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 
@@ -73,7 +73,7 @@ def resolve_action_source(request: Request) -> str:
     """
     user_agent = request.META.get("HTTP_USER_AGENT", "")
 
-    if user_agent.startswith(MCP_USER_AGENT_PREFIX):
+    if is_mcp_request(request):
         family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
         if family in KNOWN_MCP_CLIENT_FAMILIES:
             return f"{ActionSource.MCP}:{family}"
