@@ -24,10 +24,13 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {MembershipSettingsProps} from 'sentry/types/overrides';
+import {
+  getLocalityDataFromOrganization,
+  shouldDisplayLocalities,
+} from 'sentry/utils/cells';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -414,8 +417,9 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
-  const regionData =
-    getRegions().length > 1 ? getRegionDataFromOrganization(organization) : null;
+  const localityData = shouldDisplayLocalities()
+    ? getLocalityDataFromOrganization(organization)
+    : null;
 
   const aiEnabled = hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false;
 
@@ -543,7 +547,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
           </AutoSaveForm>
 
           {/* Data Storage Region — read-only, only shown when multiple regions exist */}
-          {regionData && (
+          {localityData && (
             <Flex direction="row" gap="xl" align="center" justify="between" flexGrow={1}>
               <Stack width="50%" gap="xs">
                 <Text>{t('Data Storage Region')}</Text>
@@ -554,7 +558,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 </Text>
               </Stack>
               <Container flexGrow={1}>
-                <Text>{`${regionData?.flag ?? ''} ${regionData.displayName}`}</Text>
+                <Text>{localityData.label}</Text>
               </Container>
             </Flex>
           )}

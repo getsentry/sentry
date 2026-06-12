@@ -5,6 +5,7 @@ import sentry_sdk
 from django.db.models.signals import post_save
 
 from sentry import options
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import bulk_remove_groups_from_inbox
 from sentry.signals import issue_unresolved
@@ -28,7 +29,10 @@ def bulk_transition_group_to_ongoing(
         span.set_tag("group_ids", group_ids)
         span.set_tag("groups_to_transition count", len(groups_to_transition))
 
-    with sentry_sdk.start_span(name="update_group_status"):
+    with (
+        sentry_sdk.start_span(name="update_group_status"),
+        action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR),
+    ):
         Group.objects.update_group_status(
             groups=groups_to_transition,
             status=GroupStatus.UNRESOLVED,

@@ -863,7 +863,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
 # If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
 # from within tasks.
-# Set to True in the taskworker entrypoint in run.py.
+# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
 TASKWORKER_USE_TASK_PRODUCER: bool = False
 
 # The list of modules that workers will import after starting up
@@ -2255,7 +2255,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
-    "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
@@ -2345,6 +2344,7 @@ DEAD = object()
 # This will eventually get set from values in SENTRY_OPTIONS during
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
+SENTRY_LOGGING_FORMAT = "human"
 EMAIL_BACKEND = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
@@ -2711,6 +2711,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
+    "taskworker-push": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
     "taskworker-buffer": "default",
@@ -2725,6 +2726,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-example": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
+    "taskworker-ingest-push": "default",
     "taskworker-ingest-errors": "default",
     "taskworker-ingest-errors-dlq": "default",
     "taskworker-ingest-errors-postprocess": "default",
@@ -2812,6 +2814,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.sentry_apps.api.endpoints",
     "sentry.preprod.api.endpoints",
     "sentry.workflow_engine.endpoints",
+    "sentry.feedback.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 

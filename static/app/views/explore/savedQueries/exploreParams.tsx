@@ -93,7 +93,7 @@ export function ExploreParams({
     });
   }
   const parsedQuery = useMemo(() => {
-    return parseQueryBuilderValue(query, getFieldDefinition);
+    return parseQueryBuilderValue(query, key => getFieldDefinition(key));
   }, [query]);
   if (query) {
     tokens.push(

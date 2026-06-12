@@ -9,28 +9,27 @@ import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {getCells} from 'sentry/utils/cells';
 import {getFormat} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {getRegions} from 'sentry/utils/regions';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
 export function GenerateSpikeProjectionsForBatch() {
   const [batchId, setBatchId] = useState<number | null>(null);
-  const regions = getRegions();
-  const [region, setRegion] = useState(regions[0] ?? null);
+  const cells = getCells();
+  const [cell, setCell] = useState(cells[0] ?? null);
 
   const {mutate} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        // TODO(cells): Switch from region name to cell
-        url: `/_admin/cells/${region?.name}/queue-spike-projection-batch/`,
+        url: `/_admin/cells/${cell?.name}/queue-spike-projection-batch/`,
         method: 'POST',
         data: {
           batch_id: batchId,
         },
         options: {
-          host: region?.url,
+          host: cell?.locality_url,
         },
       });
     },
@@ -75,17 +74,17 @@ export function GenerateSpikeProjectionsForBatch() {
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
-          value={region ? region.url : undefined}
-          options={regions.map((r: any) => ({
-            label: r.name,
-            value: r.url,
+          value={cell ? cell.locality_url : undefined}
+          options={cells.map(c => ({
+            label: c.name,
+            value: c.locality_url,
           }))}
           onChange={opt => {
-            const regionOption = regions.find((r: any) => r.url === opt.value);
-            if (regionOption === undefined) {
+            const cellOption = cells.find(c => c.locality_url === opt.value);
+            if (cellOption === undefined) {
               return;
             }
-            setRegion(regionOption);
+            setCell(cellOption);
           }}
         />
         <label htmlFor="batchId">Batch ID:</label>
@@ -121,7 +120,7 @@ export function GenerateSpikeProjectionsForBatch() {
         <Button
           variant="primary"
           type="submit"
-          disabled={batchId === null || region === null}
+          disabled={batchId === null || cell === null}
         >
           Submit
         </Button>

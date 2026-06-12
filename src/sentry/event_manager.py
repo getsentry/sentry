@@ -49,6 +49,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
+from sentry.event_manager_auto_tags import get_enabled_derivers
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
@@ -114,6 +115,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.options.rollout import in_random_rollout
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
@@ -539,7 +541,7 @@ class EventManager:
             except ProjectKey.DoesNotExist:
                 pass
 
-        _derive_plugin_tags_many(jobs, projects)
+        _derive_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
         _derive_client_error_sampling_rate(jobs, projects)
 
@@ -781,9 +783,51 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
         job["user"] = user
 
 
+def _partition_jobs_by_tag_deriver_flag(
+    jobs: Sequence[Job], projects: ProjectsMapping
+) -> tuple[list[Job], list[Job]]:
+    org_flag_mapping: dict[int, bool] = {}
+    new_jobs: list[Job] = []
+    legacy_jobs: list[Job] = []
+    for job in jobs:
+        project = projects[job["project_id"]]
+        org_id = project.organization_id
+        if org_id not in org_flag_mapping:
+            org_flag_mapping[org_id] = features.has(
+                "organizations:derive-tags-without-plugins", project.organization
+            )
+        if org_flag_mapping[org_id]:
+            new_jobs.append(job)
+        else:
+            legacy_jobs.append(job)
+    return new_jobs, legacy_jobs
+
+
 @sentry_sdk.tracing.trace
-def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    # XXX: We ought to inline or remove this one for sure
+def _derive_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    new_jobs, legacy_jobs = _partition_jobs_by_tag_deriver_flag(jobs, projects)
+    if new_jobs:
+        metrics.incr("event_manager.derive_tags.new_path", amount=len(new_jobs))
+        _derive_tags_many_new(new_jobs, projects)
+    if legacy_jobs:
+        metrics.incr("event_manager.derive_tags.legacy_path", amount=len(legacy_jobs))
+        _derive_tags_many_legacy(legacy_jobs, projects)
+
+
+def _derive_tags_many_new(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    derivers = get_enabled_derivers()
+    for job in jobs:
+        data = job["data"]
+        for deriver in derivers:
+            try:
+                for key, value in deriver.get_tags(job["event"]):
+                    if get_tag(data, key) is None:
+                        set_tag(data, key, value)
+            except Exception:
+                logger.exception("auto_tag.derive_error")
+
+
+def _derive_tags_many_legacy(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
 
     for job in jobs:
@@ -1702,7 +1746,12 @@ def _get_next_short_id(project: Project, delta: int = 1) -> int:
     return short_id
 
 
-def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
+def _handle_regression(
+    group: Group,
+    event: BaseEvent,
+    release: Release | None,
+    incoming_group_values: Mapping[str, Any] | None = None,
+) -> bool | None:
     if not group.is_resolved():
         return None
 
@@ -1815,10 +1864,15 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             )
 
     if is_regression:
-        activity_data: dict[str, str | bool] = {
+        activity_data: dict[str, Any] = {
             "event_id": event.event_id,
             "version": release.version if release else "",
         }
+        if incoming_group_values and options.get("groups.regression-activity-event-metadata"):
+            event_data = incoming_group_values.get("data", {})
+            activity_data["event_metadata"] = event_data.get("metadata", {})
+            activity_data["event_title"] = event_data.get("title", "")
+            activity_data["event_type"] = event_data.get("type", "default")
         if resolved_in_activity and release:
             activity_data.update(
                 {
@@ -1916,7 +1970,7 @@ def _process_existing_aggregate(
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
-    is_regression = _handle_regression(group, event, release)
+    is_regression = _handle_regression(group, event, release, incoming_group_values)
 
     existing_data = group.data
     existing_metadata = group.data.get("metadata", {})
@@ -1957,6 +2011,12 @@ severity_connection_pool = connection_from_url(
     settings.SEER_SCORING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
+)
+
+severity_connection_pool_cpu = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL,
+    retries=settings.SEER_SEVERITY_RETRIES,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,
 )
 
 
@@ -2207,9 +2267,17 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
+                pool = (
+                    severity_connection_pool_cpu
+                    if in_random_rollout("seer.severity.cpu-rollout")
+                    else severity_connection_pool
+                )
                 viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
                 response = make_severity_score_request(
-                    payload, timeout=timeout, viewer_context=viewer_context
+                    payload,
+                    connection_pool=pool,
+                    timeout=timeout,
+                    viewer_context=viewer_context,
                 )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
@@ -2742,7 +2810,7 @@ def save_transaction_events(
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
+    _derive_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
@@ -2781,7 +2849,7 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
+    _derive_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)

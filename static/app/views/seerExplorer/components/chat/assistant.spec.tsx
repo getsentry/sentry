@@ -160,6 +160,33 @@ describe('AssistantBlock', () => {
     });
   });
 
+  it('renders same-origin links as router links', () => {
+    const block = createBlock({
+      message: {
+        role: 'assistant',
+        content: `Check [this issue](${window.location.origin}/issues/ABC-123/)`,
+      },
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    const link = screen.getByRole('link', {name: 'this issue'});
+    expect(link).not.toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('href', '/issues/ABC-123/');
+  });
+
+  it('renders external links with target _blank', () => {
+    const block = createBlock({
+      message: {
+        role: 'assistant',
+        content: 'See [docs](https://docs.sentry.io/getting-started/)',
+      },
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    const link = screen.getByRole('link', {name: 'docs'});
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
   it('renders nothing for empty content', () => {
     const block = createBlock({
       message: {role: 'assistant', content: ''},

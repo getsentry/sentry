@@ -33,9 +33,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_spans_fields import (
-    BaseSpanFieldValuesAutocompletionExecutor,
-)
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
     TraceItemAttributeSource,
@@ -75,7 +72,7 @@ from sentry.search.eap.types import (
     SupportedTraceItemType,
 )
 from sentry.search.eap.utils import (
-    can_expose_attribute,
+    can_expose_attribute_to_api,
     get_secondary_aliases,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
@@ -332,6 +329,22 @@ def as_attribute_key(
     return attribute_key
 
 
+def can_expose_trace_item_attribute_to_api(
+    attribute_key: TraceItemAttributeKey,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> bool:
+    return can_expose_attribute_to_api(
+        attribute_key["key"],
+        item_type,
+        include_internal=include_internal,
+    ) and can_expose_attribute_to_api(
+        attribute_key["name"],
+        item_type,
+        include_internal=include_internal,
+    )
+
+
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
@@ -569,6 +582,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             )
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
+            sentry_sdk.set_attribute("api_response.attributes", str(attributes))
             span.set_data("attribute_count", len(attributes))
             span.set_data("attribute_type", attribute_type)
         return attributes, debug_info
@@ -585,7 +599,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
-            if attribute.name and can_expose_attribute(
+            if attribute.name and can_expose_attribute_to_api(
                 attribute.name,
                 trace_item_type,
                 include_internal=include_internal,
@@ -603,6 +617,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     # This can happen when the public alias is different, but that's handled by
                     # aliased_attributes
                     and (substring_match in attr_key["name"] if substring_match else True)
+                    and can_expose_trace_item_attribute_to_api(
+                        attr_key, trace_item_type, include_internal=include_internal
+                    )
                 ):
                     attribute_keys[attr_key["key"]] = attr_key
         # We need to exclude any aliased attributes here since because of pagination they might have already been seen
@@ -617,7 +634,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             if attr_key["name"] in attribute_keys:
                 del attribute_keys[attr_key["name"]]
         for aliased_attr in aliased_attributes:
-            if can_expose_attribute(
+            if can_expose_attribute_to_api(
                 aliased_attr.public_alias,
                 trace_item_type,
                 include_internal=include_internal,
@@ -628,9 +645,17 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     trace_item_type,
                     is_proxy=isinstance(aliased_attr, ProxyResolvedAttribute),
                 )
-                attribute_keys[attr_key["key"]] = attr_key
+                if can_expose_attribute_to_api(
+                    aliased_attr.internal_name,
+                    trace_item_type,
+                    include_internal=include_internal,
+                ) and can_expose_trace_item_attribute_to_api(
+                    attr_key, trace_item_type, include_internal=include_internal
+                ):
+                    attribute_keys[attr_key["key"]] = attr_key
         attributes = list(attribute_keys.values())
         sentry_sdk.set_context("api_response", {"attributes": attributes})
+        sentry_sdk.set_attribute("api_response.attributes", str(attributes))
         return attributes
 
 
@@ -653,6 +678,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             )
 
         sentry_sdk.set_tag("query.attribute_key", key)
+        sentry_sdk.set_attribute("query.attribute_key", key)
 
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
@@ -697,7 +723,10 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         )
 
 
-class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletionExecutor):
+class TraceItemAttributeValuesAutocompletionExecutor:
+    PROJECT_SLUG_KEYS = {"project", "project.name"}
+    PROJECT_ID_KEYS = {"project.id"}
+
     def __init__(
         self,
         organization: Organization,
@@ -708,7 +737,10 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         offset: int,
         definitions: ColumnDefinitions,
     ):
-        super().__init__(organization, snuba_params, key, query, limit)
+        self.organization = organization
+        self.snuba_params = snuba_params
+        self.key = key
+        self.query = query or ""
         self.limit = limit
         self.offset = offset
         self.resolver = SearchResolver(
@@ -754,6 +786,32 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             return self.string_autocomplete_function()
 
         return []
+
+    def project_id_autocomplete_function(self) -> list[TagValue]:
+        return [
+            TagValue(
+                key=self.key,
+                value=str(project.id),
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for project in self.snuba_params.projects
+            if not self.query or self.query in str(project.id)
+        ]
+
+    def project_slug_autocomplete_function(self) -> list[TagValue]:
+        return [
+            TagValue(
+                key=self.key,
+                value=project.slug,
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for project in self.snuba_params.projects
+            if not self.query or self.query in project.slug
+        ]
 
     def release_stage_autocomplete_function(self):
         return [

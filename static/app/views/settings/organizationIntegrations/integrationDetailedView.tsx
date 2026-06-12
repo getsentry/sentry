@@ -21,6 +21,7 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
@@ -28,12 +29,7 @@ import {
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

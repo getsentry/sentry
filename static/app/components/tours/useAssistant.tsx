@@ -1,10 +1,10 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
-  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';

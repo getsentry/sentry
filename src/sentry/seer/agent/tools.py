@@ -137,9 +137,17 @@ def execute_table_query(
     end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     case_insensitive: bool | None = None,
+    span_query: list[str] | None = None,
+    log_query: list[str] | None = None,
+    metric_query: list[str] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a query to get table data by calling the events endpoint.
+
+    span_query/log_query/metric_query are optional cross-event (same-trace) filters:
+    when set, results are restricted to the primary dataset's rows whose trace also
+    contains a matching span/log/metric. Forwarded to the events endpoint as repeated
+    spanQuery/logQuery/metricQuery params (read server-side by get_additional_queries).
 
     Arg notes:
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
@@ -186,6 +194,14 @@ def execute_table_query(
     # Add boolean params only if provided.
     if case_insensitive is not None:
         params["caseInsensitive"] = "1" if case_insensitive else "0"
+
+    # Cross-event (same-trace) filters.
+    if span_query:
+        params["spanQuery"] = span_query
+    if log_query:
+        params["logQuery"] = log_query
+    if metric_query:
+        params["metricQuery"] = metric_query
 
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
@@ -283,12 +299,26 @@ def execute_timeseries_query(
     params = {k: v for k, v in params.items() if v is not None}
 
     # Call sentry API client. This will raise API errors for non-2xx / 3xx status.
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/organizations/{organization.slug}/events-stats/",
-        params=params,
-    )
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events-stats/",
+            params=params,
+        )
+    except client.ApiError as e:
+        # For 400 errors, return an error detail for the query builder agent.
+        # Use a reserved "_seer_error_detail" key so it can't collide with a
+        # group_by value (which becomes a top-level key in grouped responses below).
+        if e.status_code == 400:
+            logger.exception("execute_timeseries_query: bad request", extra={"org_id": org_id})
+            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            return {
+                "_seer_error_detail": (
+                    str(error_detail) if error_detail is not None else str(e.body)
+                )
+            }
+        raise
     data = resp.data
 
     # Always normalize to the nested {"metric": {"data": [...]}} format for consistency
@@ -943,7 +973,7 @@ def _get_issue_event_timeseries(
         partial=True,
     )
 
-    if data is None:
+    if data is None or data.get("_seer_error_detail"):
         return None
     return data, selected_period, interval
 
@@ -1130,15 +1160,19 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 ]
 
 
-class _IssueTroubleshootingContext(TypedDict):
-    # These fields are added to serialized group data, which uses camelCase API keys.
+class _EventTroubleshootingContext(TypedDict):
+    # These fields are added to the serialized event, which uses camelCase keys.
     detectionContext: str | None
     troubleshootingHint: str | None
 
 
-def _get_issue_troubleshooting_context(
-    group: Group, event: Event | GroupEvent | None = None
-) -> _IssueTroubleshootingContext:
+def _get_event_troubleshooting_context(
+    event: Event | GroupEvent,
+) -> _EventTroubleshootingContext:
+    group = event.group
+    if group is None:
+        return {"detectionContext": None, "troubleshootingHint": None}
+
     if group.type == LowValueSpanConfigurationType.type_id:
         occurrence = getattr(event, "occurrence", None)
         evidence_data = occurrence.evidence_data if occurrence else {}
@@ -1181,7 +1215,8 @@ def get_issue_and_event_response(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> dict[str, Any]:
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
+    serialized_event.update(_get_event_troubleshooting_context(event))
 
     result = {
         "event": serialized_event,
@@ -1196,7 +1231,6 @@ def get_issue_and_event_response(
         serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
-        serialized_group.update(_get_issue_troubleshooting_context(group, event))
 
         logger.info(
             "get_issue_and_event_details_v2: Querying for tags overview",
@@ -1300,28 +1334,29 @@ def get_issue_details(
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
+
+    project_ids = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
+    )
+    if not project_ids:
+        return None
+
     group: Group
     if issue_id.isdigit():
-        project_ids = list(
-            Project.objects.filter(
-                organization=organization,
-                status=ObjectStatus.ACTIVE,
-                **({"slug": project_slug} if project_slug else {}),
-            ).values_list("id", flat=True)
-        )
-        if not project_ids:
-            return None
-
         group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
     else:
-        # Note short IDs are already scoped to a project so no need for project filtering.
-        group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+        group = Group.objects.by_qualified_short_id(
+            organization_id, issue_id, project_ids=project_ids
+        )
 
     # Get the issue metadata.
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
     # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
     serialized_group["issueTypeDescription"] = group.issue_type.description
-    serialized_group.update(_get_issue_troubleshooting_context(group))
 
     # Get aggregate tag and event data and activity.
     try:
@@ -1429,7 +1464,9 @@ def get_event_details(
         if issue_id.isdigit():
             group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
         else:
-            group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+            group = Group.objects.by_qualified_short_id(
+                organization_id, issue_id, project_ids=project_ids
+            )
         assert group is not None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
@@ -1483,7 +1520,8 @@ def get_event_details(
         )
         return None
 
-    serialized_event = serialize(event, user=None, serializer=EventSerializer())
+    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
+    serialized_event.update(_get_event_troubleshooting_context(event))
 
     return {
         "event": serialized_event,
@@ -1530,7 +1568,11 @@ def get_issue_and_event_details_v2(
         if issue_id.isdigit():
             group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
         else:
-            group = Group.objects.by_qualified_short_id(organization_id, issue_id)
+            # Scope the short id lookup to the same projects as the numeric branch so both
+            # paths enforce the same project boundary.
+            group = Group.objects.by_qualified_short_id(
+                organization_id, issue_id, project_ids=project_ids
+            )
         assert group is not None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 

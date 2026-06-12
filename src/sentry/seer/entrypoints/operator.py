@@ -36,7 +36,6 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.workflow_engine.registry import invoke_workflow_activity_handlers
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
@@ -46,6 +45,8 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
     SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
     SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
+    SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
+    SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
 
 logger = logging.getLogger(__name__)
@@ -587,13 +588,12 @@ def _create_seer_activity(
         if pull_requests:
             activity_data["pull_requests"] = pull_requests
 
-    activity = Activity.objects.create_group_activity(
+    Activity.objects.create_group_activity(
         group,
         activity_type,
         data=activity_data if activity_data else None,
         send_notification=False,
     )
-    invoke_workflow_activity_handlers(group=group, activity=activity)
 
 
 @instrumented_task(

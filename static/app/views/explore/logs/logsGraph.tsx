@@ -37,6 +37,7 @@ import {
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
@@ -126,6 +127,7 @@ function Graph({
   visualize,
 }: GraphProps) {
   const isShortViewport = useIsShortViewport();
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const {isEmpty: tableIsEmpty, isPending: tableIsPending} = useLogsPageDataQueryResult();
 
   const aggregate = visualize.yAxis;
@@ -252,7 +254,9 @@ function Graph({
       Title={Title}
       Actions={Actions}
       Visualization={
-        visualize.visible && <ChartVisualization chartInfo={chartInfo} notMerge={false} />
+        visualize.visible && (
+          <ChartVisualization chartInfo={chartInfo} notMerge={!autorefreshEnabled} />
+        )
       }
       Footer={
         visualize.visible && (

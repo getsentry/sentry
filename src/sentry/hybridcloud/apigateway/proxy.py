@@ -9,7 +9,7 @@ from collections.abc import Callable, Generator
 from http.cookiejar import Cookie
 from threading import local
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
@@ -22,7 +22,6 @@ from requests.cookies import RequestsCookieJar
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
-from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
@@ -34,7 +33,6 @@ from sentry.silo.util import (
 from sentry.types.cell import (
     Cell,
     CellResolutionError,
-    get_cell_by_name,
     get_cell_for_organization,
 )
 from sentry.utils import metrics
@@ -55,7 +53,6 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-project-preprod-artifact-download": 90.0,
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
-    "sentry-api-0-organization-preprod-snapshots-download": 90.0,
     "sentry-api-0-organization-preprod-snapshots-archive": 90.0,
 }
 
@@ -121,39 +118,9 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
             "url_name": url_name,
             "kind": "orgslug",
             "target": cell.name,
+            "request_method": request.method,
         },
     )
-    return proxy_cell_request(request, cell, url_name)
-
-
-def proxy_error_embed_request(
-    request: HttpRequest, dsn: str, url_name: str
-) -> HttpResponseBase | None:
-    try:
-        parsed = urlparse(dsn)
-    except Exception as err:
-        logger.info("apigateway.error_embed.invalid_dsn", extra={"dsn": dsn, "error": err})
-        return None
-    host = parsed.netloc
-    app_host = urlparse(options.get("system.url-prefix")).netloc
-    if not host.endswith(app_host):
-        # Don't further parse URLs that aren't for us.
-        return None
-
-    app_segments = app_host.split(".")
-    host_segments = host.split(".")
-    if len(host_segments) - len(app_segments) < 3:
-        # If we don't have a o123.ingest.{cell}.{app_host} style domain
-        # we forward to the monolith cell
-        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
-        return proxy_cell_request(request, cell, url_name)
-    try:
-        cell_offset = len(app_segments) + 1
-        cell_segment = host_segments[cell_offset * -1]
-        cell = get_cell_by_name(cell_segment)
-    except Exception:
-        return None
-
     return proxy_cell_request(request, cell, url_name)
 
 
@@ -164,7 +131,12 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
         host = cell.api_gateway_address
 
-    metric_tags = {"destination_cell": cell.name, "url_name": url_name, "destination_host": host}
+    metric_tags = {
+        "destination_cell": cell.name,
+        "url_name": url_name,
+        "destination_host": host,
+        "request_method": request.method,
+    }
     circuit_breaker: CircuitBreaker | None = None
     use_pooling = in_random_rollout("hybridcloud.apigateway.use_pooling.rate")
 
@@ -246,14 +218,19 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        # remote silo timeout. Use DRF timeout instead
-        raise RequestTimeout()
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Proxied request timed out"},
+            status=500,
+        )
     except ConnectionError:
         metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        raise
+        return JsonResponse(
+            {"error": "apigateway", "detail": "Downstream service unavailable"},
+            status=500,
+        )
 
     if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)

@@ -2,8 +2,9 @@ import functools
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
+from django.core.cache import cache
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -37,18 +38,23 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_examples import IssueExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.base import MCP_USER_AGENT_PREFIX
 from sentry.issues.action_log.types import ViewAction
-from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.constants import (
+    ISSUE_VIEW_CACHE_KEY_TTL,
+    cache_key_for_issue_view,
+    get_issue_tsdb_group_model,
+)
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models.activity import Activity
@@ -191,7 +197,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         examples=IssueExamples.GROUP_DETAILS,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
         Return details on an individual issue, including its basic stats, comment
         and user-report counts, and a summary of the latest event.
@@ -209,7 +215,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
-            data = serialize(
+            data: GroupDetailsResponse = serialize(
                 group, request.user, GroupSerializerSnuba(environment_ids=environment_ids)
             )
 
@@ -277,7 +283,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     ),
                 )
                 integration_issues = serialize(
-                    external_issues,
+                    list(external_issues),
                     request.user,
                     serializer=ExternalIssueSerializer(),
                 )
@@ -347,9 +353,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 organization_id=group.organization.id,
                 project_id=group.project_id,
-                actor=GroupActionActor.user(request.user.id)
-                if request.user.is_authenticated
-                else SYSTEM_ACTOR,
+                actor=resolve_action_actor(request),
             )
 
             metrics.incr(
@@ -392,7 +396,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
         },
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def put(self, request: Request, group: Group) -> Response:
+    def put(
+        self, request: Request, group: Group
+    ) -> Response[BaseGroupSerializerResponse] | Response[DetailResponse]:
         """
         Update an individual issue's attributes. Only the attributes submitted
         are modified.
@@ -418,7 +424,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # for mutation.
             group = Group.objects.get(id=group.id)
 
-            serialized = serialize(
+            serialized: BaseGroupSerializerResponse = serialize(
                 group,
                 request.user,
                 GroupSerializer(
@@ -440,7 +446,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
             logger.exception(
                 "group_details:put client.ApiError",
             )
-            return Response(e.body, status=e.status_code)
+            # client.ApiError.body is opaque (proxied from another service);
+            # cast is sanctioned for this opaque-body cohort per the spec.
+            body = cast(BaseGroupSerializerResponse, e.body)
+            return Response(body, status=e.status_code)
 
     @extend_schema(
         operation_id="Remove an Issue",
@@ -457,7 +466,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         },
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def delete(self, request: Request, group: Group) -> Response:
+    def delete(self, request: Request, group: Group) -> Response[None]:
         """
         Asynchronously queue an individual issue for deletion.
         """
@@ -499,14 +508,18 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
         return
 
     user_agent = request.META.get("HTTP_USER_AGENT", "")
-    if isinstance(user_agent, str) and user_agent.startswith("sentry-mcp/"):
-        client_family = request.headers.get("x-sentry-mcp-client-family")
+    if isinstance(user_agent, str) and user_agent.startswith(MCP_USER_AGENT_PREFIX):
+        client_family = request.headers.get("x-sentry-mcp-client-family") or "unknown"
         analytics.record(
             IssueViewedEvent(
                 organization_id=group.project.organization_id,
                 project_id=group.project.id,
                 group_id=group.id,
-                client=f"mcp - {client_family or 'unknown'}",
+                client=f"mcp - {client_family}",
                 user_id=request.user.id,
             )
         )
+        if features.has("organizations:mcp-issue-view-attribution", group.project.organization):
+            cache.set(
+                cache_key_for_issue_view(group.id, "mcp"), client_family, ISSUE_VIEW_CACHE_KEY_TTL
+            )

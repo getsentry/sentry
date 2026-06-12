@@ -20,12 +20,12 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {getRegions} from 'sentry/utils/regions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -46,12 +46,9 @@ import {CustomerAuditLog} from 'admin/components/customers/customerAuditLog';
 import {CustomerCharges} from 'admin/components/customers/customerCharges';
 import {CustomerHistory} from 'admin/components/customers/customerHistory';
 import {CustomerIntegrationDebugDetails} from 'admin/components/customers/customerIntegrationDebugDetails';
-import {CustomerIntegrations} from 'admin/components/customers/customerIntegrations';
 import {CustomerInvoices} from 'admin/components/customers/customerInvoices';
 import {CustomerMembers} from 'admin/components/customers/customerMembers';
-import {CustomerOnboardingTasks} from 'admin/components/customers/customerOnboardingTasks';
 import {CustomerOverview} from 'admin/components/customers/customerOverview';
-import {CustomerPlatforms} from 'admin/components/customers/customerPlatforms';
 import {CustomerPolicies} from 'admin/components/customers/customerPolicies';
 import {CustomerProjects} from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
@@ -323,14 +320,15 @@ export function CustomerDetails() {
     }
   };
 
-  const regionMap = getRegions().reduce<Record<string, string>>(
-    (acc: any, region: any) => {
-      acc[region.url] = region.name;
+  const localityMap = getLocalities().reduce<Record<string, string>>(
+    (acc: any, locality) => {
+      acc[locality.url] = locality.name;
       return acc;
     },
     {}
   );
-  const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
+  const localityName =
+    localityMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
@@ -358,14 +356,14 @@ export function CustomerDetails() {
       key: 'invoices',
       name: 'Invoices',
       content: ({Panel}: any) => (
-        <CustomerInvoices inPanel={Panel} orgId={orgId} region={region} />
+        <CustomerInvoices inPanel={Panel} orgId={orgId} region={localityName} />
       ),
     },
     {
       key: 'charges',
       name: 'Charges',
       content: ({Panel}: any) => (
-        <CustomerCharges inPanel={Panel} orgId={orgId} region={region} />
+        <CustomerCharges inPanel={Panel} orgId={orgId} region={localityName} />
       ),
     },
   ];
@@ -375,34 +373,6 @@ export function CustomerDetails() {
       panelTitle="Billing Details"
       dropdownPrefix="Billing"
       sections={billingSections}
-    />
-  );
-
-  const productUsageSections = [
-    {
-      key: 'onboardingTasks',
-      name: 'Onboarding Tasks',
-      content: ({Panel}: any) => (
-        <CustomerOnboardingTasks inPanel={Panel} orgId={orgId} />
-      ),
-    },
-    {
-      key: 'integrations',
-      name: 'Plugins',
-      content: ({Panel}: any) => <CustomerIntegrations inPanel={Panel} orgId={orgId} />,
-    },
-    {
-      key: 'platforms',
-      name: 'Platforms',
-      content: ({Panel}: any) => <CustomerPlatforms inPanel={Panel} orgId={orgId} />,
-    },
-  ];
-
-  const productUsage = (
-    <SelectableContainer
-      panelTitle="Product Usage"
-      dropdownPrefix="Product"
-      sections={productUsageSections}
     />
   );
 
@@ -974,10 +944,6 @@ export function CustomerDetails() {
           {
             noPanel: true,
             content: billingDetails,
-          },
-          {
-            noPanel: true,
-            content: productUsage,
           },
           {
             noPanel: true,

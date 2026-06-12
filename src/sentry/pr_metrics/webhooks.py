@@ -1,8 +1,8 @@
 """GitHub webhook handling for the PR Merge Live Metrics pipeline.
 
 Multiple independent processors serve several webhook event types:
-- ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_emission``,
-  ``handle_activity``
+- ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_metrics``,
+  ``handle_emission``, ``handle_activity``
 - ``IssueCommentEventWebhook``: ``handle_comment``
 - ``PullRequestReviewEventWebhook``: ``handle_review``
 - ``PullRequestReviewCommentEventWebhook``: ``handle_review_comment``
@@ -21,19 +21,23 @@ from dataclasses import asdict
 from typing import Any
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
 
 from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.issues.constants import cache_key_for_issue_view
+from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
     PullRequestActivityType,
-    PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestMetrics,
+    PullRequestVerdict,
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
@@ -57,24 +61,17 @@ from sentry.pr_metrics.activity_types import (
 )
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.emit import (
-    CLOSE_ACTION_CLOSED,
-    CLOSE_ACTION_MERGED,
-    CloseAction,
     emit_pr_metrics_row,
-    needs_judge,
+    is_pr_tracked,
+    select_verdict,
 )
-from sentry.pr_metrics.types import ReferencedIssueSignalDetails
-from sentry.utils.groupreference import find_referenced_groups
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
 # Actions that set attribution for who authored the PR. The PR author is fixed
 # at creation time and never changes, so app attribution is a one-shot write.
 _AUTHOR_ATTRIBUTION_ACTIONS = frozenset({"opened"})
-
-# Actions that can affect what Sentry issues the PR references. "edited" covers
-# body/title changes; "reopened" may follow a period of changes on the branch.
-_REFERENCED_ISSUE_ATTRIBUTION_ACTIONS = frozenset({"opened", "reopened", "edited"})
 
 _ACTIVITY_ACTIONS = frozenset(
     {
@@ -121,14 +118,14 @@ def handle_attribution(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record PR attribution signals (GH-App author + referenced issues) from the payload."""
+    """Record attribution signals (app-authored PR + MCP issue views) from the pull_request webhook."""
     pull_request = event.get("pull_request")
     action = event.get("action")
     github_user = (pull_request or {}).get("user")
     if not (action and github_user):
         return
 
-    if action not in (_AUTHOR_ATTRIBUTION_ACTIONS | _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS):
+    if action not in _AUTHOR_ATTRIBUTION_ACTIONS:
         return
 
     if not features.has("organizations:pr-metrics-attribution", organization):
@@ -138,14 +135,38 @@ def handle_attribution(
     if pr is None:
         return
 
-    if action in _AUTHOR_ATTRIBUTION_ACTIONS:
-        _write_author_attribution(pr, github_user)
+    _write_author_attribution(pr, github_user)
+    if features.has("organizations:mcp-issue-view-attribution", organization):
+        _write_mcp_attribution(pr)
 
-    if action in _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS:
-        if action == "edited" and not _description_changed(event):
-            return
-        # pr is set, so the payload is present and non-null (subscript narrows it).
-        _refresh_referenced_issue_attribution(pr, event["pull_request"], organization)
+
+def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
+    """Atomically claim a PR's terminal (close/merge) event for emission.
+
+    The redelivery guard. GitHub redelivers webhooks, and
+    ``PullRequestEventWebhook._handle`` stamps ``closed_at``/``state`` from every
+    payload, so the PR row can't tell whether the terminal event was already
+    processed. The pipeline-owned ``PullRequestMetrics.verdict`` can: it stays
+    null until we settle one, so a compare-and-set on ``verdict IS NULL`` lets
+    exactly one delivery claim the event and write ``verdict``, even under
+    concurrent redeliveries. Returns True if this call won the claim.
+
+    The verdict is never cleared, so the guard coalesces *every* repeat terminal
+    event to that one claim — not just GitHub redeliveries but also a reopen
+    followed by another close/merge. That's deliberate: we emit one analytics row
+    per PR (its first terminal state is authoritative), since multiple emissions
+    have meant costly dedup downstream for little benefit. A PR reopened after a
+    close and later merged is thus recorded by its first close — an accepted loss
+    on the rare reopened PR.
+
+    Only called once a deterministic ``verdict`` is in hand. A PR that needs a
+    judge is guarded the same way once the forward path lands — it claims the
+    event with a sentinel verdict before forwarding — but that isn't wired yet.
+    """
+    claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
+        verdict=verdict
+    )
+    return bool(claimed)
 
 
 def handle_emission(
@@ -159,8 +180,17 @@ def handle_emission(
 ) -> None:
     """Emit a metrics row on a terminal (close/merge) PR webhook for a tracked PR.
 
-    GitHub fires a single ``closed`` action for both merges and plain closes; the
-    ``merged`` flag disambiguates. All non-terminal actions are ignored.
+    GitHub's single ``closed`` action covers both merges and plain closes; emit
+    derives which from the stored row, so this handler only filters for ``closed``
+    and delegates. All non-terminal actions are ignored.
+
+    Untracked PRs (no valid attribution) are dropped first, before any verdict is
+    claimed: claiming would burn the redelivery guard, so a PR that gained
+    attribution only later (e.g. a Seer backfill) could never emit. ``select_verdict``
+    then decides the outcome: a deterministic verdict is claimed (the redelivery
+    guard) and emitted. A PR that needs a judge is forwarded to Seer instead; that
+    path — including its own redelivery guard — isn't wired yet, so for now a
+    judge-needed PR is skipped here.
     """
     if event.get("action") != "closed":
         return
@@ -172,22 +202,63 @@ def handle_emission(
     if pr is None:
         return
 
-    # pr is set, so the payload is present and non-null (subscript narrows it).
-    pull_request = event["pull_request"]
-    close_action: CloseAction = (
-        CLOSE_ACTION_MERGED if pull_request.get("merged") else CLOSE_ACTION_CLOSED
-    )
+    if not is_pr_tracked(pr):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
+        return
 
-    if needs_judge(pr):
-        # The judge path (forward to Seer, emit on the judge result) isn't wired
-        # yet, so fall through to immediate emit — a judge-eligible PR still
-        # produces a row rather than none.
+    verdict = select_verdict(pr, organization)
+    if verdict is None:
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
         logger.info(
-            "pr_metrics.emit.judge_path_not_implemented",
+            "pr_metrics.emit.needs_judge",
             extra={"organization_id": organization.id, "pull_request_id": pr.id},
         )
+        return
 
-    emit_pr_metrics_row(pull_request=pr, close_action=close_action, payload=pull_request)
+    if not _claim_terminal_event(pr, verdict):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        return
+
+    # Claim before emit so build_pr_metrics_row reads the verdict back onto the row.
+    # analytics.record is best-effort, async-batched telemetry; if it raises the
+    # claim still stands and the row is forgone — an acceptable loss for telemetry,
+    # not worth a rollback that would reopen the redelivery race.
+    emit_pr_metrics_row(pull_request=pr)
+
+
+def handle_metrics(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Persist the webhook-sourced activity counters onto ``PullRequestMetrics``.
+
+    Kept current on every ``pull_request`` event so the emit path can read the
+    counts off the row — the judge path (Seer RPC callback) has no payload to
+    derive them from. Registered before ``handle_emission`` so a close/merge
+    reflects the final counts. Gated by the emit flag, the sole consumer; only
+    the webhook-sourced columns are written, leaving the Seer-derived ones
+    (verdict, participants_count, reviews_count) untouched.
+    """
+    pull_request = event.get("pull_request")
+    if not pull_request:
+        return
+
+    if not features.has("organizations:pr-metrics-emit", organization):
+        return
+
+    pr = _get_pull_request(organization, repo, pull_request)
+    if pr is None:
+        return
+
+    PullRequestMetrics.objects.update_or_create(
+        pull_request=pr,
+        defaults=_metrics_counters(pull_request),
+    )
 
 
 def handle_activity(
@@ -437,9 +508,21 @@ def _get_pull_request(
         return None
 
 
-def _description_changed(event: Mapping[str, Any]) -> bool:
-    changes = event.get("changes") or {}
-    return "body" in changes or "title" in changes
+def _metrics_counters(pull_request: Mapping[str, Any]) -> dict[str, Any]:
+    """Map a GitHub PR payload to the ``PullRequestMetrics`` counter columns.
+
+    Counts are coalesced to 0 (the columns are non-null); ``is_assigned`` is
+    derived here since the payload carries assignees, not a flag.
+    """
+    return {
+        "additions": pull_request.get("additions") or 0,
+        "deletions": pull_request.get("deletions") or 0,
+        "files_changed": pull_request.get("changed_files") or 0,
+        "commits_count": pull_request.get("commits") or 0,
+        "comments_count": pull_request.get("comments") or 0,
+        "review_comments_count": pull_request.get("review_comments") or 0,
+        "is_assigned": bool(pull_request.get("assignees") or pull_request.get("assignee")),
+    }
 
 
 def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType | None:
@@ -464,32 +547,32 @@ def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> N
     )
 
 
-def _refresh_referenced_issue_attribution(
-    pr: PullRequest,
-    pull_request: dict[str, Any],
-    organization: Organization,
-) -> None:
-    title = pull_request.get("title") or ""
-    body = pull_request.get("body") or ""
-    text = f"{title} {body}".strip()
-
-    groups = find_referenced_groups(text, organization.id)
-
-    if not groups:
-        # Issue references were removed from the description — invalidate.
-        PullRequestAttribution.objects.filter(
-            pull_request=pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-            source=PullRequestAttributionSource.WEBHOOK_DATA,
-        ).update(is_valid=False)
+def _write_mcp_attribution(pr: PullRequest) -> None:
+    group_ids = list(
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pr.id,
+        ).values_list("group_id", flat=True)
+    )
+    if not group_ids:
         return
 
-    details = ReferencedIssueSignalDetails(group_ids=sorted(g.id for g in groups))
+    # We do not check the PR author here as we cannot accurately map a PR author
+    # to a sentry user 100 % of the time
+    key_to_group_id = {cache_key_for_issue_view(gid, "mcp"): gid for gid in group_ids}
+    hits = cache.get_many(key_to_group_id.keys())
+    if not hits:
+        return
+
+    matched_groups = {
+        str(key_to_group_id[key]): client_family for key, client_family in hits.items()
+    }
     record_attribution_signal(
         pull_request=pr,
-        signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+        signal_type=PullRequestAttributionSignalType.MCP,
         source=PullRequestAttributionSource.WEBHOOK_DATA,
-        signal_details=details.dict(),
+        signal_details={"group_ids": matched_groups},
     )
 
 

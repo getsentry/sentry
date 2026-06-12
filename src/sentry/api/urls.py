@@ -116,6 +116,7 @@ from sentry.core.endpoints.scim.members import (
 )
 from sentry.core.endpoints.scim.schemas import OrganizationSCIMSchemaIndex
 from sentry.core.endpoints.scim.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
+from sentry.core.endpoints.team_avatar import TeamAvatarEndpoint
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
 from sentry.core.endpoints.team_members import TeamMembersEndpoint
 from sentry.core.endpoints.team_projects import TeamProjectsEndpoint
@@ -278,6 +279,9 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 from sentry.integrations.api.endpoints.organization_repository_platforms import (
     OrganizationRepositoryPlatformsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_repository_platforms_test import (
+    OrganizationRepositoryPlatformsTestEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
@@ -292,12 +296,14 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
+    GroupPullRequestsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
+    OrganizationGroupIndexProgressEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewDetailsStarredEndpoint,
@@ -502,7 +508,6 @@ from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftT
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
-from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
@@ -785,7 +790,6 @@ from .endpoints.organization_search_details import OrganizationSearchDetailsEndp
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
-    OrganizationSpansFieldValuesEndpoint,
 )
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
@@ -974,11 +978,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/autofix/$",
             GroupAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-autofix",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/autofix/update/$",
-            GroupAutofixUpdateEndpoint.as_view(),
-            name=f"{name_prefix}-group-autofix-update",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/autofix/setup/$",
@@ -1300,6 +1299,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/(?P<issue_id>[^/]+)/pull-requests/$",
+        GroupPullRequestsEndpoint.as_view(),
+        name="sentry-api-0-organization-group-pull-requests",
     ),
     # first-last-release is only available via org-scoped URL (legacy URL deprecated for cellularization)
     re_path(
@@ -1731,11 +1735,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-spans-fields",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/spans/fields/(?P<key>[^/]+)/values/$",
-        OrganizationSpansFieldValuesEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-fields-values",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics-estimation-stats/$",
         OrganizationOnDemandMetricsEstimationStatsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-estimation-stats",
@@ -1881,6 +1880,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-stats/$",
         OrganizationGroupIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-group-index-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issues-progress/$",
+        OrganizationGroupIndexProgressEndpoint.as_view(),
+        name="sentry-api-0-organization-group-index-progress",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-with-supergroups/$",
@@ -2180,6 +2184,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms/$",
         OrganizationRepositoryPlatformsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-platforms",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms-test/$",
+        OrganizationRepositoryPlatformsTestEndpoint.as_view(),
+        name="sentry-api-0-organization-repository-platforms-test",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/$",
@@ -3377,6 +3386,11 @@ TEAM_URLS = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/stats/$",
         TeamStatsEndpoint.as_view(),
         name="sentry-api-0-team-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/avatar/$",
+        TeamAvatarEndpoint.as_view(),
+        name="sentry-api-0-team-avatar",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<team_id_or_slug>[^/]+)/external-teams/$",

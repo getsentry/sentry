@@ -1,23 +1,25 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
+from django.contrib.auth.models import AnonymousUser
 
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
 import sentry.issues.endpoints.group_integration_details
 import sentry.issues.priority
 import sentry.issues.status_change
+import sentry.models.group
 import sentry.models.groupassignee
 import sentry.models.groupinbox
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionContext,
-    DuplicateActionError,
     GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.base import ActionSource
@@ -38,9 +40,10 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
@@ -81,7 +84,7 @@ class TestResolveActionSource(TestCase):
         )
         with self.assertLogs("sentry.issues.action_log", level="WARNING") as logs:
             assert resolve_action_source(request) == "mcp"
-        assert any(r.__dict__.get("client_family") == "some-new-editor" for r in logs.records)
+        assert any(getattr(r, "client_family", None) == "some-new-editor" for r in logs.records)
 
     def test_mcp_catchall_family_is_not_logged(self) -> None:
         request = _make_request(
@@ -134,6 +137,54 @@ class TestResolveActionSource(TestCase):
         assert resolve_action_source(request) == "api"
 
 
+class TestResolveActionActor(TestCase):
+    def _request(self, *, auth: Any = None, user: Any = None) -> MagicMock:
+        request = MagicMock()
+        request.auth = auth
+        request.user = user if user is not None else AnonymousUser()
+        return request
+
+    def test_session_user(self) -> None:
+        request = self._request(user=self.user)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
+    def test_personal_api_token(self) -> None:
+        auth = AuthenticatedToken(kind="api_token", user_id=self.user.id)
+        request = self._request(auth=auth, user=self.user)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
+    def test_org_auth_token(self) -> None:
+        auth = AuthenticatedToken(kind="org_auth_token", organization_id=self.organization.id)
+        request = self._request(auth=auth)
+        assert resolve_action_actor(request) == GroupActionActor.org(self.organization.id)
+
+    def test_legacy_api_key_is_org_actor(self) -> None:
+        auth = AuthenticatedToken(kind="api_key", organization_id=self.organization.id)
+        request = self._request(auth=auth)
+        assert resolve_action_actor(request) == GroupActionActor.org(self.organization.id)
+
+    def test_sentry_app_token_resolves_to_app(self) -> None:
+        sentry_app = self.create_sentry_app(organization=self.organization)
+        auth = AuthenticatedToken(
+            kind="api_token",
+            application_id=sentry_app.application_id,
+            user_id=sentry_app.proxy_user.id,
+        )
+        request = self._request(auth=auth, user=sentry_app.proxy_user)
+        assert resolve_action_actor(request) == GroupActionActor.sentry_app(sentry_app.id)
+
+    def test_user_oauth_token_with_application_id_is_user(self) -> None:
+        # An OAuth client acting on behalf of a user (e.g. the MCP) has an application_id but
+        # authenticates as the real user (is_sentry_app=False), so it must resolve to USER and
+        # not trigger a SentryApp lookup.
+        auth = AuthenticatedToken(kind="api_token", user_id=self.user.id, application_id=987654)
+        request = self._request(auth=auth, user=self.user)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
+    def test_unauthenticated_is_system(self) -> None:
+        assert resolve_action_actor(self._request()) == SYSTEM_ACTOR
+
+
 class TestActionContext(TestCase):
     def test_default_is_none(self) -> None:
         assert get_action_context() is None
@@ -178,11 +229,10 @@ class TestPublishAction(TestCase):
             )
         assert len(logs.records) == 1
         record = logs.records[0]
-        extra = record.__dict__
         assert record.message == "group.action_log"
-        assert extra["action"] == "resolve"
-        assert extra["source"] == "mcp:claude-code"
-        assert extra["actor_id"] == "4"
+        assert getattr(record, "action") == "resolve"
+        assert getattr(record, "source") == "mcp:claude-code"
+        assert getattr(record, "actor_id") == "4"
 
     def test_actor_type_derived_from_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
@@ -194,7 +244,7 @@ class TestPublishAction(TestCase):
                 project_id=3,
                 actor=GroupActionActor.user(99),
             )
-        assert logs.records[0].__dict__["actor_type"] == "user"
+        assert getattr(logs.records[0], "actor_type") == "user"
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
@@ -204,7 +254,7 @@ class TestPublishAction(TestCase):
                 organization_id=2,
                 project_id=3,
             )
-        assert logs.records[0].__dict__["actor_type"] == "system"
+        assert getattr(logs.records[0], "actor_type") == "system"
 
 
 class TestPublishActionFromContext(TestCase):
@@ -221,7 +271,7 @@ class TestPublishActionFromContext(TestCase):
         error_records = [r for r in logs.records if r.levelname == "ERROR"]
         assert any("without ActionContext" in r.message for r in error_records)
         info_record = [r for r in logs.records if r.message == "group.action_log"][0]
-        assert info_record.__dict__["source"] == "unknown"
+        assert getattr(info_record, "source") == "unknown"
 
 
 class TestActionLogIntegration(APITestCase, SnubaTestCase):
@@ -377,6 +427,57 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         assert len(merge_into) == 1
 
 
+class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
+    def test_resolve_emits_action_with_context_source(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(
+                source=ActionSource.SLACK, actor=GroupActionActor.user(self.user.id)
+            ):
+                Group.objects.update_group_status(
+                    groups=[group],
+                    status=GroupStatus.RESOLVED,
+                    substatus=None,
+                    activity_type=ActivityType.SET_RESOLVED,
+                )
+        records = [r for r in logs.records if r.message == "group.action_log"]
+        assert len(records) == 1
+        assert getattr(records[0], "action") == "resolve"
+        assert getattr(records[0], "source") == ActionSource.SLACK
+        assert getattr(records[0], "group_id") == str(group.id)
+        assert getattr(records[0], "actor_id") == str(self.user.id)
+
+    def test_ignore_emits_archive_action(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                Group.objects.update_group_status(
+                    groups=[group],
+                    status=GroupStatus.IGNORED,
+                    substatus=GroupSubStatus.UNTIL_ESCALATING,
+                    activity_type=ActivityType.SET_IGNORED,
+                )
+        records = [r for r in logs.records if r.message == "group.action_log"]
+        assert len(records) == 1
+        assert getattr(records[0], "action") == "archive"
+        assert getattr(records[0], "source") == ActionSource.SYSTEM
+
+    @patch.object(sentry.models.group, "publish_action_from_context", autospec=True)
+    def test_substatus_only_transition_emits_no_action(self, mock_publish: MagicMock) -> None:
+        # AUTO_SET_ONGOING moves a group NEW -> ONGOING but it stays UNRESOLVED; that
+        # substatus-only change must not be logged as an unresolve.
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=[group],
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+                activity_type=ActivityType.AUTO_SET_ONGOING,
+                from_substatus=GroupSubStatus.NEW,
+            )
+        assert mock_publish.call_count == 0
+
+
 class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -523,24 +624,6 @@ class TestPublishActionWrite(TestCase):
         )
         assert len(entries) == 3
         assert entries[0].id < entries[1].id < entries[2].id
-
-    def test_duplicate_idempotency_key_raises(self) -> None:
-        kwargs = dict(
-            source=ActionSource.API,
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            actor=GroupActionActor.user(self.user.id),
-            idempotency_key="view-123",
-        )
-
-        with self.options({"issues.action-log.write-to-db": True}):
-            publish_action(ViewAction(), **kwargs)
-
-            with pytest.raises(DuplicateActionError):
-                publish_action(ViewAction(), **kwargs)
-
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
     def test_option_disabled_skips_write(self) -> None:
         with self.options({"issues.action-log.write-to-db": False}):

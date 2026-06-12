@@ -51,6 +51,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
@@ -750,7 +751,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         },
         examples=ReleaseExamples.CREATE_RELEASE,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new release for the given organization. Releases are used by Sentry to
         improve error reporting by correlating first-seen events with the release that may
@@ -768,6 +771,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if serializer.is_valid():
             result = serializer.validated_data
             scope.set_tag("version", result["version"])
+            scope.set_attribute("version", result["version"])
 
             # Get all projects that are available to the user/token
             # Note: Does not use the "projects" data param from the request
@@ -875,9 +879,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     for r in result.get("headCommits", [])
                 ]
             scope.set_tag("has_refs", bool(refs))
+            scope.set_attribute("has_refs", bool(refs))
             if refs:
                 if not request.user.is_authenticated and not request.auth:
                     scope.set_tag("failure_reason", "user_not_authenticated")
+                    scope.set_attribute("failure_reason", "user_not_authenticated")
                     return Response(
                         {"refs": ["You must use an authenticated API token to fetch refs"]},
                         status=400,
@@ -887,6 +893,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     release.set_refs(refs, request.user.id, fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
+                    scope.set_attribute("failure_reason", "InvalidRepository")
                     return Response({"refs": [str(e)]}, status=400)
 
             if not created and not new_releaseprojects:
@@ -913,11 +920,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 update_org_auth_token_last_used(request.auth, [project.id for project in projects])
 
             scope.set_tag("success_status", status)
-            return Response(
-                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
+            scope.set_attribute("success_status", status)
+            data: ReleaseSerializerResponse = serialize(
+                release, request.user, no_snuba_for_release_creation=True
             )
+            return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
-        return Response(serializer.errors, status=400)
+        scope.set_attribute("failure_reason", "serializer_error")
+        return Response(as_validation_errors(serializer), status=400)
 
 
 class OrganizationReleaseTimeseriesData(TypedDict):
