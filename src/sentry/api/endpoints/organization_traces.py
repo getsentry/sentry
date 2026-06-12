@@ -115,7 +115,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
 
     def validate_dataset(self, value):
         sentry_sdk.set_tag("query.dataset", value)
-        sentry_sdk.get_isolation_scope().set_attribute("query.dataset", value)
+        sentry_sdk.set_attribute("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         raise ParseError(detail=f"Unsupported dataset: {value}")
