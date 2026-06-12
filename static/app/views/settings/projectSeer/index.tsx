@@ -12,7 +12,7 @@ import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeC
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {useUpdateSeerSettings} from 'sentry/utils/seer/useUpdateSeerSettings';
 import {
   CodingAgentProvider,
   type ProjectSeerPreferences,
@@ -189,7 +189,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   const queryClient = useQueryClient();
   const {data} = useProjectSeerPreferences(project);
   const preference = data?.preference;
-  const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+  const {mutate: updateSeerSettings} = useUpdateSeerSettings(project);
   const {data: codingAgentIntegrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)
   );
@@ -251,15 +251,11 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           source: 'settings_dropdown',
           user_id: user.id,
         });
-        updateProjectSeerPreferences({
-          repositories: preference?.repositories || [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: parseInt(cursorIntegration.id, 10),
-            auto_create_pr: false,
-          },
+        updateSeerSettings({
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          integrationId: parseInt(cursorIntegration.id, 10),
+          stoppingPoint: 'root_cause',
+          autoCreatePr: false,
         });
       } else if (value === 'claude_handoff') {
         if (!claudeIntegration?.id) {
@@ -272,21 +268,16 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           source: 'settings_dropdown',
           user_id: user.id,
         });
-        updateProjectSeerPreferences({
-          repositories: preference?.repositories || [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-            integration_id: parseInt(claudeIntegration.id, 10),
-            auto_create_pr: false,
-          },
+        updateSeerSettings({
+          agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+          integrationId: parseInt(claudeIntegration.id, 10),
+          stoppingPoint: 'root_cause',
+          autoCreatePr: false,
         });
       } else {
-        updateProjectSeerPreferences({
-          repositories: preference?.repositories || [],
-          automated_run_stopping_point: value,
-          automation_handoff: undefined,
+        updateSeerSettings({
+          agent: 'seer',
+          stoppingPoint: value,
         });
       }
     },
@@ -294,8 +285,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
       organization,
       project.slug,
       user.id,
-      updateProjectSeerPreferences,
-      preference?.repositories,
+      updateSeerSettings,
       cursorIntegration,
       claudeIntegration,
     ]
@@ -308,16 +298,13 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
       if (!preference?.automation_handoff) {
         return;
       }
-      updateProjectSeerPreferences({
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: preference?.automated_run_stopping_point,
-        automation_handoff: {
-          ...preference.automation_handoff,
-          auto_create_pr: value,
-        },
+      updateSeerSettings({
+        agent: preference.automation_handoff.target,
+        integrationId: preference.automation_handoff.integration_id,
+        autoCreatePr: value,
       });
     },
-    [preference, updateProjectSeerPreferences]
+    [preference, updateSeerSettings]
   );
 
   // Handler for changing which integration is used for automation handoff
@@ -326,16 +313,13 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
       if (!preference?.automation_handoff) {
         return;
       }
-      updateProjectSeerPreferences({
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: preference?.automated_run_stopping_point,
-        automation_handoff: {
-          ...preference.automation_handoff,
-          integration_id: integrationId,
-        },
+      updateSeerSettings({
+        agent: preference.automation_handoff.target,
+        integrationId,
+        autoCreatePr: preference.automation_handoff.auto_create_pr ?? false,
       });
     },
-    [preference, updateProjectSeerPreferences]
+    [preference, updateSeerSettings]
   );
 
   const automatedRunStoppingPointField = {
