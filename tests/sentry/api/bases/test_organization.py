@@ -765,6 +765,14 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         assert "project" not in result
         assert request.GET.getlist("project") == ["1", ""]
 
+    def test_query_params_without_empty_project_params(self) -> None:
+        request = self.build_request(project=["", "1"])
+
+        result = self.endpoint.get_query_params_without_empty_project_params(request)
+
+        assert result.getlist("project") == ["1"]
+        assert request.GET.getlist("project") == ["", "1"]
+
     def test_query_params_with_empty_project_slug_keeps_project(self) -> None:
         request = self.build_request(project=["", "1"], projectSlug=[""])
 

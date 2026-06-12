@@ -510,6 +510,17 @@ class OrganizationEndpoint(Endpoint):
             return ParsedProjectIdOrSlugParams(ids=set(), slugs=project_slugs)
         return self.get_requested_project_ids_and_slugs_unchecked(request)
 
+    def get_query_params_without_empty_project_params(self, request: HttpRequest) -> QueryDict:
+        """
+        Return query params with blank project filters treated as absent.
+        """
+        query_params = request.GET.copy()
+        if "project" in query_params:
+            query_params.setlist(
+                "project", [project for project in query_params.getlist("project") if project]
+            )
+        return query_params
+
     def get_query_params_with_project_slug_precedence(self, request: HttpRequest) -> QueryDict:
         """
         Return query params for serializers that accept project and projectSlug.
@@ -518,16 +529,12 @@ class OrganizationEndpoint(Endpoint):
         filters win over project filters, and blank project filters are treated
         as absent.
         """
-        query_params = request.GET.copy()
+        query_params = self.get_query_params_without_empty_project_params(request)
         project_slug_params = [slug for slug in query_params.getlist("projectSlug") if slug]
         if "projectSlug" in query_params:
             query_params.setlist("projectSlug", project_slug_params)
         if project_slug_params:
             query_params.pop("project", None)
-        elif "project" in query_params:
-            query_params.setlist(
-                "project", [project for project in query_params.getlist("project") if project]
-            )
         return query_params
 
     def get_environments(
