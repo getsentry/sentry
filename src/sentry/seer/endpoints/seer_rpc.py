@@ -903,24 +903,23 @@ def deliver_feature_result(
     handler(organization_id, run_uuid, status, result, error)
 
 
-def record_delegated_pr_attribution(
+def record_pr_attribution(
     *,
     organization_id: int,
     pull_request_id: int,
     signal_type: str,
-    agent_id: str | None = None,
+    signal_details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Record Seer's verdict on a delegated-agent PR candidate.
+    """Record a PR attribution signal on behalf of Seer.
 
-    Called by Seer after confirming that a PR was opened by a delegated coding
-    agent (Claude Code, GitHub Copilot, Cursor). Idempotent via the unique
-    constraint on PullRequestAttribution(pull_request, signal_type, source).
+    Idempotent via the unique constraint on
+    PullRequestAttribution(pull_request, signal_type, source).
 
     Args:
         organization_id: Sentry organization that owns the PR.
-        pull_request_id: Sentry-internal PullRequest.id passed to Seer at handoff.
-        signal_type: A PullRequestAttributionSignalType value (e.g. "seer_delegated_claude_code").
-        agent_id: Provider-specific agent identifier, if known.
+        pull_request_id: Sentry-internal PullRequest.id.
+        signal_type: A PullRequestAttributionSignalType value.
+        signal_details: Arbitrary provider-specific metadata to store on the row.
 
     Returns:
         {"attribution_id": int} on success, or {"attribution_id": None} when the
@@ -940,7 +939,7 @@ def record_delegated_pr_attribution(
 
     if not features.has("organizations:pr-metrics-attribution", organization):
         logger.info(
-            "seer.record_delegated_pr_attribution.feature_disabled",
+            "seer.record_pr_attribution.feature_disabled",
             extra={"organization_id": organization_id, "pull_request_id": pull_request_id},
         )
         return {"attribution_id": None}
@@ -959,10 +958,10 @@ def record_delegated_pr_attribution(
         pull_request=pull_request,
         signal_type=signal,
         source=PullRequestAttributionSource.SEER_DATA,
-        signal_details={"agent_id": agent_id} if agent_id else None,
+        signal_details=signal_details,
     )
     logger.info(
-        "seer.record_delegated_pr_attribution.recorded",
+        "seer.record_pr_attribution.recorded",
         extra={
             "organization_id": organization_id,
             "pull_request_id": pull_request_id,
@@ -1030,7 +1029,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
     "deliver_feature_result": deliver_feature_result,
-    "record_delegated_pr_attribution": record_delegated_pr_attribution,
+    "record_pr_attribution": record_pr_attribution,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,

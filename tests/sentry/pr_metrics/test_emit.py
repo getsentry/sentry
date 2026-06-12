@@ -343,16 +343,16 @@ class PrMetricsEmissionTest(TestCase):
             },
         ]
 
-    def testresolved_group_ids_returns_sorted_resolving_links(self) -> None:
+    def test_resolved_group_ids_returns_sorted_resolving_links(self) -> None:
         ids = sorted([self._link_group(), self._link_group()])
         assert resolved_group_ids(self.pull_request) == ids
 
-    def testresolved_group_ids_excludes_non_resolving_links(self) -> None:
+    def test_resolved_group_ids_excludes_non_resolving_links(self) -> None:
         # Only resolving links count; a "references" link is not a resolution.
         self._link_group(relationship=GroupLink.Relationship.references)
         assert resolved_group_ids(self.pull_request) == []
 
-    def testresolved_group_ids_empty_when_pr_resolves_nothing(self) -> None:
+    def test_resolved_group_ids_empty_when_pr_resolves_nothing(self) -> None:
         assert resolved_group_ids(self.pull_request) == []
 
     def test_build_row_carries_group_ids(self) -> None:
@@ -365,7 +365,7 @@ class PrMetricsEmissionTest(TestCase):
         assert row.group_ids == [7, 9]
 
     @patch("sentry.analytics.record")
-    def test_emit_carriesresolved_group_ids(self, mock_record: Any) -> None:
+    def test_emit_carries_resolved_group_ids(self, mock_record: Any) -> None:
         self._track()
         group_ids = sorted([self._link_group(), self._link_group()])
         emit_pr_metrics_row(pull_request=self.pull_request)

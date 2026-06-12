@@ -29,7 +29,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
-    record_delegated_pr_attribution,
+    record_pr_attribution,
     validate_repo,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -1683,7 +1683,7 @@ class TestGetOrganizationFeatures(APITestCase):
 
 @with_feature("organizations:pr-metrics-attribution")
 @cell_silo_test
-class TestRecordDelegatedPrAttribution(APITestCase):
+class TestRecordPrAttribution(APITestCase):
     def setUp(self) -> None:
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="1")
@@ -1700,7 +1700,7 @@ class TestRecordDelegatedPrAttribution(APITestCase):
             "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
         }
         kwargs.update(overrides)
-        return record_delegated_pr_attribution(**kwargs)
+        return record_pr_attribution(**kwargs)
 
     def test_creates_attribution(self) -> None:
         result = self._call()
@@ -1710,13 +1710,13 @@ class TestRecordDelegatedPrAttribution(APITestCase):
         assert attr.is_valid is True
         assert result == {"attribution_id": attr.id}
 
-    def test_stores_agent_id_in_signal_details(self) -> None:
-        self._call(agent_id="agent-abc-123")
+    def test_stores_signal_details(self) -> None:
+        self._call(signal_details={"agent_id": "agent-abc-123"})
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.signal_details == {"agent_id": "agent-abc-123"}
 
-    def test_no_agent_id_leaves_signal_details_null(self) -> None:
+    def test_no_signal_details_leaves_signal_details_null(self) -> None:
         self._call()
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
