@@ -31,10 +31,13 @@ class SlackActivityHandler(ActivityHandler):
             if is_input_a_user_id(input_id=resource_id)
             else NotificationTargetResourceType.CHANNEL
         )
-        target = IntegrationNotificationTarget(
-            provider_key=NotificationProviderKey.SLACK
+        provider_key = (
+            NotificationProviderKey.SLACK
             if action.type == Action.Type.SLACK
-            else NotificationProviderKey.SLACK_STAGING,
+            else NotificationProviderKey.SLACK_STAGING
+        )
+        target = IntegrationNotificationTarget(
+            provider_key=provider_key,
             resource_type=resource_type,
             resource_id=resource_id,
             integration_id=require_integration_id(action),

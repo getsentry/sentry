@@ -55,6 +55,7 @@ class SlackRendererTest(TestCase):
                         "text": {"emoji": True, "text": "Visit Sentry", "type": "plain_text"},
                         "type": "button",
                         "url": "https://www.sentry.io",
+                        "value": "link_clicked",
                     }
                 ],
                 "type": "actions",

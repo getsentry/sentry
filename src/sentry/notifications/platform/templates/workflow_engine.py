@@ -60,7 +60,7 @@ class WorkflowEngineActivityActionTemplate(NotificationTemplate[WorkflowEngineAc
     example_data = WorkflowEngineActivityAction(
         notification_uuid="1234567890",
         workflow_id=1,
-        activity_type=1,
+        activity_type=ActivityType.SEER_RCA_STARTED.value,
         activity_id=1,
         detector_id=1,
     )
@@ -218,10 +218,39 @@ class WorkflowEngineActivityActionTemplate(NotificationTemplate[WorkflowEngineAc
 
         return self.activity, self.group, self.project, self.organization
 
+    def render_example(self) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer is searching for the root cause...",
+            body=[
+                ParagraphBlock(
+                    blocks=[
+                        PlainTextBlock(text="This update pertains to the"),
+                        CodeTextBlock(text="ExampleError: something went wrong"),
+                        PlainTextBlock(text="issue"),
+                        CodeTextBlock(text="EXAMPLE-1"),
+                        PlainTextBlock(text="in the 'example-project' project. The issue is"),
+                        BoldTextBlock(text="Unresolved"),
+                        PlainTextBlock(text="and has been seen 42 time(s)."),
+                    ]
+                ),
+            ],
+            actions=[
+                NotificationRenderedAction(
+                    label="View Alert",
+                    link="https://sentry.io/organizations/example/monitors/alerts/1/",
+                ),
+                NotificationRenderedAction(
+                    label="View in Sentry",
+                    link="https://sentry.io/organizations/example/issues/1/?seerDrawer=true",
+                ),
+            ],
+            footer="This notification was sent as part of an alert.",
+        )
+
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
         activity, group, project, organization = self._extract_models_from_data(data=data)
         configuration_url = organization.absolute_url(
-            f"/organizations/{organization.id}/monitors/alerts/{data.workflow_id}/"
+            f"organizations/{organization.slug}/monitors/alerts/{data.workflow_id}/"
         )
         footer = "This notification was sent as part of an alert."
         if settings.DEBUG and data.activity_type in SEER_ACTIVITY_TYPES:
