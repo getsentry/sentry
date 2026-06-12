@@ -31,6 +31,7 @@ export function registerWorker(): void {
   }
 
   navigator.serviceWorker
+    // https://rspack.rs/guide/features/web-workers
     .register(new URL('../worker/worker.ts', import.meta.url), {scope: '/'})
     .then(registration => {
       const incoming = registration.installing ?? registration.waiting;

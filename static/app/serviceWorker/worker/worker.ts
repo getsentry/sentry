@@ -11,7 +11,7 @@ registerWebWorker({self: sw as any});
 
 sw.addEventListener('install', () => {
   startSpan({name: 'service-worker.install', op: 'sw.lifecycle'}, () => {
-    sw.skipWaiting();
+    return sw.skipWaiting();
   });
 });
 
