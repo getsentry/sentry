@@ -104,7 +104,7 @@ def _select_active_platforms(
                 # languages (e.g. TS after JS) are grouped for free.
                 count += 1
                 if count > MAX_LANGUAGES:
-                    break
+                    continue
             active_platforms[base_platform].append((language, byte_count))
     return dict(active_platforms)
 
@@ -219,13 +219,20 @@ class _TreeIndex:
 
     def __init__(
         self,
-        files: set[str],
         dirs: set[str],
-        repo_size_bytes: int,
+        full_paths_by_basename: dict[str, set[str]],
+        full_repo_size_bytes: int,
     ) -> None:
-        self.files = files
         self.dirs = dirs
-        self.repo_size_bytes = repo_size_bytes
+        # Maps basename → all non-ignored full paths with that name.
+        self.full_paths_by_basename = full_paths_by_basename
+        # Sum of ALL blobs including vendored/build dirs — the true tarball
+        # weight.
+        self.full_repo_size_bytes = full_repo_size_bytes
+
+    @property
+    def files(self) -> set[str]:
+        return set(self.full_paths_by_basename.keys())
 
 
 def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
@@ -234,14 +241,19 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
     Blobs (files) and trees (directories) are indexed by their basename.
     Any entry whose path passes through an ignored segment is skipped, so
     ``node_modules/some-lib/package.json`` never contributes a false signal.
-    ``repo_size_bytes`` is the sum of ``size`` across all non-ignored blobs.
+    ``full_repo_size_bytes`` is the sum of ``size`` across all blobs.
     """
-    files: set[str] = set()
     dirs: set[str] = set()
-    repo_size_bytes = 0
+    full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
+    full_repo_size_bytes = 0
 
     for entry in entries:
         path = entry.get("path", "")
+        size = entry.get("size") or 0
+
+        if entry.get("type") == "blob":
+            full_repo_size_bytes += size
+
         if not path or _path_is_ignored(path):
             continue
 
@@ -249,12 +261,15 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
         basename = path.rsplit("/", 1)[-1]
 
         if entry_type == "blob":
-            files.add(basename)
-            repo_size_bytes += entry.get("size") or 0
+            full_paths_by_basename[basename].add(path)
         elif entry_type == "tree":
             dirs.add(basename)
 
-    return _TreeIndex(files=files, dirs=dirs, repo_size_bytes=repo_size_bytes)
+    return _TreeIndex(
+        dirs=dirs,
+        full_paths_by_basename=dict(full_paths_by_basename),
+        full_repo_size_bytes=full_repo_size_bytes,
+    )
 
 
 class MultiDetectionResult(TypedDict):
@@ -272,31 +287,32 @@ class MultiDetectionResult(TypedDict):
     needed_paths: set[str]  # the actual filenames (measurement scaffolding)
     tree_entry_count: int  # total entries returned by GitHub
     is_truncated: bool  # GitHub truncated the tree at 100k entries / 7MB
-    repo_size_bytes: int  # sum of blob sizes across the whole tree
+    full_repo_size_bytes: int  # sum of ALL blob sizes including vendored/build dirs
 
 
 def _collect_needed_paths(
     active_platforms: dict[str, list[tuple[str, int]]],
-    tree_files: set[str],
+    full_paths_by_basename: dict[str, set[str]],
 ) -> set[str]:
-    """Collect the file paths that content/package rules would need to fetch.
+    """Collect the full file paths that content/package rules would need to fetch.
 
     For each active base platform:
-    - If a package manifest exists in the tree, include it (covers match_package rules).
-    - For every framework rule that has match_content, include the target path if it
-      exists in the tree. For match_ext rules with match_content, include every
-      matching-extension file found in the tree.
+    - If a package manifest exists in the tree, include ALL its full paths
+      (covers match_package rules; a monorepo may have one per workspace).
+    - For every framework rule that has match_content, include all full paths
+      for the target basename if it exists in the tree. For match_ext rules
+      with match_content, include all full paths for every matching-extension
+      file found in the tree.
 
-    The ignore-list is already applied upstream (tree_files contains only
-    non-ignored basenames), so no extra filtering is needed here.
+    The ignore-list is already applied upstream, so no extra filtering is needed.
     """
     needed: set[str] = set()
 
     for base_platform in active_platforms:
         # Package manifest for match_package rules
         manifest_file = _PACKAGE_MANIFEST_FILES.get(base_platform)
-        if manifest_file and manifest_file in tree_files:
-            needed.add(manifest_file)
+        if manifest_file and manifest_file in full_paths_by_basename:
+            needed.update(full_paths_by_basename[manifest_file])
 
         # Files required by match_content rules
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
@@ -305,13 +321,13 @@ def _collect_needed_paths(
                     continue
                 path = rule.get("path")
                 if path:
-                    if path in tree_files:
-                        needed.add(path)
+                    if path in full_paths_by_basename:
+                        needed.update(full_paths_by_basename[path])
                 elif "match_ext" in rule:
                     ext = rule["match_ext"]
-                    for f in tree_files:
-                        if f.endswith(ext):
-                            needed.add(f)
+                    for basename, paths in full_paths_by_basename.items():
+                        if basename.endswith(ext):
+                            needed.update(paths)
 
     return needed
 
@@ -383,7 +399,7 @@ def detect_platforms_multi(
         reverse=True,
     )
 
-    needed_paths = _collect_needed_paths(active_platforms, index.files)
+    needed_paths = _collect_needed_paths(active_platforms, index.full_paths_by_basename)
 
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.duration",
@@ -395,8 +411,8 @@ def detect_platforms_multi(
         len(entries),
     )
     sentry_sdk.metrics.distribution(
-        f"{_MULTI_METRICS_PREFIX}.repo_size_bytes",
-        index.repo_size_bytes,
+        f"{_MULTI_METRICS_PREFIX}.full_repo_size_bytes",
+        index.full_repo_size_bytes,
         unit="byte",
     )
     sentry_sdk.metrics.distribution(
@@ -427,5 +443,5 @@ def detect_platforms_multi(
         needed_paths=needed_paths,
         tree_entry_count=len(entries),
         is_truncated=is_truncated,
-        repo_size_bytes=index.repo_size_bytes,
+        full_repo_size_bytes=index.full_repo_size_bytes,
     )
