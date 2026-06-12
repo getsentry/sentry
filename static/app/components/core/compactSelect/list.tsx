@@ -41,6 +41,8 @@ import {
 
 export const SelectFilterContext = createContext(new Set<SelectKey>());
 
+// Find the first result as it appears in the rendered collection, including options
+// nested inside sections, while skipping hidden search misses and disabled options.
 function getFirstVisibleEnabledKey<T extends ListItemBase>(
   listState: ListState<T>,
   hiddenOptions: Set<SelectKey>
@@ -320,6 +322,11 @@ export function List<Value extends SelectKey>({
   );
 
   const [searchFocusedKey, setSearchFocusedKey] = useState<SelectKey | null>(null);
+
+  // Control owns the search input, but each List owns its react-stately collection and
+  // selection manager. Keep a stable registered controller with refs to the latest list
+  // state so Control can ask this list for its first result, virtually focus it, or
+  // select it on Enter without forcing a re-registration on every search update.
   const listStateRef = useRef(listState);
   listStateRef.current = listState;
   const firstVisibleEnabledSearchResultRef = useRef(firstVisibleEnabledSearchResult);
@@ -361,6 +368,8 @@ export function List<Value extends SelectKey>({
   }, [firstVisibleEnabledKey, focusFirstSearchResult]);
 
   useEffect(() => {
+    // Once the user moves real focus into the list, stop showing the search-input
+    // aria-activedescendant highlight so react-aria's focused item is the only focus.
     if (searchFocusedKey !== null && listState.selectionManager.isFocused) {
       clearFocusedSearchResult?.();
     }

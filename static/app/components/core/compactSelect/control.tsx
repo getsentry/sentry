@@ -283,6 +283,11 @@ export function Control({
   const [search, setSearch] = useState('');
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // Keep DOM focus in the search input while still presenting the first visible,
+  // enabled result as the active option. Each List registers a controller here so the
+  // Control can coordinate that virtual search focus across composite selects that
+  // render multiple lists.
   const searchResultListControllersRef = useRef<SearchResultListController[]>([]);
   const activeSearchResultListControllerRef = useRef<SearchResultListController | null>(
     null
@@ -360,6 +365,8 @@ export function Control({
       return false;
     }
 
+    // Enter in the search input should select the same first result that is exposed
+    // via aria-activedescendant, without moving DOM focus into the options list first.
     const target = getFirstVisibleEnabledSearchResultTarget();
     if (target === null) {
       clearFocusedSearchResult();
