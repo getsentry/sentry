@@ -790,12 +790,6 @@ def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
             file__headers={"Content-Type": DIF_MIMETYPES["proguard"]},
             then=Value(1),
         ),
-        When(
-            file__isnull=True,
-            checksum__in=checksums,
-            content_type=DIF_MIMETYPES["proguard"],
-            then=Value(1),
-        ),
         default=Value(0),
         output_field=IntegerField(),
     )
