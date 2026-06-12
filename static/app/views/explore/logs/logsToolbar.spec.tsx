@@ -191,9 +191,7 @@ describe('LogsToolbar', () => {
       await userEvent.type(searchInput, 'searched');
       await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
-      await userEvent.click(
-        await screen.findByRole('option', {name: 'searched_number'})
-      );
+      await userEvent.click(await screen.findByRole('option', {name: 'searched_number'}));
 
       // Once the search clears, `searched_number` is no longer in the fetched
       // attributes, but the dropdown must keep displaying the selected field
