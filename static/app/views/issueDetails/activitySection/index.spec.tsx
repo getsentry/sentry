@@ -803,6 +803,11 @@ describe('ActivitySection', () => {
   });
 
   it('renders PR author avatar marker when PR author is a Sentry user', async () => {
+    const pullRequestAuthor = {
+      id: '123',
+      name: 'Test User',
+      email: 'user@example.com',
+    };
     const prGroup = GroupFixture({
       id: '1345',
       activity: [
@@ -812,10 +817,7 @@ describe('ActivitySection', () => {
           dateCreated: '2020-01-01T00:00:00',
           data: {
             pullRequest: PullRequestFixture({
-              author: UserFixture({
-                name: 'Test User',
-                email: 'user@example.com',
-              }) as any,
+              author: pullRequestAuthor,
             }),
           },
           user: null,
