@@ -307,6 +307,7 @@ class ProjectDebugFile(Model):
         else:
             raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
+
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         ret = super().delete(*args, **kwargs)
 

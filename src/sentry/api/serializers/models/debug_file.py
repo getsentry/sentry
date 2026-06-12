@@ -18,6 +18,7 @@ class DebugFileSerializerResponse(TypedDict):
     sha1: str
     dateCreated: datetime
     data: dict[str, Any]
+    storage_path: str | None
 
 
 @register(ProjectDebugFile)
@@ -43,4 +44,5 @@ class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
             "sha1": obj.get_checksum(),
             "dateCreated": obj.get_date_created(),
             "data": obj.data or {},
+            "storage_path": obj.storage_path,
         }
