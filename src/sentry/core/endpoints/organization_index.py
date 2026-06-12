@@ -428,6 +428,16 @@ class OrganizationIndexEndpoint(Endpoint):
                                 terms of service and privacy policy.
         :auth: required, user-context-needed
         """
+        if SiloMode.get_current_mode() == SiloMode.CELL:
+            metrics.incr("api.organization_index.post.rejected")
+            base_url = options.get("system.url-prefix")
+            return Response(
+                {
+                    "detail": f"This endpoint is no longer available on this host. Use {base_url}/api/0/organizations/ instead."
+                },
+                status=404,
+            )
+
         if not request.user.is_authenticated:
             return Response({"detail": "This endpoint requires user info"}, status=401)
 
