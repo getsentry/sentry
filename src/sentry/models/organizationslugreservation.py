@@ -22,7 +22,7 @@ class OrganizationSlugReservationType(IntEnum):
     TEMPORARY_RENAME_ALIAS = 2
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> list[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
 
 
@@ -60,7 +60,7 @@ class OrganizationSlugReservation(ControlOutboxProducingModel):
         kwds.pop("unsafe_write")
         return super().save(*args, **kwds)
 
-    def update(self, *args: Any, **kwds: Any):
+    def update(self, *args: Any, **kwds: Any) -> int:
         assert kwds.get("unsafe_write", None), (
             "Cannot write changes to OrganizationSlugReservation unless they go through a provisioning flow"
         )

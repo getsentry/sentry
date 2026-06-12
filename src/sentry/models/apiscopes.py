@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import TypedDict, overload
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
@@ -20,7 +20,7 @@ def add_scope_hierarchy(curr_scopes: Sequence[str]) -> list[str]:
     return sorted(new_scopes)
 
 
-class ApiScopes(Sequence):
+class ApiScopes(Sequence[str]):
     project = (
         ("project:read"),
         ("project:write"),
@@ -39,7 +39,7 @@ class ApiScopes(Sequence):
 
     alerts = (("alerts:read"), ("alerts:write"))
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.scopes = (
             self.__class__.project
             + self.__class__.team
@@ -49,7 +49,13 @@ class ApiScopes(Sequence):
             + self.__class__.alerts
         )
 
-    def __getitem__(self, value):
+    @overload
+    def __getitem__(self, value: int) -> str: ...
+
+    @overload
+    def __getitem__(self, value: slice) -> Sequence[str]: ...
+
+    def __getitem__(self, value: int | slice) -> str | Sequence[str]:
         return self.scopes.__getitem__(value)
 
     def __len__(self) -> int:
