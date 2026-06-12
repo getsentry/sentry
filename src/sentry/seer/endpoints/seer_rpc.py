@@ -120,6 +120,7 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
@@ -929,6 +930,8 @@ def get_monitoring_provider_token(*, user_id: int, provider_type: str) -> dict:
             expires = identity.data.get("expires")
         except IdentityNotValid:
             return {"error": "identity_not_valid", "identity_id": identity.id}
+        except (ApiError, KeyError, ConnectionError):
+            return {"error": "refresh_failed"}
 
     return {
         "identity_id": identity.id,
@@ -953,6 +956,8 @@ def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
         provider.refresh_identity(identity)
     except IdentityNotValid:
         return {"error": "identity_not_valid"}
+    except (ApiError, KeyError, ConnectionError):
+        return {"error": "refresh_failed"}
 
     return {
         "access_token": identity.data["access_token"],

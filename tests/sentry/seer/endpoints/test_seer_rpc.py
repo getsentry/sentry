@@ -1764,6 +1764,37 @@ class TestGetMonitoringProviderToken(APITestCase):
         assert result["error"] == "identity_not_valid"
         assert result["identity_id"] == self.identity.id
 
+    @responses.activate
+    def test_refresh_api_error(self) -> None:
+        self.identity.data["expires"] = int(time()) - 100
+        self._save_identity()
+
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={"error": "server_error"},
+            status=500,
+        )
+
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result == {"error": "refresh_failed"}
+
+    @responses.activate
+    def test_refresh_malformed_response(self) -> None:
+        self.identity.data["expires"] = int(time()) - 100
+        self._save_identity()
+
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={"not_access_token": "oops"},
+        )
+
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result == {"error": "refresh_failed"}
+
 
 class TestRefreshMonitoringProviderToken(APITestCase):
     def setUp(self) -> None:
@@ -1817,3 +1848,28 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         result = refresh_monitoring_provider_token(identity_id=self.identity.id)
 
         assert result == {"error": "identity_not_valid"}
+
+    @responses.activate
+    def test_refresh_api_error(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={"error": "server_error"},
+            status=500,
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "refresh_failed"}
+
+    @responses.activate
+    def test_refresh_malformed_response(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={"not_access_token": "oops"},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "refresh_failed"}
