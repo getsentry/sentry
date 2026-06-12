@@ -25,12 +25,11 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
     publish_action_from_context,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
@@ -224,7 +223,7 @@ def update_groups(
         actor = existing_ctx.actor
     else:
         source = resolve_action_source(request)
-        actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+        actor = resolve_action_actor(request)
 
     with action_context_scope(source=source, actor=actor):
         status_details = result.pop("statusDetails", result)

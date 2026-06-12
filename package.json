@@ -9,7 +9,7 @@
   },
   "type": "module",
   "scripts": {
-    "typecheck": "tsgo -p tsconfig.json",
+    "typecheck": "tsgo -p tsconfig.json && tsgo -p static/app/serviceWorker/worker/tsconfig.json",
     "typecheck:mdx": "node build-utils/mdx-typecheck.ts",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
@@ -109,6 +109,7 @@
     "@sentry-internal/rrweb": "2.41.0",
     "@sentry-internal/rrweb-player": "2.41.0",
     "@sentry-internal/rrweb-snapshot": "2.41.0",
+    "@sentry/browser": "10.57.0",
     "@sentry/conventions": "^0.8.0",
     "@sentry/core": "10.57.0",
     "@sentry/node": "10.57.0",

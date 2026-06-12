@@ -156,13 +156,11 @@ class TestDeliverNightShiftResult(TestCase):
         assert results[0].seer_run_id == "42"
         assert results[0].extras["action"] == TriageAction.AUTOFIX.value
 
-    def test_root_cause_only_verdict_uses_root_cause_stopping_point(self) -> None:
-        """ROOT_CAUSE_ONLY verdicts should use ROOT_CAUSE stopping point."""
+    def test_root_cause_only_verdict_marks_group_skipped(self) -> None:
+        """ROOT_CAUSE_ONLY verdicts are treated like SKIP: marked in the skip
+        cache and never triggering autofix, while keeping the distinct action."""
         org = self.create_organization()
         project = self.create_project(organization=org)
-        project.update_option(
-            "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.OPEN_PR.value
-        )
         group = self.create_group(project=project)
         run = self._create_night_shift_run(organization=org)
 
@@ -177,9 +175,7 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         assert run.seer_run is not None
-        with patch(
-            "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=99
-        ) as mock_trigger:
+        with patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
                 run_uuid=str(run.seer_run.uuid),
@@ -188,10 +184,17 @@ class TestDeliverNightShiftResult(TestCase):
                 error=None,
             )
 
-            mock_trigger.assert_called_once()
-            assert (
-                mock_trigger.call_args.kwargs["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
-            )
+            mock_trigger.assert_not_called()
+
+        # Verify skip cache was set
+        redis = redis_clusters.get("default")
+        try:
+            assert redis.exists(skip_cache_key(group.id))
+        finally:
+            redis.delete(skip_cache_key(group.id))
+
+        # No results persisted for ROOT_CAUSE_ONLY verdicts
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_dry_run_skips_autofix(self) -> None:
         """Dry run mode should not trigger autofix or persist results."""

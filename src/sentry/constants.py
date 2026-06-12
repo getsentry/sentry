@@ -1073,3 +1073,5 @@ EXTENSION_LANGUAGE_MAP = {
 # will begin periodic brownouts.
 CELL_API_DEPRECATION_DATE = datetime(2026, 5, 15, 0, 0, 0, tzinfo=UTC)
 ALERTS_API_DEPRECATION_DATE = datetime(2026, 5, 14, 0, 0, 0, tzinfo=UTC)
+# Option key prefix for the deprecated alerts API brownout schedule and duration.
+ALERTS_API_DEPRECATION_KEY = "api.deprecation.alerts"

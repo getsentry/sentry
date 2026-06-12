@@ -596,6 +596,30 @@ describe('ActivitySection', () => {
     }
   });
 
+  it('renders auto ongoing activity duration from backend data', async () => {
+    const ongoingGroup = GroupFixture({
+      id: '1339',
+      activity: [
+        {
+          type: GroupActivityType.AUTO_SET_ONGOING,
+          id: 'auto-ongoing-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {after_days: 7},
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={ongoingGroup} />);
+
+    expect(await screen.findByText('Marked as Ongoing')).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
+        (_, element) => element?.textContent === 'automatically by Sentry after 7 days'
+      )
+    ).not.toHaveLength(0);
+  });
+
   it('renders resolved in release with integration', async () => {
     const resolvedGroup = GroupFixture({
       id: '1339',

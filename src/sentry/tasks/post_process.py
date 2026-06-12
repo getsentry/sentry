@@ -602,6 +602,7 @@ def post_process_group(
 
         is_reprocessed = is_reprocessed_event(event.data)
         sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
+        sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
 
         metric_tags = {}
         if group_id:

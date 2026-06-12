@@ -91,6 +91,7 @@ def fetch_commits_for_compare_range(
         isinstance(repo.provider, str) and repo.provider in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
     )
     set_tag("compare_commits_cache_enabled", cache_enabled)
+    sentry_sdk.set_attribute("compare_commits_cache_enabled", cache_enabled)
     if cache_enabled:
         cache_key = get_github_compare_commits_cache_key(
             repo.organization_id, repo.id, repo.provider, start_sha, end_sha
@@ -353,6 +354,7 @@ def fetch_commits(
         except Release.DoesNotExist:
             pass
     set_tag("organization.slug", release.organization.slug)
+    sentry_sdk.set_attribute("organization.slug", release.organization.slug)
     extra = {
         "organization_id": release.organization_id,
         "user_id": user_id,

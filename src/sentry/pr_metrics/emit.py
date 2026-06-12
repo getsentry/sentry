@@ -11,11 +11,19 @@ import logging
 from datetime import datetime
 from typing import Any, Final, Literal
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest, PullRequestAttribution, PullRequestMetrics
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestActivityType,
+    PullRequestAttribution,
+    PullRequestMetrics,
+    PullRequestVerdict,
+)
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.utils import json, metrics
 
@@ -34,14 +42,70 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
-def needs_judge(pull_request: PullRequest) -> bool:
-    """Whether this PR's terminal event must round-trip to Seer for a judge.
+def select_verdict(
+    pull_request: PullRequest, organization: Organization
+) -> PullRequestVerdict | None:
+    """The terminal verdict Sentry can decide on its own, or ``None`` for a judge.
 
-    Currently always ``False``: the judge path isn't wired yet, so every tracked
-    close/merge is emitted immediately. Once judges exist this gates the
-    forward-to-Seer path that emits a judge-enriched row on the result.
+    A judge is needed whenever the outcome can't be settled deterministically from
+    data Sentry already holds — so ``None`` is the "needs a judge" signal, and the
+    caller forwards to Seer (the judge path) rather than emitting:
+
+    - Merged with no commits after it opened → ``merged_unchanged``: the merge head
+      is the opened head, so nothing changed, by anyone. A merge with later commits
+      is ambiguous (Seer's own iteration vs. external changes) and needs the
+      diff-similarity judge.
+    - Closed with no engagement — no later commits, comments, or review comments →
+      ``closed_unmerged``: an abandoned PR with nothing to analyze. A close with any
+      engagement needs the comment judge to decide why it was closed.
+
+    The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
+    to the PR branch after it opened. Those rows are only written under
+    ``pr-metrics-activity``, which is flagged independently of emission; without it
+    a clean merge is indistinguishable from one with later commits, so we defer
+    every outcome to a judge rather than read its absence as "no later commits". A
+    missing ``PullRequestMetrics`` row is an error state — ``handle_metrics``
+    persists it before emission under the same flag, so its absence means it
+    failed — and we defer to a judge for both outcomes rather than emit zeroed
+    counters (merge) or guess abandoned (close).
     """
-    return False
+    if not features.has("organizations:pr-metrics-activity", organization):
+        metrics.incr("pr_metrics.select_verdict.activity_disabled")
+        return None
+
+    metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
+    if metrics_row is None:
+        logger.warning(
+            "pr_metrics.select_verdict.metrics_row_missing",
+            extra={
+                "organization_id": pull_request.organization_id,
+                "pull_request_id": pull_request.id,
+            },
+        )
+        metrics.incr("pr_metrics.select_verdict.metrics_row_missing")
+        return None
+
+    has_commits_after_open = PullRequestActivity.objects.filter(
+        pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
+    ).exists()
+
+    if pull_request.merged_at is not None:
+        return PullRequestVerdict.MERGED_UNCHANGED if not has_commits_after_open else None
+
+    has_discussion = bool(metrics_row.comments_count or metrics_row.review_comments_count)
+    if has_commits_after_open or has_discussion:
+        return None
+    return PullRequestVerdict.CLOSED_UNMERGED
+
+
+def is_pr_tracked(pull_request: PullRequest) -> bool:
+    """Whether the PR has ≥1 valid attribution — the emission tracking gate.
+
+    Mirrors the gate ``emit_pr_metrics_row`` applies, as a cheap existence check
+    so a caller can verify tracking before an irreversible step (claiming a
+    verdict) it would otherwise take for a PR that can never emit.
+    """
+    return PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True).exists()
 
 
 def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
@@ -103,7 +167,7 @@ def build_pr_metrics_row(
     attributions: list[dict[str, Any]],
     group_ids: list[int],
 ) -> PrCloseMetricsEvent:
-    """Assemble the provisional close/merge row.
+    """Assemble the close/merge analytics row.
 
     Every fact is read from the stored ``PullRequest`` / ``PullRequestMetrics``
     rows, so the judge path (Seer RPC callback, which has no webhook payload) can

@@ -12,9 +12,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
 from sentry.api.serializers.rest_framework.rule import RulePreviewSerializer
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.models.group import Group
 from sentry.models.groupinbox import InboxDetails, get_inbox_details
 from sentry.rules.history.preview import preview
@@ -30,6 +32,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     # a post endpoint because it's too hard to pass a list of objects from the frontend
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def post(self, request: Request, project) -> Response:
         """
         Get a list of alert triggers in past 2 weeks for given rules

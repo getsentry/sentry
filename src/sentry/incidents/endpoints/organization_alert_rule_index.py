@@ -41,7 +41,7 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import to_valid_int_id
-from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidParams
@@ -267,6 +267,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns the total number of on-demand alert rules for a project, along with
@@ -521,6 +522,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         return response
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key=ALERTS_API_DEPRECATION_KEY,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
@@ -720,7 +726,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     @deprecated(
-        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
@@ -745,7 +753,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     @deprecated(
-        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
