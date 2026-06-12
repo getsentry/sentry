@@ -311,6 +311,7 @@ class DatadogIdentityProvider(OAuth2Provider):
         return {
             "type": IntegrationProviderSlug.DATADOG,
             "id": user["user_uuid"],
+            "idp_external_id": user["org_uuid"],
             "email": user.get("user_email"),
             "name": user.get("user_name"),
             "scopes": [],
