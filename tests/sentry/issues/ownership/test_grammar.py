@@ -1436,7 +1436,20 @@ def test_convert_codeowners_syntax_preserves_mapped_root_path() -> None:
     assert result == "codeowners:/ octocat@sentry.io\n"
 
 
-def test_create_schema_from_issue_owners_skips_empty_codeowners_rule() -> None:
+def test_convert_codeowners_syntax_preserves_mapped_root_exclusion() -> None:
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = ""
+    code_mapping.source_root = "/apps"
+
+    result = convert_codeowners_syntax(
+        "/apps\n",
+        {},
+        code_mapping,
+    )
+    assert result == "codeowners:/\n"
+
+
+def test_create_schema_from_issue_owners_skips_empty_codeowners_matcher() -> None:
     assert (
         create_schema_from_issue_owners(
             project_id=1,

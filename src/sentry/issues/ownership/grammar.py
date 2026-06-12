@@ -51,7 +51,7 @@ URL = "url"
 PATH = "path"
 MODULE = "module"
 CODEOWNERS = "codeowners"
-EMPTY_CODEOWNERS_RULE = re.compile(rf"^\s*{CODEOWNERS}:\s*(?:#.*)?$")
+EMPTY_CODEOWNERS_MATCHER = re.compile(rf"^\s*{CODEOWNERS}:\s*(?:#.*)?$")
 
 # Grammar is defined in EBNF syntax.
 ownership_grammar = Grammar(
@@ -328,11 +328,11 @@ def parse_rules(data: str) -> Any:
     return OwnershipVisitor().visit(tree)
 
 
-def remove_empty_codeowners_rules(data: str) -> str:
+def remove_empty_codeowners_matchers(data: str) -> str:
     return "".join(
         line
         for line in data.splitlines(keepends=True)
-        if not EMPTY_CODEOWNERS_RULE.match(line)
+        if not EMPTY_CODEOWNERS_MATCHER.match(line)
     )
 
 
@@ -632,7 +632,7 @@ def create_schema_from_issue_owners(
     if issue_owners is None:
         return None
 
-    issue_owners = remove_empty_codeowners_rules(issue_owners)
+    issue_owners = remove_empty_codeowners_matchers(issue_owners)
 
     try:
         rules = parse_rules(issue_owners)
