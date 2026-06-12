@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 from collections.abc import Callable
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
 
+from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
@@ -60,6 +62,26 @@ logger = logging.getLogger(__name__)
 
 _UNSET: Any = object()
 UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
+
+
+class UserUIFeedbackSource(TypedDict):
+    """Feedback submitted by a user through the Sentry UI."""
+
+    type: Literal["user-ui"]
+    # Identify the user by id rather than username: usernames are mutable, so we
+    # use the same stable key (`user_id`) that `GroupSeen` uses to track which
+    # users have viewed an issue.
+    user_id: int
+
+
+# Discriminated on ``type``. Add new TypedDict variants to this union as more
+# feedback sources are introduced.
+FeedbackSource = UserUIFeedbackSource
+
+
+class Feedback(BaseModel):
+    message: str
+    source: FeedbackSource
 
 
 class NoSeerQuotaException(Exception):
@@ -238,7 +260,11 @@ def recover_iteration_feedback(state: SeerRunState, insert_index: int) -> str | 
     metadata = state.blocks[insert_index].message.metadata
     if metadata is None:
         return None
-    return metadata.get("feedback")
+    raw = metadata.get("feedback")
+    if raw is None:
+        return None
+    # Feedback is stored as a JSON object (``{"text", "username", "timestamp"}``).
+    return json.loads(raw).get("text")
 
 
 def get_autofix_agent_client(
@@ -314,6 +340,7 @@ def trigger_autofix_agent(
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
+    feedback: Feedback | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -391,8 +418,17 @@ def trigger_autofix_agent(
         "has_user_context": "no" if user_context is None else "yes",
         "is_retry": "no" if insert_index is None else "yes",
     }
-    if step == AutofixStep.PR_ITERATION and user_context is not None:
-        prompt_metadata["feedback"] = user_context
+    if step == AutofixStep.PR_ITERATION and feedback is not None:
+        # Stored as a JSON object so the UI can attribute the feedback to its
+        # source and show when it was submitted. See ``recover_iteration_feedback``
+        # for the read side.
+        prompt_metadata["feedback"] = json.dumps(
+            {
+                "text": feedback.message,
+                "source": feedback.source,
+                "timestamp": timezone.now().isoformat(),
+            }
+        )
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
     artifact_key = step.value if config.artifact_schema else None
