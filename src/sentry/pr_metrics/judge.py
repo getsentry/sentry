@@ -13,12 +13,12 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any
 
-import orjson
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
+from pydantic import BaseModel
 from urllib3.exceptions import HTTPError
 
 from sentry.models.pullrequest import (
@@ -37,6 +37,7 @@ from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     resolved_group_ids,
 )
+from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 from sentry.seer.code_review.utils import build_repo_definition
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import metrics
@@ -62,19 +63,20 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
-class PrCloseJudgeRequest(TypedDict):
+class PrCloseJudgeRequest(BaseModel):
     """The Sentry → Seer judge request body; mirrors Seer's ``PrCloseJudgeRequest``.
 
-    Typed so mypy catches contract drift — a renamed, dropped, or wrong-typed field
-    fails the build rather than silently shipping a body Seer rejects.
+    A pydantic model rather than a bare dict so the assembled body — including the
+    ``repo`` sub-shape that ``build_repo_definition`` produces — is validated before
+    send, catching contract drift here instead of as a Seer-side rejection.
     """
 
     organization_id: int
     repository_id: int
     pull_request_id: int
-    # The Seer RepoDefinition, assembled by ``build_repo_definition`` (its shape is
-    # owned and validated on the Seer side), so it stays a plain mapping here.
-    repo: dict[str, Any]
+    # Reuses the shared repo-definition model (the validated shape of
+    # build_repo_definition's output), so a dropped/renamed repo field is caught.
+    repo: SeerCodeReviewRepoDefinition
     pr_number: str
     close_action: CloseAction
     head_commit_sha: str
@@ -115,32 +117,34 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> P
         PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
     )
     close_action: CloseAction = "merged" if pull_request.merged_at is not None else "closed"
-    return {
-        "organization_id": pull_request.organization_id,
-        "repository_id": pull_request.repository_id,
-        "pull_request_id": pull_request.id,
+    return PrCloseJudgeRequest(
+        organization_id=pull_request.organization_id,
+        repository_id=pull_request.repository_id,
+        pull_request_id=pull_request.id,
         # The shared Seer RepoDefinition shape (split owner/name, bare provider
-        # slug) so Seer parses it directly; head_commit_sha is the PR tip Seer
-        # resolves the repo at, with the merge/head SHAs also sent below.
-        "repo": build_repo_definition(repository, head_commit_sha),
-        "pr_number": pull_request.key,
-        "close_action": close_action,
-        "head_commit_sha": head_commit_sha,
-        "merge_commit_sha": pull_request.merge_commit_sha,
-        "opened_at": _iso(pull_request.opened_at),
-        "closed_at": closed_at.isoformat(),
-        "merged_at": _iso(pull_request.merged_at),
-        "draft": bool(pull_request.draft),
-        "additions": metrics_row.additions,
-        "deletions": metrics_row.deletions,
-        "files_changed": metrics_row.files_changed,
-        "commits_count": metrics_row.commits_count,
-        "comments_count": metrics_row.comments_count,
-        "review_comments_count": metrics_row.review_comments_count,
-        "is_assigned": metrics_row.is_assigned,
-        "attributions": active_attributions(pull_request),
-        "group_ids": resolved_group_ids(pull_request),
-    }
+        # slug); head_commit_sha is the PR tip Seer resolves the repo at, with the
+        # merge/head SHAs also sent below. parse_obj validates the built shape.
+        repo=SeerCodeReviewRepoDefinition.parse_obj(
+            build_repo_definition(repository, head_commit_sha)
+        ),
+        pr_number=pull_request.key,
+        close_action=close_action,
+        head_commit_sha=head_commit_sha,
+        merge_commit_sha=pull_request.merge_commit_sha,
+        opened_at=_iso(pull_request.opened_at),
+        closed_at=closed_at.isoformat(),
+        merged_at=_iso(pull_request.merged_at),
+        draft=bool(pull_request.draft),
+        additions=metrics_row.additions,
+        deletions=metrics_row.deletions,
+        files_changed=metrics_row.files_changed,
+        commits_count=metrics_row.commits_count,
+        comments_count=metrics_row.comments_count,
+        review_comments_count=metrics_row.review_comments_count,
+        is_assigned=metrics_row.is_assigned,
+        attributions=active_attributions(pull_request),
+        group_ids=resolved_group_ids(pull_request),
+    )
 
 
 def forward_pr_to_seer_judge(pull_request: PullRequest, repository: Repository) -> None:
@@ -165,7 +169,7 @@ def forward_pr_to_seer_judge(pull_request: PullRequest, repository: Repository) 
     response = make_signed_seer_api_request(
         connection_pool=seer_pr_metrics_connection_pool,
         path=SEER_PR_METRICS_JUDGE_PATH,
-        body=orjson.dumps(payload),
+        body=payload.json().encode("utf-8"),
         viewer_context=SeerViewerContext(organization_id=pull_request.organization_id),
     )
     if response.status >= 500 or response.status == 429:
