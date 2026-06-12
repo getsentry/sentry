@@ -18,6 +18,7 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.organization import Organization
 from sentry.notifications.api.serializers.notification_action_request import (
     NotificationActionSerializer,
@@ -88,9 +89,12 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         # If a project query is specified, filter out non-project-specific actions
         # otherwise, include them but still ensure project permissions are enforced
         requested_projects = self.get_requested_project_params_unchecked(request)
+        all_access_filter = (
+            requested_projects.ids == ALL_ACCESS_PROJECTS and not requested_projects.slugs
+        ) or (requested_projects.slugs == {ALL_ACCESS_PROJECTS_SLUG} and not requested_projects.ids)
         project_query = (
             Q(projects__in=self.get_projects(request, organization))
-            if requested_projects.ids or requested_projects.slugs
+            if requested_projects.has_values and not all_access_filter
             else Q(projects=None) | Q(projects__in=self.get_projects(request, organization))
         )
         queryset = queryset.filter(project_query).distinct()
