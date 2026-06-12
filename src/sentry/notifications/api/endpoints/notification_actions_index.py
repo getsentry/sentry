@@ -80,7 +80,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         Notification Actions notify a set of members when an action has been triggered through a notification service such as Slack or Sentry.
         For example, organization owners and managers can receive an email when a spike occurs.
 
-        You can use either the `project` or `projectSlug` query parameter to filter for certain projects. Note that if both are present, `projectSlug` takes priority.
+        You can use the `project` query parameter with project IDs or slugs to filter for certain projects.
         """
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions

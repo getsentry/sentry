@@ -142,10 +142,11 @@ class OrganizationParams:
         location="query",
         required=False,
         many=True,
-        type=int,
-        description="""The IDs of projects to filter by. Omit this parameter to include all accessible projects. `-1` is also accepted to include all accessible projects.
+        type=str,
+        description="""The IDs or slugs of projects to filter by. Project slugs are unique within each organization. Omit this parameter to include all accessible projects. `-1` is also accepted to include all accessible projects.
 For example, the following are valid parameters:
 - `/?project=1234&project=56789`
+- `/?project=android&project=javascript-react`
 - `/?project=-1`
 """,
     )
