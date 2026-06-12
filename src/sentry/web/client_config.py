@@ -229,6 +229,10 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
+        if self.last_org and features.has(
+            "organizations:api-fetch-v2", self.last_org, actor=self.user
+        ):
+            yield "organizations:api-fetch-v2"
 
     @property
     def needs_upgrade(self) -> bool:
