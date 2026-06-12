@@ -407,7 +407,7 @@ class WeeklyReportsTest(
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         user_project_ownership(ctx)
-        result = org_key_errors(ctx, Referrer.REPORTS_KEY_ERRORS.value)
+        result = org_key_errors(ctx, [self.project.id], Referrer.REPORTS_KEY_ERRORS.value)
         assert result == {self.project.id: [{"events.group_id": event1.group.id, "count()": 1}]}
 
     @with_feature("organizations:weekly-report-batched-key-errors")
@@ -455,7 +455,9 @@ class WeeklyReportsTest(
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         user_project_ownership(ctx)
 
-        key_errors_by_project = org_key_errors(ctx, referrer=Referrer.REPORTS_KEY_ERRORS.value)
+        key_errors_by_project = org_key_errors(
+            ctx, project_ids=[self.project.id], referrer=Referrer.REPORTS_KEY_ERRORS.value
+        )
         for project_id, key_errors in key_errors_by_project.items():
             ctx.projects_context_map[project_id].key_errors_by_id = [
                 (e["events.group_id"], e["count()"]) for e in key_errors

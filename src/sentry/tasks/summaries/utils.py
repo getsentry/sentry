@@ -325,13 +325,11 @@ def _org_key_errors_snuba_chunk(
 
 def org_key_errors(
     ctx: OrganizationReportContext,
+    project_ids: Sequence[int],
     referrer: str,
 ) -> dict[int, list[dict[str, Any]]]:
     op = "weekly_reports.org_key_errors"
     with sentry_sdk.start_span(op=op):
-        project_ids = [
-            pid for pid, pctx in ctx.projects_context_map.items() if pctx.project.first_event
-        ]
         if not project_ids:
             return {}
 
