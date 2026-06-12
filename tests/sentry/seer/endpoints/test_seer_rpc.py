@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import orjson
 import pytest
+import requests.exceptions
 import responses
 from cryptography.fernet import Fernet
 from django.test import override_settings
@@ -1796,6 +1797,21 @@ class TestGetMonitoringProviderToken(APITestCase):
 
         assert result == {"error": "refresh_failed"}
 
+    @responses.activate
+    def test_refresh_connection_error(self) -> None:
+        self.identity.data["expires"] = int(time()) - 100
+        self._save_identity()
+
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            body=requests.exceptions.ConnectionError("Connection refused"),
+        )
+
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result == {"error": "refresh_failed"}
+
 
 class TestRefreshMonitoringProviderToken(APITestCase):
     def setUp(self) -> None:
@@ -1869,6 +1885,18 @@ class TestRefreshMonitoringProviderToken(APITestCase):
             responses.POST,
             "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
             json={"not_access_token": "oops"},
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "refresh_failed"}
+
+    @responses.activate
+    def test_connection_error(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            body=requests.exceptions.ConnectionError("Connection refused"),
         )
 
         result = refresh_monitoring_provider_token(identity_id=self.identity.id)

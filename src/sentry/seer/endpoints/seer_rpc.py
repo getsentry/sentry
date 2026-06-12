@@ -15,6 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
+from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -930,7 +931,7 @@ def get_monitoring_provider_token(*, user_id: int, provider_type: str) -> dict:
             expires = identity.data.get("expires")
         except IdentityNotValid:
             return {"error": "identity_not_valid", "identity_id": identity.id}
-        except (ApiError, KeyError, ConnectionError):
+        except (ApiError, KeyError, RequestException):
             return {"error": "refresh_failed"}
 
     return {
@@ -956,7 +957,7 @@ def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
         provider.refresh_identity(identity)
     except IdentityNotValid:
         return {"error": "identity_not_valid"}
-    except (ApiError, KeyError, ConnectionError):
+    except (ApiError, KeyError, RequestException):
         return {"error": "refresh_failed"}
 
     access_token = identity.data.get("access_token")
