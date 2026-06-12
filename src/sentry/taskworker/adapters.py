@@ -162,10 +162,21 @@ class SentryRouter(LibraryRouter):
         )
 
     def route_namespace(self, name: str) -> str:
+        overrides = options.get("taskworker.route.overrides")
+
+        # Check global overrides
+        if name in overrides:
+            return Topic(overrides[name]).value
+
+        # Check local overrides
         if name in _route_overrides:
             return Topic(_route_overrides[name]).value
+
+        # Check for configured mapping
         if name in self._route_map:
             return Topic(self._route_map[name]).value
+
+        # Fall back onto the default topic
         return self._default_topic.value
 
 
