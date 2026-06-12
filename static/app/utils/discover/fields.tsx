@@ -1148,9 +1148,12 @@ export function explodeFieldString(field: string, alias?: string): Column {
 
 const UNSAFE_FUNCTION_ARGUMENT = /[\s"(),]/;
 const EXPLICIT_TAG_FUNCTION_ARGUMENT = /^(?:sentry_tags|tags)\[.*\]$/;
+const MIN_SEPARATE_WORDS = 2;
 
 function isQuotedFunctionArgument(value: string): boolean {
-  return value.length >= 2 && value.startsWith('"') && value.endsWith('"');
+  return (
+    value.length >= MIN_SEPARATE_WORDS && value.startsWith('"') && value.endsWith('"')
+  );
 }
 
 function normalizeFunctionArgument(value: string): string {
