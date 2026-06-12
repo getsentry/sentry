@@ -352,7 +352,7 @@ export const isBusinessTrial = (subscription: Subscription) => {
   );
 };
 
-export function isAmPlan(planId?: string) {
+function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
 }
 
@@ -362,10 +362,6 @@ export function isAm2Plan(planId?: string) {
 
 export function isAm3Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am3');
-}
-
-export function isAm3DsPlan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am3') && planId.includes('_ds');
 }
 
 export function isAmEnterprisePlan(planId?: string) {
