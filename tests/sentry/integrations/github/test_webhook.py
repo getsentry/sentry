@@ -839,10 +839,10 @@ class PushEventWebhookTest(APITestCase):
     @responses.activate
     def test_push_after_pr_resolves_localhost_author(self) -> None:
         """
-        When a PR webhook arrives before the push, the @localhost CommitAuthor
-        must not claim external_id. Otherwise the push webhook can't set it on
-        the real-email record (unique constraint collision), and the PR activity
-        permanently loses its actor.
+        PR webhook arrives first and creates an @localhost CommitAuthor.
+        Push webhook arrives second with the real git email. The @localhost
+        record must not hold external_id or the real-email record can never
+        claim it.
         """
         self._setup_github_integration_and_repo()
 
