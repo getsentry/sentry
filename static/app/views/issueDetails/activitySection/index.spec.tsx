@@ -346,6 +346,50 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Linked external issue')).toBeInTheDocument();
   });
 
+  it('renders auto-resolved activity age as an inactivity duration', async () => {
+    const autoResolvedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {age: 504},
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-2',
+          dateCreated: '2020-01-02T00:00:00',
+          data: {age: 11},
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-3',
+          dateCreated: '2020-01-03T00:00:00',
+          data: {age: 30},
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-4',
+          dateCreated: '2020-01-04T00:00:00',
+          data: {age: '48'},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={autoResolvedGroup} />);
+
+    expect(await screen.findByText(/after 21 days of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 11 hours of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 30 hours of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
+  });
+
   it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
