@@ -57,6 +57,23 @@ function nextFrameCallback(cb: () => void) {
   }
 }
 
+interface SearchResult {
+  id: string;
+  key: SelectKey;
+}
+
+interface SearchResultListController {
+  clearFocusedKey: () => void;
+  getFirstVisibleEnabledSearchResult: () => SearchResult | null;
+  selectFocusedKey: (key: SelectKey) => boolean;
+  setFocusedKey: (key: SelectKey) => void;
+}
+
+interface SearchResultTarget {
+  controller: SearchResultListController;
+  searchResult: SearchResult;
+}
+
 interface ControlContextValue {
   overlayIsOpen: boolean;
   /**
@@ -67,12 +84,15 @@ interface ControlContextValue {
    * Whether the select has a search input field.
    */
   searchable: boolean;
+  clearFocusedSearchResult?: () => void;
   disabled?: boolean;
+  focusFirstSearchResult?: () => void;
   /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  registerSearchResultList?: (controller: SearchResultListController) => () => void;
   /**
    * Custom function to determine whether an option matches the search query.
    */
@@ -252,6 +272,8 @@ export function Control({
 
   const normalizedSearch = getSearchConfig(searchConfig);
   const searchEnabled = normalizedSearch !== undefined;
+  const autoFocusFirstResult =
+    normalizedSearch?.autoFocusFirstResult ?? normalizedSearch?.filter !== false;
   const searchFilter =
     typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
 
@@ -261,6 +283,107 @@ export function Control({
   const [search, setSearch] = useState('');
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // Keep DOM focus in the search input while still presenting the first visible,
+  // enabled result as the active option. Each List registers a controller here so the
+  // Control can coordinate that virtual search focus across composite selects that
+  // render multiple lists.
+  const searchResultListControllersRef = useRef<SearchResultListController[]>([]);
+  const activeSearchResultListControllerRef = useRef<SearchResultListController | null>(
+    null
+  );
+  const [activeSearchResultId, setActiveSearchResultId] = useState<string>();
+
+  const clearFocusedSearchResult = useCallback(() => {
+    activeSearchResultListControllerRef.current = null;
+    setActiveSearchResultId(undefined);
+    for (const controller of searchResultListControllersRef.current) {
+      controller.clearFocusedKey();
+    }
+  }, []);
+
+  const getFirstVisibleEnabledSearchResultTarget = useCallback(() => {
+    for (const controller of searchResultListControllersRef.current) {
+      const searchResult = controller.getFirstVisibleEnabledSearchResult();
+      if (searchResult !== null) {
+        return {controller, searchResult};
+      }
+    }
+    return null;
+  }, []);
+
+  const focusSearchResultTarget = useCallback((target: SearchResultTarget | null) => {
+    activeSearchResultListControllerRef.current = target?.controller ?? null;
+    setActiveSearchResultId(target?.searchResult.id);
+
+    for (const controller of searchResultListControllersRef.current) {
+      if (controller === target?.controller) {
+        controller.setFocusedKey(target.searchResult.key);
+      } else {
+        controller.clearFocusedKey();
+      }
+    }
+  }, []);
+
+  const focusFirstSearchResult = useCallback(() => {
+    if (!searchEnabled || !autoFocusFirstResult || !searchInputValue) {
+      clearFocusedSearchResult();
+      return;
+    }
+
+    focusSearchResultTarget(getFirstVisibleEnabledSearchResultTarget());
+  }, [
+    autoFocusFirstResult,
+    clearFocusedSearchResult,
+    focusSearchResultTarget,
+    getFirstVisibleEnabledSearchResultTarget,
+    searchEnabled,
+    searchInputValue,
+  ]);
+
+  const registerSearchResultList = useCallback(
+    (controller: SearchResultListController) => {
+      searchResultListControllersRef.current = [
+        ...searchResultListControllersRef.current,
+        controller,
+      ];
+
+      return () => {
+        searchResultListControllersRef.current =
+          searchResultListControllersRef.current.filter(item => item !== controller);
+        if (activeSearchResultListControllerRef.current === controller) {
+          activeSearchResultListControllerRef.current = null;
+          setActiveSearchResultId(undefined);
+        }
+      };
+    },
+    []
+  );
+
+  const selectFocusedSearchResult = useCallback(() => {
+    if (!searchEnabled || !autoFocusFirstResult || !searchInputValue) {
+      return false;
+    }
+
+    // Enter in the search input should select the same first result that is exposed
+    // via aria-activedescendant, without moving DOM focus into the options list first.
+    const target = getFirstVisibleEnabledSearchResultTarget();
+    if (target === null) {
+      clearFocusedSearchResult();
+      return false;
+    }
+
+    focusSearchResultTarget(target);
+    return target.controller.selectFocusedKey(target.searchResult.key);
+  }, [
+    autoFocusFirstResult,
+    clearFocusedSearchResult,
+    focusSearchResultTarget,
+    getFirstVisibleEnabledSearchResultTarget,
+    searchEnabled,
+    searchInputValue,
+  ]);
+
   const updateSearch = (newValue: string) => {
     normalizedSearch?.onChange?.(newValue);
     setSearchInputValue(newValue);
@@ -271,10 +394,16 @@ export function Control({
 
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
     onKeyDown: e => {
+      if (e.key === 'Enter' && selectFocusedSearchResult()) {
+        e.preventDefault();
+        return;
+      }
+
       // When the search input is focused, and the user presses Arrow Down,
       // we should move the focus to the menu items list.
       if (e.key === 'ArrowDown') {
         e.preventDefault(); // Prevent scroll action
+        clearFocusedSearchResult();
         overlayRef.current
           ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
           ?.focus();
@@ -473,6 +602,10 @@ export function Control({
     return true;
   }, [value]);
 
+  useEffect(() => {
+    focusFirstSearchResult();
+  }, [focusFirstSearchResult]);
+
   const contextValue = useMemo(() => {
     return {
       overlayState,
@@ -482,8 +615,22 @@ export function Control({
       size,
       disabled,
       searchMatcher: searchFilter,
+      clearFocusedSearchResult,
+      focusFirstSearchResult,
+      registerSearchResultList,
     };
-  }, [overlayState, overlayIsOpen, search, searchEnabled, size, disabled, searchFilter]);
+  }, [
+    overlayState,
+    overlayIsOpen,
+    search,
+    searchEnabled,
+    size,
+    disabled,
+    searchFilter,
+    clearFocusedSearchResult,
+    focusFirstSearchResult,
+    registerSearchResultList,
+  ]);
 
   const theme = useTheme();
 
@@ -563,6 +710,7 @@ export function Control({
                       ref={searchRef}
                       placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                       value={searchInputValue}
+                      aria-activedescendant={activeSearchResultId}
                       onFocus={onSearchFocus}
                       onBlur={onSearchBlur}
                       onChange={e => updateSearch(e.target.value)}

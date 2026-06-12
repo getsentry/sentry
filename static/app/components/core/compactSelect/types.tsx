@@ -61,6 +61,12 @@ export interface SearchMatchResult {
  */
 export interface SearchConfig<Value extends SelectKey> {
   /**
+   * When true, searching sets the first visible enabled option as the active option
+   * while keeping focus on the search input. Pressing Enter in the search input selects
+   * the active option. Defaults to true unless client-side filtering is disabled.
+   */
+  autoFocusFirstResult?: boolean;
+  /**
    * Controls client-side option filtering:
    * - Omitted: default fuzzy (fzf) filter, results sorted by match score
    * - Function: custom matcher (receives option + search string, returns SearchMatchResult)

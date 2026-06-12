@@ -1,9 +1,19 @@
-import {createContext, Fragment, useContext, useId, useMemo} from 'react';
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
-import type {ListProps} from '@react-stately/list';
+import type {ListProps, ListState} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
+import type {Key} from '@react-types/shared';
 
 import {defined} from 'sentry/utils/defined';
 import type {FormSize} from 'sentry/utils/theme';
@@ -22,6 +32,7 @@ import {
   getDisabledOptions,
   getEscapedKey,
   getHiddenOptions,
+  getSearchResultOptionId,
   getSelectedOptions,
   getSortedItems,
   HiddenSectionToggle,
@@ -29,6 +40,38 @@ import {
 } from './utils';
 
 export const SelectFilterContext = createContext(new Set<SelectKey>());
+
+// Find the first result as it appears in the rendered collection, including options
+// nested inside sections, while skipping hidden search misses and disabled options.
+function getFirstVisibleEnabledKey<T extends ListItemBase>(
+  listState: ListState<T>,
+  hiddenOptions: Set<SelectKey>
+): SelectKey | null {
+  const isVisibleAndEnabled = (key: Key) => {
+    if (typeof key !== 'string' && typeof key !== 'number') {
+      return false;
+    }
+
+    return !hiddenOptions.has(key) && !listState.selectionManager.isDisabled(key);
+  };
+
+  for (const item of listState.collection) {
+    if (item.type === 'section') {
+      for (const child of item.childNodes) {
+        if (isVisibleAndEnabled(child.key)) {
+          return child.key;
+        }
+      }
+      continue;
+    }
+
+    if (isVisibleAndEnabled(item.key)) {
+      return item.key;
+    }
+  }
+
+  return null;
+}
 
 interface BaseListProps<Value extends SelectKey>
   extends
@@ -169,8 +212,16 @@ export function List<Value extends SelectKey>({
   closeOnSelect,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
-  const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
-    useContext(ControlContext);
+  const {
+    overlayState,
+    search,
+    searchable,
+    overlayIsOpen,
+    searchMatcher,
+    clearFocusedSearchResult,
+    focusFirstSearchResult,
+    registerSearchResultList,
+  } = useContext(ControlContext);
 
   const {hidden: hiddenOptions, scores} = useMemo(
     () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
@@ -254,6 +305,81 @@ export function List<Value extends SelectKey>({
     items: sortedItems,
   });
 
+  const listId = useId();
+  const firstVisibleEnabledKey = useMemo(
+    () => getFirstVisibleEnabledKey(listState, hiddenOptions),
+    [listState, hiddenOptions]
+  );
+  const firstVisibleEnabledSearchResult = useMemo(
+    () =>
+      firstVisibleEnabledKey === null
+        ? null
+        : {
+            id: getSearchResultOptionId(listId, firstVisibleEnabledKey),
+            key: firstVisibleEnabledKey,
+          },
+    [firstVisibleEnabledKey, listId]
+  );
+
+  const [searchFocusedKey, setSearchFocusedKey] = useState<SelectKey | null>(null);
+
+  // Control owns the search input, but each List owns its react-stately collection and
+  // selection manager. Keep a stable registered controller with refs to the latest list
+  // state so Control can ask this list for its first result, virtually focus it, or
+  // select it on Enter without forcing a re-registration on every search update.
+  const listStateRef = useRef(listState);
+  listStateRef.current = listState;
+  const firstVisibleEnabledSearchResultRef = useRef(firstVisibleEnabledSearchResult);
+  firstVisibleEnabledSearchResultRef.current = firstVisibleEnabledSearchResult;
+  const hiddenOptionsRef = useRef(hiddenOptions);
+  hiddenOptionsRef.current = hiddenOptions;
+  const searchResultListController = useMemo(
+    () => ({
+      clearFocusedKey: () => {
+        setSearchFocusedKey(null);
+      },
+      getFirstVisibleEnabledSearchResult: () =>
+        firstVisibleEnabledSearchResultRef.current,
+      selectFocusedKey: (focusedKey: SelectKey) => {
+        const selectionManager = listStateRef.current.selectionManager;
+        if (
+          hiddenOptionsRef.current.has(focusedKey) ||
+          selectionManager.isDisabled(focusedKey)
+        ) {
+          return false;
+        }
+
+        selectionManager.select(focusedKey);
+        return true;
+      },
+      setFocusedKey: (key: SelectKey) => {
+        setSearchFocusedKey(key);
+      },
+    }),
+    []
+  );
+
+  useEffect(() => {
+    return registerSearchResultList?.(searchResultListController);
+  }, [registerSearchResultList, searchResultListController]);
+
+  useEffect(() => {
+    focusFirstSearchResult?.();
+  }, [firstVisibleEnabledKey, focusFirstSearchResult]);
+
+  useEffect(() => {
+    // Once the user moves real focus into the list, stop showing the search-input
+    // aria-activedescendant highlight so react-aria's focused item is the only focus.
+    if (searchFocusedKey !== null && listState.selectionManager.isFocused) {
+      clearFocusedSearchResult?.();
+    }
+  }, [
+    clearFocusedSearchResult,
+    listState.selectionManager.focusedKey,
+    listState.selectionManager.isFocused,
+    searchFocusedKey,
+  ]);
+
   // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed
   const focusManager = useFocusManager();
@@ -332,7 +458,10 @@ export function List<Value extends SelectKey>({
     return true;
   };
 
-  const listId = useId();
+  const searchFocusedId =
+    searchFocusedKey === null
+      ? undefined
+      : getSearchResultOptionId(listId, searchFocusedKey);
 
   const sections = useMemo(
     () =>
@@ -355,6 +484,8 @@ export function List<Value extends SelectKey>({
             {...props}
             id={listId}
             listState={listState}
+            searchFocusedKey={searchFocusedKey}
+            searchFocusedId={searchFocusedId}
             sizeLimitMessage={sizeLimitMessage}
             keyDownHandler={keyDownHandler}
           />
@@ -367,6 +498,8 @@ export function List<Value extends SelectKey>({
           hiddenOptions={hiddenOptions}
           id={listId}
           listState={listState}
+          searchFocusedKey={searchFocusedKey}
+          searchFocusedId={searchFocusedId}
           shouldFocusWrap={shouldFocusWrap}
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}

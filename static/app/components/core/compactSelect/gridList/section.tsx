@@ -12,6 +12,7 @@ import {
   SectionWrap,
   SelectFilterContext,
 } from '@sentry/scraps/compactSelect';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 
 import {GridListOption, type GridListOptionProps} from './option';
@@ -20,6 +21,8 @@ interface GridListSectionProps<T extends ListItemBase> {
   listState: ListState<T>;
   node: Node<T>;
   size: GridListOptionProps<T>['size'];
+  searchFocusedId?: string;
+  searchFocusedKey?: SelectKey | null;
 }
 
 /**
@@ -29,6 +32,8 @@ interface GridListSectionProps<T extends ListItemBase> {
 export function GridListSection<T extends ListItemBase>({
   node,
   listState,
+  searchFocusedId,
+  searchFocusedKey,
   size,
 }: GridListSectionProps<T>) {
   const titleId = useId();
@@ -70,6 +75,8 @@ export function GridListSection<T extends ListItemBase>({
               node={child}
               listState={listState}
               size={size}
+              forceFocused={child.key === searchFocusedKey}
+              searchFocusedId={searchFocusedId}
             />
           ))}
         </SectionGroup>

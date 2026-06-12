@@ -1,4 +1,4 @@
-import {Fragment, useContext, useId, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useId, useMemo, useRef} from 'react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -10,6 +10,7 @@ import {
   ListLabel,
   ListSeparator,
   ListWrap,
+  type SelectKey,
   SelectFilterContext,
   SizeLimitMessage,
   useVirtualizedItems,
@@ -50,6 +51,8 @@ interface GridListProps<T extends ListItemBase>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  searchFocusedId?: string;
+  searchFocusedKey?: SelectKey | null;
   size?: GridListOptionProps<ListItemBase>['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
@@ -78,6 +81,8 @@ function GridList<T extends ListItemBase>({
   sizeLimitMessage,
   keyDownHandler,
   virtualized,
+  searchFocusedId,
+  searchFocusedKey,
   ...props
 }: GridListProps<T>) {
   const ref = useRef<HTMLUListElement>(null);
@@ -116,6 +121,27 @@ function GridList<T extends ListItemBase>({
     size,
   });
 
+  // Keep the virtually focused row mounted. When focus stays in the search input,
+  // `searchFocusedKey` drives aria-activedescendant and the referenced row must be
+  // rendered even if the user previously scrolled it out of the virtualized range.
+  useEffect(() => {
+    const focusedKey = searchFocusedKey ?? listState.selectionManager.focusedKey;
+    if (!virtualized || focusedKey === null) {
+      return;
+    }
+
+    const focusedIndex = listItems.findIndex(item => item.key === focusedKey);
+    if (focusedIndex !== -1) {
+      virtualizer.scrollToIndex(focusedIndex);
+    }
+  }, [
+    virtualized,
+    listItems,
+    listState.selectionManager.focusedKey,
+    searchFocusedKey,
+    virtualizer,
+  ]);
+
   const mergedProps = mergeProps(gridProps, props);
 
   return (
@@ -143,6 +169,8 @@ function GridList<T extends ListItemBase>({
                       key={item.key}
                       node={item}
                       listState={listState}
+                      searchFocusedId={searchFocusedId}
+                      searchFocusedKey={searchFocusedKey}
                       size={size}
                     />
                   );
@@ -155,6 +183,8 @@ function GridList<T extends ListItemBase>({
                     node={item}
                     listState={listState}
                     size={size}
+                    forceFocused={item.key === searchFocusedKey}
+                    searchFocusedId={searchFocusedId}
                   />
                 );
               })}
