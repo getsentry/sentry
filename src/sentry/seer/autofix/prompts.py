@@ -3,10 +3,24 @@ Prompts for Explorer-based Autofix steps.
 """
 
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
+
+
+class PromptBuilder(Protocol):
+    """Signature shared by all autofix step prompt builders."""
+
+    def __call__(
+        self,
+        *,
+        short_id: str,
+        title: str,
+        culprit: str,
+        artifact_key: str | None,
+        run_state: "SeerRunState | None" = None,
+    ) -> str: ...
 
 
 def root_cause_prompt(

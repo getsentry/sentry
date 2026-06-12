@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
 
@@ -34,6 +33,7 @@ from sentry.seer.autofix.artifact_schemas import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
+    PromptBuilder,
     code_changes_prompt,
     pr_iteration_prompt,
     root_cause_prompt,
@@ -121,7 +121,7 @@ class StepConfig:
     def __init__(
         self,
         artifact_schema: type[BaseModel] | None,
-        prompt_fn: Callable[..., str],
+        prompt_fn: PromptBuilder,
         enable_coding: bool = False,
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         started_event: type[AiAutofixPhaseEvent] | None = None,
