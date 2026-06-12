@@ -407,6 +407,64 @@ class ReleaseThresholdStatusTest(APITestCase):
         r2_keys = [k for k, v in data.items() if k.split("-")[1] == self.release2.version]
         assert len(r2_keys) == 0
 
+    def test_get_success_project_param_slug_filter(self) -> None:
+        now = datetime.now(UTC)
+        yesterday = now - timedelta(hours=24)
+
+        project_slug_response = self.get_success_response(
+            self.organization.slug, start=yesterday, end=now, projectSlug=[self.project2.slug]
+        )
+        project_response = self.get_success_response(
+            self.organization.slug, start=yesterday, end=now, project=[self.project2.slug]
+        )
+
+        assert project_response.data == project_slug_response.data
+
+    def test_get_success_project_param_mixed_id_and_slug_filter(self) -> None:
+        now = datetime.now(UTC)
+        yesterday = now - timedelta(hours=24)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            start=yesterday,
+            end=now,
+            project=[str(self.project1.id), self.project2.slug],
+        )
+
+        assert set(response.data.keys()) == {
+            f"{self.project1.slug}-{self.release1.version}",
+            f"{self.project1.slug}-{self.release2.version}",
+            f"{self.project2.slug}-{self.release1.version}",
+        }
+
+    def test_get_success_project_slug_takes_precedence_over_project_id(self) -> None:
+        now = datetime.now(UTC)
+        yesterday = now - timedelta(hours=24)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            start=yesterday,
+            end=now,
+            projectSlug=[self.project2.slug],
+            project=[str(self.project1.id)],
+        )
+
+        assert set(response.data.keys()) == {f"{self.project2.slug}-{self.release1.version}"}
+
+    def test_get_success_empty_project_slug_falls_back_to_project_filter(self) -> None:
+        now = datetime.now(UTC)
+        yesterday = now - timedelta(hours=24)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            start=yesterday,
+            end=now,
+            projectSlug=[""],
+            project=[self.project2.slug],
+        )
+
+        assert set(response.data.keys()) == {f"{self.project2.slug}-{self.release1.version}"}
+
     @patch(
         "sentry.api.endpoints.release_thresholds.release_threshold_status_index.fetch_sessions_data"
     )

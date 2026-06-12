@@ -28,6 +28,11 @@ from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
     get_new_issue_counts,
 )
+from sentry.api.helpers.projects import (
+    ProjectIdOrSlug,
+    ProjectIdOrSlugField,
+    parse_id_or_slug_params,
+)
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.release_threshold_examples import ReleaseThresholdExamples
@@ -54,6 +59,7 @@ class ReleaseThresholdStatusIndexData(TypedDict, total=False):
     start: datetime
     end: datetime
     environment: list[str]
+    project: list[ProjectIdOrSlug]
     projectSlug: list[str]
     release: list[str]
 
@@ -82,8 +88,14 @@ class ReleaseThresholdStatusIndexSerializer(
     projectSlug = serializers.ListField(
         required=False,
         allow_empty=True,
-        child=serializers.CharField(),
+        child=serializers.CharField(allow_blank=True),
         help_text=("A list of project slugs to filter your results by."),
+    )
+    project = serializers.ListField(
+        required=False,
+        allow_empty=True,
+        child=ProjectIdOrSlugField(),
+        help_text=("A list of project IDs or slugs to filter your results by."),
     )
     release = serializers.ListField(
         required=False,
@@ -136,20 +148,45 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # NOTE: start/end parameters determine window to query for releases
         # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
-        serializer = ReleaseThresholdStatusIndexSerializer(
-            data=request.query_params,
-        )
+        # Preserve legacy projectSlug precedence while treating blank project filters as absent.
+        query_params = request.query_params.copy()
+        project_slug_params = [slug for slug in query_params.getlist("projectSlug") if slug]
+        if "projectSlug" in query_params:
+            query_params.setlist("projectSlug", project_slug_params)
+        if project_slug_params:
+            query_params.pop("project", None)
+        elif "project" in query_params:
+            query_params.setlist(
+                "project", [project for project in query_params.getlist("project") if project]
+            )
+
+        serializer = ReleaseThresholdStatusIndexSerializer(data=query_params)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
         environments_list = serializer.validated_data.get(
             "environment"
         )  # list of environment names
-        project_slug_list = serializer.validated_data.get("projectSlug")
+        project_slug_list = [
+            slug for slug in serializer.validated_data.get("projectSlug", []) if slug
+        ] or None
+        requested_project = parse_id_or_slug_params(serializer.validated_data.get("project", []))
         releases_list = serializer.validated_data.get("release")  # list of release versions
+        project_ids: set[int] | None = None
+        project_slugs: list[str] | set[str] | None = project_slug_list
+        if project_slug_list is None:
+            if requested_project.ids and not requested_project.slugs:
+                project_ids = requested_project.ids
+            elif requested_project.slugs and not requested_project.ids:
+                project_slugs = requested_project.slugs
+
         try:
             filter_params = self.get_filter_params(
-                request, organization, date_filter_optional=True, project_slugs=project_slug_list
+                request,
+                organization,
+                date_filter_optional=True,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
             )
         except NoProjects:
             raise NoProjects("No projects available")
