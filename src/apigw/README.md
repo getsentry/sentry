@@ -103,6 +103,21 @@ the most relevant ones are `APIGW_ENDPOINT_CONTROL` (control silo address),
 circuit breaker thresholds). The default cell comes from
 `settings.SENTRY_MONOLITH_REGION`.
 
+## Tests
+
+The suite lives in `tests/apigw/` and runs in CI on every backend change:
+
+- `test_routing.py` — the routing parity test described above: every
+  customer-facing Django URL must be routed by `apigw` to a destination
+  compatible with the view's `SiloMode`.
+- `test_db.py` — the cell lookup query builder produces asyncpg-compatible
+  SQL (`$n` placeholders, no django `%s` left, `LIMIT` applied) from the
+  sentry models.
+- `test_proxy.py` — proxy internals against fakes (no network): request
+  header filtering and forwarding, and upstream response adaptation —
+  including that multiple `set-cookie` headers survive as separate,
+  unmangled header lines once emmett renders the final response.
+
 ## Development
 
 A working sentry dev config (`~/.sentry`) and the devservices postgres are
@@ -116,6 +131,6 @@ emmett55 -a apigw.web develop
 # inspect the compiled routing table
 emmett55 -a apigw.web routes
 
-# run the routing consistency test
-pytest tests/apigw/test_routing.py
+# run the test suite
+pytest tests/apigw
 ```
