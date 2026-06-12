@@ -551,7 +551,14 @@ def apply_legacy_settings(settings: Any) -> None:
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
-            settings.SENTRY_OPTIONS[new] = getattr(settings, old)
+            value = getattr(settings, old)
+            settings.SENTRY_OPTIONS[new] = value
+            # bootstrap_options already ran and promoted these option keys into their
+            # Django settings, so writing SENTRY_OPTIONS here is too late for any key
+            # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
+            # Re-promote the legacy value so the override actually takes effect.
+            if new in options_mapper:
+                setattr(settings, options_mapper[new], value)
 
     if hasattr(settings, "SENTRY_REDIS_OPTIONS"):
         if "redis.clusters" in settings.SENTRY_OPTIONS:
