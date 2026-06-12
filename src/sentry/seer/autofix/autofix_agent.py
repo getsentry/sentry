@@ -552,6 +552,29 @@ def get_autofix_agent_state(organization: Organization, group_id: int):
     return client.get_run(runs[0].run_id)
 
 
+def get_autofix_run_state(group: Group, run_id: int) -> SeerRunState:
+    """
+    Get the state of a specific agent-based autofix run, validating it belongs to the group.
+
+    Args:
+        group: The Sentry group (issue) the run should belong to
+        run_id: The run ID to fetch state for
+
+    Returns:
+        The SeerRunState for the given run.
+
+    Raises:
+        SeerPermissionError: If the run does not exist or does not belong to the group.
+    """
+    client = SeerAgentClient(
+        organization=group.organization,
+        user=None,
+        category_key="autofix",
+        category_value=str(group.id),
+    )
+    return _get_group_run_state(client, group, run_id)
+
+
 def generate_autofix_handoff_prompt(
     state: SeerRunState,
     instruction: str | None = None,
