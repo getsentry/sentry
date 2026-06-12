@@ -21,6 +21,8 @@ SEER_WORKFLOW_ACTIVITIES = [
     ActivityType.SEER_CODING_STARTED,
     ActivityType.SEER_CODING_COMPLETED,
     ActivityType.SEER_PR_CREATED,
+    ActivityType.SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED,
 ]
 
 # Activity types handled by the generic activity_handler. This replaces the

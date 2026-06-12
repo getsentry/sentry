@@ -235,7 +235,7 @@ class TestBuildStepPrompt(TestCase):
         assert "unknown" in prompt
 
     def test_all_prompts_are_dedented(self) -> None:
-        for step in AutofixStep:
+        for step in STEP_CONFIGS:
             prompt = build_step_prompt(step, self.group)
             # Dedented prompts should not start with whitespace
             assert not prompt.startswith(" "), f"{step} prompt starts with whitespace"

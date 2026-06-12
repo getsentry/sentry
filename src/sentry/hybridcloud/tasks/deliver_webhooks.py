@@ -80,11 +80,13 @@ DEFAULT_PROVIDER_PRIORITY = 10
 def _set_webhook_delivery_sentry_context(payload: WebhookPayload) -> None:
     """Set Sentry context at webhook delivery entrypoint for easier debugging."""
     sentry_sdk.set_tag("mailbox_name", payload.mailbox_name)
+    sentry_sdk.set_attribute("mailbox_name", payload.mailbox_name)
     context: dict[str, str] = {
         "mailbox_name": payload.mailbox_name,
         "provider": payload.provider or "unknown",
     }
     sentry_sdk.set_context("webhook_delivery", context)
+    sentry_sdk.set_attribute("webhook_delivery.provider", payload.provider or "unknown")
 
 
 class DeliveryFailed(Exception):

@@ -38,7 +38,9 @@ def reprocess_group(
     acting_user_id: int | None = None,
 ) -> None:
     sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_attribute("project", project_id)
     sentry_sdk.set_tag("group_id", group_id)
+    sentry_sdk.set_attribute("group_id", group_id)
 
     from sentry.reprocessing2 import (
         CannotReprocess,
@@ -49,6 +51,7 @@ def reprocess_group(
     )
 
     sentry_sdk.set_tag("is_start", "false")
+    sentry_sdk.set_attribute("is_start", "false")
 
     # Only executed once during reprocessing
     if start_time is None:
@@ -56,6 +59,7 @@ def reprocess_group(
         start_time = time.time()
         metrics.incr("events.reprocessing.start_group_reprocessing", sample_rate=1.0)
         sentry_sdk.set_tag("is_start", "true")
+        sentry_sdk.set_attribute("is_start", "true")
         new_group_id = start_group_reprocessing(
             project_id,
             group_id,
@@ -163,8 +167,11 @@ def handle_remaining_events(
     See doc comment in sentry.reprocessing2.
     """
     sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_attribute("project", project_id)
     sentry_sdk.set_tag("old_group_id", old_group_id)
+    sentry_sdk.set_attribute("old_group_id", old_group_id)
     sentry_sdk.set_tag("new_group_id", new_group_id)
+    sentry_sdk.set_attribute("new_group_id", new_group_id)
 
     from sentry.models.group import Group
     from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_batched_events_from_redis

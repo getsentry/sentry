@@ -310,7 +310,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/archive/'
-  | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/download/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/images/$imageIdentifier/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/recompare/'
   | '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/latest-base/'

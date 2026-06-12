@@ -582,6 +582,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             )
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
+            sentry_sdk.set_attribute("api_response.attributes", str(attributes))
             span.set_data("attribute_count", len(attributes))
             span.set_data("attribute_type", attribute_type)
         return attributes, debug_info
@@ -654,6 +655,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     attribute_keys[attr_key["key"]] = attr_key
         attributes = list(attribute_keys.values())
         sentry_sdk.set_context("api_response", {"attributes": attributes})
+        sentry_sdk.set_attribute("api_response.attributes", str(attributes))
         return attributes
 
 
@@ -676,6 +678,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             )
 
         sentry_sdk.set_tag("query.attribute_key", key)
+        sentry_sdk.set_attribute("query.attribute_key", key)
 
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
