@@ -1,12 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
-import {
-  infiniteQueryOptions,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -16,7 +11,12 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeCodeIntegrationCta';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {useUpdateSeerSettings} from 'sentry/utils/seer/useUpdateSeerSettings';
+import {
+  CodingAgentProvider,
+  type ProjectSeerPreferences,
+} from 'sentry/components/events/autofix/types';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -29,7 +29,6 @@ import {ExternalLink} from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -40,12 +39,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
-import {
-  getInfiniteSeerProjectsSettingsQueryOptions,
-  getMutateSeerProjectSettingsOptions,
-} from 'sentry/utils/seer/seerProjectSettings';
-import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -101,10 +94,9 @@ const autofixAutomatingTuningField = {
 } satisfies FieldObject;
 
 function CodingAgentSettings({
-  setting,
+  preference,
   handleAutoCreatePrChange,
   handleIntegrationChange,
-  isKnownAgentsPending,
   canWriteProject,
   isAutomationOn,
   codingAgentIntegrations,
@@ -113,17 +105,16 @@ function CodingAgentSettings({
   codingAgentIntegrations: CodingAgentIntegration[];
   handleAutoCreatePrChange: (value: boolean) => void;
   handleIntegrationChange: (integrationId: number) => void;
-  isKnownAgentsPending: boolean;
-  setting: SeerProjectSettingResponse | undefined;
+  preference: ProjectSeerPreferences | null | undefined;
   isAutomationOn?: boolean;
 }) {
-  if (!setting || setting.agent === 'seer' || !isAutomationOn) {
+  if (!preference?.automation_handoff || !isAutomationOn) {
     return null;
   }
 
-  const autoCreatePrValue = setting.autoCreatePr ?? false;
-  const selectedIntegrationId = setting.integrationId;
-  const target = setting.agent;
+  const autoCreatePrValue = preference?.automation_handoff?.auto_create_pr ?? false;
+  const selectedIntegrationId = preference?.automation_handoff?.integration_id;
+  const target = preference?.automation_handoff?.target;
 
   const isClaude = target === CodingAgentProvider.CLAUDE_CODE_AGENT;
   const agentName = isClaude ? t('Claude') : t('Cursor Cloud Agent');
@@ -149,7 +140,7 @@ function CodingAgentSettings({
       saveOnBlur: true,
       getData: () => ({}),
       getValue: () => String(selectedIntegrationId),
-      disabled: !canWriteProject || isKnownAgentsPending,
+      disabled: !canWriteProject,
       onChange: (value: string) => handleIntegrationChange(parseInt(value, 10)),
     } satisfies FieldObject);
   }
@@ -165,7 +156,7 @@ function CodingAgentSettings({
     type: 'boolean',
     getData: () => ({}),
     getValue: () => autoCreatePrValue,
-    disabled: !canWriteProject || isKnownAgentsPending,
+    disabled: !canWriteProject,
     onChange: handleAutoCreatePrChange,
   } satisfies FieldObject);
 
@@ -195,28 +186,9 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
-  const {data: projectSettings} = useInfiniteQuery(
-    infiniteQueryOptions({
-      ...getInfiniteSeerProjectsSettingsQueryOptions({
-        organization,
-        query: {query: new MutableSearch(`id:${project.id}`)},
-      }),
-      select: ({pages}) => pages.flatMap(page => page.json),
-    })
-  );
-  const setting = projectSettings?.find(s => s.projectSlug === project.slug);
-
-  const {data: knownAgents, isPending: isKnownAgentsPending} = useQuery(
-    knownAgentIntegrationsQueryOptions({organization})
-  );
-  const {mutate: updateSeerSettings} = useMutation(
-    getMutateSeerProjectSettingsOptions({
-      organization,
-      project,
-      queryClient,
-      knownAgents,
-    })
-  );
+  const {data} = useProjectSeerPreferences(project);
+  const preference = data?.preference;
+  const {mutate: updateSeerSettings} = useUpdateSeerSettings(project);
   const {data: codingAgentIntegrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)
   );
@@ -279,7 +251,8 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           user_id: user.id,
         });
         updateSeerSettings({
-          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::${cursorIntegration.id}`,
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          integrationId: parseInt(cursorIntegration.id, 10),
           stoppingPoint: 'root_cause',
           autoCreatePr: false,
         });
@@ -295,13 +268,14 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           user_id: user.id,
         });
         updateSeerSettings({
-          agentOption: `${CodingAgentProvider.CLAUDE_CODE_AGENT}::${claudeIntegration.id}`,
+          agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+          integrationId: parseInt(claudeIntegration.id, 10),
           stoppingPoint: 'root_cause',
           autoCreatePr: false,
         });
       } else {
         updateSeerSettings({
-          agentOption: 'seer',
+          agent: 'seer',
           stoppingPoint: value,
         });
       }
@@ -320,42 +294,36 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   // Controls whether Cursor agent auto-creates PRs
   const handleAutoCreatePrChange = useCallback(
     (value: boolean) => {
-      if (!setting || setting.agent === 'seer') {
+      if (!preference?.automation_handoff) {
         return;
       }
-      if (value) {
-        updateSeerSettings({
-          agentOption: `${setting.agent}::${setting.integrationId}`,
-          stoppingPoint: 'open_pr',
-        });
-      } else {
-        updateSeerSettings({
-          agentOption: `${setting.agent}::${setting.integrationId}`,
-          stoppingPoint: 'code_changes',
-        });
-      }
+      updateSeerSettings({
+        agent: preference.automation_handoff.target,
+        integrationId: preference.automation_handoff.integration_id,
+        autoCreatePr: value,
+      });
     },
-    [setting, updateSeerSettings]
+    [preference, updateSeerSettings]
   );
 
   // Handler for changing which integration is used for automation handoff
   const handleIntegrationChange = useCallback(
     (integrationId: number) => {
-      if (!setting || setting.agent === 'seer') {
+      if (!preference?.automation_handoff) {
         return;
       }
       updateSeerSettings({
-        agentOption: `${setting.agent}::${integrationId}`,
-        autoCreatePr: setting.autoCreatePr ?? false,
+        agent: preference.automation_handoff.target,
+        integrationId,
+        autoCreatePr: preference.automation_handoff.auto_create_pr ?? false,
       });
     },
-    [setting, updateSeerSettings]
+    [preference, updateSeerSettings]
   );
 
   const automatedRunStoppingPointField = {
     name: 'automated_run_stopping_point',
     label: t('Where should Seer stop?'),
-    disabled: isKnownAgentsPending,
     help: () =>
       t(
         'Choose how far Seer should go during automated runs before stopping for your approval. This does not affect Issue Fixes that you manually start.'
@@ -454,18 +422,13 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
 
   const automationTuning = project.autofixAutomationTuning ?? 'off';
 
-  // The form's stopping-point field has no "off" option, so fall back to
-  // "root_cause" when Seer isn't handing off to a coding agent.
-  const automatedRunStoppingPoint =
-    setting && setting.stoppingPoint !== 'off' ? setting.stoppingPoint : 'root_cause';
-
   return (
     <Fragment>
       <Form
         key={`${project.seerScannerAutomation}-${project.autofixAutomationTuning}-${
-          setting && setting.agent !== 'seer'
-            ? `${setting.agent}_handoff`
-            : automatedRunStoppingPoint
+          preference?.automation_handoff
+            ? `${preference.automation_handoff.target}_handoff`
+            : (preference?.automated_run_stopping_point ?? 'root_cause')
         }`}
         saveOnBlur
         apiMethod="PUT"
@@ -474,12 +437,12 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           autofixAutomationTuning: automationTuning,
-          automated_run_stopping_point:
-            setting && setting.agent !== 'seer'
-              ? setting.agent === CodingAgentProvider.CLAUDE_CODE_AGENT
-                ? 'claude_handoff'
-                : 'cursor_handoff'
-              : automatedRunStoppingPoint,
+          automated_run_stopping_point: preference?.automation_handoff
+            ? preference.automation_handoff.target ===
+              CodingAgentProvider.CLAUDE_CODE_AGENT
+              ? 'claude_handoff'
+              : 'cursor_handoff'
+            : (preference?.automated_run_stopping_point ?? 'root_cause'),
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
@@ -495,14 +458,13 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         />
       </Form>
       <CodingAgentSettings
-        setting={setting}
-        isKnownAgentsPending={isKnownAgentsPending}
+        preference={preference}
         handleAutoCreatePrChange={handleAutoCreatePrChange}
         isAutomationOn={automationTuning && automationTuning !== 'off'}
         handleIntegrationChange={handleIntegrationChange}
         canWriteProject={canWriteProject}
         codingAgentIntegrations={
-          setting?.agent === CodingAgentProvider.CLAUDE_CODE_AGENT
+          preference?.automation_handoff?.target === CodingAgentProvider.CLAUDE_CODE_AGENT
             ? claudeIntegrations
             : cursorIntegrations
         }
