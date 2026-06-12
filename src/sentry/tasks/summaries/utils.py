@@ -68,11 +68,8 @@ class OrganizationReportContext:
 
 class ProjectContext:
     accepted_error_count = 0
-    dropped_error_count = 0
     accepted_transaction_count = 0
-    dropped_transaction_count = 0
     accepted_replay_count = 0
-    dropped_replay_count = 0
 
     prev_week_accepted_error_count = 0
     prev_week_accepted_transaction_count = 0
@@ -106,9 +103,9 @@ class ProjectContext:
         return "\n".join(
             [
                 f"{self.key_errors_by_group}, ",
-                f"Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]",
-                f"Transactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]",
-                f"Replays: [Accepted {self.accepted_replay_count} Dropped {self.dropped_replay_count}]",
+                f"Errors: [Accepted {self.accepted_error_count}]",
+                f"Transactions: [Accepted {self.accepted_transaction_count}]",
+                f"Replays: [Accepted {self.accepted_replay_count}]",
             ]
         )
 
@@ -118,11 +115,8 @@ class ProjectContext:
             and not self.key_transactions
             and not self.key_performance_issues
             and not self.accepted_error_count
-            and not self.dropped_error_count
             and not self.accepted_transaction_count
-            and not self.dropped_transaction_count
             and not self.accepted_replay_count
-            and not self.dropped_replay_count
         )
 
 
@@ -704,9 +698,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("timestamp"), Op.LT, end + timedelta(days=1)),
             Condition(Column("org_id"), Op.EQ, ctx.organization.id),
-            Condition(
-                Column("outcome"), Op.IN, [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
-            ),
+            Condition(Column("outcome"), Op.EQ, Outcome.ACCEPTED),
             Condition(
                 Column("category"),
                 Op.IN,
