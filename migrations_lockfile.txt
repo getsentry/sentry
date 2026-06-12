@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0012_drop_metric_alert_cols_notificationmessage
 
-preprod: 0029_add_snapshot_comparison_chunks_columns
+preprod: 0030_add_images_errored_to_snapshot_comparison
 
 releases: 0004_cleanup_failed_safe_deletes
 
