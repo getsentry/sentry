@@ -285,18 +285,18 @@ def _parse_locality_config(
 
 
 def load_from_config(
-    region_config: list[CellConfig],
+    cell_config: list[CellConfig],
     locality_config: list[LocalityConfig],
 ) -> CellDirectory:
     try:
-        if not region_config and not locality_config:
+        if not cell_config and not locality_config:
             return generate_monolith_cell_directory()
-        cells = set(_parse_raw_config(region_config))
+        cells = set(_parse_raw_config(cell_config))
         localities = set(_parse_locality_config(locality_config))
         return CellDirectory(cells, localities)
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        raise CellConfigurationError("Unable to parse region_config.") from e
+        raise CellConfigurationError("Unable to parse cell config.") from e
 
 
 _global_directory: CellDirectory | None = None

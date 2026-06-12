@@ -232,14 +232,12 @@ hidden_regions = [
         name="us",
         snowflake_id=1,
         address="https//us.testserver",
-        category=cell.RegionCategory.MULTI_TENANT,
     ),
     cell.Cell(
         name="eu",
         snowflake_id=5,
         address="https//eu.testserver",
         visible=False,
-        category=cell.RegionCategory.MULTI_TENANT,
     ),
 ]
 
