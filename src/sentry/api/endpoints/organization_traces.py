@@ -962,7 +962,7 @@ def process_rpc_user_queries(
 
     set_span_attribute("user_queries_count", len(queries))
     sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
-    sentry_sdk.get_isolation_scope().set_attribute("user_queries.raw_queries", user_queries)
+    sentry_sdk.set_attribute("user_queries.raw_queries", user_queries)
 
     return queries
 
