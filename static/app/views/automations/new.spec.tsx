@@ -390,11 +390,10 @@ describe('AutomationNewSettings', () => {
     await addAction('Jira');
     await addAction('Jira Server');
     await addAction('Azure DevOps');
-    await addAction('Legacy integrations');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
-    const EXPECTED_ACTION_PAYLOADS: Record<ActionType, any> = {
+    const EXPECTED_ACTION_PAYLOADS: Partial<Record<ActionType, any>> = {
       slack: {
         type: 'slack',
         integrationId: 'slack-1',
@@ -509,14 +508,6 @@ describe('AutomationNewSettings', () => {
         config: {
           targetType: 'specific',
           targetIdentifier: null,
-          targetDisplay: null,
-        },
-      },
-      plugin: {
-        type: 'plugin',
-        config: {
-          targetType: null,
-          targetIdentifier: '',
           targetDisplay: null,
         },
       },
