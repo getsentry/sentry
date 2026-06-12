@@ -397,7 +397,8 @@ def buffered_delete_old_primary_hash(
     sentry_sdk.set_tag("old_group_id", group_id)
     sentry_sdk.set_attribute("old_group_id", group_id)
     sentry_sdk.set_tag("old_primary_hash", old_primary_hash)
-    sentry_sdk.set_attribute("old_primary_hash", old_primary_hash)
+    if old_primary_hash is not None:
+        sentry_sdk.set_attribute("old_primary_hash", old_primary_hash)
 
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
