@@ -45,7 +45,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Project's Error Events",
+        operation_id="listProjectEvents",
+        summary="List a Project's Error Events",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

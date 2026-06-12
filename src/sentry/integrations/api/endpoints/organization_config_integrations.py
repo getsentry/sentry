@@ -36,7 +36,8 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="Get Integration Provider Information",
+        operation_id="getOrganizationConfigIntegrations",
+        summary="Get Integration Provider Information",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IntegrationParams.PROVIDER_KEY,

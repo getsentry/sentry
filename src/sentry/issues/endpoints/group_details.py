@@ -174,7 +174,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Retrieve an Issue",
+        operation_id="getOrganizationIssue",
+        summary="Retrieve an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -375,7 +376,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
             raise
 
     @extend_schema(
-        operation_id="Update an Issue",
+        operation_id="updateOrganizationIssue",
+        summary="Update an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -449,7 +451,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
             return Response(body, status=e.status_code)
 
     @extend_schema(
-        operation_id="Remove an Issue",
+        operation_id="deleteOrganizationIssue",
+        summary="Remove an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,

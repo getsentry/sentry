@@ -61,7 +61,8 @@ class GroupEventsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
 
     @extend_schema(
-        operation_id="List an Issue's Events",
+        operation_id="listOrganizationIssueEvents",
+        summary="List an Issue's Events",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,

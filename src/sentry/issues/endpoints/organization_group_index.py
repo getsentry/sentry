@@ -277,7 +277,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return search_issues(request, organization, projects, environments, extra_query_kwargs)
 
     @extend_schema(
-        operation_id="List an Organization's Issues",
+        operation_id="listOrganizationIssues",
+        summary="List an Organization's Issues",
         description=(
             "Return a list of issues for an organization. "
             "All parameters are supplied as query string parameters. "
@@ -470,7 +471,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Bulk Mutate an Organization's Issues",
+        operation_id="updateOrganizationIssues",
+        summary="Bulk Mutate an Organization's Issues",
         description=(
             "Bulk mutate various attributes on a maxmimum of 1000 issues. \n"
             "- For non-status updates, the `id` query parameter is required. \n"
@@ -517,7 +519,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @extend_schema(
-        operation_id="Bulk Remove an Organization's Issues",
+        operation_id="deleteOrganizationIssues",
+        summary="Bulk Remove an Organization's Issues",
         description=(
             "Permanently remove the given issues. "
             "If IDs are provided, queries and filtering will be ignored. "

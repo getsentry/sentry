@@ -55,7 +55,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Project's Releases",
+        operation_id="listProjectReleases",
+        summary="List a Project's Releases",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

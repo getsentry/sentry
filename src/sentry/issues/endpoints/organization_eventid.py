@@ -54,7 +54,8 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
     )
 
     @extend_schema(
-        operation_id="Resolve an Event ID",
+        operation_id="resolveOrganizationEventId",
+        summary="Resolve an Event ID",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.EVENT_ID],
         request=None,
         responses={
