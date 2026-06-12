@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -238,8 +238,8 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <ReasoningWrapper>
-      <ReasoningToggle
+    <Fragment>
+      <Button
         size="zero"
         variant="link"
         onClick={e => {
@@ -248,40 +248,27 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
         }}
         aria-expanded={isExpanded}
       >
-        <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
-        <Text size="xs" variant="muted">
-          {t('Thinking')}
-        </Text>
-      </ReasoningToggle>
+        <Flex align="center" gap="xs" padding="sm md 0" width="100%" justify="start">
+          <Text size="xs" variant="muted" monospace italic>
+            {t('Thinking...')}
+          </Text>
+          <IconChevron
+            direction={isExpanded ? 'down' : 'right'}
+            size="xs"
+            variant="muted"
+          />
+        </Flex>
+      </Button>
       {isExpanded && (
-        <ReasoningContent>
-          <Container padding="md">
-            <MessageText size="sm" align="left">
-              <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
-            </MessageText>
-          </Container>
-        </ReasoningContent>
+        <Container padding="md">
+          <MessageText size="sm" align="left" variant="muted" monospace italic>
+            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+          </MessageText>
+        </Container>
       )}
-    </ReasoningWrapper>
+    </Fragment>
   );
 }
-
-const ReasoningWrapper = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const ReasoningToggle = styled(Button)`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  width: 100%;
-  justify-content: flex-start;
-`;
-
-const ReasoningContent = styled('div')`
-  opacity: 0.6;
-`;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
