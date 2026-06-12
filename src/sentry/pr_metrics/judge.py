@@ -32,6 +32,7 @@ from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.emit import active_attributions, emit_pr_metrics_row, resolved_group_ids
+from sentry.seer.code_review.utils import build_repo_definition
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import metrics
 
@@ -81,14 +82,10 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> d
         "organization_id": pull_request.organization_id,
         "repository_id": pull_request.repository_id,
         "pull_request_id": pull_request.id,
-        "repo": {
-            "provider": repository.provider,
-            "external_id": repository.external_id,
-            "name": repository.name,
-            "integration_id": (
-                str(repository.integration_id) if repository.integration_id is not None else None
-            ),
-        },
+        # The shared Seer RepoDefinition shape (split owner/name, bare provider
+        # slug) so Seer parses it directly; head_commit_sha is the PR tip Seer
+        # resolves the repo at, with the merge/head SHAs also sent below.
+        "repo": build_repo_definition(repository, head_commit_sha),
         "pr_number": pull_request.key,
         "close_action": close_action,
         "head_commit_sha": head_commit_sha,

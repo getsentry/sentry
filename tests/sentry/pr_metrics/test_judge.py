@@ -326,10 +326,15 @@ class ForwardPrToSeerJudgeTest(TestCase):
         assert body["close_action"] == "merged"
         assert body["head_commit_sha"] == HEAD_SHA
         assert body["merge_commit_sha"] == MERGE_SHA
+        # The shared Seer RepoDefinition shape: split owner/name and bare provider slug.
         assert body["repo"] == {
-            "provider": "integrations:github",
+            "provider": "github",
+            "owner": "getsentry",
+            "name": "sentry",
             "external_id": "10270250",
-            "name": "getsentry/sentry",
+            "base_commit_sha": HEAD_SHA,
+            "organization_id": self.organization.id,
+            "is_private": None,
             "integration_id": "99",
         }
         assert body["additions"] == 12
