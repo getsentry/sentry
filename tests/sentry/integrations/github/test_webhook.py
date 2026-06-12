@@ -837,6 +837,56 @@ class PushEventWebhookTest(APITestCase):
         assert external_actors[0].external_name == "@NewDev"
 
     @responses.activate
+    def test_push_after_pr_resolves_localhost_author(self) -> None:
+        """
+        When a PR webhook arrives before the push, the @localhost CommitAuthor
+        must not claim external_id. Otherwise the push webhook can't set it on
+        the real-email record (unique constraint collision), and the PR activity
+        permanently loses its actor.
+        """
+        self._setup_github_integration_and_repo()
+
+        pr_body = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        pr_body["pull_request"]["user"]["login"] = "newdev"
+        pr_body["pull_request"]["user"]["id"] = 99999
+        pr_bytes = json.dumps(pr_body).encode()
+        sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature("sha1", pr_bytes, self.secret)
+        sig256 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", pr_bytes, self.secret
+        )
+        response = self.client.post(
+            path=self.url,
+            data=pr_bytes,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE=f"sha1={sig1}",
+            HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+        # @localhost CommitAuthor exists but without external_id.
+        localhost_author = CommitAuthor.objects.get(
+            organization_id=self.organization.id, email="newdev@localhost"
+        )
+        assert localhost_author.external_id is None
+
+        # Push webhook sets external_id on the real-email record without collision.
+        assert (
+            self._send_push_event(
+                push_event_with_author(
+                    name="New Dev", email="newdev@example.com", username="newdev"
+                )
+            ).status_code
+            == 204
+        )
+
+        real_author = CommitAuthor.objects.get(
+            organization_id=self.organization.id, email="newdev@example.com"
+        )
+        assert real_author.external_id == "github:newdev"
+
+    @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github.webhook.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
