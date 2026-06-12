@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Literal
 
 from sentry.issues.grouptype import GroupCategory
@@ -42,3 +43,7 @@ def get_dataset_column_name(tsdb_model: TSDBModel, column_name: str) -> str | No
 
 def cache_key_for_issue_view(group_id: int, use_case: Literal["mcp"]) -> str:
     return f"issue.viewed.{use_case}:{group_id}"
+
+
+# TODO: slowly increase to 1 day if possible
+ISSUE_VIEW_CACHE_KEY_TTL = int(timedelta(hours=2).total_seconds())

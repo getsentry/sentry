@@ -9,7 +9,7 @@ from django.core.cache import cache
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.issues.constants import cache_key_for_issue_view
+from sentry.issues.constants import ISSUE_VIEW_CACHE_KEY_TTL, cache_key_for_issue_view
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestActivity,
@@ -157,7 +157,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             relationship=GroupLink.Relationship.resolves,
             linked_id=self.pr.id,
         )
-        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", 4 * 60 * 60)
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
 
         with self.feature("organizations:mcp-issue-view-attribution"):
             self._call(user_id=999)
@@ -205,7 +205,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             relationship=GroupLink.Relationship.resolves,
             linked_id=self.pr.id,
         )
-        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", 4 * 60 * 60)
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
 
         with self.feature("organizations:mcp-issue-view-attribution"):
             self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
