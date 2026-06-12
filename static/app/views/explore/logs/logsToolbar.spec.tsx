@@ -162,6 +162,52 @@ describe('LogsToolbar', () => {
       );
     });
 
+    it('keeps the selected field when it is not in the default attribute list', async () => {
+      const searchAttributesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {
+            attributeType: 'number',
+            key: 'searched_number',
+            name: 'searched_number',
+            attributeSource: {source_type: 'custom'},
+          },
+        ],
+        match: [MockApiClient.matchQuery({substringMatch: 'searched'})],
+      });
+
+      const {router} = render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      // The default number attributes do not include `searched_number`.
+      await userEvent.click(screen.getByRole('button', {name: 'count'}));
+      await userEvent.click(screen.getByRole('option', {name: 'avg'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const searchInput = screen.getByRole('textbox');
+      await userEvent.type(searchInput, 'searched');
+      await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
+
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'searched_number'})
+      );
+
+      // Once the search clears, `searched_number` is no longer in the fetched
+      // attributes, but the dropdown must keep displaying the selected field
+      // rather than reverting to an empty value.
+      expect(router.location.query.aggregateField).toEqual(
+        [{groupBy: ''}, {yAxes: ['avg(searched_number)'], visible: false}].map(
+          aggregateField => JSON.stringify(aggregateField)
+        )
+      );
+      expect(
+        await screen.findByRole('button', {name: 'searched_number'})
+      ).toBeInTheDocument();
+    });
+
     it('can add/delete visualizes', async () => {
       const {router} = render(<LogsToolbar />, {
         organization,

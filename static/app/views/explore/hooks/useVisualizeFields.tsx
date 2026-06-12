@@ -15,6 +15,7 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {sortKnownAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -129,6 +130,23 @@ function getSupportedAttributes({
         }
         return filtered;
       }
+    }
+
+    return numberTags;
+  }
+
+  if (traceItemType === TraceItemDataset.LOGS) {
+    if (functionName === AggregationKey.COUNT) {
+      return {
+        [OurLogKnownFieldKey.MESSAGE]: {
+          name: t('logs'),
+          key: OurLogKnownFieldKey.MESSAGE,
+        },
+      };
+    }
+
+    if (functionName === AggregationKey.COUNT_UNIQUE) {
+      return {...numberTags, ...stringTags, ...booleanTags};
     }
 
     return numberTags;
