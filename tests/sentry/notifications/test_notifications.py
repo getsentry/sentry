@@ -231,6 +231,82 @@ class ActivityNotificationTest(APITestCase):
         assert "as a regression in 777" in context["text_description"]
         assert "as a regression in <a href=" in context["html_description"]
 
+    def test_regression_uses_event_metadata_not_stale_group_data(
+        self, mock_post: MagicMock
+    ) -> None:
+        """
+        When a regression notification fires, the group's in-DB metadata may still
+        reflect a previous event because buffer_incr hasn't flushed. The activity
+        carries a snapshot of the triggering event's metadata; the notification
+        should use that instead of the (potentially stale) group data.
+        """
+        group = self.create_group(
+            message="missing field 'name'",
+            data={
+                "type": "error",
+                "metadata": {"type": "ValueError", "value": "missing field 'name'"},
+                "title": "ValueError: missing field 'name'",
+            },
+        )
+
+        notification = RegressionActivityNotification(
+            Activity(
+                project=self.project,
+                group=group,
+                user_id=self.user.id,
+                type=ActivityType.SET_REGRESSION,
+                data={
+                    "version": "2.0.0",
+                    "event_type": "error",
+                    "event_metadata": {
+                        "type": "ValueError",
+                        "value": "timeout connecting to database",
+                    },
+                    "event_title": "ValueError: timeout connecting to database",
+                },
+            )
+        )
+
+        assert notification.group.data["metadata"]["value"] == "timeout connecting to database"
+        assert notification.group.data["title"] == "ValueError: timeout connecting to database"
+        assert notification.group.data["type"] == "error"
+
+        subject = notification.get_subject()
+        assert "timeout connecting to database" in subject
+        assert "missing field" not in subject
+
+    def test_regression_without_event_metadata_falls_back_to_group(
+        self, mock_post: MagicMock
+    ) -> None:
+        """
+        Old regression activities created before this fix won't have event_metadata.
+        The notification should fall back to the group's data gracefully.
+        """
+        group = self.create_group(
+            message="original error",
+            data={
+                "type": "error",
+                "metadata": {"type": "RuntimeError", "value": "original error"},
+                "title": "RuntimeError: original error",
+            },
+        )
+
+        notification = RegressionActivityNotification(
+            Activity(
+                project=self.project,
+                group=group,
+                user_id=self.user.id,
+                type=ActivityType.SET_REGRESSION,
+                data={"version": "1.0.0"},
+            )
+        )
+
+        assert notification.group.data["metadata"]["value"] == "original error"
+        assert notification.group.data["title"] == "RuntimeError: original error"
+
+        subject = notification.get_subject()
+        assert "original error" in subject
+
     @patch("sentry.analytics.record")
     def test_sends_resolution_notification(
         self, record_analytics: MagicMock, mock_post: MagicMock

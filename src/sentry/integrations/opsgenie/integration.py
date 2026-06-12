@@ -28,7 +28,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,
@@ -237,9 +237,6 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.ENTERPRISE_ALERT_RULE,
         ]
     )
-
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [OpsgenieInstallationApiStep()]

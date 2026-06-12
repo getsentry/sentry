@@ -15,9 +15,11 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
@@ -51,6 +53,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     permission_classes = (IncidentPermission,)
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-index")
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List Incidents that a User can access within an Organization

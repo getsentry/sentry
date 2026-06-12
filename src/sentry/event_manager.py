@@ -1746,7 +1746,12 @@ def _get_next_short_id(project: Project, delta: int = 1) -> int:
     return short_id
 
 
-def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
+def _handle_regression(
+    group: Group,
+    event: BaseEvent,
+    release: Release | None,
+    incoming_group_values: Mapping[str, Any] | None = None,
+) -> bool | None:
     if not group.is_resolved():
         return None
 
@@ -1859,10 +1864,15 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             )
 
     if is_regression:
-        activity_data: dict[str, str | bool] = {
+        activity_data: dict[str, Any] = {
             "event_id": event.event_id,
             "version": release.version if release else "",
         }
+        if incoming_group_values and options.get("groups.regression-activity-event-metadata"):
+            event_data = incoming_group_values.get("data", {})
+            activity_data["event_metadata"] = event_data.get("metadata", {})
+            activity_data["event_title"] = event_data.get("title", "")
+            activity_data["event_type"] = event_data.get("type", "default")
         if resolved_in_activity and release:
             activity_data.update(
                 {
@@ -1960,7 +1970,7 @@ def _process_existing_aggregate(
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
-    is_regression = _handle_regression(group, event, release)
+    is_regression = _handle_regression(group, event, release, incoming_group_values)
 
     existing_data = group.data
     existing_metadata = group.data.get("metadata", {})

@@ -1,7 +1,7 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
+from django.contrib.auth.models import AnonymousUser
 
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
@@ -11,14 +11,15 @@ import sentry.issues.status_change
 import sentry.models.group
 import sentry.models.groupassignee
 import sentry.models.groupinbox
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionContext,
-    DuplicateActionError,
     GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.base import ActionSource
@@ -134,6 +135,54 @@ class TestResolveActionSource(TestCase):
     def test_generic_api_fallback(self) -> None:
         request = _make_request(meta={"HTTP_USER_AGENT": "python-requests/2.31.0"})
         assert resolve_action_source(request) == "api"
+
+
+class TestResolveActionActor(TestCase):
+    def _request(self, *, auth: Any = None, user: Any = None) -> MagicMock:
+        request = MagicMock()
+        request.auth = auth
+        request.user = user if user is not None else AnonymousUser()
+        return request
+
+    def test_session_user(self) -> None:
+        request = self._request(user=self.user)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
+    def test_personal_api_token(self) -> None:
+        auth = AuthenticatedToken(kind="api_token", user_id=self.user.id)
+        request = self._request(auth=auth, user=self.user)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
+    def test_org_auth_token(self) -> None:
+        auth = AuthenticatedToken(kind="org_auth_token", organization_id=self.organization.id)
+        request = self._request(auth=auth)
+        assert resolve_action_actor(request) == GroupActionActor.org(self.organization.id)
+
+    def test_legacy_api_key_is_org_actor(self) -> None:
+        auth = AuthenticatedToken(kind="api_key", organization_id=self.organization.id)
+        request = self._request(auth=auth)
+        assert resolve_action_actor(request) == GroupActionActor.org(self.organization.id)
+
+    def test_sentry_app_token_resolves_to_app(self) -> None:
+        sentry_app = self.create_sentry_app(organization=self.organization)
+        auth = AuthenticatedToken(
+            kind="api_token",
+            application_id=sentry_app.application_id,
+            user_id=sentry_app.proxy_user.id,
+        )
+        request = self._request(auth=auth, user=sentry_app.proxy_user)
+        assert resolve_action_actor(request) == GroupActionActor.sentry_app(sentry_app.id)
+
+    def test_user_oauth_token_with_application_id_is_user(self) -> None:
+        # An OAuth client acting on behalf of a user (e.g. the MCP) has an application_id but
+        # authenticates as the real user (is_sentry_app=False), so it must resolve to USER and
+        # not trigger a SentryApp lookup.
+        auth = AuthenticatedToken(kind="api_token", user_id=self.user.id, application_id=987654)
+        request = self._request(auth=auth, user=self.user)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
+    def test_unauthenticated_is_system(self) -> None:
+        assert resolve_action_actor(self._request()) == SYSTEM_ACTOR
 
 
 class TestActionContext(TestCase):
@@ -575,24 +624,6 @@ class TestPublishActionWrite(TestCase):
         )
         assert len(entries) == 3
         assert entries[0].id < entries[1].id < entries[2].id
-
-    def test_duplicate_idempotency_key_raises(self) -> None:
-        kwargs = dict(
-            source=ActionSource.API,
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            actor=GroupActionActor.user(self.user.id),
-            idempotency_key="view-123",
-        )
-
-        with self.options({"issues.action-log.write-to-db": True}):
-            publish_action(ViewAction(), **kwargs)
-
-            with pytest.raises(DuplicateActionError):
-                publish_action(ViewAction(), **kwargs)
-
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
     def test_option_disabled_skips_write(self) -> None:
         with self.options({"issues.action-log.write-to-db": False}):

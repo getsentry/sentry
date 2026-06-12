@@ -241,6 +241,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+        sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
@@ -251,6 +252,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 and referrer.startswith("seer.")
             ):
                 sentry_sdk.set_tag("query.from_seer", True)
+                sentry_sdk.set_attribute("query.from_seer", True)
             else:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
@@ -363,6 +365,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     if has_errors and has_other_data and not using_metrics:
                         # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                         sentry_sdk.set_tag("third_split_query", True)
+                        sentry_sdk.set_attribute("third_split_query", True)
                         transaction_results = _data_fn(
                             transactions.query, offset, limit, scoped_query
                         )

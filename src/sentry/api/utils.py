@@ -372,6 +372,7 @@ def handle_query_errors() -> Generator[None]:
     except InvalidColumnError as error:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_attribute("query.error_reason", message)
         raise ParseError(detail=message)
     except InvalidSearchQuery as error:
         message = original_error = str(error)
@@ -379,34 +380,42 @@ def handle_query_errors() -> Generator[None]:
         if message.endswith("do not exist or are not actively selected."):
             message = "Project in query does not exist or not selected"
         sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_attribute("query.error_reason", message)
         logger.info("A query error was handled", extra={"query.error_reason": message})
         raise ParseError(detail=original_error)
     except ArithmeticError as error:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_attribute("query.error_reason", message)
         raise ParseError(detail=message)
     except QueryOutsideRetentionError as error:
         sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
+        sentry_sdk.set_attribute("query.error_reason", "QueryOutsideRetentionError")
         raise ParseError(detail=str(error))
     except QueryIllegalTypeOfArgument:
         message = "Invalid query. Argument to function is wrong type."
         sentry_sdk.set_tag("query.error_reason", message)
+        sentry_sdk.set_attribute("query.error_reason", message)
         raise ParseError(detail=message)
     except IncompatibleMetricsQuery as error:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
+        sentry_sdk.set_attribute("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
     except SnubaRPCRateLimitExceeded:
         sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+        sentry_sdk.set_attribute("query.error_reason", "RateLimitExceeded")
         raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
     except SnubaRPCTooManySimultaneous:
         sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
+        sentry_sdk.set_attribute("query.error_reason", "TooManySimultaneousQueries")
         raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
+            sentry_sdk.set_attribute("query.error_reason", "Timeout")
             raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         sentry_sdk.capture_exception(error)
         if hasattr(error, "debug"):
@@ -422,9 +431,11 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+            sentry_sdk.set_attribute("query.error_reason", "RateLimitExceeded")
             raise
         if isinstance(error, QueryTooManySimultaneous):
             sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
+            sentry_sdk.set_attribute("query.error_reason", "TooManySimultaneousQueries")
             raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
@@ -437,9 +448,11 @@ def handle_query_errors() -> Generator[None]:
             ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
+            sentry_sdk.set_attribute("query.error_reason", "Timeout")
             raise TimeoutException(detail=TIMEOUT_ERROR_MESSAGE)
         elif isinstance(error, (UnqualifiedQueryError)):
             sentry_sdk.set_tag("query.error_reason", str(error))
+            sentry_sdk.set_attribute("query.error_reason", str(error))
             raise ParseError(detail=str(error))
         elif isinstance(
             error,
@@ -468,6 +481,7 @@ def handle_query_errors() -> Generator[None]:
         is_timeout = "canceling statement due to statement timeout" in error_message
         if is_timeout:
             sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
+            sentry_sdk.set_attribute("query.error_reason", "Postgres statement timeout")
             sentry_sdk.capture_exception(error, level="warning")
             raise Throttled(
                 detail="Query timeout. Please try with a smaller date range or fewer conditions."
@@ -486,6 +500,7 @@ def update_snuba_params_with_timestamp(
     faster than the default 7d or 14d queries"""
     # during the transition this is optional but it will become required for the trace view
     sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
+    sentry_sdk.set_attribute("trace_view.used_timestamp", timestamp_key in request.GET)
     has_dates = params.start is not None and params.end is not None
     if timestamp_key in request.GET and has_dates:
         example_timestamp = parse_datetime_string(request.GET[timestamp_key])

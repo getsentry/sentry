@@ -834,7 +834,7 @@ interface GroupActivityMerge extends GroupActivityBase {
 
 interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   data: {
-    afterDays?: number;
+    after_days?: number;
   };
   type: GroupActivityType.AUTO_SET_ONGOING;
 }

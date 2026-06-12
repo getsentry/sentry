@@ -52,6 +52,9 @@ importers:
       '@intercom/messenger-js-sdk':
         specifier: ^0.0.18
         version: 0.0.18
+      '@jest/test-result':
+        specifier: 30.4.1
+        version: 30.4.1
       '@mdx-js/loader':
         specifier: ^3.1.0
         version: 3.1.0(acorn@8.16.0)(webpack@5.99.6(@swc/core@1.15.33)(esbuild@0.25.10)(postcss@8.5.3))
@@ -187,6 +190,9 @@ importers:
       '@sentry-internal/rrweb-snapshot':
         specifier: 2.41.0
         version: 2.41.0
+      '@sentry/browser':
+        specifier: 10.57.0
+        version: 10.57.0
       '@sentry/conventions':
         specifier: ^0.8.0
         version: 0.8.0

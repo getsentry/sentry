@@ -715,7 +715,7 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         ],
         # Not every key in DATASET_OPTIONS is listed here — internal,
         # metrics-layer, and deprecated aliases (e.g. "ourlogs",
-        # "metricsEnhanced", "spansIndexed") are intentionally omitted so
+        # "metricsEnhanced") are intentionally omitted so
         # the public API surface stays stable as backends migrate to EAP.
         description="""Which dataset to query. The chosen dataset determines which fields are queryable.
 - `errors` - Error events.

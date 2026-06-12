@@ -1193,14 +1193,32 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
         assert comparison.error_code is None
 
-    def test_detect_expired_preprod_artifacts_ignores_stale_pending_snapshot_comparison(
+    def test_detect_expired_preprod_artifacts_expires_stuck_pending_snapshot_comparison(
         self,
     ) -> None:
-        """An old snapshot comparison still in PENDING is left alone"""
+        """A snapshot comparison stuck in PENDING for >30 minutes is marked FAILED.
+
+        Selective-base reconstruction parks a comparison in PENDING between deferral
+        retries; if the rescheduled task is ever lost, the row would otherwise orphan
+        forever. A healthy or actively-deferring row keeps date_updated fresh, so the
+        stale threshold only catches a genuinely orphaned one.
+        """
         old_time = timezone.now() - timedelta(minutes=35)
 
         comparison = self._create_snapshot_comparison(state=PreprodSnapshotComparison.State.PENDING)
         PreprodSnapshotComparison.objects.filter(id=comparison.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.TIMEOUT
+
+    def test_detect_expired_preprod_artifacts_ignores_recent_pending_snapshot_comparison(
+        self,
+    ) -> None:
+        """A freshly-created PENDING comparison (about to be picked up) is left alone."""
+        comparison = self._create_snapshot_comparison(state=PreprodSnapshotComparison.State.PENDING)
 
         detect_expired_preprod_artifacts()
 
