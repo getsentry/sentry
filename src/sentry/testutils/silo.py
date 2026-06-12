@@ -23,7 +23,7 @@ from django.test import override_settings
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
 from sentry.testutils.cell import get_test_env_directory, override_cells
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
@@ -79,20 +79,14 @@ def monkey_patch_single_process_silo_mode_state():
     SingleProcessSiloModeState.get_cell = staticmethod(get_cell)  # type: ignore[method-assign]
 
 
-def create_test_cells(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
+def create_test_cells(*names: str) -> tuple[Cell, ...]:
     from sentry.api.utils import generate_locality_url
 
-    single_tenants = frozenset(single_tenants)
     return tuple(
         Cell(
             name=name,
             snowflake_id=index + 1,
             address=generate_locality_url(name),
-            category=(
-                RegionCategory.SINGLE_TENANT
-                if name in single_tenants
-                else RegionCategory.MULTI_TENANT
-            ),
         )
         for (index, name) in enumerate(names)
     )

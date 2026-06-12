@@ -66,15 +66,14 @@ class CellDirectoryTest(TestCase):
     ]
 
     _EXPECTED_OUTPUTS = (
-        Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+        Cell("us", 1, "http://us.testserver"),
         Cell(
             "eu",
             2,
             "http://eu.testserver",
-            RegionCategory.MULTI_TENANT,
             "http://eu-gateway.testserver",
         ),
-        Cell("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
+        Cell("acme", 3, "http://acme.testserver"),
     )
 
     @staticmethod

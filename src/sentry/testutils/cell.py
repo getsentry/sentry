@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 from django.test import override_settings
 
-from sentry.types.cell import Cell, CellDirectory, Locality, get_global_directory
+from sentry.types.cell import Cell, CellDirectory, Locality, RegionCategory, get_global_directory
 
 
 class TestEnvCellDirectory(CellDirectory):
@@ -24,7 +24,7 @@ class TestEnvCellDirectory(CellDirectory):
                 Locality(
                     name=c.name,
                     cells=frozenset([c.name]),
-                    category=c.category,
+                    category=RegionCategory.MULTI_TENANT,
                     visible=c.visible,
                     new_org_cell=c.name,
                 )
