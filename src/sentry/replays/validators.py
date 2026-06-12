@@ -68,7 +68,7 @@ UTC ISO8601 or epoch seconds. Use along with `start` instead of `statsPeriod`.
     )
     project = serializers.ListField(
         required=False,
-        help_text="The ID of the projects to filter by.",
+        help_text="A list of project IDs or slugs to filter by.",
         child=ProjectIdOrSlugField(),
     )
     projectSlug = serializers.ListField(
@@ -117,7 +117,7 @@ class ReplaySelectorValidator(serializers.Serializer):
     )
     project = serializers.ListField(
         required=False,
-        help_text="The ID of the projects to filter by.",
+        help_text="A list of project IDs or slugs to filter by.",
         child=ProjectIdOrSlugField(),
     )
     projectSlug = serializers.ListField(
