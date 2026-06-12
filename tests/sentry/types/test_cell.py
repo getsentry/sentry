@@ -270,7 +270,6 @@ class CellDirectoryTest(TestCase):
                 "name": "ja",
                 "snowflake_id": 4,
                 "address": "https://ja.testserver",
-                "category": RegionCategory.MULTI_TENANT.name,
                 "visible": False,
             },
         ]

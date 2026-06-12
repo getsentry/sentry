@@ -436,7 +436,7 @@ class _ClientConfig:
         ):
             return []
 
-        def cell_display_order(cell: Cell) -> tuple[bool, bool, bool, str]:
+        def cell_display_order(cell: Cell) -> tuple[bool, bool, str]:
             return (
                 cell.name != settings.SENTRY_MONOLITH_REGION,  # default historical cell comes first
                 not cell.visible,  # visible cells first
