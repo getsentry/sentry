@@ -22,6 +22,7 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
+import {getBorderBoxAnchoredOverlayStyle} from 'sentry/components/searchQueryBuilder/dropdownAlignment';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -353,7 +354,11 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
       <StyledPositionWrapper
         {...overlayProps}
         visible={isOpen}
-        style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
+        style={{
+          position: 'absolute',
+          top: 38,
+          ...getBorderBoxAnchoredOverlayStyle(wrapperRef.current),
+        }}
       >
         <SectionedOverlay
           ref={popoverRef}
