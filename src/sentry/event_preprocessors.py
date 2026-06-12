@@ -11,19 +11,20 @@ from sentry.lang.java.utils import has_proguard_file
 from sentry.plugins.base.v2 import EventPreprocessor
 
 
-def get_event_preprocessor(data: Mapping[str, Any]) -> EventPreprocessor | None:
-    """Return the single preprocessor needed for this event, or None."""
+def get_event_preprocessors(data: Mapping[str, Any]) -> list[EventPreprocessor]:
+    """Return all preprocessors needed for this event."""
     from sentry.lang.dart.utils import deobfuscate_exception_type
     from sentry.lang.java.processing import deobfuscate_exception_value
     from sentry.lang.javascript.preprocessing import preprocess_event
 
+    preprocessors: list[EventPreprocessor] = []
     if has_proguard_file(data):
-        return deobfuscate_exception_value
-    elif data.get("platform") in ("javascript", "node"):
-        return preprocess_event
-    elif _is_obfuscated_dart_event(data):
-        return deobfuscate_exception_type
-    return None
+        preprocessors.append(deobfuscate_exception_value)
+    if data.get("platform") in ("javascript", "node"):
+        preprocessors.append(preprocess_event)
+    if _is_obfuscated_dart_event(data):
+        preprocessors.append(deobfuscate_exception_type)
+    return preprocessors
 
 
 def _is_obfuscated_dart_event(data: Mapping[str, Any]) -> bool:

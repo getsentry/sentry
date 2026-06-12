@@ -13,7 +13,7 @@ from sentry_relay.processing import StoreNormalizer
 from sentry import features, options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
-from sentry.event_preprocessors import get_event_preprocessor
+from sentry.event_preprocessors import get_event_preprocessors
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
@@ -58,8 +58,11 @@ def should_process(data: Mapping[str, Any]) -> bool:
         return False
 
     project = Project.objects.get_from_cache(id=data["project"])
+    project.set_cached_field_value(
+        "organization", Organization.objects.get_from_cache(id=project.organization_id)
+    )
     if features.has("organizations:event-preprocessors-without-plugins", project.organization):
-        if get_event_preprocessor(data) is not None:
+        if get_event_preprocessors(data):
             return True
         for plugin in plugins.all(version=2):
             if plugin.slug in LANGUAGE_PLUGIN_SLUGS:
@@ -415,8 +418,7 @@ def do_process_event(
         "organizations:event-preprocessors-without-plugins", project.organization
     )
     if use_new_preprocessors:
-        event_preprocessor = get_event_preprocessor(data)
-        preprocessors = [event_preprocessor] if event_preprocessor is not None else []
+        preprocessors = get_event_preprocessors(data)
         for plugin in plugins.all(version=2):
             if plugin.slug in LANGUAGE_PLUGIN_SLUGS:
                 continue

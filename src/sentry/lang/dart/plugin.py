@@ -8,6 +8,8 @@ from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 
 
+# Deprecated: preprocessor logic moved to sentry.event_preprocessors.
+# TODO(christinarlong): Delete after organizations:event-preprocessors-without-plugins is fully rolled out.
 class DartPlugin(Plugin2):
     """
     This plugin is responsible for Dart specific processing on events or attachments.
