@@ -884,7 +884,18 @@ register(
 register(
     "snuba.search.recommended.group-type-boost",
     type=Dict,
-    default={7001: 0.15},
+    # group type_id -> additive score boost. 7001 uptime domain check failure,
+    # 8001 metric issue, 3503-3507 AI-detected (http, db, runtime performance,
+    # security, code health).
+    default={
+        7001: 0.15,
+        8001: 0.15,
+        3503: 0.10,
+        3504: 0.10,
+        3505: 0.10,
+        3506: 0.10,
+        3507: 0.10,
+    },
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
