@@ -913,7 +913,11 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
             "required": False,
             "description": "Project ID or slug to scope the lookup when app_id is not unique across projects or project inference is unavailable.",
         }
-        assert "projectSlug" not in LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS
+        assert LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS["projectSlug"] == {
+            "type": "string",
+            "required": False,
+            "description": "Project slug to scope the lookup. Use either projectSlug or project when app_id is not unique across projects or project inference is unavailable.",
+        }
 
     @patch(
         "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
