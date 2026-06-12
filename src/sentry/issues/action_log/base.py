@@ -232,6 +232,7 @@ def publish_action(
         data=action.dict(),
     )
 
+    # TODO: Use the outbox to process derived data post-commit and possibly asynchronously.
     _process_derived_data(group_id)
 
 
