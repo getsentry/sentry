@@ -1,14 +1,17 @@
 import {useCallback} from 'react';
 
+import type {EventQuery} from 'sentry/actionCreators/events';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {createLogDownloadFilename} from 'sentry/views/explore/logs/createLogDownloadFilename';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {
@@ -21,16 +24,50 @@ export enum ExportQueryType {
 // NOTE: Coordinate with data_export's OutputMode (src/sentry/data_export/writers.py)
 export type DataExportFormat = 'csv' | 'jsonl';
 
-export interface DataExportPayload {
-  /**
-   * TODO(LOGS-702): Formalize different possible payloads
-   */
-  queryInfo: any;
-  queryType: ExportQueryType;
+interface IssuesByTagQueryInfo {
+  group: number | string;
+  key: string;
+  project: number | string;
+}
 
+type DiscoverQueryInfo = EventQuery & LocationQuery;
+
+interface ExploreQueryInfo {
+  dataset: TraceItemDataset;
+  field: string[];
+  project: number[];
+  query: string;
+  sort: string[];
+  end?: string;
+  environment?: string[];
+  start?: string;
+  statsPeriod?: string;
+}
+
+interface DataExportPayloadBase {
   format?: DataExportFormat;
   limit?: number;
 }
+
+interface IssuesByTagExportPayload extends DataExportPayloadBase {
+  queryInfo: IssuesByTagQueryInfo;
+  queryType: ExportQueryType.ISSUES_BY_TAG;
+}
+
+interface DiscoverExportPayload extends DataExportPayloadBase {
+  queryInfo: DiscoverQueryInfo;
+  queryType: ExportQueryType.DISCOVER;
+}
+
+interface ExploreExportPayload extends DataExportPayloadBase {
+  queryInfo: ExploreQueryInfo;
+  queryType: ExportQueryType.EXPLORE | ExportQueryType.TRACE_ITEM_FULL_EXPORT;
+}
+
+export type DataExportPayload =
+  | IssuesByTagExportPayload
+  | DiscoverExportPayload
+  | ExploreExportPayload;
 
 interface UseDataExportOptions {
   inProgressCallback?: (inProgress: boolean) => void;
