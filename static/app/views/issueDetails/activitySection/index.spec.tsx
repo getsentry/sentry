@@ -792,10 +792,45 @@ describe('ActivitySection', () => {
       project,
     });
 
-    render(<ActivitySection group={prGroup} />);
+    render(<ActivitySection group={prGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
     expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
     expect(screen.getByText('Shashank N Jarmale')).toBeInTheDocument();
+    expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
+    expect(screen.getByTestId('sentry-activity-marker')).toBeInTheDocument();
     expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
+  });
+
+  it('renders PR author avatar marker when PR author is a Sentry user', async () => {
+    const prGroup = GroupFixture({
+      id: '1345',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-author-user-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: UserFixture({
+                name: 'Shashank N Jarmale',
+                email: 'shash@sentry.io',
+              }) as any,
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={prGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByText('Shashank N Jarmale')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
+    expect(screen.queryByTestId('sentry-activity-marker')).not.toBeInTheDocument();
   });
 
   it('falls back to Sentry when PR has no author', async () => {
