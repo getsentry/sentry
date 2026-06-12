@@ -38,8 +38,8 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 # PR metrics is part of the prevent-AI domain, so the judge forward shares its
-# Seer host with code review. The path must match the Seer route (CW-1436); it's
-# the one value that has to agree on both sides of the contract.
+# Seer host with code review. The path must match the Seer route on the other
+# side — the one value that has to agree on both ends of the contract.
 SEER_PR_METRICS_JUDGE_PATH = "/v1/code_review/pr-metrics-judge"
 
 seer_pr_metrics_connection_pool = connection_from_url(
