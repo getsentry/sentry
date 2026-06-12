@@ -174,13 +174,14 @@ def get_by_short_id(
     organization_id: int,
     is_short_id_lookup: str,
     query: str,
-    project_ids: Collection[int] | None = None,
+    *,
+    project_ids: Collection[int] | None,
 ) -> Group | None:
     if is_short_id_lookup != "1":
         return None
     # A short id token anywhere in the query is treated as a direct hit,
-    # so it composes with filters. When project_ids is provided, the lookup is scoped to
-    # those projects so a short id for a project the caller cannot access does not resolve.
+    # so it composes with filters. project_ids scopes the lookup so a short id for a project
+    # the caller cannot access does not resolve; pass None only for org-wide callers.
     for token in query.split():
         if looks_like_short_id(token):
             try:
