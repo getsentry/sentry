@@ -157,12 +157,7 @@ class TestDeliverNightShiftResult(TestCase):
         assert results[0].extras["action"] == TriageAction.AUTOFIX.value
 
     def test_root_cause_only_verdict_is_not_actioned(self) -> None:
-        """ROOT_CAUSE_ONLY verdicts are intentionally ignored.
-
-        We're not getting much value from root-cause-only runs, so only full
-        AUTOFIX verdicts trigger autofix. ROOT_CAUSE_ONLY verdicts should not
-        trigger autofix or persist a result.
-        """
+        """ROOT_CAUSE_ONLY verdicts are intentionally ignored."""
         org = self.create_organization()
         project = self.create_project(organization=org)
         project.update_option(
