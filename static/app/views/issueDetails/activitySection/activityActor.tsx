@@ -2,9 +2,7 @@ import styled from '@emotion/styled';
 
 import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
 
-import type {Actor} from 'sentry/types/core';
 import type {GroupActivity} from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 
 export type ActivityActor =
@@ -13,8 +11,7 @@ export type ActivityActor =
       sentryApp: NonNullable<GroupActivity['sentry_app']>;
       type: 'sentry-app';
     }
-  | {name: string; type: 'user'; user: Actor | User}
-  | {name: string; type: 'external'}
+  | {name: string; type: 'user'; user: User}
   | {name: string; type: 'system'};
 
 export function getActivityActor(item: GroupActivity): ActivityActor {
@@ -23,29 +20,6 @@ export function getActivityActor(item: GroupActivity): ActivityActor {
   }
   if (item.user) {
     return {type: 'user', name: item.user.name, user: item.user};
-  }
-
-  if (item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST) {
-    const author = item.data.pullRequest?.author;
-
-    if (!author?.name || author.email?.endsWith('@localhost')) {
-      return {type: 'system', name: 'Sentry'};
-    }
-
-    const {name} = author;
-
-    if ('id' in author) {
-      const user: Actor = {
-        id: String(author.id),
-        name,
-        type: 'user',
-        email: author.email,
-      };
-
-      return {type: 'user', name, user};
-    }
-
-    return {type: 'external', name};
   }
 
   return {type: 'system', name: 'Sentry'};
