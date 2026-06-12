@@ -213,9 +213,6 @@ def build_pr_metrics_row(
         is_assigned=metrics.is_assigned,
         attributions=json.dumps(attributions),
         verdict=metrics.verdict,
-        verdict_details=(
-            json.dumps(metrics.verdict_details) if metrics.verdict_details is not None else None
-        ),
     )
 
 

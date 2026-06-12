@@ -356,9 +356,6 @@ class PullRequestMetrics(DefaultFieldsModel):
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="metrics"
     )
     verdict = models.CharField(max_length=64, null=True, choices=PullRequestVerdict.choices)
-    # The judge's evidence/reasoning for ``verdict``, as Seer returned it. Null on
-    # the deterministic (no-judge) path and until a judge callback lands a result.
-    verdict_details = models.JSONField(null=True)
     additions = BoundedPositiveIntegerField(default=0)
     deletions = BoundedPositiveIntegerField(default=0)
     files_changed = BoundedPositiveIntegerField(default=0)
