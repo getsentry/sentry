@@ -798,7 +798,8 @@ def build_pr_description_suffix(group: Group) -> str | None:
     lines = []
 
     if group.qualified_short_id:
-        lines.append(f"Fixes {group.qualified_short_id}")
+        issue_url = group.get_absolute_url(params={"seerDrawer": "true"})
+        lines.append(f"Fixes [{group.qualified_short_id}]({issue_url})")
 
     for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
         if external_issue.service_type == "linear":
@@ -815,6 +816,12 @@ def build_pr_description_suffix(group: Group) -> str | None:
                 continue
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
+
+    if features.has("organizations:autofix-pr-iteration", group.organization):
+        lines.append(
+            "<sub>💬 Reply to this PR with a comment mentioning `@sentry` and your "
+            "feedback, and Seer will push a commit to address it.</sub>"
+        )
 
     if lines:
         return "\n".join(lines)
