@@ -783,7 +783,7 @@ describe('ActivitySection', () => {
           dateCreated: '2020-01-01T00:00:00',
           data: {
             pullRequest: PullRequestFixture({
-              author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
+              author: {name: 'Test User', email: 'user@example.com'},
             }),
           },
           user: null,
@@ -796,7 +796,7 @@ describe('ActivitySection', () => {
       organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
     });
     expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
-    expect(screen.getByText('Shashank N Jarmale')).toBeInTheDocument();
+    expect(screen.getByText('Test User')).toBeInTheDocument();
     expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
     expect(screen.getByTestId('sentry-activity-marker')).toBeInTheDocument();
     expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
@@ -813,8 +813,8 @@ describe('ActivitySection', () => {
           data: {
             pullRequest: PullRequestFixture({
               author: UserFixture({
-                name: 'Shashank N Jarmale',
-                email: 'shash@sentry.io',
+                name: 'Test User',
+                email: 'user@example.com',
               }) as any,
             }),
           },
@@ -828,7 +828,7 @@ describe('ActivitySection', () => {
       organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
     });
     expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
-    expect(screen.getByText('Shashank N Jarmale')).toBeInTheDocument();
+    expect(screen.getByText('Test User')).toBeInTheDocument();
     expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
     expect(screen.queryByTestId('sentry-activity-marker')).not.toBeInTheDocument();
   });
