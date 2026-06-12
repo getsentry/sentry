@@ -96,9 +96,6 @@ class Cell:
     and `system.region-api-url-template`
     """
 
-    # TODO(cells): drop once category is fully moved to Locality
-    category: RegionCategory
-
     api_gateway_address: str | None = None
     """optional address for API gateway traffic."""
 
@@ -245,7 +242,6 @@ def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
         yield Cell(
             name=config_value["name"],
             snowflake_id=config_value["snowflake_id"],
-            category=RegionCategory(config_value["category"]),
             address=config_value["address"],
             api_gateway_address=config_value.get("api_gateway_address", None),
             visible=config_value.get("visible", True),
@@ -264,11 +260,10 @@ def generate_monolith_cell_directory() -> CellDirectory:
         name=settings.SENTRY_MONOLITH_REGION,
         snowflake_id=0,
         address=options.get("system.url-prefix"),
-        category=RegionCategory.MULTI_TENANT,
     )
     locality = Locality(
         name=cell.name,
-        category=cell.category,
+        category=RegionCategory.MULTI_TENANT,
         cells=frozenset([cell.name]),
         new_org_cell=cell.name,
         visible=cell.visible,
