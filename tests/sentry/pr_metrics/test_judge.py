@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+import orjson
+import pytest
+from urllib3.exceptions import HTTPError
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.pullrequest import (
@@ -8,15 +12,18 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     PullRequestMetrics,
+    PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import record_attribution_signal
-from sentry.pr_metrics.judge import update_pr_metrics
+from sentry.pr_metrics.judge import forward_pr_to_seer_judge, update_pr_metrics
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import get_event_count
 from sentry.testutils.silo import cell_silo_test
 
 HEAD_SHA = "a" * 40
+MERGE_SHA = "b" * 40
 # Past year avoids the S015 future-date lint.
+OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)
 CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
@@ -223,3 +230,136 @@ class UpdatePrMetricsTest(TestCase):
             "closed_unmerged"
         )
         assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_rejects_sentinel_verdict(self, mock_record: Any) -> None:
+        # JUDGE_IN_PROGRESS is Sentry's internal forward sentinel, never a judge
+        # result — Seer echoing it back is malformed input.
+        self._track()
+        result = self._call(verdict="judge_in_progress")
+
+        assert result == {"success": False, "error": "invalid_verdict"}
+        assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_settles_row_claimed_for_judge(self, mock_record: Any) -> None:
+        # The real flow: the forward path claimed JUDGE_IN_PROGRESS, and the callback
+        # transitions it to the judged verdict and emits.
+        self._track()
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
+        )
+        result = self._call(verdict="merged_with_iteration")
+
+        assert result == {"success": True}
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_with_iteration"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_retried_callback_does_not_re_emit(self, mock_record: Any) -> None:
+        # A retried Seer callback finds the row already settled — single-emit holds.
+        self._track()
+        self._call(verdict="merged_unchanged")
+        result = self._call(verdict="merged_unchanged")
+
+        assert result == {"success": True}
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_retried_callback_keeps_first_verdict(self, mock_record: Any) -> None:
+        # The first settled verdict is authoritative; a later differing callback is
+        # a no-op rather than overwriting and re-emitting.
+        self._track()
+        self._call(verdict="merged_unchanged")
+        result = self._call(verdict="merged_with_iteration")
+
+        assert result == {"success": True}
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+
+@cell_silo_test
+class ForwardPrToSeerJudgeTest(TestCase):
+    """The Sentry → Seer forward: assemble the judge request and classify the response."""
+
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        self.repo.update(external_id="10270250", integration_id=99)
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+        self.pull_request.update(
+            head_commit_sha=HEAD_SHA,
+            merge_commit_sha=MERGE_SHA,
+            opened_at=OPENED_AT,
+            closed_at=CLOSED_AT,
+            merged_at=CLOSED_AT,
+        )
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, additions=12, comments_count=5
+        )
+
+    def _response(self, status: int) -> Mock:
+        response = Mock()
+        response.status = status
+        return response
+
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_forwards_terminal_facts_and_repo_identity(self, mock_request: Any) -> None:
+        mock_request.return_value = self._response(202)
+        forward_pr_to_seer_judge(self.pull_request, self.repo)
+
+        kwargs = mock_request.call_args.kwargs
+        assert kwargs["path"] == "/v1/code_review/pr-metrics-judge"
+        body = orjson.loads(kwargs["body"])
+        assert body["pull_request_id"] == self.pull_request.id
+        assert body["organization_id"] == self.organization.id
+        assert body["repository_id"] == self.repo.id
+        assert body["pr_number"] == "42"
+        assert body["close_action"] == "merged"
+        assert body["head_commit_sha"] == HEAD_SHA
+        assert body["merge_commit_sha"] == MERGE_SHA
+        assert body["repo"] == {
+            "provider": "integrations:github",
+            "external_id": "10270250",
+            "name": "getsentry/sentry",
+            "integration_id": "99",
+        }
+        assert body["additions"] == 12
+        assert body["comments_count"] == 5
+
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_close_action_is_closed_when_unmerged(self, mock_request: Any) -> None:
+        mock_request.return_value = self._response(202)
+        self.pull_request.update(merged_at=None, merge_commit_sha=None)
+        forward_pr_to_seer_judge(self.pull_request, self.repo)
+
+        body = orjson.loads(mock_request.call_args.kwargs["body"])
+        assert body["close_action"] == "closed"
+        assert body["merge_commit_sha"] is None
+
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_retryable_status_raises_for_task_retry(self, mock_request: Any) -> None:
+        # 5xx/429 raise so the enclosing task's Retry policy kicks in.
+        mock_request.return_value = self._response(503)
+        with pytest.raises(HTTPError):
+            forward_pr_to_seer_judge(self.pull_request, self.repo)
+
+    @patch("sentry.pr_metrics.judge.metrics")
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_client_error_is_dropped_not_retried(
+        self, mock_request: Any, mock_metrics: Any
+    ) -> None:
+        # A permanent 4xx is observe-only: no raise (no retry), the row stays claimed.
+        mock_request.return_value = self._response(404)
+        forward_pr_to_seer_judge(self.pull_request, self.repo)
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}
+        )
