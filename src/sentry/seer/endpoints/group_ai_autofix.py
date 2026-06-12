@@ -113,7 +113,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "neither run_id nor sentry_run_id is provided, starts a new run."
         ),
     )
-    sentry_run_id = serializers.CharField(
+    sentry_run_id = serializers.UUIDField(
         required=False,
         help_text=(
             "Existing run's UUID to continue. Preferred over run_id, and takes "
@@ -226,11 +226,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
 
-        # A run can be referenced by its UUID (sentry_run_id) or its numeric Seer
-        # id (run_id); resolve to the numeric id here. Neither means a new run.
-        run_ref = data.get("sentry_run_id")
-        if run_ref is None:
-            run_ref = data.get("run_id")
+        # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
+        sentry_run_id_param = data.get("sentry_run_id")
+        run_ref: str | int | None = (
+            str(sentry_run_id_param) if sentry_run_id_param is not None else data.get("run_id")
+        )
 
         resolved_run_id: int | None = None
         resolved_sentry_run_id: str | None = None
@@ -324,8 +324,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     ),
                 )
             if is_autofix_kickoff:
-                # A kickoff returns only the numeric id; look up the mirror row
-                # start_run created to surface its UUID.
+                # Kickoff returns only the numeric id; fetch the mirror for its UUID.
                 run = get_seer_run(run_id, group.organization)
                 sentry_run_id = str(run.uuid) if run else None
             else:
