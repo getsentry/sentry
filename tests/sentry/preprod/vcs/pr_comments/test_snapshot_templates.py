@@ -55,6 +55,7 @@ class SnapshotPrCommentTestBase(TestCase):
         images_removed: int = 0,
         images_renamed: int = 0,
         images_unchanged: int = 10,
+        images_errored: int = 0,
     ) -> PreprodSnapshotComparison:
         return PreprodSnapshotComparison.objects.create(
             head_snapshot_metrics=head_metrics,
@@ -65,6 +66,7 @@ class SnapshotPrCommentTestBase(TestCase):
             images_removed=images_removed,
             images_renamed=images_renamed,
             images_unchanged=images_unchanged,
+            images_errored=images_errored,
         )
 
     def _create_approval(self, artifact: PreprodArtifact) -> PreprodComparisonApproval:
@@ -175,6 +177,52 @@ class FormatSnapshotPrCommentFailedTest(SnapshotPrCommentTestBase):
 
 @cell_silo_test
 class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
+    def test_comment_shows_errored_note_when_errored(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_unchanged=8,
+            images_errored=2,
+        )
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert "2 images failed to compare" in result
+
+    def test_comment_omits_errored_note_when_none(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_unchanged=10,
+            images_errored=0,
+        )
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert "failed to compare" not in result
+
     def test_no_changes_shows_unchanged(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App"

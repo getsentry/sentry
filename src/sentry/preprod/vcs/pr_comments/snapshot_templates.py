@@ -29,6 +29,7 @@ def format_snapshot_pr_comment(
         raise ValueError("Cannot format PR comment for empty artifact list")
 
     table_rows = []
+    total_errored = 0
 
     for artifact in artifacts:
         name_cell = _name_cell(artifact, snapshot_metrics_map, base_artifact_map)
@@ -88,8 +89,12 @@ def format_snapshot_pr_comment(
                 f" | {_section_cell(comparison.images_skipped, 'skipped', artifact_url)}"
                 f" | {status} |"
             )
+            total_errored += comparison.images_errored
 
     table = f"{_HEADER}\n\n{COMPARISON_TABLE_HEADER}" + "\n".join(table_rows)
+    if total_errored > 0:
+        plural = "s" if total_errored != 1 else ""
+        table += f"\n\n⚠️ {total_errored} image{plural} failed to compare"
     settings_link = _format_settings_link(project)
 
     return f"{table}\n\n{settings_link}"
