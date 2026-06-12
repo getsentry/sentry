@@ -52,7 +52,13 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestAttributionSignalType,
+    PullRequestAttributionSource,
+)
 from sentry.models.repository import Repository
+from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
@@ -897,6 +903,75 @@ def deliver_feature_result(
     handler(organization_id, run_uuid, status, result, error)
 
 
+def record_pr_attribution(
+    *,
+    organization_id: int,
+    pull_request_id: int,
+    signal_type: str,
+    signal_details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Record a PR attribution signal on behalf of Seer.
+
+    Idempotent via the unique constraint on
+    PullRequestAttribution(pull_request, signal_type, source).
+
+    Args:
+        organization_id: Sentry organization that owns the PR.
+        pull_request_id: Sentry-internal PullRequest.id.
+        signal_type: A PullRequestAttributionSignalType value.
+        signal_details: Arbitrary provider-specific metadata to store on the row.
+
+    Returns:
+        {"attribution_id": int} on success, or {"attribution_id": None} when the
+        pr-metrics-attribution feature is disabled for the org.
+    """
+    try:
+        signal = PullRequestAttributionSignalType(signal_type)
+    except ValueError:
+        raise ParseError(detail=f"Unknown signal_type: {signal_type!r}")
+
+    try:
+        organization = Organization.objects.get(
+            id=organization_id, status=OrganizationStatus.ACTIVE
+        )
+    except Organization.DoesNotExist:
+        raise ObjectDoesNotExist(f"Organization {organization_id} not found or inactive")
+
+    if not features.has("organizations:pr-metrics-attribution", organization):
+        logger.info(
+            "seer.record_pr_attribution.feature_disabled",
+            extra={"organization_id": organization_id, "pull_request_id": pull_request_id},
+        )
+        return {"attribution_id": None}
+
+    try:
+        pull_request = PullRequest.objects.get(
+            id=pull_request_id,
+            organization_id=organization_id,
+        )
+    except PullRequest.DoesNotExist:
+        raise ObjectDoesNotExist(
+            f"PullRequest {pull_request_id} not found in org {organization_id}"
+        )
+
+    attribution = record_attribution_signal(
+        pull_request=pull_request,
+        signal_type=signal,
+        source=PullRequestAttributionSource.SEER_DATA,
+        signal_details=signal_details,
+    )
+    logger.info(
+        "seer.record_pr_attribution.recorded",
+        extra={
+            "organization_id": organization_id,
+            "pull_request_id": pull_request_id,
+            "signal_type": signal_type,
+            "attribution_id": attribution.id,
+        },
+    )
+    return {"attribution_id": attribution.id}
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
@@ -954,6 +1029,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
     "deliver_feature_result": deliver_feature_result,
+    "record_pr_attribution": record_pr_attribution,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,

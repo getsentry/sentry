@@ -62,6 +62,12 @@ from sentry.pr_metrics.emit import (
     is_pr_tracked,
     select_verdict,
 )
+from sentry.pr_metrics.utils import (
+    DELEGATED_AGENT_AUTHOR_LOGINS,
+    DELEGATED_AGENT_BRANCH_PREFIXES,
+    resolved_group_ids,
+)
+from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -133,6 +139,16 @@ def handle_attribution(
         return
 
     _write_author_attribution(pr, github_user)
+    if pull_request is not None and has_seer_access(organization):
+        provider_hint = _is_delegated_agent_candidate(pull_request, github_user)
+        if provider_hint is not None:
+            if resolved_group_ids(pr):
+                # TODO: Fire-and-forget request to Seer when the match endpoint exists.
+                metrics.incr(
+                    "pr_metrics.delegated_agent.seer_match.not_implemented",
+                    tags={"provider_hint": provider_hint},
+                    sample_rate=1.0,
+                )
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -518,6 +534,27 @@ def _metrics_counters(pull_request: Mapping[str, Any]) -> dict[str, Any]:
         "review_comments_count": pull_request.get("review_comments") or 0,
         "is_assigned": bool(pull_request.get("assignees") or pull_request.get("assignee")),
     }
+
+
+def _is_delegated_agent_candidate(
+    pull_request: Mapping[str, Any], github_user: Mapping[str, Any]
+) -> str | None:
+    """Return a provider hint if a PR looks like a delegated coding-agent PR, else None.
+
+    Two payload-native signals are used. The head branch prefix is primary because
+    Claude-delegated PRs are opened by the Sentry GitHub app (no distinct author to
+    key on), so the ``claude/`` prefix is the only usable signal. The author login
+    covers Copilot, which opens PRs as a distinct bot user. The branch prefix wins
+    when both match. This is a cheap heuristic; the authoritative match happens in
+    Seer downstream.
+    """
+    head_ref = (pull_request.get("head") or {}).get("ref") or ""
+    for provider, prefix in DELEGATED_AGENT_BRANCH_PREFIXES.items():
+        if prefix and head_ref.startswith(prefix):
+            return provider
+
+    login = github_user.get("login") or ""
+    return DELEGATED_AGENT_AUTHOR_LOGINS.get(login)
 
 
 def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType | None:

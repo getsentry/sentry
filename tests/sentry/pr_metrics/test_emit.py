@@ -17,12 +17,12 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.emit import (
     _active_attributions,
-    _resolved_group_ids,
     build_pr_metrics_row,
     emit_pr_metrics_row,
     is_pr_tracked,
     select_verdict,
 )
+from sentry.pr_metrics.utils import resolved_group_ids
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -345,15 +345,15 @@ class PrMetricsEmissionTest(TestCase):
 
     def test_resolved_group_ids_returns_sorted_resolving_links(self) -> None:
         ids = sorted([self._link_group(), self._link_group()])
-        assert _resolved_group_ids(self.pull_request) == ids
+        assert resolved_group_ids(self.pull_request) == ids
 
     def test_resolved_group_ids_excludes_non_resolving_links(self) -> None:
         # Only resolving links count; a "references" link is not a resolution.
         self._link_group(relationship=GroupLink.Relationship.references)
-        assert _resolved_group_ids(self.pull_request) == []
+        assert resolved_group_ids(self.pull_request) == []
 
     def test_resolved_group_ids_empty_when_pr_resolves_nothing(self) -> None:
-        assert _resolved_group_ids(self.pull_request) == []
+        assert resolved_group_ids(self.pull_request) == []
 
     def test_build_row_carries_group_ids(self) -> None:
         row = build_pr_metrics_row(
