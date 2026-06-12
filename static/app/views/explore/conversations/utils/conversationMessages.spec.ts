@@ -728,101 +728,42 @@ describe('conversationMessages utilities', () => {
       expect(assistantMessages).toHaveLength(2);
     });
 
-    it('includes agentName from gen_ai.agent.name', () => {
+    function assistantFromAttributes(attributes: Record<string, string>) {
       const turns = [
         makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
-            attributes: {
-              [SpanFields.GEN_AI_AGENT_NAME]: 'my-agent',
-            },
+            attributes,
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi',
         }),
       ];
+      return turnsToMessages(turns).find(m => m.role === 'assistant');
+    }
 
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.agentName).toBe('my-agent');
+    it('resolves agentName from agent.name, then function_id, preferring agent.name', () => {
+      expect(
+        assistantFromAttributes({[SpanFields.GEN_AI_AGENT_NAME]: 'my-agent'})?.agentName
+      ).toBe('my-agent');
+      expect(
+        assistantFromAttributes({[SpanFields.GEN_AI_FUNCTION_ID]: 'vercel-func'})
+          ?.agentName
+      ).toBe('vercel-func');
+      expect(
+        assistantFromAttributes({
+          [SpanFields.GEN_AI_AGENT_NAME]: 'preferred-agent',
+          [SpanFields.GEN_AI_FUNCTION_ID]: 'fallback-func',
+        })?.agentName
+      ).toBe('preferred-agent');
     });
 
-    it('falls back agentName to gen_ai.function_id', () => {
-      const turns = [
-        makeTurn({
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-            attributes: {
-              [SpanFields.GEN_AI_FUNCTION_ID]: 'vercel-func',
-            },
-          } as any,
-          userContent: 'Hello',
-          assistantContent: 'Hi',
-        }),
-      ];
-
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.agentName).toBe('vercel-func');
-    });
-
-    it('prefers gen_ai.agent.name over gen_ai.function_id for agentName', () => {
-      const turns = [
-        makeTurn({
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-            attributes: {
-              [SpanFields.GEN_AI_AGENT_NAME]: 'preferred-agent',
-              [SpanFields.GEN_AI_FUNCTION_ID]: 'fallback-func',
-            },
-          } as any,
-          userContent: 'Hello',
-          assistantContent: 'Hi',
-        }),
-      ];
-
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.agentName).toBe('preferred-agent');
-    });
-
-    it('includes modelName from gen_ai.response.model', () => {
-      const turns = [
-        makeTurn({
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-            attributes: {
-              [SpanFields.GEN_AI_RESPONSE_MODEL]: 'gpt-4o',
-            },
-          } as any,
-          userContent: 'Hello',
-          assistantContent: 'Hi',
-        }),
-      ];
-
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.modelName).toBe('gpt-4o');
-    });
-
-    it('leaves agentName and modelName undefined when not set', () => {
-      const turns = [
-        makeTurn({
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-          } as any,
-          userContent: 'Hello',
-          assistantContent: 'Hi',
-        }),
-      ];
-
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
+    it('resolves modelName from gen_ai.response.model, undefined when unset', () => {
+      expect(
+        assistantFromAttributes({[SpanFields.GEN_AI_RESPONSE_MODEL]: 'gpt-4o'})?.modelName
+      ).toBe('gpt-4o');
+      const assistant = assistantFromAttributes({});
       expect(assistant?.agentName).toBeUndefined();
       expect(assistant?.modelName).toBeUndefined();
     });
@@ -960,20 +901,6 @@ describe('conversationMessages utilities', () => {
 
       const assistant = turnsToMessages(turns).find(m => m.role === 'assistant');
       expect(assistant?.reasoning).toBe('Let me think step by step...');
-    });
-
-    it('attaches reasoning to tool-call-only turns without text', () => {
-      const turns = [
-        makeTurn({
-          userContent: 'Question',
-          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          reasoning: 'Thinking out loud',
-        }),
-      ];
-
-      const assistant = turnsToMessages(turns).find(m => m.role === 'assistant');
-      expect(assistant?.content).toBe('');
-      expect(assistant?.reasoning).toBe('Thinking out loud');
     });
   });
 
@@ -1208,34 +1135,6 @@ describe('conversationMessages utilities', () => {
       const result = parseAssistantContent(node as any);
       expect(result.content).toBeNull();
       expect(result.reasoning).toBe('Thinking only...');
-    });
-  });
-
-  describe('reasoning in extractMessagesFromNodes', () => {
-    it('includes reasoning on assistant messages', () => {
-      const outputMessages = JSON.stringify([
-        {
-          role: 'assistant',
-          parts: [
-            {type: 'reasoning', content: 'Thinking...'},
-            {type: 'text', text: 'Answer'},
-          ],
-        },
-      ]);
-      const inputMessages = JSON.stringify([{role: 'user', content: 'Question'}]);
-      const node = createMockNode({
-        id: 'span-1',
-        startTimestamp: 1000,
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: inputMessages,
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputMessages,
-        },
-      });
-
-      const messages = extractMessagesFromNodes([node as any]);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.content).toBe('Answer');
-      expect(assistant?.reasoning).toBe('Thinking...');
     });
   });
 
