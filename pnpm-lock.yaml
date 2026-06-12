@@ -410,8 +410,8 @@ importers:
         specifier: 3.0.7
         version: 3.0.7
       jsonrepair:
-        specifier: ^3.8.0
-        version: 3.8.0
+        specifier: ^3.14.0
+        version: 3.14.0
       less:
         specifier: 4.3.0
         version: 4.3.0
@@ -6402,8 +6402,8 @@ packages:
   jsonfile@6.2.0:
     resolution: {integrity: sha512-FGuPw30AdOIUTRMC2OMRtQV+jkVj2cfPqSeWXv1NEAJ1qZ5zb1X6z1mFhbfOB/iy3ssJCD+3KuZ8r8C3uVFlAg==}
 
-  jsonrepair@3.8.0:
-    resolution: {integrity: sha512-89lrxpwp+IEcJ6kwglF0HH3Tl17J08JEpYfXnvvjdp4zV4rjSoGu2NdQHxBs7yTOk3ETjTn9du48pBy8iBqj1w==}
+  jsonrepair@3.14.0:
+    resolution: {integrity: sha512-tWPGKMZf/8UPim+fcW2EfcQ/d/7aKUrP6IECz9G3Tu6Q5dX0orSleqJ9z6sSw7qrQkjF8/Edo4DvsWBZ8H+HNg==}
     hasBin: true
 
   jsx-ast-utils@3.3.5:
@@ -15563,7 +15563,7 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
-  jsonrepair@3.8.0: {}
+  jsonrepair@3.14.0: {}
 
   jsx-ast-utils@3.3.5:
     dependencies:
