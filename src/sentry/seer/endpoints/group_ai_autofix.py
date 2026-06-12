@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any
 
 from drf_spectacular.utils import extend_schema
@@ -227,7 +228,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         stopping_point = data.get("stopping_point")
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
-        sentry_run_id_param = data.get("sentry_run_id")
+        sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
         run_ref: str | int | None = (
             str(sentry_run_id_param) if sentry_run_id_param is not None else data.get("run_id")
         )
