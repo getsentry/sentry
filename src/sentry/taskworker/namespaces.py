@@ -102,6 +102,11 @@ ingest_attachments_tasks = app.taskregistry.create_namespace(
     app_feature="attachments",
 )
 
+ingest_events_passthrough_tasks = app.taskregistry.create_namespace(
+    "ingest.events.passthrough",
+    app_feature="errors",
+)
+
 ingest_errors_tasks = app.taskregistry.create_namespace(
     "ingest.errors",
     app_feature="errors",
