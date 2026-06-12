@@ -69,4 +69,8 @@ def get_paginator(
 def annotate_span_with_pagination_args(span: Span, per_page: int) -> None:
     span.set_data("Limit", per_page)
     sentry_sdk.set_tag("query.per_page", per_page)
+    sentry_sdk.set_attribute("query.per_page", per_page)
     sentry_sdk.set_tag("query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100]))
+    sentry_sdk.set_attribute(
+        "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
+    )
