@@ -23,6 +23,7 @@ export default function SeerAutomationProjects() {
     <AnalyticsArea name="projects">
       <SentryDocumentTitle title={t('Autofix')} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Autofix')}
         action={
           <LinkButton

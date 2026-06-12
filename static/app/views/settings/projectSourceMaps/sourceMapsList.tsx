@@ -208,6 +208,7 @@ export function SourceMapsList({project}: Props) {
   return (
     <Fragment>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Source Map Uploads')}
         subtitle={tct(
           'These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].',

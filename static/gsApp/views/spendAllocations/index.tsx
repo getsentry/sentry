@@ -361,6 +361,7 @@ export function SpendAllocationsRoot({subscription}: Props) {
     <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Spend Allocations')} orgSlug={organization.slug} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Spend Allocations')}
         action={
           !isLoading &&

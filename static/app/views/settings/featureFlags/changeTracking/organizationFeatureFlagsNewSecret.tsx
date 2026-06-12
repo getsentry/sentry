@@ -65,6 +65,7 @@ function OrganizationFeatureFlagsNewSecret() {
     <Fragment>
       <SentryDocumentTitle title={t('Add New Provider')} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Add New Provider')}
         subtitle={tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',

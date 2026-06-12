@@ -50,6 +50,7 @@ export default function PreprodSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Mobile Builds')} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Mobile Builds')}
         subtitle={t(
           'Configure status checks and thresholds for your mobile build size analysis.'

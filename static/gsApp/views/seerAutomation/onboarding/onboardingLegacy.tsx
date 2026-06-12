@@ -666,6 +666,7 @@ export function SeerAutomationOnboarding() {
         orgSlug={organization.slug}
       />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Set Up Seer')}
         subtitle={t(
           'Follow these steps to get the most out of Seer across your organization.'

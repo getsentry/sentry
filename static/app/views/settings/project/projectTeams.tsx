@@ -79,6 +79,7 @@ export default function ProjectTeams() {
     <SentryDocumentTitle title={routeTitleGen(t('Project Teams'), project.slug, false)}>
       <div>
         <SettingsPageHeader
+          marginBottom="xl"
           title={t('Project Teams for %s', project.slug)}
           subtitle={
             <Stack gap="md">

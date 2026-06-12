@@ -33,6 +33,7 @@ export default function SeerAutomationRepos() {
     <AnalyticsArea name="repos">
       <SentryDocumentTitle title={t('Code Review')} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Code Review')}
         action={
           <LinkButton

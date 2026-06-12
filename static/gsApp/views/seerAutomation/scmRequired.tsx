@@ -78,6 +78,7 @@ export default function SeerAutomationSCMRequired() {
     return (
       <Fragment>
         <SettingsPageHeader
+          marginBottom="xl"
           title={t('Connect a repository')}
           subtitle={tct(
             'Seer requires access to your source code. Seer includes [autofix:Autofix] and [code_review:Code Review]. Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [docs:Read the docs] to learn what Seer can do.',

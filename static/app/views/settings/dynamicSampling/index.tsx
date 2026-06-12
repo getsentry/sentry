@@ -65,6 +65,7 @@ export default function DynamicSamplingSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Dynamic Sampling')}
         action={
           <LinkButton

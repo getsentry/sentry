@@ -133,6 +133,7 @@ function ApiApplicationsDetails() {
   return (
     <SentryDocumentTitle title={PAGE_TITLE}>
       <SettingsPageHeader
+        marginBottom="xl"
         title={PAGE_TITLE}
         subtitle={
           <Tag variant={app.isPublic ? 'info' : 'muted'}>

@@ -121,6 +121,7 @@ function InvoiceDetails() {
   return (
     <SubscriptionPageContainer>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Receipt Details')}
         action={
           <InvoicePagination

@@ -36,6 +36,7 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
     <AnalyticsArea name="project-details">
       <SentryDocumentTitle title={t('Seer for %s', project.slug)} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Seer')}
         subtitle={tct(
           'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',

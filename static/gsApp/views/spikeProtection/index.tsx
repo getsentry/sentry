@@ -55,6 +55,7 @@ function SpikeProtectionRoot({subscription}: Props) {
         orgSlug={organization.slug}
       />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Spike Protection')}
         subtitle={tct(
           'Spike Protection establishes a spike threshold based on a project’s historical event volume. Once that threshold is reached, events from the project will be dropped and you will receive a notification. Configure personal notifications for spike protection [personalNotifsLink: here]. [docsLink: Learn more].',

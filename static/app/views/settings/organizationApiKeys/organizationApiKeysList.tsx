@@ -47,6 +47,7 @@ export function OrganizationApiKeysList({
   return (
     <div>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('API Keys')}
         action={
           <Button

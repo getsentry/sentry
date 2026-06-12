@@ -59,6 +59,7 @@ export default function ConsoleSDKInvitesSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Console SDK Invites')} orgSlug={organization.slug} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Console SDK Invites')}
         action={action}
         subtitle={t(

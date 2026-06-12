@@ -97,6 +97,7 @@ export default function ProjectProguard() {
   return (
     <Fragment>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('ProGuard Mappings')}
         subtitle={tct(
           'ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].',

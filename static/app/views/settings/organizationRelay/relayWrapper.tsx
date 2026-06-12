@@ -76,6 +76,7 @@ export function RelayWrapper() {
   return (
     <SentryDocumentTitle title={t('Relay')} orgSlug={organization.slug}>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Relay')}
         action={registerKeyAction}
         subtitle={tct(

@@ -187,6 +187,7 @@ export default function ProjectKeys() {
     <div data-test-id="project-keys">
       <SentryDocumentTitle title={t('Client Keys')} projectSlug={project.slug} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Client Keys')}
         action={
           <Button

@@ -353,6 +353,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
 
     const noTeamInsightsHeader = (
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Stats & Usage')}
         subtitle={t(
           'A view of the usage data that Sentry has received across your entire organization.'

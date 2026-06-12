@@ -352,7 +352,11 @@ export function AuditLogList({
 
   return (
     <div>
-      <SettingsPageHeader title={t('Audit Log')} action={headerActions} />
+      <SettingsPageHeader
+        marginBottom="xl"
+        title={t('Audit Log')}
+        action={headerActions}
+      />
       <PanelTable
         headers={[t('Member'), t('Action'), t('IP'), t('Time')]}
         isEmpty={!hasEntries && entries?.length === 0}

@@ -37,6 +37,7 @@ export default function ProjectToolbarSettings() {
     <FormSearch route="/settings/:orgId/projects/:projectId/toolbar/">
       <SentryDocumentTitle title={t('Toolbar Settings')} projectSlug={project.slug}>
         <SettingsPageHeader
+          marginBottom="xl"
           title={t('Dev Toolbar')}
           subtitle={tct(
             'Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar. [link:Read the Docs]',

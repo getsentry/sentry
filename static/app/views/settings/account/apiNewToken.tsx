@@ -123,6 +123,7 @@ export default function ApiNewToken() {
     <SentryDocumentTitle title={t('Create New Personal Token')}>
       <div>
         <SettingsPageHeader
+          marginBottom="xl"
           title={t('Create New Personal Token')}
           subtitle={
             <Stack gap="md">

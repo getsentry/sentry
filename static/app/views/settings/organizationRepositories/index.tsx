@@ -260,6 +260,7 @@ export default function OrganizationRepositories() {
     <AnalyticsArea name="repositories-v2">
       <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Repositories')}
         subtitle={pageDescription}
         action={

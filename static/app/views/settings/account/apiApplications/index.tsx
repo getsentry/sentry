@@ -110,7 +110,7 @@ export default function ApiApplications() {
 
   return (
     <SentryDocumentTitle title={t('API Applications')}>
-      <SettingsPageHeader title="API Applications" action={action} />
+      <SettingsPageHeader marginBottom="xl" title="API Applications" action={action} />
 
       <ApplicationsTable>
         <SimpleTable.Header>

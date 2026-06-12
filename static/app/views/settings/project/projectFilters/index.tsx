@@ -31,6 +31,7 @@ export default function ProjectFilters() {
     <Fragment>
       <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Inbound Data Filters')}
         subtitle={t(
           'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'

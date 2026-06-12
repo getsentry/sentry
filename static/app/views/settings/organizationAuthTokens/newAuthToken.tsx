@@ -134,6 +134,7 @@ export default function OrganizationAuthTokensNewAuthToken() {
     <div>
       <SentryDocumentTitle title={t('Create New Organization Token')} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Create New Organization Token')}
         subtitle={
           <Stack gap="md">

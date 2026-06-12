@@ -98,6 +98,7 @@ export function NotificationSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Notifications')} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Notifications')}
         subtitle={tct(
           'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',

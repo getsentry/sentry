@@ -533,6 +533,7 @@ function ConfigureIntegration() {
         title={integration ? integration.provider.name : 'Configure Integration'}
       />
       <SettingsPageHeader
+        marginBottom="xl"
         title={<IntegrationItem integration={integration} compact />}
         action={getAction()}
       />

@@ -175,6 +175,7 @@ export default function ProjectOwnership() {
     <FormSearch route="/settings/:orgId/projects/:projectId/ownership/">
       <SentryDocumentTitle title={routeTitleGen(ownershipTitle, project.slug, false)}>
         <SettingsPageHeader
+          marginBottom="xl"
           title={t('Ownership Rules')}
           subtitle={tct(
             'Auto-assign issues to users and teams. To learn more, [link:read the docs].',

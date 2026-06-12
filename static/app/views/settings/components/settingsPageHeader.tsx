@@ -1,18 +1,32 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
-type Props = {
-  title: React.ReactNode;
-  action?: React.ReactNode;
-  subtitle?: React.ReactNode;
-};
+type Props =
+  | {
+      title: React.ReactNode;
+      action?: never;
+      /**
+       *  @deprecated Use flex for spacing instead! But `xl` is a good size.
+       */
+      marginBottom?: never;
+      subtitle?: never;
+    }
+  | {
+      /**
+       *  @deprecated Use flex for spacing instead! But `xl` is a good size.
+       */
+      marginBottom: FlexProps['marginBottom'];
+      title: React.ReactNode;
+      action?: React.ReactNode;
+      subtitle?: React.ReactNode;
+    };
 
-export function SettingsPageHeader({title, subtitle, action}: Props) {
+export function SettingsPageHeader({title, subtitle, action, marginBottom = '0'}: Props) {
   return (
     <Fragment>
       {typeof title === 'string' ? (
@@ -21,7 +35,13 @@ export function SettingsPageHeader({title, subtitle, action}: Props) {
         title && <Layout.Title>{title}</Layout.Title>
       )}
       {(subtitle || action) && (
-        <Flex marginBottom="xl" width="100%" justify="between" align="start" gap="md">
+        <Flex
+          marginBottom={marginBottom}
+          width="100%"
+          justify="between"
+          align="start"
+          gap="md"
+        >
           <Subtitle>{subtitle}</Subtitle>
           {action}
         </Flex>
