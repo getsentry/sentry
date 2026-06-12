@@ -105,7 +105,8 @@ circuit breaker thresholds). The default cell comes from
 
 ## Tests
 
-The suite lives in `tests/apigw/` and runs in CI on every backend change:
+The suite lives in `tests/apigw/`; the tests coupled to sentry code run in
+CI on every backend change, the pure-unit ones when their subject changes:
 
 - `test_routing.py` — the routing parity test described above: every
   customer-facing Django URL must be routed by `apigw` to a destination
@@ -113,6 +114,8 @@ The suite lives in `tests/apigw/` and runs in CI on every backend change:
 - `test_db.py` — the cell lookup query builder produces asyncpg-compatible
   SQL (`$n` placeholders, no django `%s` left, `LIMIT` applied) from the
   sentry models.
+- `test_circuitbreaker.py` — breaker semantics: concurrency overflow,
+  failure-window rejection and recovery, slot release on errors.
 - `test_proxy.py` — proxy internals against fakes (no network): request
   header filtering and forwarding, and upstream response adaptation —
   including that multiple `set-cookie` headers survive as separate,
