@@ -441,6 +441,13 @@ class SeerAgentClient:
         ):
             agent_run_options["embed_widgets"] = get_embed_widgets()
 
+        if features.has(
+            "organizations:seer-explorer-stream",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_streaming"] = True
+
         user_id = (
             self.user.id
             if self.user and hasattr(self.user, "id") and self.user.id is not None
@@ -594,6 +601,13 @@ class SeerAgentClient:
             actor=self.user,
         ):
             agent_run_options["embed_widgets"] = get_embed_widgets()
+
+        if features.has(
+            "organizations:seer-explorer-stream",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_streaming"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
