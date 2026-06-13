@@ -117,8 +117,10 @@ export const PairCard = memo(function PairCard({
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
+  const effectiveDiffMode = status === DiffStatus.ERRORED ? 'split' : diffMode;
+
   let body: React.ReactNode;
-  if (diffMode === 'split') {
+  if (effectiveDiffMode === 'split') {
     body = (
       <SnapshotCanvasWrapper>
         <SplitPairBody
@@ -134,7 +136,7 @@ export const PairCard = memo(function PairCard({
         />
       </SnapshotCanvasWrapper>
     );
-  } else if (diffMode === 'wipe') {
+  } else if (effectiveDiffMode === 'wipe') {
     body = (
       <WipeCardBody
         baseUrl={baseUrl}
