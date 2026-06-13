@@ -77,6 +77,22 @@ describe('IssueListSearchBar', () => {
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
 
+    it('displays has_attachments under Issues', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [],
+      });
+
+      render(<IssueListSearchBar {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Issues'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'has_attachments'})
+      ).toBeInTheDocument();
+    });
+
     it('displays tags in the has filter', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
@@ -94,6 +110,27 @@ describe('IssueListSearchBar', () => {
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
       // Event property fields like stack.filename should also be suggested
       expect(screen.getByRole('option', {name: 'stack.filename'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'has_attachments'})).toBeInTheDocument();
+    });
+
+    it('displays boolean values for has_attachments', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [],
+      });
+
+      render(<IssueListSearchBar {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste('has_attachments:', {delay: null});
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Edit value for filter: has_attachments',
+        })
+      );
+
+      expect(await screen.findByRole('option', {name: 'True'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'False'})).toBeInTheDocument();
     });
 
     it('displays conflicting tags', async () => {

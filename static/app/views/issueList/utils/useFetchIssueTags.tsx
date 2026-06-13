@@ -263,6 +263,7 @@ function builtInIssuesFields({
       ...Object.values(currentTags).map(tag => tag.key),
       ...Object.values(SEMVER_TAGS).map(tag => tag.key),
       ...ISSUE_EVENT_PROPERTY_FIELDS,
+      FieldKey.HAS_ATTACHMENTS,
     ])
   ).sort();
 
