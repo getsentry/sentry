@@ -89,6 +89,22 @@ const changedPair: SnapshotDiffPair = {
   head_image: headImage,
 };
 
+const erroredPair: SnapshotDiffPair = {
+  base_image: image({
+    display_name: 'Login screen base',
+    image_file_name: 'login.base.png',
+    key: 'base-login',
+  }),
+  diff: null,
+  diff_image_key: null,
+  head_image: image({
+    display_name: 'Login screen',
+    group: 'screens',
+    image_file_name: 'login.png',
+    key: 'head-login',
+  }),
+};
+
 const renamedPair: SnapshotDiffPair = {
   base_image: image({
     display_name: 'Button / light old',
@@ -168,6 +184,34 @@ describe('SnapshotMainContent', () => {
     await userEvent.click(nextButton);
 
     expect(onNavigateSingleView).toHaveBeenCalledWith('next');
+  });
+
+  it('renders focused errored snapshots side-by-side with a failed badge', () => {
+    renderSnapshotMainContent({
+      comparisonType: 'diff',
+      isSoloView: false,
+      selectedItem: {
+        key: 'errored-screens',
+        name: 'Screens',
+        displayName: 'Screens',
+        pairs: [erroredPair],
+        type: 'errored',
+      },
+      viewMode: 'single',
+    });
+
+    expect(screen.getByText('Screens')).toBeInTheDocument();
+    expect(screen.getByText('Login screen')).toBeInTheDocument();
+    expect(screen.getByText('Failed to compare')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Unknown error: failed to compare these images (base and head images still shown below).'
+      )
+    ).toBeInTheDocument();
+    // Side-by-side renders both base and head columns (one per diff-mode body).
+    expect(screen.getAllByText('Base').length).toBeGreaterThan(0);
+    // Errored pairs have no diff, so the diff-mode controls are not shown.
+    expect(screen.queryByRole('radio', {name: 'Split'})).not.toBeInTheDocument();
   });
 
   it('renders focused renamed snapshots as a single image with pair metadata', async () => {
