@@ -1,26 +1,25 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
+import {z} from 'zod';
 
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
 import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
+import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
 
 type Props = {
   data: ProjectKey;
   projectId: string;
-  showDsn?: boolean;
-  showDsnPublic?: boolean;
   showMinidump?: boolean;
-  showOtlpLogs?: boolean;
-  showOtlpTraces?: boolean;
   showProjectId?: boolean;
   showPublicKey?: boolean;
   showSecretKey?: boolean;
@@ -40,24 +39,43 @@ interface SecurityTabProps {
   securityEndpoint: string;
 }
 
+const securitySchema = z.object({
+  securityEndpoint: z.string(),
+});
+
 function SecurityTab({securityEndpoint}: SecurityTabProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {securityEndpoint},
+    validators: {onChange: securitySchema},
+  });
+
   return (
-    <FieldGroup
-      label={t('Security Header Endpoint')}
-      help={tct('Use your security header endpoint for features like [link].', {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
-            {t('CSP and Expect-CT reports')}
-          </ExternalLink>
-        ),
-      })}
-      inline={false}
-      flexibleControlStateSize
-    >
-      <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
-        {securityEndpoint}
-      </TextCopyInput>
-    </FieldGroup>
+    <form.AppForm form={form}>
+      <FieldList>
+        <form.AppField name="securityEndpoint">
+          {field => (
+            <field.Layout.Stack
+              label={t('Security Header Endpoint')}
+              hintText={tct(
+                'Use your security header endpoint for features like [link].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
+                      {t('CSP and Expect-CT reports')}
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            >
+              <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </FieldList>
+    </form.AppForm>
   );
 }
 
@@ -65,27 +83,43 @@ interface MinidumpTabProps {
   minidumpEndpoint: string;
 }
 
+const minidumpSchema = z.object({
+  minidumpEndpoint: z.string(),
+});
+
 function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {minidumpEndpoint},
+    validators: {onChange: minidumpSchema},
+  });
+
   return (
-    <FieldGroup
-      label={t('Minidump Endpoint')}
-      help={tct(
-        'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/native/guides/minidumps/">
-              minidump crash reports
-            </ExternalLink>
-          ),
-        }
-      )}
-      inline={false}
-      flexibleControlStateSize
-    >
-      <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
-        {minidumpEndpoint}
-      </TextCopyInput>
-    </FieldGroup>
+    <form.AppForm form={form}>
+      <FieldList>
+        <form.AppField name="minidumpEndpoint">
+          {field => (
+            <field.Layout.Stack
+              label={t('Minidump Endpoint')}
+              hintText={tct(
+                'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/native/guides/minidumps/">
+                      minidump crash reports
+                    </ExternalLink>
+                  ),
+                }
+              )}
+            >
+              <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </FieldList>
+    </form.AppForm>
   );
 }
 
@@ -93,18 +127,34 @@ interface UnrealTabProps {
   unrealEndpoint: string;
 }
 
+const unrealSchema = z.object({
+  unrealEndpoint: z.string(),
+});
+
 function UnrealTab({unrealEndpoint}: UnrealTabProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {unrealEndpoint},
+    validators: {onChange: unrealSchema},
+  });
+
   return (
-    <FieldGroup
-      label={t('Unreal Engine Endpoint')}
-      help={t('Use this endpoint to configure your UE Crash Reporter.')}
-      inline={false}
-      flexibleControlStateSize
-    >
-      <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
-        {unrealEndpoint}
-      </TextCopyInput>
-    </FieldGroup>
+    <form.AppForm form={form}>
+      <FieldList>
+        <form.AppField name="unrealEndpoint">
+          {field => (
+            <field.Layout.Stack
+              label={t('Unreal Engine Endpoint')}
+              hintText={t('Use this endpoint to configure your UE Crash Reporter.')}
+            >
+              <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
+                {field.state.value}
+              </TextCopyInput>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </FieldList>
+    </form.AppForm>
   );
 }
 
@@ -117,6 +167,12 @@ interface CredentialsTabProps {
   showSecretKey: boolean;
 }
 
+const credentialsSchema = z.object({
+  publicKey: z.string(),
+  secretKey: z.string(),
+  projectId: z.string(),
+});
+
 function CredentialsTab({
   publicKey,
   secretKey,
@@ -125,55 +181,60 @@ function CredentialsTab({
   showSecretKey,
   showProjectId,
 }: CredentialsTabProps) {
-  const fields = useMemo(() => {
-    return [
-      {
-        label: t('Public Key'),
-        value: publicKey,
-        show: showPublicKey,
-      },
-      {
-        label: t('Secret Key'),
-        value: secretKey,
-        show: showSecretKey,
-      },
-      {
-        label: t('Project ID'),
-        value: projectId,
-        show: showProjectId,
-      },
-    ];
-  }, [publicKey, secretKey, projectId, showPublicKey, showSecretKey, showProjectId]);
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {publicKey, secretKey, projectId},
+    validators: {onChange: credentialsSchema},
+  });
+
   return (
-    <Fragment>
-      {fields.map(
-        field =>
-          field.show && (
-            <FieldGroup
-              key={field.label}
-              label={field.label}
-              inline={false}
-              flexibleControlStateSize
-            >
-              <TextCopyInput aria-label={field.label}>{field.value}</TextCopyInput>
-            </FieldGroup>
-          )
-      )}
-    </Fragment>
+    <form.AppForm form={form}>
+      <FieldList>
+        {showPublicKey && (
+          <form.AppField name="publicKey">
+            {field => (
+              <field.Layout.Stack label={t('Public Key')}>
+                <TextCopyInput aria-label={t('Public Key')}>
+                  {field.state.value}
+                </TextCopyInput>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        )}
+        {showSecretKey && (
+          <form.AppField name="secretKey">
+            {field => (
+              <field.Layout.Stack label={t('Secret Key')}>
+                <TextCopyInput aria-label={t('Secret Key')}>
+                  {field.state.value}
+                </TextCopyInput>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        )}
+        {showProjectId && (
+          <form.AppField name="projectId">
+            {field => (
+              <field.Layout.Stack label={t('Project ID')}>
+                <TextCopyInput aria-label={t('Project ID')}>
+                  {field.state.value}
+                </TextCopyInput>
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        )}
+      </FieldList>
+    </form.AppForm>
   );
 }
 
 export function ProjectKeyCredentials({
   data,
   projectId,
-  showDsn = true,
-  showDsnPublic = true,
   showMinidump = true,
   showProjectId = false,
   showPublicKey = false,
   showSecretKey = false,
-  showOtlpTraces = false,
-  showOtlpLogs = false,
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
@@ -189,7 +250,7 @@ export function ProjectKeyCredentials({
       {
         key: 'otlp',
         label: t('OpenTelemetry (OTLP)'),
-        visible: showOtlpTraces || showOtlpLogs,
+        visible: true,
       },
       {
         key: 'security',
@@ -214,8 +275,6 @@ export function ProjectKeyCredentials({
     ];
     return tabs.filter(tab => tab.visible);
   }, [
-    showOtlpTraces,
-    showOtlpLogs,
     showSecurityEndpoint,
     showMinidump,
     showUnreal,
@@ -225,6 +284,22 @@ export function ProjectKeyCredentials({
   ]);
 
   const [showDeprecatedDsn] = useQueryState('showDeprecated', parseAsBoolean);
+
+  const dsnForm = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      dsn: data.dsn.public,
+      dsnDeprecated: data.dsn.secret,
+      useCase: data.useCase ?? '',
+    },
+    validators: {
+      onChange: z.object({
+        dsn: z.string(),
+        dsnDeprecated: z.string(),
+        useCase: z.string(),
+      }),
+    },
+  });
 
   const tabParser = useMemo(
     () => ({
@@ -245,8 +320,6 @@ export function ProjectKeyCredentials({
             logsEndpoint={data.dsn.otlp_logs}
             tracesEndpoint={data.dsn.otlp_traces}
             publicKey={data.public}
-            showOtlpLogs={showOtlpLogs}
-            showOtlpTraces={showOtlpTraces}
           />
         );
       case 'security':
@@ -271,7 +344,6 @@ export function ProjectKeyCredentials({
           <VercelTab
             integrationEndpoint={data.dsn.integration}
             publicKey={data.public}
-            showOtlpTraces={showOtlpTraces}
             tracesEndpoint={data.dsn.otlp_traces}
           />
         );
@@ -282,67 +354,65 @@ export function ProjectKeyCredentials({
 
   return (
     <Fragment>
-      {showDsnPublic && (
-        <FieldGroup
-          label={t('DSN')}
-          inline={false}
-          flexibleControlStateSize
-          help={tct('The DSN tells the SDK where to send the events to. [link]', {
-            link: showDsn ? (
-              <Link
-                to={{
-                  query: {
-                    ...location.query,
-                    showDeprecated: showDeprecatedDsn ? undefined : 'true',
-                  },
-                }}
+      <dsnForm.AppForm form={dsnForm}>
+        <FieldList>
+          <dsnForm.AppField name="dsn">
+            {field => (
+              <field.Layout.Stack
+                label={t('DSN')}
+                hintText={tct(
+                  'The DSN tells the SDK where to send the events to. [link]',
+                  {
+                    link: (
+                      <Link
+                        to={{
+                          query: {
+                            ...location.query,
+                            showDeprecated: showDeprecatedDsn ? undefined : 'true',
+                          },
+                        }}
+                      >
+                        {showDeprecatedDsn
+                          ? t('Hide deprecated DSN')
+                          : t('Show deprecated DSN')}
+                      </Link>
+                    ),
+                  }
+                )}
               >
-                {showDeprecatedDsn ? t('Hide deprecated DSN') : t('Show deprecated DSN')}
-              </Link>
-            ) : null,
-          })}
-        >
-          <TextCopyInput aria-label={t('DSN URL')}>{data.dsn.public}</TextCopyInput>
-          {showDeprecatedDsn && (
-            <StyledField
-              label={null}
-              help={t(
-                'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                <TextCopyInput aria-label={t('DSN URL')}>
+                  {field.state.value}
+                </TextCopyInput>
+                {showDeprecatedDsn && (
+                  <Flex direction="column" gap="sm" paddingTop="2xs">
+                    <Text size="sm" variant="muted">
+                      {t(
+                        'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                      )}
+                    </Text>
+                    <TextCopyInput>{data.dsn.secret}</TextCopyInput>
+                  </Flex>
+                )}
+              </field.Layout.Stack>
+            )}
+          </dsnForm.AppField>
+
+          {data.useCase && (
+            <dsnForm.AppField name="useCase">
+              {field => (
+                <field.Layout.Row
+                  label={t('Use Case')}
+                  hintText={t(
+                    'Whether the DSN is for the user or for internal data submissions.'
+                  )}
+                >
+                  <Text>{field.state.value}</Text>
+                </field.Layout.Row>
               )}
-              inline={false}
-              flexibleControlStateSize
-            >
-              <TextCopyInput>{data.dsn.secret}</TextCopyInput>
-            </StyledField>
+            </dsnForm.AppField>
           )}
-        </FieldGroup>
-      )}
-
-      {!showDsnPublic && showDsn && (
-        <FieldGroup
-          label={t('DSN (Deprecated)')}
-          help={t(
-            'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
-          )}
-          inline={false}
-          flexibleControlStateSize
-        >
-          <TextCopyInput>{data.dsn.secret}</TextCopyInput>
-        </FieldGroup>
-      )}
-
-      {data.useCase && (
-        <FieldGroup
-          label={t('Use Case')}
-          help={t('Whether the DSN is for the user or for internal data submissions.')}
-          inline
-          flexibleControlStateSize
-        >
-          <StyledField label={null} inline={false} flexibleControlStateSize>
-            {data.useCase}
-          </StyledField>
-        </FieldGroup>
-      )}
+        </FieldList>
+      </dsnForm.AppForm>
 
       {availableTabs.length > 0 && (
         <Fragment>
@@ -359,7 +429,3 @@ export function ProjectKeyCredentials({
     </Fragment>
   );
 }
-
-const StyledField = styled(FieldGroup)`
-  padding: ${p => p.theme.space['2xs']} 0 0 0;
-`;

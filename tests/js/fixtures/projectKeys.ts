@@ -1,6 +1,8 @@
 import type {ProjectKey} from 'sentry/types/project';
 
-export function ProjectKeysFixture(params: ProjectKey[] = []): ProjectKey[] {
+export function ProjectKeysFixture(
+  params: ProjectKey[] = []
+): [ProjectKey, ...ProjectKey[]] {
   return [
     {
       dsn: {

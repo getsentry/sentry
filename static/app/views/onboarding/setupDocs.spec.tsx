@@ -315,7 +315,7 @@ describe('Onboarding Setup Docs', () => {
       });
 
       const updateLoaderMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY!.id}/`,
+        url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY.id}/`,
         method: 'PUT',
         body: PROJECT_KEY,
       });

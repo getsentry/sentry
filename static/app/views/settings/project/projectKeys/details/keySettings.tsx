@@ -1,6 +1,11 @@
 import {Fragment} from 'react';
+import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -10,17 +15,12 @@ import {
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {BooleanField} from 'sentry/components/forms/fields/booleanField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
 import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
@@ -38,6 +38,12 @@ type Props = {
   updateData: (data: ProjectKey) => void;
 };
 
+const keySettingsSchema = z.object({
+  name: z.string(),
+  isActive: z.boolean(),
+  dateCreated: z.string(),
+});
+
 export function KeySettings({
   onRemove,
   organization,
@@ -51,8 +57,20 @@ export function KeySettings({
   const {keyId, projectId} = params;
   const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
+  const mutationOptions = {
+    mutationFn: (fieldData: Partial<ProjectKey>) =>
+      fetchMutation<ProjectKey>({
+        url: apiEndpoint,
+        method: 'PUT',
+        data: fieldData,
+      }),
+    onSuccess: (updated: ProjectKey) => {
+      updateData(updated);
+    },
+  };
+
   const handleRemove = async () => {
-    addLoadingMessage(t('Revoking key\u2026'));
+    addLoadingMessage(t('Revoking key…'));
 
     try {
       await api.requestPromise(
@@ -74,87 +92,94 @@ export function KeySettings({
       <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
-            <Form
-              saveOnBlur
-              allowUndo
-              apiEndpoint={apiEndpoint}
-              apiMethod="PUT"
-              initialData={data}
-            >
-              <Panel>
-                <PanelHeader>{t('Details')}</PanelHeader>
-
-                <PanelBody>
-                  <TextField
-                    name="name"
-                    label={t('Name')}
-                    disabled={!hasAccess}
-                    required={false}
-                    maxLength={64}
-                  />
-                  <BooleanField
-                    name="isActive"
+            <FieldGroup title={t('Details')}>
+              <AutoSaveForm
+                name="name"
+                schema={keySettingsSchema}
+                initialValue={data.name}
+                mutationOptions={mutationOptions}
+              >
+                {field => (
+                  <field.Layout.Row label={t('Name')}>
+                    <field.Input
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
+                      maxLength={64}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+              <AutoSaveForm
+                name="isActive"
+                schema={keySettingsSchema}
+                initialValue={data.isActive}
+                mutationOptions={mutationOptions}
+              >
+                {field => (
+                  <field.Layout.Row
                     label={t('Enabled')}
-                    required={false}
-                    disabled={!hasAccess}
-                    help="Accept events from this key? This may be used to temporarily suspend a key."
-                  />
-                  <FieldGroup label={t('Created')}>
-                    <div className="controls">
-                      <DateTime date={data.dateCreated} />
-                    </div>
-                  </FieldGroup>
-                </PanelBody>
-              </Panel>
-            </Form>
+                    hintText={t(
+                      'Accept events from this key? This may be used to temporarily suspend a key.'
+                    )}
+                  >
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+              <AutoSaveForm
+                name="dateCreated"
+                schema={keySettingsSchema}
+                initialValue={data.dateCreated}
+                mutationOptions={mutationOptions}
+              >
+                {field => (
+                  <field.Layout.Row label={t('Created')}>
+                    <Text>
+                      <DateTime date={field.state.value} />
+                    </Text>
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+            </FieldGroup>
 
             <KeyRateLimitsForm
               organization={organization}
-              params={params}
+              keyId={params.keyId}
+              projectId={params.projectId}
               data={data}
               disabled={!hasAccess}
               project={project}
               updateData={updateData}
             />
 
-            <Panel>
-              <PanelHeader>{t('JavaScript Loader Script')}</PanelHeader>
-              <PanelBody>
-                <PanelAlert variant="info">
-                  {t(
-                    'Note that it can take a few minutes until changed options are live.'
-                  )}
-                </PanelAlert>
+            <FieldGroup title={t('JavaScript Loader Script')}>
+              <Alert variant="info" system>
+                {t('Note that it can take a few minutes until changed options are live.')}
+              </Alert>
 
-                <LoaderSettings
-                  orgSlug={organization.slug}
-                  keyId={params.keyId}
-                  project={project}
-                  data={data}
-                  updateData={updateData}
-                />
-              </PanelBody>
-            </Panel>
+              <LoaderSettings
+                orgSlug={organization.slug}
+                keyId={params.keyId}
+                project={project}
+                data={data}
+                updateData={updateData}
+              />
+            </FieldGroup>
 
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
-              <PanelBody>
-                <PanelAlert variant="info">
-                  {t(
-                    'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
-                  )}
-                </PanelAlert>
-
-                <ProjectKeyCredentials
-                  projectId={`${data.projectId}`}
-                  data={data}
-                  showOtlpTraces
-                  showOtlpLogs
-                  showPublicKey
-                  showSecretKey
-                  showProjectId
-                />
-              </PanelBody>
+              <ProjectKeyCredentials
+                projectId={`${data.projectId}`}
+                data={data}
+                showPublicKey
+                showSecretKey
+                showProjectId
+              />
             </Panel>
           </Fragment>
         )}
@@ -162,33 +187,31 @@ export function KeySettings({
 
       <Access access={['project:admin']} project={project}>
         {({hasAccess}) => (
-          <Panel>
-            <PanelHeader>{t('Revoke Key')}</PanelHeader>
-            <PanelBody>
-              <FieldGroup
-                label={t('Revoke Key')}
-                help={t(
-                  'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
+          <FieldGroup title={t('Revoke Key')}>
+            <Flex direction="row" gap="xl" align="center" justify="between">
+              <Flex direction="column" gap="xs" flex="1">
+                <Text bold>{t('Revoke Key')}</Text>
+                <Text size="sm" variant="muted">
+                  {t(
+                    'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
+                  )}
+                </Text>
+              </Flex>
+              <Confirm
+                priority="danger"
+                message={t(
+                  'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
                 )}
+                onConfirm={() => {
+                  handleRemove();
+                }}
+                confirmText={t('Revoke Key')}
+                disabled={!hasAccess}
               >
-                <div>
-                  <Confirm
-                    priority="danger"
-                    message={t(
-                      'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
-                    )}
-                    onConfirm={() => {
-                      handleRemove();
-                    }}
-                    confirmText={t('Revoke Key')}
-                    disabled={!hasAccess}
-                  >
-                    <Button variant="danger">{t('Revoke Key')}</Button>
-                  </Confirm>
-                </div>
-              </FieldGroup>
-            </PanelBody>
-          </Panel>
+                <Button variant="danger">{t('Revoke Key')}</Button>
+              </Confirm>
+            </Flex>
+          </FieldGroup>
         )}
       </Access>
     </Fragment>

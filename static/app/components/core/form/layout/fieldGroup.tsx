@@ -8,13 +8,15 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 export function FieldGroup({
   title,
   children,
+  hasButtons,
 }: {
   children: React.ReactNode;
+  hasButtons?: boolean;
   title?: React.ReactNode;
 }) {
   return (
     <Panel>
-      {title ? <PanelHeader>{title}</PanelHeader> : null}
+      {title ? <PanelHeader hasButtons={hasButtons}>{title}</PanelHeader> : null}
       <PanelBody>{children}</PanelBody>
     </Panel>
   );
