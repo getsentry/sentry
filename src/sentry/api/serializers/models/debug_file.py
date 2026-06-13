@@ -31,9 +31,9 @@ class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
             "cpuName": obj.cpu_name,
             "objectName": obj.object_name,
             "symbolType": obj.file_format,
-            "headers": obj.file.headers,
-            "size": obj.file.size,
-            "sha1": obj.file.checksum,
-            "dateCreated": obj.file.timestamp,
+            "headers": obj.get_headers(),
+            "size": obj.get_file_size(),
+            "sha1": obj.get_checksum(),
+            "dateCreated": obj.get_date_created(),
             "data": obj.data or {},
         }

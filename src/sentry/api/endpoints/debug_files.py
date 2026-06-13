@@ -11,6 +11,7 @@ from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from objectstore_client import RequestError
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -272,17 +273,16 @@ class DebugFilesEndpoint(ProjectEndpoint):
             raise Http404
 
         try:
-            assert debug_file.file is not None
-            fp = debug_file.file.getfile()
+            fp = debug_file.getfile()
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
-            response["Content-Length"] = debug_file.file.size
+            response["Content-Length"] = debug_file.get_file_size()
             response["Content-Disposition"] = (
                 f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
             return response
-        except OSError:
+        except (OSError, RequestError):
             raise Http404
 
     @extend_schema(
@@ -338,7 +338,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
             for file_format in file_formats:
                 known_file_format = DIF_MIMETYPES.get(file_format)
                 if known_file_format:
-                    file_format_q |= Q(file__headers__icontains=known_file_format)
+                    file_format_q |= Q(file__headers__icontains=known_file_format) | Q(
+                        content_type__icontains=known_file_format
+                    )
             q &= file_format_q
 
         queryset = None
@@ -369,11 +371,14 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 | Q(code_id__icontains=query)
                 | Q(cpu_name__icontains=query)
                 | Q(file__headers__icontains=query)
+                | Q(content_type__icontains=query)
             )
 
             known_file_format = DIF_MIMETYPES.get(query)
             if known_file_format:
-                query_q |= Q(file__headers__icontains=known_file_format)
+                query_q |= Q(file__headers__icontains=known_file_format) | Q(
+                    content_type__icontains=known_file_format
+                )
 
             q &= query_q
 
@@ -790,6 +795,7 @@ def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
     )
 
 
+# XXX(lcian): This currently only works for non Objectstore-backed Difs. The upload path needs to be adapted.
 def _clone_proguard_debug_file_for_reupload(
     project: Project,
     debug_file: ProjectDebugFile,
