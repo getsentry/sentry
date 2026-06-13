@@ -48,14 +48,23 @@ const erroredPair: SnapshotDiffPair = {
   head_image: image(),
 };
 
-function renderListView(items: SidebarItem[]) {
+function renderListView(items: SidebarItem[], diffMode?: 'split' | 'wipe' | 'onion') {
   return render(
     <SnapshotListView
       items={items}
       imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
+      diffMode={diffMode}
     />
   );
 }
+
+const erroredItem: SidebarItem = {
+  key: 'errored:screens',
+  name: 'Screens',
+  displayName: 'Screens',
+  pairs: [erroredPair],
+  type: 'errored',
+};
 
 describe('SnapshotListView', () => {
   beforeEach(() => {
@@ -79,16 +88,16 @@ describe('SnapshotListView', () => {
   });
 
   it('renders errored pairs as side-by-side cards with a failed badge', () => {
-    renderListView([
-      {
-        key: 'errored:screens',
-        name: 'Screens',
-        displayName: 'Screens',
-        pairs: [erroredPair],
-        type: 'errored',
-      },
-    ]);
+    renderListView([erroredItem]);
 
     expect(screen.getByText('Failed to compare')).toBeInTheDocument();
+  });
+
+  it('renders errored pairs side-by-side even when the diff mode is onion', () => {
+    renderListView([erroredItem], 'onion');
+
+    expect(screen.getByText('Failed to compare')).toBeInTheDocument();
+    // Onion mode renders an opacity slider; side-by-side (split) does not.
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
   });
 });
