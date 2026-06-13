@@ -42,6 +42,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     span_metric_id = SPAN_METRICS_NAMES["c:spans/usage@none"]
     span_is_segment_tag = str(SHARED_TAG_STRINGS["is_segment"])
+    billing_outcome_accepted_tag = str(SHARED_TAG_STRINGS["billing_outcome_accepted"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
@@ -77,6 +78,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         Identifies the transaction count based on the `is_segment` tag on the usage metric.
         """
         if generic_metric["metric_id"] != self.span_metric_id:
+            return {}
+
+        # If relay already produced an outcome for this item, ignore it.
+        if generic_metric["tags"].get(self.billing_outcome_accepted_tag) == "true":
             return {}
 
         value = generic_metric["value"]

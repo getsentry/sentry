@@ -202,6 +202,7 @@ SHARED_TAG_STRINGS = {
     "has_transaction": PREFIX + 281,
     "was_transaction": PREFIX + 282,
     "is_segment": PREFIX + 283,
+    "billing_outcome_accepted": PREFIX + 284,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
