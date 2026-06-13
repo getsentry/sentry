@@ -300,6 +300,116 @@ class TestExtractAssistantOutput:
         assert result["response_text"] == "Completion text"
 
 
+class TestReasoningParts:
+    def test_reasoning_excluded_from_normalize_to_messages(self) -> None:
+        messages = json_string(
+            [
+                {
+                    "role": "assistant",
+                    "parts": [
+                        {"type": "reasoning", "content": "Let me think step by step..."},
+                        {"type": "text", "content": "The answer is 42."},
+                    ],
+                }
+            ]
+        )
+        assert normalize_to_messages(messages, "assistant") == [
+            {"role": "assistant", "content": "The answer is 42."}
+        ]
+
+    def test_reasoning_only_message_returns_none(self) -> None:
+        messages = json_string(
+            [
+                {
+                    "role": "assistant",
+                    "parts": [
+                        {"type": "reasoning", "content": "Thinking only..."},
+                    ],
+                }
+            ]
+        )
+        assert normalize_to_messages(messages, "assistant") is None
+
+    def test_extract_assistant_output_separates_reasoning(self) -> None:
+        result = extract_assistant_output(
+            json_string(
+                [
+                    {
+                        "role": "assistant",
+                        "parts": [
+                            {"type": "reasoning", "content": "Step 1: analyze..."},
+                            {"type": "text", "content": "Here is the answer."},
+                        ],
+                    }
+                ]
+            ),
+            "assistant",
+        )
+        assert result["response_text"] == "Here is the answer."
+        assert result["reasoning_text"] == "Step 1: analyze..."
+
+    def test_extract_assistant_output_no_reasoning(self) -> None:
+        result = extract_assistant_output(
+            json_string([{"role": "assistant", "content": "Plain response"}]),
+            "assistant",
+        )
+        assert result["response_text"] == "Plain response"
+        assert result["reasoning_text"] is None
+
+    def test_extract_assistant_output_multiple_reasoning_parts(self) -> None:
+        result = extract_assistant_output(
+            json_string(
+                [
+                    {
+                        "role": "assistant",
+                        "parts": [
+                            {"type": "reasoning", "content": "First thought."},
+                            {"type": "reasoning", "content": "Second thought."},
+                            {"type": "text", "content": "Final answer."},
+                        ],
+                    }
+                ]
+            ),
+            "assistant",
+        )
+        assert result["response_text"] == "Final answer."
+        assert result["reasoning_text"] == "First thought.\nSecond thought."
+
+    def test_extract_assistant_output_reasoning_only(self) -> None:
+        result = extract_assistant_output(
+            json_string(
+                [
+                    {
+                        "role": "assistant",
+                        "parts": [
+                            {"type": "reasoning", "content": "Just thinking..."},
+                        ],
+                    }
+                ]
+            ),
+            "assistant",
+        )
+        assert result["response_text"] is None
+        assert result["reasoning_text"] == "Just thinking..."
+
+    def test_reasoning_with_text_field(self) -> None:
+        result = extract_assistant_output(
+            json_string(
+                [
+                    {
+                        "role": "assistant",
+                        "parts": [
+                            {"type": "reasoning", "text": "Thinking via text field"},
+                            {"type": "text", "content": "Answer."},
+                        ],
+                    }
+                ]
+            ),
+            "assistant",
+        )
+        assert result["reasoning_text"] == "Thinking via text field"
+
+
 class TestStringifyMessageContent:
     def test_returns_strings_unchanged(self) -> None:
         assert stringify_message_content("Hello") == "Hello"

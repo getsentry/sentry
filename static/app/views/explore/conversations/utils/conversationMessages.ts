@@ -32,6 +32,7 @@ export interface ConversationMessage {
   agentName?: string;
   duration?: number;
   modelName?: string;
+  reasoning?: string;
   toolCalls?: ToolCall[];
   userEmail?: string;
 }
@@ -39,6 +40,7 @@ export interface ConversationMessage {
 interface ConversationTurn {
   assistantContent: string | null;
   generation: AITraceSpanNode;
+  reasoning: string | null;
   toolCalls: ToolCall[];
   userContent: string | null;
   userEmail: string | undefined;
@@ -106,12 +108,14 @@ export function buildConversationTurns(
       })
       .filter((tc): tc is ToolCall => tc !== null);
 
+    const {content: assistantContent, reasoning} = parseAssistantContent(node);
     turns.push({
       generation: node,
       toolCalls,
       toolSpanNodes: toolCallSpans,
       userContent: parseUserContent(node),
-      assistantContent: parseAssistantContent(node),
+      assistantContent,
+      reasoning,
       userEmail,
     });
   }
@@ -220,6 +224,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         duration,
         agentName: agentName || undefined,
         modelName: modelName || undefined,
+        reasoning: turn.reasoning || undefined,
       });
     }
   }
@@ -272,35 +277,44 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
  * (every supported shape, including plain strings) and falling back to
  * `gen_ai.response.text` then `gen_ai.response.object`.
  */
-export function parseAssistantContent(node: AITraceSpanNode): string | null {
+export function parseAssistantContent(node: AITraceSpanNode): {
+  content: string | null;
+  reasoning: string | null;
+} {
   const outputMessages = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
 
   if (outputMessages) {
     if (outputMessages === FILTERED) {
-      return FILTERED;
+      return {content: FILTERED, reasoning: null};
     }
     const extracted = extractAssistantOutput(outputMessages, {
       defaultRole: 'assistant',
     });
     if (extracted.responseText) {
-      return extracted.responseText;
+      return {
+        content: extracted.responseText,
+        reasoning: extracted.reasoningText,
+      };
     }
     // If tool calls were found but no text, don't fall through to response
     // attributes — tool calls are rendered separately as badges
     if (extracted.toolCalls) {
-      return null;
+      return {content: null, reasoning: extracted.reasoningText};
     }
   }
 
   const responseText = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_TEXT);
   if (responseText) {
     if (isToolCallOnlyContent(responseText)) {
-      return null;
+      return {content: null, reasoning: null};
     }
-    return responseText;
+    return {content: responseText, reasoning: null};
   }
 
-  return getStringAttr(node, SpanFields.GEN_AI_RESPONSE_OBJECT) ?? null;
+  return {
+    content: getStringAttr(node, SpanFields.GEN_AI_RESPONSE_OBJECT) ?? null,
+    reasoning: null,
+  };
 }
 
 /**

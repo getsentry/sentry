@@ -16,6 +16,7 @@ interface NormalizedResult {
 
 interface AIOutputResult {
   fixedInvalidJson: boolean;
+  reasoningText: string | null;
   responseObject: string | null;
   responseText: string | null;
   toolCalls: string | null;
@@ -33,6 +34,7 @@ type UnknownRecord = Record<string, unknown>;
 type PartBuckets = {
   hasRenderableTextPart: boolean;
   objectParts: unknown[];
+  reasoningParts: string[];
   textParts: string[];
   toolCalls: unknown[];
   toolResponses: UnknownRecord[];
@@ -100,6 +102,7 @@ export function extractAssistantOutput(
 function emptyOutput(fixedInvalidJson: boolean): AIOutputResult {
   return {
     fixedInvalidJson,
+    reasoningText: null,
     responseText: null,
     responseObject: null,
     toolCalls: null,
@@ -127,14 +130,16 @@ function outputFromMessages(
   fixedInvalidJson: boolean
 ): AIOutputResult {
   const textParts: string[] = [];
+  const reasoningParts: string[] = [];
   const toolCallParts: unknown[] = [];
   const objectParts: unknown[] = [];
   for (const msg of messages) {
-    appendOutputFromMessage(msg, {textParts, toolCallParts, objectParts});
+    appendOutputFromMessage(msg, {textParts, reasoningParts, toolCallParts, objectParts});
   }
 
   return {
     fixedInvalidJson,
+    reasoningText: reasoningParts.length > 0 ? reasoningParts.join('\n') : null,
     responseText: textParts.length > 0 ? textParts.join('\n') : null,
     responseObject:
       objectParts.length > 0
@@ -334,6 +339,7 @@ function collapseParts(parts: unknown[]): unknown {
 function bucketParts(parts: unknown[]): PartBuckets {
   const buckets: PartBuckets = {
     hasRenderableTextPart: false,
+    reasoningParts: [],
     textParts: [],
     objectParts: [],
     toolCalls: [],
@@ -355,6 +361,13 @@ function bucketParts(parts: unknown[]): PartBuckets {
       const text = getTextPartContent(part, {trim: true});
       if (text) {
         buckets.textParts.push(text);
+      }
+      continue;
+    }
+    if (partType === 'reasoning') {
+      const text = getTextPartContent(part, {trim: true});
+      if (text) {
+        buckets.reasoningParts.push(text);
       }
       continue;
     }
@@ -391,7 +404,12 @@ function selectAssistantMessages(rawMessages: RawMessage[]): RawMessage[] {
 
 function appendOutputFromMessage(
   msg: RawMessage,
-  buckets: {objectParts: unknown[]; textParts: string[]; toolCallParts: unknown[]}
+  buckets: {
+    objectParts: unknown[];
+    reasoningParts: string[];
+    textParts: string[];
+    toolCallParts: unknown[];
+  }
 ): void {
   const {textParts, objectParts} = buckets;
 
@@ -418,15 +436,27 @@ function appendOutputFromMessage(
 
 function appendOutputFromParts(
   parts: unknown[],
-  buckets: {objectParts: unknown[]; textParts: string[]; toolCallParts: unknown[]}
+  buckets: {
+    objectParts: unknown[];
+    reasoningParts: string[];
+    textParts: string[];
+    toolCallParts: unknown[];
+  }
 ): void {
-  const {textParts, toolCallParts, objectParts} = buckets;
+  const {textParts, reasoningParts, toolCallParts, objectParts} = buckets;
   for (const part of parts) {
     const partType = getPartType(part);
     if (partType === 'text' && isRecord(part)) {
       const text = getStringField(part, 'content') ?? getStringField(part, 'text');
       if (text) {
         textParts.push(text);
+      }
+      continue;
+    }
+    if (partType === 'reasoning' && isRecord(part)) {
+      const text = getStringField(part, 'content') ?? getStringField(part, 'text');
+      if (text) {
+        reasoningParts.push(text);
       }
       continue;
     }
