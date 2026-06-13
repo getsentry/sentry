@@ -87,9 +87,15 @@ class GitHubIssueBasicAllSiloTest(TestCase):
             ],
         )
 
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/getsentry/issue-types",
+            json=[{"name": "bug"}, {"name": "task"}],
+        )
+
         install = self.install
         config = install.get_create_issue_config(None, self.user, params={})
-        [repo_field, assignee_field, label_field] = config
+        repo_field, assignee_field, label_field, type_field = config[:4]
         assert repo_field["name"] == "repo"
         assert repo_field["type"] == "select"
         assert repo_field["label"] == "GitHub Repository"
@@ -99,6 +105,13 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         assert label_field["name"] == "labels"
         assert label_field["type"] == "select"
         assert label_field["label"] == "Labels"
+        assert type_field["name"] == "type"
+        assert type_field["type"] == "select"
+        assert type_field["label"] == "Type"
+        assert type_field["default"] == ""
+        assert type_field["multiple"] is False
+        assert type_field["required"] is False
+        assert type_field["choices"] == (("bug", "bug"), ("task", "task"))
 
 
 class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
@@ -635,6 +648,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "https://api.github.com/repos/getsentry/sentry/labels",
             json=[{"name": "bug"}, {"name": "enhancement"}],
         )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/getsentry/issue-types",
+            json=[{"name": "bug"}, {"name": "task"}],
+        )
 
         responses.add(
             responses.GET,
@@ -786,6 +804,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             responses.GET,
             "https://api.github.com/repos/getsentry/sentry/labels",
             json=[{"name": "bug"}, {"name": "enhancement"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/orgs/getsentry/issue-types",
+            json=[{"name": "bug"}, {"name": "task"}],
         )
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
