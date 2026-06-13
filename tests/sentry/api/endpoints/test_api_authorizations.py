@@ -43,6 +43,27 @@ class ApiAuthorizationsListTest(ApiAuthorizationsTest):
         assert len(response.data) == 1
         assert response.data[0]["organization"]["slug"] == org.slug
 
+    def test_superuser_can_view_other_users_authorizations(self) -> None:
+        other_user = self.create_user("other@example.com")
+        app = ApiApplication.objects.create(name="other-app", owner=other_user)
+        auth = ApiAuthorization.objects.create(application=app, user=other_user)
+
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        response = self.get_success_response(qs_params={"userId": other_user.id})
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(auth.id)
+
+    def test_non_superuser_cannot_view_other_users_authorizations(self) -> None:
+        other_user = self.create_user("other2@example.com")
+        app = ApiApplication.objects.create(name="other-app2", owner=other_user)
+        ApiAuthorization.objects.create(application=app, user=other_user)
+
+        # Non-superuser requesting another user's authorizations falls back to own data
+        response = self.get_success_response(qs_params={"userId": other_user.id})
+        assert len(response.data) == 0
+
 
 @control_silo_test
 class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):

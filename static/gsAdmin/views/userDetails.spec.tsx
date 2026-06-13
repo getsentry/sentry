@@ -45,6 +45,11 @@ describe('User Details', () => {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/api-authorizations/',
+      body: [],
+    });
+
     ConfigStore.set('cells', [{name: 'us', locality_url: 'https://us.sentry.io'}]);
   });
 
