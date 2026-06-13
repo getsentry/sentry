@@ -1,94 +1,105 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
+import {
+  AutoSaveContextProvider,
+  AutoSaveForm,
+  defaultFormOptions,
+  useScrapsForm,
+} from '@sentry/scraps/form';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
-import type {
-  BranchOverride,
-  SeerRepoDefinition,
-} from 'sentry/components/events/autofix/types';
-import {isOverrideValid} from 'sentry/components/events/autofix/utils/isOverrideValid';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {overrideHasAllValues} from 'sentry/components/events/autofix/utils/overrideHasAllValues';
+import {overrideHasAnyValue} from 'sentry/components/events/autofix/utils/overrideHasAnyValue';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct, tn} from 'sentry/locale';
-
-import {AutofixRepositoriesItemBranchOverride} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItemBranchOverride';
+import type {AvatarProject} from 'sentry/types/project';
+import {getMutateSeerProjectRepoOptions} from 'sentry/utils/seer/seerProjectRepos';
+import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   canWrite: boolean;
-  onRemoveRepo: () => void;
-  onUpdateRepo: (updatedRepo: SeerRepoDefinition) => void;
-  repositories: SeerRepoDefinition[];
-  repository: SeerRepoDefinition;
+  onRemoveRepo: ({repoId}: {repoId: string}) => void;
+  project: AvatarProject;
+  repositories: SeerProjectReposResponse[];
+  repository: SeerProjectReposResponse;
 }
 
-const DEFAULT_OVERRIDE: BranchOverride = {tag_name: '', tag_value: '', branch_name: ''};
-
-function areOverridesEqual(a: BranchOverride[], b: BranchOverride[]) {
-  if (a.length !== b.length) {
-    return false;
-  }
-  return a.every((override, idx) => {
-    const other = b[idx];
-    return (
-      override.branch_name === other?.branch_name &&
-      override.tag_name === other.tag_name &&
-      override.tag_value === other.tag_value
-    );
+const overrideItemSchema = z
+  .object({
+    id: z.string(),
+    branchName: z.string(),
+    tagName: z.string(),
+    tagValue: z.string(),
+  })
+  .superRefine((override, ctx) => {
+    if (!overrideHasAnyValue(override)) {
+      return;
+    }
+    if (!override.tagName.trim()) {
+      ctx.addIssue({code: 'custom', path: ['tagName'], message: 'Required'});
+    }
+    if (!override.tagValue.trim()) {
+      ctx.addIssue({code: 'custom', path: ['tagValue'], message: 'Required'});
+    }
+    if (!override.branchName.trim()) {
+      ctx.addIssue({code: 'custom', path: ['branchName'], message: 'Required'});
+    }
   });
-}
+
+const repoSchema = z.object({
+  branchName: z.string().optional(),
+  branchOverrides: z
+    .array(overrideItemSchema)
+    .transform(overrides => overrides.filter(overrideHasAllValues)),
+  instructions: z.string().optional(),
+});
 
 export function AutofixRepositoriesItem({
   canWrite,
-  repository,
-  repositories,
   onRemoveRepo,
-  onUpdateRepo,
+  repositories,
+  repository,
+  project,
 }: Props) {
+  const queryClient = useQueryClient();
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // We keep state with local overrides so the user can edit things without
-  // sending incomplete changes to the server. All fields are required before
-  // an override can be saved.
-  const [localOverrides, setLocalOverrides] = useState(repository.branch_overrides || []);
+  const mutationOptions = getMutateSeerProjectRepoOptions({
+    organization,
+    project,
+    queryClient,
+    repoId: repository.repositoryId,
+  });
 
-  const handleUpdateOverride = (idx: number, updatedOverride: BranchOverride) => {
-    const newLocalOverrides = localOverrides.toSpliced(idx, 1, updatedOverride);
-    setLocalOverrides(newLocalOverrides);
+  const {mutateAsync: handleUpdateRepo, status: mutationStatus} =
+    useMutation(mutationOptions);
+  const resetOnErrorRef = useRef(false);
 
-    // Only sync valid overrides to the server if they changed
-    const branchOverrides = newLocalOverrides.filter(isOverrideValid);
-    if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
-      onUpdateRepo({
-        ...repository,
-        branch_overrides: branchOverrides,
-      });
-    }
-  };
-
-  const handleRemoveOverride = (idx: number) => {
-    const newLocalOverrides = localOverrides.toSpliced(idx, 1);
-    setLocalOverrides(newLocalOverrides);
-
-    // Sync valid overrides to the server if they changed
-    const branchOverrides = newLocalOverrides.filter(isOverrideValid);
-    if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
-      onUpdateRepo({
-        ...repository,
-        branch_overrides: branchOverrides,
-      });
-    }
-  };
-
-  const handleAddOverride = () => {
-    setLocalOverrides([...localOverrides, {...DEFAULT_OVERRIDE}]);
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      branchOverrides: repository.branchOverrides,
+    },
+    validators: {
+      onDynamic: repoSchema,
+    },
+    listeners: {
+      onChangeDebounceMs: 1000,
+      onChange: ({formApi}) => formApi.handleSubmit(),
+    },
+    onSubmit: ({value}) => handleUpdateRepo(repoSchema.parse(value)),
+  });
 
   return (
     <Fragment>
@@ -125,7 +136,7 @@ export function AutofixRepositoriesItem({
       <Flex align="center" style={isExpanded ? {borderBottom: 'none'} : {}}>
         <Confirm
           disabled={!canWrite}
-          onConfirm={onRemoveRepo}
+          onConfirm={() => onRemoveRepo({repoId: repository.repositoryId})}
           header={
             <Heading as="h4">
               {tct('Are you sure you want to remove [repo] from Autofix?', {
@@ -166,7 +177,7 @@ export function AutofixRepositoriesItem({
               <Heading as="h4">
                 <Flex align="center" gap="sm">
                   {t('(Optional) Select Working Branch for Seer')}
-                  <QuestionTooltip
+                  <InfoTip
                     title={t(
                       'Optionally provide a specific branch that Seer will work on. If left blank, Seer will use the default branch of the repository.'
                     )}
@@ -175,37 +186,121 @@ export function AutofixRepositoriesItem({
                 </Flex>
               </Heading>
             </Flex>
-            <Flex align="center" gap="sm">
-              {t('By default, look at')}
-              <Input
-                disabled={!canWrite}
-                nativeSize={10}
-                onChange={e => onUpdateRepo({...repository, branch_name: e.target.value})}
-                placeholder={t('Default branch')}
-                size="sm"
-                style={{width: '200px'}}
-                value={repository.branch_name}
-              />
-            </Flex>
-            {localOverrides.map((override, idx) => (
-              <AutofixRepositoriesItemBranchOverride
-                key={idx}
-                canWrite={canWrite}
-                onUpdateOverride={updated => handleUpdateOverride(idx, updated)}
-                onRemoveOverride={() => handleRemoveOverride(idx)}
-                override={override}
-              />
-            ))}
-            <Flex align="center">
-              <Button
-                disabled={!canWrite}
-                size="xs"
-                icon={<IconAdd size="sm" />}
-                onClick={handleAddOverride}
-              >
-                {t('Add Override')}
-              </Button>
-            </Flex>
+
+            <AutoSaveForm
+              name="branchName"
+              schema={repoSchema}
+              initialValue={repository.branchName}
+              mutationOptions={mutationOptions}
+            >
+              {field => (
+                <Flex align="center" gap="sm">
+                  {t('By default, look at')}
+                  <field.Input
+                    size="sm"
+                    disabled={!canWrite}
+                    placeholder={t('Default Branch')}
+                    value={field.state.value ?? ''}
+                    onChange={field.handleChange}
+                  />
+                </Flex>
+              )}
+            </AutoSaveForm>
+
+            <form.AppForm form={form}>
+              <form.AppField name="branchOverrides" mode="array">
+                {fieldApi => (
+                  <Stack gap="lg">
+                    {fieldApi.state.value.map((override, i) => (
+                      <AutoSaveContextProvider
+                        key={`branchOverrides[${i}]`}
+                        value={{
+                          status: overrideHasAllValues(override)
+                            ? mutationStatus
+                            : overrideHasAnyValue(override)
+                              ? 'error'
+                              : 'idle',
+                          resetOnErrorRef,
+                        }}
+                      >
+                        <Flex align="center" gap="sm">
+                          <form.AppField name={`branchOverrides[${i}].tagName`}>
+                            {subField => (
+                              <Fragment>
+                                <Text wrap="nowrap">{t('When')}</Text>
+                                <subField.Input
+                                  disabled={!canWrite}
+                                  onChange={subField.handleChange}
+                                  placeholder={t('Tag name (e.g. environment)')}
+                                  size="sm"
+                                  value={subField.state.value}
+                                  width="170px"
+                                />
+                              </Fragment>
+                            )}
+                          </form.AppField>
+                          <form.AppField name={`branchOverrides[${i}].tagValue`}>
+                            {subField => (
+                              <Fragment>
+                                <Text wrap="nowrap">{t('is')}</Text>
+                                <subField.Input
+                                  disabled={!canWrite}
+                                  onChange={subField.handleChange}
+                                  placeholder={t('Tag value (e.g. staging)')}
+                                  size="sm"
+                                  value={subField.state.value}
+                                  width="170px"
+                                />
+                              </Fragment>
+                            )}
+                          </form.AppField>
+                          <form.AppField name={`branchOverrides[${i}].branchName`}>
+                            {subField => (
+                              <Fragment>
+                                <Text wrap="nowrap">{t('look at')}</Text>
+                                <subField.Input
+                                  disabled={!canWrite}
+                                  onChange={subField.handleChange}
+                                  placeholder={t('Branch name (e.g. dev)')}
+                                  size="sm"
+                                  value={subField.state.value}
+                                  width="170px"
+                                />
+                              </Fragment>
+                            )}
+                          </form.AppField>
+                          <Button
+                            aria-label={t('Remove override')}
+                            disabled={!canWrite}
+                            icon={<IconDelete size="sm" />}
+                            onClick={() => fieldApi.removeValue(i)}
+                            variant="transparent"
+                            size="xs"
+                          />
+                        </Flex>
+                      </AutoSaveContextProvider>
+                    ))}
+                    <Flex align="center">
+                      <Button
+                        disabled={!canWrite}
+                        size="xs"
+                        icon={<IconAdd size="sm" />}
+                        onClick={() =>
+                          fieldApi.pushValue({
+                            id: '',
+                            tagName: '',
+                            tagValue: '',
+                            branchName: '',
+                          })
+                        }
+                      >
+                        {t('Add Override')}
+                      </Button>
+                    </Flex>
+                  </Stack>
+                )}
+              </form.AppField>
+            </form.AppForm>
           </Stack>
         </Container>
       )}

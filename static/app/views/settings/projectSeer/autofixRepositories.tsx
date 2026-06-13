@@ -177,10 +177,11 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     ]
   );
 
+  // TODO
   const handleSaveModalSelections = useCallback(
-    (modalSelectedIds: string[]) => {
-      setSelectedRepoIds(modalSelectedIds);
-      updatePreferences(modalSelectedIds);
+    ({selectedExternalIds}: {selectedExternalIds: string[]}) => {
+      setSelectedRepoIds(selectedExternalIds);
+      updatePreferences(selectedExternalIds);
     },
     [updatePreferences]
   );
@@ -237,7 +238,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     openModal(deps => (
       <AddAutofixRepoModal
         {...deps}
-        selectedRepoIds={selectedRepoIds}
+        hiddenExternalIds={selectedRepoIds}
         onSave={handleSaveModalSelections}
       />
     ));
