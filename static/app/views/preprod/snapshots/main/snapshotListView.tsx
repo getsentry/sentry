@@ -18,6 +18,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DiffStatus, isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDiffPair,
@@ -61,6 +62,7 @@ type GroupCard =
       estimatedHeight: number;
       id: string;
       pair: SnapshotDiffPair;
+      status: DiffStatus;
       type: 'pair-card';
     }
   | {
@@ -108,7 +110,7 @@ function estimateCardHeight(
 }
 
 export function isItemUngrouped(item: SidebarItem): boolean {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return !item.pairs[0]?.head_image.group;
   }
   return !item.images[0]?.group;
@@ -118,12 +120,14 @@ function buildGroups(items: SidebarItem[], contentWidth: number): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {
     const cards: GroupCard[] = [];
-    if (item.type === 'changed') {
+    if (item.type === 'changed' || item.type === 'errored') {
+      const status = item.type === 'errored' ? DiffStatus.ERRORED : DiffStatus.CHANGED;
       for (const pair of item.pairs) {
         cards.push({
           type: 'pair-card',
           id: `c:${item.key}:${pair.head_image.image_file_name}`,
           pair,
+          status,
           estimatedHeight: Math.max(
             estimateCardHeight(pair.head_image, true, contentWidth),
             estimateCardHeight(pair.base_image, true, contentWidth)
@@ -632,7 +636,7 @@ const GroupContainer = memo(function GroupContainer({
     const snapshotKey = snapshotKeyFor(card);
     const isSelected = snapshotKey === selectedSnapshotKey;
     const copyUrl = buildSnapshotLink(snapshotKey);
-    const diffStatus = card.type === 'pair-card' ? 'changed' : card.cardType;
+    const diffStatus = card.type === 'pair-card' ? card.status : card.cardType;
     const onCopyLink = () =>
       trackAnalytics('preprod.snapshots.details.image_link_copied', {
         organization,
@@ -647,6 +651,7 @@ const GroupContainer = memo(function GroupContainer({
       <PairCard
         key={card.id}
         pair={card.pair}
+        status={card.status}
         imageBaseUrl={imageBaseUrl}
         headBranch={headBranch}
         isSelected={isSelected}
