@@ -229,6 +229,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/silo/                                      @getsentry/hybrid-cloud
 /tests/sentry/models/test_projectkeymapping.py           @getsentry/hybrid-cloud
 /.agents/skills/hybrid-cloud-*                           @getsentry/hybrid-cloud
+/src/apigw/                                              @getsentry/hybrid-cloud @gi0baro
+/tests/apigw/                                            @getsentry/hybrid-cloud @gi0baro
 ## End of Hybrid Cloud
 
 ## Alerts & Notifications
