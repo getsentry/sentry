@@ -22,27 +22,7 @@ export function AskSeerSearchPopover(props: PopoverProps) {
 
   return (
     <StyledPositionWrapper {...overlayProps} visible={state.isOpen}>
-      <ListBoxOverlay
-        ref={element => {
-          popoverRef.current = element;
-          if (!element || !props.containerRef.current) {
-            return;
-          }
-
-          const resizeObserver = new ResizeObserver(entries => {
-            if (!props.containerRef.current) {
-              return;
-            }
-            element.style.width = `${entries[0]?.target.clientWidth}px`;
-          });
-
-          resizeObserver.observe(props.containerRef.current);
-
-          return () => {
-            resizeObserver.disconnect();
-          };
-        }}
-      >
+      <ListBoxOverlay ref={popoverRef}>
         <BackgroundColorWrapper>{children}</BackgroundColorWrapper>
       </ListBoxOverlay>
     </StyledPositionWrapper>
@@ -50,6 +30,8 @@ export function AskSeerSearchPopover(props: PopoverProps) {
 }
 
 const ListBoxOverlay = styled(Overlay)`
+  box-sizing: border-box;
+  width: 100%;
   max-height: 400px;
   min-width: 200px;
   overflow-y: auto;
