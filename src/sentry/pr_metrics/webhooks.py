@@ -65,6 +65,7 @@ from sentry.pr_metrics.emit import (
     is_pr_tracked,
     select_verdict,
 )
+from sentry.pr_metrics.tasks import forward_pr_to_seer
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -169,6 +170,57 @@ def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
     return bool(claimed)
 
 
+def _claim_for_judge(pr: PullRequest) -> bool:
+    """Claim a needs-judge terminal event for the forward path.
+
+    Like ``_claim_terminal_event`` but for the ``JUDGE_IN_PROGRESS`` sentinel, and
+    tolerant of a missing metrics row: ``select_verdict`` defers to a judge when
+    the row is absent, so ensure it exists before the compare-and-set claims the
+    sentinel onto a null verdict. Returns True if this call won the claim.
+    """
+    PullRequestMetrics.objects.get_or_create(pull_request=pr)
+    return _claim_terminal_event(pr, PullRequestVerdict.JUDGE_IN_PROGRESS)
+
+
+def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
+    """Hand a needs-judge terminal event to Seer, guarded against redelivery.
+
+    Gated on ``pr-metrics-judge`` independently of emission: until it's enabled
+    (and Seer's endpoint exists), a needs-judge PR is skipped — today's behavior.
+    Claims the sentinel via the redelivery guard before enqueuing the forward, so
+    a redelivered terminal event can't forward to Seer twice.
+    """
+    if not features.has("organizations:pr-metrics-judge", organization):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
+        logger.info(
+            "pr_metrics.emit.needs_judge",
+            extra={"organization_id": organization.id, "pull_request_id": pr.id},
+        )
+        return
+
+    if not _claim_for_judge(pr):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        return
+
+    try:
+        forward_pr_to_seer.delay(
+            pull_request_id=pr.id,
+            organization_id=organization.id,
+            repository_id=pr.repository_id,
+        )
+    except Exception:
+        # The claim committed but the enqueue didn't, so no task will settle this
+        # PR. Release the sentinel (only if it's still ours) so a webhook
+        # redelivery re-forwards rather than the PR sticking in JUDGE_IN_PROGRESS.
+        PullRequestMetrics.objects.filter(
+            pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
+        ).update(verdict=None)
+        metrics.incr("pr_metrics.judge.enqueue_failed")
+        logger.exception("pr_metrics.judge.enqueue_failed", extra={"pull_request_id": pr.id})
+        return
+    metrics.incr("pr_metrics.judge.enqueued")
+
+
 def handle_emission(
     *,
     github_event: GithubWebhookType,
@@ -188,9 +240,9 @@ def handle_emission(
     claimed: claiming would burn the redelivery guard, so a PR that gained
     attribution only later (e.g. a Seer backfill) could never emit. ``select_verdict``
     then decides the outcome: a deterministic verdict is claimed (the redelivery
-    guard) and emitted. A PR that needs a judge is forwarded to Seer instead; that
-    path — including its own redelivery guard — isn't wired yet, so for now a
-    judge-needed PR is skipped here.
+    guard) and emitted; a PR that needs a judge is forwarded to Seer instead (gated
+    on ``pr-metrics-judge``, guarded by the same claim against redelivery), and Seer
+    calls back to settle and emit it.
     """
     if event.get("action") != "closed":
         return
@@ -208,11 +260,7 @@ def handle_emission(
 
     verdict = select_verdict(pr, organization)
     if verdict is None:
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
-        logger.info(
-            "pr_metrics.emit.needs_judge",
-            extra={"organization_id": organization.id, "pull_request_id": pr.id},
-        )
+        _forward_to_judge(pr, organization)
         return
 
     if not _claim_terminal_event(pr, verdict):

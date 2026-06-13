@@ -55,6 +55,12 @@ class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
     CLOSED_UNMERGED = "closed_unmerged"
+    # Transient, internal: a terminal event whose outcome a judge must decide has
+    # been claimed and forwarded to Seer, but the judged verdict hasn't returned.
+    # Reuses the verdict column as the redelivery guard so a redelivered terminal
+    # event won't forward twice; Seer's callback overwrites it with a real verdict.
+    # Never a judge *result* — the callback rejects it coming back from Seer.
+    JUDGE_IN_PROGRESS = "judge_in_progress"
 
 
 class PullRequestManager(BaseManager["PullRequest"]):
