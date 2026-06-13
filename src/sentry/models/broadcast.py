@@ -17,6 +17,7 @@ BROADCAST_CATEGORIES = [
     ("blog", "Blog Post"),
     ("event", "Event"),
     ("video", "Video"),
+    ("sdk_update", "SDK Update"),
 ]
 
 
