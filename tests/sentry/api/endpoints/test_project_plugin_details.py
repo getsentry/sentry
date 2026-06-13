@@ -75,6 +75,18 @@ class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
         )
 
 
+    def test_put_with_list_body_returns_400(self) -> None:
+        # Clients sending a JSON array instead of an object should get a 400, not a 500.
+        response = self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            "webhooks",
+            status_code=400,
+            raw_data=[{"name": "urls", "value": "https://example.com"}],
+        )
+        assert "Request body must be a JSON object" in response.data.get("detail", "")
+
+
 class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "post"
 
