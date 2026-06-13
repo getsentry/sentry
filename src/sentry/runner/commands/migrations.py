@@ -49,7 +49,11 @@ def run_for_connection(app_name: str, migration_name: str, connection_name: str)
         at_end=False,
     )
 
-    click.secho(f"Running post-deployment migration for {connection_name}:", fg="cyan")
+    migration_user = connection.settings_dict["USER"]
+    click.secho(
+        f"Running post-deployment migration for connection {connection_name} as {migration_user}:",
+        fg="cyan",
+    )
     click.secho(f"  {migration.name}", bold=True)
     with connection.schema_editor() as schema_editor:
         # Enable 'safe' migration execution. This enables concurrent mode on index creation
