@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useReducer, type Reducer} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {
@@ -839,7 +840,8 @@ function updateFilterKey(
 export function replaceFreeTextTokens(
   currentQuery: string,
   parseQuery: (query: string) => ParseResult | null,
-  replaceRawSearchKeys: string[]
+  replaceRawSearchKeys: string[],
+  searchSource: string
 ) {
   if (
     currentQuery.trim().length === 0 ||
@@ -885,6 +887,21 @@ export function replaceFreeTextTokens(
 
     const value = escapeTagValue(token.text.trim());
 
+    // We're doing an experiment here to see if we can detect natural language queries
+    // and attempt to track them.
+    if (value.includes(' ')) {
+      const valueWithNoQuotes = value.slice(1, -1);
+
+      Sentry.logger.info(
+        Sentry.logger.fmt`Found potential natural language query: ${valueWithNoQuotes}`,
+        {query: valueWithNoQuotes, source: searchSource}
+      );
+
+      Sentry.metrics.count('search_query_builder.replace_free_text_tokens', 1, {
+        attributes: {query: valueWithNoQuotes, source: searchSource},
+      });
+    }
+
     // We don't want to break user flows, so if they include an asterisk in their free
     // text value, leave it as an `is` filter.
     if (value.includes('*')) {
@@ -923,6 +940,7 @@ function updateFreeTextAndReplaceText(
     | UpdateFreeTextActionOnExit
     | UpdateFreeTextActionOnCommit,
   parseQuery: (query: string) => ParseResult | null,
+  searchSource: string,
   replaceRawSearchKeys?: string[]
 ): QueryBuilderState {
   const newState = updateFreeText(state, action);
@@ -934,7 +952,8 @@ function updateFreeTextAndReplaceText(
   const replacedState = replaceFreeTextTokens(
     newState.query,
     parseQuery,
-    replaceRawSearchKeys ?? []
+    replaceRawSearchKeys ?? [],
+    searchSource
   );
 
   const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
@@ -980,19 +999,21 @@ function updateLogicOperator(
 }
 
 export function useQueryBuilderState({
-  initialQuery,
-  getFieldDefinition,
   disabled,
   displayAskSeerFeedback,
-  setDisplayAskSeerFeedback,
-  replaceRawSearchKeys,
+  getFieldDefinition,
+  initialQuery,
   parseQuery,
+  setDisplayAskSeerFeedback,
+  searchSource,
+  replaceRawSearchKeys,
 }: {
   disabled: boolean;
   displayAskSeerFeedback: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
   parseQuery: (query: string) => ParseResult | null;
+  searchSource: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
   replaceRawSearchKeys?: string[];
 }) {
@@ -1043,7 +1064,8 @@ export function useQueryBuilderState({
           const replacedState = replaceFreeTextTokens(
             action.query,
             parseQuery,
-            replaceRawSearchKeys
+            replaceRawSearchKeys,
+            searchSource
           );
 
           const query = replacedState?.newQuery ? replacedState.newQuery : action.query;
@@ -1107,6 +1129,7 @@ export function useQueryBuilderState({
             state,
             action,
             parseQuery,
+            searchSource,
             replaceRawSearchKeys
           );
 
@@ -1166,6 +1189,7 @@ export function useQueryBuilderState({
       getFieldDefinition,
       parseQuery,
       replaceRawSearchKeys,
+      searchSource,
     ]
   );
 
