@@ -109,7 +109,7 @@ describe('PinnedLogs', () => {
     expect(screen.getByTestId('pinned-row-log-3')).toBeInTheDocument();
   });
 
-  it('shows a loading indicator for a pinned row that is not yet available', () => {
+  it('shows a loading placeholder for a pinned row that is not yet available', () => {
     renderPinnedLogs(
       {
         initialRouterConfig: {
@@ -119,7 +119,7 @@ describe('PinnedLogs', () => {
       {isFetchingPinnedRows: true}
     );
 
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     expect(screen.queryByTestId('pinned-row-missing-log')).not.toBeInTheDocument();
   });
 
