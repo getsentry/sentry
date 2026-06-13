@@ -70,6 +70,7 @@ export enum FieldKey {
   GEO_REGION = 'geo.region',
   GEO_SUBDIVISION = 'geo.subdivision',
   HAS = 'has',
+  HAS_ATTACHMENTS = 'has_attachments',
   HTTP_METHOD = 'http.method',
   HTTP_REFERER = 'http.referer',
   HTTP_STATUS_CODE = 'http.status_code',
@@ -190,6 +191,7 @@ type ErrorFieldKey =
   | FieldKey.EVENT_TYPE
   | FieldKey.FIRST_RELEASE
   | FieldKey.FIRST_SEEN
+  | FieldKey.HAS_ATTACHMENTS
   | FieldKey.IS
   | FieldKey.ISSUE
   | FieldKey.ISSUE_CATEGORY
@@ -2039,6 +2041,12 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
+  [FieldKey.HAS_ATTACHMENTS]: {
+    desc: t('Issues with event attachments'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+    allowWildcard: false,
+  },
   [FieldKey.IS]: {
     desc: t('The properties of an issue (i.e. Resolved, unresolved)'),
     kind: FieldKind.FIELD,
@@ -2821,6 +2829,7 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.FIRST_RELEASE,
   FieldKey.FIRST_SEEN,
   FieldKey.HAS,
+  FieldKey.HAS_ATTACHMENTS,
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_PRIORITY,
