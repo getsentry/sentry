@@ -17,6 +17,7 @@ from objectstore_client import RequestError
 from sentry.models.debugfile import (
     DifMeta,
     ProjectDebugFile,
+    create_dif_from_file,
     create_dif_from_id,
     detect_dif_from_path,
     get_debug_id_from_dif_request,
@@ -262,8 +263,10 @@ class DebugFileObjectstoreTest(TestCase):
         defaults.update(kwargs)
         return ProjectDebugFile.objects.create(**defaults)
 
-    def _create_non_objectstore_dif(self, **kwargs):
-        return self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75", **kwargs)
+    def _create_non_objectstore_dif(
+        self, debug_id: str = "dfb8e43a-f242-3d73-a453-aeb6a777ef75", **kwargs: Any
+    ):
+        return self.create_dif_file(debug_id=debug_id, **kwargs)
 
     @requires_objectstore
     def test_metadata_reads_from_new_columns_when_storage_path_set(self):
@@ -356,6 +359,43 @@ class CreateDebugFileTest(APITestCase):
         assert dif.file.type == "project.dif"
         assert "Content-Type" in dif.file.headers
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
+
+    @requires_objectstore
+    def test_objectstore_backed_create_dif_from_file(self) -> None:
+        with open(self.file_path, "rb") as f:
+            content = f.read()
+
+        file = self.create_file(
+            name="crash.dsym", checksum="2b92c5472f4442a27da02509951ea2e0f529511c"
+        )
+        file.putfile(ContentFile(content))
+
+        with self.feature("organizations:objectstore-debugfiles-write"):
+            dif, created = create_dif_from_file(self.project, file, self.file_path)
+
+        assert created
+        assert dif.file_id is None
+        assert dif.storage_path is not None
+        assert dif.content_type == "application/x-mach-binary"
+        assert not File.objects.filter(id=file.id).exists()
+        assert dif.getfile().read() == content
+
+    @requires_objectstore
+    def test_objectstore_backed_create_dif(self) -> None:
+        content = b"objectstore-dif-content"
+        checksum = "46b15fc7714307c2d13a1e42651ba92245662ab0"
+
+        with self.feature("organizations:objectstore-debugfiles-write"):
+            dif, created = self.create_dif(fileobj=BytesIO(content))
+
+        assert created
+        assert dif.file_id is None
+        assert dif.storage_path is not None
+        assert dif.content_type == "application/x-mach-binary"
+        assert dif.file_size == len(content)
+        assert dif.checksum == checksum
+        assert dif.get_file_size() == len(content)
+        assert dif.getfile().read() == content
 
     def test_keep_disjoint_difs(self) -> None:
         file = self.create_file(

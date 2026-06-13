@@ -1,6 +1,8 @@
 import logging
 import posixpath
 import re
+import shutil
+import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
@@ -17,6 +19,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
+from urllib3.exceptions import HTTPError
 
 from sentry.apidocs.response_types import DetailResponse
 
@@ -274,15 +277,22 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         try:
             fp = debug_file.getfile()
+
+            def stream_debug_file():
+                try:
+                    yield from iter(lambda: fp.read(4096), b"")
+                finally:
+                    fp.close()
+
             response = StreamingHttpResponse(
-                iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
+                stream_debug_file(), content_type="application/octet-stream"
             )
             response["Content-Length"] = debug_file.get_file_size()
             response["Content-Disposition"] = (
                 f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
             return response
-        except (OSError, RequestError):
+        except (OSError, RequestError, HTTPError):
             raise Http404
 
     @extend_schema(
@@ -779,15 +789,22 @@ def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
     """Builds a per-row match score for ProGuard clone-source selection.
 
     The annotation returns ``1`` when a row belongs to one of the requested
-    checksums, points at a ``project.dif`` file, and its linked ``File`` has
-    headers exactly matching the stored ProGuard content type. It returns ``0``
-    for all other rows.
+    checksums and is a ProGuard mapping — either via the linked ``File``
+    (type ``project.dif`` with matching content-type header) or via the
+    Objectstore path (``file`` is NULL, ``content_type`` matches directly).
+    It returns ``0`` for all other rows.
     """
+    proguard_ct = DIF_MIMETYPES["proguard"]
     return Case(
         When(
-            checksum__in=checksums,
-            file__type="project.dif",
-            file__headers={"Content-Type": DIF_MIMETYPES["proguard"]},
+            Q(checksum__in=checksums)
+            & (
+                Q(
+                    file__type="project.dif",
+                    file__headers={"Content-Type": proguard_ct},
+                )
+                | Q(file__isnull=True, content_type=proguard_ct)
+            ),
             then=Value(1),
         ),
         default=Value(0),
@@ -795,7 +812,6 @@ def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
     )
 
 
-# XXX(lcian): This currently only works for non Objectstore-backed Difs. The upload path needs to be adapted.
 def _clone_proguard_debug_file_for_reupload(
     project: Project,
     debug_file: ProjectDebugFile,
@@ -818,7 +834,21 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    if debug_file.file is not None:
+        dif, created = create_dif_from_id(project, meta, file=debug_file.file)
+    if debug_file.storage_path is not None:
+        source_fileobj = debug_file.getfile()
+        try:
+            # Spool into a temporary file to get a seekable stream.
+            with tempfile.SpooledTemporaryFile(max_size=5 * 1024 * 1024) as tmp:
+                shutil.copyfileobj(source_fileobj, tmp)
+                tmp.seek(0)
+                dif, created = create_dif_from_id(project, meta, fileobj=tmp)
+        finally:
+            source_fileobj.close()
+    else:
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
     if created:
         record_last_upload(project)
 

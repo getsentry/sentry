@@ -18,6 +18,7 @@ from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.objectstore import get_debug_files_session
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
@@ -224,6 +225,8 @@ def _sync_release_artifact_bundle(
 def _sync_project_debug_file(
     source_project_debug_file: ProjectDebugFile, target_org: Organization
 ) -> ProjectDebugFile | None:
+    target_project = None
+    target_storage_path = None
     try:
         with atomic_transaction(using=(router.db_for_write(ProjectDebugFile))):
             target_project = _find_matching_project(
@@ -234,9 +237,30 @@ def _sync_project_debug_file(
             if not target_project:
                 return None
 
+            if source_project_debug_file.storage_path is not None:
+                source_fileobj = source_project_debug_file.getfile()
+                try:
+                    target_storage_path = get_debug_files_session(
+                        target_org.id, target_project.id
+                    ).put(
+                        source_fileobj,
+                        compression="none",
+                        content_type=source_project_debug_file.get_content_type(),
+                    )
+                finally:
+                    source_fileobj.close()
+
             return ProjectDebugFile.objects.create(
                 project_id=target_project.id,
-                file=source_project_debug_file.file,
+                file=(
+                    None
+                    if source_project_debug_file.storage_path is not None
+                    else source_project_debug_file.file
+                ),
+                storage_path=target_storage_path,
+                content_type=source_project_debug_file.content_type,
+                file_size=source_project_debug_file.file_size,
+                date_created=source_project_debug_file.date_created,
                 checksum=source_project_debug_file.checksum,
                 object_name=source_project_debug_file.object_name,
                 cpu_name=source_project_debug_file.cpu_name,
