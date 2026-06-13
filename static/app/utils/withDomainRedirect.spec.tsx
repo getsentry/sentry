@@ -1,3 +1,5 @@
+import type {RouteObject} from 'react-router-dom';
+import {Outlet} from 'react-router-dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,21 +9,41 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/utils/useRoutes');
 
-// /settings/:orgId/:projectId/(searches/:searchId/)alerts/
-const projectRoutes = [
-  {path: '/', childRoutes: []},
-  {childRoutes: []},
-  {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
-  {name: 'Organizations', path: ':orgId/', childRoutes: []},
-  {name: 'Projects', path: ':projectId/', childRoutes: []},
-  {name: 'Alerts', path: 'alerts/'},
-];
+// /settings/:orgId/:projectId/alerts/
+function projectRouteChildren(leaf: React.ReactElement): RouteObject[] {
+  return [
+    {
+      path: 'settings',
+      handle: {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
+      element: <Outlet />,
+      children: [
+        {
+          path: ':orgId',
+          handle: {name: 'Organizations', path: ':orgId/', childRoutes: []},
+          element: <Outlet />,
+          children: [
+            {
+              path: ':projectId',
+              handle: {name: 'Projects', path: ':projectId/', childRoutes: []},
+              element: <Outlet />,
+              children: [
+                {
+                  path: 'alerts/*',
+                  handle: {name: 'Alerts', path: 'alerts/'},
+                  element: leaf,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ];
+}
 
 describe('withDomainRedirect', () => {
   function MyComponent() {
@@ -131,17 +153,17 @@ describe('withDomainRedirect', () => {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
-    jest.mocked(useRoutes).mockReturnValue(projectRoutes);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
-    const {router} = render(<WrappedComponent />, {
+    const {router} = render(<Outlet />, {
       organization,
       initialRouterConfig: {
         location: {
           pathname: '/settings/albertos-apples/react/alerts/',
           query: {q: '123'},
         },
-        route: '/settings/:orgId/:projectId/alerts/',
+        route: '/',
+        children: projectRouteChildren(<WrappedComponent />),
       },
     });
 
@@ -157,8 +179,6 @@ describe('withDomainRedirect', () => {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
-
-    jest.mocked(useRoutes).mockReturnValue([]);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {router} = render(<WrappedComponent />, {
@@ -185,17 +205,17 @@ describe('withDomainRedirect', () => {
       sentryUrl: 'https://sentry.io',
       subdomain: '',
     });
-    jest.mocked(useRoutes).mockReturnValue(projectRoutes);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
-    const {router} = render(<WrappedComponent />, {
+    const {router} = render(<Outlet />, {
       organization,
       initialRouterConfig: {
         location: {
           pathname: '/settings/albertos-apples/react/alerts/',
           query: {q: '123'},
         },
-        route: '/settings/:orgId/:projectId/alerts/',
+        route: '/',
+        children: projectRouteChildren(<WrappedComponent />),
       },
     });
 

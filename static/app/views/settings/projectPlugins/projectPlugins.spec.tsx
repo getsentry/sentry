@@ -13,7 +13,6 @@ describe('ProjectPlugins', () => {
 
     render(
       <ProjectPlugins
-        organization={organization}
         project={project}
         onChange={jest.fn()}
         loading={false}
@@ -36,7 +35,6 @@ describe('ProjectPlugins', () => {
 
     render(
       <ProjectPlugins
-        organization={organization}
         project={project}
         onChange={jest.fn()}
         loading={false}

@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectPluginRow from 'sentry/views/settings/projectPlugins/projectPluginRow';
+import {ProjectPluginRow} from 'sentry/views/settings/projectPlugins/projectPluginRow';
 
 describe('ProjectPluginRow', () => {
   const plugin = PluginFixture();
@@ -16,14 +16,7 @@ describe('ProjectPluginRow', () => {
     const onChange = jest.fn();
 
     render(
-      <ProjectPluginRow
-        params={{}}
-        routes={[]}
-        {...params}
-        {...plugin}
-        onChange={onChange}
-        project={project}
-      />
+      <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />
     );
 
     await userEvent.click(screen.getByRole('checkbox'));
@@ -35,14 +28,7 @@ describe('ProjectPluginRow', () => {
     const onChange = jest.fn();
 
     render(
-      <ProjectPluginRow
-        params={{}}
-        routes={[]}
-        {...params}
-        {...plugin}
-        onChange={onChange}
-        project={project}
-      />,
+      <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
       {
         organization: OrganizationFixture({access: []}),
       }

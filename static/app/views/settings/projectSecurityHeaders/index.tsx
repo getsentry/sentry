@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -18,14 +19,13 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ReportUri} from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
 function ProjectSecurityHeaders() {
   const organization = useOrganization();
-  const routes = useRoutes();
+  const matches = useMatches();
   const params = useParams();
   const {projectId} = useParams<{projectId: string}>();
 
@@ -40,18 +40,18 @@ function ProjectSecurityHeaders() {
     () => [
       {
         name: 'Content Security Policy (CSP)',
-        url: recreateRoute('csp/', {routes, params}),
+        url: recreateRoute('csp/', {matches, params}),
       },
       {
         name: 'Certificate Transparency (Expect-CT)',
-        url: recreateRoute('expect-ct/', {routes, params}),
+        url: recreateRoute('expect-ct/', {matches, params}),
       },
       {
         name: 'HTTP Public Key Pinning (HPKP)',
-        url: recreateRoute('hpkp/', {routes, params}),
+        url: recreateRoute('hpkp/', {matches, params}),
       },
     ],
-    [routes, params]
+    [matches, params]
   );
 
   if (isPending) {

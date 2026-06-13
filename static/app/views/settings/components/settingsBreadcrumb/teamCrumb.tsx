@@ -1,3 +1,5 @@
+import {useMatches} from 'react-router-dom';
+
 import {TeamAvatar} from '@sentry/scraps/avatar';
 
 import {IdBadge} from 'sentry/components/idBadge';
@@ -12,7 +14,8 @@ import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/set
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {CrumbLink} from '.';
 
-export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
+export function TeamCrumb({routeIndex: _routeIndex, ...props}: SettingsBreadcrumbProps) {
+  const matches = useMatches();
   const navigate = useNavigate();
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();
@@ -35,7 +38,7 @@ export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
       onCrumbSelect={teamSlug => {
         navigate(
           recreateRoute('', {
-            routes,
+            matches,
             params: {...params, teamId: teamSlug},
           })
         );
@@ -46,7 +49,6 @@ export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
         }
       }}
       hasMenu={hasMenu}
-      route={route}
       value={team.slug}
       search={{placeholder: t('Search Teams'), onChange: onSearch}}
       options={teams.map(teamItem => ({

@@ -1,4 +1,4 @@
-import {Link as RouterLink} from 'react-router-dom';
+import {Link as RouterLink, useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -7,8 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {recreateRoute} from 'sentry/utils/recreateRoute';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {matchesToRoutes, recreateRoute} from 'sentry/utils/recreateRoute';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
@@ -27,7 +26,8 @@ type Props = {
 };
 
 export function SettingsBreadcrumb({className, params}: Props) {
-  const routes = useRoutes() as RouteWithName[];
+  const matches = useMatches();
+  const routes = matchesToRoutes(matches) as RouteWithName[];
   const pathMap = useBreadcrumbsPathmap();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
@@ -56,12 +56,7 @@ export function SettingsBreadcrumb({className, params}: Props) {
 
         if (hasMenu) {
           return (
-            <Menu
-              key={`${route.name}:${route.path}`}
-              routes={routes}
-              route={route}
-              isLast={isLast}
-            />
+            <Menu key={`${route.name}:${route.path}`} routeIndex={i} isLast={isLast} />
           );
         }
         if (isLast) {
@@ -74,7 +69,7 @@ export function SettingsBreadcrumb({className, params}: Props) {
         return (
           <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
             <CrumbLink
-              to={recreateRoute(route, {routes, params})}
+              to={recreateRoute(route, {matches, params})}
               onClick={onSettingsBreadcrumbLinkClick}
             >
               {pathTitle || route.name}

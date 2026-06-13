@@ -1,14 +1,19 @@
+import type {UIMatch} from 'react-router-dom';
 import type {Location} from 'history';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 
+export function matchesToRoutes(matches: UIMatch[]): PlainRoute[] {
+  return matches.map(m => ({...(m.handle as any)}));
+}
+
 type Options = {
+  matches: UIMatch[];
+
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
   params: Record<string, string | undefined>;
-
-  routes: PlainRoute[];
 
   location?: Location;
   /**
@@ -20,6 +25,21 @@ type Options = {
   stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
 };
 
+function findRouteInMatches(to: PlainRoute, matches: UIMatch[]): number {
+  return matches.findIndex(m => {
+    const handle = m.handle;
+    if (!handle || typeof handle !== 'object') {
+      return false;
+    }
+    const toKeys = Object.keys(to);
+    const handleKeys = Object.keys(handle);
+    if (toKeys.length !== handleKeys.length) {
+      return false;
+    }
+    return toKeys.every(k => (to as any)[k] === (handle as any)[k]);
+  });
+}
+
 /**
  * Given a route object or a string and a list of routes + params from router, this will attempt to recreate a location string while replacing url params.
  * Can additionally specify the number of routes to move back
@@ -27,7 +47,8 @@ type Options = {
  * See tests for examples
  */
 export function recreateRoute(to: string | PlainRoute, options: Options): string {
-  const {routes, params, location, stepBack} = options;
+  const {matches, params, location, stepBack} = options;
+  const routes = matchesToRoutes(matches);
   const paths = routes.map(({path}) => {
     path = path || '';
     if (path.length > 0 && !path.endsWith('/')) {
@@ -38,11 +59,10 @@ export function recreateRoute(to: string | PlainRoute, options: Options): string
   let lastRootIndex: number;
   let routeIndex: number | undefined;
 
-  // TODO(ts): typescript things
   if (typeof to === 'string') {
     lastRootIndex = paths.findLastIndex((path: any) => path[0] === '/');
   } else {
-    routeIndex = routes.indexOf(to) + 1;
+    routeIndex = findRouteInMatches(to, matches) + 1;
     lastRootIndex = paths
       .slice(0, routeIndex)
       .findLastIndex((path: any) => path[0] === '/');

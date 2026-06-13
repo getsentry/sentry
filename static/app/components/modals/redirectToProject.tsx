@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -10,21 +11,20 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface Props extends ModalRenderProps {
   slug: string;
 }
 
 function RedirectToProjectModal({slug, Header, Body}: Props) {
-  const routes = useRoutes();
+  const matches = useMatches();
   const params = useParams();
   const location = useLocation();
 
   const [timer, setTimer] = useState(5);
 
   const newPath = recreateRoute('', {
-    routes,
+    matches,
     location,
     params: {...params, projectId: slug},
   });

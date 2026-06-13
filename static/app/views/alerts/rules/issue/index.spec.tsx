@@ -1,3 +1,4 @@
+import type {UIMatch} from 'react-router-dom';
 import moment from 'moment-timezone';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
@@ -49,35 +50,54 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const projectAlertRuleDetailsRoutes: PlainRoute[] = [
-  {
-    path: '/',
-  },
-  {
-    path: '/settings/',
-    indexRoute: {},
-  },
-  {
-    path: ':orgId/',
-  },
-  {
-    path: 'projects/:projectId/',
-  },
-  {},
-  {
-    indexRoute: {},
-  },
-  {
-    path: 'alerts/',
-    indexRoute: {},
-  },
-  {
-    path: 'rules/',
-    indexRoute: {},
-    childRoutes: [{path: 'new/'}, {path: ':ruleId/'}],
-  },
-  {path: ':ruleId/'},
+function makeMatch(
+  pathname: string,
+  matchParams: Record<string, string>,
+  handle: Record<string, unknown>
+): UIMatch {
+  return {id: pathname, pathname, params: matchParams, data: undefined, handle};
+}
+
+function matchesToRoutes(ms: UIMatch[]): PlainRoute[] {
+  return ms.map(m => ({...(m.handle as any)}));
+}
+
+const matches: UIMatch[] = [
+  makeMatch('/', {}, {path: '/'}),
+  makeMatch('/settings/', {}, {path: '/settings/', indexRoute: {}}),
+  makeMatch('/settings/org-slug/', {orgId: 'org-slug'}, {path: ':orgId/'}),
+  makeMatch(
+    '/settings/org-slug/projects/project-slug/',
+    {orgId: 'org-slug', projectId: 'project-slug'},
+    {path: 'projects/:projectId/'}
+  ),
+  makeMatch(
+    '/settings/org-slug/projects/project-slug/',
+    {orgId: 'org-slug', projectId: 'project-slug'},
+    {}
+  ),
+  makeMatch(
+    '/settings/org-slug/projects/project-slug/',
+    {orgId: 'org-slug', projectId: 'project-slug'},
+    {indexRoute: {}}
+  ),
+  makeMatch(
+    '/settings/org-slug/projects/project-slug/alerts/',
+    {orgId: 'org-slug', projectId: 'project-slug'},
+    {path: 'alerts/', indexRoute: {}}
+  ),
+  makeMatch(
+    '/settings/org-slug/projects/project-slug/alerts/rules/',
+    {orgId: 'org-slug', projectId: 'project-slug'},
+    {path: 'rules/', indexRoute: {}, childRoutes: [{path: 'new/'}, {path: ':ruleId/'}]}
+  ),
+  makeMatch(
+    '/settings/org-slug/projects/project-slug/alerts/rules/1/',
+    {orgId: 'org-slug', projectId: 'project-slug', ruleId: '1'},
+    {path: ':ruleId/'}
+  ),
 ];
+const projectAlertRuleDetailsRoutes: PlainRoute[] = matchesToRoutes(matches);
 
 const createWrapper = (props: Parameters<typeof initializeOrg>[0] = {}) => {
   const {organization, project} = initializeOrg(props);
@@ -103,6 +123,7 @@ const createWrapper = (props: Parameters<typeof initializeOrg>[0] = {}) => {
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
     <IssueRuleEditor
+      matches={matches}
       route={RouteComponentPropsFixture().route}
       routeParams={RouteComponentPropsFixture().routeParams}
       params={params}

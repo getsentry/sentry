@@ -1,3 +1,4 @@
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -10,9 +11,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 
@@ -23,22 +25,16 @@ type Props = {
   onToggle: (isActive: boolean, data: ProjectKey) => void;
   project: Project;
   projectId: string;
-} & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
+};
 
-export function KeyRow({
-  data,
-  onRemove,
-  onToggle,
-  hasWriteAccess,
-  routes,
-  location,
-  params,
-  project,
-}: Props) {
+export function KeyRow({data, onRemove, onToggle, hasWriteAccess, project}: Props) {
+  const location = useLocation();
+  const matches = useMatches();
+  const params = useParams<{projectId: string}>();
   const handleEnable = () => onToggle(true, data);
   const handleDisable = () => onToggle(false, data);
 
-  const editUrl = recreateRoute(`${data.id}/`, {routes, params, location});
+  const editUrl = recreateRoute(`${data.id}/`, {matches, params, location});
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
@@ -100,14 +96,7 @@ export function KeyRow({
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}
           />
-          {isBrowserJavaScript && (
-            <LoaderScript
-              projectKey={data}
-              routes={routes}
-              location={location}
-              params={params}
-            />
-          )}
+          {isBrowserJavaScript && <LoaderScript projectKey={data} />}
         </StyledPanelBody>
       </StyledClippedBox>
     </Panel>

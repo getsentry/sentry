@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -43,7 +44,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -412,7 +412,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 }
 
 export default function ProjectGeneralSettingsContainer() {
-  const routes = useRoutes();
+  const matches = useMatches();
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
@@ -422,17 +422,17 @@ export default function ProjectGeneralSettingsContainer() {
     (newSlug: string) => {
       navigate(
         recreateRoute('', {
+          matches,
           params: {
             orgId: organization.slug,
             projectId: newSlug,
           },
-          routes,
           location,
         }),
         {replace: true}
       );
     },
-    [navigate, organization.slug, routes, location]
+    [navigate, organization.slug, location, matches]
   );
 
   if (!project?.id) {

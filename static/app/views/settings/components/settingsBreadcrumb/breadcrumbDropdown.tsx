@@ -14,7 +14,6 @@ import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {Divider} from './divider';
-import type {RouteWithName} from './types';
 
 interface BreadcrumbDropdownProps extends Omit<
   SingleSelectProps<string>,
@@ -22,14 +21,14 @@ interface BreadcrumbDropdownProps extends Omit<
 > {
   name: React.ReactNode;
   onCrumbSelect: (value: string) => void;
-  route: RouteWithName;
   hasMenu?: boolean;
   isLast?: boolean;
+  routeName?: string;
 }
 
 export function BreadcrumbDropdown({
   hasMenu,
-  route,
+  routeName,
   isLast,
   name,
   onCrumbSelect,
@@ -46,7 +45,7 @@ export function BreadcrumbDropdown({
     return (
       <Button variant="link">
         <Flex gap="sm" align="center">
-          <Text bold={false}>{name || route.name} </Text>
+          <Text bold={false}>{name || routeName} </Text>
           {isLast ? null : <Divider />}
         </Flex>
       </Button>
@@ -66,7 +65,7 @@ export function BreadcrumbDropdown({
       value={value}
       trigger={triggerProps => (
         <MenuCrumb
-          crumbLabel={name || route.name}
+          crumbLabel={name || routeName}
           menuHasHover={isHovered}
           {...triggerProps}
         />

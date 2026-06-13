@@ -65,7 +65,6 @@ export default function ProjectPluginsContainer() {
       <ProjectPermissionAlert project={project} />
 
       <ProjectPlugins
-        organization={organization}
         project={project}
         onChange={(pluginId, shouldEnable) =>
           togglePluginMutation.mutate({pluginId, shouldEnable})
