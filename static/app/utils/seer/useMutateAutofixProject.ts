@@ -4,7 +4,6 @@ import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/ev
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
@@ -12,6 +11,7 @@ import {
   knownAgentIntegrationsQueryOptions,
   parseAgentOption,
 } from 'sentry/utils/seer/preferredAgent';
+import {getSeerProjectReposInfiniteQueryOptions} from 'sentry/utils/seer/seerProjectRepos';
 import {getSeerProjectSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   getTuningFromStoppingPoint,
@@ -96,14 +96,13 @@ export function useMutateAutofixProject() {
       //    provider/owner/name matching cannot. Its replace-all is transactional,
       //    so if this request fails we abort before touching settings and
       //    nothing is persisted.
+      const [reposUrl] = getSeerProjectReposInfiniteQueryOptions({
+        organization,
+        project,
+      }).queryKey;
       await fetchMutation({
         method: 'PUT',
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
-        }),
+        url: reposUrl,
         data: {repos},
       });
 
@@ -155,6 +154,12 @@ export function useMutateAutofixProject() {
         queryKey: getSeerProjectSettingsQueryOptions({
           organization,
           project: {slug: project.slug},
+        }).queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: getSeerProjectReposInfiniteQueryOptions({
+          organization,
+          project,
         }).queryKey,
       });
       queryClient.invalidateQueries({

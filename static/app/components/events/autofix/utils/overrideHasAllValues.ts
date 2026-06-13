@@ -1,9 +1,11 @@
 import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
 
-export function overrideHasAnyValue(
+export function overrideHasAllValues(
   override: SeerProjectReposResponse['branchOverrides'][number]
 ) {
   return (
-    override.tagName.trim() || override.tagValue.trim() || override.branchName.trim()
+    override.branchName.trim() !== '' &&
+    override.tagName.trim() !== '' &&
+    override.tagValue.trim() !== ''
   );
 }

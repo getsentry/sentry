@@ -5,10 +5,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
@@ -19,16 +15,8 @@ import {AutofixAgent} from 'getsentry/views/seerAutomation/components/projectDet
 import {AutofixRepositories} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';
 import {NightShift} from 'getsentry/views/seerAutomation/components/projectDetails/nightShift';
 
-const DEFAULT_PREFERENCE: ProjectSeerPreferences = {
-  repositories: [],
-  automated_run_stopping_point: 'root_cause',
-  automation_handoff: undefined,
-};
-
 export function SeerProjectDetails({project}: {project: DetailedProject}) {
   const organization = useOrganization();
-  const {data, isPending, isError} = useProjectSeerPreferences(project);
-  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   const canWrite = hasEveryAccess(['project:write'], {organization, project});
 
@@ -55,24 +43,13 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
           </Alert>
         </Stack>
       )}
-      {isPending ? (
-        <LoadingIndicator />
-      ) : isError ? (
-        <LoadingError message={t('Failed to load Seer settings')} />
-      ) : (
-        <Stack gap="2xl">
-          <AutofixRepositories
-            canWrite={canWrite}
-            codeMappingRepos={codeMappingRepos}
-            preference={preference ?? DEFAULT_PREFERENCE}
-            project={project}
-          />
-          <AutofixAgent canWrite={canWrite} project={project} />
-          <Feature features="organizations:seer-night-shift-settings">
-            <NightShift canWrite={canWrite} project={project} />
-          </Feature>
-        </Stack>
-      )}
+      <Stack gap="2xl">
+        <AutofixRepositories canWrite={canWrite} project={project} />
+        <AutofixAgent canWrite={canWrite} project={project} />
+        <Feature features="organizations:seer-night-shift-settings">
+          <NightShift canWrite={canWrite} project={project} />
+        </Feature>
+      </Stack>
     </AnalyticsArea>
   );
 }
