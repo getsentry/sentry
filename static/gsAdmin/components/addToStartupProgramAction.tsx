@@ -29,6 +29,7 @@ const STARTUP_PROGRAM_OPTIONS = [
   {value: 'betaworks', label: 'betaworks'},
   {value: 'alchemist', label: 'alchemist'},
   {value: 'antler', label: 'antler'},
+  {value: 'mass ai coalition', label: 'mass ai coalition'},
   {value: 'other', label: 'Enter custom notes'},
 ];
 
