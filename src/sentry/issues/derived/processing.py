@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 
+from django.db import router, transaction
 from django.db.models import Q
 
 from sentry.issues.derived.aggregators import AGGREGATORS
@@ -30,10 +31,20 @@ class ProcessResult:
 
 
 def _ensure_derived(group_id: int) -> GroupDerivedData:
+    """Get or create the GroupDerivedData row for a group.
+
+    Raises Group.DoesNotExist if the group has been deleted.
+    """
     try:
         return GroupDerivedData.objects.get(group_id=group_id)
     except GroupDerivedData.DoesNotExist:
         pass
+
+    # Deferred to avoid circular import: group.py → action_log → processing.py
+    from sentry.models.group import Group
+
+    if not Group.objects.filter(id=group_id).exists():
+        raise Group.DoesNotExist(f"Group {group_id} does not exist")
 
     derived, _created = GroupDerivedData.objects.get_or_create(
         group_id=group_id,
@@ -134,11 +145,15 @@ def process_group_log_batch(
     batch_size: int = INLINE_BATCH_SIZE,
     target_pipeline: Pipeline | None = None,
 ) -> ProcessResult:
-    """Process a single batch of pending entries. Schedules a task if not caught up."""
+    """Process a single batch of pending entries. Schedules a task if not caught up.
+
+    Raises Group.DoesNotExist if the group has been deleted.
+    """
     with metrics.timer("issues.derived.process_batch"):
         p = target_pipeline or PIPELINE
-        derived = _ensure_derived(group_id)
-        has_more = _process_batch(p, derived, group_id, batch_size)
+        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+            derived = _ensure_derived(group_id)
+            has_more = _process_batch(p, derived, group_id, batch_size)
     return ProcessResult(derived=derived, caught_up=not has_more)
 
 
@@ -147,12 +162,19 @@ def process_group_log(
     batch_size: int = DEFAULT_BATCH_SIZE,
     target_pipeline: Pipeline | None = None,
 ) -> GroupDerivedData:
-    """Fully drain all pending entries for a group, processing in batches."""
-    p = target_pipeline or PIPELINE
-    derived = _ensure_derived(group_id)
+    """Fully drain all pending entries for a group, processing in batches.
 
-    while _process_batch(p, derived, group_id, batch_size):
-        pass
+    Raises Group.DoesNotExist if the group has been deleted.
+    """
+    p = target_pipeline or PIPELINE
+
+    with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+        derived = _ensure_derived(group_id)
+        has_more = _process_batch(p, derived, group_id, batch_size)
+
+    while has_more:
+        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+            has_more = _process_batch(p, derived, group_id, batch_size)
 
     return derived
 
@@ -161,17 +183,12 @@ def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
 ) -> None:
-    """Invalidate derived state when the action log has been mutated.
+    """Delete derived state so it is rebuilt from scratch on the next pass.
 
-    Call this when entries have been inserted, modified, or deleted in a way
-    that means the materialised GroupDerivedData no longer reflects the true
-    state of the log — e.g. after back-filling historical actions or deleting
-    entries that were written in error.
-
-    If *cursor* is provided as ``(date_added, id)`` of the earliest affected
-    entry, the row is reset to just before that point so only the affected
-    suffix is reprocessed.  Without a cursor the entire row is deleted and
-    will be rebuilt from scratch on the next processing pass.
+    If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
+    row is only deleted when its cursor is at or past that point; otherwise
+    the mutation is still ahead of processing and no invalidation is needed.
+    Without a cursor the invalidation is unconditional.
     """
     if cursor is None:
         GroupDerivedData.objects.filter(group_id=group_id).delete()
