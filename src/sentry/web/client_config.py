@@ -361,49 +361,6 @@ class _ClientConfig:
         return [locality.api_serialize() for locality in localities]
 
     @property
-    def regions(self) -> list[Mapping[str, Any]]:
-        """
-        The regions available to the current user.
-
-        This will include *all* multi-tenant regions, and if the user
-        has membership on any single-tenant regions those will also be included.
-
-        :deprecated: Once the UI has been transitioned to `localities` and `cells` this can be removed.
-        """
-        # Only expose visible regions.
-        # When new regions are added they can take some work to get working correctly.
-        # Before they are working we need ways to bring parts of the region online without
-        # exposing the region to customers.
-        region_names = find_all_multitenant_locality_names()
-
-        if not region_names:
-            return [{"name": "default", "url": options.get("system.url-prefix")}]
-
-        monolith_locality = get_locality_name_for_cell(settings.SENTRY_MONOLITH_REGION)
-
-        def region_display_order(region: Locality) -> tuple[bool, bool, str]:
-            return (
-                region.name != monolith_locality,  # default locality comes first
-                region.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
-                region.name,  # then sort alphabetically
-            )
-
-        # Show all visible multi-tenant regions to unauthenticated users as they could
-        # create a new account. Else, ensure all regions the current user is in are
-        # included as there could be single tenants or hidden regions.
-        unique_regions = set(region_names) | self._member_locality_names
-        return self._serialize_localities(unique_regions, region_display_order)
-
-    @property
-    def member_regions(self) -> list[Mapping[str, Any]]:
-        """
-        The regions the user has membership in. Includes single-tenant regions.
-
-        :deprecated: Once the UI has been transitioned to use control silo org-list this can be removed.
-        """
-        return self._serialize_localities(self._member_locality_names, lambda loc: loc.name)
-
-    @property
     def localities(self) -> list[Mapping[str, Any]]:
         """
         The localities (formerly regions) that are visible to customers
@@ -527,8 +484,6 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
-            "memberRegions": self.member_regions,
-            "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": is_demo_mode_enabled() and is_demo_user(self.user),
             "enableAnalytics": settings.ENABLE_ANALYTICS,
