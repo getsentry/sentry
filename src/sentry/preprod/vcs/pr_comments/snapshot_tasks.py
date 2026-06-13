@@ -203,18 +203,16 @@ def create_preprod_snapshot_pr_comment_task(
             )
 
             has_changes = any(changes_map.values())
-            # Failed comparisons are absent from changes_map (which only tracks
-            # SUCCESS state), so check comparisons_map directly to avoid
-            # suppressing failure reports.
-            has_failures = any(
-                c.state == PreprodSnapshotComparison.State.FAILED for c in comparisons_map.values()
-            )
-            has_errors = any(
-                c.state == PreprodSnapshotComparison.State.SUCCESS and c.images_errored > 0
+            # Failed comparisons and errored images are absent from changes_map
+            # (which only tracks SUCCESS state with diffs), so check
+            # comparisons_map directly to avoid suppressing these reports.
+            has_failures_or_errors = any(
+                c.state == PreprodSnapshotComparison.State.FAILED
+                or (c.state == PreprodSnapshotComparison.State.SUCCESS and c.images_errored > 0)
                 for c in comparisons_map.values()
             )
             # Suppress brand-new comments on uneventful runs to avoid PR noise.
-            if not has_changes and not has_failures and not has_errors and not existing_comment_id:
+            if not (has_changes or has_failures_or_errors or existing_comment_id):
                 logger.info(
                     "preprod.snapshot_pr_comments.create.skipped_no_diff",
                     extra={"preprod_artifact_id": artifact.id},
