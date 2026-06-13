@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
@@ -15,6 +16,7 @@ type Props = {
   selection: PageFilters;
   statsPeriod: string;
   isSavedSearchesOpen?: boolean;
+  withColumns?: GroupListColumn[];
 };
 
 export function Headers({
@@ -22,6 +24,7 @@ export function Headers({
   statsPeriod,
   onSelectStatsPeriod,
   isReprocessingQuery,
+  withColumns,
 }: Props) {
   return (
     <Fragment>
@@ -66,9 +69,15 @@ export function Headers({
           <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
             {t('Users')}
           </EventsOrUsersLabel>
-          <PriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="left">
-            {t('Priority')}
-          </PriorityLabel>
+          {withColumns?.includes('progress') ? (
+            <ProgressLabel breakpoint={COLUMN_BREAKPOINTS.PROGRESS} align="left">
+              {t('Progress')}
+            </ProgressLabel>
+          ) : (
+            <PriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="left">
+              {t('Priority')}
+            </PriorityLabel>
+          )}
           <AssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
             {t('Assignee')}
           </AssigneeLabel>
@@ -118,6 +127,10 @@ const EventsOrUsersLabel = styled(IssueStreamHeaderLabel)`
 
 const PriorityLabel = styled(IssueStreamHeaderLabel)`
   width: 64px;
+`;
+
+const ProgressLabel = styled(IssueStreamHeaderLabel)`
+  width: 90px;
 `;
 
 const AssigneeLabel = styled(IssueStreamHeaderLabel)`

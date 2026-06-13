@@ -1,3 +1,4 @@
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {t} from 'sentry/locale';
@@ -8,6 +9,16 @@ import IssueListOverview from 'sentry/views/issueList/overview';
 const TITLE = t('Awaiting Input');
 const QUERY = 'is:unresolved';
 
+const COLUMNS: GroupListColumn[] = [
+  'graph',
+  'firstSeen',
+  'lastSeen',
+  'event',
+  'users',
+  'progress',
+  'assignee',
+];
+
 export default function AwaitingInputPage() {
   const organization = useOrganization();
 
@@ -15,7 +26,7 @@ export default function AwaitingInputPage() {
     <IssueListContainer title={TITLE}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
-          <IssueListOverview initialQuery={QUERY} title={TITLE} />
+          <IssueListOverview initialQuery={QUERY} title={TITLE} withColumns={COLUMNS} />
         </NoProjectMessage>
       </PageFiltersContainer>
     </IssueListContainer>
