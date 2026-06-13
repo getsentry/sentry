@@ -233,6 +233,15 @@ class OrganizationsControlListTest(OrganizationIndexTest):
         assert control_response.data == cell_response.data
 
 
+@cell_silo_test(cells=create_test_cells("us", "de"))
+class OrganizationsCreateCellTest(OrganizationIndexTest, HybridCloudTestMixin):
+    method = "post"
+
+    def test_is_not_found(self) -> None:
+        response = self.get_error_response(name="implicit org", slug="implicit-org")
+        assert response.status_code == 404
+
+
 @control_silo_test(cells=create_test_cells("us", "de"))
 class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
@@ -404,22 +413,6 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             mapping = OrganizationMapping.objects.get(organization_id=organization_id)
         assert mapping.cell_name == "de"
 
-    def test_with_default_team_true(self) -> None:
-        data = {"name": "hello world", "slug": "foobar", "defaultTeam": True}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-
-        with assume_test_silo_mode_of(Organization):
-            Organization.objects.get(id=organization_id)
-            team = Team.objects.get(organization_id=organization_id)
-            assert team.name == "hello world"
-
-            org_member = OrganizationMember.objects.get(
-                organization_id=organization_id, user_id=self.user.id
-            )
-            OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
-
     def test_invalid_slug_values(self) -> None:
         with self.options({"api.rate-limit.org-create": 9001}):
             self.get_error_response(name="name", slug=" i have whitespace ", status_code=400)
@@ -430,6 +423,82 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
 
         resp = self.get_error_response(name="name", slug="acme-co", status_code=400)
         assert 'The slug "acme-co" is already in use' in str(resp.data)
+
+    def test_missing_params(self) -> None:
+        self.get_error_response(status_code=400)
+
+    def test_valid_params(self) -> None:
+        data = {"name": "hello world", "slug": "foobar"}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.name == "hello world"
+            assert org.slug == "foobar"
+            team_qs = Team.objects.filter(organization_id=organization_id)
+            assert not team_qs.exists()
+
+        self.get_error_response(status_code=400, **data)
+
+    def test_org_ownership(self) -> None:
+        data = {"name": "hello world", "slug": "foobar"}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.name == "hello world"
+            owners = [owner.id for owner in org.get_owners()]
+            assert [self.user.id] == owners
+
+    def test_with_default_team_false(self) -> None:
+        data = {"name": "hello world", "slug": "foobar", "defaultTeam": False}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.name == "hello world"
+            assert org.slug == "foobar"
+            team_qs = Team.objects.filter(organization_id=organization_id)
+            assert not team_qs.exists()
+
+    def test_with_default_team_true(self) -> None:
+        data = {"name": "hello world", "slug": "foobar", "defaultTeam": True}
+        response = self.get_success_response(**data)
+
+        with assume_test_silo_mode_of(Organization):
+            organization_id = response.data["id"]
+            Organization.objects.get(id=organization_id)
+            team = Team.objects.get(organization_id=organization_id)
+            assert team.name == "hello world"
+
+            org_member = OrganizationMember.objects.get(
+                organization_id=organization_id, user_id=self.user.id
+            )
+            OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
+
+    def test_valid_slugs(self) -> None:
+        valid_slugs = ["santry", "downtown-canada", "1234-foo"]
+        for input_slug in valid_slugs:
+            self.organization.refresh_from_db()
+            response = self.get_success_response(name=input_slug, slug=input_slug)
+            with assume_test_silo_mode_of(Organization):
+                org = Organization.objects.get(id=response.data["id"])
+                assert org.slug == input_slug.lower()
+
+    def test_invalid_slugs(self) -> None:
+        with self.options({"api.rate-limit.org-create": 9001}):
+            self.get_error_response(name="name", slug=" i have whitespace ", status_code=400)
+            self.get_error_response(name="name", slug="foo-bar ", status_code=400)
+            self.get_error_response(name="name", slug="bird-company!", status_code=400)
+            self.get_error_response(name="name", slug="downtown_canada", status_code=400)
+            self.get_error_response(name="name", slug="canada-", status_code=400)
+            self.get_error_response(name="name", slug="-canada", status_code=400)
+            self.get_error_response(name="name", slug="----", status_code=400)
+            self.get_error_response(name="name", slug="1234", status_code=400)
+            self.get_error_response(name="name", slug="I-contain-UPPERCASE", status_code=400)
 
     def test_name_with_url_scheme_rejected(self) -> None:
         with self.options({"api.rate-limit.org-create": 9001}):
@@ -452,6 +521,79 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             org = Organization.objects.get(id=response.data["id"])
             assert org.name == "BTC Analytics"
 
+    def test_name_with_periods_allowed(self) -> None:
+        response = self.get_success_response(name="Acme Inc.", slug="acme-inc")
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=response.data["id"])
+            assert org.name == "Acme Inc."
+
+    def test_without_slug(self) -> None:
+        response = self.get_success_response(name="hello world")
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.slug == "hello-world"
+
+    def test_generated_slug_not_entirely_numeric(self) -> None:
+        response = self.get_success_response(name="1234")
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.slug.startswith("1234-")
+            assert not org.slug.isdecimal()
+
+    @patch(
+        "sentry.core.endpoints.organization_member_requests_join.ratelimiter.backend.is_limited",
+        return_value=False,
+    )
+    def test_name_slugify(self, is_limited: MagicMock) -> None:
+        response = self.get_success_response(name="---foo")
+
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=response.data["id"])
+            assert org.slug == "foo"
+
+        org_slug_pattern = re.compile(ORG_SLUG_PATTERN)
+
+        response = self.get_success_response(name="---foo---")
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=response.data["id"])
+            assert org.slug != "foo-"
+            assert org.slug.startswith("foo-")
+            assert org_slug_pattern.match(org.slug)
+
+        response = self.get_success_response(name="___foo___")
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=response.data["id"])
+            assert org.slug != "foo-"
+            assert org.slug.startswith("foo-")
+            assert org_slug_pattern.match(org.slug)
+
+        response = self.get_success_response(name="foo_bar")
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=response.data["id"])
+            assert org.slug == "foo-bar"
+
+        response = self.get_success_response(name="----")
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=response.data["id"])
+            assert len(org.slug) > 0
+            assert org_slug_pattern.match(org.slug)
+
+        response = self.get_success_response(name="CaNaDa")
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=response.data["id"])
+            assert org.slug == "canada"
+            assert org_slug_pattern.match(org.slug)
+
+        response = self.get_success_response(name="1234-foo")
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=response.data["id"])
+            assert org.slug == "1234-foo"
+            assert org_slug_pattern.match(org.slug)
+
     def test_required_terms_with_terms_url(self) -> None:
         data: dict[str, Any] = {"name": "hello world"}
         with self.settings(PRIVACY_URL=None, TERMS_URL="https://example.com/terms"):
@@ -468,6 +610,82 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
 
             data = {"name": "hello world", "agreeTerms": True}
             self.get_success_response(**data)
+
+    def test_organization_mapping(self) -> None:
+        data = {"slug": "santry", "name": "SaNtRy", "idempotencyKey": "1234"}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.slug == data["slug"]
+            assert org.name == data["name"]
+
+    def test_slug_already_taken(self) -> None:
+        self.create_organization(slug="taken")
+        self.get_error_response(slug="taken", name="TaKeN", status_code=400)
+
+    def test_add_organization_member(self) -> None:
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(name="org name")
+
+        with assume_test_silo_mode_of(Organization):
+            org_member = OrganizationMember.objects.get(
+                organization_id=response.data["id"], user_id=self.user.id
+            )
+        self.assert_org_member_mapping(org_member=org_member)
+
+    @mock.patch("sentry.analytics.record")
+    def test_success_analytics_recorded(self, mock_record: mock.MagicMock) -> None:
+        self.login_as(user=self.user)
+
+        with outbox_runner():
+            response = self.get_success_response(name="org name", aggregatedDataConsent=True)
+        assert response.status_code == 201
+
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(slug="org-name")
+
+        assert_any_analytics_event(
+            mock_record,
+            OrganizationCreatedEvent(
+                id=org.id,
+                actor_id=self.user.id,
+                name=org.name,
+                slug=org.slug,
+            ),
+        )
+        assert_any_analytics_event(
+            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
+        )
+        assert_org_audit_log_exists(
+            organization=org,
+            event=audit_log.get_event_id("ORG_ADD"),
+        )
+        with assume_test_silo_mode_of(Organization):
+            assert org.get_option("sentry:aggregated_data_consent") is True
+
+    def test_data_consent(self) -> None:
+        data = {"name": "hello world original", "agreeTerms": True}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.name == data["name"]
+            assert not OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent")
+
+        data = {"name": "hello world", "agreeTerms": True, "aggregatedDataConsent": True}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.name == data["name"]
+            assert (
+                OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
+            )
 
     @mock.patch("sentry.analytics.record")
     def test_success_analytics_in_rpc_call(self, mock_record: mock.MagicMock) -> None:
@@ -502,6 +720,7 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             organization=org,
             event=audit_log.get_event_id("ORG_ADD"),
         )
+
         with assume_test_silo_mode_of(Organization):
             assert org.get_option("sentry:aggregated_data_consent") is True
             assert org.get_option("sentry:streamline_ui_only") is True
@@ -510,319 +729,22 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             ).exists()
             assert Team.objects.filter(organization_id=org.id).exists()
 
-    def test_demo_user_cannot_create_organization(self) -> None:
-        demo_user = self.create_user("demo@example.com")
-        self.login_as(demo_user)
-        with override_options({"demo-mode.enabled": True, "demo-mode.users": [demo_user.id]}):
-            self.get_error_response(name="demo org", slug="demo-org", status_code=403)
-
-        with assume_test_silo_mode_of(Organization):
-            assert not Organization.objects.filter(slug="demo-org").exists()
-
-    def test_demo_user_cannot_create_organization_when_demo_mode_disabled(self) -> None:
-        demo_user = self.create_user("demo@example.com")
-        self.login_as(demo_user)
-        with override_options({"demo-mode.enabled": False, "demo-mode.users": [demo_user.id]}):
-            self.get_error_response(name="demo org", slug="demo-org", status_code=403)
-
-        with assume_test_silo_mode_of(Organization):
-            assert not Organization.objects.filter(slug="demo-org").exists()
-
-
-class OrganizationsCreateInCellTest(OrganizationIndexTest, HybridCloudTestMixin):
-    method = "post"
-
-    def test_missing_params(self) -> None:
-        self.get_error_response(status_code=400)
-
-    def test_valid_params(self) -> None:
-        data = {"name": "hello world", "slug": "foobar"}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.name == "hello world"
-        assert org.slug == "foobar"
-        team_qs = Team.objects.filter(organization_id=organization_id)
-        assert not team_qs.exists()
-
-        self.get_error_response(status_code=400, **data)
-
-    def test_org_ownership(self) -> None:
-        data = {"name": "hello world", "slug": "foobar"}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.name == "hello world"
-        owners = [owner.id for owner in org.get_owners()]
-        assert [self.user.id] == owners
-
-    def test_with_default_team_false(self) -> None:
-        data = {"name": "hello world", "slug": "foobar", "defaultTeam": False}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.name == "hello world"
-        assert org.slug == "foobar"
-        team_qs = Team.objects.filter(organization_id=organization_id)
-        assert not team_qs.exists()
-
-    def test_with_default_team_true(self) -> None:
-        data = {"name": "hello world", "slug": "foobar", "defaultTeam": True}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-        Organization.objects.get(id=organization_id)
-        team = Team.objects.get(organization_id=organization_id)
-        assert team.name == "hello world"
-
-        org_member = OrganizationMember.objects.get(
-            organization_id=organization_id, user_id=self.user.id
-        )
-        OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
-
-    def test_valid_slugs(self) -> None:
-        valid_slugs = ["santry", "downtown-canada", "1234-foo"]
-        for input_slug in valid_slugs:
-            self.organization.refresh_from_db()
-            response = self.get_success_response(name=input_slug, slug=input_slug)
-            org = Organization.objects.get(id=response.data["id"])
-            assert org.slug == input_slug.lower()
-
-    def test_invalid_slugs(self) -> None:
-        with self.options({"api.rate-limit.org-create": 9001}):
-            self.get_error_response(name="name", slug=" i have whitespace ", status_code=400)
-            self.get_error_response(name="name", slug="foo-bar ", status_code=400)
-            self.get_error_response(name="name", slug="bird-company!", status_code=400)
-            self.get_error_response(name="name", slug="downtown_canada", status_code=400)
-            self.get_error_response(name="name", slug="canada-", status_code=400)
-            self.get_error_response(name="name", slug="-canada", status_code=400)
-            self.get_error_response(name="name", slug="----", status_code=400)
-            self.get_error_response(name="name", slug="1234", status_code=400)
-            self.get_error_response(name="name", slug="I-contain-UPPERCASE", status_code=400)
-
-    def test_name_with_url_scheme_rejected(self) -> None:
-        with self.options({"api.rate-limit.org-create": 9001}):
-            self.get_error_response(
-                name="https://evil.com Click Here", slug="legit-slug", status_code=400
-            )
-            self.get_error_response(name="http://evil.com", slug="legit-slug-2", status_code=400)
-
-    def test_name_with_spam_signals_rejected(self) -> None:
-        response = self.get_error_response(
-            name="Win $50 ETH bit.ly/offer Claim Now",
-            slug="spam-org",
-            status_code=400,
-        )
-        assert "disallowed content" in str(response.data)
-
-    def test_name_with_single_signal_allowed(self) -> None:
-        response = self.get_success_response(name="BTC Analytics", slug="btc-analytics")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.name == "BTC Analytics"
-
-    def test_name_with_periods_allowed(self) -> None:
-        response = self.get_success_response(name="Acme Inc.", slug="acme-inc")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.name == "Acme Inc."
-
-    def test_without_slug(self) -> None:
-        response = self.get_success_response(name="hello world")
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.slug == "hello-world"
-
-    def test_generated_slug_not_entirely_numeric(self) -> None:
-        response = self.get_success_response(name="1234")
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.slug.startswith("1234-")
-        assert not org.slug.isdecimal()
-
-    @patch(
-        "sentry.core.endpoints.organization_member_requests_join.ratelimiter.backend.is_limited",
-        return_value=False,
-    )
-    def test_name_slugify(self, is_limited: MagicMock) -> None:
-        response = self.get_success_response(name="---foo")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "foo"
-
-        org_slug_pattern = re.compile(ORG_SLUG_PATTERN)
-
-        response = self.get_success_response(name="---foo---")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug != "foo-"
-        assert org.slug.startswith("foo-")
-        assert org_slug_pattern.match(org.slug)
-
-        response = self.get_success_response(name="___foo___")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug != "foo-"
-        assert org.slug.startswith("foo-")
-        assert org_slug_pattern.match(org.slug)
-
-        response = self.get_success_response(name="foo_bar")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "foo-bar"
-
-        response = self.get_success_response(name="----")
-        org = Organization.objects.get(id=response.data["id"])
-        assert len(org.slug) > 0
-        assert org_slug_pattern.match(org.slug)
-
-        response = self.get_success_response(name="CaNaDa")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "canada"
-        assert org_slug_pattern.match(org.slug)
-
-        response = self.get_success_response(name="1234-foo")
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "1234-foo"
-        assert org_slug_pattern.match(org.slug)
-
-    def test_required_terms_with_terms_url(self) -> None:
-        data: dict[str, Any] = {"name": "hello world"}
-        with self.settings(PRIVACY_URL=None, TERMS_URL="https://example.com/terms"):
-            self.get_success_response(**data)
-
-        with self.settings(TERMS_URL=None, PRIVACY_URL="https://example.com/privacy"):
-            self.get_success_response(**data)
-
-        with self.settings(
-            TERMS_URL="https://example.com/terms", PRIVACY_URL="https://example.com/privacy"
-        ):
-            data = {"name": "hello world", "agreeTerms": False}
-            self.get_error_response(status_code=400, **data)
-
-            data = {"name": "hello world", "agreeTerms": True}
-            self.get_success_response(**data)
-
-    def test_organization_mapping(self) -> None:
-        data = {"slug": "santry", "name": "SaNtRy", "idempotencyKey": "1234"}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.slug == data["slug"]
-        assert org.name == data["name"]
-
-    def test_slug_already_taken(self) -> None:
-        self.create_organization(slug="taken")
-        self.get_error_response(slug="taken", name="TaKeN", status_code=400)
-
-    def test_add_organization_member(self) -> None:
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(name="org name")
-
-        org_member = OrganizationMember.objects.get(
-            organization_id=response.data["id"], user_id=self.user.id
-        )
-        self.assert_org_member_mapping(org_member=org_member)
-
-    @mock.patch("sentry.analytics.record")
-    def test_success_analytics_recorded(self, mock_record: mock.MagicMock) -> None:
-        self.login_as(user=self.user)
-
-        with outbox_runner():
-            response = self.get_success_response(name="org name", aggregatedDataConsent=True)
-        assert response.status_code == 201
-
-        org = Organization.objects.get(slug="org-name")
-
-        assert_any_analytics_event(
-            mock_record,
-            OrganizationCreatedEvent(
-                id=org.id,
-                actor_id=self.user.id,
-                name=org.name,
-                slug=org.slug,
-            ),
-        )
-        assert_any_analytics_event(
-            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
-        )
-        assert_org_audit_log_exists(
-            organization=org,
-            event=audit_log.get_event_id("ORG_ADD"),
-        )
-        assert org.get_option("sentry:aggregated_data_consent") is True
-
-    def test_data_consent(self) -> None:
-        data = {"name": "hello world original", "agreeTerms": True}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.name == data["name"]
-        assert not OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent")
-
-        data = {"name": "hello world", "agreeTerms": True, "aggregatedDataConsent": True}
-        response = self.get_success_response(**data)
-
-        organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.name == data["name"]
-        assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
-
-    @mock.patch("sentry.analytics.record")
-    def test_success_analytics_in_rpc_call(self, mock_record: mock.MagicMock) -> None:
-        self.login_as(user=self.user)
-
-        with outbox_runner():
-            data = {
-                "name": "org name",
-                "aggregatedDataConsent": True,
-                "agreeTerms": True,
-                "defaultTeam": True,
-            }
-            response = self.get_success_response(**data)
-        assert response.status_code == 201
-
-        org = Organization.objects.get(slug="org-name")
-
-        assert_any_analytics_event(
-            mock_record,
-            OrganizationCreatedEvent(
-                id=org.id,
-                actor_id=self.user.id,
-                name=org.name,
-                slug=org.slug,
-            ),
-        )
-        assert_any_analytics_event(
-            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
-        )
-        assert_org_audit_log_exists(
-            organization=org,
-            event=audit_log.get_event_id("ORG_ADD"),
-        )
-        assert org.get_option("sentry:aggregated_data_consent") is True
-        assert org.get_option("sentry:streamline_ui_only") is True
-        assert OrganizationMember.objects.filter(
-            organization_id=org.id, user_id=self.user.id
-        ).exists()
-        assert Team.objects.filter(organization_id=org.id).exists()
-
     def test_streamline_only_is_true(self) -> None:
         """
         All new organizations should never see the legacy UI.
         """
         self.login_as(user=self.user)
         response = self.get_success_response(name="acme")
-        organization = Organization.objects.get(id=response.data["id"])
-        assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
+        with assume_test_silo_mode_of(Organization):
+            organization = Organization.objects.get(id=response.data["id"])
+            assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
 
     def test_demo_user_cannot_create_organization(self) -> None:
         demo_user = self.create_user("demo@example.com")
         self.login_as(demo_user)
         with override_options({"demo-mode.enabled": True, "demo-mode.users": [demo_user.id]}):
             self.get_error_response(name="demo org", slug="demo-org", status_code=403)
+        with assume_test_silo_mode_of(Organization):
             assert not Organization.objects.filter(slug="demo-org").exists()
 
     def test_demo_user_cannot_create_organization_when_demo_mode_disabled(self) -> None:
@@ -830,6 +752,7 @@ class OrganizationsCreateInCellTest(OrganizationIndexTest, HybridCloudTestMixin)
         self.login_as(demo_user)
         with override_options({"demo-mode.enabled": False, "demo-mode.users": [demo_user.id]}):
             self.get_error_response(name="demo org", slug="demo-org", status_code=403)
+        with assume_test_silo_mode_of(Organization):
             assert not Organization.objects.filter(slug="demo-org").exists()
 
     @patch.object(OrganizationPermission, "has_permission", return_value=True)
@@ -840,12 +763,8 @@ class OrganizationsCreateInCellTest(OrganizationIndexTest, HybridCloudTestMixin)
         with override_options({"demo-mode.enabled": True, "demo-mode.users": [demo_user.id]}):
             response = self.get_error_response(name="demo org", slug="demo-org", status_code=403)
             assert response.data["detail"] == "Demo users are not allowed to create organizations."
+        with assume_test_silo_mode_of(Organization):
             assert not Organization.objects.filter(slug="demo-org").exists()
-
-
-@cell_silo_test(cells=create_test_cells("de", "us"))
-class OrganizationsCreateInRegionTest(OrganizationIndexTest):
-    method = "post"
 
     @override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_LOCAL_CELL="de")
     def test_success(self) -> None:
@@ -853,13 +772,13 @@ class OrganizationsCreateInRegionTest(OrganizationIndexTest):
         response = self.get_success_response(**data)
 
         organization_id = response.data["id"]
-        org = Organization.objects.get(id=organization_id)
-        assert org.name == "hello world"
-        owners = [owner.id for owner in org.get_owners()]
-        assert [self.user.id] == owners
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(id=organization_id)
+            assert org.name == "hello world"
+            owners = [owner.id for owner in org.get_owners()]
+            assert [self.user.id] == owners
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            mapping = OrganizationMapping.objects.get(organization_id=organization_id)
+        mapping = OrganizationMapping.objects.get(organization_id=organization_id)
         assert mapping
         assert mapping.cell_name == "de"
 
