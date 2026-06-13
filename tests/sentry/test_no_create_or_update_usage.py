@@ -10,7 +10,7 @@ from typing import Any
 # create_or_update. Instead, use Django's update_or_create.
 # Reduce over time as code is refactored. DO NOT add new files here.
 ALLOWLIST_FILES: set[str] = {
-    "src/sentry/buffer/base.py",
+    "src/sentry/buffer/base.py",  # fallback path behind buffer.update-or-create.rollout option
     "src/sentry/db/models/manager/base.py",
 }
 

@@ -3,11 +3,12 @@ from datetime import datetime
 from typing import Any
 
 import psycopg2.errors
-from django.db import DataError
+from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry.db import models
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
+from sentry.options.rollout import in_random_rollout
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils import metrics
@@ -187,7 +188,21 @@ class Buffer(Service):
                                 raise
                 created = False
             elif model:
-                _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+                if in_random_rollout("buffer.update-or-create.rollout"):
+                    affected = model.objects.filter(**filters).update(**update_kwargs)
+                    if not affected:
+                        create_kwargs = {**filters, **{col: v for col, v in columns.items()}}
+                        try:
+                            # Wrapped in a transaction block to create a savepoint
+                            # so an IntegrityError from a concurrent insert
+                            # only rolls back this attempt, not any outer transaction.
+                            with transaction.atomic(using=router.db_for_write(model)):
+                                model.objects.create(**create_kwargs)
+                            created = True
+                        except IntegrityError:
+                            model.objects.filter(**filters).update(**update_kwargs)
+                else:
+                    _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
             model=model,

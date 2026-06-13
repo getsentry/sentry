@@ -3806,3 +3806,13 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Rollout rate for the new Buffer.process non-Group update path that uses
+# filter().update() + create() instead of the legacy create_or_update.
+# Set to 1.0 to fully enable; set to 0.0 to kill-switch back to the old path.
+register(
+    "buffer.update-or-create.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
