@@ -2,7 +2,6 @@ import {Fragment, useCallback, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -28,6 +27,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {
+  ActivityActorIcon,
+  ActivityActorMarker,
+  getActivityActor,
+} from 'sentry/views/issueDetails/activitySection/activityActor';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
@@ -36,45 +40,6 @@ import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-
-function getAuthorName(item: GroupActivity) {
-  if (item.sentry_app) {
-    return item.sentry_app.name;
-  }
-  if (item.user) {
-    return item.user.name;
-  }
-  if (
-    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
-    item.data.pullRequest?.author?.name &&
-    !item.data.pullRequest.author.email?.endsWith('@localhost')
-  ) {
-    return item.data.pullRequest.author.name;
-  }
-  return 'Sentry';
-}
-
-function getActivityMarker(item: GroupActivity, color: string) {
-  if (item.sentry_app) {
-    return (
-      <AvatarMarker color={color}>
-        <SentryAppAvatar
-          data-test-id="sentry-app-activity-marker"
-          sentryApp={item.sentry_app}
-          size={22}
-        />
-      </AvatarMarker>
-    );
-  }
-  if (item.user) {
-    return (
-      <AvatarMarker color={color}>
-        <UserAvatar data-test-id="user-activity-marker" user={item.user} size={22} />
-      </AvatarMarker>
-    );
-  }
-  return <SentryMarker color={color} data-test-id="sentry-activity-marker" />;
-}
 
 function getActivityColorConfig(theme: Theme, type: GroupActivityType) {
   const defaultConfig = {
@@ -145,29 +110,31 @@ function TimelineItem({
   const theme = useTheme();
   const [editing, setEditing] = useState(false);
   const useTwoColumnLayout = organization.features.includes('issue-activity-feed-v2');
-  const authorName = getAuthorName(item);
+  const actor = getActivityActor(item);
   const colorConfig = getActivityColorConfig(theme, item.type);
   const {title, message} = getGroupActivityItem(
     item,
     organization,
     group.project,
     group.issueCategory,
-    <strong>{authorName}</strong>,
+    <strong>{actor.name}</strong>,
     teams
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const componentFunction =
-    useTwoColumnLayout && item.type === GroupActivityType.NOTE
-      ? undefined
-      : iconMapping?.componentFunction;
+  const componentFunction = iconMapping.componentFunction;
   const Icon = componentFunction
     ? componentFunction({
         data: item.data,
-        user: item.user,
-        sentry_app: item.sentry_app,
       })
-    : (iconMapping?.Component ?? null);
+    : iconMapping.Component;
+  const iconProps = {
+    ...iconMapping.defaultProps,
+    ...iconMapping.propsFunction?.(item.data),
+    size: 'xs' as const,
+  };
+  const fallbackIcon = Icon ? <Icon {...iconProps} /> : null;
+  const showActorIcon = !useTwoColumnLayout && item.type === GroupActivityType.NOTE;
 
   return (
     <ActivityTimelineItem
@@ -186,15 +153,17 @@ function TimelineItem({
         </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
-      marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
+      marker={
+        useTwoColumnLayout ? (
+          <ActivityActorMarker actor={actor} color={colorConfig.icon} />
+        ) : undefined
+      }
       colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
-        Icon && (
-          <Icon
-            {...iconMapping.defaultProps}
-            {...iconMapping.propsFunction?.(item.data)}
-            size="xs"
-          />
+        showActorIcon ? (
+          <ActivityActorIcon actor={actor} fallback={fallbackIcon} />
+        ) : (
+          fallbackIcon
         )
       }
     >
@@ -534,37 +503,4 @@ const MoreActivityIcon = styled('div')`
 const ActivityInputFrame = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   min-width: 0;
-`;
-
-const AvatarMarker = styled('span')<{color: string}>`
-  display: block;
-  position: relative;
-  border-radius: 100%;
-  line-height: 0;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 100%;
-    box-shadow: inset 0 0 0 2px ${p => p.color};
-    pointer-events: none;
-  }
-`;
-
-const SentryMarker = styled('span')<{color: string}>`
-  width: 12px;
-  height: 12px;
-  border-radius: 100%;
-  background: ${p => p.theme.tokens.background.primary};
-  display: grid;
-  place-items: center;
-
-  &::after {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 100%;
-    background: ${p => p.color};
-  }
 `;

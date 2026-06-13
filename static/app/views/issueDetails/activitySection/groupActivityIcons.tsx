@@ -1,7 +1,3 @@
-import styled from '@emotion/styled';
-
-import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
-
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {
   IconAdd,
@@ -39,11 +35,7 @@ import {GroupActivityType} from 'sentry/types/group';
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;
   defaultProps: {locked?: boolean; type?: string};
-  componentFunction?: (props: {
-    data: GroupActivity['data'];
-    sentry_app: GroupActivity['sentry_app'];
-    user: GroupActivity['user'];
-  }) => React.ComponentType<any>;
+  componentFunction?: (props: {data: GroupActivity['data']}) => React.ComponentType<any>;
   propsFunction?: (props: any) => any;
 }
 
@@ -54,14 +46,6 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.NOTE]: {
     Component: IconChat,
     defaultProps: {},
-    componentFunction: ({user, sentry_app}) => {
-      if (sentry_app) {
-        return function () {
-          return <SentryAppAvatar sentryApp={sentry_app} />;
-        };
-      }
-      return user ? () => <StyledUserAvatar user={user} /> : IconChat;
-    },
   },
   [GroupActivityType.SET_RESOLVED]: {Component: IconCheckmark, defaultProps: {}},
   [GroupActivityType.SET_RESOLVED_BY_AGE]: {Component: IconCheckmark, defaultProps: {}},
@@ -174,9 +158,3 @@ export const groupActivityTypeIconMapping: Record<
     propsFunction: () => ({variant: 'success'}),
   },
 };
-
-const StyledUserAvatar = styled(UserAvatar)`
-  svg {
-    margin: ${p => p.theme.space['2xs']};
-  }
-`;
