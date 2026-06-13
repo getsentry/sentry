@@ -238,7 +238,12 @@ def publish_action(
 
 def _process_derived_data(group_id: int) -> None:
     """Process derived data inline after a log entry is written."""
-    result = process_group_log_batch(group_id)
+    from sentry.models.group import Group
+
+    try:
+        result = process_group_log_batch(group_id)
+    except Group.DoesNotExist:
+        return
     if not result.caught_up:
         process_group_log_task.delay(group_id)
 
