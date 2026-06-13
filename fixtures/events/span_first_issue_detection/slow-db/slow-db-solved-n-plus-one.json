@@ -1,0 +1,510 @@
+[
+  {
+    "span_id": "8c9cfb04076db458",
+    "parent_span_id": null,
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.376365,
+    "end_timestamp": 1661957972.566927,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "/books/",
+    "status": "ok",
+    "is_segment": true,
+    "attributes": {
+      "sentry.segment.name": {
+        "type": "string",
+        "value": "/books/"
+      },
+      "sentry.op": {
+        "type": "string",
+        "value": "http.server"
+      },
+      "sentry.span.source": {
+        "type": "string",
+        "value": "route"
+      }
+    }
+  },
+  {
+    "span_id": "b35fe8bfc034fe6d",
+    "parent_span_id": "8c9cfb04076db458",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.378754,
+    "end_timestamp": 1661957972.566523,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "django.middleware.security.SecurityMiddleware.__call__",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.middleware"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "django.middleware.security.SecurityMiddleware.__call__"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "0f43fb6f6e01ca52"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 0.157118
+      },
+      "django.function_name": {
+        "type": "string",
+        "value": "django.utils.deprecation.MiddlewareMixin.__call__"
+      },
+      "django.middleware_name": {
+        "type": "string",
+        "value": "django.middleware.security.SecurityMiddleware"
+      }
+    }
+  },
+  {
+    "span_id": "b4cc10cfb5bb0d0b",
+    "parent_span_id": "b35fe8bfc034fe6d",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.378852,
+    "end_timestamp": 1661957972.566464,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "django.contrib.sessions.middleware.SessionMiddleware.__call__",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.middleware"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "django.contrib.sessions.middleware.SessionMiddleware.__call__"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "3dc5dd68b38e1730"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 2.594948
+      },
+      "django.function_name": {
+        "type": "string",
+        "value": "django.utils.deprecation.MiddlewareMixin.__call__"
+      },
+      "django.middleware_name": {
+        "type": "string",
+        "value": "django.contrib.sessions.middleware.SessionMiddleware"
+      }
+    }
+  },
+  {
+    "span_id": "84b7b23061a36e25",
+    "parent_span_id": "b4cc10cfb5bb0d0b",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.381379,
+    "end_timestamp": 1661957972.566396,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "django.middleware.common.CommonMiddleware.__call__",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.middleware"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "django.middleware.common.CommonMiddleware.__call__"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "424c6ae1641f0f0e"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 1.232147
+      },
+      "django.function_name": {
+        "type": "string",
+        "value": "django.utils.deprecation.MiddlewareMixin.__call__"
+      },
+      "django.middleware_name": {
+        "type": "string",
+        "value": "django.middleware.common.CommonMiddleware"
+      }
+    }
+  },
+  {
+    "span_id": "b6af0fe580697876",
+    "parent_span_id": "84b7b23061a36e25",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.382565,
+    "end_timestamp": 1661957972.56635,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "django.middleware.csrf.CsrfViewMiddleware.__call__",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.middleware"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "django.middleware.csrf.CsrfViewMiddleware.__call__"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "d5da18d7274b34a1"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 0.113011
+      },
+      "django.function_name": {
+        "type": "string",
+        "value": "django.utils.deprecation.MiddlewareMixin.__call__"
+      },
+      "django.middleware_name": {
+        "type": "string",
+        "value": "django.middleware.csrf.CsrfViewMiddleware"
+      }
+    }
+  },
+  {
+    "span_id": "ad32d8a49d273bdc",
+    "parent_span_id": "b6af0fe580697876",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.382656,
+    "end_timestamp": 1661957972.566328,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "django.contrib.auth.middleware.AuthenticationMiddleware.__call__",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.middleware"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "django.contrib.auth.middleware.AuthenticationMiddleware.__call__"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "ac72fc0a4f5fe381"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 0.110864
+      },
+      "django.function_name": {
+        "type": "string",
+        "value": "django.utils.deprecation.MiddlewareMixin.__call__"
+      },
+      "django.middleware_name": {
+        "type": "string",
+        "value": "django.contrib.auth.middleware.AuthenticationMiddleware"
+      }
+    }
+  },
+  {
+    "span_id": "ac6091f22d9366a3",
+    "parent_span_id": "ad32d8a49d273bdc",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.382748,
+    "end_timestamp": 1661957972.566309,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "django.contrib.messages.middleware.MessageMiddleware.__call__",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.middleware"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "django.contrib.messages.middleware.MessageMiddleware.__call__"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "ac1468d8e11a0553"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 9.091139
+      },
+      "django.function_name": {
+        "type": "string",
+        "value": "django.utils.deprecation.MiddlewareMixin.__call__"
+      },
+      "django.middleware_name": {
+        "type": "string",
+        "value": "django.contrib.messages.middleware.MessageMiddleware"
+      }
+    }
+  },
+  {
+    "span_id": "98f79ffd92d4a060",
+    "parent_span_id": "ac6091f22d9366a3",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.391788,
+    "end_timestamp": 1661957972.566258,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "django.middleware.clickjacking.XFrameOptionsMiddleware.__call__",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.middleware"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "django.middleware.clickjacking.XFrameOptionsMiddleware.__call__"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "d8681423cab4275f"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 0.916005
+      },
+      "django.function_name": {
+        "type": "string",
+        "value": "django.utils.deprecation.MiddlewareMixin.__call__"
+      },
+      "django.middleware_name": {
+        "type": "string",
+        "value": "django.middleware.clickjacking.XFrameOptionsMiddleware"
+      }
+    }
+  },
+  {
+    "span_id": "b455d7ac30d3a0a0",
+    "parent_span_id": "98f79ffd92d4a060",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.392019,
+    "end_timestamp": 1661957970.392034,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "django.middleware.csrf.CsrfViewMiddleware.process_view",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.middleware"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "django.middleware.csrf.CsrfViewMiddleware.process_view"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "e853d2eb7fb9ebb0"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 0.01502
+      },
+      "django.function_name": {
+        "type": "string",
+        "value": "django.middleware.csrf.CsrfViewMiddleware.process_view"
+      },
+      "django.middleware_name": {
+        "type": "string",
+        "value": "django.middleware.csrf.CsrfViewMiddleware"
+      }
+    }
+  },
+  {
+    "span_id": "975f73422c8b1592",
+    "parent_span_id": "98f79ffd92d4a060",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.392127,
+    "end_timestamp": 1661957972.565666,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "index",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "django.view"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "index"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "6a992d5529f459a4"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 3.560066
+      }
+    }
+  },
+  {
+    "span_id": "9f31e1ee4ef94970",
+    "parent_span_id": "975f73422c8b1592",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957970.393029,
+    "end_timestamp": 1661957972.244459,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "connect",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "db"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "connect"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "b640a0ce465fa2a4"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 1520.380972
+      }
+    }
+  },
+  {
+    "span_id": "a05754d3fde2db29",
+    "parent_span_id": "9f31e1ee4ef94970",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957971.911963,
+    "end_timestamp": 1761957972.078148,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "SELECT VERSION()",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "db"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "SELECT VERSION(),\n@@sql_mode,\n@@default_storage_engine,\n@@sql_auto_is_null,\n@@lower_case_table_names,\nCONVERT_TZ('2001-01-01 01:00:00', 'UTC', 'UTC') IS NOT NULL"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "3a91b85ea92a26b9"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 166.184903
+      }
+    }
+  },
+  {
+    "span_id": "8ed794ef6fc2ca5d",
+    "parent_span_id": "9f31e1ee4ef94970",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957972.07932,
+    "end_timestamp": 1661957972.244184,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "db"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "061710eb39a66089"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 164.864064
+      }
+    }
+  },
+  {
+    "span_id": "85dc61f6b5fbfa2b",
+    "parent_span_id": "975f73422c8b1592",
+    "trace_id": "679ca2e3ce344d689f7b42b0e8fb32a4",
+    "organization_id": 1,
+    "project_id": 1,
+    "start_timestamp": 1661957972.244967,
+    "end_timestamp": 1661957972.563516,
+    "received": 1661957972.566927,
+    "retention_days": 90,
+    "name": "SELECT books_book join books_author",
+    "status": "ok",
+    "is_segment": false,
+    "attributes": {
+      "sentry.op": {
+        "type": "string",
+        "value": "db"
+      },
+      "sentry.description": {
+        "type": "string",
+        "value": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id`, `books_author`.`id`, `books_author`.`name` FROM `books_book` INNER JOIN `books_author` ON (`books_book`.`author_id` = `books_author`.`id`) LIMIT 10"
+      },
+      "sentry.group": {
+        "type": "string",
+        "value": "e5aa87dbfacc0120"
+      },
+      "sentry.exclusive_time": {
+        "type": "double",
+        "value": 318.548918
+      }
+    }
+  }
+]
