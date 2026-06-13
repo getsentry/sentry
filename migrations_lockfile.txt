@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0018_backfill_seer_agent_run_group_id
 
-sentry: 1114_extend_repository_url_length
+sentry: 1115_add_group_derived_data
 
 social_auth: 0003_social_auth_json_field
 

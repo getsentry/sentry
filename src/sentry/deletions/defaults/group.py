@@ -22,6 +22,7 @@ from typing import Any
 
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
+from sentry.issues.derived.groupderiveddata import GroupDerivedData
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
@@ -81,6 +82,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupReaction,
     models.Activity,
     GroupActionLogEntry,
+    GroupDerivedData,
 )
 
 # Additional group-related models that require special handling during reprocessing.

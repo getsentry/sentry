@@ -80,13 +80,14 @@ class GroupActionType(IntEnum):
     CREATE_PLATFORM_EXTERNAL_ISSUE = 21
     LINK_PLATFORM_EXTERNAL_ISSUE = 22
     UNLINK_PLATFORM_EXTERNAL_ISSUE = 23
+    AUTOFIX_PR_CREATED = 24
+    RESOLVED_IN_PULL_REQUEST = 25
+    ROOT_CAUSE_IDENTIFIED = 26
+    AUTOFIX_CODING_COMPLETE = 27
 
 
 class GroupAction(BaseModel, abc.ABC):
-    """
-    Typed payload for a GroupActionLogEntry. Subclasses define the schema
-    for a specific action kind's ``data`` column. Frozen after construction.
-    """
+    """Typed payload for a group action log entry. Frozen after construction."""
 
     class Config:
         frozen = True
@@ -271,3 +272,41 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE
+
+
+class AutofixPrCreatedAction(GroupAction):
+    run_id: str | None = None
+    pull_requests: list[dict[str, object]] = []
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.AUTOFIX_PR_CREATED
+
+
+class ResolvedInPullRequestAction(GroupAction):
+    pull_request: int  # PullRequest model ID
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.RESOLVED_IN_PULL_REQUEST
+
+
+class RootCauseIdentifiedAction(GroupAction):
+    """Seer (or a human) identified the root cause of an issue."""
+
+    run_id: str | None = None
+    summary: str | None = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.ROOT_CAUSE_IDENTIFIED
+
+
+class AutofixCodingCompleteAction(GroupAction):
+    """Seer finished writing a fix (code ready, PR not yet created)."""
+
+    run_id: str | None = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.AUTOFIX_CODING_COMPLETE

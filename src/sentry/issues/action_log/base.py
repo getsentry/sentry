@@ -12,8 +12,10 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActionActor
+from sentry.issues.derived.processing import process_group_log_batch
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
+from sentry.tasks.process_group_log import process_group_log_task
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
@@ -229,6 +231,21 @@ def publish_action(
         source=source,
         data=action.dict(),
     )
+
+    # TODO: Use the outbox to process derived data post-commit and possibly asynchronously.
+    _process_derived_data(group_id)
+
+
+def _process_derived_data(group_id: int) -> None:
+    """Process derived data inline after a log entry is written."""
+    from sentry.models.group import Group
+
+    try:
+        result = process_group_log_batch(group_id)
+    except Group.DoesNotExist:
+        return
+    if not result.caught_up:
+        process_group_log_task.delay(group_id)
 
 
 def publish_action_from_context(
