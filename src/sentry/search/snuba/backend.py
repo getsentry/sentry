@@ -18,6 +18,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
@@ -452,6 +453,33 @@ class RecentDateCondition(ScalarCondition):
         return super().apply(queryset, search_filter)
 
 
+class HasAttachmentsCondition(Condition):
+    def __init__(self, projects: Sequence[Project]):
+        self.project_ids = [project.id for project in projects]
+
+    def apply(
+        self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
+    ) -> BaseQuerySet[Group, Group]:
+        value = search_filter.value.raw_value
+        if value == "" and search_filter.operator in ("=", "!="):
+            has_attachments = search_filter.operator == "!="
+        elif isinstance(value, bool) and search_filter.operator in ("=", "!="):
+            has_attachments = value if search_filter.operator == "=" else not value
+        else:
+            raise InvalidSearchQuery(
+                f"Operator {search_filter.operator} not valid for search {search_filter}"
+            )
+
+        attachment_group_ids = EventAttachment.objects.filter(
+            project_id__in=self.project_ids,
+            group_id__isnull=False,
+        ).values_list("group_id", flat=True)
+
+        if has_attachments:
+            return queryset.filter(id__in=attachment_group_ids)
+        return queryset.exclude(id__in=attachment_group_ids)
+
+
 class QuerySetBuilder:
     def __init__(self, conditions: Mapping[str, Condition]):
         self.conditions = conditions
@@ -699,6 +727,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.seer_last_run": RecentDateCondition(
                 "seer_explorer_autofix_last_triggered", SEER_LAST_RUN_RECENCY_WINDOW
             ),
+            "has_attachments": HasAttachmentsCondition(projects),
             "issue.id": QCallbackCondition(
                 lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
             ),
