@@ -25,7 +25,6 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
-  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
@@ -40,6 +39,7 @@ import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
@@ -385,8 +385,7 @@ function ContextMenu({
             discoverQuery,
             pageFilters.selection
           );
-          // the chart currently track the chart type internally so force bar type for now
-          eventView.display = DisplayType.BAR;
+          eventView.display = CHART_TYPE_TO_DISPLAY_TYPE[visualize.chartType];
 
           handleAddQueryToDashboard({
             organization,
@@ -410,6 +409,7 @@ function ContextMenu({
     projects,
     search,
     setVisible,
+    visualize.chartType,
     visualize.yAxis,
   ]);
 
