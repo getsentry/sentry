@@ -104,7 +104,7 @@ export type SidebarItem =
       images: SnapshotImage[];
     });
 
-export type SidebarPairItem = Extract<SidebarItem, {pairs: SnapshotDiffPair[]}>;
+type SidebarPairItem = Extract<SidebarItem, {pairs: SnapshotDiffPair[]}>;
 
 export function isPairSidebarItem(item: SidebarItem): item is SidebarPairItem {
   return item.type === 'changed' || item.type === 'renamed' || item.type === 'errored';
