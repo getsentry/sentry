@@ -4,6 +4,7 @@ from datetime import timedelta
 from functools import reduce
 from string import Template
 from typing import Any
+from uuid import uuid4
 
 from django.db import router
 from django.db.models import Q
@@ -23,12 +24,13 @@ from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.files.file import File
+from sentry.models.files.utils import get_relocation_storage
 from sentry.options import get
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.serializers.relocation import RelocationSerializer
 from sentry.relocation.models.relocation import Relocation, RelocationFile
 from sentry.relocation.tasks.process import uploading_start
-from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
+from sentry.relocation.utils import RELOCATION_FILE_TYPE, relocation_raw_data_path
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
 from sentry.users.models.user import MAX_USERNAME_LENGTH, User
@@ -54,7 +56,9 @@ RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
 RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2
 
 
-def get_relocation_size_category(size: int) -> str:
+def get_relocation_size_category(size: int | None) -> str:
+    if size is None:
+        return "medium"
     if size < RELOCATION_FILE_SIZE_SMALL:
         return "small"
     elif size < RELOCATION_FILE_SIZE_MEDIUM:
@@ -63,6 +67,7 @@ def get_relocation_size_category(size: int) -> str:
 
 
 def should_throttle_relocation(relocation_bucket_size: str) -> bool:
+    # TODO(cells) Instead of doing this by size we could use the number of inflight relocations.
     recent_relocation_files = RelocationFile.objects.filter(
         date_added__gte=(timezone.now() - timedelta(days=1))
     )
@@ -274,14 +279,20 @@ class RelocationIndexEndpoint(Endpoint):
         if err is not None:
             return err
 
-        file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
-        file.putfile(fileobj, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
+        relocation_uuid = uuid4()
+        path = relocation_raw_data_path(relocation_uuid)
+        relocation_storage = get_relocation_storage()
+        relocation_storage.save(path, fileobj)
+
+        # TODO(cells) Make RelocationFile.file nullable
+        file = File.objects.create(name="stub", type=RELOCATION_FILE_TYPE, size=file_size)
 
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
             provenance = Relocation.Provenance.SELF_HOSTED
             relocation: Relocation = Relocation.objects.create(
+                uuid=relocation_uuid,
                 creator_id=request.user.id,
                 owner_id=owner.id,
                 want_org_slugs=org_slugs,
@@ -291,8 +302,9 @@ class RelocationIndexEndpoint(Endpoint):
             )
             RelocationFile.objects.create(
                 relocation=relocation,
-                file=file,
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
+                bucket_path=path,
+                file=file,
             )
         relocation_link_promo_code.send_robust(
             relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__

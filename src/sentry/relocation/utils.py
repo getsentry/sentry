@@ -694,6 +694,12 @@ def get_relocations_bucket_name() -> str:
     return "default"
 
 
+def relocation_raw_data_path(relocation_uuid: UUID) -> str:
+    """Generate a file path for relocation/import raw data"""
+    filename = RelocationFile.Kind.RAW_USER_DATA.to_filename("tar")
+    return f"runs/{relocation_uuid}/in/{filename}"
+
+
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
     bucket_root = f"gs://{get_relocations_bucket_name()}"
     filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]

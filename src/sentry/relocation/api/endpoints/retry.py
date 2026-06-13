@@ -15,7 +15,6 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
-from sentry.models.files.file import File
 from sentry.relocation.api.endpoints.index import (
     get_autopause_value,
     validate_new_relocation_request,
@@ -75,6 +74,7 @@ class RelocationRetryEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # TODO(cells) Update this when file becomes nullable/removed.
         relocation_file = (
             RelocationFile.objects.filter(relocation=relocation).select_related("file").first()
         )
@@ -85,10 +85,7 @@ class RelocationRetryEndpoint(Endpoint):
             )
 
         # We can re-use the same `File` instance in the database, avoiding duplicating data.
-        try:
-            file = File.objects.get(id=relocation_file.file_id)
-            fileobj = file.getfile()
-        except (File.DoesNotExist, FileNotFoundError):
+        if not relocation_file.file:
             return Response(
                 {"detail": ERR_FILE_NO_LONGER_EXISTS},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -102,7 +99,7 @@ class RelocationRetryEndpoint(Endpoint):
             )
 
         err = validate_new_relocation_request(
-            request, owner.username, relocation.want_org_slugs, fileobj.size
+            request, owner.username, relocation.want_org_slugs, relocation_file.file.size
         ) or validate_relocation_uniqueness(owner)
         if err is not None:
             return err
@@ -126,10 +123,15 @@ class RelocationRetryEndpoint(Endpoint):
                 new_relocation_uuid=new_relocation.uuid,
                 sender=self.__class__,
             )
+            # Create a new RelocationFile. Initially the bucket_path
+            # will point to the original relocation. During preprocessing_transfer
+            # we will copy the raw data into `runs/{uuid}/in` so it can be copied
+            # into cloudbuild.
             RelocationFile.objects.create(
                 relocation=new_relocation,
-                file=file,
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
+                bucket_path=relocation_file.bucket_path,
+                file=relocation_file.file,
             )
 
         uploading_start.delay(str(new_relocation.uuid), None, None)
