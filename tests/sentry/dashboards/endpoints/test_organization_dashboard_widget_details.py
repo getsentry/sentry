@@ -1485,6 +1485,91 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_widget_type_tracemetrics_line_chart_allows_single_equation(self) -> None:
+        data = {
+            "title": "Test Metrics Equation",
+            "widgetType": "tracemetrics",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["equation|sum(value,metric_name,counter,none) / 100"],
+                    "columns": [],
+                    "aggregates": ["equation|sum(value,metric_name,counter,none) / 100"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_widget_type_tracemetrics_line_chart_rejects_multiple_equations(self) -> None:
+        data = {
+            "title": "Test Metrics Equation",
+            "widgetType": "tracemetrics",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "equation|sum(value,metric_name,counter,none) / 100",
+                        "equation|avg(value,metric_name,gauge,none) * 2",
+                    ],
+                    "columns": [],
+                    "aggregates": [
+                        "equation|sum(value,metric_name,counter,none) / 100",
+                        "equation|avg(value,metric_name,gauge,none) * 2",
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
+    def test_widget_type_tracemetrics_line_chart_rejects_multiple_aggregates_with_equation(
+        self,
+    ) -> None:
+        data = {
+            "title": "Test Metrics Equation",
+            "widgetType": "tracemetrics",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "equation|sum(value,metric_name,counter,none) / 100",
+                        "avg(value,metric_name,gauge,none)",
+                    ],
+                    "columns": [],
+                    "aggregates": [
+                        "equation|sum(value,metric_name,counter,none) / 100",
+                        "avg(value,metric_name,gauge,none)",
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
     def test_widget_type_tracemetrics_rejects_table(self) -> None:
         data = {
             "title": "Test Metrics Query",

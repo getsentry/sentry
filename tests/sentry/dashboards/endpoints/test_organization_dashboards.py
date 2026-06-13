@@ -2304,6 +2304,38 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             organization=self.organization, title="Validated Dashboard"
         ).exists()
 
+    def test_post_tracemetrics_line_chart_rejects_equation_with_aggregate(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Tracemetrics Equation",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Metrics Equation",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "columns": [],
+                            "aggregates": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "conditions": "",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data["widgets"][0], response.data
+
     def test_post_validate_only_error_for_invalid_dashboard(self) -> None:
         data: dict[str, Any] = {
             "title": "Invalid Dashboard",
