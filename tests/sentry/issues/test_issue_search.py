@@ -136,6 +136,27 @@ class ParseSearchQueryTest(unittest.TestCase):
             with pytest.raises(InvalidSearchQuery, match="Invalid number"):
                 parse_search_query(invalid_query)
 
+    def test_has_attachments_filter(self) -> None:
+        assert parse_search_query("has_attachments:true") == [
+            SearchFilter(
+                key=SearchKey(name="has_attachments"),
+                operator="=",
+                value=SearchValue(raw_value=True),
+            )
+        ]
+        assert parse_search_query("has_attachments:false") == [
+            SearchFilter(
+                key=SearchKey(name="has_attachments"),
+                operator="=",
+                value=SearchValue(raw_value=False),
+            )
+        ]
+        assert parse_search_query("has:has_attachments") == [
+            SearchFilter(
+                key=SearchKey(name="has_attachments"), operator="!=", value=SearchValue("")
+            )
+        ]
+
     def test_boolean_operators_not_allowed(self) -> None:
         invalid_queries = [
             "user.email:foo@example.com OR user.email:bar@example.com",

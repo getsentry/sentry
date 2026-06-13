@@ -963,6 +963,7 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.seer_actionability",
         "issue.seer_last_run",
         "issue.progress",
+        "has_attachments",
     )
 )
 

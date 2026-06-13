@@ -590,6 +590,85 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             str(group_without_seer.id),
         }
 
+    def test_has_attachments_search(self) -> None:
+        event_with_attachment = self.store_event(
+            data={
+                "fingerprint": ["group-with-attachment"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_with_attachment = event_with_attachment.group
+        EventAttachment.objects.create(
+            group_id=group_with_attachment.id,
+            event_id=event_with_attachment.event_id,
+            project_id=self.project.id,
+            type="event.attachment",
+            name="hello.png",
+            content_type="image/png",
+        )
+
+        event_without_attachment = self.store_event(
+            data={
+                "fingerprint": ["group-without-attachment"],
+                "timestamp": before_now(seconds=2).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_without_attachment = event_without_attachment.group
+
+        event_with_unresolved_attachment = self.store_event(
+            data={
+                "fingerprint": ["group-with-unresolved-attachment"],
+                "timestamp": before_now(seconds=3).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_with_unresolved_attachment = event_with_unresolved_attachment.group
+        EventAttachment.objects.create(
+            group_id=None,
+            event_id=event_with_unresolved_attachment.event_id,
+            project_id=self.project.id,
+            type="event.attachment",
+            name="unresolved.png",
+            content_type="image/png",
+        )
+
+        other_project = self.create_project(organization=self.organization)
+        other_event = self.store_event(
+            data={
+                "fingerprint": ["other-project-group"],
+                "timestamp": before_now(seconds=4).isoformat(),
+            },
+            project_id=other_project.id,
+        )
+        EventAttachment.objects.create(
+            group_id=group_without_attachment.id,
+            event_id=other_event.event_id,
+            project_id=other_project.id,
+            type="event.attachment",
+            name="other-project.png",
+            content_type="image/png",
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            query="has_attachments:true", project=[self.project.id]
+        )
+        assert {row["id"] for row in response.data} == {str(group_with_attachment.id)}
+
+        response = self.get_success_response(query="has:has_attachments", project=[self.project.id])
+        assert {row["id"] for row in response.data} == {str(group_with_attachment.id)}
+
+        response = self.get_success_response(
+            query="has_attachments:false", project=[self.project.id]
+        )
+        assert {row["id"] for row in response.data} == {
+            str(group_without_attachment.id),
+            str(group_with_unresolved_attachment.id),
+        }
+
     def test_lookup_by_event_id(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)

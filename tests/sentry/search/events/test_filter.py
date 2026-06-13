@@ -10,6 +10,7 @@ from snuba_sdk.function import Function
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.releases.util import SemverFilter
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import (
@@ -27,6 +28,7 @@ from sentry.search.events.filter import (
     parse_semver,
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
@@ -1650,3 +1652,71 @@ class ConvertSearchFilterToSnubaQueryTest(unittest.TestCase):
             assert cond[0][0] == "match"
             assert cond[1] == "="
             assert cond[2] == 1
+
+
+class HasAttachmentsConditionTest(TestCase):
+    def get_group_ids(self, search_filter: SearchFilter) -> set[int]:
+        backend = EventsDatasetSnubaSearchBackend()
+        queryset = backend._build_group_queryset(
+            projects=[self.project],
+            environments=None,
+            search_filters=[search_filter],
+            retention_window_start=None,
+        )
+        return set(queryset.values_list("id", flat=True))
+
+    def test_has_attachments_true_and_has_filter(self) -> None:
+        group_with_attachment = self.create_group(project=self.project)
+        group_without_attachment = self.create_group(project=self.project)
+        EventAttachment.objects.create(
+            group_id=group_with_attachment.id,
+            event_id="a" * 32,
+            project_id=self.project.id,
+            type="event.attachment",
+            name="hello.png",
+            content_type="image/png",
+        )
+
+        true_filter = SearchFilter(SearchKey("has_attachments"), "=", SearchValue(raw_value=True))
+        assert self.get_group_ids(true_filter) == {group_with_attachment.id}
+
+        has_filter = SearchFilter(SearchKey("has_attachments"), "!=", SearchValue(""))
+        assert self.get_group_ids(has_filter) == {group_with_attachment.id}
+
+        false_filter = SearchFilter(SearchKey("has_attachments"), "=", SearchValue(raw_value=False))
+        assert self.get_group_ids(false_filter) == {group_without_attachment.id}
+
+    def test_has_attachments_ignores_null_group_and_other_project_rows(self) -> None:
+        group = self.create_group(project=self.project)
+        other_project = self.create_project(organization=self.organization)
+        other_group = self.create_group(project=other_project)
+        EventAttachment.objects.create(
+            group_id=None,
+            event_id="a" * 32,
+            project_id=self.project.id,
+            type="event.attachment",
+            name="unresolved.png",
+            content_type="image/png",
+        )
+        EventAttachment.objects.create(
+            group_id=group.id,
+            event_id="b" * 32,
+            project_id=other_project.id,
+            type="event.attachment",
+            name="other-project.png",
+            content_type="image/png",
+        )
+        EventAttachment.objects.create(
+            group_id=other_group.id,
+            event_id="c" * 32,
+            project_id=other_project.id,
+            type="event.attachment",
+            name="other-group.png",
+            content_type="image/png",
+        )
+
+        true_filter = SearchFilter(SearchKey("has_attachments"), "=", SearchValue(raw_value=True))
+        assert self.get_group_ids(true_filter) == set()
+
+        false_filter = SearchFilter(SearchKey("has_attachments"), "=", SearchValue(raw_value=False))
+        assert self.get_group_ids(false_filter) == {group.id}
