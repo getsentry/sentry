@@ -33,7 +33,9 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.locks import locks
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.autofix.utils import CodingAgentState
@@ -46,6 +48,7 @@ PROVIDER_KEY = "claude_code"
 PROVIDER_NAME = "Claude Agent"
 DESCRIPTION = "Connect your Sentry organization with Claude Agent."
 DEFAULT_ENVIRONMENT_NAME = "sentry-autofix-agents"
+VAULT_METADATA_LOCK_DURATION_S = 10
 
 
 def _get_client_class() -> type[Any]:
@@ -82,6 +85,8 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     agent_id: str | None = None
     agent_version: int | None = None
     model: str | None = None
+    # One vault per github installation so concurrent launches don't clobber each other's credentials.
+    installation_vault_ids: dict[str, str] = {}
 
     @validator("agent_version", pre=True)
     def coerce_agent_version(cls, v: object) -> int | None:
@@ -300,16 +305,56 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         """Parse and return the integration metadata."""
         return ClaudeCodeIntegrationMetadata.parse_obj(self.model.metadata or {})
 
+    def _vault_metadata_lock(self):
+        return locks.get(
+            f"claude_code:vault:{self.model.id}",
+            duration=VAULT_METADATA_LOCK_DURATION_S,
+            name="claude_code_vault_metadata",
+        )
+
+    def _read_fresh_metadata(self) -> ClaudeCodeIntegrationMetadata | None:
+        fresh = integration_service.get_integration(integration_id=self.model.id)
+        if fresh is None:
+            return None
+        return ClaudeCodeIntegrationMetadata.parse_obj(fresh.metadata or {})
+
+    def get_vault_id_for_installation(self, installation_id: int) -> str | None:
+        metadata = self._read_fresh_metadata()
+        if metadata is None:
+            return None
+        return metadata.installation_vault_ids.get(str(installation_id))
+
+    def set_vault_id_for_installation(self, installation_id: int, vault_id: str) -> None:
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return
+            metadata.installation_vault_ids[str(installation_id)] = vault_id
+            self._persist_metadata(metadata)
+
+    def pop_vault_id_for_installation(self, installation_id: int) -> str | None:
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return None
+            vault_id = metadata.installation_vault_ids.pop(str(installation_id), None)
+            if vault_id is not None:
+                self._persist_metadata(metadata)
+            return vault_id
+
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        metadata = self._get_metadata()
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return
 
-        if "environment_id" in data:
-            metadata.environment_id = data["environment_id"] or None
+            if "environment_id" in data:
+                metadata.environment_id = data["environment_id"] or None
 
-        if "workspace_is_default" in data:
-            metadata.workspace_name = "default" if data["workspace_is_default"] else None
+            if "workspace_is_default" in data:
+                metadata.workspace_name = "default" if data["workspace_is_default"] else None
 
-        self._persist_metadata(metadata)
+            self._persist_metadata(metadata)
         super().update_organization_config({})
 
     def get_config_data(self) -> Mapping[str, Any]:
@@ -329,7 +374,28 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
             model=metadata.model,
+            installation_vault_lookup=self.get_vault_id_for_installation,
+            installation_vault_writer=self.set_vault_id_for_installation,
         )
+
+    def uninstall(self) -> None:
+        with self._vault_metadata_lock().acquire():
+            fresh = self._read_fresh_metadata()
+            if fresh is None or not fresh.installation_vault_ids:
+                return
+            vault_ids = list(fresh.installation_vault_ids.values())
+            fresh.installation_vault_ids = {}
+            self._persist_metadata(fresh)
+
+        client = self.get_client()
+        for vault_id in vault_ids:
+            try:
+                client.archive_vault(vault_id)
+            except Exception:
+                logger.exception(
+                    "claude_code.uninstall.archive_vault_failed",
+                    extra={"vault_id": vault_id, "integration_id": self.model.id},
+                )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent and persist resolved environment/agent IDs."""
@@ -339,20 +405,23 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         state = client.launch(webhook_url=webhook_url, request=request)
         state.integration_id = self.model.id
 
-        metadata = self._get_metadata()
-        metadata_changed = False
+        with self._vault_metadata_lock().acquire():
+            metadata = self._read_fresh_metadata()
+            if metadata is None:
+                return state
+            metadata_changed = False
 
-        if client.environment_id and client.environment_id != metadata.environment_id:
-            metadata.environment_id = client.environment_id
-            metadata_changed = True
+            if client.environment_id and client.environment_id != metadata.environment_id:
+                metadata.environment_id = client.environment_id
+                metadata_changed = True
 
-        if client.agent_id and client.agent_id != metadata.agent_id:
-            metadata.agent_id = client.agent_id
-            metadata.agent_version = client.agent_version
-            metadata_changed = True
+            if client.agent_id and client.agent_id != metadata.agent_id:
+                metadata.agent_id = client.agent_id
+                metadata.agent_version = client.agent_version
+                metadata_changed = True
 
-        if metadata_changed:
-            self._persist_metadata(metadata)
+            if metadata_changed:
+                self._persist_metadata(metadata)
 
         return state
 
