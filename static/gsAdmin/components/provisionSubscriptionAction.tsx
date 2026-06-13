@@ -30,12 +30,7 @@ import {
   type ReservedBudgetMetricHistory,
   type Subscription,
 } from 'getsentry/types';
-import {
-  displayBudgetName,
-  hasPerformance,
-  isAm3Plan,
-  isTrialPlan,
-} from 'getsentry/utils/billing';
+import {displayBudgetName, hasPerformance, isTrialPlan} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
@@ -705,7 +700,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
                     name="onDemandInvoicedManual"
                     choices={
-                      isAm3Plan(this.state.data.plan)
+                      // per-category max spend is only available on plans
+                      // with on-demand budget modes
+                      selectedPlan && !selectedPlan.hasOnDemandModes
                         ? [
                             ['SHARED', 'Shared'],
                             ['DISABLE', 'Disable'],

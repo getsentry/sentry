@@ -29,7 +29,6 @@ import {
   displayBudgetName,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
-  isAm2Plan,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
@@ -191,9 +190,10 @@ export function SharedSpendLimitPriceTable({
         <Text bold>{t('Price')}</Text>
       </Flex>
       {baseCategories.map(category => {
-        // pre-AM3 specific behavior
+        // pre-AM3 specific behavior; only plans that bill transactions alongside
+        // continuous profiling show transactions as performance units
         const showPerformanceUnits =
-          isAm2Plan(activePlan.id) &&
+          activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
           organization?.features?.includes('profiling-billing') &&
           category === DataCategory.TRANSACTIONS;
 
@@ -437,7 +437,7 @@ function InnerSpendLimitSettings({
             const isLastInList =
               index === baseCategories.length - 1 && includedAddOns.length === 0;
             const showPerformanceUnits =
-              isAm2Plan(activePlan.id) &&
+              activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
               organization?.features?.includes('profiling-billing') &&
               category === DataCategory.TRANSACTIONS;
 
