@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import wait
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import jsonschema
 import orjson
@@ -34,6 +34,7 @@ from sentry.services.eventstore.models import Event
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger(__name__)
 
@@ -281,6 +282,17 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 for optional_param in optional_params:
                     if optional_param in event_payload:
                         event_data[optional_param] = event_payload.get(optional_param)
+
+                if get_path(event_data, "contexts", "trace", "trace_id") is None:
+                    set_path(
+                        event_data,
+                        "contexts",
+                        "trace",
+                        value={
+                            "trace_id": uuid4().hex,
+                            "span_id": None,
+                        },
+                    )
 
                 try:
                     jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
