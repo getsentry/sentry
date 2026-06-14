@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
@@ -11,7 +13,7 @@ class CatchallEndpoint(Endpoint):
 
     @csrf_exempt
     @allow_cors_options
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         """
         This endpoint handles routes that did not match
         """
