@@ -11,6 +11,8 @@ import {Link} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {MAX_REPOS_LIMIT} from 'sentry/components/seer/legacy/constants';
+import {SelectableRepoItem} from 'sentry/components/seer/legacy/selectableRepoItem';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
@@ -19,9 +21,6 @@ import {
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
-
-import {SelectableRepoItem} from './selectableRepoItem';
 
 type Props = ModalRenderProps & {
   /**

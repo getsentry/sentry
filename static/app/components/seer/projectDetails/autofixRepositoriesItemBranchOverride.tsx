@@ -6,8 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {BranchOverride} from 'sentry/components/events/autofix/types';
-import {isOverrideValid} from 'sentry/components/events/autofix/utils/isOverrideValid';
-import {overrideHasAnyValue} from 'sentry/components/events/autofix/utils/overrideHasAnyValue';
+import {overrideHasAllValues} from 'sentry/components/seer/projectDetails/overrideHasAllValues';
+import {overrideHasAnyValue} from 'sentry/components/seer/projectDetails/overrideHasAnyValue';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -28,7 +28,7 @@ export function AutofixRepositoriesItemBranchOverride({
 }: Props) {
   const theme = useTheme();
   const hasAnyValue = Boolean(overrideHasAnyValue(override));
-  const isValid = isOverrideValid(override);
+  const isValid = overrideHasAllValues(override);
 
   const getErrorStyle = (value: string) =>
     hasAnyValue && !value.trim()
