@@ -155,7 +155,7 @@ export function getMutateSeerProjectRepoOptions({
               pages: prev.pages.map(page => ({
                 ...page,
                 json: page.json.map(item =>
-                  item.id === repoId ? {...item, ...jsonUpdates} : item
+                  item.repositoryId === repoId ? {...item, ...jsonUpdates} : item
                 ),
               })),
             };
@@ -231,14 +231,9 @@ export function getDeleteSeerProjectRepoOptions({
               ...prev,
               pages: prev.pages.map(page => ({
                 ...page,
-                data: {
-                  ...page,
-                  json: Array.isArray(page?.json)
-                    ? page.json.filter(
-                        (item: SeerProjectReposResponse) => item.id !== repoId
-                      )
-                    : page?.json,
-                },
+                json: page.json.filter(
+                  (item: SeerProjectReposResponse) => item.repositoryId !== repoId
+                ),
               })),
             };
           }

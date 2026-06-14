@@ -13,6 +13,10 @@ export interface SeerPreferencesResponse {
   preference?: ProjectSeerPreferences | null;
 }
 
+/**
+ * @deprecated This endpoint is deprecated and will be removed in a future release.
+ * TODO(ryan953): Remove this endpoint in a future release.
+ */
 export function projectSeerPreferencesApiOptions(orgSlug: string, projectSlug: string) {
   return apiOptions.as<SeerPreferencesResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
@@ -23,6 +27,10 @@ export function projectSeerPreferencesApiOptions(orgSlug: string, projectSlug: s
   );
 }
 
+/**
+ * @deprecated This endpoint is deprecated and will be removed in a future release.
+ * TODO(ryan953): Remove this endpoint in a future release.
+ */
 export function useProjectSeerPreferences(project: Project) {
   const organization = useOrganization();
 

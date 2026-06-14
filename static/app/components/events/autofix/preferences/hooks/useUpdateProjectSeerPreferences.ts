@@ -8,6 +8,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 // import {bulkAutofixAutomationSettingsInfiniteOptions} from './useBulkAutofixAutomationSettings';
 
+/**
+ * @deprecated This endpoint is deprecated and will be removed in a future release.
+ * TODO(ryan953): Remove this endpoint in a future release.
+ */
 export function useUpdateProjectSeerPreferences(project: Project) {
   const organization = useOrganization();
   const queryClient = useQueryClient();

@@ -975,12 +975,12 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-current-release",
         ),
         re_path(
-            r"^(?P<issue_id>[^/]+)/autofix/$",  # Deprecated: autofix?
+            r"^(?P<issue_id>[^/]+)/autofix/$",  # TODO(ryan953): Deprecated: autofix?
             GroupAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-autofix",
         ),
         re_path(
-            r"^(?P<issue_id>[^/]+)/autofix/setup/$",  # Deprecated: autofix-setup?
+            r"^(?P<issue_id>[^/]+)/autofix/setup/$",  # TODO(ryan953): Deprecated: autofix-setup?
             GroupAutofixSetupCheck.as_view(),
             name=f"{name_prefix}-group-autofix-setup",
         ),
@@ -2392,7 +2392,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-onboarding-check",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",  # Deprecated: autofix/automation-settings
+        r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",  # TODO(ryan953): Deprecated: autofix/automation-settings
         OrganizationAutofixAutomationSettingsEndpoint.as_view(),
         name="sentry-api-0-organization-autofix-automation-settings",
     ),
@@ -3308,7 +3308,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-seer-settings",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/preferences/$",  # Deprecated: seer/preferences
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/preferences/$",  # TODO(ryan953): Deprecated: seer/preferences
         ProjectSeerPreferencesEndpoint.as_view(),
         name="sentry-api-0-project-seer-preferences",
     ),

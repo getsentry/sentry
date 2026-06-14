@@ -66,17 +66,25 @@ export function AddAutofixRepoModal({
   useFetchAllPages({result: repositoriesQuery});
   const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
 
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [selectedExternalIds, setSelectedExternalIds] = useState<string[]>([]);
+  const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
+
   const filteredRepositories = useMemo(() => {
     if (!repositories) {
       return [];
     }
-    return repositories.filter(repo => !hiddenExternalIds.includes(repo.externalId));
-  }, [repositories, hiddenExternalIds]);
-
-  const [modalSearchQuery, setModalSearchQuery] = useState('');
-  const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
-
-  const [selectedExternalIds, setSelectedExternalIds] = useState<string[]>([]);
+    const query = modalSearchQuery.trim().toLowerCase();
+    return repositories.filter(repo => {
+      if (hiddenExternalIds.includes(repo.externalId)) {
+        return false;
+      }
+      if (query && !repo.name.toLowerCase().includes(query)) {
+        return false;
+      }
+      return true;
+    });
+  }, [repositories, hiddenExternalIds, modalSearchQuery]);
 
   const handleToggleRepository = useCallback((externalId: string) => {
     setSelectedExternalIds(prev => {

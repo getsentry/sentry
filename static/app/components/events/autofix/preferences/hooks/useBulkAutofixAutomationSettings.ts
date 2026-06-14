@@ -19,6 +19,10 @@ type AutofixAutomationSettings = {
   reposCount: number;
 };
 
+/**
+ * @deprecated This endpoint is deprecated and will be removed in a future release.
+ * TODO(ryan953): Remove this endpoint in a future release.
+ */
 export function bulkAutofixAutomationSettingsInfiniteOptions({
   organization,
 }: {

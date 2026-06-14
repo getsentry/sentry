@@ -29,12 +29,7 @@ import {AutofixRepositoriesItem} from 'getsentry/views/seerAutomation/components
 
 interface Props {
   canWrite: boolean;
-  // preference: ProjectSeerPreferences;
   project: Project;
-
-  // // TODO(ryan953): We can use code-mapping-repos to pre-populate the repo list,
-  // // maybe we offer it as an import button that pulls them in.
-  // codeMappingRepos?: undefined | SeerRepoDefinition[];
 }
 
 const getTableHeaders = (organization: Organization): React.ReactNode[] => [
