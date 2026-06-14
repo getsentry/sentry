@@ -13,7 +13,12 @@ type AttributeDistributionData = Record<string, Array<{label: string; value: num
 
 type AttributeBreakdowns = {
   data: Array<{
-    attribute_distributions: {
+    // `attribute_distributions` is the legacy key; the backend now returns
+    // `attributeDistributions`. Read both so we tolerate either deploy ordering.
+    attributeDistributions?: {
+      data: AttributeDistributionData;
+    };
+    attribute_distributions?: {
       data: AttributeDistributionData;
     };
   }>;
@@ -86,7 +91,9 @@ export function useAttributeBreakdowns({
   });
 
   const data = useMemo((): AttributeDistributionData | undefined => {
-    const newData = response?.json?.data[0]?.attribute_distributions?.data;
+    const entry = response?.json?.data[0];
+    const newData =
+      entry?.attributeDistributions?.data ?? entry?.attribute_distributions?.data;
     if (newData) {
       accumulatedDataRef.current = {
         ...accumulatedDataRef.current,
