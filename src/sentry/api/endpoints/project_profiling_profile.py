@@ -1,7 +1,8 @@
 from typing import Any
 
 import orjson
-from django.http import HttpResponse
+import vroomrs
+from django.http import Http404, HttpResponse, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,6 +17,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.profiling_examples import ProfilingExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.files.utils import get_profiles_storage
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.profiles.utils import get_from_profiling_service, proxy_profiling_service
@@ -141,3 +143,62 @@ class ProjectProfilingRawChunkEndpoint(ProjectProfilingBaseEndpoint):
             "path": f"/organizations/{project.organization_id}/projects/{project.id}/raw_chunks/{profiler_id}/{chunk_id}",
         }
         return proxy_profiling_service(**kwargs)
+
+
+@cell_silo_endpoint
+class ProjectProfilingChunkAttachmentEndpoint(ProjectProfilingBaseEndpoint):
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        profiler_id: str,
+        chunk_id: str,
+        attachment_name: str,
+    ) -> Response | StreamingHttpResponse:
+        """Download an attachment (e.g. a perfetto trace) of a profile chunk.
+
+        The chunk is loaded from the profiles object store and carries the list
+        of its attachments, each with a name, content type and the object store
+        id of the attached file. The client only supplies the profiler/chunk IDs
+        and the attachment name; everything else is resolved server-side.
+        """
+        if not features.has(
+            "organizations:continuous-profiling", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        storage = get_profiles_storage()
+
+        chunk_path = f"{project.organization_id}/{project.id}/{profiler_id}/{chunk_id}"
+        if not storage.exists(chunk_path):
+            raise Http404
+
+        try:
+            with storage.open(chunk_path) as f:
+                chunk = vroomrs.decompress_profile_chunk(f.read())
+        except OSError:
+            raise Http404
+
+        attachment = next(
+            (a for a in chunk.get_attachments() if a.name == attachment_name),
+            None,
+        )
+        if attachment is None or not attachment.stored_id:
+            raise Http404
+
+        try:
+            fp = storage.open(attachment.stored_id)
+        except OSError:
+            raise Http404
+
+        def stream_attachment():
+            with fp:
+                while chunk := fp.read(4096):
+                    yield chunk
+
+        response = StreamingHttpResponse(
+            stream_attachment(),
+            content_type=attachment.content_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{attachment.name}"'
+        return response
