@@ -34,8 +34,8 @@ import {
   type InstallationWrapperProps,
   ScmRepositoryTable,
 } from 'sentry/views/settings/organizationRepositories/components/scmRepositoryTable';
-import {useRepoSearch} from 'sentry/views/settings/organizationRepositories/hooks/useRepoSearch';
 import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/organizationRepositories/hooks/organizationIntegrationsQueryOptions';
+import {useRepoSearch} from 'sentry/views/settings/organizationRepositories/hooks/useRepoSearch';
 
 import {organizationConfigIntegrationsQueryOptions} from './hooks/organizationConfigIntegrationsQueryOptions';
 import {useDeleteIntegration} from './hooks/useDeleteIntegration';
