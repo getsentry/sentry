@@ -2,7 +2,7 @@ export {ColorReference} from './colorReference';
 export {Demo} from './demo';
 export {JSXNode, JSXProperty} from './jsx';
 export {ModuleExports} from './moduleExports';
-export {PickProject} from './pickProject';
+export {SelectProject, SelectProjects} from './projectPicker';
 export {PropMatrix} from './props';
 export {Section} from './layout';
 export {SideBySide} from './layout';
