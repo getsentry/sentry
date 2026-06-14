@@ -370,6 +370,16 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // Avoid slow-fetch race conditions
     this.props.api.clear();
 
+    // api.clear() aborts any in-flight region probe, and aborted requests never
+    // run their success/error callbacks — so probeOtherRegions' finalize() would
+    // never fire and probingRegions would stay stuck. Invalidate the probe (bump
+    // the token) and clear its UI state here, the single entry point for fetches,
+    // so it's reset regardless of which caller (refresh/onCursor/onSearch) we hit.
+    this.probeToken += 1;
+    if (this.state.probingRegions || this.state.regionMatches.length > 0) {
+      this.setState({probingRegions: false, regionMatches: []});
+    }
+
     // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
     const queryParams: Record<string, any> = {
       ...this.props.defaultParams,
