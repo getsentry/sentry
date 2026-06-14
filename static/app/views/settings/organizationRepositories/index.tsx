@@ -35,7 +35,7 @@ import {
   ScmRepositoryTable,
 } from 'sentry/views/settings/organizationRepositories/components/scmRepositoryTable';
 import {useRepoSearch} from 'sentry/views/settings/organizationRepositories/hooks/useRepoSearch';
-import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
+import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/organizationRepositories/hooks/organizationIntegrationsQueryOptions';
 
 import {organizationConfigIntegrationsQueryOptions} from './hooks/organizationConfigIntegrationsQueryOptions';
 import {useDeleteIntegration} from './hooks/useDeleteIntegration';
