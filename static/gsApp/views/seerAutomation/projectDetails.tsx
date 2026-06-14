@@ -2,8 +2,7 @@ import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import {ProjectSeerContainer as OldProjectDetails} from 'sentry/views/settings/projectSeer/index';
-
-import {SeerProjectDetails} from 'getsentry/views/seerAutomation/components/projectDetails';
+import {SeerProjectDetails} from 'sentry/views/settings/seer/projectDetails';
 
 export default function SeerProjectDetailsPage() {
   const organization = useOrganization();

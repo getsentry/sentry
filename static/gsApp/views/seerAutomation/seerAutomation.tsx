@@ -10,11 +10,11 @@ import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {NoActiveSeerSubscriptionBanner} from 'sentry/views/settings/seer/noActiveSeerSubscriptionBanner';
+import {SeerAutomationDefault} from 'sentry/views/settings/seer/seerAutomationDefault';
+import {SeerAutomationProjectList} from 'sentry/views/settings/seer/seerAutomationProjectList';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
-import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
-import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
-import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
 import {SeerConnectGitHubBanner} from 'getsentry/views/seerAutomation/components/seerConnectGitHubBanner';
 
 export default function SeerAutomation() {

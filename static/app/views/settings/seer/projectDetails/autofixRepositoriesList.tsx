@@ -24,8 +24,7 @@ import {
 } from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
-
-import {AutofixRepositoriesItem} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItem';
+import {AutofixRepositoriesItem} from 'sentry/views/settings/seer/projectDetails/autofixRepositoriesItem';
 
 interface Props {
   canWrite: boolean;
@@ -50,7 +49,7 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   null,
 ];
 
-export function AutofixRepositories({canWrite, project}: Props) {
+export function AutofixRepositoriesList({canWrite, project}: Props) {
   const {openModal} = useModal();
 
   const queryClient = useQueryClient();

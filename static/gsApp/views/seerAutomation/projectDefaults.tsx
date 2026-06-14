@@ -8,8 +8,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {ProjectDefaultsForm} from 'getsentry/views/seerAutomation/components/projectDefaults/projectDefaultsForm';
+import {ProjectDefaultsForm} from 'sentry/views/settings/seer/projectDefaults/projectDefaultsForm';
 
 export default function ProjectDefaultsDrawer() {
   const {query} = useLocation();

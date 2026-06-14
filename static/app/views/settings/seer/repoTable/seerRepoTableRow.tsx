@@ -28,8 +28,7 @@ import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxS
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'sentry/views/settings/seer/useCanWriteSettings';
 
 interface Props {
   gridColumns: string;

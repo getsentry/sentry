@@ -11,8 +11,8 @@ import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {SeerProjectTable} from 'sentry/views/settings/seer/projectTable/seerProjectTable';
 
-import {SeerProjectTable} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTable';
 import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 
 export default function SeerAutomationProjects() {

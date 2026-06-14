@@ -4,10 +4,10 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {NoActiveSeerSubscriptionBanner} from 'sentry/views/settings/seer/noActiveSeerSubscriptionBanner';
+import {useCanWriteSettings} from 'sentry/views/settings/seer/useCanWriteSettings';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
-import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
-import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 export function SeerSettingsPageBanners() {
   const subscription = useSubscription();

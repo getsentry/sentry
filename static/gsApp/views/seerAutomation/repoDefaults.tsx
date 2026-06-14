@@ -8,8 +8,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {RepoDefaultsForm} from 'getsentry/views/seerAutomation/components/repoDefaults/repoDefaultsForm';
+import {RepoDefaultsForm} from 'sentry/views/settings/seer/repoDefaults/repoDefaultsForm';
 
 export default function RepoDefaultsDrawer() {
   const {query} = useLocation();

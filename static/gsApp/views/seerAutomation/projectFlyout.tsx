@@ -13,8 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-
-import {SeerProjectDetails} from 'getsentry/views/seerAutomation/components/projectDetails';
+import {SeerProjectDetails} from 'sentry/views/settings/seer/projectDetails';
 
 export default function SeerProjectFlyout() {
   const {query} = useLocation();

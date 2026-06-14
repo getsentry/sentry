@@ -12,8 +12,8 @@ import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {SeerRepoTable} from 'sentry/views/settings/seer/repoTable/seerRepoTable';
 
-import {SeerRepoTable} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTable';
 import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 

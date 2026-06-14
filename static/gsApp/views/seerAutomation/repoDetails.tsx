@@ -20,8 +20,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {RepoDetailsForm} from 'sentry/views/settings/seer/repoDetails/repoDetailsForm';
 
-import {RepoDetailsForm} from 'getsentry/views/seerAutomation/components/repoDetails/repoDetailsForm';
 import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 
 export default function SeerRepoDetails() {

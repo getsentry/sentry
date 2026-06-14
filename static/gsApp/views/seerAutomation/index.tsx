@@ -5,8 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoAccess} from 'sentry/components/noAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {AiFeaturesAreDisabledBanner} from 'getsentry/views/seerAutomation/components/aiFeaturesAreDisabledBanner';
+import {AiFeaturesAreDisabledBanner} from 'sentry/views/settings/seer/aiFeaturesAreDisabledBanner';
 
 export default function SeerAutomationRoot() {
   const organization = useOrganization();

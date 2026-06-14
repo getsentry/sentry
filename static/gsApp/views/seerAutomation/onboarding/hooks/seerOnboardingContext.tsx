@@ -21,7 +21,8 @@ import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {useIntegrationInstallation} from './useIntegrationInstallation';
+import {useIntegrationInstallation} from 'getsentry/views/seerAutomation/onboarding/hooks/useIntegrationInstallation';
+
 import {useIntegrationProvider} from './useIntegrationProvider';
 interface SeerOnboardingContextProps {
   addRepositoryProjectMappings: (additionalMappings: Record<string, string[]>) => void;

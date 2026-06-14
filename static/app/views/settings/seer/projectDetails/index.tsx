@@ -10,10 +10,9 @@ import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-
-import {AutofixAgent} from 'getsentry/views/seerAutomation/components/projectDetails/autofixAgent';
-import {AutofixRepositories} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';
-import {NightShift} from 'getsentry/views/seerAutomation/components/projectDetails/nightShift';
+import {AutofixAgent} from 'sentry/views/settings/seer/projectDetails/autofixAgent';
+import {AutofixRepositoriesList} from 'sentry/views/settings/seer/projectDetails/autofixRepositoriesList';
+import {NightShift} from 'sentry/views/settings/seer/projectDetails/nightShift';
 
 export function SeerProjectDetails({project}: {project: DetailedProject}) {
   const organization = useOrganization();
@@ -44,7 +43,7 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
         </Stack>
       )}
       <Stack gap="2xl">
-        <AutofixRepositories canWrite={canWrite} project={project} />
+        <AutofixRepositoriesList canWrite={canWrite} project={project} />
         <AutofixAgent canWrite={canWrite} project={project} />
         <Feature features="organizations:seer-night-shift-settings">
           <NightShift canWrite={canWrite} project={project} />

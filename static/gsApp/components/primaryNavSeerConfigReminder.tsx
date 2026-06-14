@@ -14,8 +14,7 @@ import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-
-import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'sentry/views/settings/seer/useCanWriteSettings';
 
 function useReminderData() {
   const organization = useOrganization();
