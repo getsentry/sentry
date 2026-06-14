@@ -17,6 +17,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.emit import (
     _active_attributions,
+    _commit_shas_from_activity,
     _resolved_group_ids,
     build_pr_metrics_row,
     emit_pr_metrics_row,
@@ -407,3 +408,122 @@ class PrMetricsEmissionTest(TestCase):
         emitted = emit_pr_metrics_row(pull_request=self.pull_request)
         assert emitted is False
         assert mock_record.call_count == 0
+
+    # --- _commit_shas_from_activity ---
+
+    def _sync_activity(self, *, after_sha: str, before_sha: str, webhook_id: str) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={"after_sha": after_sha, "before_sha": before_sha},
+        )
+
+    def test_commit_shas_from_activity_empty_when_no_events(self) -> None:
+        assert _commit_shas_from_activity(self.pull_request) == set()
+
+    def test_commit_shas_from_activity_single_event(self) -> None:
+        self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
+        assert _commit_shas_from_activity(self.pull_request) == {"a" * 40, "b" * 40}
+
+    def test_commit_shas_from_activity_normal_chain(self) -> None:
+        # Two pushes in a normal (non-force) sequence.
+        # Older event created first so it gets a lower timestamp/id.
+        self._sync_activity(after_sha="b" * 40, before_sha="c" * 40, webhook_id="s1")
+        self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s2")
+        assert _commit_shas_from_activity(self.pull_request) == {
+            "a" * 40,
+            "b" * 40,
+            "c" * 40,
+        }
+
+    def test_commit_shas_from_activity_stops_at_force_push(self) -> None:
+        # P1 (older): after=x, before=y — disconnected from P2.after; force push.
+        # P2 (newer): after=a, before=b — always included.
+        self._sync_activity(after_sha="x" * 40, before_sha="y" * 40, webhook_id="s1")
+        self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s2")
+        # "x" != "b" → force push detected; only a, b survive.
+        assert _commit_shas_from_activity(self.pull_request) == {"a" * 40, "b" * 40}
+
+    def test_commit_shas_from_activity_skips_missing_after_sha(self) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="s1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={"before_sha": "b" * 40},  # no after_sha
+        )
+        assert _commit_shas_from_activity(self.pull_request) == set()
+
+    # --- _resolved_group_ids (commit-link extension) ---
+
+    def _link_commit_group(self, *, key: str) -> tuple[int, int]:
+        """Create a commit + resolving GroupLink; return (group_id, commit_id)."""
+        commit = self.create_commit(repo=self.repo, key=key)
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
+        return group.id, commit.id
+
+    def test_resolved_group_ids_includes_commit_link_via_activity(self) -> None:
+        group_id, _ = self._link_commit_group(key="a" * 40)
+        self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
+        assert _resolved_group_ids(self.pull_request) == [group_id]
+
+    def test_resolved_group_ids_merges_pr_and_commit_links(self) -> None:
+        pr_group_id = self._link_group()
+        commit_group_id, _ = self._link_commit_group(key="c" * 40)
+        self._sync_activity(after_sha="c" * 40, before_sha="d" * 40, webhook_id="s1")
+        assert _resolved_group_ids(self.pull_request) == sorted([pr_group_id, commit_group_id])
+
+    def test_resolved_group_ids_deduplicates_pr_and_commit_links(self) -> None:
+        # Same group linked both via PR and via a commit in the activity chain.
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pull_request.id,
+        )
+        commit = self.create_commit(repo=self.repo, key="e" * 40)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
+        self._sync_activity(after_sha="e" * 40, before_sha="f" * 40, webhook_id="s1")
+        assert _resolved_group_ids(self.pull_request) == [group.id]
+
+    def test_resolved_group_ids_excludes_commit_references_links(self) -> None:
+        commit = self.create_commit(repo=self.repo, key="a" * 40)
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.references,
+            linked_id=commit.id,
+        )
+        self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
+        assert _resolved_group_ids(self.pull_request) == []
+
+    def test_resolved_group_ids_excludes_commits_after_force_push(self) -> None:
+        # sha "x" is behind a force-push boundary and should be excluded.
+        group_id, _ = self._link_commit_group(key="x" * 40)
+        # Older event first → lower timestamp/id.
+        self._sync_activity(after_sha="x" * 40, before_sha="y" * 40, webhook_id="s1")
+        self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s2")
+        # "x" != "b" → force push; only a,b survive.
+        assert _resolved_group_ids(self.pull_request) == []
+
+    def test_resolved_group_ids_ignores_untracked_commit_shas(self) -> None:
+        # A SHA in the activity that has no Commit row in Sentry doesn't error.
+        self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
+        assert _resolved_group_ids(self.pull_request) == []
