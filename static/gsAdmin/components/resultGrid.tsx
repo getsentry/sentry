@@ -414,7 +414,11 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         // The query lives in the URL when useQueryString is on, otherwise in
         // component state — fall back so probes always carry the search term.
         const query = queryParams.query ?? this.state.query;
-        if (needsRegion && isEmpty && hasSearchQuery(query)) {
+        // Only probe on the first page. A paginated empty page (cursor set) does
+        // not mean the current region has no matches — it has results on earlier
+        // pages — so probing there would falsely report "no results in <region>".
+        const isFirstPage = !extractQuery(queryParams.cursor);
+        if (needsRegion && isEmpty && isFirstPage && hasSearchQuery(query)) {
           this.probeOtherRegions({...queryParams, query});
         }
       },

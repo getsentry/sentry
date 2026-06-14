@@ -14,7 +14,7 @@ function setupCells() {
   ] as any);
 }
 
-function renderGrid(query?: string) {
+function renderGrid(query?: string, extraQuery: Record<string, string> = {}) {
   return render(
     <ResultGrid
       inPanel
@@ -30,7 +30,7 @@ function renderGrid(query?: string) {
       initialRouterConfig: {
         location: {
           pathname: '/_admin/customers/',
-          query: query ? {query} : {},
+          query: {...(query ? {query} : {}), ...extraQuery},
         },
         route: '/_admin/customers/',
       },
@@ -100,7 +100,25 @@ describe('ResultGrid region probing', () => {
     // Wait for the empty result to settle.
     expect(await screen.findByText('No results')).toBeInTheDocument();
     expect(deRequest).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', {name: /View .* in de/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
+  });
+
+  it('does not probe other regions on a paginated (non-first) empty page', async () => {
+    // The current region has results on earlier pages; this later page is empty.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [],
+    });
+    const deRequest = MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '1', name: 'Acme'}],
+    });
+
+    renderGrid('acme', {cursor: '0:100:0'});
+
+    expect(await screen.findByText('No results')).toBeInTheDocument();
+    expect(deRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
   });
 
   it('does not show a hint when another region is also empty', async () => {
@@ -119,6 +137,6 @@ describe('ResultGrid region probing', () => {
     await waitFor(() =>
       expect(screen.queryByText('Checking other regions…')).not.toBeInTheDocument()
     );
-    expect(screen.queryByRole('button', {name: /View .* in de/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
   });
 });
