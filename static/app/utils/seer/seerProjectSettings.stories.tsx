@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {infiniteQueryOptions, useInfiniteQuery} from '@tanstack/react-query';
+import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -133,10 +134,22 @@ export default Storybook.story('SeerProjectSettings', story => {
       );
     }
 
+    const [projectSlug, setProjectSlug] = useQueryState('project', parseAsString);
+
     return (
-      <Storybook.PickProject multiple={false}>
-        {projectSlug => <Example projectSlug={projectSlug} />}
-      </Storybook.PickProject>
+      <Flex direction="column" gap="lg">
+        <Storybook.SelectProject
+          projectSlug={projectSlug}
+          setProjectSlug={setProjectSlug}
+        />
+        {projectSlug ? (
+          <Example projectSlug={projectSlug} />
+        ) : (
+          <Flex justify="center" padding="xl">
+            <Text variant="muted">Select a project to view the story</Text>
+          </Flex>
+        )}
+      </Flex>
     );
   });
 
@@ -247,10 +260,22 @@ export default Storybook.story('SeerProjectSettings', story => {
       );
     }
 
+    const [projectSlug, setProjectSlug] = useQueryState('project', parseAsString);
+
     return (
-      <Storybook.PickProject multiple={false}>
-        {projectSlug => <Example projectSlug={projectSlug} />}
-      </Storybook.PickProject>
+      <Flex direction="column" gap="lg">
+        <Storybook.SelectProject
+          projectSlug={projectSlug}
+          setProjectSlug={setProjectSlug}
+        />
+        {projectSlug ? (
+          <Example projectSlug={projectSlug} />
+        ) : (
+          <Flex justify="center" padding="xl">
+            <Text variant="muted">Select a project to view the story</Text>
+          </Flex>
+        )}
+      </Flex>
     );
   });
 
@@ -437,10 +462,25 @@ export default Storybook.story('SeerProjectSettings', story => {
       );
     }
 
+    const [projectSlugs, setProjectSlugs] = useQueryState(
+      'projects',
+      parseAsArrayOf(parseAsString).withDefault([])
+    );
+
     return (
-      <Storybook.PickProject multiple>
-        {projectSlugs => <Example projectSlugs={projectSlugs} />}
-      </Storybook.PickProject>
+      <Flex direction="column" gap="lg">
+        <Storybook.SelectProjects
+          projectSlugs={projectSlugs}
+          setProjectSlugs={setProjectSlugs}
+        />
+        {projectSlugs.length ? (
+          <Example projectSlugs={projectSlugs} />
+        ) : (
+          <Flex justify="center" padding="xl">
+            <Text variant="muted">Select a project to view the story</Text>
+          </Flex>
+        )}
+      </Flex>
     );
   });
 });
