@@ -21,9 +21,8 @@ import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {getMutateSeerProjectsSettingsOptions} from 'sentry/utils/seer/seerProjectSettings';
 import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   mutableSearch: MutableSearch;
