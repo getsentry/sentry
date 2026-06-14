@@ -12,6 +12,7 @@
   "author": "sentry.io",
   "license": "UNLICENSED",
   "dependencies": {
+    "fast-uri": "3.1.1",
     "js-yaml": "^3.14.0",
     "json-diff": "^0.7.1",
     "json-refs": "^3.0.15",
