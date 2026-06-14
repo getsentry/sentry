@@ -1,13 +1,10 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {infiniteQueryOptions, useInfiniteQuery} from '@tanstack/react-query';
-import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
@@ -49,77 +46,6 @@ import type {
 } from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-
-function PickProject({
-  children,
-  multiple,
-}:
-  | {
-      children: (projectSlug: string) => React.ReactNode;
-      multiple: false;
-    }
-  | {
-      children: (projectSlugs: string[]) => React.ReactNode;
-      multiple: true;
-    }) {
-  const {projects} = useProjects();
-  const [projectSlugs, setProjectSlugs] = useQueryState(
-    'projects',
-    parseAsArrayOf(parseAsString).withDefault([])
-  );
-
-  const projectOptions = useMemo(
-    () => projects.map(p => ({value: p.slug, label: p.slug})),
-    [projects]
-  );
-
-  if (multiple) {
-    return (
-      <Flex direction="column" gap="lg">
-        <CompactSelect
-          onChange={selected => setProjectSlugs(selected.map(opt => opt.value))}
-          options={projectOptions}
-          search
-          size="xs"
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix="Projects" />
-          )}
-          value={projectSlugs ?? undefined}
-          multiple
-        />
-        {projectSlugs ? (
-          children(projectSlugs)
-        ) : (
-          <Flex justify="center" padding="xl">
-            <Text variant="muted">{t('Select a project to view settings')}</Text>
-          </Flex>
-        )}
-      </Flex>
-    );
-  }
-
-  return (
-    <Flex direction="column" gap="lg">
-      <CompactSelect
-        onChange={selected => setProjectSlugs([selected.value])}
-        options={projectOptions}
-        search
-        size="xs"
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} prefix="Project" />
-        )}
-        value={projectSlugs[0] ?? undefined}
-      />
-      {projectSlugs.length ? (
-        children(projectSlugs.at(0) ?? '')
-      ) : (
-        <Flex justify="center" padding="xl">
-          <Text variant="muted">{t('Select a project to view settings')}</Text>
-        </Flex>
-      )}
-    </Flex>
-  );
-}
 
 export default Storybook.story('SeerProjectSettings', story => {
   story('Autofix Project Settings', () => {
@@ -208,9 +134,9 @@ export default Storybook.story('SeerProjectSettings', story => {
     }
 
     return (
-      <PickProject multiple={false}>
+      <Storybook.PickProject multiple={false}>
         {projectSlug => <Example projectSlug={projectSlug} />}
-      </PickProject>
+      </Storybook.PickProject>
     );
   });
 
@@ -322,9 +248,9 @@ export default Storybook.story('SeerProjectSettings', story => {
     }
 
     return (
-      <PickProject multiple={false}>
+      <Storybook.PickProject multiple={false}>
         {projectSlug => <Example projectSlug={projectSlug} />}
-      </PickProject>
+      </Storybook.PickProject>
     );
   });
 
@@ -512,9 +438,9 @@ export default Storybook.story('SeerProjectSettings', story => {
     }
 
     return (
-      <PickProject multiple>
+      <Storybook.PickProject multiple>
         {projectSlugs => <Example projectSlugs={projectSlugs} />}
-      </PickProject>
+      </Storybook.PickProject>
     );
   });
 });
