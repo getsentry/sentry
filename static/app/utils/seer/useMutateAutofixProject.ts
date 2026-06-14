@@ -147,9 +147,9 @@ export function useMutateAutofixProject() {
         queryKey: projectSeerPreferencesApiOptions(organization.slug, project.slug)
           .queryKey,
       });
-      queryClient.invalidateQueries({
-        queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
-      });
+      // queryClient.invalidateQueries({
+      //   queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
+      // });
       queryClient.invalidateQueries({
         queryKey: getSeerProjectSettingsQueryOptions({
           organization,
