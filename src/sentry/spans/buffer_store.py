@@ -484,9 +484,12 @@ class SpansBufferStore:
         queue_removals: dict[QueueKey, list[SegmentKey]] = {}
         with self.client.pipeline(transaction=False) as p:
             for segment_key, flushed_segment in flushed_segments.items():
-                p.delete(b"span-buf:hrs:" + segment_key)
-                p.delete(b"span-buf:ic:" + segment_key)
-                p.delete(b"span-buf:ibc:" + segment_key)
+                # Keys are guaranteed to share the same Redis node. More information in add-buffer.lua.
+                p.delete(
+                    b"span-buf:hrs:" + segment_key,
+                    b"span-buf:ic:" + segment_key,
+                    b"span-buf:ibc:" + segment_key,
+                )
                 queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
 
                 project_id, trace_id, _ = parse_segment_key(segment_key)
