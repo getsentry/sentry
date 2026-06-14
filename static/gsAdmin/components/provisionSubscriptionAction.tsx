@@ -22,7 +22,11 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {withApi} from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
-import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {
+  CPE_MULTIPLIER_TO_CENTS,
+  MONTHLY,
+  RESERVED_BUDGET_QUOTA,
+} from 'getsentry/constants';
 import {
   ReservedBudgetCategoryType,
   type BillingConfig,
@@ -193,8 +197,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             // Legacy errors-only enterprise plans (e1, mm2) can no longer be
             // provisioned.
             hasPerformance(plan) &&
-            !plan.id.endsWith('_ac') &&
-            !plan.id.endsWith('_auf') &&
+            plan.contractInterval === MONTHLY &&
             !isTrialPlan(plan.id) &&
             !plan.isTestPlan
           ) {

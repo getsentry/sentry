@@ -194,6 +194,7 @@ export function SharedSpendLimitPriceTable({
         // continuous profiling show transactions as performance units
         const showPerformanceUnits =
           activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
+          activePlan.categories.includes(DataCategory.PROFILE_DURATION) &&
           organization?.features?.includes('profiling-billing') &&
           category === DataCategory.TRANSACTIONS;
 
@@ -438,6 +439,7 @@ function InnerSpendLimitSettings({
               index === baseCategories.length - 1 && includedAddOns.length === 0;
             const showPerformanceUnits =
               activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
+              activePlan.categories.includes(DataCategory.PROFILE_DURATION) &&
               organization?.features?.includes('profiling-billing') &&
               category === DataCategory.TRANSACTIONS;
 
