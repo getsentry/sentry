@@ -140,12 +140,6 @@ export interface BranchOverride {
   tag_value: string;
 }
 
-export interface RepoSettings {
-  branch: string;
-  branch_overrides: BranchOverride[];
-  instructions: string;
-}
-
 export interface SeerRepoDefinition {
   external_id: string;
   name: string;

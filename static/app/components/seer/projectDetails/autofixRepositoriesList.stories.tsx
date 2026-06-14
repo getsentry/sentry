@@ -52,6 +52,7 @@ function Example({project}: {project: Project}) {
   return (
     <AutofixRepositories
       canWrite
+      includeInstructions={false}
       codeMappingRepos={codeMappingRepos}
       preference={preference ?? DEFAULT_PREFERENCE}
       project={project}

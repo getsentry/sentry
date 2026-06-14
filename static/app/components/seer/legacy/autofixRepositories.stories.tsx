@@ -3,7 +3,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AutofixRepositories} from 'sentry/components/seer/legacy/autofixRepositories';
+import {AutofixRepositoriesLegacy} from 'sentry/components/seer/legacy/autofixRepositories';
 import * as Storybook from 'sentry/stories';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -20,7 +20,7 @@ export default Storybook.story('AutofixRepositories (Legacy)', story => {
           setProjectSlug={setProjectSlug}
         />
         {project ? (
-          <AutofixRepositories project={project} />
+          <AutofixRepositoriesLegacy project={project} />
         ) : (
           <Flex justify="center" padding="xl">
             <Text variant="muted">Select a project to view the story</Text>

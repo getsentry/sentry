@@ -62,6 +62,7 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
         <Stack gap="2xl">
           <AutofixRepositories
             canWrite={canWrite}
+            includeInstructions={false}
             codeMappingRepos={codeMappingRepos}
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
