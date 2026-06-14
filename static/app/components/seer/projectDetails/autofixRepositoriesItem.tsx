@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {Confirm} from 'sentry/components/confirm';
 import type {
@@ -21,6 +22,7 @@ import {t, tct, tn} from 'sentry/locale';
 
 interface Props {
   canWrite: boolean;
+  includeInstructions: boolean;
   onRemoveRepo: () => void;
   onUpdateRepo: (updatedRepo: SeerRepoDefinition) => void;
   repositories: SeerRepoDefinition[];
@@ -45,6 +47,7 @@ function areOverridesEqual(a: BranchOverride[], b: BranchOverride[]) {
 
 export function AutofixRepositoriesItem({
   canWrite,
+  includeInstructions,
   repository,
   repositories,
   onRemoveRepo,
@@ -183,7 +186,7 @@ export function AutofixRepositoriesItem({
                 placeholder={t('Default branch')}
                 size="sm"
                 style={{width: '200px'}}
-                value={repository.branch_name}
+                defaultValue={repository.branch_name}
               />
             </Flex>
             {localOverrides.map((override, idx) => (
@@ -205,6 +208,23 @@ export function AutofixRepositoriesItem({
                 {t('Add Override')}
               </Button>
             </Flex>
+
+            {includeInstructions && (
+              <Stack gap="sm" borderTop="primary" paddingTop="lg">
+                <Heading as="h4">{t('Context for Seer')}</Heading>
+                <TextArea
+                  disabled={!canWrite}
+                  rows={3}
+                  onChange={e =>
+                    onUpdateRepo({...repository, instructions: e.target.value})
+                  }
+                  placeholder={t(
+                    'Add any general context or instructions to help Seer understand this repository...'
+                  )}
+                  defaultValue={repository.instructions}
+                />
+              </Stack>
+            )}
           </Stack>
         </Container>
       )}

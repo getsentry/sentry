@@ -1,5 +1,6 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {debounce} from '@tanstack/react-pacer';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
@@ -33,6 +34,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   canWrite: boolean;
+  includeInstructions: boolean;
   preference: ProjectSeerPreferences;
   project: Project;
 
@@ -59,7 +61,12 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   null,
 ];
 
-export function AutofixRepositories({canWrite, preference, project}: Props) {
+export function AutofixRepositories({
+  canWrite,
+  includeInstructions,
+  preference,
+  project,
+}: Props) {
   const {openModal} = useModal();
 
   const organization = useOrganization();
@@ -80,22 +87,30 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
     [preference]
   );
 
-  const handleSaveRepoList = (updatedRepositories: SeerRepoDefinition[]) => {
-    updateProjectSeerPreferences(
-      {
-        repositories: updatedRepositories,
-        automated_run_stopping_point: preference?.automated_run_stopping_point,
-        automation_handoff: preference?.automation_handoff,
-      },
-      {
-        onError: () => addErrorMessage(t('Failed to connect repositories')),
-        onSuccess: () =>
-          addSuccessMessage(
-            t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
-          ),
-      }
-    );
-  };
+  const handleSaveRepoList = useCallback(
+    (updatedRepositories: SeerRepoDefinition[]) => {
+      updateProjectSeerPreferences(
+        {
+          repositories: updatedRepositories,
+          automated_run_stopping_point: preference?.automated_run_stopping_point,
+          automation_handoff: preference?.automation_handoff,
+        },
+        {
+          onError: () => addErrorMessage(t('Failed to connect repositories')),
+          onSuccess: () =>
+            addSuccessMessage(
+              t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
+            ),
+        }
+      );
+    },
+    [updateProjectSeerPreferences, preference, project.slug]
+  );
+
+  const debouncedSaveRepoList = useMemo(
+    () => debounce(handleSaveRepoList, {wait: 750}),
+    [handleSaveRepoList]
+  );
 
   const handleAddRepoClick = () => {
     openModal(deps => (
@@ -181,6 +196,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
             <AutofixRepositoriesItem
               key={repository.external_id}
               canWrite={canWrite}
+              includeInstructions={includeInstructions}
               repositories={repoMap.values().toArray()}
               repository={repository}
               onRemoveRepo={() => {
@@ -192,7 +208,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
                 );
               }}
               onUpdateRepo={(updatedRepo: SeerRepoDefinition) => {
-                handleSaveRepoList(
+                debouncedSaveRepoList(
                   repoMap
                     .values()
                     .toArray()
