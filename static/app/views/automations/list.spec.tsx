@@ -83,22 +83,65 @@ describe('AutomationsList', () => {
     expect(within(row).getByText('1 monitor')).toBeInTheDocument();
   });
 
-  it('displays connected detectors', async () => {
+  it('displays connected detectors and projects via a single batch request', async () => {
+    const project2 = ProjectFixture({id: '2', slug: 'project-2'});
+    const detector2 = MetricDetectorFixture({
+      id: '2',
+      name: 'Detector 2',
+      projectId: project2.id,
+    });
+    ProjectsStore.loadInitialData([project, project2]);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
-      body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
+      body: [
+        AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']}),
+        AutomationFixture({id: '101', name: 'Automation 2', detectorIds: ['2']}),
+      ],
+    });
+
+    const batchDetectorsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [detector, detector2],
+      match: [MockApiClient.matchQuery({id: ['1', '2']})],
+    });
+
+    render(<AutomationsList />, {organization});
+    const rows = await screen.findAllByTestId('automation-list-row');
+    expect(rows).toHaveLength(2);
+
+    // Both rows should be served by a single batch request for detectors
+    await waitFor(() => {
+      expect(batchDetectorsRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // Projects column should show the correct project for each row
+    await waitFor(() => {
+      expect(
+        within(rows[0]!).getByRole('link', {name: 'View Project Details', hidden: true})
+      ).toHaveAttribute('aria-description', 'project-1');
+      expect(
+        within(rows[1]!).getByRole('link', {name: 'View Project Details', hidden: true})
+      ).toHaveAttribute('aria-description', 'project-2');
+    });
+
+    // Hovercard should display the detector name
+    await userEvent.hover(within(rows[0]!).getByText('1 monitor'));
+    expect(await screen.findByRole('link', {name: /Detector 1/})).toBeInTheDocument();
+  });
+
+  it('shows empty projects cell when automation has no detectors', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({id: '100', name: 'No Detectors', detectorIds: []})],
     });
 
     render(<AutomationsList />, {organization});
     const row = await screen.findByTestId('automation-list-row');
-    expect(within(row).getByText('1 monitor')).toBeInTheDocument();
 
-    // Tooltip should fetch and display the detector name and project
-    await userEvent.hover(within(row).getByText('1 monitor'));
-    expect(await screen.findByRole('link', {name: /Detector 1/})).toBeInTheDocument();
-    // With single-project orgs the page filter trigger also shows the project slug,
-    // so we use getAllByText to handle multiple matches.
-    expect(screen.getAllByText('project-1').length).toBeGreaterThanOrEqual(1);
+    // Projects column should show em dash for automation with no detectors
+    const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
+    expect(within(projectsColumn as HTMLElement).getByText('—')).toBeInTheDocument();
   });
 
   it('can filter by project', async () => {

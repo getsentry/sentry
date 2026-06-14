@@ -1,7 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
-
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation, StatusWarning} from 'sentry/types/workflowEngine/automations';
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
@@ -9,11 +6,8 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {defined} from 'sentry/utils/defined';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
 import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 export function getAutomationActions(automation: Automation): ActionType[] {
   return [
@@ -55,24 +49,6 @@ export function getAutomationActionsWarning(
     };
   }
   return null;
-}
-
-export function useAutomationProjectSlugs(automation: Automation) {
-  const organization = useOrganization();
-  const {data: detectors, isLoading} = useQuery({
-    ...detectorListApiOptions(organization, {ids: automation.detectorIds}),
-    enabled: automation.detectorIds.length > 0,
-  });
-
-  const projectIds = [
-    ...new Set(detectors?.map(detector => detector.projectId).filter(defined)),
-  ];
-
-  const projectSlugs = projectIds
-    .map(projectId => ProjectsStore.getById(projectId)?.slug)
-    .filter(defined);
-
-  return {projectSlugs, isLoading};
 }
 
 export function findConflictingConditions(
