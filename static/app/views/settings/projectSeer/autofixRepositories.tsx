@@ -12,11 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import type {
-  ProjectSeerPreferences,
-  RepoSettings,
-} from 'sentry/components/events/autofix/types';
+import type {RepoSettings} from 'sentry/components/events/autofix/types';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -31,6 +27,7 @@ import {
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUpdateSeerRepos} from 'sentry/utils/seer/useUpdateSeerRepos';
 
 import {AddAutofixRepoModal} from './addAutofixRepoModal';
 import {AutofixRepoItem} from './autofixRepoItem';
@@ -53,23 +50,12 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
   const {data, isPending: isLoadingPreferences} = useProjectSeerPreferences(project);
   const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
-  const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+  const {mutate: updateSeerRepos} = useUpdateSeerRepos(project);
 
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
 
-  const getDefaultStoppingPoint =
-    useCallback((): ProjectSeerPreferences['automated_run_stopping_point'] => {
-      if (organization.features.includes('seat-based-seer-enabled')) {
-        return organization.autoOpenPrs ? 'open_pr' : 'code_changes';
-      }
-      return 'root_cause';
-    }, [organization.features, organization.autoOpenPrs]);
-
-  const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
-    ProjectSeerPreferences['automated_run_stopping_point']
-  >(getDefaultStoppingPoint());
 
   useEffect(() => {
     if (repositories) {
@@ -98,9 +84,6 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
-        setAutomatedRunStoppingPoint(
-          preference.automated_run_stopping_point || getDefaultStoppingPoint()
-        );
       } else if (codeMappingRepos?.length) {
         // Set default settings using codeMappingRepos when no preferences exist
         const repoIds = codeMappingRepos.map(repo => repo.external_id);
@@ -116,65 +99,30 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
-        setAutomatedRunStoppingPoint(getDefaultStoppingPoint());
       }
     }
-  }, [
-    preference,
-    repositories,
-    codeMappingRepos,
-    updateProjectSeerPreferences,
-    getDefaultStoppingPoint,
-  ]);
+  }, [preference, repositories, codeMappingRepos]);
 
   const updatePreferences = useCallback(
-    (
-      updatedIds?: string[],
-      updatedSettings?: Record<string, RepoSettings>,
-      newStoppingPoint?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr'
-    ) => {
+    (updatedIds?: string[], updatedSettings?: Record<string, RepoSettings>) => {
       if (!repositories) {
         return;
       }
       const idsToUse = updatedIds || selectedRepoIds;
       const settingsToUse = updatedSettings || repoSettings;
-      const stoppingPointToUse = newStoppingPoint || automatedRunStoppingPoint;
       const selectedRepos = repositories.filter(repo =>
         idsToUse.includes(repo.externalId)
       );
-      const reposData = selectedRepos.map(repo => {
-        const [owner, name] = (repo.name || '/').split('/');
-        let provider = repo.provider?.id || '';
-        if (provider?.startsWith('integrations:')) {
-          provider = provider.split(':')[1]!;
-        }
-
-        return {
-          organization_id: parseInt(organization.id, 10),
-          integration_id: repo.integrationId,
-          provider,
-          owner: owner || '',
-          name: name || repo.name || '',
-          external_id: repo.externalId,
-          branch_name: settingsToUse[repo.externalId]?.branch || '',
-          instructions: settingsToUse[repo.externalId]?.instructions || '',
-          branch_overrides: settingsToUse[repo.externalId]?.branch_overrides || [],
-        };
-      });
-      updateProjectSeerPreferences({
-        repositories: reposData,
-        automated_run_stopping_point: stoppingPointToUse,
-      });
+      const reposPayload = selectedRepos.map(repo => ({
+        repositoryId: Number(repo.id),
+        branchName: settingsToUse[repo.externalId]?.branch || null,
+        instructions: settingsToUse[repo.externalId]?.instructions || null,
+        branchOverrides: settingsToUse[repo.externalId]?.branch_overrides || [],
+      }));
+      updateSeerRepos(reposPayload);
       setShowSaveNotice(true);
     },
-    [
-      organization.id,
-      repositories,
-      selectedRepoIds,
-      repoSettings,
-      automatedRunStoppingPoint,
-      updateProjectSeerPreferences,
-    ]
+    [repositories, selectedRepoIds, repoSettings, updateSeerRepos]
   );
 
   const handleSaveModalSelections = useCallback(
