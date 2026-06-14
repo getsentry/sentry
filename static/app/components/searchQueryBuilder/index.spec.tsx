@@ -2396,6 +2396,27 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('shows value counts in the dropdown when the response includes them', async () => {
+      const mockGetTagValues = jest
+        .fn()
+        .mockResolvedValue([{value: 'tag_value_one', count: 1234}]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+
+      const option = await screen.findByRole('option', {name: /tag_value_one/});
+
+      expect(within(option).getByText('1.2K')).toBeInTheDocument();
+    });
+
     it('unescapes asterisks before fetching tag value suggestions', async () => {
       const mockGetTagValues = jest.fn().mockResolvedValue([]);
       render(

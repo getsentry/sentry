@@ -7,7 +7,10 @@ import {
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {GetTagValuesParams} from 'sentry/components/searchQueryBuilder';
+import type {
+  GetTagValuesParams,
+  TagValueWithCount,
+} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -19,11 +22,12 @@ import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
 interface TraceItemAttributeValue {
-  first_seen: null;
+  count: number | null;
+  firstSeen: string | null;
   key: string;
-  last_seen: null;
-  times_seen: null;
-  value: string;
+  lastSeen: string | null;
+  name: string;
+  value: string | null;
 }
 
 interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
@@ -48,7 +52,7 @@ export function useGetTraceItemAttributeValues({
   const queryClient = useQueryClient();
 
   return useCallback(
-    async ({tag, searchQuery}: GetTagValuesParams): Promise<string[]> => {
+    async ({tag, searchQuery}: GetTagValuesParams): Promise<TagValueWithCount[]> => {
       if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
         // We can't really auto suggest values for aggregate functions, numbers, or booleans
         return Promise.resolve([]);
@@ -95,9 +99,9 @@ export function useGetTraceItemAttributeValues({
 
       try {
         const {json} = await queryClient.fetchQuery(optionsWithPrefixCacheShortcut);
-        return json
-          .filter((item: TraceItemAttributeValue) => defined(item.value))
-          .map((item: TraceItemAttributeValue) => item.value);
+        return json.flatMap((item: TraceItemAttributeValue) =>
+          defined(item.value) ? [{value: item.value, count: item.count ?? undefined}] : []
+        );
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);
       }
