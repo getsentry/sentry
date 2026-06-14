@@ -29,7 +29,10 @@ import {
   parseAggregateFromValueKey,
   PrimarySelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
@@ -123,7 +126,8 @@ export function SelectRow({
   disabled,
 }: SelectRowProps) {
   const organization = useOrganization();
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('dataset', 'displayType');
+  const dispatch = useWidgetBuilderDispatch();
   const datasetConfig = getDatasetConfig(state.dataset);
   const columnSelectRef = useRef<HTMLDivElement>(null);
 

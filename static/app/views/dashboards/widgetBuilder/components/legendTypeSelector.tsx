@@ -3,11 +3,15 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 export function LegendTypeSelector() {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('legendType');
+  const dispatch = useWidgetBuilderDispatch();
 
   return (
     <Flex as="label" align="center" gap="sm" cursor="pointer">

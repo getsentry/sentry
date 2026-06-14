@@ -2,22 +2,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderTypeSelector as TypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 
 describe('TypeSelector', () => {
   it('changes the visualization type', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <TypeSelector />
@@ -29,11 +24,10 @@ describe('TypeSelector', () => {
     // select new option
     await userEvent.click(await screen.findByText('Bar (Time Series)'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({displayType: 'bar'}),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -48,8 +42,6 @@ describe('TypeSelector', () => {
   });
 
   it('shows text widget option', async () => {
-    mockUseNavigate.mockReturnValue(jest.fn());
-
     render(
       <WidgetBuilderProvider>
         <TypeSelector />
@@ -64,9 +56,6 @@ describe('TypeSelector', () => {
   });
 
   it('resets the widget builder state when the display type is changed on an issue widget', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <TypeSelector />
@@ -84,36 +73,30 @@ describe('TypeSelector', () => {
     await userEvent.click(await screen.findByText('Line'));
     await userEvent.click(await screen.findByText('Table'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           displayType: 'table',
         }),
-      }),
-      expect.anything()
+      })
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: WidgetType.ISSUE,
         }),
-      }),
-      expect.anything()
+      })
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           field: ['issue', 'assignee', 'title'],
         }),
-      }),
-      expect.anything()
+      })
     );
   });
 
   it('resets the widget builder state to dataset defaults when display type is changed from text widget', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <TypeSelector />
@@ -132,29 +115,26 @@ describe('TypeSelector', () => {
     await userEvent.click(await screen.findByText('Text (Markdown)'));
     await userEvent.click(await screen.findByText('Table'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           displayType: 'table',
         }),
-      }),
-      expect.anything()
+      })
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: WidgetType.ERRORS,
         }),
-      }),
-      expect.anything()
+      })
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
+    expect(mockReplaceUrl).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           field: ['count_unique(user)'],
         }),
-      }),
-      expect.anything()
+      })
     );
   });
 });

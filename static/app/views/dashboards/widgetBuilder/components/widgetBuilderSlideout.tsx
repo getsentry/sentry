@@ -61,7 +61,12 @@ import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/c
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderContext,
+  useWidgetBuilderDispatch,
+  useWidgetBuilderQueryState,
+  useWidgetBuilderStore,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
@@ -106,33 +111,16 @@ function WidgetBuilderSlideoutInner({
   const organization = useOrganization();
   const location = useLocation();
   const {visible: isModalVisible} = useModal();
-  const {state, dispatch} = useWidgetBuilderContext();
-  const [initialState] = useState(state);
+  // Subscribe to the query-affecting state only — title/description edits are
+  // high-frequency and should not re-render the whole slideout
+  const state = useWidgetBuilderQueryState();
+  const dispatch = useWidgetBuilderDispatch();
+  const store = useWidgetBuilderStore();
+  const [initialState] = useState(() => store.getState());
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
   const [error, setError] = useState<Record<string, any>>({});
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
-
-  // Push widget builder state into the LLM context tree for Seer Explorer.
-  useLLMContext({
-    priority: 1,
-    contextHint:
-      'Sentry widget builder. The user is configuring a dashboard widget. visualize is the y-axis metrics (timeseries) or the aggregate (big number/table). fields are group-by columns (timeseries) or visible columns (table). query filters the data and sort controls ordering.',
-    dashboardTitle: dashboard.title,
-    dashboardWidgetCount: dashboard.widgets.length,
-    dashboardFilters: dashboard.filters,
-    mode: isEditing ? 'editing' : 'creating',
-    title: state.title,
-    description: state.description,
-    dataset: state.dataset,
-    displayType: state.displayType,
-    visualize: state.yAxis?.map(generateFieldAsString),
-    fields: state.fields?.map(generateFieldAsString),
-    query: state.query?.map(readableConditions),
-    sort: state.sort?.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
-    thresholds: state.thresholds,
-    legendAlias: state.legendAlias,
-  });
   const source = useDashboardWidgetSource();
   const {cacheBuilderState} = useCacheBuilderState();
   const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
@@ -262,12 +250,12 @@ function WidgetBuilderSlideoutInner({
 
   const onCloseWithModal = useCallback(() => {
     openConfirmModal({
-      bypass: isEqual(initialState, state),
+      bypass: isEqual(initialState, store.getState()),
       message: t('You have unsaved changes. Are you sure you want to leave?'),
       priority: 'danger',
       onConfirm: onClose,
     });
-  }, [initialState, onClose, state]);
+  }, [initialState, onClose, store]);
 
   useHotkeys([
     {
@@ -322,143 +310,88 @@ function WidgetBuilderSlideoutInner({
   );
 
   return (
-    <SlideOverPanel position="left" data-test-id="widget-slideout">
-      {({isOpening}) => {
-        if (isOpening) {
+    <Fragment>
+      <SlideoutLLMContext dashboard={dashboard} isEditing={isEditing} />
+      <SlideOverPanel position="left" data-test-id="widget-slideout">
+        {({isOpening}) => {
+          if (isOpening) {
+            return (
+              <Fragment>
+                {header}
+                <Flex direction="column" gap="2xl" padding="2xl">
+                  <Placeholder height="50px" />
+                  <Placeholder height="50px" />
+                  <Placeholder height="50px" />
+                  <Placeholder height="200px" />
+                </Flex>
+              </Fragment>
+            );
+          }
+
           return (
             <Fragment>
               {header}
-              <Flex direction="column" gap="2xl" padding="2xl">
-                <Placeholder height="50px" />
-                <Placeholder height="50px" />
-                <Placeholder height="50px" />
-                <Placeholder height="200px" />
-              </Flex>
-            </Fragment>
-          );
-        }
-
-        return (
-          <Fragment>
-            {header}
-            <SlideoutBodyWrapper>
-              {isTransactionsWidget && showTransactionsDeprecationAlert && (
-                <Section>
-                  <Alert
-                    variant="warning"
-                    trailingItems={
-                      <StyledCloseButton
-                        icon={<IconClose size="sm" />}
-                        aria-label={t('Close')}
-                        onClick={() => {
-                          setShowTransactionsDeprecationAlert(false);
-                        }}
-                        size="zero"
-                        variant="transparent"
-                      />
-                    }
-                  >
-                    {disableTransactionWidget && isEditing
-                      ? tctCode(
-                          'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
-                          {
-                            spans: (
-                              <Link
-                                // We need to do this otherwise the dashboard filters will change
-                                to={{
-                                  pathname: location.pathname,
-                                  query: {
-                                    project: location.query.project,
-                                    start: location.query.start,
-                                    end: location.query.end,
-                                    statsPeriod: location.query.statsPeriod,
-                                    environment: location.query.environment,
-                                    utc: location.query.utc,
-                                  },
-                                }}
-                                onClick={() => {
-                                  cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
-                                  setSegmentSpanBuilderState();
-                                }}
-                              >
-                                {t('spans')}
-                              </Link>
-                            ),
-                            FAQLink: (
-                              <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
-                            ),
-                          }
-                        )
-                      : tctCode(
-                          'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
-                          {
-                            FAQLink: (
-                              <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
-                            ),
-                          }
-                        )}
-                  </Alert>
-                </Section>
-              )}
-              {openWidgetTemplates ? (
-                <Fragment>
-                  <div ref={observeForDraggablePreview}>
-                    {isSmallScreen && (
-                      <Section>
-                        <WidgetPreviewContainer
-                          dashboard={dashboard}
-                          dashboardFilters={dashboardFilters}
-                          isQueryConditionInvalid={isQueryConditionInvalid}
-                          onDataFetched={onDataFetched}
-                          openWidgetTemplates={openWidgetTemplates}
+              <SlideoutBodyWrapper>
+                {isTransactionsWidget && showTransactionsDeprecationAlert && (
+                  <Section>
+                    <Alert
+                      variant="warning"
+                      trailingItems={
+                        <StyledCloseButton
+                          icon={<IconClose size="sm" />}
+                          aria-label={t('Close')}
+                          onClick={() => {
+                            setShowTransactionsDeprecationAlert(false);
+                          }}
+                          size="zero"
+                          variant="transparent"
                         />
-                      </Section>
-                    )}
-                  </div>
-                  {isSmallScreen && (
-                    <Section>
-                      <WidgetBuilderFilterBar
-                        releases={dashboard.filters?.release ?? []}
-                      />
-                    </Section>
-                  )}
-                  <WidgetTemplatesList
-                    onSave={onSave}
-                    setOpenWidgetTemplates={setOpenWidgetTemplates}
-                    setIsPreviewDraggable={setIsPreviewDraggable}
-                    setCustomizeFromLibrary={setCustomizeFromLibrary}
-                  />
-                </Fragment>
-              ) : (
-                <Fragment>
-                  <DisableTransactionWidget>
-                    <Section>
-                      <WidgetBuilderNameAndDescription
-                        error={error}
-                        setError={setError}
-                      />
-                    </Section>
-                  </DisableTransactionWidget>
-                  {showDatasetSelector && (
-                    <Section>
-                      <WidgetBuilderDatasetSelector />
-                    </Section>
-                  )}
-                  <DisableTransactionWidget>
-                    <Section>
-                      <WidgetBuilderTypeSelector error={error} setError={setError} />
-                      {isTimeSeriesWidget && <AxisRangeSection />}
-                      {isTimeSeriesWidget && <LegendTypeSelector />}
-                    </Section>
-                    {isTextWidget && (
-                      <Section>
-                        <WidgetBuilderDescriptionField
-                          rows={12}
-                          placeholder={t('Write your markdown here...')}
-                          autosize={false}
-                        />
-                      </Section>
-                    )}
+                      }
+                    >
+                      {disableTransactionWidget && isEditing
+                        ? tctCode(
+                            'Editing of transaction-based widgets is disabled, as we migrate to the span dataset. To expedite and re-enable edit functionality, switch to the [spans] dataset below with the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+                            {
+                              spans: (
+                                <Link
+                                  // We need to do this otherwise the dashboard filters will change
+                                  to={{
+                                    pathname: location.pathname,
+                                    query: {
+                                      project: location.query.project,
+                                      start: location.query.start,
+                                      end: location.query.end,
+                                      statsPeriod: location.query.statsPeriod,
+                                      environment: location.query.environment,
+                                      utc: location.query.utc,
+                                    },
+                                  }}
+                                  onClick={() => {
+                                    cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
+                                    setSegmentSpanBuilderState();
+                                  }}
+                                >
+                                  {t('spans')}
+                                </Link>
+                              ),
+                              FAQLink: (
+                                <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
+                              ),
+                            }
+                          )
+                        : tctCode(
+                            'The transactions dataset is being deprecated. Please use the Spans dataset with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
+                            {
+                              FAQLink: (
+                                <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
+                              ),
+                            }
+                          )}
+                    </Alert>
+                  </Section>
+                )}
+                {openWidgetTemplates ? (
+                  <Fragment>
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
                         <Section>
@@ -479,65 +412,160 @@ function WidgetBuilderSlideoutInner({
                         />
                       </Section>
                     )}
-                    {showXAxisSelector && (
+                    <WidgetTemplatesList
+                      onSave={onSave}
+                      setOpenWidgetTemplates={setOpenWidgetTemplates}
+                      setIsPreviewDraggable={setIsPreviewDraggable}
+                      setCustomizeFromLibrary={setCustomizeFromLibrary}
+                    />
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <DisableTransactionWidget>
                       <Section>
-                        <WidgetBuilderXAxisSelector />
-                      </Section>
-                    )}
-                    {showVisualizeSection && (
-                      <Section>
-                        <Visualize
-                          error={error}
-                          setError={setError}
-                          traceMetricsVisualizeMode={traceMetricsVisualizeMode}
-                        />
-                      </Section>
-                    )}
-                    {showQueryFilterBuilder && (
-                      <Section>
-                        <WidgetBuilderQueryFilterBuilder
-                          onQueryConditionChange={onQueryConditionChange}
-                          validatedWidgetResponse={validatedWidgetResponse}
-                        />
-                      </Section>
-                    )}
-                    {doesDisplayTypeSupportThresholds(state.displayType) && (
-                      <Section>
-                        <ThresholdsSection
-                          dataType={thresholdMetaState?.dataType}
-                          dataUnit={thresholdMetaState?.dataUnit}
+                        <WidgetBuilderNameAndDescription
                           error={error}
                           setError={setError}
                         />
                       </Section>
-                    )}
-                    {showGroupBySelector && (
+                    </DisableTransactionWidget>
+                    {showDatasetSelector && (
                       <Section>
-                        <WidgetBuilderGroupBySelector
-                          validatedWidgetResponse={validatedWidgetResponse}
-                        />
+                        <WidgetBuilderDatasetSelector />
                       </Section>
                     )}
-                    {showSortByStep && (
+                    <DisableTransactionWidget>
                       <Section>
-                        <WidgetBuilderSortBySelector />
+                        <WidgetBuilderTypeSelector error={error} setError={setError} />
+                        {isTimeSeriesWidget && <AxisRangeSection />}
+                        {isTimeSeriesWidget && <LegendTypeSelector />}
                       </Section>
-                    )}
-                  </DisableTransactionWidget>
-                  <SaveButtonGroup
-                    isEditing={isEditing}
-                    onSave={onSave}
-                    setError={setError}
-                    onClose={onCloseWithModal}
-                  />
-                </Fragment>
-              )}
-            </SlideoutBodyWrapper>
-          </Fragment>
-        );
-      }}
-    </SlideOverPanel>
+                      {isTextWidget && (
+                        <Section>
+                          <WidgetBuilderDescriptionField
+                            rows={12}
+                            placeholder={t('Write your markdown here...')}
+                            autosize={false}
+                          />
+                        </Section>
+                      )}
+                      <div ref={observeForDraggablePreview}>
+                        {isSmallScreen && (
+                          <Section>
+                            <WidgetPreviewContainer
+                              dashboard={dashboard}
+                              dashboardFilters={dashboardFilters}
+                              isQueryConditionInvalid={isQueryConditionInvalid}
+                              onDataFetched={onDataFetched}
+                              openWidgetTemplates={openWidgetTemplates}
+                            />
+                          </Section>
+                        )}
+                      </div>
+                      {isSmallScreen && (
+                        <Section>
+                          <WidgetBuilderFilterBar
+                            releases={dashboard.filters?.release ?? []}
+                          />
+                        </Section>
+                      )}
+                      {showXAxisSelector && (
+                        <Section>
+                          <WidgetBuilderXAxisSelector />
+                        </Section>
+                      )}
+                      {showVisualizeSection && (
+                        <Section>
+                          <Visualize
+                            error={error}
+                            setError={setError}
+                            traceMetricsVisualizeMode={traceMetricsVisualizeMode}
+                          />
+                        </Section>
+                      )}
+                      {showQueryFilterBuilder && (
+                        <Section>
+                          <WidgetBuilderQueryFilterBuilder
+                            onQueryConditionChange={onQueryConditionChange}
+                            validatedWidgetResponse={validatedWidgetResponse}
+                          />
+                        </Section>
+                      )}
+                      {doesDisplayTypeSupportThresholds(state.displayType) && (
+                        <Section>
+                          <ThresholdsSection
+                            dataType={thresholdMetaState?.dataType}
+                            dataUnit={thresholdMetaState?.dataUnit}
+                            error={error}
+                            setError={setError}
+                          />
+                        </Section>
+                      )}
+                      {showGroupBySelector && (
+                        <Section>
+                          <WidgetBuilderGroupBySelector
+                            validatedWidgetResponse={validatedWidgetResponse}
+                          />
+                        </Section>
+                      )}
+                      {showSortByStep && (
+                        <Section>
+                          <WidgetBuilderSortBySelector />
+                        </Section>
+                      )}
+                    </DisableTransactionWidget>
+                    <SaveButtonGroup
+                      isEditing={isEditing}
+                      onSave={onSave}
+                      setError={setError}
+                      onClose={onCloseWithModal}
+                    />
+                  </Fragment>
+                )}
+              </SlideoutBodyWrapper>
+            </Fragment>
+          );
+        }}
+      </SlideOverPanel>
+    </Fragment>
   );
+}
+
+/**
+ * Pushes the widget builder state into the LLM context tree for Seer
+ * Explorer. Rendered as a null component so its full-state subscription
+ * doesn't re-render the slideout on every keystroke.
+ */
+function SlideoutLLMContext({
+  dashboard,
+  isEditing,
+}: {
+  dashboard: DashboardDetails;
+  isEditing: boolean;
+}) {
+  const {state} = useWidgetBuilderContext();
+
+  useLLMContext({
+    priority: 1,
+    contextHint:
+      'Sentry widget builder. The user is configuring a dashboard widget. visualize is the y-axis metrics (timeseries) or the aggregate (big number/table). fields are group-by columns (timeseries) or visible columns (table). query filters the data and sort controls ordering.',
+    dashboardTitle: dashboard.title,
+    dashboardWidgetCount: dashboard.widgets.length,
+    dashboardFilters: dashboard.filters,
+    mode: isEditing ? 'editing' : 'creating',
+    title: state.title,
+    description: state.description,
+    dataset: state.dataset,
+    displayType: state.displayType,
+    visualize: state.yAxis?.map(generateFieldAsString),
+    fields: state.fields?.map(generateFieldAsString),
+    query: state.query?.map(readableConditions),
+    sort: state.sort?.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    thresholds: state.thresholds,
+    legendAlias: state.legendAlias,
+  });
+
+  return null;
 }
 
 export const WidgetBuilderSlideout = registerLLMContext(

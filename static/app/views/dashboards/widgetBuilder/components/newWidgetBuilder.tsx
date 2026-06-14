@@ -10,7 +10,6 @@ import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/c
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
-import omit from 'lodash/omit';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Flex} from '@sentry/scraps/layout';
@@ -18,6 +17,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -46,7 +46,8 @@ import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/comp
 import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetPreview} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
-  useWidgetBuilderContext,
+  useWidgetBuilderStateSlice,
+  useWidgetBuilderUrlParams,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
@@ -248,7 +249,8 @@ export function WidgetPreviewContainer({
   onDataFetched?: (results: OnDataFetchedParams) => void;
   openWidgetTemplates?: boolean;
 }) {
-  const {state} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('displayType');
+  const builderUrlParams = useWidgetBuilderUrlParams();
   const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
@@ -283,18 +285,14 @@ export function WidgetPreviewContainer({
     position: isDragEnabled ? 'fixed' : undefined,
   };
 
-  // check if the state is in the url because the state variable has default values
-  const hasUrlParams =
-    Object.keys(
-      omit(location.query, [
-        'environment',
-        'project',
-        'release',
-        'start',
-        'end',
-        'statsPeriod',
-      ])
-    ).length > 0;
+  // check if the state is in the url because the state variable has default
+  // values. The store writes its params to the URL without notifying the
+  // router, so merge them over the router's (possibly stale) query.
+  const hasUrlParams = Object.entries({...location.query, ...builderUrlParams}).some(
+    ([key, value]) =>
+      defined(value) &&
+      !['environment', 'project', 'release', 'start', 'end', 'statsPeriod'].includes(key)
+  );
 
   const getPreviewHeight = () => {
     if (isDragEnabled) {

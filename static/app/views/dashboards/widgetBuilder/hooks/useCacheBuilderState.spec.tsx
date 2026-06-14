@@ -5,31 +5,43 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
-  useWidgetBuilderContext,
+  useWidgetBuilderStore,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {
-  BuilderStateAction,
-  type WidgetBuilderState,
+import type {
+  WidgetBuilderState,
+  WidgetBuilderStore,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 import {useCacheBuilderState} from './useCacheBuilderState';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
 jest.mock('sentry/utils/useLocation');
 
 jest.mock('sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext', () => ({
-  useWidgetBuilderContext: jest.fn(),
+  useWidgetBuilderStore: jest.fn(),
   WidgetBuilderProvider: jest.requireActual(
     'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext'
   ).WidgetBuilderProvider,
 }));
 
-const mockUseWidgetBuilderContext = jest.mocked(useWidgetBuilderContext);
+const mockUseWidgetBuilderStore = jest.mocked(useWidgetBuilderStore);
 const mockUseLocation = jest.mocked(useLocation);
+
+function mockStore(
+  state: WidgetBuilderState,
+  dispatch: WidgetBuilderStore['dispatch'] = jest.fn()
+) {
+  mockUseWidgetBuilderStore.mockReturnValue({
+    dispatch,
+    getState: () => state,
+    getUrlParams: () => ({}),
+    subscribe: () => () => {},
+    syncUrlParams: () => {},
+    teardown: () => {},
+  });
+}
 
 function Wrapper({children}: {children: React.ReactNode}) {
   return <WidgetBuilderProvider>{children}</WidgetBuilderProvider>;
@@ -40,10 +52,7 @@ describe('useCacheBuilderState', () => {
 
   beforeEach(() => {
     mockLocalStorage = {};
-    mockUseWidgetBuilderContext.mockReturnValue({
-      state: {},
-      dispatch: jest.fn(),
-    });
+    mockStore({});
     mockUseLocation.mockReturnValue(LocationFixture());
 
     Storage.prototype.getItem = jest.fn(key => mockLocalStorage[key] ?? null);
@@ -71,10 +80,7 @@ describe('useCacheBuilderState', () => {
       ],
       query: ['this is a test query'],
     };
-    mockUseWidgetBuilderContext.mockReturnValue({
-      state: cachedWidget,
-      dispatch: jest.fn(),
-    });
+    mockStore(cachedWidget);
 
     const {result} = renderHook(() => useCacheBuilderState(), {
       wrapper: Wrapper,
@@ -123,10 +129,7 @@ describe('useCacheBuilderState', () => {
       ],
     };
     const mockDispatch = jest.fn();
-    mockUseWidgetBuilderContext.mockReturnValue({
-      state: currentWidget,
-      dispatch: mockDispatch,
-    });
+    mockStore(currentWidget, mockDispatch);
     // Add cached widget to the localStorage
     localStorage.setItem(
       'dashboards:widget-builder:dataset:error-events',
@@ -177,10 +180,7 @@ describe('useCacheBuilderState', () => {
       ],
     };
     const mockDispatch = jest.fn();
-    mockUseWidgetBuilderContext.mockReturnValue({
-      state: currentWidget,
-      dispatch: mockDispatch,
-    });
+    mockStore(currentWidget, mockDispatch);
     // Add cached widget to the localStorage, this will not be the one
     // used in the test to test that a cache miss falls back to the plain
     // dataset change

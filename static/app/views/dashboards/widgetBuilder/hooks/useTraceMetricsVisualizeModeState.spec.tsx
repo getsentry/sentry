@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   useWidgetBuilderContext,
@@ -21,8 +21,8 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-jest.mock('sentry/utils/useNavigate');
-const mockedUseNavigate = jest.mocked(useNavigate);
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 
 const EQUATION_FEATURES = [
   'tracemetrics-enabled',
@@ -93,12 +93,7 @@ function makeEquationSnapshot(
 }
 
 describe('useTraceMetricsVisualizeModeState', () => {
-  let mockNavigate!: jest.Mock;
-
-  beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
-  });
+  beforeEach(() => {});
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -235,13 +230,13 @@ describe('useTraceMetricsVisualizeModeState', () => {
       result.current.handleModeToggle(true);
     });
 
-    mockNavigate.mockClear();
+    mockReplaceUrl.mockClear();
     act(() => {
       result.current.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -251,19 +246,17 @@ describe('useTraceMetricsVisualizeModeState', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: ['environment:prod'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -332,13 +325,13 @@ describe('useTraceMetricsVisualizeModeState', () => {
       });
     });
 
-    mockNavigate.mockClear();
+    mockReplaceUrl.mockClear();
     act(() => {
       result.current.handleModeToggle(true);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -348,8 +341,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -376,19 +368,18 @@ describe('useTraceMetricsVisualizeModeState', () => {
       });
     });
 
-    mockNavigate.mockClear();
+    mockReplaceUrl.mockClear();
     act(() => {
       result.current.handleModeToggle(true);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: ['environment:prod'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -418,19 +409,18 @@ describe('useTraceMetricsVisualizeModeState', () => {
       });
     });
 
-    mockNavigate.mockClear();
+    mockReplaceUrl.mockClear();
     act(() => {
       result.current.handleModeToggle(true);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: ['sum(value,alpha_metric,counter,none)'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -459,13 +449,13 @@ describe('useTraceMetricsVisualizeModeState', () => {
       result.current.equationSnapshot.current = makeEquationSnapshot();
     });
 
-    mockNavigate.mockClear();
+    mockReplaceUrl.mockClear();
     act(() => {
       result.current.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -479,8 +469,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -509,13 +498,13 @@ describe('useTraceMetricsVisualizeModeState', () => {
       });
     });
 
-    mockNavigate.mockClear();
+    mockReplaceUrl.mockClear();
     act(() => {
       result.current.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -529,8 +518,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -555,13 +543,13 @@ describe('useTraceMetricsVisualizeModeState', () => {
 
     expect(result.current.isEquationMode).toBe(true);
 
-    mockNavigate.mockClear();
+    mockReplaceUrl.mockClear();
     act(() => {
       result.current.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: serializeFields([
@@ -571,8 +559,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
               },
             ]),
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });
@@ -593,7 +580,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
       },
     });
 
-    mockNavigate.mockClear();
+    mockReplaceUrl.mockClear();
     act(() => {
       result.current.handleModeToggle(true);
     });
@@ -603,13 +590,12 @@ describe('useTraceMetricsVisualizeModeState', () => {
     expect(result.current.equationSnapshot.current?.selectedLabel).toBe('ƒ1');
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(mockReplaceUrl).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: ['equation|'],
           }),
-        }),
-        expect.anything()
+        })
       );
     });
   });

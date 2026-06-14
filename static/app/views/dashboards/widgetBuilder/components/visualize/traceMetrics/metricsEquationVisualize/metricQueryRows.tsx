@@ -11,7 +11,10 @@ import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {BuilderStateMetricsQueryParamsProvider} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/builderStateMetricsQueryParamsProvider';
 import {MetricToolbar} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar';
 import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -60,7 +63,8 @@ export function MetricQueryRows({
   setSelectedLabel,
   equationSnapshot,
 }: MetricQueryRowsProps) {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('displayType', 'fields', 'yAxis');
+  const dispatch = useWidgetBuilderDispatch();
   const metricQueries = useMultiMetricsQueryParams();
 
   // Keep the snapshot ref in sync so useTraceMetricsVisualizeModeState can

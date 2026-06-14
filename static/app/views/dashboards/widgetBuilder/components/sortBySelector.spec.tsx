@@ -5,15 +5,13 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {ELLIPSIS} from 'sentry/utils/string/unicode';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {replaceUrlWithoutNavigation} from 'sentry/utils/url/replaceUrlWithoutNavigation';
 import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
+jest.mock('sentry/utils/url/replaceUrlWithoutNavigation');
 
-const mockUseNavigate = jest.mocked(useNavigate);
+const mockReplaceUrl = jest.mocked(replaceUrlWithoutNavigation);
 
 describe('WidgetBuilderSortBySelector', () => {
   let organization: Organization;
@@ -99,9 +97,6 @@ describe('WidgetBuilderSortBySelector', () => {
   });
 
   it('renders and functions correctly', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
@@ -120,20 +115,18 @@ describe('WidgetBuilderSortBySelector', () => {
     await userEvent.click(sortFieldSelector);
     await userEvent.click(await screen.findByText('count()'));
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({sort: ['-count()']}),
-      }),
-      expect.anything()
+      })
     );
 
     await userEvent.click(sortDirectionSelector);
     await userEvent.click(await screen.findByText('Low to high'));
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({sort: ['count()']}),
-      }),
-      expect.anything()
+      })
     );
   });
 
@@ -175,9 +168,6 @@ describe('WidgetBuilderSortBySelector', () => {
   });
 
   it('correctly handles limit changes', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
@@ -192,17 +182,14 @@ describe('WidgetBuilderSortBySelector', () => {
     await userEvent.click(limitSelector);
     await userEvent.click(await screen.findByText('Limit to 3 results'));
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({limit: 3}),
-      }),
-      expect.anything()
+      })
     );
   });
 
   it('switches the default value for count_unique functions', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [{key: 'span.duration', name: 'span.duration'}],
@@ -240,18 +227,14 @@ describe('WidgetBuilderSortBySelector', () => {
     await userEvent.click(screen.getByText(`count(${ELLIPSIS})`));
     await userEvent.click(screen.getByText(`count_unique(${ELLIPSIS})`));
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({sort: ['-count_unique(span.op)']}),
-      }),
-      expect.anything()
+      })
     );
   });
 
   it('sorts by equations line chart', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     const organizationWithFlag = OrganizationFixture({
       features: ['open-membership', 'visibility-explore-view'],
     });
@@ -285,20 +268,18 @@ describe('WidgetBuilderSortBySelector', () => {
       await screen.findByText('count_unique(transaction.duration) + 100')
     );
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({sort: ['-equation[0]']}),
-      }),
-      expect.anything()
+      })
     );
 
     await userEvent.click(sortDirectionSelector);
     await userEvent.click(await screen.findByText('Low to high'));
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({sort: ['equation[0]']}),
-      }),
-      expect.anything()
+      })
     );
   });
   it('renders a limit selector for categorical bar widgets', async () => {
@@ -351,9 +332,6 @@ describe('WidgetBuilderSortBySelector', () => {
   });
 
   it('correctly handles categorical bar limit changes', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSortBySelector />
@@ -379,18 +357,14 @@ describe('WidgetBuilderSortBySelector', () => {
     await userEvent.click(limitSelector);
     await userEvent.click(await screen.findByText('Limit to 15 results'));
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({limit: 15}),
-      }),
-      expect.anything()
+      })
     );
   });
 
   it('sorts by equations table', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     const organizationWithFlag = OrganizationFixture({
       features: ['open-membership', 'visibility-explore-view'],
     });
@@ -425,20 +399,18 @@ describe('WidgetBuilderSortBySelector', () => {
       await screen.findByText('count_unique(transaction.duration) + 100')
     );
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({sort: ['-equation[0]']}),
-      }),
-      expect.anything()
+      })
     );
 
     await userEvent.click(sortDirectionSelector);
     await userEvent.click(await screen.findByText('Low to high'));
-    expect(mockNavigate).toHaveBeenLastCalledWith(
+    expect(mockReplaceUrl).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({sort: ['equation[0]']}),
-      }),
-      expect.anything()
+      })
     );
   });
 });

@@ -10,7 +10,10 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {sortSelectedFirst} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   buildTraceMetricAggregate,
   getTraceMetricAggregateActionType,
@@ -30,7 +33,8 @@ export function AggregateSelector({
   index: number;
   traceMetric: TraceMetric;
 }) {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('displayType', 'fields', 'yAxis');
+  const dispatch = useWidgetBuilderDispatch();
 
   const aggregateSource = getTraceMetricAggregateSource(
     state.displayType,

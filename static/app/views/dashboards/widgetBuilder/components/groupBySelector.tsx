@@ -10,7 +10,10 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType, type ValidateWidgetResponse} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderStateSlice,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
@@ -25,7 +28,8 @@ interface WidgetBuilderGroupBySelectorProps {
 export function WidgetBuilderGroupBySelector({
   validatedWidgetResponse,
 }: WidgetBuilderGroupBySelectorProps) {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderStateSlice('dataset', 'fields');
+  const dispatch = useWidgetBuilderDispatch();
   const disableTransactionWidget = useDisableTransactionWidget();
 
   const organization = useOrganization();

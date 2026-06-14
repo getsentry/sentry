@@ -25,7 +25,10 @@ import {
 } from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/components/widgetOnDemandQueryWarning';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderDispatch,
+  useWidgetBuilderQueryState,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -42,7 +45,8 @@ export function WidgetBuilderQueryFilterBuilder({
   onQueryConditionChange,
   validatedWidgetResponse,
 }: WidgetBuilderQueryFilterBuilderProps) {
-  const {state, dispatch} = useWidgetBuilderContext();
+  const state = useWidgetBuilderQueryState();
+  const dispatch = useWidgetBuilderDispatch();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>(() => {

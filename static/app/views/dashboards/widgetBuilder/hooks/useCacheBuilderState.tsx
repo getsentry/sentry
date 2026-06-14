@@ -2,7 +2,7 @@ import {useCallback, useEffect} from 'react';
 
 import {createStorage} from 'sentry/utils/createStorage';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderStore} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
@@ -25,7 +25,10 @@ function cleanUpDatasetState() {
  * and restore it when the user navigates back to the same dataset.
  */
 export function useCacheBuilderState() {
-  const {state, dispatch} = useWidgetBuilderContext();
+  // The state is only read inside the returned callbacks, so use the store
+  // directly instead of subscribing to every state change
+  const store = useWidgetBuilderStore();
+  const dispatch = store.dispatch;
 
   useEffect(() => {
     // Remove all cached dataset states when the component mounts
@@ -39,10 +42,10 @@ export function useCacheBuilderState() {
     (dataset: WidgetType) => {
       STORAGE.setItem(
         `${WIDGET_BUILDER_DATASET_STATE_KEY}:${dataset}`,
-        JSON.stringify(convertBuilderStateToWidget(state))
+        JSON.stringify(convertBuilderStateToWidget(store.getState()))
       );
     },
-    [state]
+    [store]
   );
 
   // Checks if there is a cached builder state for the given dataset
@@ -56,9 +59,10 @@ export function useCacheBuilderState() {
         const builderState = convertWidgetToBuilderState(
           JSON.parse(previousDatasetState)
         );
+        const {title, description} = store.getState();
         dispatch({
           type: BuilderStateAction.SET_STATE,
-          payload: {...builderState, title: state.title, description: state.description},
+          payload: {...builderState, title, description},
         });
       } else {
         dispatch({
@@ -67,7 +71,7 @@ export function useCacheBuilderState() {
         });
       }
     },
-    [dispatch, state.title, state.description]
+    [dispatch, store]
   );
 
   return {

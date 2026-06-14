@@ -14,7 +14,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderStore} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
@@ -25,7 +25,9 @@ export interface SaveButtonProps {
 }
 
 export function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
-  const {state} = useWidgetBuilderContext();
+  // The state is only needed when the button is clicked, so read it from the
+  // store on demand instead of subscribing to every state change
+  const store = useWidgetBuilderStore();
   const {widgetIndex} = useParams();
   const api = useApi();
   const organization = useOrganization();
@@ -33,6 +35,7 @@ export function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const disableTransactionWidget = useDisableTransactionWidget();
 
   const handleSave = async () => {
+    const state = store.getState();
     trackAnalytics('dashboards_views.widget_builder.save', {
       builder_version: WidgetBuilderVersion.SLIDEOUT,
       data_set: state.dataset ?? '',
