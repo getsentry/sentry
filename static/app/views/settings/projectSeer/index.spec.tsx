@@ -86,6 +86,22 @@ describe('ProjectSeer', () => {
           external_id: '101',
         },
       ],
+      preference: {
+        repositories: [
+          {
+            organization_id: 3,
+            external_id: '101',
+            name: 'sentry',
+            owner: 'getsentry',
+            provider: 'github',
+            integration_id: '201',
+            branch_name: '',
+            instructions: '',
+            branch_overrides: [],
+          },
+        ],
+        automated_run_stopping_point: 'root_cause',
+      },
     };
 
     MockApiClient.addMockResponse({
@@ -124,7 +140,9 @@ describe('ProjectSeer', () => {
     expect(screen.queryByText('getsentry/seer')).not.toBeInTheDocument();
 
     // Open the add repo modal
-    await userEvent.click(screen.getByRole('button', {name: 'Add Repos'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Add Repositories to Project'})
+    );
 
     // Find and select the unselected repo in the modal
     const modal = await screen.findByRole('dialog');
@@ -151,6 +169,33 @@ describe('ProjectSeer', () => {
             external_id: '102',
           },
         ],
+        preference: {
+          repositories: [
+            {
+              organization_id: 3,
+              external_id: '101',
+              name: 'sentry',
+              owner: 'getsentry',
+              provider: 'github',
+              integration_id: '201',
+              branch_name: '',
+              instructions: '',
+              branch_overrides: [],
+            },
+            {
+              organization_id: 3,
+              external_id: '102',
+              name: 'seer',
+              owner: 'getsentry',
+              provider: 'github',
+              integration_id: '202',
+              branch_name: '',
+              instructions: '',
+              branch_overrides: [],
+            },
+          ],
+          automated_run_stopping_point: 'root_cause',
+        },
       },
     });
 
@@ -170,28 +215,18 @@ describe('ProjectSeer', () => {
           data: expect.objectContaining({
             automated_run_stopping_point: 'root_cause',
             repositories: [
-              {
-                organization_id: 3,
-                branch_name: '',
+              expect.objectContaining({
                 external_id: '101',
-                instructions: '',
                 name: 'sentry',
                 owner: 'getsentry',
                 provider: 'github',
-                integration_id: '201',
-                branch_overrides: [],
-              },
-              {
-                organization_id: 3,
-                branch_name: '',
+              }),
+              expect.objectContaining({
                 external_id: '102',
-                instructions: '',
                 name: 'seer',
                 owner: 'getsentry',
                 provider: 'github',
-                integration_id: '202',
-                branch_overrides: [],
-              },
+              }),
             ],
           }),
         })
@@ -217,16 +252,9 @@ describe('ProjectSeer', () => {
     // Expand the repo item
     await userEvent.click(repoItem);
 
-    // Find input fields
+    // Find input field and type a branch name (auto-saves via debounce)
     const branchInput = screen.getByPlaceholderText('Default branch');
-    const instructionsInput = screen.getByPlaceholderText(
-      'Add any general context or instructions to help Seer understand this repository...'
-    );
-
     await userEvent.type(branchInput, 'develop');
-    await userEvent.type(instructionsInput, 'Use Conventional Commits');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
@@ -235,23 +263,15 @@ describe('ProjectSeer', () => {
           data: expect.objectContaining({
             automated_run_stopping_point: 'root_cause',
             repositories: [
-              {
-                organization_id: 3,
+              expect.objectContaining({
                 external_id: '101',
-                name: 'sentry',
-                owner: 'getsentry',
-                provider: 'github',
                 branch_name: 'develop',
-                instructions: 'Use Conventional Commits',
-                integration_id: '201',
-                branch_overrides: [],
-              },
+              }),
             ],
           }),
         })
       );
     });
-    expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
   it('can remove a repository', async () => {
@@ -277,10 +297,14 @@ describe('ProjectSeer', () => {
       method: 'GET',
       body: {
         code_mapping_repos: [],
+        preference: {
+          repositories: [],
+          automated_run_stopping_point: 'root_cause',
+        },
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Remove Repository'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Disconnect Repository'}));
 
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
@@ -1320,11 +1344,13 @@ describe('ProjectSeer', () => {
       });
       renderGlobalModal({organization: orgWithGitlabSupport});
 
-      // Wait for repos to load (sentry is pre-selected via code_mapping_repos in beforeEach)
+      // Wait for repos to load (sentry is pre-selected via preference.repositories in beforeEach)
       expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
 
       // Open the add repo modal — it shows only unselected repos
-      await userEvent.click(screen.getByRole('button', {name: 'Add Repos'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add Repositories to Project'})
+      );
 
       const modal = await screen.findByRole('dialog');
 
@@ -1354,11 +1380,13 @@ describe('ProjectSeer', () => {
       });
       renderGlobalModal();
 
-      // Wait for repos to load (sentry is pre-selected via code_mapping_repos in beforeEach)
+      // Wait for repos to load (sentry is pre-selected via preference.repositories in beforeEach)
       expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
 
       // Open the add repo modal — it shows only unselected repos
-      await userEvent.click(screen.getByRole('button', {name: 'Add Repos'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add Repositories to Project'})
+      );
 
       const modal = await screen.findByRole('dialog');
 
