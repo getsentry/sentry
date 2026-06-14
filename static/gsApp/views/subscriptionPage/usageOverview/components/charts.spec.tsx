@@ -66,7 +66,7 @@ describe('UsageCharts', () => {
     });
 
     expect(screen.getByText('Current Usage Period')).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Total ingested'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Total billed'})).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Accepted 50 83%'})).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Total Dropped 10 17%'})).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Over Quota 5 8%'})).toBeInTheDocument();
