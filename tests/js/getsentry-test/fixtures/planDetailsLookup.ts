@@ -38,7 +38,7 @@ export function PlanDetailsLookupFixture<PlanId extends PlanIds>(
         ? AM1_PLANS[planId as keyof typeof AM1_PLANS]
         : planId.startsWith(PlanTier.AM2)
           ? AM2_PLANS[planId as keyof typeof AM2_PLANS]
-          : planId.startsWith(PlanTier.MM2)
+          : planId.startsWith('mm2')
             ? MM2_PLANS[planId as keyof typeof MM2_PLANS]
             : MM1_PLANS[planId as keyof typeof MM1_PLANS];
 
