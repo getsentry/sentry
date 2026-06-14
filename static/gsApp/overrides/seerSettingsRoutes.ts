@@ -13,12 +13,9 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
       component: make(() => import('getsentry/views/seerAutomation/trial')),
     },
     {
-      // Legacy onboarding, seat-based redirects to /seer/
+      // Legacy onboarding is disabled, no new legacy orgs are being added
       path: 'onboarding/',
-      name: t('Setup Wizard'),
-      component: make(
-        () => import('getsentry/views/seerAutomation/onboarding/onboarding')
-      ),
+      redirectTo: '/settings/:orgId/seer/',
     },
     {
       // Legacy autofix page, redirects to /seer/projects/ if seat-based is active
