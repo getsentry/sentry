@@ -9,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import type {RequestOptions} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
