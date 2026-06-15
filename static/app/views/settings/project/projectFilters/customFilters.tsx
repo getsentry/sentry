@@ -455,6 +455,7 @@ export function CustomFilters() {
                   }
                 />
                 <Confirm
+                  priority="danger"
                   message={t('Are you sure you want to delete this filter?')}
                   onConfirm={() => handleDelete(filter.id)}
                 >
