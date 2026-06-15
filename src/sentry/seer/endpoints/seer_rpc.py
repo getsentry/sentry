@@ -123,6 +123,7 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofi
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     GetRepoInstallationIdErrorResponse,
@@ -883,7 +884,7 @@ def check_repository_integrations_status(
     return RepositoryIntegrationsStatusResponse(integration_ids=integration_ids)
 
 
-def get_project_preferences(*, organization_id: int, project_id: int) -> dict:
+def get_project_preferences(*, organization_id: int, project_id: int) -> SeerProjectPreference:
     """Get Seer project preferences for a single project.
 
     Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
@@ -892,7 +893,7 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict:
     if project.organization_id != organization_id:
         raise Project.DoesNotExist
 
-    return read_preference_from_sentry_db(project).dict()
+    return read_preference_from_sentry_db(project)
 
 
 def bulk_get_project_preferences(

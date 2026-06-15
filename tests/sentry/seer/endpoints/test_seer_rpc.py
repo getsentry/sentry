@@ -1566,24 +1566,22 @@ class TestSeerRpcMethods(APITestCase):
             project_id=project.id,
         )
 
-        assert result is not None
-        assert result["project_id"] == project.id
-        assert result["organization_id"] == self.organization.id
-        assert len(result["repositories"]) == 1
-        assert result["repositories"][0]["external_id"] == "123"
-        assert result["repositories"][0]["name"] == "sentry"
+        assert result.project_id == project.id
+        assert result.organization_id == self.organization.id
+        assert len(result.repositories) == 1
+        assert result.repositories[0].external_id == "123"
+        assert result.repositories[0].name == "sentry"
 
     def test_get_project_preferences_returns_default_when_no_preference(self) -> None:
         project = self.create_project(organization=self.organization)
         result = get_project_preferences(
             organization_id=self.organization.id, project_id=project.id
         )
-        assert result is not None
-        assert result["project_id"] == project.id
-        assert result["organization_id"] == self.organization.id
-        assert result["repositories"] == []
-        assert result["automated_run_stopping_point"] == "code_changes"
-        assert result["automation_handoff"] is None
+        assert result.project_id == project.id
+        assert result.organization_id == self.organization.id
+        assert result.repositories == []
+        assert result.automated_run_stopping_point == "code_changes"
+        assert result.automation_handoff is None
 
     def test_get_project_preferences_raises_for_nonexistent_project(self) -> None:
         with pytest.raises(Project.DoesNotExist):
