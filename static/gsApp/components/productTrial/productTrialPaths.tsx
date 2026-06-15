@@ -107,7 +107,7 @@ export function getProductForPath(
 ): Product | null {
   path = normalizePath(path);
 
-  if (subscription.planDetails.categories.includes(DataCategory.SPANS)) {
+  if (subscription.planDetails?.categories.includes(DataCategory.SPANS)) {
     if (Object.hasOwn(PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES, path)) {
       return PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES[path]!;
     }
