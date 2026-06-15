@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -125,7 +125,7 @@ export function ExternalIssueForm({
   const queryClient = useQueryClient();
 
   const [hasTrackedLoad, setHasTrackedLoad] = useState(false);
-  const [loadSpan, setLoadSpan] = useState<Span | null>(null);
+  const loadSpanRef = useRef<Span | null>(null);
   const [action, setAction] = useState<ExternalIssueAction>('create');
   const title = tct('[action] [integration] Issue', {
     action: action === 'create' ? t('Create') : t('Link'),
@@ -238,10 +238,10 @@ export function ExternalIssueForm({
 
   // Start the span for the load request
   useEffect(() => {
-    const span = startSpan('load');
-    setLoadSpan(span);
+    loadSpanRef.current = startSpan('load');
     return () => {
-      span?.end();
+      loadSpanRef.current?.end();
+      loadSpanRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -249,7 +249,8 @@ export function ExternalIssueForm({
   // End the span for the load request
   useEffect(() => {
     if (!isPending && !hasTrackedLoad) {
-      loadSpan?.end();
+      loadSpanRef.current?.end();
+      loadSpanRef.current = null;
       trackAnalytics('issue_details.external_issue_loaded', {
         organization,
         ...getAnalyticsDataForGroup(group),
@@ -259,7 +260,7 @@ export function ExternalIssueForm({
       });
       setHasTrackedLoad(true);
     }
-  }, [isPending, isError, loadSpan, organization, group, integration, hasTrackedLoad]);
+  }, [isPending, isError, organization, group, integration, hasTrackedLoad]);
 
   const handleClick = (newAction: ExternalIssueAction) => {
     setAction(newAction);
