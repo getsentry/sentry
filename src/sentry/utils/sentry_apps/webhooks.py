@@ -197,9 +197,9 @@ def _send_webhook_request(
     app_platform_event: AppPlatformEvent[T],
 ) -> Response:
     # We don't want to use the alarm in CONTROL silo as it's only used for installation webhooks which are v. low volume
-    # Also that we aren't guarenteed to be in main thread
+    # Also that we aren't guaranteed to be in main thread
     context_wrapper: contextlib.AbstractContextManager[None]
-    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+    if SiloMode.get_current_mode() is SiloMode.CONTROL:
         context_wrapper = contextlib.nullcontext()
     else:
         timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
