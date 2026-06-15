@@ -102,7 +102,7 @@ class ProjectBalancingCalculationsTest(TestCase):
         assert [call.kwargs["extra"] for call in logger_info.call_args_list] == [
             {
                 "org_id": org.id,
-                "project_id": project_with_volume.id,
+                "dynamic_sampling_project_id": project_with_volume.id,
                 "generic_metrics_sample_rate": 0.2,
                 "eap_sample_rate": 0.25,
                 "relative_deviation": pytest.approx(0.2),
@@ -112,7 +112,7 @@ class ProjectBalancingCalculationsTest(TestCase):
             },
             {
                 "org_id": org.id,
-                "project_id": project_without_volume.id,
+                "dynamic_sampling_project_id": project_without_volume.id,
                 "generic_metrics_sample_rate": 0.96,
                 "eap_sample_rate": 1.0,
                 "relative_deviation": pytest.approx(0.04),
@@ -288,7 +288,7 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert extras == [
             {
                 "org_id": org.id,
-                "project_id": project.id,
+                "dynamic_sampling_project_id": project.id,
                 "generic_metrics_implicit_rate": 0.45,
                 "eap_implicit_rate": 0.5,
                 "relative_deviation": pytest.approx(0.1),
@@ -296,7 +296,7 @@ class TransactionBalancingCalculationsTest(TestCase):
             },
             {
                 "org_id": org.id,
-                "project_id": project.id,
+                "dynamic_sampling_project_id": project.id,
                 "transaction": "checkout",
                 "generic_metrics_sample_rate": 0.2,
                 "eap_sample_rate": 0.25,
@@ -305,7 +305,7 @@ class TransactionBalancingCalculationsTest(TestCase):
             },
             {
                 "org_id": org.id,
-                "project_id": project.id,
+                "dynamic_sampling_project_id": project.id,
                 "transaction": "cart",
                 "generic_metrics_sample_rate": 1.0,
                 "eap_sample_rate": 0.96,

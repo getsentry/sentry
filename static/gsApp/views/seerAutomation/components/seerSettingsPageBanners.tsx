@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 
+import {NoActiveSeerSubscriptionBanner} from 'sentry/components/seer/noActiveSeerSubscriptionBanner';
 import {t} from 'sentry/locale';
+import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
-import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
-import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 export function SeerSettingsPageBanners() {
   const subscription = useSubscription();
