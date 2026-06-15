@@ -889,6 +889,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",

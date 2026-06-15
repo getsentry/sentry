@@ -14,7 +14,6 @@ from typing import Any, Final, Literal
 from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -25,6 +24,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
+from sentry.pr_metrics.utils import resolved_group_ids
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -127,20 +127,6 @@ def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     ]
 
 
-def _resolved_group_ids(pull_request: PullRequest) -> list[int]:
-    """Group IDs this PR resolves, from the resolving GroupLink rows.
-
-    Sorted for a deterministic row; empty when the PR resolves no issues.
-    """
-    return sorted(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=pull_request.id,
-        ).values_list("group_id", flat=True)
-    )
-
-
 def _merge_commit_id(pull_request: PullRequest) -> int | None:
     """The Sentry Commit row id for the PR's merge commit, if Sentry tracks it.
 
@@ -241,7 +227,7 @@ def emit_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,
         attributions=attributions,
-        group_ids=_resolved_group_ids(pull_request),
+        group_ids=resolved_group_ids(pull_request),
     )
     analytics.record(row)
     metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})
