@@ -152,9 +152,23 @@ function CustomFilterModal({
           </Flex>
 
           <Flex direction="column" gap="sm">
-            <Text bold size="sm">
-              {t('Conditions')}
-            </Text>
+            <Flex justify="between" align="center" gap="md">
+              <Text bold size="sm">
+                {t('Conditions')}
+              </Text>
+              <Button
+                size="sm"
+                icon={<IconAdd />}
+                onClick={() =>
+                  setDraft(current => ({
+                    ...current,
+                    conditions: [...current.conditions, emptyCondition()],
+                  }))
+                }
+              >
+                {t('Add Condition')}
+              </Button>
+            </Flex>
             <Text variant="muted" size="sm">
               {t('Each condition is a glob pattern matched against the selected field.')}
             </Text>
@@ -196,20 +210,6 @@ function CustomFilterModal({
                 />
               </Flex>
             ))}
-            <Flex>
-              <Button
-                size="sm"
-                icon={<IconAdd />}
-                onClick={() =>
-                  setDraft(current => ({
-                    ...current,
-                    conditions: [...current.conditions, emptyCondition()],
-                  }))
-                }
-              >
-                {t('Add Condition')}
-              </Button>
-            </Flex>
           </Flex>
         </Flex>
       </Body>
