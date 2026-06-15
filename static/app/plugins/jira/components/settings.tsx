@@ -95,11 +95,19 @@ export class Settings extends DefaultSettings<Props, State> {
       body.default_issue_type = null;
       body.default_priority = null;
     }
+    let responseMeta: any;
+    let statusText: string | undefined;
     try {
-      const data: ApiData = await this.api.requestPromise(this.getPluginEndpoint(), {
-        data: body,
-        method: 'PUT',
-      });
+      const [data, status, meta] = await this.api.requestPromise(
+        this.getPluginEndpoint(),
+        {
+          data: body,
+          method: 'PUT',
+          includeAllArgs: true,
+        }
+      );
+      statusText = status;
+      responseMeta = meta;
       this.onSaveSuccess(() => {
         const formData = {};
         const initialData = {};
@@ -132,7 +140,7 @@ export class Settings extends DefaultSettings<Props, State> {
         });
       });
     } finally {
-      this.onSaveComplete();
+      this.onSaveComplete(null, responseMeta, statusText ?? '');
     }
   }
 
