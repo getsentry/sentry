@@ -34,6 +34,7 @@ from sentry.tasks.summaries.utils import (
     _project_key_errors_snuba,
     _project_key_performance_issues_eap,
     _project_key_performance_issues_snuba,
+    org_key_errors,
     organization_project_issue_substatus_summaries,
     project_key_errors,
     user_project_ownership,
@@ -372,6 +373,102 @@ class WeeklyReportsTest(
         user_project_ownership(ctx)
         key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
         assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
+
+    def test_org_key_errors_batched(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group2 = event2.group
+        group2.status = GroupStatus.RESOLVED
+        group2.substatus = None
+        group2.resolved_at = self.now - timedelta(minutes=1)
+        group2.save()
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+        result = org_key_errors(ctx, [self.project.id], Referrer.REPORTS_KEY_ERRORS.value)
+        assert result == {self.project.id: [{"events.group_id": event1.group.id, "count()": 1}]}
+
+    @with_feature("organizations:weekly-report-batched-key-errors")
+    def test_message_builder_filter_resolved_batched(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group2 = event2.group
+        group2.status = GroupStatus.RESOLVED
+        group2.substatus = None
+        group2.resolved_at = self.now - timedelta(minutes=1)
+        group2.save()
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+
+        key_errors_by_project = org_key_errors(
+            ctx, project_ids=[self.project.id], referrer=Referrer.REPORTS_KEY_ERRORS.value
+        )
+        for project_id, key_errors in key_errors_by_project.items():
+            ctx.projects_context_map[project_id].key_errors_by_id = [
+                (e["events.group_id"], e["count()"]) for e in key_errors
+            ]
+
+        key_error_ids = {
+            group_id for group_id, _ in ctx.projects_context_map[self.project.id].key_errors_by_id
+        }
+        assert event1.group.id in key_error_ids
+        assert event3.group.id in key_error_ids
+        assert len(ctx.projects_context_map[self.project.id].key_errors_by_id) == 2
 
     def test_project_key_errors_eap_matches_snuba(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)

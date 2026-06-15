@@ -16,7 +16,7 @@ import {useApi} from 'sentry/utils/useApi';
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {AddOnCategory, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
+import {AddOnCategory, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
   BillingDetails,
   CheckoutAddOns,
@@ -28,11 +28,11 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {
-  getAmPlanTier,
   getReservedBudgetCategoryForAddOn,
   getSlot,
   hasPartnerMigrationFeature,
   hasSomeBillingDetails,
+  isAm3Plan,
   isBizPlanFamily,
   isTeamPlanFamily,
   isTrialPlan,
@@ -721,7 +721,7 @@ export function getContentForPlan(plan: Plan): PlanContent {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
         dashboard: t('Unlimited custom dashboards'),
-        ...(getAmPlanTier(plan.id) === PlanTier.AM3 && {
+        ...(isAm3Plan(plan.id) && {
           application_insights: t('Application Insights'),
         }),
         advanced_filtering: t('Advanced server-side filtering'),
