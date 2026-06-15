@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {
-  useSeerAgentSelectOptions,
+  seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
@@ -60,7 +60,9 @@ export function AutofixAgent({canWrite, project}: Props) {
     knownAgentIntegrationsQueryOptions({organization})
   );
 
-  const agentSelectOptions = useSeerAgentSelectOptions();
+  const {data: agentSelectOptions = []} = useQuery(
+    seerAgentIntegrationsSelectQueryOptions({organization})
+  );
   const stoppingPointOptions = useStoppingPointSelectOptions();
 
   const updateProject = useUpdateProject(project);

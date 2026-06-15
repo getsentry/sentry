@@ -185,6 +185,45 @@ describe('useGetTraceItemAttributeTagKeys', () => {
     expect(mockWithResults).toHaveBeenCalledTimes(2);
   });
 
+  it('filters hidden keys by both key and display name', async () => {
+    mockTraceItemAttributeKeysByType({
+      body: [
+        {
+          attributeType: 'string',
+          key: 'log.field',
+          name: 'log.field',
+          kind: FieldKind.TAG,
+        },
+        // Explicitly-typed key whose display name is the hidden field.
+        {
+          attributeType: 'number',
+          key: 'tags[project_id,number]',
+          name: 'project_id',
+          kind: FieldKind.MEASUREMENT,
+        },
+        // Plain hidden key.
+        {
+          attributeType: 'string',
+          key: 'project.id',
+          name: 'project.id',
+          kind: FieldKind.TAG,
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(useGetTraceItemAttributeTagKeys, {
+      initialProps: {
+        itemType: TraceItemDataset.LOGS,
+        hiddenKeys: ['project_id', 'project.id'],
+      },
+    });
+
+    const tags = await result.current('search-query');
+
+    expect(tags).toHaveLength(1);
+    expect(tags).toMatchObject([{key: 'log.field', name: 'log.field'}]);
+  });
+
   it('appends extraTags that are not in fetched results', async () => {
     mockTraceItemAttributeKeysByType({
       body: [

@@ -157,6 +157,15 @@ class TestTaggedEventCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
+    def test_json_schema_rejects_bracket_keys(self) -> None:
+        self.dc.comparison = {
+            "match": MatchType.EQUAL,
+            "key": "flags[use-iframe-in-sidebar]",
+            "value": "true",
+        }
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
     def test_equals(self) -> None:
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"}

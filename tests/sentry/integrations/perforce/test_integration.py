@@ -14,7 +14,7 @@ from sentry.integrations.perforce.integration import (
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -258,7 +258,8 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert serializer.validate_web_url("http://swarm.example.com") == "http://swarm.example.com"
 
-    def test_serializer_normalizes_schemeless_web_url_end_to_end(self) -> None:
+    @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
+    def test_serializer_normalizes_schemeless_web_url_end_to_end(self, mock_safe_hostname) -> None:
         """
         Exercise the full serializer, not just validate_web_url directly. With a URLField
         the field-level URLValidator rejected schemeless input before validate_web_url ran,
@@ -510,7 +511,8 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
             with pytest.raises(InvalidP4Port):
                 validate_p4port_transport(value)
 
-    def test_validate_p4port_transport_allows_host_port(self) -> None:
+    @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
+    def test_validate_p4port_transport_allows_host_port(self, mock_safe_hostname) -> None:
         for value in (
             "perforce.example.com:1666",
             "test-host.example.com:1666",
@@ -520,7 +522,8 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
         ):
             validate_p4port_transport(value)
 
-    def test_validate_p4port_transport_allows_every_transport(self) -> None:
+    @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
+    def test_validate_p4port_transport_allows_every_transport(self, mock_safe_hostname) -> None:
         for transport in (
             "tcp",
             "tcp4",
@@ -548,10 +551,18 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
             with pytest.raises(InvalidP4Port):
                 validate_p4port_transport(f"{transport}:perforce.example.com:1666")
 
-    def test_serializer_accepts_valid_p4port(self) -> None:
+    @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
+    def test_serializer_accepts_valid_p4port(self, mock_safe_hostname) -> None:
         serializer = PerforceInstallationSerializer(data=self._base_payload())
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["p4port"] == "ssl:perforce.example.com:1666"
+
+    def test_serializer_rejects_internal_host(self) -> None:
+        payload = self._base_payload()
+        payload["p4port"] = "tcp:169.254.169.254:1666"
+        serializer = PerforceInstallationSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert "p4port" in serializer.errors
 
     def test_client_connect_rejects_invalid_p4port_metadata(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -567,6 +578,52 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
         with pytest.raises(ApiError):
             with client._connect():
                 pass
+
+    def test_client_connect_rejects_internal_host(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="perforce",
+                name="Perforce",
+                external_id="perforce-local",
+                metadata={"p4port": "tcp:169.254.169.254:1666", "user": "u", "password": "p"},
+            )
+        installation = integration.get_installation(self.organization.id)
+        client = installation.get_client()
+        with pytest.raises(ApiError):
+            with client._connect():
+                pass
+
+    def _installation_for_update(self, external_id: str) -> PerforceIntegration:
+        with assume_test_silo_mode(SiloMode.CELL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="perforce",
+                name="Perforce",
+                external_id=external_id,
+                metadata={"p4port": "ssl:perforce.example.com:1666", "user": "u", "password": "p"},
+            )
+        installation = integration.get_installation(self.organization.id)
+        assert isinstance(installation, PerforceIntegration)
+        return installation
+
+    def test_update_organization_config_rejects_disallowed_transport(self) -> None:
+        installation = self._installation_for_update("perforce-update-invalid")
+        with pytest.raises(IntegrationError):
+            installation.update_organization_config({"p4port": "demo:test"})
+
+    def test_update_organization_config_rejects_internal_host(self) -> None:
+        installation = self._installation_for_update("perforce-update-local")
+        with pytest.raises(IntegrationError):
+            installation.update_organization_config({"p4port": "tcp:169.254.169.254:1666"})
+
+    @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
+    def test_update_organization_config_accepts_and_normalizes_p4port(
+        self, mock_safe_hostname
+    ) -> None:
+        installation = self._installation_for_update("perforce-update-ok")
+        installation.update_organization_config({"p4port": "tcp:perforce.example.com:1666/"})
+        assert installation.get_config_data()["p4port"] == "tcp:perforce.example.com:1666"
 
 
 class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
@@ -931,6 +988,9 @@ class PerforceApiPipelineTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+        patcher = patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def _get_pipeline_url(self) -> str:
         return reverse(
