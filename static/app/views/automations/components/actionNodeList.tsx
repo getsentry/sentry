@@ -79,6 +79,9 @@ export function ActionNodeList({
     const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
+      if (action.type === ActionType.PLUGIN) {
+        return;
+      }
       const label =
         actionNodesMap.get(action.type)?.label || action.sentryApp?.name || action.type;
       const newAction = {

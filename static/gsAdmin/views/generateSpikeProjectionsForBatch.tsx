@@ -9,9 +9,9 @@ import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {getCells} from 'sentry/utils/cells';
 import {getFormat} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {getCells} from 'sentry/utils/regions';
 
 import {PageHeader} from 'admin/components/pageHeader';
 

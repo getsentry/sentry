@@ -11,8 +11,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Region} from 'sentry/types/system';
+import {getLocalities} from 'sentry/utils/cells';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {getLocalities} from 'sentry/utils/regions';
 
 import {PageHeader} from 'admin/components/pageHeader';
 

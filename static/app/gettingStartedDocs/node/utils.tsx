@@ -236,9 +236,9 @@ Sentry.init({
   profilesSampleRate: 1.0,`
   }
 
-  // To disable sending user data, uncomment the line below. For more info visit:
+  // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
   // https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false },
+  // dataCollection: { userInfo: false, httpBodies: [] },
 });${
                 params.profilingOptions?.defaultProfilingMode === 'continuous' &&
                 profilingLifecycle === 'trace'
@@ -360,9 +360,9 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for MCP monitoring to work
   tracesSampleRate: 1.0,
-  // To disable sending user data, uncomment the line below. For more info visit:
+  // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
   // https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false },
+  // dataCollection: { userInfo: false, httpBodies: [] },
 });`,
             },
           ],
@@ -618,9 +618,9 @@ Sentry.init({
     profileLifecycle: 'trace',`
       : ''
   }
-  // To disable sending user data, uncomment the line below. For more info visit:
+  // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
   // https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false },
+  // dataCollection: { userInfo: false, httpBodies: [] },
   });${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'

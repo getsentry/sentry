@@ -7,7 +7,7 @@ import {
   getLocalityUrlOptions,
   getLocalityDataFromOrganization,
   getLocalities,
-} from 'sentry/utils/regions';
+} from 'sentry/utils/cells';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
