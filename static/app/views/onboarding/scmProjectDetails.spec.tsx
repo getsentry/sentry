@@ -213,6 +213,8 @@ describe('ScmProjectDetails', () => {
     // The repo link runs after the project POST resolves, i.e. while the create
     // mutation is no longer pending. Delaying it holds the flow in exactly the
     // window where the button used to re-enable and accept a duplicate create.
+    // The delay must comfortably exceed userEvent's inter-click time so a loaded
+    // CI runner can't let it elapse mid-second-click and re-enable the button.
     const repoLinkRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${created.slug}/repo/`,
       method: 'POST',
@@ -223,7 +225,7 @@ describe('ScmProjectDetails', () => {
         source: 'scm_onboarding',
         created: true,
       },
-      asyncDelay: 50,
+      asyncDelay: 1000,
     });
 
     const props = defaultProps({
@@ -240,9 +242,14 @@ describe('ScmProjectDetails', () => {
     expect(createButton).toBeDisabled();
     await userEvent.click(createButton);
 
-    await waitFor(() => {
-      expect(props.onComplete).toHaveBeenCalledTimes(1);
-    });
+    // Completion only fires once the delayed repo link resolves, so give the
+    // wait headroom over the asyncDelay above.
+    await waitFor(
+      () => {
+        expect(props.onComplete).toHaveBeenCalledTimes(1);
+      },
+      {timeout: 5000}
+    );
     expect(createRequest).toHaveBeenCalledTimes(1);
     expect(repoLinkRequest).toHaveBeenCalledTimes(1);
   });
