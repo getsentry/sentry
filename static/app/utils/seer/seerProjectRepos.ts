@@ -58,7 +58,6 @@ function getRepoLookupFromCache(
   return lookup;
 }
 
-// TODO: fetch this whenever a single repo is updated. It's more efficient
 function getSeerProjectRepoQueryOptions({
   organization,
   project,
@@ -81,8 +80,6 @@ function getSeerProjectRepoQueryOptions({
   );
 }
 
-// TODO: Call this to update a single repo instead of updating everything.
-// It's more efficient because we don't need to send/receive the entire list of repos.
 export function getMutateSeerProjectRepoOptions({
   organization,
   project,
@@ -276,7 +273,6 @@ export function getSeerProjectReposInfiniteQueryOptions({
   );
 }
 
-// POST -> add repo
 export function getMutateSeerProjectReposOptionsAddRepo({
   organization,
   project,
@@ -335,16 +331,15 @@ export function getMutateSeerProjectReposOptionsAddRepo({
       }
     },
     onSettled: (_data, _error, variables, _context) => {
-      queryClient.invalidateQueries({
-        queryKey: variables.repos.map(
-          repo =>
-            getSeerProjectRepoQueryOptions({
-              organization,
-              project,
-              repoId: repo.repositoryId.toString(),
-            }).queryKey
-        ),
-      });
+      for (const repo of variables.repos) {
+        queryClient.invalidateQueries({
+          queryKey: getSeerProjectRepoQueryOptions({
+            organization,
+            project,
+            repoId: repo.repositoryId.toString(),
+          }).queryKey,
+        });
+      }
       queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
     },
   });
