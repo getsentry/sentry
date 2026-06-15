@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import threading
 from collections.abc import MutableSequence, Sequence
+from pathlib import Path
 from typing import NoReturn
 
 import click
@@ -461,9 +462,17 @@ def devserver(
 
         cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
-        from sentry.runner.formatting import get_honcho_printer
+        from sentry.runner.formatting import TeeStream, get_honcho_printer
 
-        honcho_printer = get_honcho_printer(prefix=prefix, pretty=pretty)
+        log_path = Path(
+            os.environ.get("SENTRY_DEV_LOG_FILE", os.path.join(cwd, ".artifacts", "dev.log"))
+        )
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_file = open(log_path, "w", encoding="utf-8")
+
+        honcho_printer = get_honcho_printer(
+            prefix=prefix, pretty=pretty, output=TeeStream(sys.stdout, log_file)
+        )
 
         manager = Manager(honcho_printer)
         for name, cmd in daemons:
