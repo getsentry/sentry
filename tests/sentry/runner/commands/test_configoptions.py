@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from django.conf import settings
@@ -267,3 +268,82 @@ class ConfigOptionsTest(CliTestCase):
         assert not options.isset("readonly_option")
         assert not options.isset("invalid_type")
         assert options.get("int_option") == 50
+
+    def test_validate(self) -> None:
+        # validate reports nothing and exits 0 for a clean file, and writes
+        # nothing to the DB.
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/valid_patch.yaml",
+            "validate",
+        )
+
+        assert rv.exit_code == 0, rv.output
+        self._clean_cache()
+        assert not options.isset("int_option")
+        assert not options.isset("map_option")
+        assert not options.isset("list_option")
+
+    def test_validate_multiple_files(self) -> None:
+        # validate accepts -f multiple times and checks every file in a single
+        # invocation, aggregating errors and exiting non-zero if any file is
+        # invalid. The valid file alone would pass.
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/multifile_a.yaml",
+            "-f",
+            "tests/sentry/runner/commands/badpatch.yaml",
+            "validate",
+        )
+
+        assert rv.exit_code == 2, rv.output
+        assert ConsolePresenter.UNREGISTERED_OPTION_ERROR % "inexistent_option" in rv.output
+        assert (
+            ConsolePresenter.INVALID_TYPE_ERROR % ("invalid_type", "<class 'list'>", "integer")
+            in rv.output
+        )
+        # Nothing is written, even for the valid options.
+        self._clean_cache()
+        assert not options.isset("int_option")
+
+    def test_validate_does_not_read_option_store(self) -> None:
+        # validate must never touch the option store, so it can run without a
+        # database. Make every store read blow up and confirm validate still
+        # works and still catches registration/type/flag errors.
+        reads = {
+            "sentry.options.isset": AssertionError("read option store"),
+            "sentry.options.get": AssertionError("read option store"),
+            "sentry.options.get_last_update_channel": AssertionError("read option store"),
+        }
+        with mock.patch.multiple(
+            "sentry.options",
+            isset=mock.Mock(side_effect=reads["sentry.options.isset"]),
+            get=mock.Mock(side_effect=reads["sentry.options.get"]),
+            get_last_update_channel=mock.Mock(
+                side_effect=reads["sentry.options.get_last_update_channel"]
+            ),
+        ):
+            rv = self.invoke(
+                "-f",
+                "tests/sentry/runner/commands/badpatch.yaml",
+                "validate",
+            )
+
+        assert rv.exit_code == 2, rv.output
+        assert ConsolePresenter.UNREGISTERED_OPTION_ERROR % "inexistent_option" in rv.output
+        assert (
+            ConsolePresenter.INVALID_TYPE_ERROR % ("invalid_type", "<class 'list'>", "integer")
+            in rv.output
+        )
+
+    def test_patch_rejects_multiple_files(self) -> None:
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/multifile_a.yaml",
+            "-f",
+            "tests/sentry/runner/commands/multifile_b.yaml",
+            "patch",
+        )
+
+        assert rv.exit_code != 0
+        assert "single file" in rv.output

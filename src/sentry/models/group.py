@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections import defaultdict, namedtuple
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
@@ -368,12 +368,37 @@ class GroupManager(BaseManager["Group"]):
             .with_post_update_signal(options.get("groups.enable-post-update-signal"))
         )
 
-    def by_qualified_short_id(self, organization_id: int, short_id: str):
-        return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
+    def by_qualified_short_id(
+        self,
+        organization_id: int,
+        short_id: str,
+        *,
+        project_ids: Collection[int] | None,
+    ):
+        return self.by_qualified_short_id_bulk(
+            organization_id, [short_id], project_ids=project_ids
+        )[0]
 
     def by_qualified_short_id_bulk(
-        self, organization_id: int, short_ids_raw: list[str]
+        self,
+        organization_id: int,
+        short_ids_raw: list[str],
+        *,
+        project_ids: Collection[int] | None,
     ) -> Sequence[Group]:
+        """
+        Resolve qualified short ids (e.g. ``PROJECT-123``) to groups.
+
+        Always scoped to ``organization_id``. ``project_ids`` is **required** (keyword-only, no
+        default) to prevent an accidental in-org IDOR: when it is a collection (including an
+        empty one), the lookup is additionally scoped to those projects so a short id
+        referencing a project the caller cannot access does not resolve. Callers with an
+        authorized-project set (the projects the actor is allowed to see) MUST pass it so
+        project-level permissions are enforced at the query layer rather than via a post-hoc
+        check. Pass ``project_ids=None`` ONLY when the caller legitimately operates
+        organization-wide (e.g. commit/PR linking, system RPCs, or reads already scoped to the
+        requested projects downstream); doing so is explicit and reviewable at the call site.
+        """
         short_ids = []
         for short_id_raw in short_ids_raw:
             parsed_short_id = parse_short_id(short_id_raw)
@@ -402,6 +427,9 @@ class GroupManager(BaseManager["Group"]):
                 GroupStatus.PENDING_MERGE,
             ]
         ).filter(project__organization=organization_id)
+
+        if project_ids is not None:
+            base_group_queryset = base_group_queryset.filter(project_id__in=project_ids)
 
         groups = list(base_group_queryset.filter(short_id_lookup).select_related("project"))
         # Key the lookup by ShortId(project_slug, short_id): short ids are only unique per
