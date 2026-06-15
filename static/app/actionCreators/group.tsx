@@ -7,6 +7,7 @@ import type {Tag as GroupTag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 
 type ParamsType = {
@@ -94,7 +95,7 @@ export async function bulkDelete(
   GroupStore.onDelete(id, itemIds);
 
   let responseMeta: any;
-  let statusText = '';
+  let statusText: string | undefined;
 
   try {
     const [data, status, meta] = await api.requestPromise(path, {
@@ -107,10 +108,10 @@ export async function bulkDelete(
     GroupStore.onDeleteSuccess(id, itemIds, data);
     options?.success?.(data, statusText, responseMeta);
   } catch (error) {
-    GroupStore.onDeleteError(id, itemIds, error);
+    GroupStore.onDeleteError(id, itemIds, error as RequestError);
     options?.error?.(error);
   } finally {
-    options?.complete?.(responseMeta, statusText);
+    options?.complete?.(responseMeta, statusText ?? '');
   }
 }
 
@@ -133,7 +134,7 @@ export async function bulkUpdate(
   GroupStore.onUpdate(id, itemIds, data);
 
   let responseMeta: any;
-  let statusText = '';
+  let statusText: string | undefined;
 
   try {
     const [response, status, meta] = await api.requestPromise(path, {
@@ -150,7 +151,7 @@ export async function bulkUpdate(
     GroupStore.onUpdateError(id, itemIds, !!failSilently);
     options?.error?.(error);
   } finally {
-    options?.complete?.(responseMeta, statusText);
+    options?.complete?.(responseMeta, statusText ?? '');
   }
 }
 
@@ -170,7 +171,7 @@ export async function mergeGroups(
   GroupStore.onMerge(id, itemIds);
 
   let responseMeta: any;
-  let statusText = '';
+  let statusText: string | undefined;
 
   try {
     const [response, status, meta] = await api.requestPromise(path, {
@@ -187,7 +188,7 @@ export async function mergeGroups(
     GroupStore.onMergeError(id, itemIds, error);
     options?.error?.(error);
   } finally {
-    options?.complete?.(responseMeta, statusText);
+    options?.complete?.(responseMeta, statusText ?? '');
   }
 }
 
