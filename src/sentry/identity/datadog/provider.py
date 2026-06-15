@@ -295,7 +295,13 @@ class DatadogIdentityProvider(OAuth2Provider):
         if not access_token:
             raise ValueError("Datadog token exchange did not return an access_token")
 
-        user = get_user_info(access_token, self._get_oauth_parameter("site"))
+        site = self._get_oauth_parameter("site")
+        user = get_user_info(access_token, site)
+
+        if "user_uuid" not in user or "org_uuid" not in user:
+            raise IdentityNotValid(
+                "User info response missing required fields (user_uuid, org_uuid)"
+            )
 
         oauth_data = self.get_oauth_data(token_data)
 
@@ -306,11 +312,13 @@ class DatadogIdentityProvider(OAuth2Provider):
             raise IdentityNotValid("Missing DCR credentials")
         oauth_data["client_id"] = client_id
         oauth_data["client_secret"] = client_secret
-        oauth_data["site"] = self._get_oauth_parameter("site")
+        oauth_data["site"] = site
 
         return {
             "type": IntegrationProviderSlug.DATADOG,
             "id": user["user_uuid"],
+            "idp_external_id": user["org_uuid"],
+            "idp_config": {"site": site},
             "email": user.get("user_email"),
             "name": user.get("user_name"),
             "scopes": [],

@@ -20,7 +20,6 @@ type Props = AdminConfirmRenderProps & {
 
 type State = {
   trialDays: number;
-  trialPlanOverride?: string;
   trialTier?: PlanTier;
 };
 
@@ -34,7 +33,6 @@ export class TrialSubscriptionAction extends Component<Props, State> {
         ? 28
         : 14,
     trialTier: PlanTier.AM3,
-    trialPlanOverride: undefined,
   };
 
   componentDidMount() {
@@ -42,7 +40,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
   }
 
   handleConfirm = (_params: AdminConfirmParams) => {
-    const {trialDays, trialTier, trialPlanOverride} = this.state;
+    const {trialDays, trialTier} = this.state;
     const {startEnterpriseTrial, onConfirm} = this.props;
 
     // XXX(epurkhiser): In the original implementation none of the audit params
@@ -53,7 +51,6 @@ export class TrialSubscriptionAction extends Component<Props, State> {
       ...(startEnterpriseTrial && {
         startEnterpriseTrial,
         trialTier,
-        trialPlanOverride,
       }),
     };
 
@@ -77,8 +74,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
 
   render() {
     const {subscription, startEnterpriseTrial} = this.props;
-    const {trialDays, trialTier, trialPlanOverride} = this.state;
-    const AM3_ENTERPRISE_TRIAL_PLAN = 'am3_t_ent_ds';
+    const {trialDays, trialTier} = this.state;
 
     if (!subscription) {
       return null;
@@ -90,7 +86,6 @@ export class TrialSubscriptionAction extends Component<Props, State> {
     const trialEndDate = currentTrialEnd.add(trialDays, 'days').format('MMMM Do YYYY');
 
     const tierChoices: Array<[string | PlanTier, string | PlanTier]> = [
-      [AM3_ENTERPRISE_TRIAL_PLAN, 'am3 with Dynamic Sampling'],
       [PlanTier.AM3, PlanTier.AM3],
       [PlanTier.AM2, PlanTier.AM2],
       [PlanTier.AM1, PlanTier.AM1],
@@ -127,13 +122,9 @@ export class TrialSubscriptionAction extends Component<Props, State> {
               flexibleControlStateSize
               label="Trial Plan Tier"
               name="tier"
-              value={trialPlanOverride ?? trialTier}
+              value={trialTier}
               onChange={(val: any) => {
-                if (val === AM3_ENTERPRISE_TRIAL_PLAN) {
-                  this.setState({trialPlanOverride: val});
-                } else {
-                  this.setState({trialTier: val, trialPlanOverride: undefined});
-                }
+                this.setState({trialTier: val});
               }}
               choices={tierChoices}
             />

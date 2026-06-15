@@ -15,7 +15,12 @@ from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
 
 @override_options(
-    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+    {
+        **DEFAULT_OPTIONS,
+        "spans.drop-in-buffer": [],
+        "spans.process-segments.schema-validation": 0.0,
+        "spans.buffer.use-msgspec-decoder": 0.0,
+    }
 )
 @pytest.mark.parametrize("kafka_slice_id", [None, 2])
 def test_basic(kafka_slice_id: int | None) -> None:
@@ -102,7 +107,116 @@ def test_basic(kafka_slice_id: int | None) -> None:
 
 
 @override_options(
-    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+    {
+        **DEFAULT_OPTIONS,
+        "spans.drop-in-buffer": [],
+        "spans.process-segments.schema-validation": 1.0,
+        "spans.buffer.use-msgspec-decoder": 1.0,
+    }
+)
+def test_basic_msgspec_decoder() -> None:
+    # Mirrors `test_basic` but with the msgspec decoder enabled and schema
+    # validation always on, to ensure the decoded event still validates and
+    # produces the same buffered span.
+    with mock.patch("time.sleep"):
+        topic = Topic("test")
+        messages: list[tuple[int, KafkaPayload, int]] = []
+
+        fac = ProcessSpansStrategyFactory(
+            max_batch_size=1,
+            max_batch_time=10,
+            num_processes=1,
+            input_block_size=None,
+            output_block_size=None,
+            produce_to_pipe=lambda project_id, payload, dropped: messages.append(
+                (project_id, payload, dropped)
+            ),
+        )
+
+        commits = []
+
+        def add_commit(offsets, force=False):
+            commits.append(offsets)
+
+        step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
+
+        try:
+            step.submit(
+                Message(
+                    BrokerValue(
+                        partition=Partition(topic, 0),
+                        offset=1,
+                        payload=KafkaPayload(
+                            None,
+                            orjson.dumps(
+                                {
+                                    "organization_id": 1,
+                                    "project_id": 12,
+                                    "span_id": "a" * 16,
+                                    "trace_id": "b" * 32,
+                                    "start_timestamp": 1699999999.0,
+                                    "end_timestamp": 1700000000.0,
+                                    "received": 1700000001.0,
+                                    "retention_days": 90,
+                                    "name": "test-span",
+                                    "status": "ok",
+                                }
+                            ),
+                            [],
+                        ),
+                        timestamp=datetime.now(),
+                    )
+                )
+            )
+
+            step.poll()
+            fac._flusher.current_drift.value = 9000  # "advance" our "clock"
+
+            step.poll()
+            for _ in range(20):
+                if messages:
+                    break
+                step.poll()
+                real_sleep(0.1)
+
+            (_, msg, _) = messages[0]
+
+            result = orjson.loads(msg.value)
+            assert result.pop("flush_id") is not None
+            # The buffered payload is the original raw bytes (enriched by the
+            # buffer with the segment id), not the decoded subset, so all
+            # original fields are preserved.
+            assert result == {
+                "spans": [
+                    {
+                        "attributes": {
+                            "sentry.segment.id": {"type": "string", "value": "aaaaaaaaaaaaaaaa"},
+                        },
+                        "is_segment": True,
+                        "organization_id": 1,
+                        "project_id": 12,
+                        "span_id": "aaaaaaaaaaaaaaaa",
+                        "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        "start_timestamp": 1699999999.0,
+                        "end_timestamp": 1700000000.0,
+                        "received": 1700000001.0,
+                        "retention_days": 90,
+                        "name": "test-span",
+                        "status": "ok",
+                    },
+                ],
+            }
+        finally:
+            fac._flusher.join()
+
+
+@override_options(
+    {
+        **DEFAULT_OPTIONS,
+        "spans.drop-in-buffer": [],
+        "spans.process-segments.schema-validation": 0.0,
+        "spans.buffer.use-msgspec-decoder": 0.0,
+    }
 )
 @pytest.mark.parametrize(
     "field_to_set_none",
@@ -178,7 +292,12 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
 
 
 @override_options(
-    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+    {
+        **DEFAULT_OPTIONS,
+        "spans.drop-in-buffer": [],
+        "spans.process-segments.schema-validation": 0.0,
+        "spans.buffer.use-msgspec-decoder": 0.0,
+    }
 )
 def test_flusher_processes_limit() -> None:
     """Test that flusher respects the max_processes limit"""
@@ -226,7 +345,12 @@ def test_flusher_processes_limit() -> None:
 
 @django_db_all
 @override_options(
-    {**DEFAULT_OPTIONS, "spans.drop-in-buffer": [], "spans.process-segments.schema-validation": 0.0}
+    {
+        **DEFAULT_OPTIONS,
+        "spans.drop-in-buffer": [],
+        "spans.process-segments.schema-validation": 0.0,
+        "spans.buffer.use-msgspec-decoder": 0.0,
+    }
 )
 @pytest.mark.parametrize("kafka_slice_id", [None, 2])
 def test_produce_to_kafka_exception(kafka_slice_id: int | None) -> None:

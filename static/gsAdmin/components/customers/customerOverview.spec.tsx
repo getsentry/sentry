@@ -352,7 +352,6 @@ describe('CustomerOverview', () => {
     const mm2_subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_f',
-      planTier: PlanTier.MM2,
     });
 
     render(

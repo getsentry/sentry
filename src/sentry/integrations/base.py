@@ -398,7 +398,9 @@ class IntegrationInstallation(abc.ABC):
         )
         if integration is None:
             sentry_sdk.set_tag("integration_id", self.model.id)
+            sentry_sdk.set_attribute("integration_id", self.model.id)
             sentry_sdk.set_tag("organization_id", self.organization_id)
+            sentry_sdk.set_attribute("organization_id", self.organization_id)
             raise OrganizationIntegrationNotFound("missing org_integration")
         return integration
 
@@ -497,10 +499,12 @@ class IntegrationInstallation(abc.ABC):
                 raise Identity.DoesNotExist
         identity = identity_service.get_identity(filter={"id": org_integration.default_auth_id})
         if identity is None:
-            scope = sentry_sdk.get_isolation_scope()
-            scope.set_tag("integration_provider", self.model.get_provider().name)
-            scope.set_tag("org_integration_id", org_integration.id)
-            scope.set_tag("default_auth_id", org_integration.default_auth_id)
+            sentry_sdk.set_tag("integration_provider", self.model.get_provider().name)
+            sentry_sdk.set_attribute("integration_provider", self.model.get_provider().name)
+            sentry_sdk.set_tag("org_integration_id", org_integration.id)
+            sentry_sdk.set_attribute("org_integration_id", org_integration.id)
+            sentry_sdk.set_tag("default_auth_id", org_integration.default_auth_id)
+            sentry_sdk.set_attribute("default_auth_id", org_integration.default_auth_id)
             raise Identity.DoesNotExist
         return identity
 

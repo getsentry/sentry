@@ -195,7 +195,9 @@ def prepare_organization_report(
         return
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
+    sentry_sdk.set_attribute("org.slug", organization.slug)
     set_tag("org.id", organization_id)
+    sentry_sdk.set_attribute("org.id", organization_id)
     with WeeklyReportSLO(
         operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
     ).capture() as lifecycle:
@@ -214,6 +216,7 @@ def prepare_organization_report(
         with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
             report_is_available = not ctx.is_empty()
         set_tag("report.available", report_is_available)
+        sentry_sdk.set_attribute("report.available", report_is_available)
 
         if not report_is_available:
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
@@ -557,22 +560,19 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     local_start, local_end = get_local_dates(ctx, user_id)
 
     # Render the first section of the email where we had the table showing the
-    # number of accepted/dropped errors/transactions for each project.
+    # number of accepted errors/transactions for each project.
     def trends():
-        # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
+        # Given an iterator of event counts, sum up their accepted errors/transaction counts.
         def sum_event_counts(project_ctxs):
             event_counts = [
                 (
                     project_ctx.accepted_error_count,
-                    project_ctx.dropped_error_count,
                     project_ctx.accepted_transaction_count,
-                    project_ctx.dropped_transaction_count,
                     project_ctx.accepted_replay_count,
-                    project_ctx.dropped_replay_count,
                 )
                 for project_ctx in project_ctxs
             ]
-            return tuple(sum(event[i] for event in event_counts) for i in range(6))
+            return tuple(sum(event[i] for event in event_counts) for i in range(3))
 
         # Highest volume projects go first
         projects_associated_with_user = sorted(
@@ -583,11 +583,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         # Calculate total
         (
             total_error,
-            total_dropped_error,
             total_transaction,
-            total_dropped_transaction,
             total_replays,
-            total_dropped_replays,
         ) = sum_event_counts(projects_associated_with_user)
 
         # The number of reports to keep is the same as the number of colors
@@ -604,11 +601,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     params={"referrer": "weekly_report", "notification_uuid": notification_uuid}
                 ),
                 "color": project_breakdown_colors[i],
-                "dropped_error_count": project_ctx.dropped_error_count,
                 "accepted_error_count": project_ctx.accepted_error_count,
-                "dropped_transaction_count": project_ctx.dropped_transaction_count,
                 "accepted_transaction_count": project_ctx.accepted_transaction_count,
-                "dropped_replay_count": project_ctx.dropped_replay_count,
                 "accepted_replay_count": project_ctx.accepted_replay_count,
             }
             for i, project_ctx in enumerate(projects_taken)
@@ -617,21 +611,15 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         if len(projects_not_taken) > 0:
             (
                 others_error,
-                others_dropped_error,
                 others_transaction,
-                others_dropped_transaction,
                 others_replays,
-                others_dropped_replays,
             ) = sum_event_counts(projects_not_taken)
             legend.append(
                 {
                     "slug": f"Other ({len(projects_not_taken)})",
                     "color": other_color,
-                    "dropped_error_count": others_dropped_error,
                     "accepted_error_count": others_error,
-                    "dropped_transaction_count": others_dropped_transaction,
                     "accepted_transaction_count": others_transaction,
-                    "dropped_replay_count": others_dropped_replays,
                     "accepted_replay_count": others_replays,
                 }
             )
@@ -640,11 +628,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                 {
                     "slug": f"Total ({len(projects_associated_with_user)})",
                     "color": total_color,
-                    "dropped_error_count": total_dropped_error,
                     "accepted_error_count": total_error,
-                    "dropped_transaction_count": total_dropped_transaction,
                     "accepted_transaction_count": total_transaction,
-                    "dropped_replay_count": total_dropped_replays,
                     "accepted_replay_count": total_replays,
                 }
             )
