@@ -347,7 +347,11 @@ def check_seer_setup_for_project(project: Project) -> bool:
         return False
 
     repos = get_autofix_repos_from_project_code_mappings(project)
-    supported_repos = [repo for repo in repos if repo.get("provider") in get_supported_scm_providers(project.organization)]
+    supported_repos = [
+        repo
+        for repo in repos
+        if repo.get("provider") in get_supported_scm_providers(project.organization)
+    ]
     if not supported_repos:
         return False
 
