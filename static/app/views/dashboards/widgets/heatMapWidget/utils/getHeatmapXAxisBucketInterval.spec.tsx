@@ -1,5 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
-import {getHeatmapXBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXBucketInterval';
+import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
 
 const INTERVAL_OPTIONS = [
   {label: '1 minute', value: '1m'},
@@ -20,21 +20,21 @@ function makeSelection(period: string): PageFilters {
   };
 }
 
-describe('getHeatmapXBucketInterval()', () => {
+describe('getHeatmapXAxisBucketInterval()', () => {
   it('falls back to the provided interval when the width is 0', () => {
     expect(
-      getHeatmapXBucketInterval(makeSelection('24h'), '12h', 0, INTERVAL_OPTIONS)
+      getHeatmapXAxisBucketInterval(makeSelection('24h'), '12h', 0, INTERVAL_OPTIONS)
     ).toBe('12h');
   });
 
   it('picks a larger interval as the container gets narrower', () => {
-    const wide = getHeatmapXBucketInterval(
+    const wide = getHeatmapXAxisBucketInterval(
       makeSelection('24h'),
       '12h',
       1200,
       INTERVAL_OPTIONS
     );
-    const narrow = getHeatmapXBucketInterval(
+    const narrow = getHeatmapXAxisBucketInterval(
       makeSelection('24h'),
       '12h',
       300,
@@ -47,7 +47,7 @@ describe('getHeatmapXBucketInterval()', () => {
   });
 
   it('only returns intervals from the provided options', () => {
-    const result = getHeatmapXBucketInterval(
+    const result = getHeatmapXAxisBucketInterval(
       makeSelection('24h'),
       '12h',
       724,

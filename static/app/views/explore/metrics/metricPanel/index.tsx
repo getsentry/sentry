@@ -22,8 +22,8 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {getHeatmapXBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXBucketInterval';
-import {getHeatmapYBuckets} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYBuckets';
+import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
+import {getHeatmapYAxisBucketCount} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYAxisBucketCount';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -175,13 +175,13 @@ export function MetricPanel({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
-  const xBucketInterval = getHeatmapXBucketInterval(
+  const xBucketInterval = getHeatmapXAxisBucketInterval(
     selection,
     interval,
     chartContainerWidth,
     intervalOptions
   );
-  const yBuckets = getHeatmapYBuckets(
+  const yBuckets = getHeatmapYAxisBucketCount(
     selection,
     xBucketInterval,
     chartContainerWidth,

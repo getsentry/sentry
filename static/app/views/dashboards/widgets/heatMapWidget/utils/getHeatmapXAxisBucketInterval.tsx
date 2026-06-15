@@ -13,7 +13,7 @@ const PIXELS_PER_X_BUCKET = 15;
  * The X-axis bucket interval is derived from the container width and the number of
  * pixels per X bucket.
  */
-export function getHeatmapXBucketInterval(
+export function getHeatmapXAxisBucketInterval(
   selection: PageFilters,
   interval: string,
   chartContainerWidth: number,

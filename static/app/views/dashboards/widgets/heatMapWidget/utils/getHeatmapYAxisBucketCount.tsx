@@ -8,7 +8,7 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
  * divided by the selected interval. We derive Y buckets by scaling
  * xBuckets by the container's height/width aspect ratio.
  */
-export function getHeatmapYBuckets(
+export function getHeatmapYAxisBucketCount(
   selection: PageFilters,
   interval: string,
   chartContainerWidth: number,
