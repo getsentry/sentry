@@ -12431,11 +12431,11 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.19.20
+      '@types/node': 22.19.19
 
   '@types/cors@2.8.19':
     dependencies:
-      '@types/node': 22.19.20
+      '@types/node': 22.19.19
 
   '@types/css-font-loading-module@0.0.7': {}
 
@@ -13927,7 +13927,7 @@ snapshots:
   engine.io@6.6.4:
     dependencies:
       '@types/cors': 2.8.19
-      '@types/node': 22.19.20
+      '@types/node': 22.19.19
       accepts: 1.3.8
       base64id: 2.0.0
       cookie: 0.7.2

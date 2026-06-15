@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
@@ -522,6 +522,25 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
+    def _validate_tracemetrics_equation_constraints(self, data) -> dict[str, Any]:
+        if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
+            return data
+
+        # Tracemetrics timeseries widgets only support a single equation per query
+        if data.get("display_type") in {
+            DashboardWidgetDisplayTypes.LINE_CHART,
+            DashboardWidgetDisplayTypes.AREA_CHART,
+            DashboardWidgetDisplayTypes.BAR_CHART,
+        }:
+            for query in data.get("queries"):
+                aggregates = query.get("aggregates") or []
+                if any(is_equation(aggregate) for aggregate in aggregates) and len(aggregates) > 1:
+                    raise serializers.ValidationError(
+                        {"queries": "Tracemetrics timeseries widgets support at most one equation."}
+                    )
+
+        return data
+
     def validate(self, data):
         self.query_warnings = {"queries": [], "columns": {}}
 
@@ -570,6 +589,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
 
         if data.get("queries"):
+            if data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
+                self._validate_tracemetrics_equation_constraints(data)
+
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
                 if len(query.get("columns", [])) > 0:
