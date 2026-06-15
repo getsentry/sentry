@@ -6,7 +6,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {SAMPLING_MODE, type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
@@ -28,35 +28,25 @@ interface PinnedLogsOptions {
 const WIDE_STATS_PERIOD = '9999d';
 
 export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
-  const organization = useOrganization();
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const userFields = useQueryParamsFields();
 
-  const allRowIds = useMemo(
-    () => new Set(allRows.map(row => row[OurLogKnownFieldKey.ID])),
-    [allRows]
-  );
-
   const missingIds = useMemo(() => {
+    const allRowIds = new Set(allRows.map(row => row[OurLogKnownFieldKey.ID]));
     const pinnedIds = logsPinning?.getPinnedRowIds() ?? [];
     return pinnedIds.filter(id => !allRowIds.has(id));
-  }, [logsPinning, allRowIds]);
-
-  const fields = useMemo(
-    () => Array.from(new Set([...AlwaysPresentLogFields, ...userFields])),
-    [userFields]
-  );
+  }, [logsPinning, allRows]);
 
   const baseQuery = useMemo(
     () => ({
       dataset: DiscoverDatasets.OURLOGS,
-      field: fields,
+      field: Array.from(new Set([...AlwaysPresentLogFields, ...userFields])),
       project: selection.projects,
       environment: selection.environments,
       sampling: SAMPLING_MODE.HIGH_ACCURACY,
       referrer: 'api.explore.logs-pinned',
     }),
-    [fields, selection.projects, selection.environments]
+    [userFields, selection.projects, selection.environments]
   );
 
   const canFetch = pageFiltersReady && !!logsPinning;
@@ -64,18 +54,11 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   // Step 1: Search in the parent selected range for pins that are not loaded yet.
   // Start with this smaller range so we don't have to scan the org's full retention period.
   const inRangeQuery = useQuery(
-    apiOptions.as<EventsLogsResult>()('/organizations/$organizationIdOrSlug/events/', {
-      path:
-        canFetch && missingIds.length > 0
-          ? {organizationIdOrSlug: organization.slug}
-          : skipToken,
-      query: {
-        ...baseQuery,
-        ...normalizeDateTimeParams(selection.datetime),
-        query: `id:[${missingIds.join(',')}]`,
-        per_page: missingIds.length,
-      },
-      staleTime: 0,
+    usePinnedLogsEventsQueryOptions({
+      ids: missingIds,
+      dateParams: normalizeDateTimeParams(selection.datetime),
+      baseQuery,
+      canFetch,
     })
   );
 
@@ -92,18 +75,11 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   }, [inRangeQuery.isSuccess, inRangeQuery.isError, inRangeQuery.data?.data, missingIds]);
 
   const wideQuery = useQuery(
-    apiOptions.as<EventsLogsResult>()('/organizations/$organizationIdOrSlug/events/', {
-      path:
-        canFetch && stillMissingIds.length > 0
-          ? {organizationIdOrSlug: organization.slug}
-          : skipToken,
-      query: {
-        ...baseQuery,
-        statsPeriod: WIDE_STATS_PERIOD,
-        query: `id:[${stillMissingIds.join(',')}]`,
-        per_page: stillMissingIds.length,
-      },
-      staleTime: 0,
+    usePinnedLogsEventsQueryOptions({
+      ids: stillMissingIds,
+      dateParams: {statsPeriod: WIDE_STATS_PERIOD},
+      baseQuery,
+      canFetch,
     })
   );
 
@@ -137,4 +113,45 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
       missingIds.length > 0 &&
       (inRangeQuery.isPending || (stillMissingIds.length > 0 && wideQuery.isPending)),
   };
+}
+
+type PinnedLogsBaseQuery = {
+  dataset: DiscoverDatasets;
+  environment: string[];
+  field: string[];
+  project: number[];
+  referrer: string;
+  sampling: SamplingMode;
+};
+
+function usePinnedLogsEventsQueryOptions({
+  ids,
+  dateParams,
+  baseQuery,
+  canFetch,
+}: {
+  baseQuery: PinnedLogsBaseQuery;
+  canFetch: boolean;
+  dateParams: ReturnType<typeof normalizeDateTimeParams>;
+  ids: string[];
+}) {
+  const organization = useOrganization();
+
+  return useMemo(
+    () =>
+      apiOptions.as<EventsLogsResult>()('/organizations/$organizationIdOrSlug/events/', {
+        path:
+          canFetch && ids.length > 0
+            ? {organizationIdOrSlug: organization.slug}
+            : skipToken,
+        query: {
+          ...baseQuery,
+          ...dateParams,
+          query: `id:[${ids.join(',')}]`,
+          per_page: ids.length,
+        },
+        staleTime: 0,
+      }),
+    [organization.slug, canFetch, ids, dateParams, baseQuery]
+  );
 }
