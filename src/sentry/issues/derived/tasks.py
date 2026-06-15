@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.process_group_log",
+    name="sentry.issues.derived.tasks.process_group_log_task",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )

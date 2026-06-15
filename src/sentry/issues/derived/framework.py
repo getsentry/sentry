@@ -6,7 +6,7 @@ No Django dependencies — pure Python, fully testable in isolation.
 import copy
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Protocol, runtime_checkable
 
 _MISSING = object()
@@ -28,6 +28,28 @@ class Codec[T]:
 
 
 IDENTITY_CODEC: Codec[Any] = Codec()
+
+
+class EnumCodec[E: StrEnum](Codec[E]):
+    def __init__(self, enum_cls: type[E]) -> None:
+        self._enum_cls = enum_cls
+
+    def load(self, raw: Any) -> E:
+        return self._enum_cls(raw)
+
+    def dump(self, value: E) -> str:
+        return value.value
+
+
+class OptionalCodec[T](Codec[T | None]):
+    def __init__(self, inner: Codec[T]) -> None:
+        self._inner = inner
+
+    def load(self, raw: Any) -> T | None:
+        return self._inner.load(raw) if raw is not None else None
+
+    def dump(self, value: T | None) -> Any:
+        return self._inner.dump(value) if value is not None else None
 
 
 # ---------------------------------------------------------------------------

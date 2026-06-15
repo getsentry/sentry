@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.issues.derived.aggregators import AGGREGATORS
@@ -43,13 +43,13 @@ def _ensure_derived(group_id: int) -> GroupDerivedData:
     # Deferred to avoid circular import: group.py → action_log → processing.py
     from sentry.models.group import Group
 
-    if not Group.objects.filter(id=group_id).exists():
+    try:
+        derived, _created = GroupDerivedData.objects.get_or_create(
+            group_id=group_id,
+            defaults={"cursor_date": EPOCH, "cursor_id": 0, "data": {}},
+        )
+    except IntegrityError:
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
-
-    derived, _created = GroupDerivedData.objects.get_or_create(
-        group_id=group_id,
-        defaults={"cursor_date": EPOCH, "cursor_id": 0, "data": {}},
-    )
     return derived
 
 
@@ -125,7 +125,10 @@ def _process_batch(
         )
         return len(entries) == batch_size
     else:
-        derived.refresh_from_db()
+        try:
+            derived.refresh_from_db()
+        except GroupDerivedData.DoesNotExist:
+            return False
         logger.info(
             "issues.derived.superseded",
             extra={
@@ -153,7 +156,7 @@ def process_group_log_batch(
         p = target_pipeline or PIPELINE
         with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
             derived = _ensure_derived(group_id)
-            has_more = _process_batch(p, derived, group_id, batch_size)
+        has_more = _process_batch(p, derived, group_id, batch_size)
     return ProcessResult(derived=derived, caught_up=not has_more)
 
 
@@ -170,11 +173,10 @@ def process_group_log(
 
     with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
         derived = _ensure_derived(group_id)
-        has_more = _process_batch(p, derived, group_id, batch_size)
 
+    has_more = _process_batch(p, derived, group_id, batch_size)
     while has_more:
-        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-            has_more = _process_batch(p, derived, group_id, batch_size)
+        has_more = _process_batch(p, derived, group_id, batch_size)
 
     return derived
 

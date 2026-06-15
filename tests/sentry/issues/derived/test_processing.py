@@ -1,4 +1,5 @@
 import pytest
+from django.db import router, transaction
 
 from sentry import options
 from sentry.issues.action_log.base import ActionSource, publish_action
@@ -324,3 +325,44 @@ class GroupDerivedDataStoreTest(TestCase):
 
         assert update["data"] == derived.data
         assert update["view_count"] == derived.view_count
+
+
+class _IntentionalRollback(Exception):
+    pass
+
+
+class DerivedDataTransactionTest(TestCase):
+    """Verify derived data processing respects transaction boundaries."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        options.set("issues.action-log.write-to-db", True)
+
+    def tearDown(self) -> None:
+        options.delete("issues.action-log.write-to-db")
+        super().tearDown()
+
+    def test_rolled_back_action_does_not_produce_derived_data(self) -> None:
+        group = self.create_group()
+
+        try:
+            with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
+                _publish(
+                    group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+                )
+                raise _IntentionalRollback
+        except _IntentionalRollback:
+            pass
+
+        assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+    def test_committed_action_produces_derived_data(self) -> None:
+        group = self.create_group()
+
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 1
+        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
+        derived = GroupDerivedData.objects.get(group_id=group.id)
+        assert derived.view_count == 1
