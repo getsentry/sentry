@@ -72,7 +72,7 @@ describe('useStagedCompactSelect', () => {
 
       return (
         <CompactSelect
-          grid
+          mode="grid"
           multiple
           search
           {...stagedSelect.compactSelectProps}
@@ -132,7 +132,7 @@ describe('useStagedCompactSelect', () => {
 
       return (
         <CompactSelect
-          grid
+          mode="grid"
           multiple
           search
           closeOnSelect
@@ -204,7 +204,7 @@ describe('useStagedCompactSelect', () => {
 
       return (
         <CompactSelect
-          grid
+          mode="grid"
           multiple
           search
           {...stagedSelect.compactSelectProps}
@@ -284,7 +284,7 @@ describe('useStagedCompactSelect', () => {
 
       return (
         <CompactSelect
-          grid
+          mode="grid"
           multiple
           search
           {...stagedSelect.compactSelectProps}
@@ -357,7 +357,7 @@ describe('useStagedCompactSelect', () => {
 
       return (
         <CompactSelect
-          grid
+          mode="grid"
           multiple
           search
           {...stagedSelect.compactSelectProps}
@@ -431,7 +431,7 @@ describe('useStagedCompactSelect', () => {
 
       return (
         <CompactSelect
-          grid
+          mode="grid"
           multiple
           search
           {...stagedSelect.compactSelectProps}
@@ -516,7 +516,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -582,7 +582,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -645,7 +645,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -703,7 +703,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -760,7 +760,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -822,7 +822,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -885,7 +885,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -948,7 +948,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -1013,7 +1013,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -1080,7 +1080,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}
@@ -1153,7 +1153,7 @@ describe('useStagedCompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             search
             {...stagedSelect.compactSelectProps}

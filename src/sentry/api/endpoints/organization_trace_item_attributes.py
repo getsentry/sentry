@@ -33,9 +33,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_spans_fields import (
-    BaseSpanFieldValuesAutocompletionExecutor,
-)
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
     TraceItemAttributeSource,
@@ -585,6 +582,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             )
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
+            sentry_sdk.set_attribute("api_response.attributes", str(attributes))
             span.set_data("attribute_count", len(attributes))
             span.set_data("attribute_type", attribute_type)
         return attributes, debug_info
@@ -657,6 +655,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     attribute_keys[attr_key["key"]] = attr_key
         attributes = list(attribute_keys.values())
         sentry_sdk.set_context("api_response", {"attributes": attributes})
+        sentry_sdk.set_attribute("api_response.attributes", str(attributes))
         return attributes
 
 
@@ -679,6 +678,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             )
 
         sentry_sdk.set_tag("query.attribute_key", key)
+        sentry_sdk.set_attribute("query.attribute_key", key)
 
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
@@ -723,7 +723,10 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         )
 
 
-class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletionExecutor):
+class TraceItemAttributeValuesAutocompletionExecutor:
+    PROJECT_SLUG_KEYS = {"project", "project.name"}
+    PROJECT_ID_KEYS = {"project.id"}
+
     def __init__(
         self,
         organization: Organization,
@@ -734,7 +737,10 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         offset: int,
         definitions: ColumnDefinitions,
     ):
-        super().__init__(organization, snuba_params, key, query, limit)
+        self.organization = organization
+        self.snuba_params = snuba_params
+        self.key = key
+        self.query = query or ""
         self.limit = limit
         self.offset = offset
         self.resolver = SearchResolver(
@@ -780,6 +786,32 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             return self.string_autocomplete_function()
 
         return []
+
+    def project_id_autocomplete_function(self) -> list[TagValue]:
+        return [
+            TagValue(
+                key=self.key,
+                value=str(project.id),
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for project in self.snuba_params.projects
+            if not self.query or self.query in str(project.id)
+        ]
+
+    def project_slug_autocomplete_function(self) -> list[TagValue]:
+        return [
+            TagValue(
+                key=self.key,
+                value=project.slug,
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for project in self.snuba_params.projects
+            if not self.query or self.query in project.slug
+        ]
 
     def release_stage_autocomplete_function(self):
         return [

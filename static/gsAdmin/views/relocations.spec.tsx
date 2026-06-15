@@ -1,6 +1,8 @@
 // import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
+
 import {Relocations} from 'admin/views/relocations';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -132,6 +134,7 @@ describe('Relocations', () => {
         },
       ],
     });
+    ConfigStore.set('cells', [{name: 'us', locality_url: 'https://us.sentry.io'}]);
   });
 
   it('renders', async () => {
