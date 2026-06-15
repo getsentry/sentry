@@ -170,7 +170,7 @@ export function AvatarChooser({
     });
   };
 
-  const handleSaveAvatar = () => {
+  const handleSaveAvatar = async () => {
     const avatarType = getAvatar(model)?.avatarType;
     const base64Data = croppedAvatar?.split(',')[1];
     setCroppedAvatar(null);
@@ -193,23 +193,22 @@ export function AvatarChooser({
       data.photoType = data.color ? 'logo' : 'icon';
     }
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data,
-      success: resp => {
-        setModel(resp);
-        onSave?.(resp);
-        addSuccessMessage(t('Successfully saved avatar preferences'));
-      },
-      error: resp => {
-        const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
-        if (avatarPhotoErrors.length) {
-          avatarPhotoErrors.map(addErrorMessage);
-        } else {
-          addErrorMessage(t('There was an error saving your preferences.'));
-        }
-      },
-    });
+    try {
+      const resp = await api.requestPromise(endpoint, {
+        method: 'PUT',
+        data,
+      });
+      setModel(resp);
+      onSave?.(resp);
+      addSuccessMessage(t('Successfully saved avatar preferences'));
+    } catch (resp) {
+      const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
+      if (avatarPhotoErrors.length) {
+        avatarPhotoErrors.map(addErrorMessage);
+      } else {
+        addErrorMessage(t('There was an error saving your preferences.'));
+      }
+    }
   };
 
   const {fileInput, openUpload, objectUrl} = useUploader({
