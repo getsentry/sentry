@@ -80,10 +80,7 @@ import {trackMetric} from 'getsentry/utils/trackMetric';
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
 import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
-import {
-  ContinuousProfilingBillingRequirementBanner,
-  ProfilingBetaAlertBanner,
-} from './components/profiling/alerts';
+import {ContinuousProfilingBillingRequirementBanner} from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import {ReplaySettingsAlert} from './components/replaySettingsAlert';
 import {useButtonTracking} from './overrides/useButtonTracking';
@@ -258,7 +255,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
-  'component:profiling-billing-banner': () => ProfilingBetaAlertBanner,
   'component:product-selection-availability': () => ProductSelectionAvailability,
   'component:superuser-access-category': SuperuserAccessCategory,
   'component:superuser-warning': p => <SuperuserWarning {...p} />,
