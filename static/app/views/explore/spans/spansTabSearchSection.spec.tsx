@@ -12,14 +12,6 @@ jest.mock('sentry/views/explore/hooks/useTraceItemAttributes', () => ({
   useSpanItemAttributes: () => ({attributes: {}, isLoading: false, secondaryAliases: {}}),
 }));
 
-const mockUseExploreSchemaHintsRemoval = jest.fn();
-
-jest.mock('sentry/views/explore/useExploreSchemaHintsRemoval', () => ({
-  get useExploreSchemaHintsRemoval() {
-    return mockUseExploreSchemaHintsRemoval;
-  },
-}));
-
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
@@ -57,19 +49,7 @@ describe('SpanTabSearchSection', () => {
     });
   });
 
-  it('shows schema hints when hook returns false', async () => {
-    mockUseExploreSchemaHintsRemoval.mockReturnValue(false);
-
-    render(<SpanTabSearchSection datePageFilterProps={datePageFilterProps} />, {
-      additionalWrapper: Wrapper,
-    });
-
-    expect(await screen.findByText('See full list')).toBeInTheDocument();
-  });
-
-  it('hides schema hints when hook returns true', async () => {
-    mockUseExploreSchemaHintsRemoval.mockReturnValue(true);
-
+  it('does not render schema hints', async () => {
     render(<SpanTabSearchSection datePageFilterProps={datePageFilterProps} />, {
       additionalWrapper: Wrapper,
     });
