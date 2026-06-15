@@ -196,6 +196,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             run_id=None,
             user_context=None,
             insert_index=None,
+            feedback=None,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -220,6 +221,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             run_id=42,
             user_context=None,
             insert_index=3,
+            feedback=None,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)
@@ -277,7 +279,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_publish.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration")
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_pr_iteration(self, mock_trigger_explorer, mock_get_state):
         group = self.create_group()
@@ -310,6 +312,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             run_id=123,
             user_context=None,
             insert_index=None,
+            feedback=None,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -342,7 +345,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration")
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_pr_iteration_requires_existing_pr(self, mock_trigger_explorer, mock_get_state):
         group = self.create_group()
