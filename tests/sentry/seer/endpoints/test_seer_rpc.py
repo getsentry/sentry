@@ -32,6 +32,11 @@ from sentry.seer.endpoints.seer_rpc import (
     record_pr_attribution,
     validate_repo,
 )
+from sentry.seer.sentry_data_models import (
+    GitHubEnterpriseConfigErrorResponse,
+    GitHubEnterpriseConfigSuccessResponse,
+    SendSeerWebhookSuccessResponse,
+)
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -266,11 +271,11 @@ class TestSeerRpcMethods(APITestCase):
             integration_id=integration.id,
         )
 
-        assert result["success"]
-        assert result["base_url"] == "https://github.example.org/api/v3"
-        assert result["verify_ssl"]
-        assert result["encrypted_access_token"]
-        assert result["permissions"] == {
+        assert isinstance(result, GitHubEnterpriseConfigSuccessResponse)
+        assert result.base_url == "https://github.example.org/api/v3"
+        assert result.verify_ssl
+        assert result.encrypted_access_token
+        assert result.permissions == {
             "administration": "read",
             "contents": "read",
             "issues": "write",
@@ -281,7 +286,7 @@ class TestSeerRpcMethods(APITestCase):
         # Test that the access token is encrypted correctly
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
         decrypted_access_token = fernet.decrypt(
-            result["encrypted_access_token"].encode("utf-8")
+            result.encrypted_access_token.encode("utf-8")
         ).decode("utf-8")
 
         assert decrypted_access_token == access_token
@@ -297,7 +302,7 @@ class TestSeerRpcMethods(APITestCase):
                 integration_id=-1,
             )
 
-        assert not result["success"]
+        assert isinstance(result, GitHubEnterpriseConfigErrorResponse)
         assert "Integration -1 does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
@@ -328,7 +333,7 @@ class TestSeerRpcMethods(APITestCase):
                 integration_id=integration.id,
             )
 
-        assert not result["success"]
+        assert isinstance(result, GitHubEnterpriseConfigErrorResponse)
         assert f"Integration {integration.id} does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
@@ -363,7 +368,7 @@ class TestSeerRpcMethods(APITestCase):
                 integration_id=integration.id,
             )
 
-        assert not result["success"]
+        assert isinstance(result, GitHubEnterpriseConfigErrorResponse)
         assert f"Integration {integration.id} does not exist" in self._caplog.text
 
     @responses.activate
@@ -403,7 +408,7 @@ class TestSeerRpcMethods(APITestCase):
                 integration_id=integration.id,
             )
 
-        assert not result["success"]
+        assert isinstance(result, GitHubEnterpriseConfigErrorResponse)
         assert "Failed to encrypt access token" in self._caplog.text
 
     def test_send_seer_webhook_invalid_event_name(self) -> None:
@@ -515,7 +520,7 @@ class TestSeerRpcMethods(APITestCase):
                 payload={"run_id": 123},
             )
 
-        assert result["success"]
+        assert isinstance(result, SendSeerWebhookSuccessResponse)
         mock_process_autofix_updates.assert_not_called()
         mock_broadcast.assert_called_once()
 
@@ -534,7 +539,7 @@ class TestSeerRpcMethods(APITestCase):
                 payload=event_payload,
             )
 
-        assert result["success"]
+        assert isinstance(result, SendSeerWebhookSuccessResponse)
         mock_process_autofix_updates.apply_async.assert_called_once_with(
             kwargs={
                 "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
