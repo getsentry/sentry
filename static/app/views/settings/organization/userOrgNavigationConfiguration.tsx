@@ -17,7 +17,13 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/details/`,
           title: t('Account Details'),
-          keywords: [t('user settings'), t('account settings')],
+          keywords: [
+            t('user settings'),
+            t('account settings'),
+            t('timezone'),
+            t('clock'),
+            t('language'),
+          ],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
@@ -76,7 +82,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            // The sentry-cli/CI environment variable for the org slug that
+            // developers search for. Not wrapped in t() — fixed config token.
+            'SENTRY_ORG',
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -301,9 +314,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('auth token'),
             t('auth tokens'),
             t('api token'),
+            t('api key'),
+            t('api keys'),
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            t('create new token'),
+            t('create token'),
+            t('new token'),
             'SENTRY_AUTH_TOKEN',
           ],
           description: t('Manage organization tokens'),
@@ -317,9 +335,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('auth token'),
             t('auth tokens'),
             t('api token'),
+            t('api key'),
+            t('api keys'),
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            t('create new token'),
+            t('create token'),
+            t('new token'),
             'SENTRY_AUTH_TOKEN',
           ],
           description: t(

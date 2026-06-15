@@ -348,6 +348,20 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     // (DSN), just like "dsn".
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
+    // Next.js env var name should also surface Client Keys (DSN).
+    ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['environment variables', /Project Settings.*Client Keys \(DSN\)/],
+    ['sdk setup', /Project Settings.*Client Keys \(DSN\)/],
+    ['rate limit', /Project Settings.*Client Keys \(DSN\)/],
+    // "project slug" should surface the project's General Settings.
+    ['project slug', /Project Settings.*General Settings/],
+    ['transfer project', /Project Settings.*General Settings/],
+    // The sentry-cli org env var should surface the org's General Settings.
+    ['SENTRY_ORG', /Settings.*General Settings/],
+    // "api key" and "create new token" should surface the token pages.
+    ['api key', /Organization Tokens/, /Personal Tokens/],
+    ['create new token', /Organization Tokens/, /Personal Tokens/],
+    ['timezone', /Account Details/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 
