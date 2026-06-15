@@ -89,8 +89,7 @@ interface BackendJsonSubmitFormProps {
   }) => React.ReactNode;
   /**
    * Override default values for specific fields. Takes precedence over
-   * `field.default`. Useful for preserving dynamic field selections
-   * across form remounts.
+   * `field.default`.
    */
   initialValues?: Record<string, unknown>;
   /**
