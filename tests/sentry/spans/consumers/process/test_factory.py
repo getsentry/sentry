@@ -1,6 +1,9 @@
+from typing import cast
+
 import msgspec
 import orjson
 import pytest
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process.factory import (
     SPANS_CODEC,
@@ -57,7 +60,7 @@ def test_decode_output_passes_schema_validation() -> None:
     # The reconstructed event must satisfy the ingest-spans schema so that
     # `validate_span_event` does not crash the consumer.
     result = decode_process_span_event(orjson.dumps(_valid_span()))
-    SPANS_CODEC.validate(result)
+    SPANS_CODEC.validate(cast(SpanEvent, result))
 
 
 def test_decode_ignores_unknown_top_level_fields() -> None:
@@ -82,7 +85,7 @@ def test_decode_without_segment_id_attribute() -> None:
     # Attribute is omitted entirely rather than emitted as an invalid entry.
     assert result["attributes"] == {}
     assert attribute_value(result, "sentry.segment.id") is None
-    SPANS_CODEC.validate(result)
+    SPANS_CODEC.validate(cast(SpanEvent, result))
 
 
 def test_decode_without_attributes() -> None:
@@ -92,7 +95,7 @@ def test_decode_without_attributes() -> None:
 
     assert result["attributes"] == {}
     assert attribute_value(result, "sentry.segment.id") is None
-    SPANS_CODEC.validate(result)
+    SPANS_CODEC.validate(cast(SpanEvent, result))
 
 
 @pytest.mark.parametrize(
