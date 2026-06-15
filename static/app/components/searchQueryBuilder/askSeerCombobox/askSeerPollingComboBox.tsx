@@ -147,9 +147,9 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
 
   const {
     submitQuery,
-    isPending,
+    isSessionPending,
     isPolling,
-    isError,
+    isSessionError,
     finalResponse,
     unsupportedReason,
     currentStep,
@@ -162,7 +162,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     strategy,
     options: extraOptions,
     onError: error => {
-      addErrorMessage(t('Seer was unable to process your search. Please try again.'));
+      addErrorMessage(t('Seer failed to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,
@@ -439,10 +439,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     submitQuery,
   ]);
 
-  // Track errors that occur while polling/fetching results. Guarded by a ref so
+  // Track how often an error message is shown in ComboBox content. Guarded by a ref so
   // we only fire once per error occurrence (and reset once the error clears).
   useEffect(() => {
-    if (isError && !hasTrackedFetchErrorRef.current) {
+    if (isSessionError && !hasTrackedFetchErrorRef.current) {
       hasTrackedFetchErrorRef.current = true;
       trackAnalytics('ai_query.error', {
         organization,
@@ -450,10 +450,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         natural_language_query: searchQuery,
         is_fetch: true,
       });
-    } else if (!isError) {
+    } else if (!isSessionError) {
       hasTrackedFetchErrorRef.current = false;
     }
-  }, [isError, organization, analyticsArea, searchQuery]);
+  }, [isSessionError, organization, analyticsArea, searchQuery]);
 
   const onMouseLeave = () => {
     state.selectionManager.setFocusedKey(null);
@@ -474,7 +474,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     );
   }
 
-  const showLoading = isPending || isPolling;
+  const showLoading = isSessionPending || isPolling;
   const hasResults = queries.length > 0;
 
   return (
@@ -527,10 +527,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                 currentStep={currentStep}
               />
             </SeerContent>
-          ) : isError ? (
+          ) : isSessionError ? (
             <SeerContent>
               <AskSeerSearchHeader
-                title={t('An error occurred while fetching Seer queries')}
+                title={t('Seer failed to process your search. Please try again.')}
               />
             </SeerContent>
           ) : hasResults ? (

@@ -201,17 +201,17 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
      */
     sessionData,
     /**
-     * Whether we're waiting for a response (initial load or polling).
-     */
-    isPending: isActuallyPending,
-    /**
      * Whether polling is active.
      */
     isPolling: isPolling(sessionData, waitingForResponse),
     /**
-     * Whether the request errored.
+     * Whether we're waiting for a response (initial load or polling).
      */
-    isError: sessionData?.status === 'error',
+    isSessionPending: isActuallyPending,
+    /**
+     * Whether the agent run errored.
+     */
+    isSessionError: sessionData?.status === 'error',
     /**
      * Whether the start request failed (use fallback).
      */
