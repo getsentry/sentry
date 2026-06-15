@@ -1,3 +1,4 @@
+import inspect
 import logging
 from collections.abc import Callable
 from typing import Any
@@ -155,6 +156,23 @@ public_project_seer_method_registry: dict[str, Callable] = {
 }
 
 
+def _validate_arguments(method: Callable, method_name: str, arguments: dict[str, Any]) -> None:
+    """
+    Validate that the caller-supplied ``arguments`` match the target method's
+    signature before invoking it.
+
+    The RPC dispatcher splats untrusted request ``args`` straight into the
+    registered method as keyword arguments. Malformed input (missing required
+    args or unexpected kwargs) would otherwise raise a ``TypeError`` deep in the
+    call and be reported as a handled server error. Binding here turns those
+    invalid requests into a 4xx ``ParseError`` instead.
+    """
+    try:
+        inspect.signature(method).bind(**arguments)
+    except TypeError as e:
+        raise ParseError(f"Invalid arguments for method {method_name}: {e}") from e
+
+
 class SeerRpcPermission(OrganizationPermission):
     # Seer RPCs uses POST requests but is actually read only
     # So relax the permissions here.
@@ -221,6 +239,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         if method_name in public_org_seer_method_registry:
             method = public_org_seer_method_registry[method_name]
             arguments["organization_id"] = organization.id
+            _validate_arguments(method, method_name, arguments)
             return method(**arguments)
 
         # Check if this is a project-level method
@@ -232,11 +251,13 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
             project = self._validate_project_access(request, organization, project_id)
 
             method = public_project_seer_method_registry[method_name]
-            return method(
+            call_kwargs = {
                 **arguments,
-                organization_id=organization.id,
-                project_id=project.id,
-            )
+                "organization_id": organization.id,
+                "project_id": project.id,
+            }
+            _validate_arguments(method, method_name, call_kwargs)
+            return method(**call_kwargs)
 
         raise RpcResolutionException(f"Unknown method {method_name}")
 
@@ -269,6 +290,10 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         try:
             result = self._dispatch_to_local_method(request, method_name, arguments, organization)
+        except ParseError:
+            # Invalid client input (e.g. missing/unexpected args). Surface as a
+            # 4xx without reporting to Sentry as a handled server error.
+            raise
         except RpcResolutionException as e:
             sentry_sdk.capture_exception()
             raise NotFound from e
