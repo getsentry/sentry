@@ -24,7 +24,7 @@ import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {hasPerformance} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type ReplayOnboardingCTAUpsellProps = {
@@ -196,8 +196,9 @@ function ReplayOnboardingCTAUpsell({
     );
   }
 
-  if ([PlanTier.MM1, PlanTier.MM2].includes(subscription.planTier as PlanTier)) {
-    // MM1 & MM2 plans have no direct update path into AM2, prices could be wildly different
+  if (!hasPerformance(subscription.planDetails)) {
+    // Legacy MM1 & MM2 plans predate performance/tracing and have no direct update
+    // path into AM2, prices could be wildly different.
     // Members get an email, owners get to Manage Subscription
     return (
       <Fragment>

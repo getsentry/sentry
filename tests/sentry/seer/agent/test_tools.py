@@ -662,20 +662,14 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         """Test the get_organization_project_ids RPC method"""
         # Test with valid organization
         result = get_organization_project_ids(org_id=self.organization.id)
-        assert "projects" in result
-        assert isinstance(result["projects"], list)
-        assert len(result["projects"]) > 0
-        # Check that projects have both id and slug
-        project = result["projects"][0]
-        assert "id" in project
-        assert "slug" in project
+        assert len(result.projects) > 0
         # Check that our project is in the results
-        project_ids = [p["id"] for p in result["projects"]]
+        project_ids = [p.id for p in result.projects]
         assert self.project.id in project_ids
 
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
-        assert result == {"projects": []}
+        assert result.dict() == {"projects": []}
 
 
 class TestSpansCrossTraceQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
@@ -1771,6 +1765,22 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
+
+    def test_by_qualified_short_id_scoped_to_project_slug(self):
+        """A short ID is only resolvable within the project_slug-scoped projects."""
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        other_project = self.create_project(organization=self.organization, name="other project")
+
+        # Restricting to a different project must not resolve this project's short ID.
+        with pytest.raises(Group.DoesNotExist):
+            get_issue_details(
+                organization_id=self.organization.id,
+                issue_id=group.qualified_short_id,
+                project_slug=other_project.slug,
+            )
 
     # --- timeseries ---
 

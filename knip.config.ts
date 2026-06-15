@@ -7,6 +7,7 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
+  'static/app/serviceWorker/worker/worker.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
@@ -78,6 +79,7 @@ const config: KnipConfig = {
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
+    'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
     '@swc-contrib/mut-cjs-exports', // used in jest config
   ],
   rules: {

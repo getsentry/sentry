@@ -94,20 +94,21 @@ export function useIntegrationExternalIssues({
             // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
             const issue = config.externalIssues[0];
 
-            api.request(
-              `/organizations/${organization.slug}/issues/${group.id}/integrations/${config.id}/`,
-              {
-                method: 'DELETE',
-                query: {externalIssue: issue!.id},
-                success: () => {
-                  addSuccessMessage(t('Successfully unlinked issue.'));
-                  refetchIntegrations();
-                },
-                error: () => {
-                  addErrorMessage(t('Unable to unlink issue.'));
-                },
-              }
-            );
+            api
+              .requestPromise(
+                `/organizations/${organization.slug}/issues/${group.id}/integrations/${config.id}/`,
+                {
+                  method: 'DELETE',
+                  query: {externalIssue: issue!.id},
+                }
+              )
+              .then(() => {
+                addSuccessMessage(t('Successfully unlinked issue.'));
+                refetchIntegrations();
+              })
+              .catch(() => {
+                addErrorMessage(t('Unable to unlink issue.'));
+              });
           },
         }))
     );

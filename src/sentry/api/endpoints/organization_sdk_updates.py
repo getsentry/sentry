@@ -94,7 +94,9 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
 
         len_projects = len(projects)
         sentry_sdk.set_tag("query.num_projects", len_projects)
+        sentry_sdk.set_attribute("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
+        sentry_sdk.set_attribute("query.num_projects.grouped", format_grouped_length(len_projects))
 
         if len(projects) == 0:
             return Response([])
