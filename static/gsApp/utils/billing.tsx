@@ -25,7 +25,6 @@ import {
   FEE_INVOICE_ITEM_TYPES,
   OnDemandBudgetMode,
   PlanName,
-  PlanTier,
   ReservedBudgetCategoryType,
 } from 'getsentry/types';
 import type {
@@ -315,12 +314,6 @@ function displayNumber(n: number, fractionDigits = 0) {
   return n.toFixed(fractionDigits).toLocaleString();
 }
 
-/**
- * Utility functions for Pricing Plans
- */
-export const isEnterprise = (plan: string) =>
-  ['e1', 'enterprise'].some(p => plan.startsWith(p)) || isAmEnterprisePlan(plan);
-
 export const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
 export const hasPerformance = (plan?: Plan) => {
@@ -352,28 +345,12 @@ export const isBusinessTrial = (subscription: Subscription) => {
   );
 };
 
-export function isAmPlan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am');
-}
-
 export function isAm2Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am2');
 }
 
 export function isAm3Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am3');
-}
-
-export function isAm3DsPlan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am3') && planId.includes('_ds');
-}
-
-export function isAmEnterprisePlan(planId?: string) {
-  if (typeof planId !== 'string' || !isAmPlan(planId)) {
-    return false;
-  }
-
-  return planId.includes('_ent');
 }
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
@@ -441,20 +418,7 @@ export const getOnDemandCategories = ({
 };
 
 export const displayPlanName = (plan?: Plan | null) => {
-  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
-};
-
-export const getAmPlanTier = (plan: string) => {
-  if (isAm3Plan(plan)) {
-    return PlanTier.AM3;
-  }
-  if (isAm2Plan(plan)) {
-    return PlanTier.AM2;
-  }
-  if (isAmPlan(plan)) {
-    return PlanTier.AM1;
-  }
-  return null;
+  return plan?.isEnterprise ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };
 
 export const isNewPayingCustomer = (

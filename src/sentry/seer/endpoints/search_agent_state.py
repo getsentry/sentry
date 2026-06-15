@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from typing import Any
 
 from django.conf import settings
@@ -16,8 +15,8 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError
-from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
     SearchAgentStateRequest,
@@ -107,32 +106,10 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # Numeric run_id: legacy path, forward directly to Seer.
-        try:
-            seer_run_id = int(run_id)
-        except ValueError:
-            seer_run_id = None
-
-        # UUID run_id: look up the SeerRun to get the Seer-side ID.
-        if seer_run_id is None:
-            try:
-                uuid.UUID(run_id)
-            except ValueError:
-                return Response(
-                    {"detail": "Invalid run_id"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            try:
-                run = SeerRun.objects.get(uuid=run_id, organization=organization)
-            except SeerRun.DoesNotExist:
-                return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-
-            if run.mirror_status == SeerRunMirrorStatus.FAILED:
-                return Response({"session": {"status": "error"}})
-            if run.seer_run_state_id is None:
-                return Response({"session": {"status": "processing"}})
-            seer_run_id = run.seer_run_state_id
+        resolved = resolve_seer_run(run_id, organization)
+        if isinstance(resolved, Response):
+            return resolved
+        seer_run_id = resolved.seer_run_state_id
 
         try:
             viewer_context = SeerViewerContext(

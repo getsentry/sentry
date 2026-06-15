@@ -135,6 +135,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             integration = get_integration_from_request(request, "jira")
         except AtlassianConnectValidationError as e:
             scope.set_tag("failure", "AtlassianConnectValidationError")
+            scope.set_attribute("failure", "AtlassianConnectValidationError")
             logger.info(
                 "issue_hook.validation_error",
                 extra={
@@ -145,6 +146,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
         except ExpiredSignatureError:
             scope.set_tag("failure", "ExpiredSignatureError")
+            scope.set_attribute("failure", "ExpiredSignatureError")
             return self.get_response({"refresh_required": True})
 
         try:
@@ -173,6 +175,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             ExternalIssue.MultipleObjectsReturned,
         ) as e:
             scope.set_tag("failure", e.__class__.__name__)
+            scope.set_attribute("failure", e.__class__.__name__)
             set_badge(integration, issue_key, 0)
             return self.get_response({"issue_not_linked": True})
 
@@ -223,6 +226,7 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
             integration = get_integration_from_request(request, "jira")
         except AtlassianConnectValidationError as e:
             scope.set_tag("failure", "AtlassianConnectValidationError")
+            scope.set_attribute("failure", "AtlassianConnectValidationError")
             logger.info(
                 "issue_hook.validation_error",
                 extra={
@@ -233,6 +237,7 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
             return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
         except ExpiredSignatureError:
             scope.set_tag("failure", "ExpiredSignatureError")
+            scope.set_attribute("failure", "ExpiredSignatureError")
             return self.get_response({"refresh_required": True})
 
         has_groups = False
