@@ -95,7 +95,8 @@ def _hydrate_feedback_users(blocks: list[dict[str, Any]], request_user: Any) -> 
     parsed_by_index: dict[int, dict[str, Any]] = {}
     user_ids: set[int] = set()
     for index, block in enumerate(blocks):
-        raw = (block.get("message") or {}).get("metadata", {}).get("feedback")
+        metadata = (block.get("message") or {}).get("metadata") or {}
+        raw = metadata.get("feedback")
         if not raw:
             continue
         try:
