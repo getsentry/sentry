@@ -984,10 +984,14 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 if response["status"] == "failed":
                     deobfuscation_context["status"] = response["status"]
                     deobfuscation_context["message"] = response["message"]
+                    sentry_sdk.set_attribute("profile_deobfuscation.status", response["status"])
+                    sentry_sdk.set_attribute("profile_deobfuscation.message", response["message"])
                 if "errors" in response:
                     deobfuscation_context["errors"] = response["errors"]
+                    sentry_sdk.set_attribute(
+                        "profile_deobfuscation.errors", json.dumps(response["errors"])
+                    )
                 sentry_sdk.set_context("profile deobfuscation", deobfuscation_context)
-                sentry_sdk.set_attribute("profile deobfuscation", deobfuscation_context)
                 if "stacktraces" in response:
                     merge_jvm_frames_with_android_methods(
                         frames=response["stacktraces"][0]["frames"],
