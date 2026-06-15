@@ -50,10 +50,10 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             name="sentryA",
             exception_type="KeyError",
         )
-        assert "error" not in seer_response
-        assert seer_response["issues"][0] == group.id
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert seer_response.issues[0] == group.id
 
-        full_issues = seer_response["issues_full"][0]
+        full_issues = seer_response.issues_full[0]
         assert full_issues["metadata"]["filename"] == "raven/scripts/runner.py"
         assert full_issues["metadata"]["function"] == "main"
         assert full_issues["metadata"]["in_app_frame_mix"] == "system-only"
@@ -167,10 +167,10 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             name="sentryA",
             exception_type="KeyError",
         )
-        assert "error" not in seer_response
-        assert {group_1.id, group_2.id} == set(seer_response["issues"])
-        assert group_3.id not in seer_response["issues"]
-        assert group_3.id not in [int(issue["id"]) for issue in seer_response["issues_full"]]
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert {group_1.id, group_2.id} == set(seer_response.issues)
+        assert group_3.id not in seer_response.issues
+        assert group_3.id not in [int(issue["id"]) for issue in seer_response.issues_full]
 
         # Assert latest event is returned
         issue_details = utils.get_latest_issue_event(group_1.id, self.organization.id)
@@ -220,10 +220,10 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             name="sentryA",
             exception_type="KeyError",
         )
-        assert "error" not in seer_response
-        assert seer_response["issues"] == [group.id]
-        assert seer_response["issues_full"][0]["id"] == str(group.id)
-        assert seer_response["issues_full"][0]["title"] == "KeyError: This a bad error"
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert seer_response.issues == [group.id]
+        assert seer_response.issues_full[0]["id"] == str(group.id)
+        assert seer_response.issues_full[0]["title"] == "KeyError: This a bad error"
 
         # Assert that KeyError did not match when filtered to 9 days
         seer_response = fetch_issues(
@@ -301,11 +301,11 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             name="sentryA",
             exception_type="KeyError",
         )
-        assert "error" not in seer_response
-        assert seer_response["issues"] == [group_1.id]
-        assert len(seer_response["issues_full"]) == 1
-        assert seer_response["issues_full"][0]["id"] == str(group_1.id)
-        assert seer_response["issues_full"][0]["title"] == "KeyError: voodoo curse"
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert seer_response.issues == [group_1.id]
+        assert len(seer_response.issues_full) == 1
+        assert seer_response.issues_full[0]["id"] == str(group_1.id)
+        assert seer_response.issues_full[0]["title"] == "KeyError: voodoo curse"
 
         # Assert that ValueError matched the exception type
         seer_response = fetch_issues(
@@ -316,11 +316,11 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             name="sentryA",
             exception_type="ValueError",
         )
-        assert "error" not in seer_response
-        assert seer_response["issues"] == [group_2.id]
-        assert len(seer_response["issues_full"]) == 1
-        assert seer_response["issues_full"][0]["id"] == str(group_2.id)
-        assert seer_response["issues_full"][0]["title"] == "ValueError: This a bad error"
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert seer_response.issues == [group_2.id]
+        assert len(seer_response.issues_full) == 1
+        assert seer_response.issues_full[0]["id"] == str(group_2.id)
+        assert seer_response.issues_full[0]["title"] == "ValueError: This a bad error"
 
     def test_fetch_issues_from_repo_projects_returns_groups(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns a list of Group objects."""
@@ -441,9 +441,9 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             name="sentryA",
             exception_type=search_exception_type,
         )
-        assert "error" not in seer_response
-        assert seer_response["issues"] == [expected_group.id]
-        assert len(seer_response["issues_full"]) == 1
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert seer_response.issues == [expected_group.id]
+        assert len(seer_response.issues_full) == 1
 
     def _test_exception_type_variants(
         self, stored_exception_type: str, search_variants: list[str]
@@ -542,9 +542,9 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             name="sentryA",
             exception_type="valueerror",
         )
-        assert "error" not in seer_response
-        assert seer_response["issues"] == [group1.id]
-        assert len(seer_response["issues_full"]) == 1
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert seer_response.issues == [group1.id]
+        assert len(seer_response.issues_full) == 1
 
         # Test that "type error" matches only the second group
         seer_response = fetch_issues(
@@ -555,9 +555,9 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
             name="sentryA",
             exception_type="type error",
         )
-        assert "error" not in seer_response
-        assert seer_response["issues"] == [group2.id]
-        assert len(seer_response["issues_full"]) == 1
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert seer_response.issues == [group2.id]
+        assert len(seer_response.issues_full) == 1
 
         # Test that "runtimeerror" matches neither
         seer_response = fetch_issues(
