@@ -208,7 +208,7 @@ export function AvatarChooser({
       const avatarPhotoErrors = (requestError?.responseJSON?.avatar_photo ||
         []) as string[];
       if (avatarPhotoErrors.length) {
-        avatarPhotoErrors.map(addErrorMessage);
+        avatarPhotoErrors.forEach(addErrorMessage);
       } else {
         addErrorMessage(t('There was an error saving your preferences.'));
       }
