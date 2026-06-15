@@ -201,7 +201,7 @@ export function AutofixRepositoriesItem({
                   <field.Input
                     size="sm"
                     disabled={!canWrite}
-                    placeholder={t('Default Branch')}
+                    placeholder={t('Default branch')}
                     value={field.state.value ?? ''}
                     onChange={field.handleChange}
                   />
