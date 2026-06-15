@@ -16,7 +16,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.helpers.projects import ProjectIdOrSlugField
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     BRANCH_NAME_ERROR_MESSAGE,
     gen_path_regex_field,
@@ -167,24 +167,17 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
 
-        project_id_or_slug = data["project"]
-        if project_id_or_slug in (ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG):
-            return Response(
-                {"detail": "Invalid project"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        project_filter = self.get_single_project_id_or_slug(data["project"])
+        if project_filter is None:
+            return Response({"detail": "Invalid project"}, status=status.HTTP_400_BAD_REQUEST)
 
-        project_ids: set[int] | None = None
-        project_slugs: set[str] | None = None
         project_queryset = Project.objects.filter(
             organization=organization, status=ObjectStatus.ACTIVE
         )
-        if isinstance(project_id_or_slug, int):
-            project_ids = {project_id_or_slug}
-            project_exists = project_queryset.filter(id=project_id_or_slug).exists()
+        if project_filter.project_id is not None:
+            project_exists = project_queryset.filter(id=project_filter.project_id).exists()
         else:
-            project_slugs = {project_id_or_slug}
-            project_exists = project_queryset.filter(slug=project_id_or_slug).exists()
+            project_exists = project_queryset.filter(slug=project_filter.project_slug).exists()
 
         if not project_exists:
             return Response(
@@ -196,8 +189,8 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             project = self.get_projects(
                 request,
                 organization,
-                project_ids=project_ids,
-                project_slugs=project_slugs,
+                project_ids=project_filter.project_ids,
+                project_slugs=project_filter.project_slugs,
             )[0]
         except PermissionDenied:
             return Response(
