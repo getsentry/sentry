@@ -349,8 +349,8 @@ function PricingTable({pricing}: {pricing: Record<string, Price>}) {
           {Object.entries(pricing).map(([platform, price]) => (
             <tr key={platform}>
               <td>{platform}</td>
-              <td>{formatCurrency(price.monthly)}</td>
-              <td>{formatCurrency(price.annual)}</td>
+              <td data-label="Monthly">{formatCurrency(price.monthly)}</td>
+              <td data-label="Annual">{formatCurrency(price.annual)}</td>
             </tr>
           ))}
         </tbody>
@@ -409,17 +409,17 @@ function PriceTiersTable({
             {tiers.map((tier, index) => (
               <tr key={`${dataCategoryId}-${tier.tier}-${index}`}>
                 <td>{tier.tier}</td>
-                <td>{Number(tier.volume).toLocaleString('en-US')}</td>
-                <td>{formatCurrency(tier.monthly)}</td>
-                <td>{formatCurrency(tier.annual)}</td>
-                <td>
+                <td data-label="Volume">{Number(tier.volume).toLocaleString('en-US')}</td>
+                <td data-label="Monthly">{formatCurrency(tier.monthly)}</td>
+                <td data-label="Annual">{formatCurrency(tier.annual)}</td>
+                <td data-label="Reserved PPE">
                   {displayUnitPrice({
                     cents: tier.reserved_ppe,
                     minDigits: 2,
                     maxDigits: 10,
                   })}
                 </td>
-                <td>
+                <td data-label="PAYG PPE">
                   {displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10})}
                 </td>
               </tr>

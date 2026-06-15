@@ -1,6 +1,7 @@
 import './legacyTwitterBootstrap';
 import './exportGlobals';
 
+import {registerWorker} from 'sentry/serviceWorker/client/register';
 import type {Config} from 'sentry/types/system';
 import {metric} from 'sentry/utils/analytics';
 
@@ -20,4 +21,5 @@ export function initializeApp(config: Config) {
   metric.mark({name: 'sentry-app-init'});
   renderOnDomReady(renderMain);
   processInitQueue();
+  registerWorker();
 }

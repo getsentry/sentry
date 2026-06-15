@@ -10,24 +10,29 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.helpers.projects import ProjectIdOrSlug, ProjectIdOrSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.organization import Organization
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
 class ReleaseThresholdIndexGETData(TypedDict, total=False):
     environment: list[str]
-    project: list[int]
+    project: list[ProjectIdOrSlug]
 
 
 class ReleaseThresholdIndexGETValidator(serializers.Serializer[ReleaseThresholdIndexGETData]):
     environment = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField()
     )
-    project = serializers.ListField(
-        required=True, allow_empty=False, child=serializers.IntegerField()
-    )
+    project = serializers.ListField(required=True, allow_empty=False, child=ProjectIdOrSlugField())
+
+    def validate_project(self, value: list[ProjectIdOrSlug]) -> list[ProjectIdOrSlug]:
+        if ALL_ACCESS_PROJECTS_SLUG in value:
+            raise serializers.ValidationError("Invalid project")
+        return value
 
 
 @cell_silo_endpoint
@@ -39,7 +44,7 @@ class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         validator = ReleaseThresholdIndexGETValidator(
-            data=request.query_params,
+            data=self.get_query_params_without_empty_project_params(request),
         )
         if not validator.is_valid():
             return Response(validator.errors, status=400)

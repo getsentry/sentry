@@ -889,6 +889,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
@@ -2255,7 +2256,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
-    "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
@@ -2345,7 +2345,7 @@ DEAD = object()
 # This will eventually get set from values in SENTRY_OPTIONS during
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
-SENTRY_LOGGING_FORMAT = DEAD
+SENTRY_LOGGING_FORMAT = "human"
 EMAIL_BACKEND = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
@@ -3291,10 +3291,21 @@ if SILO_DEVSERVER:
         {
             "name": "us",
             "snowflake_id": 1,
+            # TODO(cells): Deprecate category
             "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
         }
     ]
+    SENTRY_LOCALITIES = [
+        {
+            "name": "us",
+            # TODO(cells): Deprecate category
+            "category": "MULTI_TENANT",
+            "cells": ["us"],
+            "new_org_cell": "us",
+        }
+    ]
+
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication

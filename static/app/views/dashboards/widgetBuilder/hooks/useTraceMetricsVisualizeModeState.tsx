@@ -28,6 +28,7 @@ import {
 
 interface SeriesModeSnapshot {
   fields: QueryFieldValue[];
+  legendAlias: string[];
   query: string[];
 }
 
@@ -83,6 +84,10 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         type: BuilderStateAction.SET_QUERY,
         payload: seriesSnapshot.current.query,
       });
+      dispatch({
+        type: BuilderStateAction.SET_LEGEND_ALIAS,
+        payload: seriesSnapshot.current.legendAlias,
+      });
       return;
     }
 
@@ -109,11 +114,15 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       derivedFields = [getDatasetConfig(WidgetType.TRACEMETRICS).defaultField];
     }
 
-    seriesSnapshot.current = {fields: derivedFields, query: []};
+    seriesSnapshot.current = {fields: derivedFields, legendAlias: [], query: []};
     const actionType = getTraceMetricAggregateActionType(state.displayType);
     dispatch({type: actionType, payload: derivedFields});
     dispatch({
       type: BuilderStateAction.SET_QUERY,
+      payload: [],
+    });
+    dispatch({
+      type: BuilderStateAction.SET_LEGEND_ALIAS,
       payload: [],
     });
   }, [state.displayType, dispatch]);
@@ -179,6 +188,10 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       type: BuilderStateAction.SET_QUERY,
       payload: [selected.queryParams.query],
     });
+    dispatch({
+      type: BuilderStateAction.SET_LEGEND_ALIAS,
+      payload: [],
+    });
   }, [state.displayType, state.yAxis, state.fields, dispatch]);
 
   // Auto-restore the previous visualize mode when the dataset returns
@@ -212,6 +225,8 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
 
   const handleModeToggle = useCallback(
     (nextIsEquation: boolean) => {
+      const currentLegendAlias = state.legendAlias ? [...state.legendAlias] : [];
+
       if (nextIsEquation) {
         const currentFields = getTraceMetricAggregateSource(
           state.displayType,
@@ -220,6 +235,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         );
         seriesSnapshot.current = {
           fields: currentFields ? structuredClone(currentFields) : [],
+          legendAlias: currentLegendAlias,
           query: state.query ? [...state.query] : [],
         };
         restoreEquationState();
@@ -235,6 +251,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       state.yAxis,
       state.fields,
       state.query,
+      state.legendAlias,
       restoreSeriesState,
       restoreEquationState,
     ]
