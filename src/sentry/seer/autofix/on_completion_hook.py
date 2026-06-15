@@ -178,6 +178,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         project_id=group.project_id,
                         group_id=group.id,
                         referrer=None if current_referrer is None else current_referrer.value,
+                        run_id=run_id,
                     )
                 )
             else:
@@ -260,6 +261,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         project_id=group.project_id,
                         group_id=group.id,
                         referrer=referrer,
+                        run_id=run_id,
                         iteration_index=iteration_index,
                         pr_iteration_enabled=pr_iteration_enabled,
                     )
@@ -390,6 +392,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         organization_id=organization.id,
                         project_id=group.project_id,
                         group_id=group.id,
+                        run_id=run_id,
                         referrer=referrer.value,
                         step=current_step.value,
                         action=decision.action.value,
