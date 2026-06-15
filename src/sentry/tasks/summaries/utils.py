@@ -69,8 +69,6 @@ class OrganizationReportContext:
 class ProjectContext:
     accepted_error_count = 0
     accepted_transaction_count = 0
-    accepted_replay_count = 0
-
     prev_week_accepted_error_count = 0
     prev_week_accepted_transaction_count = 0
 
@@ -96,8 +94,6 @@ class ProjectContext:
         self.error_count_by_day = {}
         # Dictionary of { timestamp: count }
         self.transaction_count_by_day = {}
-        # Dictionary of { timestamp: count }
-        self.replay_count_by_day = {}
 
     def __repr__(self) -> str:
         return "\n".join(
@@ -105,7 +101,6 @@ class ProjectContext:
                 f"{self.key_errors_by_group}, ",
                 f"Errors: [Accepted {self.accepted_error_count}]",
                 f"Transactions: [Accepted {self.accepted_transaction_count}]",
-                f"Replays: [Accepted {self.accepted_replay_count}]",
             ]
         )
 
@@ -116,7 +111,6 @@ class ProjectContext:
             and not self.key_performance_issues
             and not self.accepted_error_count
             and not self.accepted_transaction_count
-            and not self.accepted_replay_count
         )
 
 
@@ -702,7 +696,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
             Condition(
                 Column("category"),
                 Op.IN,
-                [*DataCategory.error_categories(), DataCategory.TRANSACTION, DataCategory.REPLAY],
+                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
             ),
         ],
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
