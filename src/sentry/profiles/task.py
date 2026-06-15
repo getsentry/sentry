@@ -187,12 +187,16 @@ def process_profile_task(
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
     sentry_sdk.set_tag("organization", organization.id)
+    sentry_sdk.set_attribute("organization", organization.id)
     sentry_sdk.set_tag("organization.slug", organization.slug)
+    sentry_sdk.set_attribute("organization.slug", organization.slug)
 
     project = Project.objects.get_from_cache(id=profile["project_id"])
 
     sentry_sdk.set_tag("project", project.id)
+    sentry_sdk.set_attribute("project", project.id)
     sentry_sdk.set_tag("project.slug", project.slug)
+    sentry_sdk.set_attribute("project.slug", project.slug)
 
     if sampled and _is_deprecated(profile, project, organization):
         return
@@ -214,19 +218,24 @@ def process_profile_task(
         "profile",
         profile_context,
     )
+    sentry_sdk.set_attribute("profile", profile_context)
 
     sentry_sdk.set_tag("platform", profile["platform"])
+    sentry_sdk.set_attribute("platform", profile["platform"])
 
     if "version" in profile:
         version = profile["version"]
         sentry_sdk.set_tag("format", f"sample_v{version}")
+        sentry_sdk.set_attribute("format", f"sample_v{version}")
         set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
         set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
         set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
         sentry_sdk.set_tag("format", "android_chunk")
+        sentry_sdk.set_attribute("format", "android_chunk")
     else:
         sentry_sdk.set_tag("format", "legacy")
+        sentry_sdk.set_attribute("format", "legacy")
 
     if not _symbolicate_profile(profile, project):
         return
@@ -977,6 +986,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 if "errors" in response:
                     deobfuscation_context["errors"] = response["errors"]
                 sentry_sdk.set_context("profile deobfuscation", deobfuscation_context)
+                sentry_sdk.set_attribute("profile deobfuscation", deobfuscation_context)
                 if "stacktraces" in response:
                     merge_jvm_frames_with_android_methods(
                         frames=response["stacktraces"][0]["frames"],
@@ -1022,6 +1032,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 debug_file_id=debug_file_id,
             )
             sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
+            sentry_sdk.set_attribute("deobfuscated_with_symbolicator_with_success", success)
             if success:
                 return
     except Exception as e:
@@ -1182,6 +1193,9 @@ def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
                 "duration_ms": duration_ms,
             },
         )
+        sentry_sdk.set_attribute("profile duration calculation.min_timestamp", min_timestamp)
+        sentry_sdk.set_attribute("profile duration calculation.max_timestamp", max_timestamp)
+        sentry_sdk.set_attribute("profile duration calculation.duration_ms", duration_ms)
         sentry_sdk.capture_message("Calculated duration is above the limit")
         return MAX_DURATION_SAMPLE_V2
     return duration_ms
