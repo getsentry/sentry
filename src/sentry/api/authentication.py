@@ -203,6 +203,8 @@ class QuietBasicAuthentication(BasicAuthentication):
         if auth_token and entity_id_tag:
             scope = sentry_sdk.get_isolation_scope()
             scope.set_tag(entity_id_tag, auth_token.entity_id)
+            if auth_token.entity_id is not None:
+                scope.set_attribute(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
 
@@ -656,7 +658,9 @@ class DSNAuthentication(StandardAuthentication):
 
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
+        scope.set_attribute("api_token_type", repr(self.token_name))
         scope.set_tag("api_project_key", key.id)
+        scope.set_attribute("api_project_key", key.id)
 
         return (AnonymousUser(), AuthenticatedToken.from_token(key))
 
