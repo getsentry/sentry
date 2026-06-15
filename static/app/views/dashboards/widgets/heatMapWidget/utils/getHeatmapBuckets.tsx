@@ -7,7 +7,7 @@ import {millisecondsToClosestInterval} from 'sentry/utils/duration/millisecondsT
  * Target width, in pixels, of a single X-axis (time) bucket. The X-axis bucket
  * interval is chosen so that each time column is at least this wide.
  */
-export const PIXELS_PER_X_BUCKET = 15;
+const PIXELS_PER_X_BUCKET = 15;
 
 /**
  * Computes the number of Y-axis buckets for the heatmap API so that cells
