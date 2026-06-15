@@ -873,3 +873,4 @@ def _set_data_on_scope(data_export: ExportedData) -> None:
         sentry_sdk.set_tag("export.dataset", str(qi.get("dataset")))
         sentry_sdk.set_attribute("export.dataset", str(qi.get("dataset")))
     sentry_sdk.set_extra("export.query", data_export.query_info)
+    sentry_sdk.set_attribute("export.query", data_export.query_info)
