@@ -91,7 +91,7 @@ export function AddAutofixRepoModal({
       if (prev.includes(externalId)) {
         return prev.filter(id => id !== externalId);
       }
-      return [...prev, externalId];
+      return prev.length >= MAX_REPOS_LIMIT ? prev : [...prev, externalId];
     });
   }, []);
 
