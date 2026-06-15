@@ -87,6 +87,9 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
         {...deps}
         hiddenExternalIds={data?.map(repo => repo.externalId) ?? []}
         onSave={({selectedRepoIds}) => {
+          if (selectedRepoIds.length === 0) {
+            return;
+          }
           handleAddRepo({
             repos: selectedRepoIds.map(repoId => ({
               repositoryId: repoId,
