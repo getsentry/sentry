@@ -271,8 +271,6 @@ class ProcessSpanEvent(msgspec.Struct, gc=False):
     retention_days: int
     name: str | None
     status: str
-
-    # Optional fields consumed by `process_batch`.
     parent_span_id: str | None = None
     is_segment: bool | None = None
     attributes: SpanAttributes | None = None
