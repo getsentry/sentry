@@ -44,9 +44,8 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.base import MCP_USER_AGENT_PREFIX
@@ -354,9 +353,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 organization_id=group.organization.id,
                 project_id=group.project_id,
-                actor=GroupActionActor.user(request.user.id)
-                if request.user.is_authenticated
-                else SYSTEM_ACTOR,
+                actor=resolve_action_actor(request),
             )
 
             metrics.incr(

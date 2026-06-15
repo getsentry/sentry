@@ -117,6 +117,17 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
 
 @cell_silo_test
 class ProcessChunkTest(TestCase):
+    def test_comparison_defaults_images_errored_to_zero(self):
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head,
+            base_snapshot_metrics=base,
+        )
+        assert comparison.images_errored == 0
+
     def test_chunk_processes_slice_and_records_done_index(self):
         from sentry.preprod.snapshots.image_diff.types import DiffResult
         from sentry.preprod.snapshots.manifest import (
@@ -341,6 +352,56 @@ class ProcessChunkTest(TestCase):
         assert comparison.chunks_done_indices == [0]
         assert not finalize.called
 
+    def test_chunk_with_unchanged_diff_hash_writes_result(self):
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+        from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
+
+        comparison, head_artifact, base_artifact = self._comparison(1)
+        plan = self._single_chunk_plan(head_artifact, base_artifact)
+        prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        session = _mock_session_with_manifests(stored)
+        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
+            key, contents
+        )
+
+        unchanged_diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=0,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                return_value=({"h": b"img", "b": b"img"}, set()),
+            ),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                return_value=[unchanged_diff],
+            ),
+            self.assertLogs("sentry.preprod.snapshots.tasks", level="INFO"),
+        ):
+            process_snapshot_comparison_chunk(
+                comparison_id=comparison.id,
+                chunk_index=0,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        chunk_key = f"{prefix}/chunks/0.json"
+        assert chunk_key in stored
+        result = orjson.loads(stored[chunk_key])
+        assert result["images"]["a.png"]["status"] == "unchanged"
+
     def test_chunk_hard_failure_still_recorded_and_triggers_finalize(self):
         from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
 
@@ -376,6 +437,43 @@ class ProcessChunkTest(TestCase):
         assert 0 in comparison.chunks_done_indices
         assert f"{prefix}/chunks/0.json" not in stored
         assert finalize.call_count == 1
+
+    def test_chunk_failure_logs_exception_details(self):
+        from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
+
+        comparison, head_artifact, base_artifact = self._comparison(1)
+        plan = self._single_chunk_plan(head_artifact, base_artifact)
+        prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        session = _mock_session_with_manifests(stored)
+        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
+            key, contents
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks._process_chunk",
+                side_effect=ValueError("odiff exploded"),
+            ),
+            patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
+            self.assertLogs("sentry.preprod.snapshots.tasks", level="INFO") as logs,
+        ):
+            process_snapshot_comparison_chunk(
+                comparison_id=comparison.id,
+                chunk_index=0,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        [record] = [r for r in logs.records if r.getMessage() == "compare_snapshots: chunk failed"]
+        extra = record.__dict__
+        assert extra["error_type"] == "ValueError"
+        assert extra["error"] == "odiff exploded"
+        assert extra["comparison_id"] == comparison.id
+        assert extra["chunk_index"] == 0
 
 
 @cell_silo_test
@@ -469,6 +567,19 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert called_head_artifact.id == h.id
         assert called_manifest.head_artifact_id == h.id
         assert called_session is session
+
+    def test_finalize_writes_images_errored_column(self):
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b = self._comparison(1, done_indices=[1])
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        stored = {f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict())}
+        session = _dict_backed_session(stored)
+        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.images_errored == 1
 
     def test_finalize_is_exactly_once(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison

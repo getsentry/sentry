@@ -713,7 +713,7 @@ function IssueListOverviewInner({
     }
   };
 
-  const undoAction = ({
+  const undoAction = async ({
     data,
     groupItems,
   }: {
@@ -725,17 +725,17 @@ function IssueListOverviewInner({
 
     api.clear();
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data,
-      query: {
-        project: projectIds,
-        id: groupItems.map(group => group.id),
-      },
-      success: response => {
-        if (!response) {
-          return;
-        }
+    try {
+      const response = await api.requestPromise(endpoint, {
+        method: 'PUT',
+        data,
+        query: {
+          project: projectIds,
+          id: groupItems.map(group => group.id),
+        },
+      });
+
+      if (response) {
         // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
         // on this page for a second and then be removed (will show up on All Unresolved). This is to
         // stop this from happening and avoid confusion.
@@ -743,15 +743,13 @@ function IssueListOverviewInner({
           GroupStore.add(groupItems);
         }
         actionTakenRef.current = true;
-      },
-      error: err => {
-        setError(parseApiError(err as RequestError));
-        setIssuesLoading(false);
-      },
-      complete: () => {
-        fetchData();
-      },
-    });
+      }
+    } catch (err) {
+      setError(parseApiError(err as RequestError));
+      setIssuesLoading(false);
+    } finally {
+      fetchData();
+    }
   };
 
   const onIssueAction = ({
