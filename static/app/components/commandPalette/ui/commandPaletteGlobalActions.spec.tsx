@@ -340,6 +340,15 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       /Settings.*Custom Integrations/,
       /Settings.*Personal Tokens/,
     ],
+    // "api key" is the deprecated org API Keys page (hidden from cmd+k), so
+    // surface the modern token pages it routes to instead — same as
+    // SENTRY_AUTH_TOKEN.
+    [
+      'api key',
+      /Settings.*Organization Tokens/,
+      /Settings.*Custom Integrations/,
+      /Settings.*Personal Tokens/,
+    ],
     ['source map', /Project Settings.*Source Maps/],
     ['codeowners', /Project Settings.*Ownership Rules/],
     ['inbound', /Project Settings.*Inbound Filters/],
