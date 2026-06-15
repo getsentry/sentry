@@ -636,6 +636,12 @@ class DatadogIdentityProviderTest(TestCase):
         with pytest.raises(IdentityNotValid, match="Missing Datadog site"):
             self.provider.refresh_identity(identity)
 
+    def test_refresh_identity_invalid_site(self) -> None:
+        identity = self._make_identity(site="evil.example.com")
+
+        with pytest.raises(IdentityNotValid, match="Invalid Datadog site"):
+            self.provider.refresh_identity(identity)
+
     def test_refresh_identity_missing_dcr_credentials(self) -> None:
         identity = self._make_identity(client_id=None, client_secret=None)
 

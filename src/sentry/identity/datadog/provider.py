@@ -365,6 +365,8 @@ class DatadogIdentityProvider(OAuth2Provider):
         site = identity.data.get("site")
         if not site:
             raise IdentityNotValid("Missing Datadog site")
+        elif site not in DATADOG_VALID_SITES:
+            raise IdentityNotValid(f"Invalid Datadog site: {site}")
         self.config["site"] = site
 
         client_id = identity.data.get("client_id")
