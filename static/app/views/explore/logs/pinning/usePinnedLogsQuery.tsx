@@ -6,7 +6,10 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SAMPLING_MODE, type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  SAMPLING_MODE,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
