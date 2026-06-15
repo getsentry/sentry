@@ -105,6 +105,10 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
 
+MONITORING_PROVIDERS: frozenset[str] = frozenset(
+    {IntegrationProviderSlug.DATADOG, IntegrationProviderSlug.GCP}
+)
+
 PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.EMAIL.value,
     ExternalProviderEnum.SLACK.value,

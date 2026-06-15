@@ -22,6 +22,9 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.identity.datadog.provider import MCP_ENDPOINT_PATH
+from sentry.identity.services.identity import identity_service
+from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -105,6 +108,47 @@ def _has_context_engine(
     return features.has(
         "organizations:seat-based-seer-enabled", organization, actor=user
     ) or features.has("organizations:seer-added", organization, actor=user)
+
+
+def _get_mcp_url(provider_type: str, identity_data: dict[str, Any]) -> str | None:
+    """Build the MCP server URL for a monitoring provider identity."""
+    if provider_type == IntegrationProviderSlug.DATADOG:
+        return f"https://mcp.{identity_data['site']}{MCP_ENDPOINT_PATH}"
+    return None
+
+
+def _get_monitoring_provider_connections(
+    user: User | RpcUser | AnonymousUser | None,
+) -> list[dict[str, Any]] | None:
+    """Fetch the user's monitoring provider identities and build connection dicts for Seer.
+
+    Returns None if the user has no connected monitoring providers.
+    """
+    if user is None or isinstance(user, AnonymousUser):
+        return None
+
+    connections: list[dict[str, Any]] = []
+    for provider_type in MONITORING_PROVIDERS:
+        identities = identity_service.get_user_identities_by_provider_type(
+            user_id=user.id, provider_type=provider_type
+        )
+        for identity in identities:
+            access_token = identity.data.get("access_token")
+            if not access_token:
+                continue
+            url = _get_mcp_url(provider_type, identity.data)
+            if not url:
+                continue
+            connections.append(
+                {
+                    "provider_key": provider_type,
+                    "url": url,
+                    "access_token": access_token,
+                    "identity_id": identity.id,
+                }
+            )
+
+    return connections or None
 
 
 class SeerAgentClient:
@@ -409,6 +453,10 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
+        monitoring_providers = _get_monitoring_provider_connections(self.user)
+        if monitoring_providers is not None:
+            chat_body["monitoring_providers"] = monitoring_providers
+
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
                 agent_run_options["is_context_engine_enabled"] = True
@@ -575,6 +623,10 @@ class SeerAgentClient:
 
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
+
+        monitoring_providers = _get_monitoring_provider_connections(self.user)
+        if monitoring_providers is not None:
+            chat_body["monitoring_providers"] = monitoring_providers
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
