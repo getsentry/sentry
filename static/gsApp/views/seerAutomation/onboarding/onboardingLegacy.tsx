@@ -144,7 +144,7 @@ function ProjectRowWithUpdate({
           const reposData = transformRepositoriesToApiFormat(
             repositories,
             organization.id,
-            selectedExternalIds
+            [...currentRepoIds, ...selectedExternalIds]
           );
 
           updateProjectSeerPreferences({repositories: reposData});
