@@ -40,7 +40,7 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
         webhook_plugin.set_option("enabled", True, self.project)
 
     @responses.activate
-    def test_fires_both_paths(self) -> None:
+    def test_sends_webhook(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
 
         with self.tasks():
@@ -53,26 +53,7 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.plugin_handler.send_legacy_webhooks_for_invocation"
     )
-    @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.plugin_handler.execute_via_group_type_registry"
-    )
-    def test_old_path_always_runs(
-        self, mock_old_path: mock.MagicMock, mock_new_path: mock.MagicMock
-    ) -> None:
-        PluginActionHandler.execute(self.invocation)
-
-        mock_old_path.assert_called_once_with(self.invocation)
-        mock_new_path.assert_called_once_with(self.invocation)
-
-    @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.plugin_handler.send_legacy_webhooks_for_invocation"
-    )
-    @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.plugin_handler.execute_via_group_type_registry"
-    )
-    def test_non_group_event_skips_both_paths(
-        self, mock_old_path: mock.MagicMock, mock_new_path: mock.MagicMock
-    ) -> None:
+    def test_non_group_event_does_nothing(self, mock_send: mock.MagicMock) -> None:
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -90,23 +71,15 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
 
         PluginActionHandler.execute(invocation)
 
-        mock_old_path.assert_not_called()
-        mock_new_path.assert_not_called()
+        mock_send.assert_not_called()
 
     @responses.activate
-    @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.plugin_handler.execute_via_group_type_registry",
-        side_effect=Exception("legacy path error"),
-    )
-    def test_old_path_exception_does_not_block_new_path(
-        self, mock_old_path: mock.MagicMock
-    ) -> None:
+    def test_disabled_webhooks_does_not_send(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
+        webhook_plugin = plugins.get("webhooks")
+        webhook_plugin.set_option("enabled", False, self.project)
 
         with self.tasks():
             PluginActionHandler.execute(self.invocation)
 
-        mock_old_path.assert_called_once()
-        assert len(responses.calls) == 1
-        body = json.loads(responses.calls[0].request.body)
-        assert body["id"] == str(self.group.id)
+        assert len(responses.calls) == 0

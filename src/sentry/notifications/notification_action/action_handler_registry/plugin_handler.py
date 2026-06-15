@@ -1,7 +1,6 @@
 import logging
 from typing import override
 
-from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.sentry_apps.services.legacy_webhook.service import send_legacy_webhooks_for_invocation
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import Action
@@ -43,14 +42,6 @@ class PluginActionHandler(ActionHandler):
     def execute(invocation: ActionInvocation) -> None:
         if not isinstance(invocation.event_data.event, GroupEvent):
             return
-
-        try:
-            execute_via_group_type_registry(invocation)
-        except Exception:
-            logger.exception(
-                "plugin_action_handler.old_path_error",
-                extra={"invocation": invocation},
-            )
 
         try:
             send_legacy_webhooks_for_invocation(invocation)
