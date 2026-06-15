@@ -166,7 +166,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         on the parameters passed
 
         **Note**: For queries extending past `30d`, spanning billions of rows, or running on projects with low
-        sample rates, aggregations such as `yAxis=count_unique()` and filters on high-cardinality
+        sample rates, the aggregation `yAxis=count_unique()` and filters on high-cardinality
         fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
         estimation only.
         """
