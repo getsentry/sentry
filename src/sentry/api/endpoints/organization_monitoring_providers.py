@@ -89,6 +89,9 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if not features.has(MONITORING_PROVIDER_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
+        if request.user.id is None:
+            return Response(status=401)
+
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
@@ -133,12 +136,12 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if not features.has(MONITORING_PROVIDER_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
-        if provider_key not in MONITORING_PROVIDERS:
-            return Response({"detail": "Unknown monitoring provider."}, status=400)
-
         user_id = request.user.id
         if user_id is None:
             return Response(status=401)
+
+        if provider_key not in MONITORING_PROVIDERS:
+            return Response({"detail": "Unknown monitoring provider."}, status=400)
 
         identities = list(
             Identity.objects.filter(
