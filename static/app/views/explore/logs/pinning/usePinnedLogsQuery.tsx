@@ -62,6 +62,7 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
       dateParams: normalizeDateTimeParams(selection.datetime),
       baseQuery,
       canFetch,
+      staleTime: 0,
     })
   );
 
@@ -83,6 +84,7 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
       dateParams: {statsPeriod: WIDE_STATS_PERIOD},
       baseQuery,
       canFetch,
+      staleTime: Infinity,
     })
   );
 
@@ -132,11 +134,13 @@ function usePinnedLogsEventsQueryOptions({
   dateParams,
   baseQuery,
   canFetch,
+  staleTime,
 }: {
   baseQuery: PinnedLogsBaseQuery;
   canFetch: boolean;
   dateParams: ReturnType<typeof normalizeDateTimeParams>;
   ids: string[];
+  staleTime: number;
 }) {
   const organization = useOrganization();
 
@@ -153,8 +157,8 @@ function usePinnedLogsEventsQueryOptions({
           query: `id:[${ids.join(',')}]`,
           per_page: ids.length,
         },
-        staleTime: 0,
+        staleTime,
       }),
-    [organization.slug, canFetch, ids, dateParams, baseQuery]
+    [baseQuery, canFetch, dateParams, ids, organization.slug, staleTime]
   );
 }
