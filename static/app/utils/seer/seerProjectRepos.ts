@@ -22,7 +22,11 @@ function toOptimisticRepo(
   index: number,
   cachedRepo: Repository | undefined
 ): SeerProjectReposResponse {
-  const [owner, name] = (cachedRepo?.name || '/').split('/');
+  // See also: src/sentry/seer/endpoints/project_seer_repos.py::_serialize_project_repo()
+  const repoFullName = cachedRepo?.name || '';
+  const slashIndex = repoFullName.indexOf('/');
+  const owner = slashIndex >= 0 ? repoFullName.slice(0, slashIndex) : '';
+  const name = slashIndex >= 0 ? repoFullName.slice(slashIndex + 1) : repoFullName;
   return {
     id: `optimistic-${index}-${Date.now()}`,
     repositoryId: String(repo.repositoryId),
