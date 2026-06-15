@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import re
 import time
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 
+from sentry.integrations.github.platform_detection import (
+    _get_repo_file_content,
+    _parse_package_manifest,
+)
 from sentry.integrations.github.platform_registry import (
     _FRAMEWORKS_BY_PLATFORM,
     _NON_SELECTABLE_PLATFORMS,
@@ -38,9 +43,6 @@ from sentry.integrations.github.platform_registry import (
 from sentry.integrations.github.platform_registry import (
     _PackageManifest as _PackageManifest,
 )
-from sentry.integrations.github.platform_registry import (
-    _rule_matches as _rule_matches,
-)
 
 if TYPE_CHECKING:
     from sentry.integrations.github.client import GitHubBaseClient
@@ -53,6 +55,11 @@ if TYPE_CHECKING:
 # run. Fixed at 3 for this pass; revisit once we have a few days of
 # languages_count / k_reads_needed metrics.
 MAX_LANGUAGES = 3
+
+# Maximum number of per-file REST reads performed.
+# Sized at p99 of k_candidate from the measurement run (≈5 reads covers the
+# vast majority of repos while keeping the per-detection API footprint small).
+MAX_CONTENT_READS = 5
 
 # Sort key weight for confidence tier: high > medium > low.
 # Ensures a framework match (high) always ranks above a bare-language fallback
@@ -288,11 +295,12 @@ class MultiDetectionResult(TypedDict):
     """
 
     platforms: list[DetectedPlatform]
-    k_candidate: int  # how many content-reads would be needed to resolve content/package rules
-    needed_paths: set[str]  # the actual filenames (measurement scaffolding)
+    k_candidate: int  # distinct content/package paths the full rule set would need
+    k_reads_realized: (
+        int  # files actually fetched in the content pass (capped at MAX_CONTENT_READS)
+    )
     tree_entry_count: int  # total entries returned by GitHub
     is_truncated: bool  # GitHub truncated the tree at 100k entries / 7MB
-    full_repo_size_bytes: int  # sum of ALL blob sizes including vendored/build dirs
 
 
 def _collect_needed_paths(
@@ -346,16 +354,36 @@ def _rule_parent_dirs(
     rule: DetectorRule,
     files_full_paths_by_basename: dict[str, set[str]],
     dirs_full_paths_by_basename: dict[str, set[str]],
-) -> set[str] | None:
-    """Collect parent directories where this existence rule is satisfiable.
+    content_by_path: dict[str, str],
+    manifests_by_path: dict[str, _PackageManifest],
+) -> set[str]:
+    """Collect parent directories where this rule is satisfiable.
 
-    Returns None when the rule needs content or package data (match_content /
-    match_package) — those rules cannot be evaluated in the existence pass.
-    Returns an empty set when the rule is an existence rule but no matching
-    file or directory is present in the tree.
+    Works for all rule types.  Pass empty dicts for ``content_by_path`` and
+    ``manifests_by_path`` in the existence pass; content/package rules will
+    then return an empty set (don't fire) without any special-casing.
     """
-    if "match_package" in rule or "match_content" in rule:
-        return None
+    if "match_package" in rule:
+        return {
+            _parent_dir(path)
+            for path, manifest in manifests_by_path.items()
+            if _package_in_manifest(rule["match_package"], manifest)
+        }
+
+    if "match_content" in rule:
+        pattern = rule["match_content"]
+        path_filter = rule.get("path")
+        ext_filter = rule.get("match_ext")
+        result: set[str] = set()
+        for full_path, content in content_by_path.items():
+            basename = full_path.rsplit("/", 1)[-1]
+            if path_filter and basename != path_filter:
+                continue
+            if ext_filter and not basename.endswith(ext_filter):
+                continue
+            if re.search(pattern, content, re.IGNORECASE):
+                result.add(_parent_dir(full_path))
+        return result
 
     if "match_dir" in rule:
         dirname = rule["match_dir"]
@@ -383,56 +411,25 @@ def _rule_parent_dirs(
     return {_parent_dir(p) for p in files_full_paths_by_basename.get(path, set())}
 
 
-def _rule_existence_fires_in_scope(
-    rule: DetectorRule,
-    scope: str,
-    files_full_paths_by_basename: dict[str, set[str]],
-    dirs_full_paths_by_basename: dict[str, set[str]],
-) -> bool:
-    """Return True if an existence rule fires within the given scope.
-
-    A file or directory is "in scope" when its immediate parent directory
-    equals ``scope`` ('' = repo root).
-    Rules requiring content or package data always return False.
-    """
-    if "match_package" in rule or "match_content" in rule:
-        return False
-    if "match_dir" in rule:
-        dirname = rule["match_dir"]
-        if dirname.startswith("."):
-            for bn, paths in dirs_full_paths_by_basename.items():
-                if bn.endswith(dirname) and any(_parent_dir(p) == scope for p in paths):
-                    return True
-            return False
-        return any(_parent_dir(p) == scope for p in dirs_full_paths_by_basename.get(dirname, set()))
-    if "match_ext" in rule:
-        ext = rule["match_ext"]
-        for bn, paths in files_full_paths_by_basename.items():
-            if bn.endswith(ext) and any(_parent_dir(p) == scope for p in paths):
-                return True
-        return False
-    path = rule.get("path")
-    if path is None:
-        return False
-    return any(_parent_dir(p) == scope for p in files_full_paths_by_basename.get(path, set()))
-
-
 def _framework_matches_scoped(
     fw: FrameworkDef,
     files_full_paths_by_basename: dict[str, set[str]],
     dirs_full_paths_by_basename: dict[str, set[str]],
+    content_by_path: dict[str, str],
+    manifests_by_path: dict[str, _PackageManifest],
 ) -> bool:
-    """Co-location-aware existence-only framework matcher for the multi detector.
+    """Co-location-aware framework matcher for the multi detector.
 
-    For ``some``-only frameworks any single self-contained signal anywhere in
-    the tree is sufficient — no co-location constraint needed since a single
-    rule is already self-contained.
+    Pass empty dicts for ``content_by_path`` and ``manifests_by_path`` in the
+    existence pass; content/package rules will return empty scope sets and
+    therefore not fire, with no special-casing needed.
 
-    For frameworks with ``every`` rules all rules must be satisfiable within
-    the same parent directory, preventing stray files in unrelated subtrees
-    from causing false positives (e.g. a deployment ``.csproj`` in
-    ``tools/deploy/`` combined with an unrelated ``appsettings.json`` in
-    ``backend/`` must not fire ``dotnet-aspnetcore``).
+    For ``some``-only frameworks any single signal anywhere in the tree is
+    sufficient.  For frameworks with ``every`` rules all conditions must be
+    satisfiable within the same parent directory, preventing stray files in
+    unrelated subtrees from causing false positives (e.g. a deployment
+    ``.csproj`` in ``tools/deploy/`` combined with an unrelated
+    ``appsettings.json`` in ``backend/`` must not fire ``dotnet-aspnetcore``).
     If ``some`` rules are also present they are additionally required to fire
     within at least one scope where all ``every`` rules are satisfied.
     """
@@ -442,23 +439,22 @@ def _framework_matches_scoped(
     if not every and not some:
         return False
 
+    def scopes_for(rule: DetectorRule) -> set[str]:
+        return _rule_parent_dirs(
+            rule,
+            files_full_paths_by_basename,
+            dirs_full_paths_by_basename,
+            content_by_path,
+            manifests_by_path,
+        )
+
     if not every:
-        # some-only: any single rule firing anywhere is sufficient.
-        # _rule_matches with empty file_contents and no manifest evaluates
-        # existence-only signals — identical to the flat single-detector pass.
-        files_basenames = set(files_full_paths_by_basename.keys())
-        dirs_basenames = set(dirs_full_paths_by_basename.keys())
-        return any(_rule_matches(rule, files_basenames, {}, None, dirs_basenames) for rule in some)
+        return any(scopes_for(rule) for rule in some)
 
     # Collect the intersection of parent-dir scopes across all every rules.
     scopes: set[str] | None = None
     for rule in every:
-        rule_scopes = _rule_parent_dirs(
-            rule, files_full_paths_by_basename, dirs_full_paths_by_basename
-        )
-        if rule_scopes is None:
-            # Rule needs content/package data → cannot fire in existence pass.
-            return False
+        rule_scopes = scopes_for(rule)
         scopes = set(rule_scopes) if scopes is None else scopes & rule_scopes
         if not scopes:
             return False
@@ -471,13 +467,7 @@ def _framework_matches_scoped(
 
     # every+some: at least one some rule must fire within a scope where all
     # every rules are already satisfied.
-    return any(
-        _rule_existence_fires_in_scope(
-            rule, scope, files_full_paths_by_basename, dirs_full_paths_by_basename
-        )
-        for scope in scopes
-        for rule in some
-    )
+    return any(scope in scopes_for(rule) for scope in scopes for rule in some)
 
 
 def detect_platforms_multi(
@@ -487,15 +477,21 @@ def detect_platforms_multi(
 ) -> MultiDetectionResult:
     """Detect Sentry platforms for a GitHub repository.
 
-    Selects up to MAX_LANGUAGES base platforms by byte count, fetches the
-    full recursive git tree once, and evaluates existence rules (path /
-    match_dir / match_ext) across all paths — subdir-aware with no extra API
-    calls. Content/package rules (match_content / match_package) are not
-    evaluated here; the paths they would need are counted as k_reads_needed
-    without fetching them.
+    Selects up to MAX_LANGUAGES base platforms by byte count, fetches the full
+    recursive git tree once, then runs two high-confidence passes:
 
-    The return value feeds the Mode A harness and (eventually) the live
-    detection endpoint.
+    - Pass 1 (existence): evaluates path/match_dir/match_ext rules with no
+      extra API calls, co-location-aware so stray files in unrelated subtrees
+      don't produce false positives.
+    - Pass 2 (content reads): fetches up to MAX_CONTENT_READS files and
+      evaluates match_content/match_package rules within the same per-file
+      scope.
+
+    Supersession runs after both high-confidence passes so that a framework
+    detected via content reads (e.g. react-native from package.json) can
+    supersede an existence match (e.g. apple-ios from *.xcodeproj) before the
+    bare-language fallback is emitted.  Bare-language medium fallbacks fill in
+    any base platform not claimed by either high pass.
     """
     start_time = time.monotonic()
 
@@ -508,23 +504,20 @@ def detect_platforms_multi(
     results: list[DetectedPlatform] = []
     seen_platforms: set[str] = set()
 
-    # Pass 1: framework (existence) matches across all base-platform buckets.
-    # Running this before the medium fallback pass ensures a framework match
-    # from any bucket (e.g. Swift firing apple-ios high) claims the platform
-    # id before the bare-language fallback for a differently-keyed bucket
-    # (e.g. Objective-C → base "apple-ios" medium) can occupy it first.
-    # Co-location enforcement: every-rules must all fire within the same parent
-    # directory so stray files in unrelated subtrees don't produce false hits.
+    # Pass 1: existence-only high matches (no API reads beyond the tree).
+    # Co-location enforcement ensures every-rules all fire within the same
+    # parent directory so stray files in unrelated subtrees don't match.
     for base_platform, lang_entries in active_platforms.items():
-        # Use the dominant language as the label, but sum all bytes in the
-        # bucket so the sort reflects the platform's true weight (e.g. TS +
-        # JS combined, not just the larger of the two).
         language = max(lang_entries, key=lambda x: x[1])[0]
         byte_count = sum(b for _, b in lang_entries)
 
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
             if _framework_matches_scoped(
-                fw, index.files_full_paths_by_basename, index.dirs_full_paths_by_basename
+                fw,
+                index.files_full_paths_by_basename,
+                index.dirs_full_paths_by_basename,
+                {},
+                {},
             ):
                 platform_id = fw["platform"]
                 if platform_id not in seen_platforms:
@@ -539,7 +532,60 @@ def detect_platforms_multi(
                         )
                     )
 
-    # Pass 2: bare-language fallbacks for base platforms not resolved above.
+    # Pass 2 (content reads): fetch up to MAX_CONTENT_READS files and evaluate
+    # match_content / match_package rules within their per-file scope.
+    needed_paths = _collect_needed_paths(active_platforms, index.files_full_paths_by_basename)
+    # Sort shallowest paths first so root manifests (package.json, Gemfile, go.mod, …)
+    # are always within the cap before subdirectory files from monorepo workspaces.
+    capped_paths = sorted(needed_paths, key=lambda p: (p.count("/"), p))[:MAX_CONTENT_READS]
+
+    content_by_path: dict[str, str] = {}
+    for path in capped_paths:
+        content = _get_repo_file_content(client, repo, path, ref)
+        if content is not None:
+            content_by_path[path] = content
+
+    manifests_by_path: dict[str, _PackageManifest] = {}
+    for path, content in content_by_path.items():
+        basename = path.rsplit("/", 1)[-1]
+        manifest = _parse_package_manifest(content, basename)
+        if manifest is not None:
+            manifests_by_path[path] = manifest
+
+    for base_platform, lang_entries in active_platforms.items():
+        language = max(lang_entries, key=lambda x: x[1])[0]
+        byte_count = sum(b for _, b in lang_entries)
+
+        for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
+            platform_id = fw["platform"]
+            if platform_id in seen_platforms:
+                continue
+            if _framework_matches_scoped(
+                fw,
+                index.files_full_paths_by_basename,
+                index.dirs_full_paths_by_basename,
+                content_by_path,
+                manifests_by_path,
+            ):
+                seen_platforms.add(platform_id)
+                results.append(
+                    DetectedPlatform(
+                        platform=platform_id,
+                        language=language,
+                        bytes=byte_count,
+                        confidence="high",
+                        priority=100 - fw["sort"],
+                    )
+                )
+
+    # Supersession runs after both high-confidence passes so a framework
+    # detected via content reads can supersede an existence match.
+    results = _apply_supersession(results)
+
+    # Pass 3: bare-language medium fallbacks for base platforms not resolved
+    # by either high pass.  Uses seen_platforms (not results) so supersession
+    # above doesn't accidentally re-open a slot for a base platform whose
+    # framework was just superseded by a higher-specificity content match.
     for base_platform, lang_entries in active_platforms.items():
         if base_platform not in seen_platforms:
             language = max(lang_entries, key=lambda x: x[1])[0]
@@ -555,14 +601,13 @@ def detect_platforms_multi(
                 )
             )
 
-    results = _apply_supersession(results)
     results = [r for r in results if r["platform"] not in _NON_SELECTABLE_PLATFORMS]
     results.sort(
         key=lambda r: (_CONFIDENCE_ORDER[r["confidence"]], r["bytes"], r["priority"]),
         reverse=True,
     )
 
-    needed_paths = _collect_needed_paths(active_platforms, index.files_full_paths_by_basename)
+    k_reads_realized = len(content_by_path)
 
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.duration",
@@ -590,6 +635,10 @@ def detect_platforms_multi(
         f"{_MULTI_METRICS_PREFIX}.k_reads_needed",
         len(needed_paths),
     )
+    sentry_sdk.metrics.distribution(
+        f"{_MULTI_METRICS_PREFIX}.k_reads_realized",
+        k_reads_realized,
+    )
     sentry_sdk.metrics.count(
         f"{_MULTI_METRICS_PREFIX}.completed",
         1,
@@ -603,8 +652,7 @@ def detect_platforms_multi(
     return MultiDetectionResult(
         platforms=results,
         k_candidate=len(needed_paths),
-        needed_paths=needed_paths,
+        k_reads_realized=k_reads_realized,
         tree_entry_count=len(entries),
         is_truncated=is_truncated,
-        full_repo_size_bytes=index.full_repo_size_bytes,
     )
