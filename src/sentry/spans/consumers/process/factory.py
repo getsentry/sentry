@@ -172,8 +172,6 @@ class ProcessSpanEvent(msgspec.Struct, gc=False):
     received: float
     retention_days: int
     status: str
-    # `name` is required by the schema but nullable, and Relay may omit the key
-    # entirely, so default to None rather than reject the span.
     name: str | None = None
     parent_span_id: str | None = None
     is_segment: bool | None = None
@@ -215,9 +213,9 @@ def process_batch(
             if min_timestamp is None or timestamp < min_timestamp:
                 min_timestamp = timestamp
 
-            # Decoding into the typed struct validates the fields the buffer
-            # relies on (presence and types); malformed spans raise here and are
-            # routed to the DLQ below. See also: INC-1453, INC-1458.
+            # Decoding into the typed struct validates the fields the buffer relies on (presence
+            # and types); malformed spans raise here and are routed to the DLQ below. See also:
+            # INC-1453, INC-1458.
             decode_start = time.monotonic()
             span_event = _SPAN_EVENT_DECODER.decode(payload.value)
             decode_time += time.monotonic() - decode_start
