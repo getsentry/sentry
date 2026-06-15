@@ -867,7 +867,8 @@ def _set_data_on_scope(data_export: ExportedData) -> None:
     sentry_sdk.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
     sentry_sdk.set_attribute("export.type", ExportQueryType.as_str(data_export.query_type))
     sentry_sdk.set_tag("export.format", data_export.export_format)
-    sentry_sdk.set_attribute("export.format", data_export.export_format)
+    if data_export.export_format is not None:
+        sentry_sdk.set_attribute("export.format", data_export.export_format)
     qi = data_export.query_info
     if qi.get("dataset") is not None:
         sentry_sdk.set_tag("export.dataset", str(qi.get("dataset")))
