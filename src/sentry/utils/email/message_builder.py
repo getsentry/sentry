@@ -41,7 +41,7 @@ default_list_type_handlers: Mapping[type[Model], Callable[[Model], Iterable[str]
 }
 
 make_listid_from_instance = ListResolver(
-    options.get("mail.list-namespace"), default_list_type_handlers
+    settings.SENTRY_MAIL_LIST_NAMESPACE, default_list_type_handlers
 )
 
 # The maximum amount of recipients to display in human format.
