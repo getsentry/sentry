@@ -487,6 +487,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     "coding_agents": {
                         agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
+                    "pr_iteration_enabled": bool(
+                        state.metadata.get("pr_iteration_enabled") if state.metadata else False
+                    ),
                 }
             }
         )
