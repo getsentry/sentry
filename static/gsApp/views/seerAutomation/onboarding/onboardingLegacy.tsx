@@ -31,6 +31,8 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
+import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
+import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -47,8 +49,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
-import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
 type ProjectState = {
   isPending: boolean;

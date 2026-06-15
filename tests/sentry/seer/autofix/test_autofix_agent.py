@@ -19,7 +19,6 @@ from sentry.seer.autofix.autofix_agent import (
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
     get_latest_iteration_index,
-    recover_iteration_feedback,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -28,7 +27,6 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 
 
 class TestGenerateAutofixHandoffPrompt(TestCase):
@@ -247,20 +245,10 @@ class TestBuildStepPrompt(TestCase):
             assert not prompt.startswith("\t"), f"{step} prompt starts with tab"
 
 
-def _iteration_block(
-    iteration_index: int | None = None, feedback: str | None = None
-) -> MemoryBlock:
+def _iteration_block(iteration_index: int | None = None) -> MemoryBlock:
     metadata: dict[str, str] = {"step": AutofixStep.PR_ITERATION.value}
     if iteration_index is not None:
         metadata["iteration_index"] = str(iteration_index)
-    if feedback is not None:
-        metadata["feedback"] = json.dumps(
-            {
-                "text": feedback,
-                "source": "user",
-                "timestamp": "2024-01-01T00:00:00Z",
-            }
-        )
     return MemoryBlock(
         id=f"block-{iteration_index}",
         message=Message(role="assistant", content="iteration", metadata=metadata),
@@ -290,24 +278,6 @@ class TestIterationHelpers(TestCase):
     def test_get_iteration_for_insert_index(self) -> None:
         state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
         assert get_iteration_for_insert_index(state, 1) == 2
-
-    def test_recover_iteration_feedback_returns_feedback(self) -> None:
-        state = _state_with_blocks([_iteration_block(1, feedback="please fix the tests")])
-        assert recover_iteration_feedback(state, 0) == "please fix the tests"
-
-    def test_recover_iteration_feedback_out_of_range(self) -> None:
-        state = _state_with_blocks([])
-        assert recover_iteration_feedback(state, 0) is None
-        assert recover_iteration_feedback(state, -1) is None
-
-    def test_recover_iteration_feedback_no_metadata(self) -> None:
-        block = MemoryBlock(
-            id="block-none",
-            message=Message(role="assistant", content="x", metadata=None),
-            timestamp="2024-01-01T00:00:00Z",
-        )
-        state = _state_with_blocks([block])
-        assert recover_iteration_feedback(state, 0) is None
 
 
 class TestPrIterationPrompt(TestCase):
@@ -661,9 +631,6 @@ class TestTriggerAutofixAgent(TestCase):
     def test_code_review_disabled_without_flag(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        # Guard against this test passing because the step stopped enabling coding.
-        assert STEP_CONFIGS[AutofixStep.CODE_CHANGES].enable_coding is True
-
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
@@ -704,11 +671,11 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_code_review_stays_disabled_on_non_coding_step_with_flag(
+    def test_code_review_enabled_on_non_coding_step_with_flag(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        # The review tool only operates on accumulated patches, so it should stay
-        # off for steps that don't enable coding, even when the flag is on.
+        # code_review_enabled is gated purely on the option, so it is set even on
+        # steps that don't enable coding. Seer decides where the tool is useful.
         assert STEP_CONFIGS[AutofixStep.ROOT_CAUSE].enable_coding is False
 
         mock_client = MagicMock()
@@ -723,7 +690,7 @@ class TestTriggerAutofixAgent(TestCase):
                 run_id=None,
             )
 
-        assert mock_client_class.call_args.kwargs["code_review_enabled"] is False
+        assert mock_client_class.call_args.kwargs["code_review_enabled"] is True
 
 
 class TestTriggerCodingAgentHandoff(TestCase):

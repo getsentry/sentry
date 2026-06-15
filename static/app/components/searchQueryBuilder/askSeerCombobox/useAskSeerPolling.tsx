@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
@@ -133,6 +133,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
         const newRunId = response.sentry_run_id ?? response.run_id;
         if (!newRunId) {
+          Sentry.captureMessage('Search agent start response missing run ID', 'error');
           throw new Error('Search agent start response missing run ID');
         }
         setRunId(newRunId);
@@ -148,7 +149,6 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
         inFlightQueryRef.current = null;
         setWaitingForResponse(false);
         setStartFailed(true);
-        addErrorMessage((error as Error)?.message ?? 'Failed to start AI search');
         options.onError?.(error as Error);
       }
     },

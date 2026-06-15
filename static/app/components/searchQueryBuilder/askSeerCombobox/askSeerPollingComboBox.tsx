@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
@@ -33,6 +33,7 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -124,6 +125,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasTrackedFetchErrorRef = useRef(false);
   const organization = useOrganization();
 
   const [searchQuery, setSearchQuery] = useState(() =>
@@ -160,11 +162,13 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     strategy,
     options: extraOptions,
     onError: error => {
-      addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+      addErrorMessage(t('Seer was unable to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,
         natural_language_query: searchQuery,
+        is_fetch: false,
+        status_code: error instanceof RequestError ? error.status : undefined,
       });
     },
   });
@@ -434,6 +438,22 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     setAutoSubmitSeer,
     submitQuery,
   ]);
+
+  // Track errors that occur while polling/fetching results. Guarded by a ref so
+  // we only fire once per error occurrence (and reset once the error clears).
+  useEffect(() => {
+    if (isError && !hasTrackedFetchErrorRef.current) {
+      hasTrackedFetchErrorRef.current = true;
+      trackAnalytics('ai_query.error', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery,
+        is_fetch: true,
+      });
+    } else if (!isError) {
+      hasTrackedFetchErrorRef.current = false;
+    }
+  }, [isError, organization, analyticsArea, searchQuery]);
 
   const onMouseLeave = () => {
     state.selectionManager.setFocusedKey(null);

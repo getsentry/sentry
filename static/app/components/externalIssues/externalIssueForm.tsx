@@ -1,16 +1,16 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {RequestOptions} from 'sentry/api';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
@@ -20,7 +20,6 @@ import type {FieldValue} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {ResponseMeta} from 'sentry/types/api';
 import type {Choice, Choices} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
@@ -126,11 +125,14 @@ export function ExternalIssueForm({
     })
   );
   const queryClient = useQueryClient();
-  const title = tct('[integration] Issue', {integration: integration.provider.name});
 
   const [hasTrackedLoad, setHasTrackedLoad] = useState(false);
   const [loadSpan, setLoadSpan] = useState<Span | null>(null);
   const [action, setAction] = useState<ExternalIssueAction>('create');
+  const title = tct('[action] [integration] Issue', {
+    action: action === 'create' ? t('Create') : t('Link'),
+    integration: integration.provider.name,
+  });
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
   // Stable fields don't depend on other fields. We keep the values the user typed
   // so they survive the remounts that dynamic-field refetches cause.
@@ -192,40 +194,35 @@ export function ExternalIssueForm({
    * `useApiQuery`, and instead manually call the api, and update the cache ourselves.
    */
   const refetchWithDynamicFields = useCallback(
-    (dynamicValues: Record<string, unknown>) => {
+    async (dynamicValues: Record<string, unknown>) => {
       setIsDynamicallyRefetching(true);
-      const requestOptions: RequestOptions = {
-        method: 'GET',
-        query: {action, ...dynamicValues},
-        success: (
-          data: IntegrationIssueConfig,
-          _textStatus: string | undefined,
-          _responseMeta: ResponseMeta | undefined
-        ) => {
-          setApiQueryData(
-            queryClient,
-            makeIntegrationIssueConfigQueryKey({
-              orgSlug: organization.slug,
-              groupId: group.id,
-              integrationId: integration.id,
-              action,
-            }),
-            existingData => (data ? data : existingData)
-          );
-          setIsDynamicallyRefetching(false);
-        },
-        error: (err: any) => {
-          if (err?.responseText) {
-            Sentry.addBreadcrumb({
-              message: err.responseText,
-              category: 'xhr',
-              level: 'error',
-            });
-          }
-          setIsDynamicallyRefetching(false);
-        },
-      };
-      return api.request(endpointString, requestOptions);
+      try {
+        const [data] = await api.requestPromise(endpointString, {
+          method: 'GET',
+          query: {action, ...dynamicValues},
+          includeAllArgs: true,
+        });
+        setApiQueryData(
+          queryClient,
+          makeIntegrationIssueConfigQueryKey({
+            orgSlug: organization.slug,
+            groupId: group.id,
+            integrationId: integration.id,
+            action,
+          }),
+          existingData => (data ? (data as IntegrationIssueConfig) : existingData)
+        );
+      } catch (err: any) {
+        if (err?.responseText) {
+          Sentry.addBreadcrumb({
+            message: err.responseText,
+            category: 'xhr',
+            level: 'error',
+          });
+        }
+      } finally {
+        setIsDynamicallyRefetching(false);
+      }
     },
     [
       action,
@@ -390,71 +387,60 @@ export function ExternalIssueForm({
     [formFields]
   );
 
-  if (isPending) {
-    return (
-      <Fragment>
-        <Header closeButton>
-          <Heading as="h4">{title}</Heading>
-        </Header>
-        <Body>
-          <LoadingIndicator />
-        </Body>
-      </Fragment>
-    );
-  }
-
-  if (isError) {
-    const errorDetail = error?.responseJSON?.detail;
-    const errorMessage =
-      typeof errorDetail === 'string'
-        ? errorDetail
-        : t('An error occurred loading the issue form');
-    return (
-      <Fragment>
-        <Header closeButton>
-          <Heading as="h4">{title}</Heading>
-        </Header>
-        <Body>
-          <LoadingError message={errorMessage} />
-        </Body>
-      </Fragment>
-    );
-  }
+  const errorDetail = error?.responseJSON?.detail;
+  const errorMessage =
+    typeof errorDetail === 'string'
+      ? errorDetail
+      : t('An error occurred loading the issue form');
 
   return (
     <Fragment>
-      <Header closeButton>
-        <Heading as="h4">{title}</Heading>
+      <Header
+        closeButton
+        css={css`
+          && {
+            align-items: flex-start;
+            padding-bottom: 0;
+          }
+        `}
+      >
+        <Flex direction="column" align="stretch" gap="lg" flex={1} minWidth={0}>
+          <Heading as="h4">{title}</Heading>
+          <Tabs value={action} onChange={handleClick} disableOverflow>
+            <TabList>
+              <TabList.Item key="create">{t('Create')}</TabList.Item>
+              <TabList.Item key="link">{t('Link')}</TabList.Item>
+            </TabList>
+          </Tabs>
+        </Flex>
       </Header>
-      <Container marginBottom="xl">
-        <Tabs value={action} onChange={handleClick}>
-          <TabList>
-            <TabList.Item key="create">{t('Create')}</TabList.Item>
-            <TabList.Item key="link">{t('Link')}</TabList.Item>
-          </TabList>
-        </Tabs>
-      </Container>
       <Body>
-        <BackendJsonSubmitForm
-          key={formKey}
-          fields={formFields}
-          initialValues={{...stableFieldValues, ...lastChangedField}}
-          onSubmit={handleSubmit}
-          submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
-          isLoading={isDynamicallyRefetching}
-          dynamicFieldValues={dynamicFieldValues}
-          onAsyncOptionsFetched={handleAsyncOptionsFetched}
-          onFieldChange={onFieldChange}
-          onValueChange={handleValueChange}
-          submitDisabled={hasFormErrors}
-          footer={({SubmitButton, disabled}) => (
-            <Footer>
-              <SubmitButton disabled={disabled}>
-                {SUBMIT_LABEL_BY_ACTION[action]}
-              </SubmitButton>
-            </Footer>
-          )}
-        />
+        {isPending ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError message={errorMessage} />
+        ) : (
+          <BackendJsonSubmitForm
+            key={formKey}
+            fields={formFields}
+            initialValues={{...stableFieldValues, ...lastChangedField}}
+            onSubmit={handleSubmit}
+            submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
+            isLoading={isDynamicallyRefetching}
+            dynamicFieldValues={dynamicFieldValues}
+            onAsyncOptionsFetched={handleAsyncOptionsFetched}
+            onFieldChange={onFieldChange}
+            onValueChange={handleValueChange}
+            submitDisabled={hasFormErrors}
+            footer={({SubmitButton, disabled}) => (
+              <Footer>
+                <SubmitButton disabled={disabled}>
+                  {SUBMIT_LABEL_BY_ACTION[action]}
+                </SubmitButton>
+              </Footer>
+            )}
+          />
+        )}
       </Body>
     </Fragment>
   );

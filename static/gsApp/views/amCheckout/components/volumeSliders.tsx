@@ -64,12 +64,8 @@ export function VolumeSliders({
   checkoutTier,
   activePlan,
   organization,
-  subscription,
   onReservedChange,
-}: Pick<
-  StepProps,
-  'activePlan' | 'checkoutTier' | 'organization' | 'onUpdate' | 'subscription'
-> & {
+}: Pick<StepProps, 'activePlan' | 'checkoutTier' | 'organization' | 'onUpdate'> & {
   currentSliderValues: Partial<Record<DataCategory, number>>;
   onReservedChange: (value: number, category: DataCategory) => void;
 }) {
@@ -123,16 +119,6 @@ export function VolumeSliders({
             checkoutTier === PlanTier.AM2 &&
             organization?.features?.includes('profiling-billing') &&
             category === DataCategory.TRANSACTIONS;
-
-          // TODO: Remove after profiling launch
-          const showTransactionsDisclaimer =
-            !showPerformanceUnits &&
-            category === DataCategory.TRANSACTIONS &&
-            checkoutTier === PlanTier.AM2 &&
-            subscription.planTier === PlanTier.AM1 &&
-            subscription.planDetails.name === activePlan.name &&
-            subscription.billingInterval === activePlan.billingInterval &&
-            (subscription.categories.transactions?.reserved ?? 0) > 5_000_000;
 
           const isIncluded = eventBucket.price === 0;
 
@@ -219,13 +205,6 @@ export function VolumeSliders({
                     </div>
                   </MinMax>
                 </div>
-                {showTransactionsDisclaimer && (
-                  <span>
-                    {t(
-                      'We updated your event quota to make sure you get the best cost per transaction. Feel free to adjust as needed.'
-                    )}
-                  </span>
-                )}
               </CategoryContainer>
             </DataVolumeItem>
           );
