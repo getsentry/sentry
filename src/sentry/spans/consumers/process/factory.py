@@ -261,33 +261,51 @@ class SpanAttributes(msgspec.Struct, gc=False):
 
 
 class ProcessSpanEvent(msgspec.Struct, gc=False):
+    organization_id: int
+    project_id: int
     trace_id: str
     span_id: str
-    project_id: int
+    start_timestamp: float
+    end_timestamp: float
+    received: float
+    retention_days: int
+    name: str | None
+    status: str
 
-    organization_id: int | None = None
+    # Optional fields consumed by `process_batch`.
     parent_span_id: str | None = None
     is_segment: bool | None = None
     attributes: SpanAttributes | None = None
 
 
-decoder = msgspec.json.Decoder(type=ProcessSpanEvent)
+_PROCESS_SPAN_DECODER = msgspec.json.Decoder(type=ProcessSpanEvent)
 
 
 def decode_process_span_event(buf: bytes) -> dict[str, Any]:
-    process_span_event = decoder.decode(buf)
+    process_span_event = _PROCESS_SPAN_DECODER.decode(buf)
 
-    segment_id: str | None = None
+    attributes: dict[str, Any] = {}
     if process_span_event.attributes:
         if process_span_event.attributes.segment_id:
-            segment_id = process_span_event.attributes.segment_id.value
+            attributes["sentry.segment.id"] = {
+                "value": process_span_event.attributes.segment_id.value,
+                "type": "string",
+            }
 
+    # TODO: Emulating the old behavior for now while we test the rollout. Remove this and
+    #       return ProcessSpanEvent after validation.
     return {
         "organization_id": process_span_event.organization_id,
         "project_id": process_span_event.project_id,
         "trace_id": process_span_event.trace_id,
         "span_id": process_span_event.span_id,
         "parent_span_id": process_span_event.parent_span_id,
+        "start_timestamp": process_span_event.start_timestamp,
+        "end_timestamp": process_span_event.end_timestamp,
+        "received": process_span_event.received,
+        "retention_days": process_span_event.retention_days,
+        "name": process_span_event.name,
+        "status": process_span_event.status,
         "is_segment": process_span_event.is_segment,
-        "attributes": {"sentry.segment.id": {"value": segment_id}},
+        "attributes": attributes,
     }
