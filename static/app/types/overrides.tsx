@@ -19,7 +19,7 @@ import type {
   useMaxPickableDays,
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSection';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
