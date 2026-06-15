@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.integrations.github.multi_platform_detection import (
     _build_tree_index,
     _framework_matches_scoped,
@@ -68,7 +70,7 @@ class TestBuildTreeIndex:
         assert index.files == {"next.config.js", "manage.py"}
 
     def test_root_level_entries_indexed(self) -> None:
-        entries = [
+        entries: list[dict[str, Any]] = [
             {"path": "manage.py", "type": "blob", "size": 50},
             {"path": "Assets", "type": "tree"},
         ]
