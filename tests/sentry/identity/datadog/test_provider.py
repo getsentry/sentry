@@ -481,6 +481,7 @@ class DatadogIdentityProviderTest(TestCase):
 
         assert result["id"] == "dd-user-123"
         assert result["idp_external_id"] == "dd-org-456"
+        assert result["idp_config"] == {"site": "datadoghq.com"}
         assert result["email"] == "user@example.com"
         assert result["name"] == "Test User"
         assert result["type"] == "datadog"
@@ -527,8 +528,41 @@ class DatadogIdentityProviderTest(TestCase):
 
         assert result["id"] == "dd-user-456"
         assert result["idp_external_id"] == "dd-org-789"
+        assert result["idp_config"] == {"site": "datadoghq.com"}
         assert result["email"] is None
         assert result["name"] is None
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_user_uuid(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {
+            "org_uuid": "dd-org-456",
+            "user_email": "user@example.com",
+        }
+
+        with pytest.raises(IdentityNotValid, match="missing required fields"):
+            self.provider.build_identity(
+                {
+                    "data": {"access_token": "token"},
+                    "dcr_client_id": "dcr-id",
+                    "dcr_client_secret": "dcr-secret",
+                }
+            )
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_org_uuid(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "user_email": "user@example.com",
+        }
+
+        with pytest.raises(IdentityNotValid, match="missing required fields"):
+            self.provider.build_identity(
+                {
+                    "data": {"access_token": "token"},
+                    "dcr_client_id": "dcr-id",
+                    "dcr_client_secret": "dcr-secret",
+                }
+            )
 
     @responses.activate
     def test_build_identity_malformed_user_info(self) -> None:
