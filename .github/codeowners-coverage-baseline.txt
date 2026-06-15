@@ -1846,7 +1846,6 @@ tests/js/instrumentedEnv/userEventIntegration.ts
 tests/js/jest-pegjs-transform.js
 tests/js/setup.ts
 tests/js/setupFramework.ts
-tests/js/test-balancer/index.js
 tests/sentry/__init__.py
 tests/sentry/analytics/__init__.py
 tests/sentry/analytics/test_base.py

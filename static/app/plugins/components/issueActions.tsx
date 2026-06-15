@@ -372,47 +372,51 @@ export class IssueActions extends Component<Props, State> {
     callback?.();
   }
 
-  fetchData() {
+  async fetchData() {
     if (this.props.actionType === 'create') {
-      this.api.request(this.getPluginCreateEndpoint(), {
-        success: data => {
-          const createFormData = {};
-          data.forEach((field: any) => {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            createFormData[field.name] = field.default;
-          });
-          this.setState(
-            {
-              createFieldList: data,
-              error: undefined,
-              loading: false,
-              createFormData,
-            },
-            this.onLoadSuccess
-          );
-        },
-        error: this.errorHandler,
-      });
+      try {
+        const [data] = await this.api.requestPromise(this.getPluginCreateEndpoint(), {
+          includeAllArgs: true,
+        });
+        const createFormData = {};
+        data.forEach((field: any) => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          createFormData[field.name] = field.default;
+        });
+        this.setState(
+          {
+            createFieldList: data,
+            error: undefined,
+            loading: false,
+            createFormData,
+          },
+          this.onLoadSuccess
+        );
+      } catch (error) {
+        this.errorHandler(error);
+      }
     } else if (this.props.actionType === 'link') {
-      this.api.request(this.getPluginLinkEndpoint(), {
-        success: data => {
-          const linkFormData = {};
-          data.forEach((field: any) => {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            linkFormData[field.name] = field.default;
-          });
-          this.setState(
-            {
-              linkFieldList: data,
-              error: undefined,
-              loading: false,
-              linkFormData,
-            },
-            this.onLoadSuccess
-          );
-        },
-        error: this.errorHandler,
-      });
+      try {
+        const [data] = await this.api.requestPromise(this.getPluginLinkEndpoint(), {
+          includeAllArgs: true,
+        });
+        const linkFormData = {};
+        data.forEach((field: any) => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          linkFormData[field.name] = field.default;
+        });
+        this.setState(
+          {
+            linkFieldList: data,
+            error: undefined,
+            loading: false,
+            linkFormData,
+          },
+          this.onLoadSuccess
+        );
+      } catch (error) {
+        this.errorHandler(error);
+      }
     }
   }
 
@@ -432,36 +436,51 @@ export class IssueActions extends Component<Props, State> {
     this.props.onSuccess?.(data);
   }
 
-  createIssue() {
-    this.api.request(this.getPluginCreateEndpoint(), {
-      data: this.state.createFormData,
-      success: this.onSuccess,
-      error: this.onSaveError.bind(this, (error: any) => {
-        this.setError(error, t('There was an error creating the issue.'));
-      }),
-      complete: this.onSaveComplete,
-    });
+  async createIssue() {
+    try {
+      const [data] = await this.api.requestPromise(this.getPluginCreateEndpoint(), {
+        data: this.state.createFormData,
+        includeAllArgs: true,
+      });
+      this.onSuccess(data);
+    } catch (error) {
+      this.onSaveError((err: any) => {
+        this.setError(err, t('There was an error creating the issue.'));
+      }, error);
+    } finally {
+      this.onSaveComplete(null);
+    }
   }
 
-  linkIssue() {
-    this.api.request(this.getPluginLinkEndpoint(), {
-      data: this.state.linkFormData,
-      success: this.onSuccess,
-      error: this.onSaveError.bind(this, (error: any) => {
-        this.setError(error, t('There was an error linking the issue.'));
-      }),
-      complete: this.onSaveComplete,
-    });
+  async linkIssue() {
+    try {
+      const [data] = await this.api.requestPromise(this.getPluginLinkEndpoint(), {
+        data: this.state.linkFormData,
+        includeAllArgs: true,
+      });
+      this.onSuccess(data);
+    } catch (error) {
+      this.onSaveError((err: any) => {
+        this.setError(err, t('There was an error linking the issue.'));
+      }, error);
+    } finally {
+      this.onSaveComplete(null);
+    }
   }
 
-  unlinkIssue() {
-    this.api.request(this.getPluginUnlinkEndpoint(), {
-      success: this.onSuccess,
-      error: this.onSaveError.bind(this, (error: any) => {
-        this.setError(error, t('There was an error unlinking the issue.'));
-      }),
-      complete: this.onSaveComplete,
-    });
+  async unlinkIssue() {
+    try {
+      const [data] = await this.api.requestPromise(this.getPluginUnlinkEndpoint(), {
+        includeAllArgs: true,
+      });
+      this.onSuccess(data);
+    } catch (error) {
+      this.onSaveError((err: any) => {
+        this.setError(err, t('There was an error unlinking the issue.'));
+      }, error);
+    } finally {
+      this.onSaveComplete(null);
+    }
   }
 
   changeField(action: ActionType, name: string, value: any) {

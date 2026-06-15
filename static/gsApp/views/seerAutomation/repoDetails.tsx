@@ -13,16 +13,15 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
+import {RepoDetailsForm} from 'sentry/components/seer/repoDetails/repoDetailsForm';
 import {t} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {orgHasCodeReviewFeature} from 'sentry/utils/seer/orgHasCodeReviewFeature';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-
-import {RepoDetailsForm} from 'getsentry/views/seerAutomation/components/repoDetails/repoDetailsForm';
-import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 
 export default function SeerRepoDetails() {
   const {query} = useLocation();

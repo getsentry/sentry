@@ -372,7 +372,8 @@ class GroupManager(BaseManager["Group"]):
         self,
         organization_id: int,
         short_id: str,
-        project_ids: Collection[int] | None = None,
+        *,
+        project_ids: Collection[int] | None,
     ):
         return self.by_qualified_short_id_bulk(
             organization_id, [short_id], project_ids=project_ids
@@ -382,18 +383,21 @@ class GroupManager(BaseManager["Group"]):
         self,
         organization_id: int,
         short_ids_raw: list[str],
-        project_ids: Collection[int] | None = None,
+        *,
+        project_ids: Collection[int] | None,
     ) -> Sequence[Group]:
         """
         Resolve qualified short ids (e.g. ``PROJECT-123``) to groups.
 
-        Always scoped to ``organization_id``. When ``project_ids`` is provided (including an
-        empty collection), the lookup is additionally scoped to those projects so that a short
-        id referencing a project the caller cannot access does not resolve. Callers that have
-        an authorized-project set (the projects the actor is allowed to see) should pass it to
-        enforce project-level permissions at the query layer rather than via a post-hoc check.
-        ``project_ids=None`` (the default) means "no project restriction" and must only be used
-        by callers that legitimately operate organization-wide.
+        Always scoped to ``organization_id``. ``project_ids`` is **required** (keyword-only, no
+        default) to prevent an accidental in-org IDOR: when it is a collection (including an
+        empty one), the lookup is additionally scoped to those projects so a short id
+        referencing a project the caller cannot access does not resolve. Callers with an
+        authorized-project set (the projects the actor is allowed to see) MUST pass it so
+        project-level permissions are enforced at the query layer rather than via a post-hoc
+        check. Pass ``project_ids=None`` ONLY when the caller legitimately operates
+        organization-wide (e.g. commit/PR linking, system RPCs, or reads already scoped to the
+        requested projects downstream); doing so is explicit and reviewable at the call site.
         """
         short_ids = []
         for short_id_raw in short_ids_raw:
