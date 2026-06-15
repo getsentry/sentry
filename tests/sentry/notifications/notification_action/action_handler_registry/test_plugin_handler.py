@@ -9,7 +9,6 @@ from sentry.notifications.notification_action.action_handler_registry.plugin_han
     PluginActionHandler,
 )
 from sentry.plugins.base import plugins
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
@@ -41,24 +40,7 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
         webhook_plugin.set_option("enabled", True, self.project)
 
     @responses.activate
-    def test_default_no_flags_fires_old_path_only(self) -> None:
-        responses.add(responses.POST, "http://example.com/hook")
-
-        with self.tasks():
-            PluginActionHandler.execute(self.invocation)
-
-        assert len(responses.calls) == 1
-
-    @responses.activate
-    @with_feature(
-        {
-            "organizations:legacy-webhook-new-path": True,
-            "organizations:legacy-webhook-disable-old-path": True,
-        }
-    )
-    def test_new_path_skips_webhooks_in_old_path(self) -> None:
-        """When new path is on and old path disabled, webhooks are sent via the
-        new task-based service and skipped in the old path."""
+    def test_fires_both_paths(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
 
         with self.tasks():
@@ -68,7 +50,6 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
         body = json.loads(responses.calls[0].request.body)
         assert body["id"] == str(self.group.id)
 
-    @with_feature("organizations:legacy-webhook-new-path")
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.plugin_handler.send_legacy_webhooks_for_invocation"
     )
@@ -78,13 +59,11 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
     def test_old_path_always_runs(
         self, mock_old_path: mock.MagicMock, mock_new_path: mock.MagicMock
     ) -> None:
-        """Old path runs regardless of flags to keep non-webhook plugins firing."""
         PluginActionHandler.execute(self.invocation)
 
         mock_old_path.assert_called_once_with(self.invocation)
         mock_new_path.assert_called_once_with(self.invocation)
 
-    @with_feature("organizations:legacy-webhook-new-path")
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.plugin_handler.send_legacy_webhooks_for_invocation"
     )
@@ -115,7 +94,6 @@ class TestPluginActionHandlerExecute(BaseWorkflowTest):
         mock_new_path.assert_not_called()
 
     @responses.activate
-    @with_feature("organizations:legacy-webhook-new-path")
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.plugin_handler.execute_via_group_type_registry",
         side_effect=Exception("legacy path error"),
