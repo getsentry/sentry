@@ -87,6 +87,10 @@ class NoSeerQuotaException(Exception):
     pass
 
 
+class PrIterationNoPullRequestException(Exception):
+    pass
+
+
 class AutofixStep(StrEnum):
     """Available autofix steps."""
 
@@ -379,7 +383,9 @@ def trigger_autofix_agent(
         pr_iteration_enabled = run_state.metadata.get("pr_iteration_enabled", pr_iteration_enabled)
 
     iteration_index: int | None = None
-    if step == AutofixStep.PR_ITERATION and run_state is not None:
+    if step == AutofixStep.PR_ITERATION:
+        if run_state is None or not run_state.repo_pr_states:
+            raise PrIterationNoPullRequestException()
         if insert_index is not None:
             iteration_index = get_iteration_for_insert_index(run_state, insert_index)
         else:
