@@ -51,14 +51,14 @@ export function generateTimezoneAlignedTicks(
     userTimezone
   );
 
-  // The floor snap may place the tick before startMs — advance one step to
-  // get inside the range.
-  if (currentTick.valueOf() < startMs) {
-    currentTick.add(interval.step, interval.unit);
-  }
-
+  // Start from the snapped boundary even if it's slightly before startMs.
+  // ECharts clips ticks outside the visible axis range, and starting one
+  // step early ensures the first natural boundary tick always appears.
   const ticks: number[] = [];
-  while (currentTick.valueOf() <= endMs) {
+  while (
+    currentTick.valueOf() <=
+    endMs + interval.step * AXIS_UNIT_DURATIONS[interval.unit]
+  ) {
     ticks.push(currentTick.valueOf());
     currentTick.add(interval.step, interval.unit);
   }

@@ -211,7 +211,7 @@ describe('generateTimezoneAlignedTicks', () => {
   });
 
   describe('tick ordering and range', () => {
-    it('returns ticks in ascending order within [start, end]', () => {
+    it('returns ticks in ascending order', () => {
       const start = Date.UTC(2025, 0, 1);
       const end = Date.UTC(2025, 1, 1);
 
@@ -220,11 +220,17 @@ describe('generateTimezoneAlignedTicks', () => {
       for (let i = 1; i < ticks.length; i++) {
         expect(ticks[i]).toBeGreaterThan(ticks[i - 1]!);
       }
+    });
 
-      for (const tick of ticks) {
-        expect(tick).toBeGreaterThanOrEqual(start);
-        expect(tick).toBeLessThanOrEqual(end);
-      }
+    it('may extend one step beyond data range for boundary ticks', () => {
+      // Data starts mid-day — the first tick should still be at midnight
+      const start = Date.UTC(2025, 0, 15, 14, 30, 0);
+      const end = Date.UTC(2025, 0, 22, 14, 30, 0);
+
+      const ticks = generateTimezoneAlignedTicks(start, end, 10, 'UTC');
+
+      expect(ticks[0]).toBeLessThanOrEqual(start);
+      expect(ticks[ticks.length - 1]).toBeGreaterThanOrEqual(end);
     });
   });
 });
