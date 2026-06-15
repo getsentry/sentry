@@ -274,6 +274,11 @@ def get_autofix_agent_client(
     )
 
 
+def get_autofix_run_state(group: Group, run_id: int) -> SeerRunState:
+    client = get_autofix_agent_client(group)
+    return _get_group_run_state(client, group, run_id)
+
+
 def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
     group_id = state.metadata.get("group_id") if state.metadata else None
     if group_id != group.id:
