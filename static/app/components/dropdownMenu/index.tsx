@@ -275,19 +275,25 @@ function DropdownMenu({
         items={activeItems}
       >
         {(item: MenuItemProps) => {
+          const {onAction: _onAction, ...itemProps} = item;
+
           if (item.children && item.children.length > 0 && !item.isSubmenu) {
             return (
               <Section key={item.key} title={item.label} items={item.children}>
-                {sectionItem => (
-                  <Item size={size} {...sectionItem} key={sectionItem.key}>
-                    {sectionItem.label}
-                  </Item>
-                )}
+                {sectionItem => {
+                  const {onAction: _sectionOnAction, ...sectionItemProps} = sectionItem;
+
+                  return (
+                    <Item size={size} {...sectionItemProps} key={sectionItem.key}>
+                      {sectionItem.label}
+                    </Item>
+                  );
+                }}
               </Section>
             );
           }
           return (
-            <Item size={size} {...item} key={item.key}>
+            <Item size={size} {...itemProps} key={item.key}>
               {item.label}
             </Item>
           );

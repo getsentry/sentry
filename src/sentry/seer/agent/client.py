@@ -22,6 +22,7 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client_models import AgentRun, AgentRunWithPrs, SeerRunState
@@ -39,6 +40,7 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
+from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
@@ -238,6 +240,7 @@ class SeerAgentClient:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, RpcUser, AnonymousUser, or None)
             project: Optional project for project-scoped runs (e.g. autofix for an issue)
+            group: Optional group/issue for issue-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `AgentTool` classes to make available as tools to the agent. Each tool must inherit from AgentTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
@@ -254,6 +257,7 @@ class SeerAgentClient:
         organization: Organization,
         user: User | RpcUser | AnonymousUser | None = None,
         project: Project | None = None,
+        group: Group | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
         custom_tools: list[type[AgentTool[Any]]] | None = None,
@@ -269,6 +273,7 @@ class SeerAgentClient:
         self.organization = organization
         self.user = user
         self.project = project
+        self.group = group
         self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
         self.intelligence_level = intelligence_level
@@ -325,7 +330,8 @@ class SeerAgentClient:
             on_page_context: Optional context from the user's screen
             artifact_key: Optional key to identify this artifact (required if artifact_schema is provided)
             artifact_schema: Optional Pydantic model to generate a structured artifact
-            metadata: Optional metadata to store with the run (e.g., stopping_point, group_id)
+            metadata: Optional metadata to store with the run (e.g., stopping_point). group_id is
+                added automatically when the client was constructed with a group.
             request: Optional rest_framework Request object from endpoints.
 
         Returns:
@@ -394,6 +400,9 @@ class SeerAgentClient:
             chat_body["category_key"] = self.category_key
             chat_body["category_value"] = self.category_value
 
+        if self.group:
+            metadata = {**(metadata or {}), "group_id": self.group.id}
+
         if metadata:
             chat_body["metadata"] = metadata
 
@@ -425,6 +434,13 @@ class SeerAgentClient:
         ):
             agent_run_options["use_agent_sandbox"] = True
 
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["embed_widgets"] = get_embed_widgets()
+
         user_id = (
             self.user.id
             if self.user and hasattr(self.user, "id") and self.user.id is not None
@@ -453,6 +469,7 @@ class SeerAgentClient:
                     title=prompt[:255] + "…" if len(prompt) > 256 else prompt,
                     source=source,
                     project=self.project,
+                    group=self.group,
                     extras=({"category_value": self.category_value} if self.category_value else {}),
                 )
                 CellOutbox(
@@ -479,8 +496,14 @@ class SeerAgentClient:
             run.save(update_fields=["mirror_status"])
             raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
         run.refresh_from_db()
-        if run.mirror_status == SeerRunMirrorStatus.FAILED:
-            raise SeerApiError("Seer run failed during outbox drain", 500)
+        if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
+            if run.mirror_status == SeerRunMirrorStatus.FAILED:
+                detail = "Seer run failed during outbox drain"
+            elif run.seer_run_state_id is None:
+                detail = "Seer run did not mirror during outbox drain"
+            else:
+                detail = f"Seer run in unexpected state after outbox drain: {run.mirror_status}"
+            raise SeerApiError(detail, 500)
         return run
 
     def continue_run(
@@ -564,6 +587,13 @@ class SeerAgentClient:
             actor=self.user,
         ):
             agent_run_options["use_agent_sandbox"] = True
+
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["embed_widgets"] = get_embed_widgets()
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 

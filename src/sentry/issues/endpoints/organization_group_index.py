@@ -401,7 +401,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     )
                     return Response(by_event)
 
-            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup") or "0", query)
+            group = get_by_short_id(
+                organization.id,
+                request.GET.get("shortIdLookup") or "0",
+                query,
+                project_ids=None,
+            )
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):

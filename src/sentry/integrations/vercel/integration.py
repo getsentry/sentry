@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any, Self, TypedDict, cast
 from urllib.parse import urlencode
 
@@ -29,7 +29,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
 from sentry.projects.services.project_key.model import RpcProjectKey
@@ -478,9 +478,6 @@ class VercelIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
     # feature flag handler is in getsentry
     requires_feature_flag = True
-
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         provider = VercelIdentityProvider()

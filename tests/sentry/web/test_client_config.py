@@ -325,9 +325,9 @@ def test_client_config_with_single_tenant_membership() -> None:
     assert {r["name"] for r in regions} == {"us", "acme"}
 
 
-@control_silo_test(cells=create_test_cells("us", "eu"))
+@control_silo_test(cells=create_test_cells("us", "ja", "eu"))
 @django_db_all
-def test_client_config_with_staff_session_fills_cells() -> None:
+def test_client_config_with_staff_session_fills_cells_and_cells_are_sorted() -> None:
     request, user = make_user_request_from_org()
     user.is_staff = True
     request.user = user
@@ -339,16 +339,20 @@ def test_client_config_with_staff_session_fills_cells() -> None:
 
     result = get_client_config(request)
 
-    assert len(result["localities"]) == 2
+    assert len(result["localities"]) == 3
     localities = result["localities"]
     # default historical cell (us) is first
-    assert [r["name"] for r in localities] == ["us", "eu"]
+    assert [r["name"] for r in localities] == ["us", "eu", "ja"]
 
-    assert len(result["cells"]) == 2
+    assert len(result["cells"]) == 3
     cells = result["cells"]
-    # visible cells sorted by name.
-    assert [r["name"] for r in cells] == ["eu", "us"]
-    assert [r["locality_url"] for r in cells] == ["http://eu.testserver", "http://us.testserver"]
+    # historical cell (us) is first, then other cells alphabetical
+    assert [r["name"] for r in cells] == ["us", "eu", "ja"]
+    assert [r["locality_url"] for r in cells] == [
+        "http://us.testserver",
+        "http://eu.testserver",
+        "http://ja.testserver",
+    ]
 
 
 @control_silo_test(cells=hidden_regions)

@@ -678,11 +678,13 @@ def _get_note_trigger_metadata(event: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "trigger_user": user.get("username"),
         "trigger_user_id": user.get("id"),
-        # Note ID is the comment identifier; "issue_comment" matches the
-        # SeerCodeReviewConfig.trigger_comment_type Literal constraint and
-        # is the value Seer uses to understand command-phrase triggering.
+        # The note id is the comment identifier. Seer keys its post-review
+        # reaction (eyes -> hooray) off trigger_comment_type: a GitLab MR note is
+        # never an issue note, so it must be "pull_request_review_comment", which
+        # Seer routes to the merge-request note award_emoji endpoint. Sending
+        # "issue_comment" here makes Seer hit /issues/... and 404.
         "trigger_comment_id": object_attributes.get("id"),
-        "trigger_comment_type": "issue_comment",
+        "trigger_comment_type": "pull_request_review_comment",
         "trigger_at": trigger_at,
     }
 
