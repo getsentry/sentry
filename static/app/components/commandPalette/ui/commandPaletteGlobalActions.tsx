@@ -431,9 +431,6 @@ export function GlobalCommandPaletteActions() {
 
         <CMDKAction
           display={{label: t('Dashboards'), icon: <IconDashboard />}}
-          // Insights is folded into Dashboards only for orgs in the prebuilt
-          // insights dashboards rollout. Gate the keyword on that flag so other
-          // orgs keep routing "insights" to their standalone Insights section.
           keywords={hasPrebuiltDashboards ? [t('insights'), t('performance')] : undefined}
         >
           {hasPrebuiltDashboards && (

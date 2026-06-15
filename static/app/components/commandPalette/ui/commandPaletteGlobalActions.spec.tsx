@@ -363,9 +363,6 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   });
 
   it('routes "insights" search to Dashboards when prebuilt insights dashboards are enabled', async () => {
-    // For orgs in the prebuilt insights dashboards rollout, Insights lives in
-    // Dashboards, so searching "insights" should surface that destination.
-    // (The describe-level org enables `dashboards-prebuilt-insights-dashboards`.)
     renderPalette();
 
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
@@ -377,8 +374,6 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   });
 
   it('does not route "insights" to Dashboards without prebuilt insights dashboards', async () => {
-    // Orgs not in the rollout keep their standalone Insights section, so the
-    // keyword must not redirect "insights" to Dashboards.
     renderPalette(
       OrganizationFixture({features: ['session-replay-ui', 'performance-view']})
     );
@@ -386,9 +381,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
     await userEvent.type(input, 'insights');
 
-    // The standalone Insights section still matches the query...
     expect(await screen.findByRole('option', {name: /Insights/})).toBeInTheDocument();
-    // ...but Dashboards must not be surfaced by the (now gated) keyword.
     expect(screen.queryByRole('option', {name: /Dashboards/})).not.toBeInTheDocument();
   });
 
