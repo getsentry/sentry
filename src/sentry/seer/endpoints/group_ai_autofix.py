@@ -383,11 +383,13 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     coding_agents=state.coding_agents,
                     user_id=request.user.id,
                     organization_id=group.organization.id,
+                    run_id=state.run_id,
                 )
             if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
                 poll_claude_code_agents(
                     coding_agents=state.coding_agents,
                     organization_id=group.organization.id,
+                    run_id=state.run_id,
                 )
 
         run = get_seer_run(state.run_id, group.organization)
