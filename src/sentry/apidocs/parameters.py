@@ -773,8 +773,8 @@ top events are""",
 - `eps` - Average number of events received per second.
 - `failure_rate()` - Percentage of events whose `status` indicates failure.
 - `failure_count()` - Total count of events with an error `status` over period.
-- `performance_score(field)` - Web Vitals performance score for the selected metric.
-- `opportunity_score(field)` - Web Vitals opportunity score for the selected metric.
+- `performance_score(field)` - Web Vitals performance score for the selected measurement.
+- `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
 """,
     )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
