@@ -158,3 +158,136 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_args = self.mock_seer.call_args
             assert call_args[1]["path"] == "/v1/code_review/review-request"
+
+
+# ---------------------------------------------------------------------------
+# Contributor-seeding gap: IssueCommentEventWebhook has no fallback seeding
+# (mirrors GitLab NoteEventWebhook)
+# ---------------------------------------------------------------------------
+
+
+class IssueCommentContributorGapTest(GitHubWebhookCodeReviewTestCase):
+    """Prove that GitHub's IssueCommentEventWebhook has the same contributor-seeding
+    gap as GitLab's NoteEventWebhook.
+
+    PullRequestEventWebhook._handle seeds OrganizationContributors via
+    track_contributor_seat guarded by `if created:` on the PullRequest DB row.
+    IssueCommentEventWebhook has no equivalent seeding, so if the PR-open webhook
+    was never processed (or the PR predates contributor seeding), preflight returns
+    ORG_CONTRIBUTOR_NOT_FOUND and the @sentry review command is silently denied.
+
+    Unlike _send_webhook_event (used by most IssueCommentEventWebhookTest tests),
+    the helper here deliberately omits the OrganizationContributors.get_or_create
+    call to exercise the production failure path.
+    """
+
+    @pytest.fixture(autouse=True)
+    def mock_github_api_calls(self) -> Generator[None]:
+        mock_client_instance = MagicMock()
+        mock_client_instance.get_pull_request.return_value = {"head": {"sha": "abc123"}}
+        with (
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.create_comment_reaction"
+            ) as mock_reaction,
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.get_pull_request",
+                mock_client_instance.get_pull_request,
+            ),
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.get_issue_reactions",
+                return_value=[],
+            ),
+        ):
+            self.mock_reaction = mock_reaction
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_seer_request(self) -> Generator[None]:
+        with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
+            self.mock_seer = mock_seer
+            yield
+
+    def _send_without_contributor(self, event_data: bytes) -> None:
+        """Set up integration + repo + settings, but skip contributor seeding."""
+        from sentry.models.organizationcontributors import OrganizationContributors
+        from sentry.seer.code_review.utils import get_pr_author_id
+
+        event_dict = orjson.loads(event_data)
+        repo_id = str(event_dict["repository"]["id"])
+        integration = self.create_github_integration()
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id=repo_id,
+            integration_id=integration.id,
+        )
+        trigger_values = [t.value for t in self._triggers]
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=trigger_values,
+        )
+        # Explicitly assert no contributor row was pre-seeded.
+        pr_author_id = get_pr_author_id(event_dict)
+        assert pr_author_id is not None
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_identifier=pr_author_id,
+        ).exists(), "contributor row should not exist before the test"
+
+        self.send_github_webhook_event(GithubWebhookType.ISSUE_COMMENT, event_data)
+
+    def test_review_command_denied_when_contributor_row_missing(self) -> None:
+        """@sentry review is denied when the PR author has no contributor row.
+
+        IssueCommentEventWebhook runs preflight which checks OrganizationContributors.
+        Unlike PullRequestEventWebhook (which seeds the row on PR creation), the
+        comment handler has no seeding logic.  If the PR-open event was missed — or
+        the PR predates contributor seeding — every @sentry review command on that PR
+        will be denied with ORG_CONTRIBUTOR_NOT_FOUND.
+
+        The contrast with GitHub's PR-open path is tested in
+        PullRequestEventWebhookTest.test_pr_open_seeds_contributor_row_permanently.
+        """
+        event_bytes = orjson.dumps(
+            orjson.loads(
+                self._build_issue_comment_event(
+                    f"Please {SENTRY_REVIEW_COMMAND} this PR",
+                    github_org="sentry-ecosystem",
+                )
+            )
+        )
+        with self.code_review_setup(), self.tasks():
+            self._send_without_contributor(event_bytes)
+
+        self.mock_seer.assert_not_called()
+
+    def test_review_command_succeeds_when_contributor_row_exists(self) -> None:
+        """Seeding the contributor row is the only missing piece.
+
+        Identical to test_review_command_denied_when_contributor_row_missing except
+        we pre-seed the row (simulating what PullRequestEventWebhook._handle would
+        have done on PR open), proving that is sufficient for the command to succeed.
+        """
+        from sentry.models.organizationcontributors import OrganizationContributors
+        from sentry.seer.code_review.utils import get_pr_author_id
+
+        event_data = orjson.dumps(
+            orjson.loads(
+                self._build_issue_comment_event(
+                    f"Please {SENTRY_REVIEW_COMMAND} this PR",
+                    github_org="sentry-ecosystem",
+                )
+            )
+        )
+        with self.code_review_setup(), self.tasks():
+            # _send_webhook_event auto-seeds the contributor row, which is
+            # exactly what we want here — simulate the happy path where
+            # PullRequestEventWebhook fired first and seeded the row.
+            response = self._send_issue_comment_event(event_data)
+            assert response.status_code == 204
+
+        self.mock_seer.assert_called_once()
+
+
