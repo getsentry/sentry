@@ -2,7 +2,6 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from pydantic import BaseModel
 
@@ -1201,14 +1200,8 @@ class TestGetMonitoringProviderConnections(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
-    def test_returns_none_for_anonymous_user(self) -> None:
-        assert get_monitoring_provider_connections(AnonymousUser()) is None
-
-    def test_returns_none_for_none_user(self) -> None:
-        assert get_monitoring_provider_connections(None) is None
-
     def test_returns_none_when_no_identities(self) -> None:
-        assert get_monitoring_provider_connections(self.user) is None
+        assert get_monitoring_provider_connections(self.user.id) is None
 
     def test_returns_connection(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
@@ -1225,7 +1218,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             },
         )
 
-        result = get_monitoring_provider_connections(self.user)
+        result = get_monitoring_provider_connections(self.user.id)
 
         assert result is not None
         assert len(result) == 1
@@ -1246,7 +1239,7 @@ class TestGetMonitoringProviderConnections(TestCase):
                 data={"access_token": "access-token", "site": site},
             )
 
-        result = get_monitoring_provider_connections(self.user)
+        result = get_monitoring_provider_connections(self.user.id)
 
         assert result is not None
         assert len(result) == 2
@@ -1263,7 +1256,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"site": "datadoghq.com"},
         )
 
-        assert get_monitoring_provider_connections(self.user) is None
+        assert get_monitoring_provider_connections(self.user.id) is None
 
     def test_ignores_non_monitoring_provider_identities(self) -> None:
         idp = self.create_identity_provider(type="slack", external_id="slack-team")
@@ -1274,4 +1267,4 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token"},
         )
 
-        assert get_monitoring_provider_connections(self.user) is None
+        assert get_monitoring_provider_connections(self.user.id) is None

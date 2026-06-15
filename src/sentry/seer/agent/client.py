@@ -117,20 +117,15 @@ def _get_mcp_url(provider_type: str, identity_data: dict[str, Any]) -> str | Non
     return None
 
 
-def get_monitoring_provider_connections(
-    user: User | RpcUser | AnonymousUser | None,
-) -> list[dict[str, Any]] | None:
+def get_monitoring_provider_connections(user_id: int) -> list[dict[str, Any]] | None:
     """Fetch the user's monitoring provider identities and build connection dicts for Seer.
 
     Returns None if the user has no connected monitoring providers.
     """
-    if user is None or isinstance(user, AnonymousUser):
-        return None
-
     connections: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
         identities = identity_service.get_user_identities_by_provider_type(
-            user_id=user.id, provider_type=provider_type
+            user_id=user_id, provider_type=provider_type
         )
         for identity in identities:
             access_token = identity.data.get("access_token")
@@ -453,10 +448,6 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        monitoring_providers = get_monitoring_provider_connections(self.user)
-        if monitoring_providers is not None:
-            chat_body["monitoring_providers"] = monitoring_providers
-
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
                 agent_run_options["is_context_engine_enabled"] = True
@@ -624,9 +615,10 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        monitoring_providers = get_monitoring_provider_connections(self.user)
-        if monitoring_providers is not None:
-            chat_body["monitoring_providers"] = monitoring_providers
+        if self.user and not isinstance(self.user, AnonymousUser):
+            monitoring_providers = get_monitoring_provider_connections(self.user.id)
+            if monitoring_providers is not None:
+                chat_body["monitoring_providers"] = monitoring_providers
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.

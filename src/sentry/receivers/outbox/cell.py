@@ -31,7 +31,10 @@ from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.seer.agent.client import _trigger_explorer_indexes_if_needed
+from sentry.seer.agent.client import (
+    _trigger_explorer_indexes_if_needed,
+    get_monitoring_provider_connections,
+)
 from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
@@ -231,6 +234,12 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     except (KeyError, TypeError, ValueError) as e:
         _mark_seer_run_failed(run, "seer_run_create.invalid_payload", error=str(e))
         return
+
+    user_id = body.get("user_org_context", {}).get("user_id")
+    if user_id is not None:
+        monitoring_providers = get_monitoring_provider_connections(user_id)
+        if monitoring_providers is not None:
+            body["monitoring_providers"] = monitoring_providers
 
     match run_type:
         case SeerRunType.EXPLORER:
