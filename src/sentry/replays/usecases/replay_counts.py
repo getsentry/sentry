@@ -10,6 +10,7 @@ from typing import Any, Literal, Protocol, overload
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
+from sentry.search.eap.sampling import sampling_tier_name
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover, errors, issue_platform, transactions
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 class _SpansIdQueryResult:
     replay_ids: set[str]
     row_count: int
+    sampling_tier: int | None
 
 
 class _DatasetQueryFunc(Protocol):
@@ -133,7 +135,12 @@ def _get_replay_counts_spans(
     unique_ids_count = len(spans_result.replay_ids)
 
     if not spans_result.replay_ids:
-        _log_spans_query_results(row_count=row_count, unique_ids_count=0, found_replays_count=None)
+        _log_spans_query_results(
+            row_count=row_count,
+            unique_ids_count=0,
+            found_replays_count=None,
+            sampling_tier=spans_result.sampling_tier,
+        )
         return {}
 
     replay_results = query_replays_count(
@@ -158,6 +165,7 @@ def _get_replay_counts_spans(
         row_count=row_count,
         unique_ids_count=unique_ids_count,
         found_replays_count=found_replays_count,
+        sampling_tier=spans_result.sampling_tier,
     )
     return result
 
@@ -260,7 +268,11 @@ def _query_eap_spans_for_replay_ids(
         if (replay_id := row.get("replay.id", ""))
     }
 
-    return _SpansIdQueryResult(replay_ids=replay_ids, row_count=row_count)
+    sampling_tier: int | None = result["meta"].get("sampling_tier")
+
+    return _SpansIdQueryResult(
+        replay_ids=replay_ids, row_count=row_count, sampling_tier=sampling_tier
+    )
 
 
 def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[int]]) -> dict[int, int]:
@@ -325,13 +337,19 @@ def extract_columns_recursive(query: Sequence[QueryToken]) -> Generator[SearchFi
 
 
 def _log_spans_query_results(
-    row_count: int, unique_ids_count: int, found_replays_count: int | None
+    row_count: int,
+    unique_ids_count: int,
+    found_replays_count: int | None,
+    sampling_tier: int | None,
 ):
     extra: dict[str, object] = {
         "ids_query.limit": SPANS_DATASET_ID_QUERY_LIMIT,
         "ids_query.row_count": row_count,
         "ids_query.unique_ids_count": unique_ids_count,
         "ids_query.limit_reached": row_count >= SPANS_DATASET_ID_QUERY_LIMIT,
+        "ids_query.sampling_tier": sampling_tier_name(sampling_tier)
+        if sampling_tier is not None
+        else None,
     }
 
     if found_replays_count is not None:

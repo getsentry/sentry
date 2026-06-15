@@ -10,6 +10,12 @@ from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta
 
 
+def sampling_tier_name(tier: int) -> str:
+    return DownsampledStorageMeta.SelectedTier.Name(
+        DownsampledStorageMeta.SelectedTier.ValueType(tier)
+    )
+
+
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     return not meta.can_go_to_higher_accuracy_tier
 
@@ -38,4 +44,5 @@ def events_meta_from_rpc_request_meta(meta: ResponseMeta) -> EventsMeta:
         fields={},
         full_scan=full_scan,
         bytes_scanned=bytes_scanned,
+        sampling_tier=meta.downsampled_storage_meta.tier or None,
     )
