@@ -23,7 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
-import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
+import {ScmIntegrationConnectMultiOrg} from 'sentry/views/onboarding/components/scmIntegrationConnectMultiOrg';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
 import {useScmPlatformDetection} from 'sentry/views/onboarding/components/useScmPlatformDetection';
@@ -274,14 +274,11 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
             >
               <Stack gap="md">
                 <Heading as="h2" size="xl">
-                  {t('Create a new project')}
+                  {t('Connect your Git repository')}
                 </Heading>
-                <Text variant="muted">
-                  {t('Pick a platform, name your project and choose what to monitor.')}
-                </Text>
               </Stack>
 
-              <ScmIntegrationConnect
+              <ScmIntegrationConnectMultiOrg
                 analyticsFlow="project-creation"
                 selectedIntegration={selectedIntegration}
                 selectedRepository={selectedRepository}
