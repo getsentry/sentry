@@ -4,12 +4,11 @@ import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {RepoDefaultsForm} from 'sentry/components/seer/repoDefaults/repoDefaultsForm';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {RepoDefaultsForm} from 'getsentry/views/seerAutomation/components/repoDefaults/repoDefaultsForm';
 
 export default function RepoDefaultsDrawer() {
   const {query} = useLocation();

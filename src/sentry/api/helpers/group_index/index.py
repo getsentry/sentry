@@ -126,11 +126,17 @@ def build_query_params_from_request(
             query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
+    sentry_sdk.set_attribute("search.query", query)
     sentry_sdk.set_tag("search.sort", query_kwargs["sort_by"])
+    sentry_sdk.set_attribute("search.sort", query_kwargs["sort_by"])
     if projects:
         sentry_sdk.set_tag("search.projects", len(projects) if len(projects) <= 5 else ">5")
+        sentry_sdk.set_attribute("search.projects", len(projects) if len(projects) <= 5 else ">5")
     if environments:
         sentry_sdk.set_tag(
+            "search.environments", len(environments) if len(environments) <= 5 else ">5"
+        )
+        sentry_sdk.set_attribute(
             "search.environments", len(environments) if len(environments) <= 5 else ">5"
         )
     if query:
@@ -174,13 +180,14 @@ def get_by_short_id(
     organization_id: int,
     is_short_id_lookup: str,
     query: str,
-    project_ids: Collection[int] | None = None,
+    *,
+    project_ids: Collection[int] | None,
 ) -> Group | None:
     if is_short_id_lookup != "1":
         return None
     # A short id token anywhere in the query is treated as a direct hit,
-    # so it composes with filters. When project_ids is provided, the lookup is scoped to
-    # those projects so a short id for a project the caller cannot access does not resolve.
+    # so it composes with filters. project_ids scopes the lookup so a short id for a project
+    # the caller cannot access does not resolve; pass None only for org-wide callers.
     for token in query.split():
         if looks_like_short_id(token):
             try:

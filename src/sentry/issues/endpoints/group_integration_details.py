@@ -26,9 +26,8 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.types import (
@@ -248,11 +247,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             group_id=group.id,
             organization_id=organization_id,
             project_id=group.project_id,
-            actor=(
-                GroupActionActor.user(request.user.id)
-                if request.user.is_authenticated
-                else SYSTEM_ACTOR
-            ),
+            actor=resolve_action_actor(request),
         )
 
         # TODO(jess): return serialized issue
@@ -367,11 +362,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             group_id=group.id,
             organization_id=organization_id,
             project_id=group.project_id,
-            actor=(
-                GroupActionActor.user(request.user.id)
-                if request.user.is_authenticated
-                else SYSTEM_ACTOR
-            ),
+            actor=resolve_action_actor(request),
         )
 
         # TODO(jess): would be helpful to return serialized external issue
@@ -443,11 +434,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 organization_id=organization_id,
                 project_id=group.project_id,
-                actor=(
-                    GroupActionActor.user(request.user.id)
-                    if request.user.is_authenticated
-                    else SYSTEM_ACTOR
-                ),
+                actor=resolve_action_actor(request),
             )
 
         return Response(status=204)

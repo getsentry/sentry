@@ -14,6 +14,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
+from pydantic import BaseModel
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -52,7 +53,17 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestAttributionSignalType,
+    PullRequestAttributionSource,
+)
 from sentry.models.repository import Repository
+from sentry.pr_metrics.attribution import (
+    DELEGATED_SIGNAL_TYPES,
+    DelegatedAgentSignalDetails,
+    record_attribution_signal,
+)
 from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
@@ -113,6 +124,18 @@ from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_qu
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.seer_setup import get_supported_scm_providers
+from sentry.seer.sentry_data_models import (
+    GitHubEnterpriseConfigErrorResponse,
+    GitHubEnterpriseConfigSuccessResponse,
+    OrganizationAutofixConsentResponse,
+    OrganizationFeaturesResponse,
+    OrganizationProject,
+    OrganizationProjectIdsResponse,
+    OrganizationSlugResponse,
+    RepositoryIntegrationsStatusResponse,
+    SendSeerWebhookErrorResponse,
+    SendSeerWebhookSuccessResponse,
+)
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -235,7 +258,11 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise RpcResolutionException(f"Unknown method {method_name}")
         # As seer is a single service, we just directly expose the methods instead of services.
         method = seer_method_registry[method_name]
-        return method(**arguments)
+        result = method(**arguments)
+        # Convert Pydantic returns to dict so DRF's JSONRenderer can serialize.
+        if isinstance(result, BaseModel):
+            return result.dict()
+        return result
 
     @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
@@ -291,35 +318,38 @@ class SeerRpcServiceEndpoint(Endpoint):
         return Response(data=result)
 
 
-def get_organization_slug(*, org_id: int) -> dict:
+def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     org: Organization = Organization.objects.get(id=org_id)
-    return {"slug": org.slug}
+    return OrganizationSlugResponse(slug=org.slug)
 
 
-def get_organization_project_ids(*, org_id: int) -> dict:
+def get_organization_project_ids(*, org_id: int) -> OrganizationProjectIdsResponse:
     """Get all active projects (IDs and slugs) for an organization"""
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
-        return {"projects": []}
+        return OrganizationProjectIdsResponse(projects=[])
 
-    projects = list(
-        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values(
-            "id", "slug"
-        )
-    )
+    projects = [
+        OrganizationProject(id=row["id"], slug=row["slug"])
+        for row in Project.objects.filter(
+            organization=organization, status=ObjectStatus.ACTIVE
+        ).values("id", "slug")
+    ]
 
-    return {"projects": projects}
+    return OrganizationProjectIdsResponse(projects=projects)
 
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 
-def get_organization_features(*, org_id: int, user_id: int | None = None) -> dict[str, list[str]]:
+def get_organization_features(
+    *, org_id: int, user_id: int | None = None
+) -> OrganizationFeaturesResponse:
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
-        return {"features": []}
+        return OrganizationFeaturesResponse(features=[])
 
     actor = user_service.get_user(user_id=user_id) if user_id is not None else None
 
@@ -350,7 +380,7 @@ def get_organization_features(*, org_id: int, user_id: int | None = None) -> dic
             if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
-    return {"features": list(sorted(feature_set))}
+    return OrganizationFeaturesResponse(features=sorted(feature_set))
 
 
 class SentryOrganizaionIdsAndSlugs(TypedDict):
@@ -358,8 +388,8 @@ class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_slugs: list[str]
 
 
-def get_organization_autofix_consent(*, org_id: int) -> dict:
-    return {"consent": True}
+def get_organization_autofix_consent(*, org_id: int) -> OrganizationAutofixConsentResponse:
+    return OrganizationAutofixConsentResponse(consent=True)
 
 
 def get_attributes_and_values(
@@ -522,10 +552,10 @@ def get_attributes_for_span(
 
 def get_github_enterprise_integration_config(
     *, organization_id: int, integration_id: int
-) -> dict[str, Any]:
+) -> GitHubEnterpriseConfigSuccessResponse | GitHubEnterpriseConfigErrorResponse:
     if not settings.SEER_GHE_ENCRYPT_KEY:
         logger.error("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")
-        return {"success": False}
+        return GitHubEnterpriseConfigErrorResponse()
 
     integration = integration_service.get_integration(
         integration_id=integration_id,
@@ -535,7 +565,7 @@ def get_github_enterprise_integration_config(
     )
     if integration is None:
         logger.error("Integration %s does not exist", integration_id)
-        return {"success": False}
+        return GitHubEnterpriseConfigErrorResponse()
 
     installation = integration.get_installation(organization_id=organization_id)
     assert isinstance(installation, GitHubEnterpriseIntegration)
@@ -552,25 +582,26 @@ def get_github_enterprise_integration_config(
 
     if not access_token:
         logger.error("No access token found for integration %s", integration.id)
-        return {"success": False}
+        return GitHubEnterpriseConfigErrorResponse()
 
     try:
         fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
         encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
         logger.exception("Failed to encrypt access token")
-        return {"success": False}
+        return GitHubEnterpriseConfigErrorResponse()
 
-    return {
-        "success": True,
-        "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
-        "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
-        "encrypted_access_token": encrypted_access_token,
-        "permissions": permissions,
-    }
+    return GitHubEnterpriseConfigSuccessResponse(
+        base_url=f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
+        verify_ssl=installation.model.metadata["installation"]["verify_ssl"],
+        encrypted_access_token=encrypted_access_token,
+        permissions=permissions,
+    )
 
 
-def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -> dict:
+def send_seer_webhook(
+    *, event_name: str, organization_id: int, payload: dict
+) -> SendSeerWebhookSuccessResponse | SendSeerWebhookErrorResponse:
     """
     Handles receipt (in Sentry, from Seer) of a seer webhook event for an organization.
 
@@ -594,7 +625,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
             "seer.webhook_invalid_event_type",
             extra={"event_type": event_type},
         )
-        return {"success": False, "error": f"Invalid event type: {event_type}"}
+        return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
 
     # Handle organization lookup safely
     try:
@@ -606,7 +637,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
             "seer.webhook_organization_not_found_or_not_active",
             extra={"organization_id": organization_id},
         )
-        return {"success": False, "error": "Organization not found or not active"}
+        return SendSeerWebhookErrorResponse(error="Organization not found or not active")
 
     if SeerAutofixOperator.has_access(organization=organization):
         process_autofix_updates.apply_async(
@@ -624,7 +655,7 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
         payload=payload,
     )
 
-    return {"success": True}
+    return SendSeerWebhookSuccessResponse()
 
 
 def has_repo_code_mappings(
@@ -753,7 +784,9 @@ def get_repo_installation_id(
     }
 
 
-def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
+def check_repository_integrations_status(
+    *, repository_integrations: list[dict[str, Any]]
+) -> RepositoryIntegrationsStatusResponse:
     """
     Check whether repository integrations exist and are active.
 
@@ -780,7 +813,7 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     """
 
     if not repository_integrations:
-        return {"integration_ids": []}
+        return RepositoryIntegrationsStatusResponse(integration_ids=[])
 
     logger.info(
         "seer_rpc.check_repository_integrations_status.called",
@@ -851,7 +884,7 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
         extra={"integration_ids": integration_ids},
     )
 
-    return {"integration_ids": integration_ids}
+    return RepositoryIntegrationsStatusResponse(integration_ids=integration_ids)
 
 
 def get_project_preferences(*, organization_id: int, project_id: int) -> dict:
@@ -895,6 +928,83 @@ def deliver_feature_result(
         return
 
     handler(organization_id, run_uuid, status, result, error)
+
+
+def record_pr_attribution(
+    *,
+    organization_id: int,
+    pull_request_id: int,
+    signal_type: str,
+    signal_details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Record a PR attribution signal on behalf of Seer.
+
+    Idempotent via the unique constraint on
+    PullRequestAttribution(pull_request, signal_type, source).
+
+    Args:
+        organization_id: Sentry organization that owns the PR.
+        pull_request_id: Sentry-internal PullRequest.id.
+        signal_type: A PullRequestAttributionSignalType value.
+        signal_details: Arbitrary provider-specific metadata to store on the row.
+
+    Returns:
+        {"attribution_id": int} on success, or {"attribution_id": None} when the
+        pr-metrics-attribution feature is disabled for the org.
+    """
+    try:
+        signal = PullRequestAttributionSignalType(signal_type)
+    except ValueError:
+        raise ParseError(detail=f"Unknown signal_type: {signal_type!r}")
+
+    try:
+        organization = Organization.objects.get(
+            id=organization_id, status=OrganizationStatus.ACTIVE
+        )
+    except Organization.DoesNotExist:
+        raise ObjectDoesNotExist(f"Organization {organization_id} not found or inactive")
+
+    if not features.has("organizations:pr-metrics-attribution", organization):
+        logger.info(
+            "seer.record_pr_attribution.feature_disabled",
+            extra={"organization_id": organization_id, "pull_request_id": pull_request_id},
+        )
+        return {"attribution_id": None}
+
+    try:
+        pull_request = PullRequest.objects.get(
+            id=pull_request_id,
+            organization_id=organization_id,
+        )
+    except PullRequest.DoesNotExist:
+        raise ObjectDoesNotExist(
+            f"PullRequest {pull_request_id} not found in org {organization_id}"
+        )
+
+    if signal in DELEGATED_SIGNAL_TYPES:
+        try:
+            signal_details = DelegatedAgentSignalDetails.parse_obj(signal_details or {}).dict()
+        except Exception:
+            raise ParseError(
+                detail="signal_details does not match DelegatedAgentSignalDetails schema"
+            )
+
+    attribution = record_attribution_signal(
+        pull_request=pull_request,
+        signal_type=signal,
+        source=PullRequestAttributionSource.SEER_DATA,
+        signal_details=signal_details,
+    )
+    logger.info(
+        "seer.record_pr_attribution.recorded",
+        extra={
+            "organization_id": organization_id,
+            "pull_request_id": pull_request_id,
+            "signal_type": signal_type,
+            "attribution_id": attribution.id,
+        },
+    )
+    return {"attribution_id": attribution.id}
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
@@ -954,6 +1064,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
     "deliver_feature_result": deliver_feature_result,
+    "record_pr_attribution": record_pr_attribution,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,

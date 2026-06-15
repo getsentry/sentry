@@ -68,6 +68,7 @@ class SnapshotStatusCheckTestBase(TestCase):
         images_removed: int = 0,
         images_renamed: int = 0,
         images_unchanged: int = 10,
+        images_errored: int = 0,
     ) -> PreprodSnapshotComparison:
         return PreprodSnapshotComparison.objects.create(
             head_snapshot_metrics=head_metrics,
@@ -78,6 +79,7 @@ class SnapshotStatusCheckTestBase(TestCase):
             images_removed=images_removed,
             images_renamed=images_renamed,
             images_unchanged=images_unchanged,
+            images_errored=images_errored,
         )
 
 
@@ -536,6 +538,54 @@ class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
 
 @cell_silo_test
 class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
+    def test_summary_shows_errored_note_when_errored(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_unchanged=8,
+            images_errored=2,
+        )
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            StatusCheckStatus.SUCCESS,
+            {},
+            {},
+            project=self.project,
+        )
+
+        assert "2 images failed to compare" in summary
+
+    def test_summary_omits_errored_note_when_none(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_unchanged=10,
+            images_errored=0,
+        )
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            StatusCheckStatus.SUCCESS,
+            {},
+            {},
+            project=self.project,
+        )
+
+        assert "failed to compare" not in summary
+
     def test_summary_table_has_correct_headers(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
         base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")

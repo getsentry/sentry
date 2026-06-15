@@ -117,7 +117,7 @@ const DEFAULT_KEY_DOWN_HANDLER = () => true;
  * move between options. All interactive elements (buttons/links) inside list box
  * options are unreachable via keyboard (only the options themselves can be focused on).
  * If interactive children are necessary, consider using grid lists instead (by setting
- * the `grid` prop on CompactSelect to true).
+ * `mode="grid"` on CompactSelect).
  */
 export function ListBox<T extends ListItemBase>({
   ref,

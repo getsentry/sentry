@@ -138,7 +138,6 @@ export function ReserveAdditionalVolume({
             activePlan={activePlan}
             organization={organization}
             onUpdate={onUpdate}
-            subscription={subscription}
             onReservedChange={(newReserved, category) => {
               setReserved(prev => ({...prev, [category]: newReserved}));
               debouncedReservedChange(newReserved, category);

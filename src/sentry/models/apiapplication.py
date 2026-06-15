@@ -40,11 +40,11 @@ FEATURE_MIN_VERSION: dict[ApiApplicationFeature, int] = {
 }
 
 
-def generate_name():
+def generate_name() -> str:
     return petname.generate(2, " ", letters=10).title()
 
 
-def generate_token():
+def generate_token() -> str:
     # `client_id` on `ApiApplication` is currently limited to 64 characters
     # so we need to restrict the length of the secret
     return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
@@ -117,7 +117,7 @@ class ApiApplication(Model):
     def __str__(self) -> str:
         return self.name
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         with outbox_context(transaction.atomic(router.db_for_write(ApiApplication)), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
@@ -136,7 +136,7 @@ class ApiApplication(Model):
         ]
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.status == ApiApplicationStatus.active
 
     @property
@@ -162,7 +162,7 @@ class ApiApplication(Model):
         return self.version >= min_version
 
     @staticmethod
-    def _fully_decode(value):
+    def _fully_decode(value: str) -> str:
         """Iteratively percent-decode until stable (no more encoded layers).
 
         Stops before any lossy step: if a decode would introduce U+FFFD
@@ -179,7 +179,7 @@ class ApiApplication(Model):
             decoded = candidate
         return decoded
 
-    def normalize_url(self, value):
+    def normalize_url(self, value: str) -> str:
         parts = urlparse(value)
         decoded = self._fully_decode(parts.path)
 
@@ -191,7 +191,7 @@ class ApiApplication(Model):
             normalized_path += "/"
         return urlunparse(parts._replace(path=quote(normalized_path, safe="/")))
 
-    def is_valid_redirect_uri(self, value):
+    def is_valid_redirect_uri(self, value: str) -> bool:
         # Spec references:
         #   - Exact match to one of the registered redirect URIs (RFC 6749 §3.1.2.3):
         #     https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
@@ -261,7 +261,7 @@ class ApiApplication(Model):
                     return True
         return False
 
-    def get_default_redirect_uri(self):
+    def get_default_redirect_uri(self) -> str:
         return self.redirect_uris.split()[0]
 
     def get_allowed_origins(self) -> list[str]:
@@ -269,12 +269,12 @@ class ApiApplication(Model):
             return []
         return [origin for origin in self.allowed_origins.split()]
 
-    def get_redirect_uris(self):
+    def get_redirect_uris(self) -> list[str]:
         if not self.redirect_uris:
             return []
         return [redirect_uri for redirect_uri in self.redirect_uris.split()]
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "client_id": self.client_id,
             "name": self.name,

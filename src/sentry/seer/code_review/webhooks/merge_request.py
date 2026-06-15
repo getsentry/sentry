@@ -376,7 +376,7 @@ def handle_merge_request_event(
 
     debug_log(logger, organization, "handler_started", base_log)
 
-    if not features.has("organizations:seer-code-review-gitlab", organization):
+    if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     object_attributes = event.get("object_attributes", {})
@@ -829,7 +829,7 @@ def handle_merge_request_note_event(
     base_log["integration_id"] = integration.id
     debug_log(logger, organization, "note.handler_started", base_log)
 
-    if not features.has("organizations:seer-code-review-gitlab", organization):
+    if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     action_value = object_attributes.get("action", "")

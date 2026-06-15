@@ -1429,3 +1429,5 @@ urlpatterns += [
         name="sentry-catchall",
     ),
 ]
+
+handler500 = Error500View.as_view()
