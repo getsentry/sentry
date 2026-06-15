@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import binascii
 import hashlib
 import logging
 import time
+from typing import Any
 
-from django.core.signing import SignatureExpired
+from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpRequest
 from django.urls import reverse
 
@@ -75,7 +77,7 @@ def send_signup_verification_email(
     )
 
 
-def unsign_signup_verification(signed_data: str, request: HttpRequest) -> dict:
+def unsign_signup_verification(signed_data: str, request: HttpRequest) -> dict[str, Any]:
     """
     Verify and decode a signup verification link.
 
@@ -86,7 +88,11 @@ def unsign_signup_verification(signed_data: str, request: HttpRequest) -> dict:
 
     Raises BadSignature, SignatureExpired, ValueError on failure.
     """
-    payload = unsign(signed_data, salt=_get_salt(), max_age=None)
+    try:
+        payload = unsign(signed_data, salt=_get_salt(), max_age=None)
+    except binascii.Error as e:
+        # A malformed link is just an invalid signature to us.
+        raise BadSignature("Malformed verification link") from e
     if time.time() > payload["expires_at"]:
         raise SignatureExpired("Verification link expired")
     if payload["session_id"] != request.session.session_key:
