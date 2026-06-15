@@ -16,7 +16,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.emit import (
-    _active_attributions,
+    active_attributions,
     build_pr_metrics_row,
     emit_pr_metrics_row,
     is_pr_tracked,
@@ -324,7 +324,7 @@ class PrMetricsEmissionTest(TestCase):
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             is_valid=False,
         )
-        assert _active_attributions(self.pull_request) == [SENTRY_APP_ATTRIBUTION]
+        assert active_attributions(self.pull_request) == [SENTRY_APP_ATTRIBUTION]
 
     def test_active_attributions_ordered_by_priority_with_source_and_details(self) -> None:
         # Lower-confidence signal recorded first, but ordered second.
@@ -334,7 +334,7 @@ class PrMetricsEmissionTest(TestCase):
             signal_details={"group_ids": [7]},
         )
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
-        assert _active_attributions(self.pull_request) == [
+        assert active_attributions(self.pull_request) == [
             SENTRY_APP_ATTRIBUTION,
             {
                 "signal_type": "referenced_issue",

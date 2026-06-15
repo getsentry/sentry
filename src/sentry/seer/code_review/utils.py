@@ -267,7 +267,7 @@ def _common_codegen_request_payload(
     event_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
-        "repo": _build_repo_definition(repo, target_commit_sha, event_payload),
+        "repo": build_repo_definition(repo, target_commit_sha, event_payload),
         "bug_prediction_specific_information": {
             "organization_id": organization.id,
             "organization_slug": organization.slug,
@@ -356,17 +356,22 @@ def transform_pull_request_to_codegen_request(
     return payload
 
 
-def _build_repo_definition(
+def build_repo_definition(
     repo: Repository,
     target_commit_sha: str,
-    event_payload: Mapping[str, Any],
+    event_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
-    Build the repository definition for code review requests.
+    Build the Seer RepoDefinition for a repository.
 
     GitHub and GitLab expose repo identity and visibility differently, so each
     provider has its own builder. Anything unrecognized falls back to GitHub.
+
+    ``event_payload`` supplies only the repo's privacy flag; a payload-less caller
+    (e.g. the PR metrics judge forward, which runs in a task off the webhook) may
+    omit it, leaving ``is_private`` unknown.
     """
+    event_payload = event_payload or {}
     # repo.provider uses the "integrations:<slug>" format; Seer expects the bare slug
     provider = repo.provider.removeprefix("integrations:") if repo.provider else "github"
 

@@ -2,8 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
+
+
+def iso_or_none(value: datetime | None) -> str | None:
+    """Serialize a persisted datetime to an ISO-8601 string, or None.
+
+    Shared by the analytics row and the Seer judge request, which both encode the
+    PR's optional timestamps the same way.
+    """
+    return value.isoformat() if value is not None else None
+
 
 # Branch-prefix → provider hint. Claude-delegated PRs are opened by the Sentry
 # GitHub app (no distinct author), so the branch prefix is the only usable signal.
