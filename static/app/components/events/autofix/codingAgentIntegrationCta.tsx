@@ -6,7 +6,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {SeerAutomationHandoffConfiguration} from 'sentry/components/events/autofix/types';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -16,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useUpdateSeerSettings} from 'sentry/utils/seer/useUpdateSeerSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -52,8 +52,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     );
     const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
     const preference = data?.preference;
-    const {mutate: updateProjectSeerPreferences, isPending: isUpdatingPreferences} =
-      useUpdateProjectSeerPreferences(project);
+    const {mutate: updateSeerSettings, isPending: isUpdatingSettings} =
+      useUpdateSeerSettings(project);
     const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
       organizationIntegrationsCodingAgents(organization)
     );
@@ -104,14 +104,17 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
         });
       }
 
-      updateProjectSeerPreferences({
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: 'root_cause',
-        automation_handoff: {
-          handoff_point: 'root_cause',
-          target: config.target,
-          integration_id: parseInt(integration.id, 10),
-        },
+      // Route through the dedicated settings endpoint, which derives the
+      // handoff config server-side from agent + stopping point + autoCreatePr
+      // and never touches repository associations. The legacy preferences
+      // write re-sent the existing repos purely to preserve them, which the
+      // settings endpoint makes unnecessary — and avoids the whitespace-
+      // stripping repo lookup that 400s for GitLab repos with spaces.
+      updateSeerSettings({
+        agent: config.target,
+        integrationId: parseInt(integration.id, 10),
+        stoppingPoint: 'root_cause',
+        autoCreatePr: false,
       });
     };
 
@@ -123,7 +126,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       isLoadingProject ||
       isLoadingPreferences ||
       isLoadingIntegrations ||
-      isUpdatingPreferences
+      isUpdatingSettings
     ) {
       return (
         <Container

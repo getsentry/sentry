@@ -134,19 +134,11 @@ describe('CursorIntegrationCta', () => {
       ).toBeInTheDocument();
     });
 
-    it('configures handoff when setup button is clicked', async () => {
+    it('configures handoff through the seer/settings/ endpoint when setup button is clicked', async () => {
       const updateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
-          },
-        },
+        url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       render(<CursorIntegrationCta project={project} />, {
@@ -158,19 +150,18 @@ describe('CursorIntegrationCta', () => {
       });
       await userEvent.click(setupButton);
 
+      // Handoff is configured server-side from agent + stopping point +
+      // autoCreatePr; no repository payload is sent.
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+          `/projects/${organization.slug}/${project.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
             data: {
-              repositories: [],
-              automated_run_stopping_point: 'root_cause',
-              automation_handoff: {
-                handoff_point: 'root_cause',
-                target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-                integration_id: 123,
-              },
+              agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+              integrationId: 123,
+              stoppingPoint: 'root_cause',
+              autoCreatePr: false,
             },
           })
         );
@@ -214,18 +205,10 @@ describe('CursorIntegrationCta', () => {
         body: updatedProject,
       });
 
-      const preferencesUpdateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
-          },
-        },
+      const settingsUpdateMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       const onUpdateSuccessSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
@@ -258,20 +241,17 @@ describe('CursorIntegrationCta', () => {
         expect(onUpdateSuccessSpy).toHaveBeenCalledWith(updatedProject);
       });
 
-      // Then configure handoff
+      // Then configure handoff through the settings endpoint
       await waitFor(() => {
-        expect(preferencesUpdateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/preferences/`,
+        expect(settingsUpdateMock).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
             data: {
-              repositories: [],
-              automated_run_stopping_point: 'root_cause',
-              automation_handoff: {
-                handoff_point: 'root_cause',
-                target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-                integration_id: 123,
-              },
+              agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+              integrationId: 123,
+              stoppingPoint: 'root_cause',
+              autoCreatePr: false,
             },
           })
         );
@@ -296,18 +276,10 @@ describe('CursorIntegrationCta', () => {
         body: {},
       });
 
-      const preferencesUpdateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integration_id: 123,
-          },
-        },
+      const settingsUpdateMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       render(<CursorIntegrationCta project={projectWithAutomation} />, {
@@ -324,10 +296,10 @@ describe('CursorIntegrationCta', () => {
 
       // Should only configure handoff
       await waitFor(() => {
-        expect(preferencesUpdateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
+        expect(settingsUpdateMock).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
           })
         );
       });

@@ -146,19 +146,11 @@ describe('ClaudeCodeIntegrationCta', () => {
       ).toBeInTheDocument();
     });
 
-    it('configures handoff when setup button is clicked', async () => {
+    it('configures handoff through the seer/settings/ endpoint when setup button is clicked', async () => {
       const updateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-            integration_id: 456,
-          },
-        },
+        url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       render(<ClaudeCodeIntegrationCta project={project} />, {
@@ -170,19 +162,18 @@ describe('ClaudeCodeIntegrationCta', () => {
       });
       await userEvent.click(setupButton);
 
+      // Handoff is configured server-side from agent + stopping point +
+      // autoCreatePr; no repository payload is sent.
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+          `/projects/${organization.slug}/${project.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
             data: {
-              repositories: [],
-              automated_run_stopping_point: 'root_cause',
-              automation_handoff: {
-                handoff_point: 'root_cause',
-                target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-                integration_id: 456,
-              },
+              agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+              integrationId: 456,
+              stoppingPoint: 'root_cause',
+              autoCreatePr: false,
             },
           })
         );
@@ -217,18 +208,10 @@ describe('ClaudeCodeIntegrationCta', () => {
         body: {},
       });
 
-      const preferencesUpdateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-            integration_id: 456,
-          },
-        },
+      const settingsUpdateMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       render(<ClaudeCodeIntegrationCta project={projectWithAutomation} />, {
@@ -243,10 +226,10 @@ describe('ClaudeCodeIntegrationCta', () => {
       expect(projectUpdateMock).not.toHaveBeenCalled();
 
       await waitFor(() => {
-        expect(preferencesUpdateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/preferences/`,
+        expect(settingsUpdateMock).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${projectWithAutomation.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
           })
         );
       });
@@ -271,18 +254,10 @@ describe('ClaudeCodeIntegrationCta', () => {
         body: updatedProject,
       });
 
-      const preferencesUpdateMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/preferences/`,
-        method: 'POST',
-        body: {
-          repositories: [],
-          automated_run_stopping_point: 'root_cause',
-          automation_handoff: {
-            handoff_point: 'root_cause',
-            target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-            integration_id: 456,
-          },
-        },
+      const settingsUpdateMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
       });
 
       const onUpdateSuccessSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
@@ -314,18 +289,15 @@ describe('ClaudeCodeIntegrationCta', () => {
       });
 
       await waitFor(() => {
-        expect(preferencesUpdateMock).toHaveBeenCalledWith(
-          `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/preferences/`,
+        expect(settingsUpdateMock).toHaveBeenCalledWith(
+          `/projects/${organization.slug}/${projectWithoutAutomation.slug}/seer/settings/`,
           expect.objectContaining({
-            method: 'POST',
+            method: 'PUT',
             data: {
-              repositories: [],
-              automated_run_stopping_point: 'root_cause',
-              automation_handoff: {
-                handoff_point: 'root_cause',
-                target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-                integration_id: 456,
-              },
+              agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+              integrationId: 456,
+              stoppingPoint: 'root_cause',
+              autoCreatePr: false,
             },
           })
         );
