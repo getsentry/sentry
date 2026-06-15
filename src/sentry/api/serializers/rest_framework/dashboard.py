@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
@@ -509,9 +509,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
-    def _validate_tracemetrics_equation_constraints(self, data):
+    def _validate_tracemetrics_equation_constraints(self, data) -> dict[str, Any]:
         if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
-            return
+            return data
 
         # Tracemetrics timeseries widgets only support a single equation per query
         if data.get("display_type") in {
@@ -525,6 +525,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     raise serializers.ValidationError(
                         {"queries": "Tracemetrics timeseries widgets support at most one equation."}
                     )
+
+        return data
 
     def validate(self, data):
         self.query_warnings = {"queries": [], "columns": {}}
