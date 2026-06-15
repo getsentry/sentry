@@ -127,11 +127,11 @@ class NodeStorage(local, Service):
         """
         return self._get_bytes(id)
 
-    def _get_bytes(self, id: str, timeout: float | None = None) -> bytes | None:
+    def _get_bytes(self, id: str) -> bytes | None:
         raise NotImplementedError
 
     @metrics.wraps("nodestore.get.duration")
-    def get(self, id: str, subkey: str | None = None, timeout: float | None = None) -> Any:
+    def get(self, id: str, subkey: str | None = None) -> Any:
         """
         >>> nodestore.get('key1')
         {"message": "hello world"}
@@ -147,7 +147,7 @@ class NodeStorage(local, Service):
                     return item_from_cache
 
             span.set_tag("subkey", str(subkey))
-            bytes_data = self._get_bytes(id, timeout=timeout)
+            bytes_data = self._get_bytes(id)
             rv = self._decode(bytes_data, subkey=subkey)
             if subkey is None:
                 # set cache item only after we know decoding did not fail

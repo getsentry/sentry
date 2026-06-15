@@ -700,7 +700,9 @@ interface GroupActivitySetPrivate extends GroupActivityBase {
 }
 
 interface GroupActivitySetByAge extends GroupActivityBase {
-  data: Record<string, any>;
+  data: {
+    age?: number | string;
+  };
   type: GroupActivityType.SET_RESOLVED_BY_AGE;
 }
 
@@ -834,7 +836,7 @@ interface GroupActivityMerge extends GroupActivityBase {
 
 interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   data: {
-    afterDays?: number;
+    after_days?: number;
   };
   type: GroupActivityType.AUTO_SET_ONGOING;
 }

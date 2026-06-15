@@ -205,12 +205,8 @@ class IssueOccurrence:
         )
 
     @classmethod
-    def fetch(
-        cls, id_: str, project_id: int, timeout: float | None = None
-    ) -> IssueOccurrence | None:
-        results = nodestore.backend.get(
-            cls.build_storage_identifier(id_, project_id), timeout=timeout
-        )
+    def fetch(cls, id_: str, project_id: int) -> IssueOccurrence | None:
+        results = nodestore.backend.get(cls.build_storage_identifier(id_, project_id))
         if results:
             return IssueOccurrence.from_dict(results)
         return None
