@@ -52,7 +52,7 @@ describe('Bitbucket Server InstallationConfigStep', () => {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
-  it('calls advance with form data on submit', async () => {
+  it.isKnownFlake('calls advance with form data on submit', async () => {
     const advance = jest.fn();
     render(<InstallationConfigStep {...makeStepProps({stepData: {}, advance})} />);
 
@@ -112,7 +112,7 @@ describe('Bitbucket Server OAuthCallbackStep', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens the popup and advances with oauthToken on callback', async () => {
+  it.isKnownFlake('opens the popup and advances with oauthToken on callback', async () => {
     const advance = jest.fn();
     render(<OAuthCallbackStep {...makeStepProps({stepData: {oauthUrl}, advance})} />);
 

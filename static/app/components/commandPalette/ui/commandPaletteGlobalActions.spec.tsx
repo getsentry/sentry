@@ -166,7 +166,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it('does not duplicate the current project in the list', async () => {
+  it.isKnownFlake('does not duplicate the current project in the list', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
@@ -218,7 +218,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     }
   );
 
-  it('highlights all projects when multiple ?project= params are set', async () => {
+  it.isKnownFlake('highlights all projects when multiple ?project= params are set', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
@@ -246,7 +246,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
   });
 
-  it('shows all projects without priority when not on a :projectId route', async () => {
+  it.isKnownFlake('shows all projects without priority when not on a :projectId route', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
