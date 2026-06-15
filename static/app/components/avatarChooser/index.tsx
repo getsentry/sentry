@@ -197,6 +197,7 @@ export function AvatarChooser({
       const resp = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
+        includeAllArgs: true,
       });
       setModel(resp);
       onSave?.(resp);
