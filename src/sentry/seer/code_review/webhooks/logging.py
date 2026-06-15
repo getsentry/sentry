@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.organizations.services.organization.model import RpcOrganization
 
-_FLAG = "organizations:seer-code-review-gitlab"
+_FLAG = "organizations:seer-gitlab-support"
 
 
 def debug_log(
