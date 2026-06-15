@@ -88,6 +88,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 self.potential_parents[span_id] = span
             return
 
+        # Cached queries never touch the database, so they shouldn't count toward an N+1.
+        if is_cached_span(span):
+            return
+
         if not self.source_span:
             # We aren't currently tracking an N+1. Maybe this span triggers one!
             self._maybe_use_as_source(span)
@@ -257,6 +261,23 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
         ).hexdigest()
         return f"1-{problem_class}-{full_fingerprint}"
+
+
+def is_cached_span(span: Span) -> bool:
+    """
+    Returns True if the span was served from a query cache rather than hitting
+    the database.
+    """
+    for source in (span.get("data"), span.get("tags")):
+        if not source:
+            continue
+        value = source.get("cached")
+        if isinstance(value, str):
+            if value.lower() == "true":
+                return True
+        elif value:
+            return True
+    return False
 
 
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
