@@ -207,6 +207,7 @@ class QuietBasicAuthentication(BasicAuthentication):
                 scope.set_attribute(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
+                scope.set_attribute(k, v.decode() if isinstance(v, bytes) else v)
 
         return (user, auth_token)
 
@@ -255,6 +256,7 @@ class RelayAuthentication(BasicAuthentication):
         self, relay_id: str, relay_sig: str, request=None
     ) -> tuple[AnonymousUser, None]:
         sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
+        sentry_sdk.get_isolation_scope().set_attribute("relay_id", relay_id)
 
         if request is None:
             raise AuthenticationFailed("missing request")
@@ -658,7 +660,7 @@ class DSNAuthentication(StandardAuthentication):
 
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
-        scope.set_attribute("api_token_type", repr(self.token_name))
+        scope.set_attribute("api_token_type", self.token_name.decode())
         scope.set_tag("api_project_key", key.id)
         scope.set_attribute("api_project_key", key.id)
 
@@ -695,6 +697,7 @@ class RpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag("rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -814,6 +817,7 @@ class HmacSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
+        sentry_sdk.get_isolation_scope().set_attribute(self.sdk_tag_name, True)
 
         return (AnonymousUser(), token)
 
@@ -878,6 +882,7 @@ class ViewerContextAuthentication(BaseAuthentication):
             return None
 
         sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("viewer_context_auth", True)
         # Viewer context comes from a trusted first-party service. Keep auth
         # session-like for permission derivation, but mark it so org access can
         # avoid requiring browser-session SSO state on service callbacks.

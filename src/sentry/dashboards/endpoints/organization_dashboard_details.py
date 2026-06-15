@@ -105,7 +105,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Custom Dashboard",
+        operation_id="getOrganizationDashboard",
+        summary="Retrieve an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         responses={
             200: DashboardDetailsModelSerializer,
@@ -127,7 +128,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(body)
 
     @extend_schema(
-        operation_id="Delete an Organization's Custom Dashboard",
+        operation_id="deleteOrganizationDashboard",
+        summary="Delete an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -154,7 +156,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(status=204)
 
     @extend_schema(
-        operation_id="Edit an Organization's Custom Dashboard",
+        operation_id="updateOrganizationDashboard",
+        summary="Edit an Organization's Custom Dashboard",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DashboardParams.DASHBOARD_ID],
         request=DashboardDetailsSerializer,
         responses={

@@ -90,6 +90,12 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.dropped_replay_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
+            project_context.prev_week_accepted_error_count = int(
+                project_context.accepted_error_count * random.uniform(0.5, 1.5)
+            )
+            project_context.prev_week_accepted_transaction_count = int(
+                project_context.accepted_transaction_count * random.uniform(0.5, 1.5)
+            )
             project_context.key_errors_by_group = [
                 (g, random.randint(0, 1000)) for g in Group.objects.all()[:3]
             ]
@@ -125,7 +131,12 @@ class DebugWeeklyReportView(MailPreviewView):
 
         user_id = request.user.id
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
-        return render_template_context(ctx, user_id)
+        context = render_template_context(ctx, user_id)
+        if context is not None:
+            context["show_week_over_week_metric"] = (
+                request.GET.get("show_week_over_week_metric", "1") != "0"
+            )
+        return context
 
     @property
     def html_template(self) -> str:

@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Any
 from unittest.mock import patch
 
+import msgpack
 import orjson
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -24,6 +25,7 @@ from sentry.ingest.consumer.processors import (
     process_individual_attachment,
     process_userreport,
 )
+from sentry.ingest.consumer.simple_event import process_event_from_kafka
 from sentry.ingest.types import ConsumerType
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
@@ -102,6 +104,37 @@ def test_deduplication_works(default_project, task_runner, preprocess_event) -> 
             },
             project=default_project,
         )
+
+    (kwargs,) = preprocess_event
+    assert kwargs == {
+        "cache_key": f"e:{event_id}:{project_id}",
+        "data": payload,
+        "event_id": event_id,
+        "project": default_project,
+        "start_time": start_time,
+        "has_attachments": False,
+    }
+
+
+@django_db_all
+def test_process_event_from_kafka(default_project, preprocess_event) -> None:
+    payload = get_normalized_event({"message": "hello world"}, default_project)
+    event_id = payload["event_id"]
+    project_id = default_project.id
+    start_time = time.time() - 3600
+
+    message = msgpack.packb(
+        {
+            "payload": orjson.dumps(payload).decode(),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+            "type": "event",
+        }
+    )
+
+    process_event_from_kafka(message)
 
     (kwargs,) = preprocess_event
     assert kwargs == {

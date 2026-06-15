@@ -1,7 +1,7 @@
 import sentry_sdk
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
-from rest_framework.exceptions import ParseError
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_serializer
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
@@ -17,6 +17,10 @@ from sentry.api.endpoints.organization_releases import (
     get_stats_period_detail,
 )
 from sentry.api.exceptions import ConflictError, InvalidRepository, ResourceDoesNotExist
+from sentry.api.helpers.projects import (
+    PROJECT_ID_OR_SLUG_SCHEMA,
+    ProjectIdOrSlugField,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
@@ -38,6 +42,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus
@@ -314,7 +319,21 @@ class OrganizationReleaseDetailsEndpoint(
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
-            ReleaseParams.PROJECT_ID,
+            OpenApiParameter(
+                name="project_id",
+                location="query",
+                required=False,
+                type=str,
+                deprecated=True,
+                description="Deprecated. Use project instead.",
+            ),
+            OpenApiParameter(
+                name="project",
+                location="query",
+                required=False,
+                type=PROJECT_ID_OR_SLUG_SCHEMA,
+                description="The project ID or slug to filter by. Overrides project_id when both are sent.",
+            ),
             ReleaseParams.HEALTH,
             ReleaseParams.ADOPTION_STAGES,
             ReleaseParams.SUMMARY_STATS_PERIOD,
@@ -340,7 +359,7 @@ class OrganizationReleaseDetailsEndpoint(
         """
         # Dictionary responsible for storing selected project meta data
         current_project_meta = {}
-        project_id = request.GET.get("project")
+        project_id = request.GET.get("project") or request.GET.get("project_id")
         with_health = request.GET.get("health") == "1"
         with_adoption_stages = request.GET.get("adoptionStages") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
@@ -362,15 +381,30 @@ class OrganizationReleaseDetailsEndpoint(
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        # Validate project access when project_id is provided
+        # Validate project access when a project identifier is provided.
         project = None
+        project_ids: set[int] | None = None
+        project_slugs: set[str] | None = None
         if project_id:
             try:
-                project_id_int = int(project_id)
-            except ValueError:
+                project_id_or_slug = ProjectIdOrSlugField().run_validation(project_id)
+            except ValidationError:
                 raise ParseError(detail="Invalid project")
+
+            if isinstance(project_id_or_slug, int):
+                if project_id_or_slug == ALL_ACCESS_PROJECT_ID:
+                    raise ParseError(detail="Invalid project")
+                project_ids = {project_id_or_slug}
+            else:
+                if project_id_or_slug == ALL_ACCESS_PROJECTS_SLUG:
+                    raise ParseError(detail="Invalid project")
+                project_slugs = {project_id_or_slug}
+
             validated_projects = self.get_projects(
-                request, organization, project_ids={project_id_int}
+                request,
+                organization,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
             )
             if not validated_projects:
                 raise ResourceDoesNotExist
@@ -395,7 +429,12 @@ class OrganizationReleaseDetailsEndpoint(
 
             # Get prev and next release to current release
             try:
-                filter_params = self.get_filter_params(request, organization)
+                filter_params = self.get_filter_params(
+                    request,
+                    organization,
+                    project_ids=project_ids,
+                    project_slugs=project_slugs,
+                )
                 current_project_meta.update(
                     {
                         **self.get_adjacent_releases_to_current_release(
