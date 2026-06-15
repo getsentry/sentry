@@ -790,7 +790,7 @@ def project_past_resolved_issues(
             scored.append((group, count, False))
 
         scored.sort(key=lambda x: x[1], reverse=True)
-        return scored[:3]
+        return scored
 
 
 def _past_resolved_error_counts(
@@ -892,9 +892,10 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
             for group, count, _has_link in project_ctx.past_resolved_issues
         ]
 
-    # Re-sort with link boost applied
+    # Re-sort with link boost applied, then truncate to top 3
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues.sort(
             key=lambda x: x[1] * (_PAST_ISSUES_LINK_BOOST if x[2] else 1),
             reverse=True,
         )
+        project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
