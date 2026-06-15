@@ -252,7 +252,8 @@ class RPCBase:
         """Make the query"""
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
-        sentry_sdk.set_attribute("query.sampling_mode", query.sampling_mode)
+        if query.sampling_mode is not None:
+            sentry_sdk.set_attribute("query.sampling_mode", query.sampling_mode)
         meta = resolver.resolve_meta(
             referrer=query.referrer,
             sampling_mode=query.sampling_mode,
