@@ -6,9 +6,11 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 
+import {getDrawerWidthKey} from '@sentry/scraps/drawer';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useModal} from '@sentry/scraps/modal';
 import {
@@ -17,9 +19,11 @@ import {
 } from '@sentry/scraps/pictureInPicture';
 
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
+  SEER_EXPLORER_DRAWER_KEY,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
@@ -46,6 +50,43 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   unreadCount: 0,
 });
 
+/**
+ * Subscribes to a picture-in-picture window's width.
+ */
+function usePictureInPictureWidth(pipWindow: Window): number {
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      pipWindow.addEventListener('resize', onStoreChange);
+      return () => pipWindow.removeEventListener('resize', onStoreChange);
+    },
+    [pipWindow]
+  );
+
+  return useSyncExternalStore(subscribe, () => pipWindow.innerWidth);
+}
+
+/**
+ * Mirrors the popped-out window's width onto the drawer's persisted width (as a
+ * percent of the viewport) so the drawer adopts that width when it re-docks.
+ *
+ * Rendered as a leaf component so width updates re-render only this (it returns
+ * nothing), not the popped-out content.
+ */
+function SyncDrawerWidthFromPip({pipWindow}: {pipWindow: Window}) {
+  const pipWidth = usePictureInPictureWidth(pipWindow);
+
+  useEffect(() => {
+    if (pipWidth && window.innerWidth > 0) {
+      localStorageWrapper.setItem(
+        getDrawerWidthKey(SEER_EXPLORER_DRAWER_KEY),
+        JSON.stringify((pipWidth / window.innerWidth) * 100)
+      );
+    }
+  }, [pipWidth]);
+
+  return null;
+}
+
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {runId, chatStates} = useSeerExplorerChatState();
   const [lastViewedAt, setLastViewedAt] = useState<number>(() => Date.now());
@@ -67,7 +108,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // Re-dock into the drawer whenever the PiP window closes (native controls,
   // dock button, or programmatically) — unless a full close was requested via
   // `closeSeerExplorer`. The watcher lives here because re-docking needs the
-  // drawer controls, which are only available inside `GlobalDrawer`.
+  // drawer controls, which are only available inside `GlobalDrawer`. The drawer
+  // width is kept in sync continuously by `SyncDrawerWidthFromPip`, so the
+  // reopened drawer already reflects the popped-out window's width.
   const suppressRedockRef = useRef(false);
   const wasPoppedOutRef = useRef(false);
   useEffect(() => {
@@ -248,6 +291,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       {children}
       {pipWindow && (
         <PictureInPicturePortal pipWindow={pipWindow}>
+          <SyncDrawerWidthFromPip pipWindow={pipWindow} />
           <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
         </PictureInPicturePortal>
       )}
