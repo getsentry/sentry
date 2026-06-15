@@ -248,14 +248,10 @@ class OrganizationReportContextFactory:
 
             # Enhanced privacy flag hides issue titles, transaction names, and source details
             if not self.organization.flags.enhanced_privacy:
-                use_past_issues = features.has(
-                    "organizations:weekly-report-past-issues", self.organization
-                )
-                if use_past_issues:
+                self._append_project_key_errors(ctx)
+                self._hydrate_key_error_groups(ctx)
+                self._hydrate_key_performance_issue_groups(ctx)
+                if features.has("organizations:weekly-report-past-issues", self.organization):
                     self._append_project_past_resolved_issues(ctx)
-                else:
-                    self._append_project_key_errors(ctx)
-                    self._hydrate_key_error_groups(ctx)
-                    self._hydrate_key_performance_issue_groups(ctx)
 
         return ctx

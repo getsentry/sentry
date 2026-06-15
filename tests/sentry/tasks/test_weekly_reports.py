@@ -1948,8 +1948,6 @@ class WeeklyReportsTest(
             assert len(context["past_issues"]) == 1
             assert context["past_issues"][0]["group"].id == group1.id
             assert context["past_issues"][0]["count"] >= 1
-            assert len(context["key_errors"]) == 0
-            assert len(context["key_performance_issues"]) == 0
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
