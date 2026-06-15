@@ -130,6 +130,20 @@ def _commit_shas_from_activity(pull_request: PullRequest) -> set[str]:
     Walks the SYNCHRONIZED chain newest→oldest. A force push is detected
     when an event's after_sha doesn't continue from the expected point;
     traversal stops there. Returns an empty set when there are no events.
+
+    Known limitation — undetectable squash force-push:
+    A squash-and-force-push of the most recent commits produces a
+    ``synchronize`` event with ``before=<previous_head>`` and
+    ``after=<new_squashed_commit>``.  Because ``before`` equals the previous
+    HEAD, the chain appears unbroken and the old (now-squashed) SHAs are
+    included in the result alongside the new squashed SHA.  This cannot be
+    detected from the webhook payload alone; distinguishing a squash from a
+    regular push would require commit-graph data (e.g. verifying that
+    ``after`` is a descendant of ``before``).
+
+    By contrast, a force-push that *removes intermediate commits* (i.e. the
+    new ``before`` jumps back past the previous HEAD) creates a gap in the
+    chain that IS correctly detected and halts traversal.
     """
     payloads = list(
         PullRequestActivity.objects.filter(
