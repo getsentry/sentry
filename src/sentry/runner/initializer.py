@@ -117,6 +117,25 @@ options_mapper = {
     # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
+    "system.base-hostname": "SENTRY_BASE_HOSTNAME",
+    "system.organization-base-hostname": "SENTRY_ORGANIZATION_BASE_HOSTNAME",
+    "system.organization-url-template": "SENTRY_ORGANIZATION_URL_TEMPLATE",
+    "system.region-api-url-template": "SENTRY_REGION_API_URL_TEMPLATE",
+    "intercom.sentry-api-secret": "SENTRY_INTERCOM_API_SECRET",
+    "relay.static_auth": "SENTRY_RELAY_STATIC_AUTH",
+    "objectstore.config": "SENTRY_OBJECTSTORE_CONFIG",
+    "viewer-context.enabled": "SENTRY_VIEWER_CONTEXT_ENABLED",
+    "analytics.backend": "SENTRY_ANALYTICS_BACKEND",
+    "analytics.options": "SENTRY_ANALYTICS_OPTIONS",
+    "mail.list-namespace": "SENTRY_MAIL_LIST_NAMESPACE",
+    "filestore.backend": "SENTRY_FILE_STORAGE_BACKEND",
+    "filestore.options": "SENTRY_FILE_STORAGE_CONFIG",
+    "filestore.relocation-backend": "SENTRY_RELOCATION_FILE_STORAGE_BACKEND",
+    "filestore.relocation-options": "SENTRY_RELOCATION_FILE_STORAGE_CONFIG",
+    "filestore.profiles-backend": "SENTRY_PROFILES_FILE_STORAGE_BACKEND",
+    "filestore.profiles-options": "SENTRY_PROFILES_FILE_STORAGE_CONFIG",
+    "filestore.control.backend": "SENTRY_CONTROL_FILE_STORAGE_BACKEND",
+    "filestore.control.options": "SENTRY_CONTROL_FILE_STORAGE_CONFIG",
     "mail.backend": "EMAIL_BACKEND",
     "mail.host": "EMAIL_HOST",
     "mail.port": "EMAIL_PORT",
@@ -532,7 +551,14 @@ def apply_legacy_settings(settings: Any) -> None:
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
-            settings.SENTRY_OPTIONS[new] = getattr(settings, old)
+            value = getattr(settings, old)
+            settings.SENTRY_OPTIONS[new] = value
+            # bootstrap_options already ran and promoted these option keys into their
+            # Django settings, so writing SENTRY_OPTIONS here is too late for any key
+            # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
+            # Re-promote the legacy value so the override actually takes effect.
+            if new in options_mapper:
+                setattr(settings, options_mapper[new], value)
 
     if hasattr(settings, "SENTRY_REDIS_OPTIONS"):
         if "redis.clusters" in settings.SENTRY_OPTIONS:

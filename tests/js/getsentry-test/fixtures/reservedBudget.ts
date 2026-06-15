@@ -13,7 +13,7 @@ type BudgetProps = Partial<TReservedBudget>;
 type MetricHistoryProps = Partial<TReservedBudgetMetricHistory>;
 type PendingBudgetProps = Partial<TPendingReservedBudget>;
 
-export function ReservedBudgetFixture(props: BudgetProps) {
+function ReservedBudgetFixture(props: BudgetProps) {
   const defaultCategoryProps = {
     apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
     budgetCategoryType: '',
@@ -49,7 +49,7 @@ export function PendingReservedBudgetFixture(props: PendingBudgetProps) {
   };
 }
 
-export function ReservedBudgetMetricHistoryFixture(props: MetricHistoryProps) {
+function ReservedBudgetMetricHistoryFixture(props: MetricHistoryProps) {
   return {
     reservedCpe: 0,
     reservedSpend: 0,
@@ -89,46 +89,6 @@ export function SeerReservedBudgetFixture(props: BudgetProps) {
       }),
     },
     ...SeerReservedBudgetCategoryFixture(props),
-    ...props,
-  };
-
-  return ReservedBudgetFixture(defaultProps);
-}
-
-export function DynamicSamplingReservedBudgetCategoryFixture(
-  props: ReservedBudgetCategoryProps
-) {
-  return {
-    budgetCategoryType: 'DYNAMIC_SAMPLING',
-    apiName: ReservedBudgetCategoryType.DYNAMIC_SAMPLING,
-    billingFlag: null,
-    canProductTrial: false,
-    name: 'spans budget',
-    docLink: '',
-    isFixed: false,
-    defaultBudget: null,
-    dataCategories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
-    productName: 'dynamic sampling',
-    productCheckoutName: 'dynamic sampling',
-    ...props,
-  };
-}
-
-export function DynamicSamplingReservedBudgetFixture(props: BudgetProps) {
-  const defaultProps = {
-    id: '',
-    reservedBudget: 10_000_00, // random values since there are no defaults
-    categories: {
-      [DataCategory.SPANS]: ReservedBudgetMetricHistoryFixture({
-        reservedCpe: 1_000_000,
-        reservedSpend: 0,
-      }),
-      [DataCategory.SPANS_INDEXED]: ReservedBudgetMetricHistoryFixture({
-        reservedCpe: 2_000_000,
-        reservedSpend: 0,
-      }),
-    },
-    ...DynamicSamplingReservedBudgetCategoryFixture(props),
     ...props,
   };
 

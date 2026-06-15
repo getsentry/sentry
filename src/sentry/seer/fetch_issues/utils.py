@@ -164,9 +164,13 @@ def _group_by_short_id(short_id: str, organization_id: int) -> Group | None:
         return None
 
 
-def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[str, Any]:
+def get_latest_issue_event(group_id: int | str, organization_id: int) -> IssueDetails | None:
     """
-    Get an issue's latest event as a dict, matching the Seer IssueDetails model.
+    Get an issue's latest event as an IssueDetails model.
+
+    Returns None when the group / event isn't found. Previously returned `{}`
+    on the not-found path — callers checked `if not response`, which behaves
+    identically for `{}` and `None`.
     """
     if isinstance(group_id, str) and not group_id.isdigit():
         group = _group_by_short_id(group_id, organization_id)
@@ -179,7 +183,7 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
         logger.warning(
             "Group not found", extra={"group_id": group_id, "organization_id": organization_id}
         )
-        return {}
+        return None
 
     if group.organization.id != organization_id:
         logger.warning(
@@ -190,7 +194,7 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
                 "actual_organization_id": group.organization.id,
             },
         )
-        return {}
+        return None
 
     event = group.get_latest_event()
     if not event:
@@ -198,11 +202,11 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
             "No event found",
             extra={"group_id": group_id},
         )
-        return {}
+        return None
 
     serialized_event = serialize(event, user=None, serializer=EventSerializer())
     return IssueDetails(
         id=int(serialized_event["groupID"]),
         title=serialized_event["title"],
         events=[serialized_event],
-    ).dict()
+    )
