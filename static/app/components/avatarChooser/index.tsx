@@ -203,8 +203,9 @@ export function AvatarChooser({
       setModel(resp);
       onSave?.(resp);
       addSuccessMessage(t('Successfully saved avatar preferences'));
-    } catch (error: RequestError) {
-      const avatarPhotoErrors = error?.responseJSON?.avatar_photo || [];
+    } catch (error) {
+      const requestError = error as RequestError;
+      const avatarPhotoErrors = requestError?.responseJSON?.avatar_photo || [];
       if (avatarPhotoErrors.length) {
         avatarPhotoErrors.map(addErrorMessage);
       } else {
