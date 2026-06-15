@@ -144,10 +144,9 @@ export function AddAutofixRepoModal({
           </Stack>
         ) : filteredRepositories.length === 0 ? (
           <EmptyMessage>
-            {modalSearchQuery.trim() &&
-            selectedExternalIds.length === filteredRepositories.length
-              ? t('All available repositories have been added.')
-              : t('No matching repositories found.')}
+            {modalSearchQuery.trim()
+              ? t('No matching repositories found.')
+              : t('All available repositories have been added.')}
           </EmptyMessage>
         ) : (
           <ModalReposContainer ref={parentRef}>
