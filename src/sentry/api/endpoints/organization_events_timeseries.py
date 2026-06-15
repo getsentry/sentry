@@ -164,6 +164,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
 
         This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
         on the parameters passed
+
+        **Note**: For queries extending past `30d`, spanning billions of rows, or running on projects with low
+        sample rates, the aggregation `yAxis=count_unique()` and filters on high-cardinality
+        fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
+        estimation only.
         """
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)

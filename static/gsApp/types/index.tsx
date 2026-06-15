@@ -193,6 +193,11 @@ export type Plan = {
 
   hasOnDemandModes: boolean;
   id: string;
+  /**
+   * Whether the plan is treated as enterprise in the UI (display name,
+   * upsell suppression, provisioning).
+   */
+  isEnterprise: boolean;
   isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
@@ -937,15 +942,6 @@ export enum PlanTier {
    * Includes performance features.
    */
   AM1 = 'am1',
-  /**
-   * Monthly metered plans with variable data options.
-   */
-  MM2 = 'mm2',
-  /**
-   * First generation of monthly metered plans.
-   * Features and data volumes are tightly coupled.
-   */
-  MM1 = 'mm1',
   /**
    * No specified tier
    */
