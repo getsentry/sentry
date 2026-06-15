@@ -28,6 +28,7 @@ const repoPRStateSchema = z.object({
   pr_url: z.string().nullable(),
   repo_name: z.string(),
   title: z.string().nullable(),
+  integration_id: z.string().nullable(),
 });
 
 const artifactSchema = z.object({

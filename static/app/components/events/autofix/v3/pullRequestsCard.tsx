@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {
   getAutofixArtifactFromSection,
@@ -16,7 +17,11 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
+import {useIntegration} from 'sentry/utils/integrations/useIntegration';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {RepoPRState} from 'sentry/views/seerExplorer/types';
+import {getProviderConfigUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
 interface PullRequestsCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -25,7 +30,6 @@ interface PullRequestsCardProps {
 
 export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
   const runId = autofix.runState?.run_id;
-  const {createPR} = autofix;
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
@@ -90,18 +94,73 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
         }
 
         return (
-          <Flex key={pullRequest.repo_name} gap="xs" align="center">
-            <Button
-              variant="primary"
-              icon={<IconRefresh size="xs" />}
-              onClick={() => createPR(runId, pullRequest.repo_name)}
-              tooltipProps={{title: pullRequest.pr_creation_error}}
-            >
-              {t('Retry PR in %s', pullRequest.repo_name)}
-            </Button>
-          </Flex>
+          <RetryPrButton
+            key={pullRequest.repo_name}
+            autofix={autofix}
+            pullRequest={pullRequest}
+            runId={runId}
+          />
         );
       })}
     </ArtifactCard>
+  );
+}
+
+interface RetryPrButtonProps {
+  autofix: ReturnType<typeof useExplorerAutofix>;
+  pullRequest: RepoPRState;
+  runId: number;
+}
+
+function RetryPrButton({autofix, pullRequest, runId}: RetryPrButtonProps) {
+  const organization = useOrganization();
+  const integration = useIntegration({
+    orgSlug: organization.slug,
+    integrationId: pullRequest.integration_id ?? undefined,
+  });
+
+  const {createPR} = autofix;
+
+  const configureGithubAccessUrl = useMemo(() => {
+    const needsWriteAccess =
+      pullRequest.pr_creation_status === 'error' &&
+      pullRequest.pr_creation_error ===
+        `No write access to repository ${pullRequest.repo_name}`;
+    if (!needsWriteAccess) {
+      return null;
+    }
+
+    const data = integration.data;
+    if (!data) {
+      return null;
+    }
+
+    const configUrl = getProviderConfigUrl(data);
+    if (!configUrl) {
+      return null;
+    }
+
+    return `${configUrl}/permissions/update`;
+  }, [pullRequest, integration]);
+
+  return (
+    <Flex gap="xs" align="center" justify="between">
+      <Button
+        variant="primary"
+        icon={<IconRefresh size="xs" />}
+        onClick={() => createPR(runId, pullRequest.repo_name)}
+        tooltipProps={{title: pullRequest.pr_creation_error}}
+      >
+        {t('Retry PR in %s', pullRequest.repo_name)}
+      </Button>
+      {configureGithubAccessUrl && (
+        <ExternalLink href={configureGithubAccessUrl}>
+          <Flex as="span" align="center" gap="sm">
+            <IconOpen />
+            {t('Configure GitHub Access')}
+          </Flex>
+        </ExternalLink>
+      )}
+    </Flex>
   );
 }
