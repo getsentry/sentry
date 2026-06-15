@@ -177,8 +177,10 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             return self.get_response({"issue_not_linked": True})
 
         scope.set_tag("organization.slug", organization.slug)
+        scope.set_attribute("organization.slug", organization.slug)
         response = self.handle_groups(groups)
         scope.set_tag("status_code", response.status_code)
+        scope.set_attribute("status_code", response.status_code)
 
         set_badge(integration, issue_key, len(groups))
         return response
@@ -256,6 +258,7 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
 
         response = self.handle_groups(groups)
         scope.set_tag("status_code", response.status_code)
+        scope.set_attribute("status_code", response.status_code)
 
         set_badge(integration, issue_key, len(groups))
         return response
