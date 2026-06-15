@@ -184,11 +184,11 @@ class TestSeerRpcMethods(APITestCase):
                 span_id="deadbeefdeadbeef",
             )
 
-        assert len(result["attributes"]) == 1
-        attribute = result["attributes"][0]
-        assert attribute["type"] == "str"
-        assert attribute["value"] == "example"
-        assert attribute["name"] in {"span.description", "tags[span.description,string]"}
+        assert len(result.attributes) == 1
+        attribute = result.attributes[0]
+        assert attribute.type == "str"
+        assert attribute.value == "example"
+        assert attribute.name in {"span.description", "tags[span.description,string]"}
         mock_rpc.assert_called_once()
 
     def test_get_trace_item_attributes_metric(self) -> None:

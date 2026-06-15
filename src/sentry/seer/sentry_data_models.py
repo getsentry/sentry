@@ -176,3 +176,18 @@ class GetRepoInstallationIdSuccessResponse(BaseModel):
 
 class GetRepoInstallationIdErrorResponse(BaseModel):
     error: str
+
+
+class ProfileDetailsResponse(BaseModel):
+    profile_matches_issue: Literal[True] = True
+    execution_tree: list[ExecutionTreeNode]
+
+
+class SpanAttribute(BaseModel):
+    name: str
+    type: str
+    value: str | int | float | bool | list[str | int | float | bool] | None
+
+
+class SpanAttributesResponse(BaseModel):
+    attributes: list[SpanAttribute]

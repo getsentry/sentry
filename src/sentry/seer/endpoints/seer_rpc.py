@@ -139,6 +139,8 @@ from sentry.seer.sentry_data_models import (
     RepositoryIntegrationsStatusResponse,
     SendSeerWebhookErrorResponse,
     SendSeerWebhookSuccessResponse,
+    SpanAttribute,
+    SpanAttributesResponse,
     ValidateRepoErrorResponse,
     ValidateRepoSuccessResponse,
 )
@@ -510,7 +512,7 @@ def get_attributes_for_span(
     project_id: int,
     trace_id: str,
     span_id: str,
-) -> dict[str, Any]:
+) -> SpanAttributesResponse:
     """
     Fetch all attributes for a given span.
     """
@@ -551,9 +553,7 @@ def get_attributes_for_span(
         include_internal=False,
     )
 
-    return {
-        "attributes": attributes,
-    }
+    return SpanAttributesResponse(attributes=[SpanAttribute(**a) for a in attributes])
 
 
 def get_github_enterprise_integration_config(
