@@ -17,7 +17,6 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.viewer_context import ActorType, get_viewer_context
 
 TOKEN = "JWT anexampletoken"
@@ -167,7 +166,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 },
             )
 
-    @override_options({"viewer-context.enabled": True})
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_status_sync_sets_viewer_context(self) -> None:
         captured_contexts: list = []
 

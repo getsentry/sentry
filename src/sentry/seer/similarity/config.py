@@ -18,6 +18,7 @@ SEER_GROUPING_STABLE_VERSION = GroupingVersion.V1
 # Set to None to disable rollout entirely
 SEER_GROUPING_NEXT_VERSION: GroupingVersion | None = GroupingVersion.V2_1
 SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE = "projects:similarity-grouping-model-next"
+SEER_GROUPING_SKIP_FALLBACK_FEATURE = "projects:similarity-grouping-skip-fallback"
 
 
 def get_grouping_model_version(project: Project) -> GroupingVersion:
@@ -34,6 +35,16 @@ def get_grouping_model_version(project: Project) -> GroupingVersion:
         return SEER_GROUPING_NEXT_VERSION
 
     return SEER_GROUPING_STABLE_VERSION
+
+
+def should_skip_seer_fallback(project: Project) -> bool:
+    """
+    Whether to tell Seer to skip falling back from the next model to the
+    stable model when the next model returns no matches.
+    """
+    return SEER_GROUPING_NEXT_VERSION is not None and features.has(
+        SEER_GROUPING_SKIP_FALLBACK_FEATURE, project
+    )
 
 
 def should_send_to_seer_for_training(

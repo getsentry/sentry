@@ -76,10 +76,11 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
         # Assert latest event is returned
         issue_details = utils.get_latest_issue_event(group.id, self.organization.id)
-        assert issue_details["id"] == group.id
-        assert issue_details["title"] == "KeyError: This a bad error"
-        assert len(issue_details["events"]) == 1
-        assert "entries" in issue_details["events"][0]
+        assert issue_details is not None
+        assert issue_details.id == group.id
+        assert issue_details.title == "KeyError: This a bad error"
+        assert len(issue_details.events) == 1
+        assert "entries" in issue_details.events[0]
 
     def test_multiple_projects(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
@@ -173,10 +174,11 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
         # Assert latest event is returned
         issue_details = utils.get_latest_issue_event(group_1.id, self.organization.id)
-        assert issue_details["id"] == group_1.id
-        assert issue_details["title"] == "KeyError: This a bad error"
-        assert len(issue_details["events"]) == 1
-        assert "entries" in issue_details["events"][0]
+        assert issue_details is not None
+        assert issue_details.id == group_1.id
+        assert issue_details.title == "KeyError: This a bad error"
+        assert len(issue_details.events) == 1
+        assert "entries" in issue_details.events[0]
 
     def test_last_seen_filter(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
@@ -237,10 +239,11 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
         # Assert latest event is returned
         issue_details = utils.get_latest_issue_event(group.id, self.organization.id)
-        assert issue_details["id"] == group.id
-        assert issue_details["title"] == "KeyError: This a bad error"
-        assert len(issue_details["events"]) == 1
-        assert "entries" in issue_details["events"][0]
+        assert issue_details is not None
+        assert issue_details.id == group.id
+        assert issue_details.title == "KeyError: This a bad error"
+        assert len(issue_details.events) == 1
+        assert "entries" in issue_details.events[0]
 
     def test_multiple_exception_types(self) -> None:
         release = self.create_release(project=self.project, version="1.0.0")
