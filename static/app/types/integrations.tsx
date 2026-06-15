@@ -383,7 +383,6 @@ export interface IntegrationProvider extends BaseIntegrationProvider {
     noun: string;
     source_url: string;
   };
-  setupDialog: {height: number; url: string; width: number};
 }
 
 interface OrganizationIntegrationProvider extends BaseIntegrationProvider {

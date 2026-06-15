@@ -1702,6 +1702,8 @@ class DiscoverDatasetConfig(DatasetConfig):
                 groups = Group.objects.by_qualified_short_id_bulk(
                     self.builder.params.organization.id,
                     group_short_ids,
+                    # org-wide: the Snuba query is already scoped to the requested projects.
+                    project_ids=None,
                 )
             except Group.DoesNotExist:
                 raise InvalidIssueSearchQuery(group_short_ids)

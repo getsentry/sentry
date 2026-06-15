@@ -33,6 +33,17 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            {organization.features.includes('issue-stream-progress-ui') && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/awaiting-input/`}
+                  end
+                  analyticsItemName="issues_awaiting_input"
+                >
+                  {t('Awaiting Input')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />

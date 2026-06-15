@@ -8,7 +8,11 @@ export interface SeerRawResponseItem {
   sort: string;
   start: string | null;
   stats_period: string;
-  visualization?: Array<{chart_type?: number; y_axes?: string[]}>;
+  visualization?: Array<{
+    chart_type?: number;
+    interval?: string | null;
+    y_axes?: string[];
+  }>;
 }
 
 export interface SeerRawResponse {
@@ -39,6 +43,9 @@ export interface QueryTokensProps {
    */
   expandedProjectIds?: number[];
   groupBys?: string[];
+  // Seer returns the interval nested per-visualization, but the chart uses a
+  // single shared interval, so we hoist it to a chart-level field.
+  interval?: string | null;
   query?: string;
   sort?: string;
   start?: string | null;
