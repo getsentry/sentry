@@ -15,6 +15,11 @@ export type SeerAnalyticsEventsParameters = {
      * absent) when it occurred while starting the search agent.
      */
     is_fetch?: boolean;
+    /**
+     * HTTP status code of the failed start request. Only available on the
+     * start-failure path; absent for polling errors (which have no HTTP status).
+     */
+    status_code?: number;
   };
   'ai_query.feedback': {
     area: string;
