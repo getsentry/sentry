@@ -28,8 +28,9 @@ export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
   );
   const supportedProviderIds = useSeerSupportedProviderIds();
   const hasSupportedRepos = Boolean(
-    preference?.repositories?.some(repo => supportedProviderIds.includes(repo.provider)) ||
-    codeMappingRepos?.some(repo => supportedProviderIds.includes(repo.provider))
+    preference?.repositories?.some(repo =>
+      supportedProviderIds.includes(repo.provider)
+    ) || codeMappingRepos?.some(repo => supportedProviderIds.includes(repo.provider))
   );
 
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
