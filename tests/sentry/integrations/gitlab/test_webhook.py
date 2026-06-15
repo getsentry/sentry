@@ -370,6 +370,45 @@ class WebhookTest(GitLabTestCase):
         ]
         assert error_metrics == []
 
+    @patch(
+        "sentry.integrations.gitlab.webhooks.track_gitlab_contributor_seat_processor"
+    )
+    def test_seat_processor_not_called_when_last_commit_missing(
+        self, mock_seat_processor: MagicMock
+    ) -> None:
+        """MergeEventWebhook.__call__ short-circuits before processors when last_commit is absent.
+
+        The method tries to access ``event["object_attributes"]["last_commit"]`` and
+        returns early (204) when it is missing.  ``_handle`` — which iterates over
+        ``WEBHOOK_EVENT_PROCESSORS`` — is never reached, so
+        ``track_gitlab_contributor_seat_processor`` does not run and the
+        ``OrganizationContributors`` row is never seeded.
+
+        Consequence: any subsequent ``@sentry review`` comment on this MR will be
+        denied with ``ORG_CONTRIBUTOR_NOT_FOUND`` because ``NoteEventWebhook`` has
+        no fallback seeding.  Tracked as SCM-99.
+        """
+        self.create_gitlab_repo("getsentry/sentry")
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        del payload["object_attributes"]["last_commit"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+
+        assert response.status_code == 204
+        # The short-circuit happens in __call__ before _handle runs processors.
+        mock_seat_processor.assert_not_called()
+        # Confirm no contributor row was seeded as a direct consequence.
+        from sentry.models.organizationcontributors import OrganizationContributors
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id
+        ).exists()
+
     def test_merge_event_invokes_code_review_handler(self) -> None:
         # The code-review handler is wired into the endpoint via the processor
         # tuple. Confirm both that it is registered and that an inbound
