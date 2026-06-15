@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 import uuid
 from collections import defaultdict
 from collections.abc import Generator, Sequence
@@ -16,6 +17,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.spans_rpc import Spans
 
 MAX_REPLAY_COUNT = 51
+SPANS_DATASET_ID_QUERY_LIMIT = 51 * 10
 MAX_VALS_PROVIDED = {
     "issue.id": 25,
     "transaction": 25,
@@ -23,6 +25,9 @@ MAX_VALS_PROVIDED = {
 }
 
 FILTER_HAS_A_REPLAY = ' AND !replay.id:""'
+
+
+logger = logging.getLogger(__name__)
 
 
 class _DatasetQueryFunc(Protocol):
@@ -72,17 +77,23 @@ def get_replay_counts(
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
 
+    is_spans_dataset = data_source == SupportedTraceItemType.SPANS.value
     if not isinstance(data_source, Dataset):
-        if data_source == SupportedTraceItemType.SPANS.value:
+        if is_spans_dataset:
             data_source = Dataset.EventsAnalyticsPlatform
         else:
             data_source = Dataset(data_source)
 
     replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
+    spans_ids_found_count = (
+        sum(len(v) for v in replay_ids_mapping.values()) if is_spans_dataset else 0
+    )
 
     # It's not guaranteed that any results will be returned by this query. If the result-set
     # is empty exit early to save us a query.
     if not replay_ids_mapping:
+        if is_spans_dataset:
+            _log_spans_query_results(0, None)
         return {}
 
     replay_results = query_replays_count(
@@ -93,10 +104,17 @@ def get_replay_counts(
         tenant_ids={"organization_id": snuba_params.organization.id},
     )
 
+    result: dict[int, list[str]] | dict[int, int] = {}
+    spans_replays_found_count = 0
     if return_ids:
-        return _get_replay_ids(replay_results, replay_ids_mapping)
+        result, spans_replays_found_count = _get_replay_ids(replay_results, replay_ids_mapping)
     else:
-        return _get_counts(replay_results, replay_ids_mapping)
+        result, spans_replays_found_count = _get_counts(replay_results, replay_ids_mapping)
+
+    if is_spans_dataset:
+        _log_spans_query_results(spans_ids_found_count, spans_replays_found_count)
+
+    return result
 
 
 def _get_replay_id_mappings(
@@ -195,7 +213,7 @@ def _query_eap_spans_for_replay_ids(
         offset=0,
         # In buffer mode we'll often set IDs for replays that are never sent to
         # Sentry - load a lot of extra IDs to compensate.
-        limit=MAX_REPLAY_COUNT * 10,
+        limit=SPANS_DATASET_ID_QUERY_LIMIT,
         referrer="api.organization-issue-replay-count",
         config=SearchResolverConfig(),
     )
@@ -209,34 +227,40 @@ def _query_eap_spans_for_replay_ids(
     return replay_id_to_identifier_map
 
 
-def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[int]]) -> dict[int, int]:
+def _get_counts(
+    replay_results: Any, replay_ids_mapping: dict[str, list[int]]
+) -> tuple[dict[int, int], int]:
     """
     Get the number of existing replays associated with each identifier (ex identifier: issue_id)
     """
     ret: dict[int, int] = defaultdict(int)
+    count = 0
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[
             row["rid"]
         ]  # use rid because replay_id results column might have dashes
         for identifier in identifiers:
             ret[identifier] = min(ret[identifier] + 1, MAX_REPLAY_COUNT)
-    return ret
+            count += 1
+    return (ret, count)
 
 
 def _get_replay_ids(
     replay_results: Any, replay_ids_mapping: dict[str, list[int]]
-) -> dict[int, list[str]]:
+) -> tuple[dict[int, list[str]], int]:
     """
     Get replay ids associated with each identifier (identifier -> [replay_id]) (ex identifier: issue_id)
     Can think of it as the inverse of _get_replay_id_mappings, excluding the replay_ids that don't exist
     """
     ret: dict[int, list[str]] = defaultdict(list)
+    count = 0
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[row["rid"]]
         for identifier in identifiers:
+            count += 1
             if len(ret[identifier]) < MAX_REPLAY_COUNT:
                 ret[identifier].append(row["rid"])
-    return ret
+    return (ret, count)
 
 
 def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
@@ -268,3 +292,24 @@ def extract_columns_recursive(query: Sequence[QueryToken]) -> Generator[SearchFi
                 yield condition
         elif isinstance(condition, ParenExpression):
             yield from extract_columns_recursive(condition.children)
+
+
+def _log_spans_query_results(ids_found: int, replays_found: int | None):
+    extra: dict[str, object] = {
+        "ids_query.limit": SPANS_DATASET_ID_QUERY_LIMIT,
+        "ids_query.num_found": ids_found,
+        "ids_query.limit_reached": ids_found >= SPANS_DATASET_ID_QUERY_LIMIT,
+    }
+
+    if replays_found is not None:
+        assert ids_found > 0
+        extra.update(
+            {
+                "replays_query.limit": MAX_REPLAY_COUNT,
+                "replays_query.num_found": replays_found,
+                "replays_query.limit_reached": replays_found >= MAX_REPLAY_COUNT,
+                "replays_query.found_ratio": replays_found / ids_found,
+            }
+        )
+
+    logger.info("replay_counts.spans.query_stats", extra=extra)
