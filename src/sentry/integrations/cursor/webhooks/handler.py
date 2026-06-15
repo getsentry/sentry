@@ -159,6 +159,7 @@ class CursorWebhookEndpoint(Endpoint):
         source = payload.get("source", {})
         target = payload.get("target", {})
         pr_url = target.get("prUrl")
+        branch_name = target.get("branchName")
         agent_url = target.get("url")
         summary = payload.get("summary")
 
@@ -232,6 +233,7 @@ class CursorWebhookEndpoint(Endpoint):
             repo_provider=repo_provider,
             description=summary or f"Agent {status.lower()}",
             pr_url=pr_url if status == CodingAgentStatus.COMPLETED else None,
+            branch_name=branch_name,
         )
 
         known_to_seer = self._update_coding_agent_status(
