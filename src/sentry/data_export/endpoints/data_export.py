@@ -128,6 +128,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             start, end = get_date_range_from_params(query_info)
         except InvalidParams as err:
             sentry_sdk.set_tag("query.error_reason", "Invalid date params")
+            sentry_sdk.set_attribute("query.error_reason", "Invalid date params")
             sentry_sdk.capture_exception(err)
             raise serializers.ValidationError("Invalid date parameters.")
 

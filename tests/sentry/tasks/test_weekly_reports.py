@@ -34,12 +34,14 @@ from sentry.tasks.summaries.utils import (
     _project_key_errors_snuba,
     _project_key_performance_issues_eap,
     _project_key_performance_issues_snuba,
+    org_key_errors,
     organization_project_issue_substatus_summaries,
     project_key_errors,
     user_project_ownership,
 )
 from sentry.tasks.summaries.weekly_reports import (
     OrganizationReportBatch,
+    _pct_change,
     date_format,
     group_status_to_color,
     prepare_organization_report,
@@ -371,6 +373,102 @@ class WeeklyReportsTest(
         user_project_ownership(ctx)
         key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
         assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
+
+    def test_org_key_errors_batched(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group2 = event2.group
+        group2.status = GroupStatus.RESOLVED
+        group2.substatus = None
+        group2.resolved_at = self.now - timedelta(minutes=1)
+        group2.save()
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+        result = org_key_errors(ctx, [self.project.id], Referrer.REPORTS_KEY_ERRORS.value)
+        assert result == {self.project.id: [{"events.group_id": event1.group.id, "count()": 1}]}
+
+    @with_feature("organizations:weekly-report-batched-key-errors")
+    def test_message_builder_filter_resolved_batched(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        event3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group2 = event2.group
+        group2.status = GroupStatus.RESOLVED
+        group2.substatus = None
+        group2.resolved_at = self.now - timedelta(minutes=1)
+        group2.save()
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+
+        key_errors_by_project = org_key_errors(
+            ctx, project_ids=[self.project.id], referrer=Referrer.REPORTS_KEY_ERRORS.value
+        )
+        for project_id, key_errors in key_errors_by_project.items():
+            ctx.projects_context_map[project_id].key_errors_by_id = [
+                (e["events.group_id"], e["count()"]) for e in key_errors
+            ]
+
+        key_error_ids = {
+            group_id for group_id, _ in ctx.projects_context_map[self.project.id].key_errors_by_id
+        }
+        assert event1.group.id in key_error_ids
+        assert event3.group.id in key_error_ids
+        assert len(ctx.projects_context_map[self.project.id].key_errors_by_id) == 2
 
     def test_project_key_errors_eap_matches_snuba(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
@@ -1536,3 +1634,123 @@ class WeeklyReportsTest(
             assert "sensitive error title xyz123" not in html
             assert "enhanced privacy" in html.lower()
             assert "Total Project Errors" in html
+
+    @with_feature("organizations:weekly-report-week-over-week-metric")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_pct_change_with_previous_week(self, message_builder: mock.MagicMock) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=10
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=20,
+            category=DataCategory.TRANSACTION,
+        )
+
+        prev_week = self.three_days_ago - timedelta(days=7)
+        self.store_event_outcomes(self.organization.id, self.project.id, prev_week, num_times=5)
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            prev_week,
+            num_times=40,
+            category=DataCategory.TRANSACTION,
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["trends"]["error_pct_change"] == "▲ 100%"
+            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+            assert context["show_week_over_week_metric"] is True
+
+    @with_feature("organizations:weekly-report-week-over-week-metric")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_pct_change_no_previous_week(self, message_builder: mock.MagicMock) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=10
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["trends"]["error_pct_change"] is None
+            assert context["trends"]["transaction_pct_change"] is None
+            assert context["show_week_over_week_metric"] is True
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_pct_change_hidden_without_feature_flag(self, message_builder: mock.MagicMock) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=10
+        )
+
+        prev_week = self.three_days_ago - timedelta(days=7)
+        self.store_event_outcomes(self.organization.id, self.project.id, prev_week, num_times=5)
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["trends"]["error_pct_change"] is None
+            assert context["trends"]["transaction_pct_change"] is None
+            assert context["show_week_over_week_metric"] is False
+
+    @with_feature("organizations:weekly-report-week-over-week-metric")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_pct_change_from_cache(self, message_builder: mock.MagicMock) -> None:
+        from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
+
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=10
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=20,
+            category=DataCategory.TRANSACTION,
+        )
+
+        cache_project_metrics(
+            self.organization.id,
+            {self.project.id: {"e": 5, "t": 40}},
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["trends"]["error_pct_change"] == "▲ 100%"
+            assert context["trends"]["transaction_pct_change"] == "▼ 50%"
+
+    def test_pct_change_helper(self) -> None:
+        assert _pct_change(150, 100) == "▲ 50%"
+        assert _pct_change(50, 100) == "▼ 50%"
+        assert _pct_change(0, 100) == "▼ 100%"
+        assert _pct_change(100, 0) is None
+        assert _pct_change(0, 0) is None
+        assert _pct_change(100, 100) is None

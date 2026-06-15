@@ -242,7 +242,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.models.debugfile import BadDif, create_dif_from_file
     from sentry.models.project import Project
 
-    sentry_sdk.get_isolation_scope().set_tag("project", project_id)
+    sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_attribute("project", project_id)
 
     delete_file = False
 

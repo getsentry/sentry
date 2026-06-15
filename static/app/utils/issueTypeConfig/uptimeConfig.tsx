@@ -24,7 +24,7 @@ export const uptimeConfig: IssueCategoryConfigMapping = {
     detector: {
       enabled: true,
       title: t('Uptime Monitor'),
-      ctaText: t('View alert details'),
+      ctaText: t('View monitor details'),
     },
     customCopy: {
       eventUnits: t('Events'),

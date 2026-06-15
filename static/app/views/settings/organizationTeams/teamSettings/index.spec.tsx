@@ -122,6 +122,27 @@ describe('TeamSettings', () => {
     expect(TeamStore.getAll()).toEqual([]);
   });
 
+  it('renders avatar chooser with upload and letter_avatar options', () => {
+    const team = TeamFixture();
+    const organization = OrganizationFixture();
+
+    render(<TeamSettings />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
+        },
+        route: '/settings/:orgId/teams/:teamId/settings/',
+      },
+      outletContext: {team},
+    });
+
+    expect(screen.getByText('Avatar')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Use initials'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Upload an image'})).toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Use Gravatar'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save Avatar'})).toBeInTheDocument();
+  });
+
   it('cannot modify idp:provisioned teams regardless of role', () => {
     const team = TeamFixture({hasAccess: true, flags: {'idp:provisioned': true}});
     const organization = OrganizationFixture({access: []});

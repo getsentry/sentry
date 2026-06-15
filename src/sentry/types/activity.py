@@ -41,6 +41,8 @@ class ActivityType(Enum):
     SEER_CODING_STARTED = 33
     SEER_CODING_COMPLETED = 34
     SEER_PR_CREATED = 35
+    SEER_ITERATION_STARTED = 36
+    SEER_ITERATION_COMPLETED = 37
 
 
 # Warning: This must remain in this EXACT order.
@@ -82,6 +84,8 @@ CHOICES = tuple(
         ActivityType.SEER_CODING_STARTED,  # 33
         ActivityType.SEER_CODING_COMPLETED,  # 34
         ActivityType.SEER_PR_CREATED,  # 35
+        ActivityType.SEER_ITERATION_STARTED,  # 36
+        ActivityType.SEER_ITERATION_COMPLETED,  # 37
     ]
 )
 

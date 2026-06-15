@@ -158,4 +158,37 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
     expect(screen.queryByText('1. Find the custom span')).not.toBeInTheDocument();
   });
+
+  it('emits op-only ignoreSpans with an over-match warning when description is null', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          description: null,
+        }}
+        projectPlatform="javascript-nextjs"
+      />
+    );
+
+    expect(screen.getByText(/op: "function"/)).toBeInTheDocument();
+    expect(screen.queryByText(/name:/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/will also drop other spans with this op/)
+    ).toBeInTheDocument();
+  });
+
+  it('uses `is None` in the Python snippet when description is null', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          description: null,
+        }}
+        projectPlatform="python-django"
+      />
+    );
+
+    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
+    expect(screen.getByText(/span.get\("description"\) is None/)).toBeInTheDocument();
+  });
 });
