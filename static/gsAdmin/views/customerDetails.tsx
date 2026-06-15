@@ -20,12 +20,12 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {getRegions} from 'sentry/utils/regions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -320,15 +320,15 @@ export function CustomerDetails() {
     }
   };
 
-  // TODO(cells) need to have all cells here.
-  const regionMap = getRegions().reduce<Record<string, string>>(
-    (acc: any, region: any) => {
-      acc[region.url] = region.name;
+  const localityMap = getLocalities().reduce<Record<string, string>>(
+    (acc: any, locality) => {
+      acc[locality.url] = locality.name;
       return acc;
     },
     {}
   );
-  const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
+  const localityName =
+    localityMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
@@ -356,14 +356,14 @@ export function CustomerDetails() {
       key: 'invoices',
       name: 'Invoices',
       content: ({Panel}: any) => (
-        <CustomerInvoices inPanel={Panel} orgId={orgId} region={region} />
+        <CustomerInvoices inPanel={Panel} orgId={orgId} region={localityName} />
       ),
     },
     {
       key: 'charges',
       name: 'Charges',
       content: ({Panel}: any) => (
-        <CustomerCharges inPanel={Panel} orgId={orgId} region={region} />
+        <CustomerCharges inPanel={Panel} orgId={orgId} region={localityName} />
       ),
     },
   ];

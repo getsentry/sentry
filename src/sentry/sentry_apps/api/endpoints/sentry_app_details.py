@@ -1,4 +1,5 @@
 import logging
+from typing import TypedDict
 
 import orjson
 import sentry_sdk
@@ -49,6 +50,13 @@ from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
 PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
+
+
+class _PublishedAppErrorResponse(TypedDict):
+    """`{"detail": ["Published apps cannot be removed."]}` — list-shaped detail
+    retained for backward compat with existing API consumers."""
+
+    detail: list[str]
 
 
 class SentryAppDetailsEndpointPermission(SentryAppAndStaffPermission):
@@ -224,7 +232,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         ],
         responses={204: RESPONSE_NO_CONTENT, 403: RESPONSE_FORBIDDEN},
     )
-    def delete(self, request: Request, sentry_app) -> Response:
+    def delete(
+        self, request: Request, sentry_app
+    ) -> Response[None] | Response[DetailResponse] | Response[_PublishedAppErrorResponse]:
         """
         Delete a custom integration.
         """

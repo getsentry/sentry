@@ -602,6 +602,7 @@ def post_process_group(
 
         is_reprocessed = is_reprocessed_event(event.data)
         sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
+        sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
 
         metric_tags = {}
         if group_id:
@@ -1271,9 +1272,6 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
         return
 
     event = job["event"]
-
-    if not features.has("organizations:processing-errors-eap", event.project.organization):
-        return
 
     processing_errors = event.data.get("errors", [])
     if not processing_errors:

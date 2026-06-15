@@ -24,6 +24,7 @@ interface ScmFeatureCardProps {
   disabled?: boolean;
   disabledReason?: ReactNode;
   isVolumeLoading?: boolean;
+  showVolume?: boolean;
 }
 
 export function ScmFeatureCard({
@@ -37,6 +38,7 @@ export function ScmFeatureCard({
   volume,
   volumeTooltip,
   isVolumeLoading,
+  showVolume = true,
 }: ScmFeatureCardProps) {
   return (
     <ScmCardButton
@@ -81,15 +83,16 @@ export function ScmFeatureCard({
             </Container>
 
             <Flex area="toggle" align="start" gap="sm">
-              {isVolumeLoading ? (
-                <Placeholder height="22px" width="100px" />
-              ) : (
-                <Tooltip title={volumeTooltip} delay={100}>
-                  <Tag variant="muted" icon={<IconInfo size="sm" />}>
-                    {volume}
-                  </Tag>
-                </Tooltip>
-              )}
+              {showVolume &&
+                (isVolumeLoading ? (
+                  <Placeholder height="22px" width="100px" />
+                ) : (
+                  <Tooltip title={volumeTooltip} delay={100}>
+                    <Tag variant="muted" icon={<IconInfo size="sm" />}>
+                      {volume}
+                    </Tag>
+                  </Tooltip>
+                ))}
 
               <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
                 <Switch

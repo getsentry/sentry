@@ -9,8 +9,9 @@ import {
   type UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';

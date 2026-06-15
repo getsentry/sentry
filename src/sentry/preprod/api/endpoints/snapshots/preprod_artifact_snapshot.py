@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import jsonschema
 import orjson
@@ -215,7 +215,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         request=None,
         responses={204: None, 403: RESPONSE_FORBIDDEN, 404: RESPONSE_NOT_FOUND},
     )
-    def delete(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, snapshot_id: str
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Delete a snapshot and all associated data (images, comparisons, metrics).
 
@@ -309,7 +311,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         },
         examples=PreprodExamples.GET_SNAPSHOT_DETAILS,
     )
-    def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+    def get(
+        self, request: Request, organization: Organization, snapshot_id: str
+    ) -> Response[SnapshotDetailsResponseDict] | Response[DetailResponse]:
         """
         Retrieve full details for a snapshot, including categorized image lists
         and comparison status.
@@ -448,6 +452,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         app_id=artifact.app_id,
                         artifact_type=artifact.artifact_type,
                         build_configuration=artifact.build_configuration,
+                        allow_selective=features.has(
+                            "organizations:preprod-selective-base-snapshots", organization
+                        ),
                     )
                     is not None
                 )
@@ -602,7 +609,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     pair["base_image"] = _strip_to_compact(pair["base_image"])
                     pair["head_image"] = _strip_to_compact(pair["head_image"])
 
-        return Response(response_data)
+        # cast() sanctioned here: pydantic .dict() returns dict[str, Any] with no
+        # static link back to SnapshotDetailsResponseDict. The TypedDict and the
+        # Pydantic model are kept in sync by hand at the source of truth.
+        body = cast(SnapshotDetailsResponseDict, response_data)
+        return Response(body)
 
 
 @extend_schema(tags=["Snapshots"])
@@ -675,6 +686,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         pr_number = data.get("pr_number")
 
         selective = data.get("selective", False)
+        allow_selective = features.has(
+            "organizations:preprod-selective-base-snapshots", project.organization
+        )
         all_image_file_names = data.get("all_image_file_names")
 
         if all_image_file_names is not None and not selective:
@@ -825,6 +839,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     app_id=artifact.app_id,
                     artifact_type=artifact.artifact_type,
                     build_configuration=artifact.build_configuration,
+                    allow_selective=allow_selective,
                 )
                 if base_artifact:
                     logger.info(
@@ -888,7 +903,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
-        if commit_comparison is not None and not selective:
+        if commit_comparison is not None and (not selective or allow_selective):
             try:
                 waiting_heads = find_head_snapshot_artifacts_awaiting_base(
                     organization_id=project.organization_id,

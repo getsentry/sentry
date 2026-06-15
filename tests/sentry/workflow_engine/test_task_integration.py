@@ -31,9 +31,7 @@ class IssuePlatformIntegrationTests(TestCase):
 
     def test_handler_invoked__when_update_status_called(self) -> None:
         """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_status_update_handler`
-        and increment the metric.
+        Integration test to ensure the `update_status` method trigger workflow_engine
         """
         message = get_test_message_status_change(
             project_id=self.project.id,
@@ -42,17 +40,21 @@ class IssuePlatformIntegrationTests(TestCase):
         )
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
-            _process_message(message)
+            with self.tasks():
+                _process_message(message)
 
             mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )
 
     def test_handler_invoked__when_resolved(self) -> None:
         """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_state_update_handler`
+        Integration test to ensure the `update_status` method trigger workflow_engine
         and increment the metric.
         """
         message = StatusChangeMessageData(
@@ -66,8 +68,24 @@ class IssuePlatformIntegrationTests(TestCase):
         )
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
-            update_status(self.group, message)
+            with self.tasks():
+                update_status(self.group, message)
             mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )
+
+    def _resolved_message(self) -> StatusChangeMessageData:
+        return StatusChangeMessageData(
+            id="test_message_id",
+            project_id=self.project.id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=None,
+            fingerprint=[self.fingerprint],
+            detector_id=self.detector.id,
+            activity_data={"test": "test"},
+        )

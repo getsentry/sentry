@@ -24,9 +24,10 @@ import type {ResponseMeta} from 'sentry/types/api';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

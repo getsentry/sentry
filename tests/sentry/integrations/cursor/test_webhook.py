@@ -8,6 +8,11 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import MethodNotAllowed
 
+from sentry.models.pullrequest import (
+    PullRequestAttribution,
+    PullRequestAttributionSignalType,
+    PullRequestAttributionSource,
+)
 from sentry.testutils.cases import APITestCase
 
 
@@ -68,6 +73,7 @@ class TestCursorWebhook(APITestCase):
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_happy_path_finished(self, mock_update_state):
+        mock_update_state.return_value = True
         payload = self._build_status_payload(status="FINISHED")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
@@ -85,6 +91,78 @@ class TestCursorWebhook(APITestCase):
         assert result.repo_full_name == "testorg/testrepo"
         assert result.repo_provider == "github"
         assert result.pr_url == "https://github.com/testorg/testrepo/pull/1"
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_finished_records_pr_attribution(self, mock_update_state):
+        mock_update_state.return_value = True
+        repo = self.create_repo(
+            self.project, name="testorg/testrepo", provider="integrations:github"
+        )
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        attribution = PullRequestAttribution.objects.get()
+        assert attribution.signal_type == PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR
+        assert attribution.source == PullRequestAttributionSource.SEER_DATA
+        assert attribution.pull_request.repository_id == repo.id
+        assert attribution.pull_request.key == "1"
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_unknown_agent_records_no_attribution(self, mock_update_state):
+        # Seer returns False (e.g. 404) for agent_ids it doesn't know about —
+        # these are Cursor sessions not delegated by Seer, and must not be attributed.
+        mock_update_state.return_value = False
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_error_status_records_no_attribution(self, mock_update_state):
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="ERROR", pr_url=None))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_finished_without_pr_url_records_no_attribution(self, mock_update_state):
+        # Isolates the ``and pr_url`` half of the attribution guard: a completed
+        # agent that produced no PR must not be attributed.
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=None))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_finished_records_no_attribution_when_flag_disabled(self, mock_update_state):
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        headers = self._signed_headers(body)
+
+        with self.feature({"organizations:pr-metrics-attribution": False}):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
 
     def test_invalid_method(self) -> None:
         with pytest.raises(MethodNotAllowed):

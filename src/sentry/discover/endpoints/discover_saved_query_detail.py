@@ -63,7 +63,8 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     @extend_schema(
-        operation_id="Retrieve an Organization's Discover Saved Query",
+        operation_id="getOrganizationDiscoverSavedQuery",
+        summary="Retrieve an Organization's Discover Saved Query",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DiscoverSavedQueryParams.DISCOVER_SAVED_QUERY_ID,
@@ -92,7 +93,8 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         )
 
     @extend_schema(
-        operation_id="Edit an Organization's Discover Saved Query",
+        operation_id="updateOrganizationDiscoverSavedQuery",
+        summary="Edit an Organization's Discover Saved Query",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DiscoverSavedQueryParams.DISCOVER_SAVED_QUERY_ID],
         request=DiscoverSavedQuerySerializer,
         responses={
@@ -151,7 +153,8 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         )
 
     @extend_schema(
-        operation_id="Delete an Organization's Discover Saved Query",
+        operation_id="deleteOrganizationDiscoverSavedQuery",
+        summary="Delete an Organization's Discover Saved Query",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, DiscoverSavedQueryParams.DISCOVER_SAVED_QUERY_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -159,7 +162,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, query) -> Response:
+    def delete(self, request: Request, organization, query) -> Response[None]:
         """
         Delete a saved query.
         """

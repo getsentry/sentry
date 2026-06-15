@@ -66,7 +66,7 @@ export function IssueListSeerComboBox() {
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number | string) => {
       if (!result) {
         return;
       }

@@ -100,6 +100,7 @@ from __future__ import annotations
 import itertools
 import logging
 import math
+from collections import defaultdict
 from collections.abc import Generator, Sequence
 from hashlib import blake2b
 from typing import Any, cast
@@ -553,6 +554,8 @@ class SpansBuffer:
         redis_ttl = options.get("spans.buffer.redis-ttl")
         root_timeout = options.get("spans.buffer.root-timeout")
 
+        dropped_by_project: defaultdict[int, int] = defaultdict(int)
+
         for loaded_segment in loaded_segments:
             ingest_metadata = loaded_segment.ingest_metadata
 
@@ -574,23 +577,7 @@ class SpansBuffer:
 
                 project_id_bytes, _, _ = parse_segment_key(loaded_segment.segment_key)
                 project_id_int = int(project_id_bytes)
-                try:
-                    project = Project.objects.get_from_cache(id=project_id_int)
-                except Project.DoesNotExist:
-                    logger.warning(
-                        "Project does not exist for segment with dropped spans",
-                        extra={"project_id": project_id_int},
-                    )
-                else:
-                    track_outcome(
-                        org_id=project.organization_id,
-                        project_id=project_id_int,
-                        key_id=None,
-                        outcome=Outcome.INVALID,
-                        reason="segment_too_large",
-                        category=DataCategory.SPAN_INDEXED,
-                        quantity=dropped,
-                    )
+                dropped_by_project[project_id_int] += dropped
             elif not loaded_segment.payloads:
                 # Both data and metadata are missing. This could be:
                 # 1. TTL expiration (segment sat in queue for >1 hour) - TRUE DATA LOSS
@@ -606,6 +593,29 @@ class SpansBuffer:
                     if estimated_age > redis_ttl:
                         # Segment is older than TTL - true expiration (data loss)
                         metrics.incr("spans.buffer.segment_expired_before_flush")
+
+        if dropped_by_project:
+            projects_by_id = {
+                project.id: project
+                for project in Project.objects.get_many_from_cache(list(dropped_by_project.keys()))
+            }
+            for project_id, dropped in dropped_by_project.items():
+                project = projects_by_id.get(project_id)
+                if project is None:
+                    logger.warning(
+                        "Project does not exist for segment with dropped spans",
+                        extra={"project_id": project_id},
+                    )
+                    continue
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=project_id,
+                    key_id=None,
+                    outcome=Outcome.INVALID,
+                    reason="segment_too_large",
+                    category=DataCategory.SPAN_INDEXED,
+                    quantity=dropped,
+                )
 
         for loaded_segment in loaded_segments:
             if not loaded_segment.payloads:

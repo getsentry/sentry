@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from django.conf import settings
@@ -21,6 +21,7 @@ from sentry.api.bases.organization import (
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import ObjectStatus
@@ -119,7 +120,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-    ) -> Response:
+    ) -> Response[LatestBaseSnapshotResponseDict] | Response[DetailResponse]:
         """
         Retrieve the most recent base snapshot for a given app.
 
@@ -234,4 +235,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
                 for img in response_data["images"]
             ]
 
-        return Response(response_data)
+        # cast() sanctioned: response_data is a hand-built dict[str, Any] whose
+        # shape mirrors LatestBaseSnapshotResponseDict. The TypedDict and the
+        # builder are kept in sync by hand at the source of truth.
+        body = cast(LatestBaseSnapshotResponseDict, response_data)
+        return Response(body)

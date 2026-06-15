@@ -23,7 +23,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
-import type {OrganizationSummaryWithRegion} from 'sentry/views/setupWizard/types';
+import type {OrganizationSummaryWithLocality} from 'sentry/views/setupWizard/types';
 import {useCreateProjectFromWizard} from 'sentry/views/setupWizard/utils/useCreateProjectFromWizard';
 import {useOrganizationDetails} from 'sentry/views/setupWizard/utils/useOrganizationDetails';
 import {useOrganizationProjects} from 'sentry/views/setupWizard/utils/useOrganizationProjects';
@@ -76,7 +76,7 @@ export function WizardProjectSelection({
   organizations,
 }: {
   hash: string;
-  organizations: OrganizationSummaryWithRegion[];
+  organizations: OrganizationSummaryWithLocality[];
 }) {
   const [search, setSearch] = useState('');
 

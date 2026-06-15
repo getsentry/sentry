@@ -4,8 +4,8 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';

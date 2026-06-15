@@ -544,6 +544,188 @@ LIMIT 21`;
       expect(sampleLines).toBeLessThanOrEqual(10);
     });
 
+    it('includes payload size for large HTTP payload issues', () => {
+      const payloadGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+      });
+      const payloadEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1015,
+          evidenceData: {offenderSpanIds: ['s1']},
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: 's1',
+                op: 'http.client',
+                description: 'GET /big.json',
+                data: {'http.response_content_length': 5_000_000},
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(
+        payloadEvent,
+        organization,
+        payloadGroup
+      );
+      expect(result).toContain('**Payload Size:**');
+      expect(result).toContain('5000000 B');
+    });
+
+    it('includes FCP delay for render-blocking asset issues', () => {
+      const renderBlockingGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+      });
+      const renderBlockingEvent = EventFixture({
+        ...event,
+        startTimestamp: 0,
+        endTimestamp: 1,
+        measurements: {fcp: {value: 1000, unit: 'millisecond'}},
+        occurrence: {
+          type: 1004,
+          evidenceData: {offenderSpanIds: ['s1']},
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: 's1',
+                op: 'resource.script',
+                description: 'app.js',
+                start_timestamp: 0,
+                timestamp: 0.4,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(
+        renderBlockingEvent,
+        organization,
+        renderBlockingGroup
+      );
+      expect(result).toContain('**FCP Delay:**');
+      expect(result).toContain('of FCP');
+    });
+
+    it('includes query and path parameters for N+1 API call issues', () => {
+      const apiGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+      });
+      const apiEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1010,
+          evidenceData: {
+            offenderSpanIds: ['s1'],
+            parameters: ['id:{1,2,3}'],
+            pathParameters: ['/users/*'],
+          },
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [{span_id: 's1', op: 'http.client', description: 'GET /users/1'}],
+          },
+        ],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      expect(result).toContain('**Query Parameters:** id:{1,2,3}');
+      expect(result).toContain('**Path Parameters:** /users/*');
+    });
+
+    it('derives N+1 API query params from spans when evidenceData lacks them', () => {
+      const apiGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+      });
+      // No evidenceData.parameters — mirror the UI fallback that derives the
+      // changing query params from the offending spans' URLs.
+      const spans = [1, 2, 3].map(id => ({
+        span_id: `s${id}`,
+        op: 'http.client',
+        description: `GET https://api.example.com/users?id=${id}`,
+      }));
+      const apiEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1010,
+          evidenceData: {offenderSpanIds: spans.map(s => s.span_id)},
+          evidenceDisplay: [],
+        },
+        entries: [{type: EntryType.SPANS, data: spans}],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      expect(result).toContain('**Query Parameters:** id:{1,2,3}');
+    });
+
+    it('includes vulnerable parameters and request URL for query injection issues', () => {
+      const injectionGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.QUERY_INJECTION_VULNERABILITY,
+      });
+      const injectionEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1021,
+          evidenceData: {
+            offenderSpanIds: ['s1'],
+            vulnerableParameters: [['username', "admin' OR '1'='1"]],
+            requestUrl: 'https://example.com/login',
+          },
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {
+                span_id: 's1',
+                op: 'db',
+                description: 'SELECT * FROM users WHERE name = ?',
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(
+        injectionEvent,
+        organization,
+        injectionGroup
+      );
+      expect(result).toContain("**Vulnerable Parameters:** username: admin' OR '1'='1");
+      expect(result).toContain('**Request URL:** https://example.com/login');
+    });
+
+    it('does not add type-specific metrics for N+1 DB issues', () => {
+      // N+1 DB has no extra per-type metric rows beyond the generic summary.
+      const result = formatSpanEvidenceToMarkdown(
+        nPlusOneEvent,
+        organization,
+        performanceGroup
+      );
+      expect(result).not.toContain('**Payload Size:**');
+      expect(result).not.toContain('**FCP Delay:**');
+      expect(result).not.toContain('**Query Parameters:**');
+    });
+
     it('includes evidence display rows for profiling issues', () => {
       // 2001 is the occurrence type for File I/O on Main Thread
       const profileEvent = EventFixture({

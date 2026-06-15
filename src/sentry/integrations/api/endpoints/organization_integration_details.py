@@ -100,7 +100,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         organization_context: RpcUserOrganizationContext,
         integration_id: int,
         **kwds: Any,
-    ) -> Response:
+    ) -> Response[None]:
         # Removing the integration removes the organization
         # integrations and all linked issues.
 

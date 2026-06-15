@@ -155,8 +155,11 @@ def bulk_serialize_for_seer(groups: list[Group]) -> SeerResponse:
 
 
 def _group_by_short_id(short_id: str, organization_id: int) -> Group | None:
+    # Intentionally org-scoped only (project_ids=None): reached via the Seer RPC
+    # (get_latest_issue_event), which operates organization-wide on behalf of the system.
+    # There is no narrower authorized-project set available at this layer to enforce.
     try:
-        return Group.objects.by_qualified_short_id(organization_id, short_id)
+        return Group.objects.by_qualified_short_id(organization_id, short_id, project_ids=None)
     except Group.DoesNotExist:
         return None
 

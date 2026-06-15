@@ -13,7 +13,6 @@ type Props = ModalRenderProps & {
   headerContent: React.ReactNode;
   providers: IntegrationProvider[];
   bodyContent?: React.ReactNode;
-  modalParams?: Record<string, string>;
   onAddIntegration?: () => void;
 };
 
@@ -24,7 +23,6 @@ export function MessagingIntegrationModal({
   headerContent,
   bodyContent,
   providers,
-  modalParams,
   onAddIntegration,
   analyticsView,
 }: Props) {
@@ -49,7 +47,6 @@ export function MessagingIntegrationModal({
                     view: analyticsView,
                   },
                   onAddIntegration,
-                  ...(modalParams && {modalParams}),
                 }}
               >
                 <AddIntegrationRow onClick={closeModal} />

@@ -61,9 +61,6 @@ class GithubCopilotIntegrationProvider(CodingAgentIntegrationProvider):
     def get_agent_key(self) -> str:
         return "github_copilot"
 
-    def get_pipeline_views(self) -> list[Any]:
-        return []
-
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         return {
             "name": "GitHub Copilot",

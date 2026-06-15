@@ -25,12 +25,12 @@ import type {
   PluginWithProjectList,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -301,7 +301,6 @@ function ConfigureIntegration() {
         <PagerdutyAddServicesButton
           provider={provider}
           onInstall={onUpdateIntegration}
-          account={integration.domainName}
           organization={organization}
         />
       );
@@ -546,10 +545,8 @@ function ConfigureIntegration() {
 function PagerdutyAddServicesButton({
   provider,
   onInstall,
-  account,
   organization,
 }: {
-  account: string | null;
   onInstall: () => void;
   organization: Organization;
   provider: IntegrationProvider;
@@ -561,7 +558,7 @@ function PagerdutyAddServicesButton({
       variant="primary"
       size="sm"
       icon={<IconAdd />}
-      onClick={() => startFlow({provider, onInstall, account, organization})}
+      onClick={() => startFlow({provider, onInstall, organization})}
     >
       {t('Add Services')}
     </Button>
