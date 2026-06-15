@@ -293,7 +293,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable the PR iteration feedback flow in the explorer autofix drawer
     manager.add("organizations:autofix-pr-iteration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Project-scoped variant of the PR iteration flow, for targeted (per-project) rollout
-    manager.add("projects:autofix-pr-iteration", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("projects:autofix-pr-iteration", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     # Show Seer run ID in Slack notification footers
     manager.add("organizations:seer-run-id-in-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Gate display of Seer action events in the issue activity timeline
