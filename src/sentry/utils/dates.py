@@ -6,6 +6,7 @@ from typing import Any, overload
 
 from dateutil.parser import parse
 from django.http.request import HttpRequest
+from django.template.defaultfilters import pluralize
 from django.utils.timezone import is_aware, make_aware
 
 from sentry import quotas
@@ -26,6 +27,36 @@ def ensure_aware(value: datetime) -> datetime:
     if is_aware(value):
         return value
     return make_aware(value)
+
+
+def format_duration(minutes: int | float, floor_to_largest_unit: bool = True) -> str:
+    """
+    Format a number of minutes into a human-friendly, pluralized duration string.
+
+    floor_to_largest_unit=True: the value is floored to the largest whole unit that fits
+    and any remainder is dropped. (90 -> "1 hour", 1500 -> "1 day")
+
+    floor_to_largest_unit=False: duration is rendered exactly, only promoted to hours
+    when it divides evenly, otherwise it stays in minutes. (90 -> "90 minutes", 120 -> "2 hours")
+    """
+    if not floor_to_largest_unit:
+        if minutes >= 60 and minutes % 60 == 0:
+            hours = int(minutes // 60)
+            return f"{hours:d} hour{pluralize(hours)}"
+        minutes = int(minutes)
+        return f"{minutes:d} minute{pluralize(minutes)}"
+
+    if minutes >= 1440:
+        days = int(minutes // 1440)
+        return f"{days:d} day{pluralize(days)}"
+    if minutes >= 60:
+        hours = int(minutes // 60)
+        return f"{hours:d} hour{pluralize(hours)}"
+    if minutes >= 1:
+        minutes = int(minutes)
+        return f"{minutes:d} minute{pluralize(minutes)}"
+    seconds = int(minutes // 60)
+    return f"{seconds:d} second{pluralize(seconds)}"
 
 
 @overload

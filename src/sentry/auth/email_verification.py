@@ -11,6 +11,7 @@ from django.http import HttpRequest
 from django.urls import reverse
 
 from sentry import options
+from sentry.utils.dates import format_duration
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
@@ -22,14 +23,6 @@ DEFAULT_MAX_AGE_MINUTES = 120
 
 def _get_salt() -> str:
     return options.get("auth.signup-verification-email-salt")
-
-
-def _format_expiry(minutes: int) -> str:
-    """Convert minutes to a human-friendly expiry string."""
-    if minutes >= 60 and minutes % 60 == 0:
-        hours = minutes // 60
-        return f"{hours} hour{'s' if hours != 1 else ''}"
-    return f"{minutes} minute{'s' if minutes != 1 else ''}"
 
 
 def send_signup_verification_email(
@@ -59,7 +52,7 @@ def send_signup_verification_email(
         "confirm_email": email,
         "url": url,
         "is_new_user": True,
-        "expiry_text": _format_expiry(max_age_minutes),
+        "expiry_text": format_duration(max_age_minutes, floor_to_largest_unit=False),
     }
 
     msg = MessageBuilder(
