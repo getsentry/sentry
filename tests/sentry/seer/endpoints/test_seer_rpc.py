@@ -422,7 +422,7 @@ class TestSeerRpcMethods(APITestCase):
             payload={"test": "data"},
         )
 
-        assert result == {
+        assert result.dict() == {
             "success": False,
             "error": "Invalid event type: seer.invalid_event_name",
         }
@@ -438,7 +438,7 @@ class TestSeerRpcMethods(APITestCase):
             payload={"test": "data"},
         )
 
-        assert result == {
+        assert result.dict() == {
             "success": False,
             "error": "Organization not found or not active",
         }
@@ -457,7 +457,7 @@ class TestSeerRpcMethods(APITestCase):
             payload={"test": "data"},
         )
 
-        assert result == {
+        assert result.dict() == {
             "success": False,
             "error": "Organization not found or not active",
         }
@@ -473,7 +473,7 @@ class TestSeerRpcMethods(APITestCase):
             payload={"test": "data"},
         )
 
-        assert result == {"success": True}
+        assert result.dict() == {"success": True}
         mock_delay.assert_called_once_with(
             resource_name="seer",
             event_name="root_cause_started",
@@ -500,7 +500,7 @@ class TestSeerRpcMethods(APITestCase):
                 organization_id=self.organization.id,
                 payload={"test": "data"},
             )
-            assert result == {"success": True}
+            assert result.dict() == {"success": True}
 
         # Verify that the task was called for each valid event
         assert mock_delay.call_count == len(seer_events)
@@ -552,7 +552,7 @@ class TestSeerRpcMethods(APITestCase):
     def test_check_repository_integrations_status_empty_list(self) -> None:
         """Test with empty input list"""
         result = check_repository_integrations_status(repository_integrations=[])
-        assert result == {"integration_ids": []}
+        assert result.dict() == {"integration_ids": []}
 
     def test_check_repository_integrations_status_single_existing_repo(self) -> None:
         """Test when a single repository exists and is active"""
@@ -580,7 +580,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [integration.id]}
+        assert result.dict() == {"integration_ids": [integration.id]}
 
     def test_check_repository_integrations_status_single_non_existing_repo(self) -> None:
         """Test when repository does not exist"""
@@ -595,7 +595,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [None]}
+        assert result.dict() == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_mixed_existing_and_non_existing(self) -> None:
         """Test with a mix of existing and non-existing repositories (integration_id ignored)"""
@@ -645,7 +645,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {
+        assert result.dict() == {
             "integration_ids": [integration.id, None, integration.id],
         }
 
@@ -676,7 +676,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [None]}
+        assert result.dict() == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_wrong_organization_id(self) -> None:
         """Test that repositories from different organizations are not matched"""
@@ -707,7 +707,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [None]}
+        assert result.dict() == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_wrong_integration_id(self) -> None:
         """Test that integration_id in request is ignored - only (org, provider, external_id) matter"""
@@ -741,7 +741,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Should find the repo and return the ACTUAL integration_id from the database
-        assert result == {"integration_ids": [integration1.id]}
+        assert result.dict() == {"integration_ids": [integration1.id]}
 
     def test_check_repository_integrations_status_wrong_external_id(self) -> None:
         """Test that repositories with different external_id are not matched"""
@@ -771,7 +771,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [None]}
+        assert result.dict() == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_multiple_all_exist(self) -> None:
         """Test when all queried repositories exist"""
@@ -828,7 +828,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {
+        assert result.dict() == {
             "integration_ids": [integration.id, integration.id, integration.id],
         }
 
@@ -880,7 +880,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {
+        assert result.dict() == {
             "integration_ids": [integration1.id, integration2.id],
         }
 
@@ -912,7 +912,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [None]}
+        assert result.dict() == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_mixed_supported_and_unsupported_providers(
         self,
@@ -963,7 +963,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {
+        assert result.dict() == {
             "integration_ids": [github_integration.id, None],
         }
 
@@ -995,7 +995,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [integration.id]}
+        assert result.dict() == {"integration_ids": [integration.id]}
 
     def test_check_repository_integrations_status_integration_id_none(self) -> None:
         """Test that integration_id=None is ignored in matching"""
@@ -1026,7 +1026,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [integration.id]}
+        assert result.dict() == {"integration_ids": [integration.id]}
 
     def test_check_repository_integrations_status_no_integration_id_in_request(self) -> None:
         """Test that integration_id is completely optional - Seer doesn't need to send it"""
@@ -1056,7 +1056,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"integration_ids": [integration.id]}
+        assert result.dict() == {"integration_ids": [integration.id]}
 
     def test_has_repo_code_mappings_repo_not_found(self) -> None:
         """Test when repository does not exist"""
@@ -1648,12 +1648,12 @@ class TestGetOrganizationFeatures(APITestCase):
     def test_returns_active_flags_without_prefix(self, _mock_all: object) -> None:
         with self.feature("organizations:seer-agent-source-code-search"):
             result = get_organization_features(org_id=self.organization.id)
-        assert result == {"features": ["seer-agent-source-code-search"]}
+        assert result.dict() == {"features": ["seer-agent-source-code-search"]}
 
     @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
     def test_excludes_inactive_flags(self, _mock_all: object) -> None:
         result = get_organization_features(org_id=self.organization.id)
-        assert result == {"features": []}
+        assert result.dict() == {"features": []}
 
     @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
     def test_returns_sorted_list(self, _mock_all: object) -> None:
@@ -1665,25 +1665,25 @@ class TestGetOrganizationFeatures(APITestCase):
         ):
             result = get_organization_features(org_id=self.organization.id)
         # "seer-agent-..." < "seer-explorer-..." alphabetically
-        assert result == {
+        assert result.dict() == {
             "features": ["seer-agent-source-code-search", "seer-explorer-chat-coding"]
         }
 
     def test_org_not_found_returns_empty(self) -> None:
         result = get_organization_features(org_id=0)
-        assert result == {"features": []}
+        assert result.dict() == {"features": []}
 
     @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
     def test_uses_user_as_actor_when_provided(self, _mock_all: object) -> None:
         with self.feature("organizations:seer-agent-source-code-search"):
             result = get_organization_features(org_id=self.organization.id, user_id=self.user.id)
-        assert result == {"features": ["seer-agent-source-code-search"]}
+        assert result.dict() == {"features": ["seer-agent-source-code-search"]}
 
     @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
     def test_unknown_user_id_falls_back_to_no_actor(self, _mock_all: object) -> None:
         with self.feature("organizations:seer-agent-source-code-search"):
             result = get_organization_features(org_id=self.organization.id, user_id=0)
-        assert result == {"features": ["seer-agent-source-code-search"]}
+        assert result.dict() == {"features": ["seer-agent-source-code-search"]}
 
 
 @with_feature("organizations:pr-metrics-attribution")

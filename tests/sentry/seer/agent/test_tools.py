@@ -669,7 +669,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
-        assert result == {"projects": []}
+        assert result.dict() == {"projects": []}
 
 
 class TestSpansCrossTraceQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
