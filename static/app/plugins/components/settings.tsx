@@ -260,9 +260,7 @@ export class PluginSettings<
 
   async fetchData() {
     try {
-      const [data] = await this.api.requestPromise(this.getPluginEndpoint(), {
-        includeAllArgs: true,
-      });
+      const data = await this.api.requestPromise(this.getPluginEndpoint());
       if (!data.config) {
         this.setState(
           {

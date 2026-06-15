@@ -50,19 +50,17 @@ export class Settings extends DefaultSettings<Props, State> {
     // This is mostly copy paste of parent class
     // except for setting edit state
     try {
-      const [data] = await this.api.requestPromise(this.getPluginEndpoint(), {
-        includeAllArgs: true,
-      });
+      const data: ApiData = await this.api.requestPromise(this.getPluginEndpoint());
       const formData: Record<string, any> = {};
       const initialData = {};
-      (data as ApiData).config.forEach((field: FieldWithValues) => {
+      data.config.forEach((field: FieldWithValues) => {
         formData[field.name] = field.value || field.defaultValue;
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         initialData[field.name] = field.value;
       });
       this.setState(
         {
-          fieldList: (data as ApiData).config,
+          fieldList: data.config,
           formData,
           initialData,
           // start off in edit mode if there isn't a project set
