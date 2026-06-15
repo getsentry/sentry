@@ -23,7 +23,11 @@ if [ -z "$MERGE_BASE" ]; then
   echo "No merge base — running over all files" >&2
   echo "merge_base="
   echo "scope=full"
-elif git diff --name-only "$MERGE_BASE" HEAD^2 | grep -qvE '^static/'; then
+elif ! CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2); then
+  echo "Could not diff against merge base — running over all files" >&2
+  echo "merge_base=$MERGE_BASE"
+  echo "scope=full"
+elif printf '%s' "$CHANGED" | grep -qvE '^static/'; then
   echo "Non-static file changed — running over all files" >&2
   echo "merge_base=$MERGE_BASE"
   echo "scope=full"
