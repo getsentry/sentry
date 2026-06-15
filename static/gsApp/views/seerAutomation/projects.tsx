@@ -5,6 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {t, tct} from 'sentry/locale';
@@ -12,7 +13,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {SeerProjectTable} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTable';
 import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 
 export default function SeerAutomationProjects() {

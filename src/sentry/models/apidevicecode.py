@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models
@@ -14,6 +14,9 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
+if TYPE_CHECKING:
+    from sentry.models.apiapplication import ApiApplication
 
 # RFC 8628 recommends short lifetimes for device codes (10-15 minutes)
 DEFAULT_EXPIRATION = timedelta(minutes=10)
@@ -32,16 +35,16 @@ USER_CODE_GROUP_LENGTH = USER_CODE_LENGTH // 2  # Characters per group in "XXXX-
 DEVICE_CODE_BYTES = 32
 
 
-def default_expiration():
+def default_expiration() -> datetime:
     return timezone.now() + DEFAULT_EXPIRATION
 
 
-def generate_device_code():
+def generate_device_code() -> str:
     """Generate a cryptographically secure device code (256-bit entropy)."""
     return secrets.token_hex(nbytes=DEVICE_CODE_BYTES)
 
 
-def generate_user_code():
+def generate_user_code() -> str:
     """
     Generate a human-readable user code in format "XXXX-XXXX".
 
@@ -176,7 +179,9 @@ class ApiDeviceCode(Model):
         )
 
     @classmethod
-    def create_with_retry(cls, application, scope_list: list[str] | None = None) -> ApiDeviceCode:
+    def create_with_retry(
+        cls, application: ApiApplication, scope_list: list[str] | None = None
+    ) -> ApiDeviceCode:
         """
         Create a new device code with retry logic for user code collisions.
 
