@@ -10,6 +10,7 @@ from sentry.notifications.platform.types import (
     BoldTextBlock,
     CodeBlock,
     CodeTextBlock,
+    NotificationBodyFormattingBlock,
     NotificationCategory,
     NotificationData,
     NotificationRenderedAction,
@@ -32,6 +33,10 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SEER_PR_CREATED.value: NotificationSource.ACTIVITY_SEER_PR_CREATED,
 }
 
+EXAMPLE_SEER_URL = "https://sentry.io/organizations/example/issues/1/?seerDrawer=true"
+EXAMPLE_ALERT_URL = "https://sentry.io/organizations/example/monitors/alerts/1/"
+EXAMPLE_FOOTER = "This notification was sent as part of an alert."
+
 
 class WorkflowEngineActivityAction(NotificationData):
     source: NotificationSource
@@ -42,125 +47,110 @@ class WorkflowEngineActivityAction(NotificationData):
     detector_id: int
 
 
-class BaseSeerActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
-    category = NotificationCategory.WORKFLOW_ENGINE
+def extract_models(
+    data: WorkflowEngineActivityAction,
+) -> tuple[Activity, Group, Project, Organization]:
+    try:
+        activity = Activity.objects.get(id=data.activity_id)
+    except Activity.DoesNotExist:
+        raise ValueError(f"Activity not found: {data.activity_id}")
+    try:
+        group = Group.objects.get_from_cache(id=activity.group_id)
+    except Group.DoesNotExist:
+        raise ValueError(f"Group not found: {activity.group_id}")
+    try:
+        project = Project.objects.get_from_cache(id=activity.project_id)
+    except Project.DoesNotExist:
+        raise ValueError(f"Project not found: {activity.project_id}")
+    try:
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+    except Organization.DoesNotExist:
+        raise ValueError(f"Organization not found: {project.organization_id}")
 
-    activity: Activity | None = None
-    group: Group | None = None
-    project: Project | None = None
-    organization: Organization | None = None
+    return activity, group, project, organization
 
-    def _extract_models(
-        self, data: WorkflowEngineActivityAction
-    ) -> tuple[Activity, Group, Project, Organization]:
-        if not self.activity:
-            try:
-                self.activity = Activity.objects.get(id=data.activity_id)
-            except Activity.DoesNotExist:
-                raise ValueError(f"Activity not found: {data.activity_id}")
-        if not self.group:
-            try:
-                self.group = Group.objects.get_from_cache(id=self.activity.group_id)
-            except Group.DoesNotExist:
-                raise ValueError(f"Group not found: {self.activity.group_id}")
-        if not self.project:
-            try:
-                self.project = Project.objects.get_from_cache(id=self.activity.project_id)
-            except Project.DoesNotExist:
-                raise ValueError(f"Project not found: {self.activity.project_id}")
-        if not self.organization:
-            try:
-                self.organization = Organization.objects.get_from_cache(
-                    id=self.project.organization_id
-                )
-            except Organization.DoesNotExist:
-                raise ValueError(f"Organization not found: {self.project.organization_id}")
 
-        return self.activity, self.group, self.project, self.organization
-
-    def _issue_body(self, group: Group) -> ParagraphBlock:
-        status_text = get_substatus_label(group) or get_status_label(group)
-        return ParagraphBlock(
-            blocks=[
-                PlainTextBlock(text="This update pertains to the"),
-                CodeTextBlock(text=group.title),
-                PlainTextBlock(text="issue"),
-                CodeTextBlock(text=group.qualified_short_id),
-                PlainTextBlock(text=f"in the '{group.project.name}' project. The issue is"),
-                BoldTextBlock(text=status_text),
-                PlainTextBlock(text=f"and has been seen {group.times_seen} time(s)."),
-            ]
-        )
-
-    def _seer_url(self, group: Group) -> str:
-        return f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
-
-    def _build_template(
-        self,
-        data: WorkflowEngineActivityAction,
-        subject: str,
-        body: list,
-        extra_actions: list[NotificationRenderedAction],
-    ) -> NotificationRenderedTemplate:
-        activity, group, project, organization = self._extract_models(data)
-        configuration_url = organization.absolute_url(
-            f"organizations/{organization.slug}/monitors/alerts/{data.workflow_id}/"
-        )
-        footer = "This notification was sent as part of an alert."
-        if settings.DEBUG:
-            footer += f" Run ID: {activity.data.get('run_id')}"
-
-        return NotificationRenderedTemplate(
-            subject=subject,
-            body=body,
-            actions=[
-                NotificationRenderedAction(label="View Alert", link=configuration_url),
-                *extra_actions,
-            ],
-            footer=footer,
-        )
-
-    def _example_issue_body(self) -> ParagraphBlock:
-        return ParagraphBlock(
-            blocks=[
-                PlainTextBlock(text="This update pertains to the"),
-                CodeTextBlock(text="ExampleError: something went wrong"),
-                PlainTextBlock(text="issue"),
-                CodeTextBlock(text="EXAMPLE-1"),
-                PlainTextBlock(text="in the 'example-project' project. The issue is"),
-                BoldTextBlock(text="Unresolved"),
-                PlainTextBlock(text="and has been seen 42 time(s)."),
-            ]
-        )
-
-    def _example_actions(self) -> list[NotificationRenderedAction]:
-        return [
-            NotificationRenderedAction(
-                label="View Alert",
-                link="https://sentry.io/organizations/example/monitors/alerts/1/",
-            ),
-            NotificationRenderedAction(
-                label="View in Sentry",
-                link="https://sentry.io/organizations/example/issues/1/?seerDrawer=true",
-            ),
+def issue_body(group: Group) -> ParagraphBlock:
+    status_text = get_substatus_label(group) or get_status_label(group)
+    return ParagraphBlock(
+        blocks=[
+            PlainTextBlock(text="This update pertains to the"),
+            CodeTextBlock(text=group.title),
+            PlainTextBlock(text="issue"),
+            CodeTextBlock(text=group.qualified_short_id),
+            PlainTextBlock(text=f"in the '{group.project.name}' project. The issue is"),
+            BoldTextBlock(text=status_text),
+            PlainTextBlock(text=f"and has been seen {group.times_seen} time(s)."),
         ]
+    )
 
-    def _example_template(
-        self,
-        subject: str,
-        body: list[ParagraphBlock | CodeBlock] | None = None,
-        actions: list[NotificationRenderedAction] | None = None,
-    ) -> NotificationRenderedTemplate:
-        return NotificationRenderedTemplate(
-            subject=subject,
-            body=body if body is not None else [self._example_issue_body()],
-            actions=actions if actions is not None else self._example_actions(),
-            footer="This notification was sent as part of an alert.",
-        )
+
+def seer_url(group: Group) -> str:
+    return f"{absolute_uri(group.get_absolute_url())}?seerDrawer=true"
+
+
+def build_template(
+    data: WorkflowEngineActivityAction,
+    subject: str,
+    body: list[NotificationBodyFormattingBlock],
+    extra_actions: list[NotificationRenderedAction],
+) -> NotificationRenderedTemplate:
+    activity, group, project, organization = extract_models(data)
+    configuration_url = organization.absolute_url(
+        f"organizations/{organization.slug}/monitors/alerts/{data.workflow_id}/"
+    )
+    footer = EXAMPLE_FOOTER
+    if settings.DEBUG:
+        footer += f" Run ID: {activity.data.get('run_id')}"
+
+    return NotificationRenderedTemplate(
+        subject=subject,
+        body=body,
+        actions=[
+            NotificationRenderedAction(label="View Alert", link=configuration_url),
+            *extra_actions,
+        ],
+        footer=footer,
+    )
+
+
+def example_issue_body() -> ParagraphBlock:
+    return ParagraphBlock(
+        blocks=[
+            PlainTextBlock(text="This update pertains to the"),
+            CodeTextBlock(text="ExampleError: something went wrong"),
+            PlainTextBlock(text="issue"),
+            CodeTextBlock(text="EXAMPLE-1"),
+            PlainTextBlock(text="in the 'example-project' project. The issue is"),
+            BoldTextBlock(text="Unresolved"),
+            PlainTextBlock(text="and has been seen 42 time(s)."),
+        ]
+    )
+
+
+def example_actions() -> list[NotificationRenderedAction]:
+    return [
+        NotificationRenderedAction(label="View Alert", link=EXAMPLE_ALERT_URL),
+        NotificationRenderedAction(label="View in Sentry", link=EXAMPLE_SEER_URL),
+    ]
+
+
+def example_template(
+    subject: str,
+    body: list[NotificationBodyFormattingBlock] | None = None,
+    actions: list[NotificationRenderedAction] | None = None,
+) -> NotificationRenderedTemplate:
+    return NotificationRenderedTemplate(
+        subject=subject,
+        body=body if body is not None else [example_issue_body()],
+        actions=actions if actions is not None else example_actions(),
+        footer=EXAMPLE_FOOTER,
+    )
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_RCA_STARTED)
-class SeerRcaStartedActivityTemplate(BaseSeerActivityTemplate):
+class SeerRcaStartedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
+    category = NotificationCategory.WORKFLOW_ENGINE
     example_data = WorkflowEngineActivityAction(
         source=NotificationSource.ACTIVITY_SEER_RCA_STARTED,
         notification_uuid="1234567890",
@@ -171,22 +161,23 @@ class SeerRcaStartedActivityTemplate(BaseSeerActivityTemplate):
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return self._example_template("Seer is searching for the root cause...")
+        return example_template("Seer is searching for the root cause...")
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = self._extract_models(data)
-        return self._build_template(
+        activity, group, project, organization = extract_models(data)
+        return build_template(
             data=data,
             subject="Seer is searching for the root cause...",
-            body=[self._issue_body(group)],
+            body=[issue_body(group)],
             extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=self._seer_url(group))
+                NotificationRenderedAction(label="View in Sentry", link=seer_url(group))
             ],
         )
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_RCA_COMPLETED)
-class SeerRcaCompletedActivityTemplate(BaseSeerActivityTemplate):
+class SeerRcaCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
+    category = NotificationCategory.WORKFLOW_ENGINE
     example_data = WorkflowEngineActivityAction(
         source=NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
         notification_uuid="1234567890",
@@ -197,7 +188,7 @@ class SeerRcaCompletedActivityTemplate(BaseSeerActivityTemplate):
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return self._example_template(
+        return example_template(
             subject="Seer found the root cause",
             body=[
                 CodeBlock(
@@ -207,26 +198,27 @@ class SeerRcaCompletedActivityTemplate(BaseSeerActivityTemplate):
                         )
                     ]
                 ),
-                self._example_issue_body(),
+                example_issue_body(),
             ],
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = self._extract_models(data)
+        activity, group, project, organization = extract_models(data)
         fallback = "Click the link below to view the details in Sentry"
         summary_block = PlainTextBlock(text=activity.data.get("summary", fallback))
-        return self._build_template(
+        return build_template(
             data=data,
             subject="Seer found the root cause",
-            body=[CodeBlock(blocks=[summary_block]), self._issue_body(group)],
+            body=[CodeBlock(blocks=[summary_block]), issue_body(group)],
             extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=self._seer_url(group))
+                NotificationRenderedAction(label="View in Sentry", link=seer_url(group))
             ],
         )
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED)
-class SeerSolutionStartedActivityTemplate(BaseSeerActivityTemplate):
+class SeerSolutionStartedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
+    category = NotificationCategory.WORKFLOW_ENGINE
     example_data = WorkflowEngineActivityAction(
         source=NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
         notification_uuid="1234567890",
@@ -237,22 +229,23 @@ class SeerSolutionStartedActivityTemplate(BaseSeerActivityTemplate):
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return self._example_template("Seer is working on a plan...")
+        return example_template("Seer is working on a plan...")
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = self._extract_models(data)
-        return self._build_template(
+        activity, group, project, organization = extract_models(data)
+        return build_template(
             data=data,
             subject="Seer is working on a plan...",
-            body=[self._issue_body(group)],
+            body=[issue_body(group)],
             extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=self._seer_url(group))
+                NotificationRenderedAction(label="View in Sentry", link=seer_url(group))
             ],
         )
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_SOLUTION_COMPLETED)
-class SeerSolutionCompletedActivityTemplate(BaseSeerActivityTemplate):
+class SeerSolutionCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
+    category = NotificationCategory.WORKFLOW_ENGINE
     example_data = WorkflowEngineActivityAction(
         source=NotificationSource.ACTIVITY_SEER_SOLUTION_COMPLETED,
         notification_uuid="1234567890",
@@ -263,7 +256,7 @@ class SeerSolutionCompletedActivityTemplate(BaseSeerActivityTemplate):
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return self._example_template(
+        return example_template(
             subject="Seer has prepared a plan",
             body=[
                 CodeBlock(
@@ -273,26 +266,27 @@ class SeerSolutionCompletedActivityTemplate(BaseSeerActivityTemplate):
                         )
                     ]
                 ),
-                self._example_issue_body(),
+                example_issue_body(),
             ],
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = self._extract_models(data)
+        activity, group, project, organization = extract_models(data)
         fallback = "Click the link below to view the details in Sentry"
         summary_block = PlainTextBlock(text=activity.data.get("summary", fallback))
-        return self._build_template(
+        return build_template(
             data=data,
             subject="Seer has prepared a plan",
-            body=[CodeBlock(blocks=[summary_block]), self._issue_body(group)],
+            body=[CodeBlock(blocks=[summary_block]), issue_body(group)],
             extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=self._seer_url(group))
+                NotificationRenderedAction(label="View in Sentry", link=seer_url(group))
             ],
         )
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_CODING_STARTED)
-class SeerCodingStartedActivityTemplate(BaseSeerActivityTemplate):
+class SeerCodingStartedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
+    category = NotificationCategory.WORKFLOW_ENGINE
     example_data = WorkflowEngineActivityAction(
         source=NotificationSource.ACTIVITY_SEER_CODING_STARTED,
         notification_uuid="1234567890",
@@ -303,22 +297,23 @@ class SeerCodingStartedActivityTemplate(BaseSeerActivityTemplate):
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return self._example_template("Seer is writing code changes...")
+        return example_template("Seer is writing code changes...")
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = self._extract_models(data)
-        return self._build_template(
+        activity, group, project, organization = extract_models(data)
+        return build_template(
             data=data,
             subject="Seer is writing code changes...",
-            body=[self._issue_body(group)],
+            body=[issue_body(group)],
             extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=self._seer_url(group))
+                NotificationRenderedAction(label="View in Sentry", link=seer_url(group))
             ],
         )
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_CODING_COMPLETED)
-class SeerCodingCompletedActivityTemplate(BaseSeerActivityTemplate):
+class SeerCodingCompletedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
+    category = NotificationCategory.WORKFLOW_ENGINE
     example_data = WorkflowEngineActivityAction(
         source=NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
         notification_uuid="1234567890",
@@ -329,7 +324,7 @@ class SeerCodingCompletedActivityTemplate(BaseSeerActivityTemplate):
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return self._example_template(
+        return example_template(
             subject="Seer's code changes are prepared",
             body=[
                 ParagraphBlock(
@@ -339,25 +334,26 @@ class SeerCodingCompletedActivityTemplate(BaseSeerActivityTemplate):
                         )
                     ]
                 ),
-                self._example_issue_body(),
+                example_issue_body(),
             ],
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = self._extract_models(data)
+        activity, group, project, organization = extract_models(data)
         text_block = PlainTextBlock(text="You can check out the Seer's suggested diff in Sentry.")
-        return self._build_template(
+        return build_template(
             data=data,
             subject="Seer's code changes are prepared",
-            body=[ParagraphBlock(blocks=[text_block]), self._issue_body(group)],
+            body=[ParagraphBlock(blocks=[text_block]), issue_body(group)],
             extra_actions=[
-                NotificationRenderedAction(label="View in Sentry", link=self._seer_url(group))
+                NotificationRenderedAction(label="View in Sentry", link=seer_url(group))
             ],
         )
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_PR_CREATED)
-class SeerPrCreatedActivityTemplate(BaseSeerActivityTemplate):
+class SeerPrCreatedActivityTemplate(NotificationTemplate[WorkflowEngineActivityAction]):
+    category = NotificationCategory.WORKFLOW_ENGINE
     example_data = WorkflowEngineActivityAction(
         source=NotificationSource.ACTIVITY_SEER_PR_CREATED,
         notification_uuid="1234567890",
@@ -368,7 +364,7 @@ class SeerPrCreatedActivityTemplate(BaseSeerActivityTemplate):
     )
 
     def render_example(self) -> NotificationRenderedTemplate:
-        return self._example_template(
+        return example_template(
             subject="Seer has created a pull request",
             body=[
                 ParagraphBlock(
@@ -379,17 +375,10 @@ class SeerPrCreatedActivityTemplate(BaseSeerActivityTemplate):
                         BoldTextBlock(text="getsentry/sentry"),
                     ]
                 ),
-                self._example_issue_body(),
+                example_issue_body(),
             ],
             actions=[
-                NotificationRenderedAction(
-                    label="View Alert",
-                    link="https://sentry.io/organizations/example/monitors/alerts/1/",
-                ),
-                NotificationRenderedAction(
-                    label="View in Sentry",
-                    link="https://sentry.io/organizations/example/issues/1/?seerDrawer=true",
-                ),
+                *example_actions(),
                 NotificationRenderedAction(
                     label="View PR (#1234)",
                     link="https://github.com/getsentry/sentry/pull/1234",
@@ -398,10 +387,10 @@ class SeerPrCreatedActivityTemplate(BaseSeerActivityTemplate):
         )
 
     def render(self, data: WorkflowEngineActivityAction) -> NotificationRenderedTemplate:
-        activity, group, project, organization = self._extract_models(data)
-        seer_url = self._seer_url(group)
+        activity, group, project, organization = extract_models(data)
+        seer_link = seer_url(group)
 
-        extra_actions = [NotificationRenderedAction(label="View in Sentry", link=seer_url)]
+        extra_actions = [NotificationRenderedAction(label="View in Sentry", link=seer_link)]
         repos: set[str] = set()
         for pull_request in activity.data.get("pull_requests", []):
             repo_name = pull_request.get("repo_name")
@@ -428,9 +417,9 @@ class SeerPrCreatedActivityTemplate(BaseSeerActivityTemplate):
             ]
         )
 
-        return self._build_template(
+        return build_template(
             data=data,
             subject=subject,
-            body=[repo_body, self._issue_body(group)],
+            body=[repo_body, issue_body(group)],
             extra_actions=extra_actions,
         )
