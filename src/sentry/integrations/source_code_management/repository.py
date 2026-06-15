@@ -339,6 +339,7 @@ class RepositoryIntegration(
             )
             scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
+            scope.set_attribute("stacktrace_link.tried_version", False)
 
             def encode_url(url: str) -> str:
                 parsed = urlparse(url)
