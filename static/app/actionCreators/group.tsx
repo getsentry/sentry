@@ -1,6 +1,6 @@
 import {queryOptions} from '@tanstack/react-query';
 
-import type {RequestCallbacks, RequestOptions} from 'sentry/api';
+import type {RequestCallbacks} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Tag as GroupTag, TagValue} from 'sentry/types/group';
@@ -93,19 +93,24 @@ export async function bulkDelete(
 
   GroupStore.onDelete(id, itemIds);
 
+  let responseMeta: any;
+  let statusText = '';
+
   try {
-    const [data, statusText, responseMeta] = await api.requestPromise(path, {
+    const [data, status, meta] = await api.requestPromise(path, {
       query,
       method: 'DELETE',
       includeAllArgs: true,
     });
+    statusText = status;
+    responseMeta = meta;
     GroupStore.onDeleteSuccess(id, itemIds, data);
     options?.success?.(data, statusText, responseMeta);
   } catch (error) {
     GroupStore.onDeleteError(id, itemIds, error);
     options?.error?.(error);
   } finally {
-    options?.complete?.();
+    options?.complete?.(responseMeta, statusText);
   }
 }
 
@@ -127,20 +132,25 @@ export async function bulkUpdate(
 
   GroupStore.onUpdate(id, itemIds, data);
 
+  let responseMeta: any;
+  let statusText = '';
+
   try {
-    const [response, statusText, responseMeta] = await api.requestPromise(path, {
+    const [response, status, meta] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data,
       includeAllArgs: true,
     });
+    statusText = status;
+    responseMeta = meta;
     GroupStore.onUpdateSuccess(id, itemIds, response);
     options?.success?.(response, statusText, responseMeta);
   } catch (error) {
     GroupStore.onUpdateError(id, itemIds, !!failSilently);
     options?.error?.(error);
   } finally {
-    options?.complete?.();
+    options?.complete?.(responseMeta, statusText);
   }
 }
 
@@ -159,20 +169,25 @@ export async function mergeGroups(
 
   GroupStore.onMerge(id, itemIds);
 
+  let responseMeta: any;
+  let statusText = '';
+
   try {
-    const [response, statusText, responseMeta] = await api.requestPromise(path, {
+    const [response, status, meta] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data: {merge: 1},
       includeAllArgs: true,
     });
+    statusText = status;
+    responseMeta = meta;
     GroupStore.onMergeSuccess(id, itemIds, response);
     options?.success?.(response, statusText, responseMeta);
   } catch (error) {
     GroupStore.onMergeError(id, itemIds, error);
     options?.error?.(error);
   } finally {
-    options?.complete?.();
+    options?.complete?.(responseMeta, statusText);
   }
 }
 
