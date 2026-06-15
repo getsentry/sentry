@@ -257,7 +257,7 @@ def _process_hybrid_cloud_foreign_key_cascade(
         sentry_sdk.set_attribute("deletion.hybrid_cloud.app_name", app_name)
         sentry_sdk.set_attribute("deletion.hybrid_cloud.model_name", model_name)
         sentry_sdk.set_attribute("deletion.hybrid_cloud.field_name", field_name)
-        sentry_sdk.set_attribute("deletion.hybrid_cloud.silo_mode", silo_mode)
+        sentry_sdk.set_attribute("deletion.hybrid_cloud.silo_mode", silo_mode.value)
         sentry_sdk.capture_exception(err)
         raise
 
