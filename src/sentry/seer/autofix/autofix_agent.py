@@ -370,7 +370,9 @@ def trigger_autofix_agent(
         else reasoning_effort
     )
 
-    pr_iteration_enabled = features.has("organizations:autofix-pr-iteration", group.organization)
+    pr_iteration_enabled = features.has(
+        "organizations:autofix-pr-iteration", group.organization
+    ) or features.has("projects:autofix-pr-iteration", group.project)
 
     client = get_autofix_agent_client(
         group,

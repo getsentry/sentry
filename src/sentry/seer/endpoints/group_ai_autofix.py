@@ -340,7 +340,10 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return Response(open_pr_body, status=status.HTTP_202_ACCEPTED)
 
         if step == "pr_iteration":
-            if not features.has("organizations:autofix-pr-iteration", group.organization):
+            if not (
+                features.has("organizations:autofix-pr-iteration", group.organization)
+                or features.has("projects:autofix-pr-iteration", group.project)
+            ):
                 return Response(
                     {"detail": "PR iteration is not enabled for this organization"},
                     status=status.HTTP_403_FORBIDDEN,
