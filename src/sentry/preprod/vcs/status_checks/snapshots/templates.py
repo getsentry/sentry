@@ -15,6 +15,7 @@ from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     _format_name_cell,
     _name_cell,
     _section_cell,
+    format_errored_note,
 )
 
 _SNAPSHOT_TITLE_BASE = _("Snapshot Testing")
@@ -41,6 +42,7 @@ def format_snapshot_status_check_messages(
     total_renamed = 0
     total_unchanged = 0
     total_skipped = 0
+    total_errored = 0
 
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
@@ -62,6 +64,7 @@ def format_snapshot_status_check_messages(
             total_renamed += comparison.images_renamed
             total_unchanged += comparison.images_unchanged
             total_skipped += comparison.images_skipped
+            total_errored += comparison.images_errored
 
     if overall_status == StatusCheckStatus.IN_PROGRESS:
         subtitle = str(_("Comparing snapshots..."))
@@ -135,6 +138,10 @@ def format_snapshot_status_check_messages(
         changes_map,
         approvals_map=approvals_map,
     )
+
+    errored_note = format_errored_note(total_errored)
+    if errored_note:
+        summary += "\n\n" + errored_note
 
     settings_url = _get_settings_url(project)
     summary += "\n\n" + _format_configure_link(project, settings_url)

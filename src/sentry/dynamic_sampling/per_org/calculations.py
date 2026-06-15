@@ -148,7 +148,7 @@ def _emit_project_balancing_debug_metrics(
     eap_volume: float,
     eap_volume_without_extrapolation: float | None,
 ) -> None:
-    tags = {"org_id": str(org_id), "project_id": str(project_id)}
+    tags = {"org_id": str(org_id), "dynamic_sampling_project_id": str(project_id)}
     metrics.gauge(
         f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_sample_rate",
         eap_sample_rate,
