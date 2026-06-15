@@ -302,14 +302,14 @@ def _log_spans_query_results(ids_found: int, replays_found: int | None):
     }
 
     if replays_found is not None:
-        assert ids_found > 0
         extra.update(
             {
                 "replays_query.limit": MAX_REPLAY_COUNT,
                 "replays_query.num_found": replays_found,
                 "replays_query.limit_reached": replays_found >= MAX_REPLAY_COUNT,
-                "replays_query.found_ratio": replays_found / ids_found,
             }
         )
+        if ids_found > 0:
+            extra["replays_query.found_ratio"] = replays_found / ids_found
 
     logger.info("replay_counts.spans.query_stats", extra=extra)
