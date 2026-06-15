@@ -84,6 +84,7 @@ class ApiTokensEndpoint(Endpoint):
 
         if serializer.is_valid():
             result = serializer.validated_data
+            assert request.user.is_authenticated, "User must not be anonymous"
 
             token = ApiToken.objects.create(
                 user_id=request.user.id,

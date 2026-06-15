@@ -8,13 +8,11 @@ production). A PR is "tracked" once it has at least one valid
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, Final, Literal
 
 from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -25,6 +23,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
+from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -35,11 +34,6 @@ CLOSE_ACTION_CLOSED: Final = "closed"
 CLOSE_ACTION_MERGED: Final = "merged"
 
 CloseAction = Literal["closed", "merged"]
-
-
-def _iso(value: datetime | None) -> str | None:
-    """Serialize a persisted datetime to an ISO-8601 string for the row, or None."""
-    return value.isoformat() if value is not None else None
 
 
 def select_verdict(
@@ -108,13 +102,14 @@ def is_pr_tracked(pull_request: PullRequest) -> bool:
     return PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True).exists()
 
 
-def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
+def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     """The PR's valid attribution signals, highest-confidence first.
 
     Each entry carries the ``signal_type``, ``source``, and ``signal_details`` so
     the consumer sees the full picture, ordered by attribution priority so the
     primary attribution leads. Ties break on ``signal_type`` then ``source`` for
-    a deterministic order.
+    a deterministic order. Shared by emission and the Seer judge forward so both
+    hand the consumer the same ordered snapshot.
     """
     attributions = PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True)
     ordered = sorted(
@@ -125,20 +120,6 @@ def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
         {"signal_type": a.signal_type, "source": a.source, "signal_details": a.signal_details}
         for a in ordered
     ]
-
-
-def _resolved_group_ids(pull_request: PullRequest) -> list[int]:
-    """Group IDs this PR resolves, from the resolving GroupLink rows.
-
-    Sorted for a deterministic row; empty when the PR resolves no issues.
-    """
-    return sorted(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=pull_request.id,
-        ).values_list("group_id", flat=True)
-    )
 
 
 def _merge_commit_id(pull_request: PullRequest) -> int | None:
@@ -199,8 +180,8 @@ def build_pr_metrics_row(
         closed_at=closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
         merge_commit_id=_merge_commit_id(pull_request),
-        merged_at=_iso(pull_request.merged_at),
-        opened_at=_iso(pull_request.opened_at),
+        merged_at=iso_or_none(pull_request.merged_at),
+        opened_at=iso_or_none(pull_request.opened_at),
         draft=bool(pull_request.draft),
         additions=metrics.additions,
         deletions=metrics.deletions,
@@ -229,7 +210,7 @@ def emit_pr_metrics_row(
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.
-    attributions = _active_attributions(pull_request)
+    attributions = active_attributions(pull_request)
     if not attributions:
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
@@ -241,7 +222,7 @@ def emit_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,
         attributions=attributions,
-        group_ids=_resolved_group_ids(pull_request),
+        group_ids=resolved_group_ids(pull_request),
     )
     analytics.record(row)
     metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})

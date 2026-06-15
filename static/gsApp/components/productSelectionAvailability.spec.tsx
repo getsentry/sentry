@@ -25,17 +25,14 @@ import {PlanTier} from 'getsentry/types';
 jest.mock('getsentry/components/upgradeNowModal/usePreviewData');
 
 function renderMockRequests({
-  planTier,
   organization,
   canSelfServe,
 }: {
   organization: Organization;
-  planTier: PlanTier;
   canSelfServe?: boolean;
 }) {
   const subscription = SubscriptionFixture({
     organization,
-    planTier,
     canSelfServe,
   });
 
@@ -44,14 +41,13 @@ function renderMockRequests({
   MockApiClient.addMockResponse({
     url: '/customers/org-slug/',
     body: {
-      planTier,
       canSelfServe,
     },
   });
 
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/billing-config/`,
-    body: BillingConfigFixture(planTier),
+    body: BillingConfigFixture(PlanTier.AM2),
   });
 }
 
@@ -73,7 +69,7 @@ describe('ProductSelectionAvailability', () => {
         },
       };
 
-      renderMockRequests({planTier: PlanTier.AM2, organization});
+      renderMockRequests({organization});
 
       render(
         <ProductSelectionAvailability
@@ -122,7 +118,7 @@ describe('ProductSelectionAvailability', () => {
     it('without performance and session replay', async () => {
       const organization = OrganizationFixture();
 
-      renderMockRequests({planTier: PlanTier.MM2, organization, canSelfServe: true});
+      renderMockRequests({organization, canSelfServe: true});
 
       render(
         <ProductSelectionAvailability
@@ -175,7 +171,7 @@ describe('ProductSelectionAvailability', () => {
         },
       };
 
-      renderMockRequests({planTier: PlanTier.AM1, organization});
+      renderMockRequests({organization});
 
       render(
         <ProductSelectionAvailability
@@ -226,7 +222,7 @@ describe('ProductSelectionAvailability', () => {
         },
       };
 
-      renderMockRequests({planTier: PlanTier.AM2, organization});
+      renderMockRequests({organization});
 
       render(
         <ProductSelectionAvailability
@@ -277,7 +273,7 @@ describe('ProductSelectionAvailability', () => {
         access: ['org:billing'],
       });
 
-      renderMockRequests({planTier: PlanTier.MM2, organization});
+      renderMockRequests({organization});
 
       render(
         <ProductSelectionAvailability
@@ -363,7 +359,7 @@ describe('ProductSelectionAvailability', () => {
       });
 
       // can self-serve
-      renderMockRequests({planTier: PlanTier.AM1, organization, canSelfServe: true});
+      renderMockRequests({organization, canSelfServe: true});
 
       const {rerender} = render(
         <ProductSelectionAvailability
@@ -408,7 +404,7 @@ describe('ProductSelectionAvailability', () => {
       ).toBeInTheDocument();
 
       // can't self-serve
-      renderMockRequests({planTier: PlanTier.AM1, organization, canSelfServe: false});
+      renderMockRequests({organization, canSelfServe: false});
       rerender(
         <ProductSelectionAvailability
           organization={organization}
@@ -437,7 +433,7 @@ describe('ProductSelectionAvailability', () => {
         },
       };
 
-      renderMockRequests({planTier: PlanTier.AM2, organization});
+      renderMockRequests({organization});
 
       render(
         <ProductSelectionAvailability
@@ -485,7 +481,7 @@ describe('ProductSelectionAvailability', () => {
         },
       };
 
-      renderMockRequests({planTier: PlanTier.AM2, organization});
+      renderMockRequests({organization});
 
       render(
         <ProductSelectionAvailability
@@ -532,7 +528,7 @@ describe('ProductSelectionAvailability', () => {
         features: ['performance-view', 'profiling-view'],
       });
 
-      renderMockRequests({planTier: PlanTier.AM2, organization});
+      renderMockRequests({organization});
 
       const {router} = render(
         <ProductSelectionAvailability
@@ -578,7 +574,7 @@ describe('ProductSelectionAvailability', () => {
         },
       };
 
-      renderMockRequests({planTier: PlanTier.AM2, organization});
+      renderMockRequests({organization});
 
       const {router} = render(
         <ProductSelectionAvailability

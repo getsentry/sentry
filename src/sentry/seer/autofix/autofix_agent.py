@@ -231,7 +231,14 @@ def get_latest_iteration_index(state: SeerRunState) -> int:
     for block in reversed(state.blocks):
         metadata = block.message.metadata or {}
         if metadata.get("step") == AutofixStep.PR_ITERATION.value:
-            return int(metadata["iteration_index"])
+            iteration_index = metadata.get("iteration_index")
+            if iteration_index is None:
+                logger.error(
+                    "autofix.get_latest_iteration_index.missing_iteration_index",
+                    extra={"run_id": state.run_id},
+                )
+                return 0
+            return int(iteration_index)
     return 0
 
 
@@ -239,27 +246,6 @@ def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> in
     block = state.blocks[insert_index]
     metadata = block.message.metadata or {}
     return int(metadata["iteration_index"])
-
-
-def recover_iteration_feedback(state: SeerRunState, insert_index: int) -> str | None:
-    """
-    Recover the user feedback that originally triggered a PR iteration.
-
-    When a PR iteration is retried, the frontend truncates the run at the
-    iteration's first block (``insert_index``). That block carries the original
-    feedback in its metadata, so we reuse it to retry with the same feedback
-    rather than dropping it.
-    """
-    if insert_index < 0 or insert_index >= len(state.blocks):
-        return None
-    metadata = state.blocks[insert_index].message.metadata
-    if metadata is None:
-        return None
-    raw = metadata.get("feedback")
-    if raw is None:
-        return None
-    # Feedback is stored as a JSON object (``{"text", "username", "timestamp"}``).
-    return json.loads(raw).get("text")
 
 
 def get_autofix_agent_client(
@@ -319,10 +305,10 @@ def _default_reasoning_effort(
     return step_default
 
 
-def _code_review_enabled(organization: Organization, enable_coding: bool) -> bool:
-    # The review_code_changes tool only operates on accumulated patches, so it is
-    # only useful on coding-enabled steps.
-    return enable_coding and features.has("organizations:seer-autofix-code-review", organization)
+def _code_review_enabled(organization: Organization) -> bool:
+    # Gated purely on the option: Seer decides where the review_code_changes tool
+    # is actually useful (e.g. only once code edits have accumulated).
+    return features.has("organizations:seer-autofix-code-review", organization)
 
 
 def trigger_autofix_agent(
@@ -378,7 +364,7 @@ def trigger_autofix_agent(
         intelligence_level=resolved_intelligence_level,
         reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
-        code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
+        code_review_enabled=_code_review_enabled(group.organization),
     )
     run_state: SeerRunState | None = None
     if run_id is not None:
@@ -414,8 +400,7 @@ def trigger_autofix_agent(
     }
     if step == AutofixStep.PR_ITERATION and feedback is not None:
         # Stored as a JSON object so the UI can attribute the feedback to its
-        # source and show when it was submitted. See ``recover_iteration_feedback``
-        # for the read side.
+        # source and show when it was submitted.
         prompt_metadata["feedback"] = json.dumps(
             {
                 "text": feedback.message,
