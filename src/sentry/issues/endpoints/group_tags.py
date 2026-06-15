@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 @cell_silo_endpoint
 class GroupTagsEndpoint(GroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     enforce_rate_limit = True

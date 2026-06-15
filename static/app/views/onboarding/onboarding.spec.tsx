@@ -25,7 +25,7 @@ import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRe
 import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 

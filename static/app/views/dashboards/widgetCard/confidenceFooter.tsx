@@ -2,7 +2,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -48,10 +48,12 @@ export function WidgetCardConfidenceFooter({
     seriesName?.match(/.* : Other$|^Other$/)
   );
 
+  // All queries share the same aggregates, so queries[0] is representative.
+  // Fallback to 1 to guard against division by zero (DAIN-1712).
+  const aggregatesCount = widget.queries[0]?.aggregates.length || 1;
   const topEventsCountExcludingOther =
     timeseriesResults?.length && widget.queries[0]?.columns.length
-      ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (hasOtherSeries ? 1 : 0)
+      ? Math.floor(timeseriesResults.length / aggregatesCount) - (hasOtherSeries ? 1 : 0)
       : undefined;
 
   const isTopN =

@@ -3,9 +3,10 @@ from typing import Any
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
-from rest_framework import serializers
 
 from sentry import constants
+from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -44,7 +45,7 @@ class GlobalParams:
     )
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
-        description="The ID or slug of the project the resource belongs to.",
+        description="The ID or slug of the project the resource belongs to. Project slugs are unique within each organization.",
         required=True,
         type=str,
         location="path",
@@ -143,7 +144,18 @@ class OrganizationParams:
         required=False,
         many=True,
         type=str,
-        description="""The project slugs to filter by. Use `$all` to include all available projects. For example, the following are valid parameters:
+        description="""The legacy project slug filter. Prefer `project`, which accepts project IDs or slugs. Use `$all` to include all available projects. For example, the following are valid parameters:
+- `/?projectSlug=$all`
+- `/?projectSlug=android&projectSlug=javascript-react`
+""",
+    )
+    PROJECT_SLUG = OpenApiParameter(
+        name="projectSlug",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="""The project slugs to filter by. This legacy parameter takes precedence over `project` if both are provided. Prefer `project`, which accepts project IDs or slugs. Use `$all` to include all available projects. For example, the following are valid parameters:
 - `/?projectSlug=$all`
 - `/?projectSlug=android&projectSlug=javascript-react`
 """,
@@ -152,11 +164,11 @@ class OrganizationParams:
         name="project",
         location="query",
         required=False,
-        many=True,
-        type=int,
-        description="""The IDs of projects to filter by. `-1` means all available projects.
+        type={"type": "array", "items": PROJECT_ID_OR_SLUG_SCHEMA},
+        description="""The IDs or slugs of projects to filter by. Project slugs are unique within each organization. Omit this parameter to include all accessible projects. `-1` is also accepted to include all accessible projects.
 For example, the following are valid parameters:
 - `/?project=1234&project=56789`
+- `/?project=android&project=javascript-react`
 - `/?project=-1`
 """,
     )
@@ -206,6 +218,14 @@ Valid fields include:
 """,
     )
 
+    PROJECT_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter projects by name or slug.",
+    )
+
     EXTERNAL_USER_ID = OpenApiParameter(
         name="external_user_id",
         location="path",
@@ -230,6 +250,13 @@ class ReleaseParams:
         required=True,
         type=str,
         description="The version identifier of the release",
+    )
+    FILE_ID = OpenApiParameter(
+        name="file_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the release file.",
     )
     QUERY = OpenApiParameter(
         name="query",
@@ -313,7 +340,7 @@ class IssueParams:
         name="issue_id",
         location="path",
         required=True,
-        type=int,
+        type=str,
         description="The ID of the issue you'd like to query.",
     )
 
@@ -598,6 +625,13 @@ class SentryAppParams:
         type=str,
         description="The ID or slug of the custom integration.",
     )
+    INSTALLATION_UUID = OpenApiParameter(
+        name="uuid",
+        location="path",
+        required=True,
+        type=str,
+        description="The UUID of the Sentry App installation.",
+    )
 
 
 class SentryAppStatusParams:
@@ -613,6 +647,13 @@ class SentryAppStatusParams:
 
 
 class VisibilityParams:
+    ALLOW_AGGREGATE_CONDITIONS = OpenApiParameter(
+        name="allowAggregateConditions",
+        location="query",
+        required=False,
+        type=OpenApiTypes.BOOL,
+        description="If false, aggregate conditions in the query string are disallowed. Defaults to true.",
+    )
     QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -686,7 +727,7 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         ],
         # Not every key in DATASET_OPTIONS is listed here — internal,
         # metrics-layer, and deprecated aliases (e.g. "ourlogs",
-        # "metricsEnhanced", "spansIndexed") are intentionally omitted so
+        # "metricsEnhanced") are intentionally omitted so
         # the public API surface stays stable as backends migrate to EAP.
         description="""Which dataset to query. The chosen dataset determines which fields are queryable.
 - `errors` - Error events.
@@ -749,11 +790,15 @@ events that aren't in the top groups.""",
     )
 
 
-class CursorQueryParam(serializers.Serializer):
-    cursor = serializers.CharField(
-        help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
-        required=False,
-    )
+CursorQueryParam = OpenApiParameter(
+    name="cursor",
+    location="query",
+    required=False,
+    type=str,
+    allow_blank=False,
+    description="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
+    extensions={"x-learn-more": "https://docs.sentry.io/api/pagination/"},
+)
 
 
 class MonitorParams:
@@ -930,6 +975,13 @@ keys if not specified.
 
 
 class TeamParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter teams by name or slug.",
+    )
     DETAILED = OpenApiParameter(
         name="detailed",
         location="query",
@@ -984,6 +1036,28 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.INT,
         description="""The ID of the replay deletion job you'd like to retrieve.""",
+    )
+
+    DATA_SOURCE = OpenApiParameter(
+        name="data_source",
+        location="query",
+        required=False,
+        type=OpenApiTypes.STR,
+        enum=[
+            Dataset.Discover.value,
+            Dataset.Events.value,
+            Dataset.Transactions.value,
+            Dataset.IssuePlatform.value,
+        ],
+        description="The data source to query replays from. Defaults to 'discover'.",
+    )
+
+    RETURN_IDS = OpenApiParameter(
+        name="returnIds",
+        location="query",
+        required=False,
+        type=OpenApiTypes.BOOL,
+        description="If true, return issue IDs rather than counts.",
     )
 
 

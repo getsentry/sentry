@@ -26,15 +26,13 @@ jobs:
     outputs:
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
-      typecheckable_rules_changed: ${{ steps.changes.outputs.typecheckable_rules_changed }}
       mdx_typecheckable: ${{ steps.changes.outputs.mdx_typecheckable }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
-      merge_base: ${{ steps.merge_base.outputs.merge_base }}
-      merge_base_strategy: ${{ steps.merge_base.outputs.merge_base_strategy }}
+      frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          fetch-depth: 100
+          fetch-depth: 1
 
       - name: Check for frontend file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -43,32 +41,6 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
           list-files: shell
-
-      # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
-      # Merge base of those two is what Jest --changedSince needs.
-      # If merge base can't be computed or non-frontend files changed, output is empty
-      # and the Jest job will run the full test suite instead.
-      - name: Get merge base for changedSince
-        id: merge_base
-        if: github.event_name == 'pull_request'
-        run: |
-          MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
-          if [ -n "$MERGE_BASE" ]; then
-            CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2)
-            if echo "$CHANGED" | grep -qvE '^static/'; then
-              echo "Non-frontend file changed — running full Jest suite"
-              MERGE_BASE=""
-              STRATEGY="non_frontend_changes"
-            else
-              echo "Merge base: $MERGE_BASE (Jest will use --changedSince)"
-              STRATEGY="changedSince"
-            fi
-          else
-            echo "Could not compute merge base — running full Jest suite"
-            STRATEGY="no_merge_base"
-          fi
-          echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
-          echo "merge_base_strategy=${STRATEGY}" >> "$GITHUB_OUTPUT"
 
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -154,9 +126,44 @@ jobs:
         id: knip-prod
         run: pnpm run knip:prod
 
-  frontend-jest-tests:
+  jest-config:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
-    needs: [files-changed]
+    name: Configure Jest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    needs: files-changed
+    outputs:
+      jest_test_matrix: ${{ steps.jest_test_config.outputs.jest_test_matrix }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        name: Checkout sentry
+        with:
+          # PRs need history for git merge-base to find the fork point.
+          fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
+      # Merge base of those two determines which tests to run via --findRelatedTests.
+      # If merge base can't be computed or non-frontend files changed, the full
+      # test suite runs instead.
+      - name: Jest Test Config
+        id: jest_test_config
+        env:
+          FRONTEND_ALL_FILES: ${{ needs.files-changed.outputs.frontend_all_files }}
+        run: ./.github/workflows/scripts/jest-test-config.sh
+
+      - name: Upload jest test file list
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
+        with:
+          name: jest-test-files
+          path: jest-test-files.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  jest-tests:
+    if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
+    needs: [files-changed, jest-config]
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
@@ -166,17 +173,11 @@ jobs:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
-      matrix:
-        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-
-        instance: [0, 1, 2, 3, 4, 5, 6, 7]
+      matrix: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix) }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
-        with:
-          # PRs need history so Jest can resolve --changedSince <merge_base> from local Git history.
-          fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -186,10 +187,16 @@ jobs:
           path: |
             .cache/jest
             ~/.cache/swc
-          key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.instance }}
+          key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.index }}
           restore-keys: |
             jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
             jest-cache-${{ runner.os }}-
+
+      - name: Download jest-test-files.json
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: jest-test-files
+          path: .
 
       - name: Download jest-balance.json
         id: download-artifact
@@ -206,26 +213,24 @@ jobs:
 
       - name: jest
         env:
+          SENTRY_DSN: ${{ secrets.SENTRY_JEST_DSN }}
+
+          CI_NODE_TOTAL: ${{ matrix.total }}
+          CI_NODE_INDEX: ${{ matrix.index }}
+
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-          #      Otherwise, if there are other things in the matrix, using strategy.job-total
-          #      wouldn't be correct.
-          CI_NODE_TOTAL: 8
-          CI_NODE_INDEX: ${{ matrix.instance }}
+
           # Disable testing-library from printing out any of of the DOM to
           # stdout. No one actually looks through this in CI, they're just
           # going to run it locally.
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
+
           # When the "Frontend: Rerun Flaky Tests" label is on the PR,
           # tests wrapped with it.isKnownFlake() run 50x to validate fixes.
           RERUN_KNOWN_FLAKY_TESTS: "${{ contains(github.event.pull_request.labels.*.name, 'Frontend: Rerun Flaky Tests') }}"
-          # When set, Jest uses --changedSince to run only tests affected by this PR.
-          # Empty on master or when non-frontend files changed (falls back to full suite).
-          MERGE_BASE: ${{ needs.files-changed.outputs.merge_base }}
-          MERGE_BASE_STRATEGY: ${{ needs.files-changed.outputs.merge_base_strategy }}
         run: pnpm run test-ci --forceExit
 
   form-field-registry:
@@ -260,7 +265,8 @@ jobs:
     needs:
       [
         files-changed,
-        frontend-jest-tests,
+        jest-config,
+        jest-tests,
         typescript,
         typescript-mdx,
         eslint,

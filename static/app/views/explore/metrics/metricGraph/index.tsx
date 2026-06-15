@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -50,11 +50,14 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 import {WidgetWrapper} from './styles';
 
-export function getMetricsChartTypeOptions(organization: Organization) {
+export function getMetricsChartTypeOptions(
+  organization: Organization,
+  isEquation: boolean
+) {
   if (canUseMetricsHeatMap(organization)) {
     return [
       ...EXPLORE_CHART_TYPE_OPTIONS,
-      {value: ChartType.HEATMAP, label: t('Heat Map')},
+      {value: ChartType.HEATMAP, label: t('Heat Map'), disabled: isEquation},
     ];
   }
   return EXPLORE_CHART_TYPE_OPTIONS;

@@ -16,6 +16,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.file import File
 from sentry.models.organization import Organization
@@ -103,7 +104,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         artifact_id: str,
-    ) -> Response:
+    ) -> Response[SizeAnalysisResponseDict] | Response[DetailResponse]:
         """
         Retrieve size analysis results for a given artifact.
 

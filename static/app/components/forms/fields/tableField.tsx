@@ -11,7 +11,7 @@ import {FormField} from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 

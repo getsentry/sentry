@@ -11,7 +11,6 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -177,7 +176,12 @@ def _get_trigger_metadata_for_issue_comment(event_payload: Mapping[str, Any]) ->
         "trigger_user": comment_user.get("login"),
         "trigger_user_id": comment_user.get("id"),
         "trigger_comment_id": comment.get("id"),
-        "trigger_comment_type": "issue_comment",
+        # The @sentry review trigger is always a comment on a PR (non-PR issue
+        # comments are filtered out upstream), so it is treated as a review
+        # comment. On GitHub this resolves to the same issue-comment reactions
+        # endpoint; using "pull_request_review_comment" keeps the type correct
+        # for GitLab too, where it must route to the merge-request note endpoint.
+        "trigger_comment_type": "pull_request_review_comment",
         "trigger_at": trigger_at,
     }
 
@@ -274,9 +278,8 @@ def _common_codegen_request_payload(
         },
     }
 
-    # Add experiment_enabled flag ONLY for pr-review requests (not for pr-closed / pr-reopened)
     if add_experiment_enabled:
-        data["experiment_enabled"] = is_org_enabled_for_code_review_experiments(organization)
+        data["experiment_enabled"] = True
 
     return {
         "external_owner_id": repo.external_id,
@@ -624,16 +627,3 @@ def delete_existing_reactions_and_add_reaction(
             CodeReviewErrorType.REACTION_FAILED,
         )
         logger.warning(Log.REACTION_FAILED.value, exc_info=True)
-
-
-def is_org_enabled_for_code_review_experiments(organization: Organization) -> bool:
-    """
-    Checks if an org is eligible to code review experiments via Flagpole.
-
-    If True the exact experiment is decided by Seer.
-    If False no experiment will be applied to the PR, and it'll use the default behavior.
-    """
-    return features.has(
-        "organizations:code-review-experiments-enabled",
-        organization,
-    )

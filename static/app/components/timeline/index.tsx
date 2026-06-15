@@ -89,7 +89,7 @@ const Row = styled('div')<{hasMarker: boolean; showLastLine?: boolean}>`
   grid-template-rows: auto auto;
   grid-template-columns: ${p =>
     p.hasMarker ? '22px 22px minmax(50px, 1fr) auto' : '22px minmax(50px, 1fr) auto'};
-  grid-column-gap: ${p => p.theme.space.md};
+  grid-column-gap: ${p => (p.hasMarker ? p.theme.space.xs : p.theme.space.md)};
   margin: ${p => p.theme.space.md} 0;
   &:first-child {
     margin-top: 0;

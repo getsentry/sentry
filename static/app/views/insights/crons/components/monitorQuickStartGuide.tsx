@@ -16,7 +16,8 @@ import {
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {QuickStartProps} from 'sentry/views/insights/crons/components/manualCheckInGuides';

@@ -14,6 +14,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -23,6 +24,37 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.group import Group
 from sentry.utils.groupreference import find_referenced_groups
+
+
+class PullRequestLifecycleState(models.TextChoices):
+    OPEN = "open"
+    CLOSED = "closed"
+    MERGED = "merged"
+    LOCKED = "locked"
+    SUPERSEDED = "superseded"
+
+
+class PullRequestAttributionSignalType(models.TextChoices):
+    SENTRY_APP = "sentry_app"
+    SEER_DELEGATED_CURSOR = "seer_delegated:cursor"
+    SEER_DELEGATED_GITHUB_COPILOT = "seer_delegated:github_copilot"
+    SEER_DELEGATED_CLAUDE_CODE = "seer_delegated:claude_code"
+    SEER_DELEGATED_UNKNOWN = "seer_delegated:unknown"
+    MCP = "mcp"
+    REFERENCED_ISSUE = "referenced_issue"
+    UNKNOWN = "unknown"
+
+
+class PullRequestAttributionSource(models.TextChoices):
+    WEBHOOK_DATA = "webhook_data"
+    SEER_DATA = "seer_data"
+    SEER_LLM_JUDGE = "seer_llm_judge"
+
+
+class PullRequestVerdict(models.TextChoices):
+    MERGED_UNCHANGED = "merged_unchanged"
+    MERGED_WITH_ITERATION = "merged_with_iteration"
+    CLOSED_UNMERGED = "closed_unmerged"
 
 
 class PullRequestManager(BaseManager["PullRequest"]):
@@ -74,6 +106,17 @@ class PullRequest(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
+    # Facts for the PR metrics pipeline, kept current by the GitHub webhook.
+    # All nullable: we only have them for PRs whose events Sentry actually saw.
+    # A late-installed integration, a missed/dropped webhook, or a non-webhook
+    # creation path (e.g. attribution get_or_create) leaves them unset.
+    opened_at = models.DateTimeField(null=True)
+    closed_at = models.DateTimeField(null=True)
+    merged_at = models.DateTimeField(null=True)
+    state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)
+    head_commit_sha = models.CharField(max_length=64, null=True)
+    draft = models.BooleanField(null=True)
+
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 
     class Meta:
@@ -82,6 +125,7 @@ class PullRequest(Model):
         indexes = (
             models.Index(fields=("repository_id", "date_added")),
             models.Index(fields=("organization_id", "merge_commit_sha")),
+            models.Index(fields=("organization_id", "head_commit_sha")),
         )
         unique_together = (("repository_id", "key"),)
 
@@ -220,3 +264,104 @@ class PullRequestComment(Model):
         app_label = "sentry"
         db_table = "sentry_pullrequest_comment"
         unique_together = (("pull_request", "comment_type"),)
+
+
+class PullRequestActivityType(models.TextChoices):
+    ASSIGNED = "assigned"
+    CLOSED = "closed"
+    COMMENT_CREATED = "comment_created"
+    COMMENT_DELETED = "comment_deleted"
+    COMMENT_EDITED = "comment_edited"
+    CONVERTED_TO_DRAFT = "converted_to_draft"
+    EDITED = "edited"
+    LABELED = "labeled"
+    LOCKED = "locked"
+    MERGED = "merged"
+    OPENED = "opened"
+    READY_FOR_REVIEW = "ready_for_review"
+    REOPENED = "reopened"
+    REVIEW_REQUESTED = "review_requested"
+    REVIEW_REQUEST_REMOVED = "review_request_removed"
+    REVIEW_SUBMITTED = "review_submitted"
+    REVIEW_THREAD_RESOLVED = "review_thread_resolved"
+    REVIEW_THREAD_UNRESOLVED = "review_thread_unresolved"
+    SYNCHRONIZED = "synchronized"
+    UNASSIGNED = "unassigned"
+    UNLABELED = "unlabeled"
+    UNLOCKED = "unlocked"
+
+
+@cell_silo_model
+class PullRequestActivity(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    pull_request = FlexibleForeignKey("sentry.PullRequest")
+    event_type = models.CharField(max_length=64, choices=PullRequestActivityType.choices)
+    # The SCM webhook delivery id (e.g. GitHub's X-GitHub-Delivery). A row is only
+    # created once we have this id, so it dedupes redelivered webhooks: a retry
+    # hits the unique constraint instead of creating a duplicate activity row.
+    webhook_id = models.CharField(max_length=255)
+    payload = models.JSONField(default=dict)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_activity"
+        indexes = (
+            models.Index(fields=["pull_request", "date_added"]),
+            models.Index(fields=["date_added"]),
+        )
+        unique_together = (("pull_request", "webhook_id"),)
+
+    __repr__ = sane_repr("pull_request_id", "event_type")
+
+
+@cell_silo_model
+class PullRequestAttribution(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    pull_request = FlexibleForeignKey("sentry.PullRequest")
+    signal_type = models.CharField(max_length=64, choices=PullRequestAttributionSignalType.choices)
+    signal_details = models.JSONField(null=True)
+    source = models.CharField(max_length=128, choices=PullRequestAttributionSource.choices)
+    is_valid = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_attribution"
+        unique_together = (("pull_request", "signal_type", "source"),)
+
+    __repr__ = sane_repr("pull_request_id", "signal_type")
+
+
+@cell_silo_model
+class PullRequestMetrics(DefaultFieldsModel):
+    """One row per PR holding the webhook-sourced activity counters.
+
+    Kept current by the metrics pipeline on each ``pull_request`` webhook and read
+    by the emit/judge path (which, on the Seer callback, has no payload — hence
+    the counts are stored rather than re-derived). ``verdict`` and the Seer-only
+    counters (``participants_count``, ``reviews_count``) are populated later by
+    the judge path, not the webhook.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    pull_request = models.OneToOneField(
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="metrics"
+    )
+    verdict = models.CharField(max_length=64, null=True, choices=PullRequestVerdict.choices)
+    additions = BoundedPositiveIntegerField(default=0)
+    deletions = BoundedPositiveIntegerField(default=0)
+    files_changed = BoundedPositiveIntegerField(default=0)
+    commits_count = BoundedPositiveIntegerField(default=0)
+    comments_count = BoundedPositiveIntegerField(default=0)
+    review_comments_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    participants_count = BoundedPositiveIntegerField(default=0)
+    reviews_count = BoundedPositiveIntegerField(default=0)
+    is_assigned = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_metrics"
+
+    __repr__ = sane_repr("pull_request_id")

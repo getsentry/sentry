@@ -79,6 +79,12 @@ export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
 }
 
+export function getSnapshotImageUrl(imageBaseUrl: string, image: SnapshotImage): string {
+  const url = `${imageBaseUrl}${image.key}/`;
+  const fileName = image.image_file_name?.split('/').pop();
+  return fileName ? `${url}?filename=${encodeURIComponent(fileName)}` : url;
+}
+
 interface SidebarItemBase {
   displayName: string;
   key: string;

@@ -59,6 +59,7 @@ import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -92,8 +93,21 @@ import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerC
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
-import type {NavigationGroupProps} from 'sentry/views/settings/types';
+import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
 
+/**
+ * Returns true if a settings navigation item should be shown in cmd+k.
+ * Items with `show: false` or a `show` function returning `false` are hidden.
+ */
+export function isNavItemVisible(
+  item: Pick<NavigationItem, 'show'>,
+  context: NavigationGroupProps
+): boolean {
+  if (item.show === undefined) {
+    return true;
+  }
+  return typeof item.show === 'function' ? item.show(context) : item.show;
+}
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
@@ -118,7 +132,7 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
-const helpSearch = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop']);
+const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
 const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
@@ -282,17 +296,28 @@ export function GlobalCommandPaletteActions() {
       organization,
     })
       .flatMap(section =>
-        section.items.filter(navItem => {
-          if (navItem.show === undefined) {
-            return true;
-          }
-          return typeof navItem.show === 'function'
-            ? navItem.show({...context, ...section})
-            : navItem.show;
-        })
+        section.items.filter(navItem =>
+          isNavItemVisible(navItem, {...context, ...section})
+        )
       )
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
+
+  const visibleOrgSettingsNavItems = useMemo(() => {
+    const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
+      access: new Set(organization.access),
+      features: new Set(organization.features),
+      isSelfHosted: sentryConfig.isSelfHosted,
+      organization,
+    };
+    return getUserOrgNavigationConfiguration()
+      .flatMap(section =>
+        section.items.filter(navItem =>
+          isNavItemVisible(navItem, {...context, ...section})
+        )
+      )
+      .sort((a, b) => a.title.localeCompare(b.title));
+  }, [organization, sentryConfig.isSelfHosted]);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -404,10 +429,10 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}} limit={4}>
+        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
           {hasPrebuiltDashboards && (
             <CMDKAction
-              display={{label: t('All Dashboards')}}
+              display={{label: t('Dashboards')}}
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
             />
           )}
@@ -423,17 +448,43 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
             />
           )}
+          {starredDashboards.length > 0 && (
+            <CMDKAction
+              display={{label: t('Starred Dashboards'), icon: <IconStar />}}
+              keywords={[t('bookmarked'), t('favorites')]}
+            >
+              {starredDashboards.map(dashboard => (
+                <CMDKAction
+                  key={dashboard.id}
+                  display={{label: dashboard.title, icon: <IconStar />}}
+                  to={`${prefix}/dashboard/${dashboard.id}/`}
+                />
+              ))}
+            </CMDKAction>
+          )}
           <CMDKAction
-            display={{label: t('Starred Dashboards'), icon: <IconStar />}}
-            keywords={[t('bookmarked'), t('favorites')]}
+            display={{label: t('All Dashboards'), icon: <IconSearch />}}
+            prompt={t('Search for a dashboard...')}
+            limit={5}
+            resource={query =>
+              cmdkQueryOptions({
+                ...dashboardsApiOptions(organization, {
+                  query: {query, per_page: 20},
+                }),
+                enabled: query.length >= 1,
+                select: data =>
+                  data.json.map(dashboard => ({
+                    display: {
+                      label: dashboard.title,
+                      icon: dashboard.isFavorited ? <IconStar /> : <IconDashboard />,
+                    },
+                    keywords: [dashboard.title],
+                    to: `${prefix}/dashboard/${dashboard.id}/`,
+                  })),
+              })
+            }
           >
-            {starredDashboards.map(dashboard => (
-              <CMDKAction
-                key={dashboard.id}
-                display={{label: dashboard.title, icon: <IconStar />}}
-                to={`${prefix}/dashboard/${dashboard.id}/`}
-              />
-            ))}
+            {data => data.map((item, i) => renderAsyncResult(item, i))}
           </CMDKAction>
         </CMDKAction>
 
@@ -543,17 +594,14 @@ export function GlobalCommandPaletteActions() {
         )}
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
-          {getUserOrgNavigationConfiguration()
-            .flatMap(section => section.items)
-            .sort((a, b) => a.title.localeCompare(b.title))
-            .map(item => (
-              <CMDKAction
-                key={item.path}
-                display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
-                keywords={item.keywords}
-                to={item.path}
-              />
-            ))}
+          {visibleOrgSettingsNavItems.map(item => (
+            <CMDKAction
+              key={item.path}
+              display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+              keywords={item.keywords}
+              to={item.path}
+            />
+          ))}
           <Override name="cmdk:global-settings-actions" />
         </CMDKAction>
 
@@ -639,7 +687,14 @@ export function GlobalCommandPaletteActions() {
                 icon: <ProjectAvatar project={project} size={16} />,
                 trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
               }}
-              keywords={[t('dsn'), t('client keys'), t('dsn key'), project.slug]}
+              keywords={[
+                t('dsn'),
+                t('client keys'),
+                t('dsn key'),
+                'SENTRY_DSN',
+                'Sentry DSN',
+                project.slug,
+              ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}

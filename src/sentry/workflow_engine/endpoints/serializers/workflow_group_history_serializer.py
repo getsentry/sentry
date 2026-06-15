@@ -63,7 +63,7 @@ def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory
     ]
 
 
-class WorkflowGroupHistorySerializer(Serializer):
+class WorkflowGroupHistorySerializer(Serializer[WorkflowFireHistoryResponse]):
     def get_attrs(
         self, item_list: Sequence[WorkflowGroupHistory], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:

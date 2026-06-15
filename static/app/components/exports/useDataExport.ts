@@ -1,8 +1,8 @@
 import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {RequestError} from 'sentry/utils/requestError/requestError';

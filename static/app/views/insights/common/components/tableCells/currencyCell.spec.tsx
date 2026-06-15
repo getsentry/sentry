@@ -23,18 +23,14 @@ describe('CurrencyCell', () => {
     expect(screen.getByText('$0')).toBeInTheDocument();
   });
 
-  it('renders negative value with warning icon', async () => {
+  it('renders negative value with warning tooltip', async () => {
     render(<CurrencyCell value={-5.5} />);
 
     // The negative value should be rendered
     expect(screen.getByText('$-5.5')).toBeInTheDocument();
 
-    // Warning icon should be present
-    const warningIcon = screen.getByRole('img', {hidden: true});
-    expect(warningIcon).toBeInTheDocument();
-
-    // Hover over the wrapper to see tooltip
-    await userEvent.hover(warningIcon);
+    // Hover over the value to see tooltip
+    await userEvent.hover(screen.getByText('$-5.5'));
     expect(
       await screen.findByText(/Negative costs indicate an error/)
     ).toBeInTheDocument();

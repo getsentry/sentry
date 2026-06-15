@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {ValueLink} from 'sentry/components/keyValueData';
 import type {KeyValueListData} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import type {ValueProps} from './value';
 import {Value} from './value';

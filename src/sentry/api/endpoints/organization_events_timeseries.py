@@ -158,7 +158,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         },
         examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[StatsResponse]:
         """
         Retrieves explore data for a given organization as a timeseries.
 
@@ -184,6 +184,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+            sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
             try:
                 snuba_params = self.get_snuba_params(
                     request,

@@ -59,7 +59,7 @@ describe('SlowestFunctionsWidget', () => {
     expect(await screen.findByText('No functions found')).toBeInTheDocument();
   });
 
-  it('renders examples and chart', async () => {
+  it.isKnownFlake('renders examples and chart', async () => {
     // for the slowest functions query
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

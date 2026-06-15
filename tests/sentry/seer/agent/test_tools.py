@@ -15,6 +15,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
@@ -454,6 +455,105 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
         assert exc_info.value.status_code == 500
 
+    @patch("sentry.seer.agent.tools.client.get")
+    def test_spans_timeseries_query_error_handling(self, mock_client_get: Mock) -> None:
+        """400 errors return the detail under a reserved _seer_error_detail key so it can't collide
+        with a group_by value (which becomes a top-level key); non-400 errors are re-raised."""
+        # 400 error with dict body containing detail.
+        error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
+        mock_client_get.side_effect = client.ApiError(400, {"detail": error_detail_msg})
+
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            y_axes=["count()"],
+            query="invalid_field:value",
+            stats_period="1h",
+        )
+
+        assert result == {"_seer_error_detail": error_detail_msg}
+        # The detail is not exposed under "error", where it could shadow a group value.
+        assert "error" not in result
+
+        # 400 error with a non-dict body falls back to stringifying the whole body.
+        error_body = "Bad request: malformed query syntax"
+        mock_client_get.side_effect = client.ApiError(400, error_body)
+
+        result = execute_timeseries_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            y_axes=["count()"],
+            query="malformed query",
+            stats_period="1h",
+        )
+
+        assert result == {"_seer_error_detail": error_body}
+
+        # Non-400 errors are re-raised.
+        mock_client_get.side_effect = client.ApiError(500, {"detail": "Internal server error"})
+
+        with pytest.raises(client.ApiError) as exc_info:
+            execute_timeseries_query(
+                org_id=self.organization.id,
+                dataset="spans",
+                y_axes=["count()"],
+                query="",
+                stats_period="1h",
+            )
+
+        assert exc_info.value.status_code == 500
+
+    @patch("sentry.seer.agent.tools.client.get")
+    def test_table_query_forwards_cross_event_params(self, mock_client_get: Mock) -> None:
+        """Cross-event filters are forwarded to /events/ as repeated spanQuery/logQuery/metricQuery params."""
+        mock_resp = Mock()
+        mock_resp.data = {"data": []}
+        mock_client_get.return_value = mock_resp
+
+        execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="span.op:QueryBuilder",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+            span_query=["span.category:http"],
+            log_query=["severity:error"],
+            metric_query=["metric.name:checkout.latency"],
+        )
+
+        mock_client_get.assert_called_once()
+        params = mock_client_get.call_args.kwargs["params"]
+        assert params["spanQuery"] == ["span.category:http"]
+        assert params["logQuery"] == ["severity:error"]
+        assert params["metricQuery"] == ["metric.name:checkout.latency"]
+        # Primary query is unaffected by the cross-event filters.
+        assert params["query"] == "span.op:QueryBuilder"
+
+    @patch("sentry.seer.agent.tools.client.get")
+    def test_table_query_omits_cross_event_params_when_unset(self, mock_client_get: Mock) -> None:
+        """With no cross-event filters the request is unchanged — back-compat for existing callers."""
+        mock_resp = Mock()
+        mock_resp.data = {"data": []}
+        mock_client_get.return_value = mock_resp
+
+        execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        mock_client_get.assert_called_once()
+        params = mock_client_get.call_args.kwargs["params"]
+        assert "spanQuery" not in params
+        assert "logQuery" not in params
+        assert "metricQuery" not in params
+
     def test_spans_timeseries_with_groupby(self) -> None:
         """Test timeseries query with group_by parameter for aggregates"""
         result = execute_timeseries_query(
@@ -576,6 +676,90 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
         assert result == {"projects": []}
+
+
+class TestSpansCrossTraceQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
+    """Integration test for the tool->API cross-event (same-trace) contract."""
+
+    span_fields = ["id", "span.op", "trace", "timestamp"]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.ten_mins_ago = before_now(minutes=10)
+
+        self.trace_with_log = uuid.uuid4().hex
+        self.trace_without_log = uuid.uuid4().hex
+
+        # A matching log lives only in trace_with_log; the other trace gets an unrelated log.
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    {
+                        "body": "crosseventneedle",
+                        "severity_text": "ERROR",
+                        "severity_number": 17,
+                        "trace_id": self.trace_with_log,
+                    },
+                    timestamp=self.ten_mins_ago,
+                ),
+                self.create_ourlog(
+                    {
+                        "body": "unrelatedlog",
+                        "severity_text": "INFO",
+                        "severity_number": 9,
+                        "trace_id": self.trace_without_log,
+                    },
+                    timestamp=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        # One db span in each trace; the primary query (span.op:db) matches both spans,
+        # so any narrowing in the assertions is attributable to the cross-event filter.
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "cross-event probe",
+                        "sentry_tags": {"op": "db"},
+                        "trace_id": self.trace_with_log,
+                    },
+                    start_ts=self.ten_mins_ago,
+                    duration=100,
+                ),
+                self.create_span(
+                    {
+                        "description": "cross-event probe",
+                        "sentry_tags": {"op": "db"},
+                        "trace_id": self.trace_without_log,
+                    },
+                    start_ts=self.ten_mins_ago,
+                    duration=100,
+                ),
+            ]
+        )
+
+    def test_log_cross_event_filter_restricts_to_matching_trace(self) -> None:
+        """log_query restricts spans to those whose trace also contains the matching log."""
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.span_fields,
+            query="span.op:db",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+            project_slugs=[self.project.slug],
+            log_query=["message:crosseventneedle"],
+        )
+
+        assert result is not None
+        assert "error" not in result, result
+        rows = result["data"]
+        # Only the span whose trace also contains the matching log survives the join.
+        assert len(rows) == 1
+        assert rows[0]["trace"] == self.trace_with_log
 
 
 class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase):
@@ -1134,6 +1318,41 @@ class TestGetIssueAndEventDetailsV2(
             _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_on_query_error(self, mock_execute: Mock) -> None:
+        """A _seer_error_detail payload from execute_timeseries_query is treated as no data."""
+        mock_execute.return_value = {"_seer_error_detail": "Invalid query: bad field"}
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_none_when_no_data(self, mock_execute: Mock) -> None:
+        """A None result from execute_timeseries_query is propagated as None."""
+        mock_execute.return_value = None
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_issue_event_timeseries_returns_data_on_success(self, mock_execute: Mock) -> None:
+        """A normal timeseries payload flows through with the selected period and interval."""
+        data: dict[str, Any] = {"count()": {"data": []}}
+        mock_execute.return_value = data
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is not None
+        returned_data, period, interval = result
+        assert returned_data is data
+        assert period
+        assert interval
+
     def test_get_ie_details_from_issue_id_basic(
         self,
     ):
@@ -1456,6 +1675,36 @@ class TestGetIssueAndEventDetailsV2(
             assert serialized["value"] == original.value
             assert serialized["important"] == original.important
 
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_low_value_span_event_context(self, mock_get_tags, mock_get_timeseries) -> None:
+        """Troubleshooting context lives on the serialized event, not the issue."""
+        mock_get_timeseries.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_get_tags.return_value = {"tags_overview": []}
+
+        occurrence, _ = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+            type=LowValueSpanConfigurationType.type_id,
+            evidence_data={"span_origin": "manual"},
+        )
+
+        result = get_issue_and_event_details_v2(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            project_slug=self.project.slug,
+            include_issue=True,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert "Sentry detector" in event_dict["detectionContext"]
+        assert "Remove the manually instrumented span" in event_dict["troubleshootingHint"]
+
 
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Tests for get_issue_details — fetching issue-level metadata, timeseries, tags, and activity."""
@@ -1522,6 +1771,22 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
+
+    def test_by_qualified_short_id_scoped_to_project_slug(self):
+        """A short ID is only resolvable within the project_slug-scoped projects."""
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        other_project = self.create_project(organization=self.organization, name="other project")
+
+        # Restricting to a different project must not resolve this project's short ID.
+        with pytest.raises(Group.DoesNotExist):
+            get_issue_details(
+                organization_id=self.organization.id,
+                issue_id=group.qualified_short_id,
+                project_slug=other_project.slug,
+            )
 
     # --- timeseries ---
 
@@ -1962,6 +2227,47 @@ class TestGetEventDetails(
         )
 
         assert result is None
+
+    # --- troubleshooting context on the serialized event ---
+
+    def test_low_value_span_event_context(self) -> None:
+        """Low-value-span events surface detector context on the serialized event."""
+        occurrence, _ = self.process_occurrence(
+            event_data={
+                "timestamp": before_now(minutes=5).isoformat(),
+                "project_id": self.project.id,
+                "platform": "python",
+            },
+            project_id=self.project.id,
+            type=LowValueSpanConfigurationType.type_id,
+            evidence_data={"span_origin": "manual"},
+        )
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=occurrence.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert "Sentry detector" in event_dict["detectionContext"]
+        assert "Remove the manually instrumented span" in event_dict["troubleshootingHint"]
+
+    def test_non_detector_event_has_null_context(self) -> None:
+        """Non-detector events expose the keys with null values."""
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        event_dict = result["event"]
+        assert event_dict["detectionContext"] is None
+        assert event_dict["troubleshootingHint"] is None
 
 
 class TestGetIssueAndEventResponse(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):

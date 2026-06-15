@@ -228,9 +228,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
 
   const hasCursorIntegration = Boolean(cursorIntegration);
 
-  const hasClaudeIntegration = Boolean(
-    organization.features.includes('integrations-claude-code') && claudeIntegration
-  );
+  const hasClaudeIntegration = Boolean(claudeIntegration);
 
   const handleStoppingPointChange = useCallback(
     (

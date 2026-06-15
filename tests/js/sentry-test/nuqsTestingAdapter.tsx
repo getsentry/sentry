@@ -1,4 +1,4 @@
-import {useCallback, useMemo, type ReactElement, type ReactNode} from 'react';
+import {useCallback, useMemo, useRef, type ReactElement, type ReactNode} from 'react';
 import {
   unstable_createAdapterProvider as createAdapterProvider,
   renderQueryString,
@@ -47,6 +47,12 @@ export function SentryNuqsTestingAdapter({
       // eslint-disable-next-line react-hooks/rules-of-hooks
       const navigate = useNavigate();
 
+      // nuqs flushes updates on a deferred tick, so read location through a ref
+      // to compose onto the live URL instead of a stale render snapshot.
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const locationRef = useRef(location);
+      locationRef.current = location;
+
       // Get search params from the current location
       const searchParams = new URLSearchParams(location.search || '');
 
@@ -64,8 +70,8 @@ export function SentryNuqsTestingAdapter({
         // Navigate to the new location using Sentry's navigate
         // We need to construct the full path with the search string
         const newPath = queryString
-          ? `${location.pathname}${queryString}`
-          : location.pathname;
+          ? `${locationRef.current.pathname}${queryString}`
+          : locationRef.current.pathname;
 
         // The navigate function from TestRouter already wraps this in act()
         navigate(newPath, {replace: options.history === 'replace'});
@@ -73,7 +79,7 @@ export function SentryNuqsTestingAdapter({
 
       const getSearchParamsSnapshot = () => {
         // Always read from the current location
-        return new URLSearchParams(location.search || '');
+        return new URLSearchParams(locationRef.current.search || '');
       };
 
       return {

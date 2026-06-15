@@ -348,10 +348,7 @@ export function GroupList({
                 </GroupPlaceholder>
               ))
             : groups.map(group => {
-                const members =
-                  memberList && Object.hasOwn(memberList, group.project.slug)
-                    ? memberList[group.project.slug]
-                    : undefined;
+                const members = memberList?.get(group.project.slug);
 
                 return (
                   <StreamGroup

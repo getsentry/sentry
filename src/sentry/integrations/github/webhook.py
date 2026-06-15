@@ -7,7 +7,7 @@ import logging
 import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any, Protocol
 
 import orjson
@@ -33,6 +33,7 @@ from sentry.integrations.github.webhook_types import (
     GithubWebhookType,
     InstallationRepositoriesEvent,
 )
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
@@ -41,7 +42,11 @@ from sentry.integrations.services.integration.model import (
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.webhook import SCMWebhook
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import (
+    ExternalActorSource,
+    ExternalProviders,
+    IntegrationProviderSlug,
+)
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
@@ -50,13 +55,21 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_activity
+from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
+from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
+from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
+from sentry.pr_metrics.webhooks import handle_metrics as pr_metrics_handle_metrics
+from sentry.pr_metrics.webhooks import handle_review as pr_metrics_handle_review
+from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handle_review_comment
+from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
@@ -71,6 +84,7 @@ from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
+from .tasks.query_commit_author_public_emails import query_commit_author_public_emails
 from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
@@ -323,6 +337,62 @@ class GitHubWebhook(SCMWebhook, ABC):
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         return options.get("github-app.id")
 
+    def maybe_create_external_actor(
+        self,
+        *,
+        integration: RpcIntegration,
+        organization: Organization,
+        commit_author: CommitAuthor,
+        gh_username: str | None,
+        gh_user_id: str | int | None = None,
+    ) -> None:
+        """
+        For a newly created CommitAuthor, create the matching GitHub ExternalActor
+        mapping when we can confidently tie the author to a single Sentry user.
+
+        We only create a mapping when:
+        - the commit author has a GitHub username,
+        - the email is not an anonymous GitHub noreply address, and
+        - the email resolves to exactly one verified member of the organization.
+        """
+        if not gh_username:
+            return
+
+        if self.is_anonymous_email(commit_author.email):
+            return
+
+        users = commit_author.find_users()
+        # Only create a mapping when the email unambiguously resolves to a
+        # single Sentry user, otherwise we risk linking the wrong account.
+        if len(users) != 1:
+            return
+        user = users[0]
+
+        if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE.value:
+            provider = ExternalProviders.GITHUB_ENTERPRISE.value
+        else:
+            provider = ExternalProviders.GITHUB.value
+
+        external_name = f"@{gh_username.lstrip('@')}"
+
+        # GitHub usernames are case-insensitive, and mapping resolution elsewhere
+        # matches on external_name__iexact. Match the same way here so we don't
+        # create a casing-variant duplicate (e.g. @User vs @user) that would split
+        # assignment/codeowner resolution. The __iexact lookup is used only for the
+        # match; the actual (case-preserving) value is written via defaults.
+        ExternalActor.objects.get_or_create(
+            organization_id=organization.id,
+            provider=provider,
+            external_name__iexact=external_name,
+            user_id=user.id,
+            defaults={
+                "external_name": external_name,
+                "integration_id": integration.id,
+                "external_id": str(gh_user_id) if gh_user_id else None,
+                "source": ExternalActorSource.COMMIT_AUTHOR.value,
+            },
+        )
+
 
 class InstallationEventWebhook(GitHubWebhook):
     """
@@ -553,12 +623,22 @@ class PushEventWebhook(GitHubWebhook):
             # its optional, lets just throw it out for now
             if len(author_email) > 75:
                 author = None
-            elif author_email not in authors:
-                authors[author_email] = author = CommitAuthor.objects.get_or_create(
-                    organization_id=organization.id,
-                    email=author_email,
-                    defaults={"name": commit["author"]["name"][:128]},
-                )[0]
+            else:
+                if author_email not in authors:
+                    author, author_created = CommitAuthor.objects.get_or_create(
+                        organization_id=organization.id,
+                        email=author_email,
+                        defaults={"name": commit["author"]["name"][:128]},
+                    )
+                    authors[author_email] = author
+                else:
+                    # Reuse the author we already resolved earlier in this push. A
+                    # later commit can still carry information (e.g. a GitHub
+                    # username) that the first commit for this email was missing, so
+                    # we continue through the upsert logic below rather than stopping
+                    # here.
+                    author = authors[author_email]
+                    author_created = False
 
                 update_kwargs = {}
 
@@ -579,8 +659,28 @@ class PushEventWebhook(GitHubWebhook):
                             author.update(**update_kwargs)
                     except IntegrityError:
                         pass
-            else:
-                author = authors[author_email]
+
+                # Create the ExternalActor mapping when the author was just created or
+                # when we've only now associated a GitHub username with an existing
+                # author. GitHub omits the commit author's username when the email is
+                # not tied to a GitHub account, so an author created by an earlier
+                # commit (in this push or a previous one) may not gain its username
+                # until a later commit. Gating solely on creation would skip those
+                # authors forever.
+                if author_created or "external_id" in update_kwargs:
+                    try:
+                        self.maybe_create_external_actor(
+                            integration=integration,
+                            organization=organization,
+                            commit_author=author,
+                            gh_username=gh_username,
+                        )
+                    except Exception:
+                        # Never let external actor creation disrupt the main webhook flow.
+                        logger.exception(
+                            "github.webhook.external_actor.error",
+                            extra={"organization_id": organization.id},
+                        )
 
             if author:
                 author.preload_users()
@@ -642,6 +742,22 @@ class PushEventWebhook(GitHubWebhook):
             set(repo.languages or []).union({lang for lang in languages if lang is not None})
         )
         repo.save()
+
+        # Hand the authors seen in this push off to an async task to look up
+        # their public profile email and (maybe) create ExternalActor mappings.
+        # The task is gated by CommitAuthor.public_email_queried_at, so re-seeing
+        # a recent author is cheap; we don't need them to be brand-new.
+        if authors and integration.provider in (
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ):
+            query_commit_author_public_emails.apply_async(
+                kwargs={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                    "commit_author_ids": sorted(author.id for author in authors.values()),
+                }
+            )
 
 
 class IssuesEventWebhook(GitHubWebhook):
@@ -830,6 +946,27 @@ class IssuesEventWebhook(GitHubWebhook):
         return f"{repo_full_name}#{issue_number}"
 
 
+def _parse_github_timestamp(value: str | None) -> datetime | None:
+    """Parse a GitHub ISO-8601 timestamp into a UTC datetime, or None if absent."""
+    if not value:
+        return None
+    return parse_date(value).astimezone(timezone.utc)
+
+
+def _pull_request_lifecycle_state(pull_request: Mapping[str, Any]) -> str:
+    """Map a GitHub PR payload to a ``PullRequestLifecycleState`` value.
+
+    GitHub reports ``state`` as only "open"/"closed" alongside a separate
+    ``merged`` flag; we fold the two into the richer lifecycle enum so a merged
+    PR is stored as "merged" rather than an ambiguous "closed".
+    """
+    if pull_request.get("merged"):
+        return PullRequestLifecycleState.MERGED
+    if pull_request.get("state") == "closed":
+        return PullRequestLifecycleState.CLOSED
+    return PullRequestLifecycleState.OPEN
+
+
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
@@ -837,6 +974,11 @@ class PullRequestEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
         code_review_handle_webhook_event,
+        pr_metrics_handle_attribution,
+        # Persist counters before emission reads them off the PullRequestMetrics row.
+        pr_metrics_handle_metrics,
+        pr_metrics_handle_emission,
+        pr_metrics_handle_activity,
     )
 
     def _handle(
@@ -870,6 +1012,14 @@ class PullRequestEventWebhook(GitHubWebhook):
         """
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
+        # Lifecycle facts kept current for the PR metrics pipeline.
+        head_commit_sha = pull_request["head"]["sha"]
+        opened_at = _parse_github_timestamp(pull_request.get("created_at"))
+        closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
+        merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
+        state = _pull_request_lifecycle_state(pull_request)
+        draft = pull_request.get("draft")
+
         author_email = "{}@localhost".format(user["login"][:65])
 
         try:
@@ -896,7 +1046,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                 organization_id=organization.id, external_id=self.get_external_id(user["login"])
             )
         except CommitAuthor.DoesNotExist:
-            author, _created = CommitAuthor.objects.get_or_create(
+            author, author_created = CommitAuthor.objects.get_or_create(
                 organization_id=organization.id,
                 email=author_email,
                 defaults={
@@ -904,6 +1054,21 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "external_id": self.get_external_id(user["login"]),
                 },
             )
+            if author_created:
+                try:
+                    self.maybe_create_external_actor(
+                        integration=integration,
+                        organization=organization,
+                        commit_author=author,
+                        gh_username=user["login"],
+                        gh_user_id=user.get("id"),
+                    )
+                except Exception:
+                    # Never let external actor creation disrupt the main webhook flow.
+                    logger.exception(
+                        "github.webhook.external_actor.error",
+                        extra={"organization_id": organization.id},
+                    )
 
         author.preload_users()
         try:
@@ -917,6 +1082,12 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "author": author,
                     "message": body,
                     "merge_commit_sha": merge_commit_sha,
+                    "head_commit_sha": head_commit_sha,
+                    "opened_at": opened_at,
+                    "closed_at": closed_at,
+                    "merged_at": merged_at,
+                    "state": state,
+                    "draft": draft,
                 },
             )
 
@@ -976,7 +1147,36 @@ class IssueCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = (code_review_handle_webhook_event,)
+    WEBHOOK_EVENT_PROCESSORS = (
+        code_review_handle_webhook_event,
+        pr_metrics_handle_comment,
+    )
+
+
+class PullRequestReviewEventWebhook(GitHubWebhook):
+    """https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review"""
+
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review,)
+
+
+class PullRequestReviewCommentEventWebhook(GitHubWebhook):
+    """https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment"""
+
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_COMMENT
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review_comment,)
+
+
+class PullRequestReviewThreadEventWebhook(GitHubWebhook):
+    """https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_thread"""
+
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_THREAD
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review_thread,)
+
+
+class CheckSuiteWebhook(GitHubWebhook):
+    EVENT_TYPE = IntegrationWebhookEventType.CHECK_SUITE
+    WEBHOOK_EVENT_PROCESSORS = ()
 
 
 @all_silo_endpoint
@@ -1001,7 +1201,11 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.ISSUE: IssuesEventWebhook,
         GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW_THREAD: PullRequestReviewThreadEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
+        GithubWebhookType.CHECK_SUITE: CheckSuiteWebhook,
     }
 
     def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:

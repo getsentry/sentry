@@ -1,7 +1,8 @@
 import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';

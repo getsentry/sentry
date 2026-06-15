@@ -25,8 +25,8 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 

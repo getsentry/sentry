@@ -1,8 +1,9 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {

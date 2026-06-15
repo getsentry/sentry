@@ -147,7 +147,7 @@ describe('GroupList', () => {
           groups: [group],
           loading: false,
           pageLinks: linkHeader,
-          memberList: {},
+          memberList: new Map(),
         }),
         expect.any(Function)
       )

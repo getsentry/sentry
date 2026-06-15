@@ -13,6 +13,13 @@ interface FormFieldDefinition {
 }
 
 export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
+  'account-emails.email': {
+    name: 'email',
+    formId: 'account-emails',
+    route: '/settings/account/emails/',
+    label: t('Additional Email'),
+    hintText: t('Designate an alternative email for this account'),
+  },
   'account-details.name': {
     name: 'name',
     formId: 'account-details',
@@ -73,13 +80,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/account/details/',
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
-  },
-  'account-emails.email': {
-    name: 'email',
-    formId: 'account-emails',
-    route: '/settings/account/emails/',
-    label: t('Additional Email'),
-    hintText: t('Designate an alternative email for this account'),
   },
   'notification-settings.personalActivityNotifications': {
     name: 'personalActivityNotifications',
@@ -307,6 +307,18 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     hintText: t(
       'Field names which data scrubbers should ignore. Separate multiple entries with a newline'
     ),
+  },
+  'project-issue-grouping.fingerprintingRules': {
+    name: 'fingerprintingRules',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Fingerprint Rules'),
+  },
+  'project-issue-grouping.groupingEnhancements': {
+    name: 'groupingEnhancements',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Stack Trace Rules'),
   },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',

@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -49,12 +49,6 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
         Returns a JWT signed with HS256 containing user identity claims,
         along with user data for the frontend to pass to Intercom.
         """
-        if not features.has("organizations:intercom-support", organization):
-            return Response(
-                {"detail": "Intercom support is not enabled for this organization."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         if isinstance(request.user, AnonymousUser):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 

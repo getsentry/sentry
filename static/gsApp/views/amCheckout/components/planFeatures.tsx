@@ -17,9 +17,9 @@ import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
-import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';
-import {formatReservedWithUnits, getAmPlanTier} from 'getsentry/utils/billing';
+import {formatReservedWithUnits, isAm3Plan} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getSingularCategoryName,
@@ -493,7 +493,6 @@ export function PlanFeatures({
   activePlan: Plan;
   planOptions: Plan[];
 }) {
-  const currentTier = getAmPlanTier(activePlan.id);
   const perPlanPriceDiffs: Record<
     Plan['id'],
     Partial<Record<DataCategory, number>> & {plan: Plan}
@@ -534,7 +533,7 @@ export function PlanFeatures({
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>
-        {currentTier !== DEFAULT_TIER && (
+        {!isAm3Plan(activePlan.id) && (
           <Flex gap="sm">
             <Container paddingTop="xs">
               <IconLightning size="sm" variant="accent" />

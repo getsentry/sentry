@@ -27,10 +27,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
@@ -119,10 +119,7 @@ function useIssuesINPObserver() {
 }
 
 const parsePageQueryParam = (location: Location, defaultPage = 0) => {
-  const page = location.query.page;
-  const pageInt = Array.isArray(page)
-    ? parseInt(page[0] ?? '', 10)
-    : parseInt(page ?? '', 10);
+  const pageInt = parseInt(decodeScalar(location.query.page, ''), 10);
 
   if (isNaN(pageInt)) {
     return defaultPage;
@@ -162,7 +159,7 @@ function IssueListOverviewInner({
     () => selection.projects.map(String),
     [selection.projects]
   );
-  const {data: memberList = {}} = useQuery({
+  const {data: memberList} = useQuery({
     ...useProjectMembersQueryOptions(organizationUsersProjectIds),
     select: resp => indexMembersByProject(resp.json),
   });
@@ -211,7 +208,7 @@ function IssueListOverviewInner({
   }, [onRealtimePoll, pageLinks]);
 
   const query = defined(location.query.query)
-    ? (location.query.query as string)
+    ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
   const sort = decodeScalar(
     location.query.sort,
@@ -219,12 +216,10 @@ function IssueListOverviewInner({
   ) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
-    let currentPeriod: string;
-    if (typeof location.query?.groupStatsPeriod === 'string') {
-      currentPeriod = location.query.groupStatsPeriod;
-    } else {
-      currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
-    }
+    const currentPeriod = decodeScalar(
+      location.query?.groupStatsPeriod,
+      DEFAULT_GRAPH_STATS_PERIOD
+    );
 
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
@@ -270,9 +265,9 @@ function IssueListOverviewInner({
       shortIdLookup: 1,
     };
 
-    const currentQuery = location.query || {};
-    if ('cursor' in currentQuery) {
-      params.cursor = currentQuery.cursor;
+    const cursor = decodeScalar(location.query.cursor);
+    if (cursor) {
+      params.cursor = cursor;
     }
 
     // If no stats period values are set, use default
@@ -496,6 +491,20 @@ function IssueListOverviewInner({
         setError(parseApiError(err));
         setIssuesLoading(false);
         setIssuesSuccessfullyLoaded(false);
+
+        // AI query analytics
+        const aiQueryRunId = getRunIdForAnalytics();
+        if (aiQueryRunId !== null) {
+          trackAiQueryOutcome({
+            dataset: 'issues',
+            mode: 'samples',
+            referrer: 'issues',
+            resultCount: 0,
+            orgSlug: organization.slug,
+            runId: aiQueryRunId,
+            error: parseApiError(err),
+          });
+        }
       },
       complete: () => {
         resumePolling();
@@ -679,9 +688,7 @@ function IssueListOverviewInner({
   };
 
   const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
-    const queryPageInt = Array.isArray(location.query.page)
-      ? NaN
-      : parseInt(location.query.page?.toString() ?? '', 10);
+    const queryPageInt = parsePageQueryParam(location, NaN);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
     let cursor = nextCursor;
@@ -699,11 +706,9 @@ function IssueListOverviewInner({
 
   const onSelectStatsPeriod = (period: string) => {
     if (period !== getGroupStatsPeriod()) {
-      const cursor = Array.isArray(location.query.cursor)
-        ? location.query.cursor[0]
-        : (location.query.cursor ?? undefined);
+      const cursor = decodeScalar(location.query.cursor);
       const queryPageInt = parsePageQueryParam(location, 0);
-      const page = location.query.cursor ? queryPageInt : 0;
+      const page = cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };

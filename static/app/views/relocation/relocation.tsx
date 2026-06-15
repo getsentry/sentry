@@ -12,7 +12,7 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
+import {getLocalityUrlOptions} from 'sentry/utils/cells';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -76,7 +76,7 @@ export function RelocationOnboarding() {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
   const api = useApi();
-  const regions = ConfigStore.get('regions');
+  const localityOptions = getLocalityUrlOptions();
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
@@ -95,10 +95,10 @@ export function RelocationOnboarding() {
   const fetchExistingRelocation = useCallback(() => {
     setExistingRelocationState(LoadingState.FETCHING);
     return Promise.all(
-      regions.map(region =>
+      localityOptions.map(option =>
         api.requestPromise('/relocations/', {
           method: 'GET',
-          host: region.url,
+          host: option.value,
         })
       )
     )
@@ -142,7 +142,7 @@ export function RelocationOnboarding() {
         setExistingRelocation('');
         setExistingRelocationState(LoadingState.ERROR);
       });
-  }, [api, navigate, regions, relocationState, stepId]);
+  }, [api, navigate, localityOptions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,17 +151,20 @@ export function RelocationOnboarding() {
   const fetchPublicKeys = useCallback(() => {
     setPublicKeysState(LoadingState.FETCHING);
     return Promise.all(
-      regions.map(region =>
+      localityOptions.map(option =>
         api.requestPromise('/publickeys/relocations/', {
           method: 'GET',
-          host: region.url,
+          host: option.value,
         })
       )
     )
       .then(responses => {
         setPublicKeys(
           new Map<string, string>(
-            regions.map((region, index) => [region.url, responses[index].public_key])
+            localityOptions.map((option, index) => [
+              option.value,
+              responses[index].public_key,
+            ])
           )
         );
         setPublicKeysState(LoadingState.FETCHED);
@@ -170,7 +173,7 @@ export function RelocationOnboarding() {
         setPublicKeys(new Map<string, string>());
         setPublicKeysState(LoadingState.ERROR);
       });
-  }, [api, regions]);
+  }, [api, localityOptions]);
   useEffect(() => {
     fetchPublicKeys();
     // eslint-disable-next-line react-hooks/exhaustive-deps

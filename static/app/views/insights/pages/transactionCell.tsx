@@ -9,7 +9,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {generateTransactionSummaryRoute} from 'sentry/views/performance/transactionSummary/utils';
 
 interface Props {
@@ -23,16 +22,12 @@ export function TransactionCell({project, transaction, transactionMethod}: Props
   const organization = useOrganization();
   const location = useLocation();
   const {view} = useDomainViewFilters();
-  const isEAP = useTransactionSummaryEAP();
 
   const projectId = projects.projects.find(p => p.slug === project)?.id;
 
   const searchQuery = new MutableSearch('');
   if (transactionMethod) {
-    searchQuery.addFilterValue(
-      isEAP ? SpanFields.SPAN_OP : SpanFields.TRANSACTION_OP,
-      transactionMethod
-    );
+    searchQuery.addFilterValue(SpanFields.SPAN_OP, transactionMethod);
   }
 
   if (!transaction || !projectId) {

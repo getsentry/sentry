@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 import orjson
@@ -6,6 +7,7 @@ from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
 from sentry.auth.services.auth.model import AuthenticationContext
+from sentry.issues.action_log import ActionSource
 from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
@@ -34,6 +36,13 @@ class TestSentryAppCellService(TestCase):
         )
         self.rpc_installation = serialize_sentry_app_installation(self.install)
         self.auth_context = AuthenticationContext(user=serialize_rpc_user(self.user))
+
+    def _action_log_records(
+        self, records: list[logging.LogRecord], action: str
+    ) -> list[logging.LogRecord]:
+        return [
+            r for r in records if r.message == "group.action_log" and getattr(r, "action") == action
+        ]
 
     @responses.activate
     def test_get_select_options(self) -> None:
@@ -307,6 +316,142 @@ class TestSentryAppCellService(TestCase):
         assert result.success is False
         assert result.error is not None
         assert result.error.status_code == 404
+
+    @responses.activate
+    def test_create_issue_link_records_action_log(self) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issue",
+            json={
+                "project": "Projectname",
+                "webUrl": "https://example.com/project/issue-id",
+                "identifier": "issue-1",
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            result = sentry_app_cell_service.create_issue_link(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                group_id=self.group.id,
+                action="create",
+                fields={"title": "An Issue"},
+                uri="/link-issue",
+                user=serialize_rpc_user(self.user),
+            )
+
+        assert result.error is None
+        records = self._action_log_records(logs.records, "create_platform_external_issue")
+        assert len(records) == 1
+        record = records[0]
+        assert getattr(record, "source") == ActionSource.API
+        assert getattr(record, "actor_type") == "user"
+        assert getattr(record, "actor_id") == str(self.user.id)
+        assert getattr(record, "group_id") == str(self.group.id)
+        assert getattr(record, "metadata") == {
+            "service_type": self.sentry_app.slug,
+            "display_name": "Projectname#issue-1",
+            "web_url": "https://example.com/project/issue-id",
+        }
+
+    @responses.activate
+    def test_create_issue_link_with_link_action_records_link_action_log(self) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issue",
+            json={
+                "project": "Projectname",
+                "webUrl": "https://example.com/project/issue-id",
+                "identifier": "issue-1",
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            result = sentry_app_cell_service.create_issue_link(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                group_id=self.group.id,
+                action="link",
+                fields={"title": "An Issue"},
+                uri="/link-issue",
+                user=serialize_rpc_user(self.user),
+            )
+
+        assert result.error is None
+        assert len(self._action_log_records(logs.records, "link_platform_external_issue")) == 1
+        assert self._action_log_records(logs.records, "create_platform_external_issue") == []
+
+    def test_create_external_issue_records_action_log(self) -> None:
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            result = sentry_app_cell_service.create_external_issue(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                group_id=self.group.id,
+                web_url="https://example.com/project/issue-1",
+                project="ProjectName",
+                identifier="issue-1",
+                user=serialize_rpc_user(self.user),
+            )
+
+        assert result.error is None
+        records = self._action_log_records(logs.records, "create_platform_external_issue")
+        assert len(records) == 1
+        assert getattr(records[0], "source") == ActionSource.API
+        assert getattr(records[0], "actor_type") == "user"
+        assert getattr(records[0], "actor_id") == str(self.user.id)
+
+    def test_create_external_issue_without_user_records_system_actor(self) -> None:
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            result = sentry_app_cell_service.create_external_issue(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                group_id=self.group.id,
+                web_url="https://example.com/project/issue-1",
+                project="ProjectName",
+                identifier="issue-1",
+                user=None,
+            )
+
+        assert result.error is None
+        records = self._action_log_records(logs.records, "create_platform_external_issue")
+        assert len(records) == 1
+        assert getattr(records[0], "actor_type") == "system"
+        assert getattr(records[0], "actor_id") == "0"
+
+    def test_delete_external_issue_records_action_log(self) -> None:
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            external_issue = PlatformExternalIssue.objects.create(
+                group_id=self.group.id,
+                project_id=self.project.id,
+                service_type=self.sentry_app.slug,
+                display_name="Test#123",
+                web_url="https://example.com/issue/123",
+            )
+
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            result = sentry_app_cell_service.delete_external_issue(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                external_issue_id=external_issue.id,
+                user=serialize_rpc_user(self.user),
+            )
+
+        assert result.success is True
+        records = self._action_log_records(logs.records, "unlink_platform_external_issue")
+        assert len(records) == 1
+        record = records[0]
+        assert getattr(record, "source") == ActionSource.API
+        assert getattr(record, "actor_type") == "user"
+        assert getattr(record, "actor_id") == str(self.user.id)
+        assert getattr(record, "metadata") == {
+            "service_type": self.sentry_app.slug,
+            "display_name": "Test#123",
+            "web_url": "https://example.com/issue/123",
+        }
 
     def test_create_external_issue_denied_without_project_access(self) -> None:
         with assume_test_silo_mode_of(Organization):

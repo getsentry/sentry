@@ -41,7 +41,7 @@ class UptimeSubscriptionSerializerResponse(TypedDict):
 
 
 @register(UptimeSubscription)
-class UptimeSubscriptionSerializer(Serializer):
+class UptimeSubscriptionSerializer(Serializer[dict[str, Any]]):
     @override
     def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
         return {
@@ -70,7 +70,7 @@ class UptimeDetectorSerializerResponse(UptimeSubscriptionSerializerResponse):
     downtimeThreshold: int
 
 
-class UptimeDetectorSerializer(Serializer):
+class UptimeDetectorSerializer(Serializer[UptimeDetectorSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
@@ -170,7 +170,7 @@ class EapCheckEntrySerializerResponse(TypedDict):
 
 
 @register(EapCheckEntry)
-class EapCheckEntrySerializer(Serializer):
+class EapCheckEntrySerializer(Serializer[EapCheckEntrySerializerResponse]):
     def serialize(
         self, obj: EapCheckEntry, attrs, user, **kwargs
     ) -> EapCheckEntrySerializerResponse:
@@ -211,7 +211,7 @@ class UptimeSummarySerializerResponse(TypedDict):
 
 
 @register(UptimeSummary)
-class UptimeSummarySerializer(Serializer):
+class UptimeSummarySerializer(Serializer[UptimeSummarySerializerResponse]):
     @override
     def serialize(
         self, obj: UptimeSummary, attrs: Any, user: Any, **kwargs: Any

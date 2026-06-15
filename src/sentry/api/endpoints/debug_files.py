@@ -17,6 +17,8 @@ from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
+from sentry.apidocs.response_types import DetailResponse
+
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
 
@@ -270,6 +272,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             raise Http404
 
         try:
+            assert debug_file.file is not None
             fp = debug_file.file.getfile()
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
@@ -303,7 +306,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         },
         examples=DebugFileExamples.LIST_PROJECT_DEBUG_FILES,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[DebugFileSerializerResponse]] | Response[DetailResponse]:
         """
         Retrieve a list of debug information files for a given project.
         """

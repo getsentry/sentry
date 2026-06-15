@@ -1,58 +1,41 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {SearchBar} from 'sentry/components/searchBar';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {
+  TraceItemSearchQueryBuilder,
+  type TraceItemSearchQueryBuilderProps,
+  type useTraceItemSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 import {OpenInLogsButton} from 'sentry/views/explore/replays/detail/ourlogs/openInLogsButton';
-import {type useOurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/useOurLogFilters';
 
 type Props = {
-  logItems: OurLogsResponseItem[];
+  searchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
+  searchQueryBuilderProviderProps: ReturnType<typeof useTraceItemSearchQueryBuilderProps>;
   replayId?: string;
-} & ReturnType<typeof useOurLogFilters>;
+};
+
+const REPLAY_LOGS_PLACEHOLDER = t('Search on log levels, messages, and more');
 
 export function OurLogFilters({
-  logItems,
   replayId,
-  getSeverityLevels,
-  searchTerm,
-  selectValues,
-  setSeverityLevel,
-  setSearchTerm,
+  searchQueryBuilderProps,
+  searchQueryBuilderProviderProps,
 }: Props) {
-  const severityLevels = getSeverityLevels();
-
   return (
-    <StyledFiltersGrid>
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} prefix={t('Log Level')}>
-            {selectValues.length === 0 ? t('Any') : triggerProps.children}
-          </OverlayTrigger.Button>
-        )}
-        multiple
-        options={severityLevels}
-        onChange={setSeverityLevel}
-        size="sm"
-        value={selectValues.map(v => v.value)}
-        disabled={!severityLevels.length}
-      />
-      <SearchBar
-        onChange={setSearchTerm}
-        placeholder={t('Search Logs')}
-        size="sm"
-        query={searchTerm}
-        disabled={!logItems?.length}
-      />
-      <OpenInLogsButton searchTerm={searchTerm} replayId={replayId} />
-    </StyledFiltersGrid>
+    <SearchQueryBuilderProvider
+      {...searchQueryBuilderProviderProps}
+      placeholder={REPLAY_LOGS_PLACEHOLDER}
+    >
+      <StyledFiltersGrid>
+        <TraceItemSearchQueryBuilder {...searchQueryBuilderProps} />
+        <OpenInLogsButton replayId={replayId} />
+      </StyledFiltersGrid>
+    </SearchQueryBuilderProvider>
   );
 }
 
 const StyledFiltersGrid = styled(FiltersGrid)`
-  grid-template-columns: max-content 1fr min-content;
+  grid-template-columns: 1fr min-content;
 `;

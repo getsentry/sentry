@@ -1,8 +1,9 @@
 import {useCallback} from 'react';
-import {createParser, parseAsStringLiteral, useQueryState} from 'nuqs';
+import {createParser, parseAsStringLiteral, useQueryState, useQueryStates} from 'nuqs';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
+import {replayDetailFilterParsers} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export enum TabKey {
@@ -62,6 +63,11 @@ export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boo
       .withDefault(defaultTab)
       .withOptions({clearOnDefault: false, shallow: true})
   );
+  const [, clearReplayDetailFilters] = useQueryStates(replayDetailFilterParsers, {
+    history: 'replace',
+    shallow: true,
+    throttleMs: 0,
+  });
 
   return {
     getActiveTab: useCallback(
@@ -72,9 +78,13 @@ export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boo
     setActiveTab: useCallback(
       (value: string) => {
         const lower = value.toLowerCase() as TabKey;
-        setTabParam(isReplayTab({tab: lower, isVideoReplay}) ? lower : defaultTab);
+        const nextTab = isReplayTab({tab: lower, isVideoReplay}) ? lower : defaultTab;
+        if (nextTab !== tabParam) {
+          clearReplayDetailFilters(null);
+        }
+        setTabParam(nextTab);
       },
-      [setTabParam, defaultTab, isVideoReplay]
+      [clearReplayDetailFilters, setTabParam, defaultTab, isVideoReplay, tabParam]
     ),
   };
 }

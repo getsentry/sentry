@@ -9,7 +9,10 @@ import {
 
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
 const allRows: LogTableRowItem[] = [
@@ -33,18 +36,38 @@ const renderRow = (dataRow: LogTableRowItem) => (
   </tr>
 );
 
-function PinnedLogsWrapper() {
+function PinnedLogsWrapper({
+  fetchedPinnedRows = [],
+  isFetchingPinnedRows = false,
+}: {
+  fetchedPinnedRows?: OurLogsResponseItem[];
+  isFetchingPinnedRows?: boolean;
+}) {
   const logsPinning = useLogsPinning()!;
 
   return (
     <table>
-      <PinnedLogs allRows={allRows} logsPinning={logsPinning} renderRow={renderRow} />
+      <PinnedLogs
+        allRows={allRows}
+        logsPinning={logsPinning}
+        pinnedLogsQuery={{
+          fetchedRows: fetchedPinnedRows,
+          isPending: isFetchingPinnedRows,
+        }}
+        renderRow={renderRow}
+      />
     </table>
   );
 }
 
-function renderPinnedLogs(options: RenderOptions = {}) {
-  return render(<PinnedLogsWrapper />, {
+function renderPinnedLogs(
+  options: RenderOptions = {},
+  wrapperProps?: {
+    fetchedPinnedRows?: OurLogsResponseItem[];
+    isFetchingPinnedRows?: boolean;
+  }
+) {
+  return render(<PinnedLogsWrapper {...wrapperProps} />, {
     organization: {features: ['ourlogs-pinning']},
     ...options,
   });
@@ -67,7 +90,40 @@ describe('PinnedLogs', () => {
     expect(screen.getByTestId('pinned-row-log-1')).toBeInTheDocument();
   });
 
-  it('does not render a row when the pinned id is missing from allRows', () => {
+  it('renders the pinned row when its id is present in fetchedPinnedRows but not allRows', () => {
+    const fetchedRow = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-3',
+      [OurLogKnownFieldKey.PROJECT_ID]: '1',
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
+      [OurLogKnownFieldKey.MESSAGE]: 'fetched pinned log',
+    });
+    renderPinnedLogs(
+      {
+        initialRouterConfig: {
+          location: {pathname: '/', query: {logsPinned: 'log-3'}},
+        },
+      },
+      {fetchedPinnedRows: [fetchedRow]}
+    );
+
+    expect(screen.getByTestId('pinned-row-log-3')).toBeInTheDocument();
+  });
+
+  it('shows a loading indicator for a pinned row that is not yet available', () => {
+    renderPinnedLogs(
+      {
+        initialRouterConfig: {
+          location: {pathname: '/', query: {logsPinned: 'missing-log'}},
+        },
+      },
+      {isFetchingPinnedRows: true}
+    );
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByTestId('pinned-row-missing-log')).not.toBeInTheDocument();
+  });
+
+  it('does not render a row when the pinned id is missing from allRows and not fetching', () => {
     renderPinnedLogs({
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'missing-log'}},

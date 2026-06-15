@@ -32,6 +32,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -270,7 +271,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DetectorSerializerResponse]] | Response[DetailResponse]:
         """
         List an Organization's Monitors
         """
@@ -342,7 +345,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_ORG_DETECTORS,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DetectorSerializerResponse]] | Response[DetailResponse]:
         """
         Bulk enable or disable an Organization's Monitors
         """
@@ -419,7 +424,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization) -> Response:
+    def delete(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Bulk delete Monitors for a given organization
         """

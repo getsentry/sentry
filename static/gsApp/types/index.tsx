@@ -23,10 +23,6 @@ declare global {
      */
     uetq: any;
     /**
-     * Zendesk widget
-     */
-    zE: any;
-    /**
      * Stripe SDK
      */
     Stripe?: StripeConstructor;
@@ -197,6 +193,11 @@ export type Plan = {
 
   hasOnDemandModes: boolean;
   id: string;
+  /**
+   * Whether the plan is treated as enterprise in the UI (display name,
+   * upsell suppression, provisioning).
+   */
+  isEnterprise: boolean;
   isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
@@ -233,14 +234,6 @@ type PendingChanges = {
   reservedBudgets: PendingReservedBudget[];
   reservedCpe: Partial<Record<DataCategory, number | null>>;
 };
-
-enum VatStatus {
-  UNKNOWN = 'unknown',
-  PERSONAL = 'personal',
-  BUSINESS = 'business',
-  BUSINESS_NOVAT = 'business_novat',
-  OTHER = 'other',
-}
 
 type GDPRDetails = {
   dpoAddress: string;
@@ -326,7 +319,6 @@ export type Subscription = {
 
   billingPeriodStart: string;
   canCancel: boolean;
-  canGracePeriod: boolean;
   canSelfServe: boolean;
   canTrial: boolean;
 
@@ -341,7 +333,6 @@ export type Subscription = {
   contractPeriodStart: string;
   customPrice: number | null;
   customPricePcss: number | null;
-  dataRetention: string | null;
   // Event details
   dateJoined: string;
   effectiveRetentions: Partial<
@@ -355,8 +346,6 @@ export type Subscription = {
   >;
   // GDPR Info
   gdprDetails: GDPRDetails | null;
-  gracePeriodEnd: string | null;
-  gracePeriodStart: string | null;
   hadCustomDynamicSampling: boolean;
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
@@ -365,7 +354,6 @@ export type Subscription = {
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;
   id: string;
-  isBundleEligible: boolean;
 
   // Added by SubscriptionStore to show/hide a UI element
   isEnterpriseTrial: boolean;
@@ -375,8 +363,6 @@ export type Subscription = {
   isFree: boolean;
 
   // Subscription flags
-  isGracePeriod: boolean;
-  isHeroku: boolean;
   isManaged: boolean;
   isOverMemberLimit: boolean;
 
@@ -444,7 +430,6 @@ export type Subscription = {
    * Optional without access, and possibly null with access
    */
   companyName?: string | null;
-  contactInfo?: string | null;
   countryCode?: string | null;
 
   // Refetch usage data if Subscription is updated
@@ -460,8 +445,6 @@ export type Subscription = {
   };
 
   owner?: {email: string; name: string};
-  previousPaidPlans?: string[];
-
   productTrials?: ProductTrial[];
   reservedBudgets?: ReservedBudget[];
   // Added by SubscriptionStore
@@ -473,13 +456,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-
-  /**
-   * Optional without access, and possibly null with access
-   */
-  vatID?: string | null;
-
-  vatStatus?: VatStatus | null;
 };
 
 type DiscountInfo = {

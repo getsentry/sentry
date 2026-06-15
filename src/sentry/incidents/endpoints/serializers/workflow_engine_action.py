@@ -19,7 +19,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
 
 
-class WorkflowEngineActionSerializer(Serializer):
+class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
     def get_attrs(
         self, item_list: Sequence[Action], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Action, dict[str, Any]]:

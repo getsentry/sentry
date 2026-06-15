@@ -1,17 +1,7 @@
 import {isRequestFrame} from 'sentry/utils/replays/resourceFrame';
+import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
 import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
 import type {TabKey} from 'sentry/views/explore/replays/detail/network/details/tabs';
-
-export enum Output {
-  SETUP = 'setup',
-  UNSUPPORTED = 'unsupported',
-  URL_SKIPPED = 'url_skipped',
-  BODY_SKIPPED = 'body_skipped',
-  BODY_PARSE_ERROR = 'body_parse_error',
-  BODY_PARSE_TIMEOUT = 'body_parse_timeout',
-  UNPARSEABLE_BODY_TYPE = 'unparseable_body_type',
-  DATA = 'data',
-}
 
 type Args = {
   isCaptureBodySetup: boolean;

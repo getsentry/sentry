@@ -27,14 +27,17 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-def create_exception_with_frame(frame):
+def create_exception_with_frame(frame: dict[str, Any]) -> dict[str, Any]:
     return {
         "type": "Error",
         "raw_stacktrace": {"frames": [frame]},
     }
 
 
-def create_exception_with_frames(raw_frames=None, frames=None) -> dict[str, Any]:
+def create_exception_with_frames(
+    raw_frames: list[dict[str, Any]] | None = None,
+    frames: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     ex: dict[str, Any] = {"type": "Error"}
 
     if raw_frames is not None:
@@ -47,13 +50,13 @@ def create_exception_with_frames(raw_frames=None, frames=None) -> dict[str, Any]
 
 
 def create_event(
-    exceptions=None,
-    debug_meta_images=None,
-    sdk=None,
-    release=None,
-    dist=None,
-    scraping_attempts=None,
-):
+    exceptions: list[dict[str, Any]] | None = None,
+    debug_meta_images: list[dict[str, Any]] | None = None,
+    sdk: dict[str, Any] | None = None,
+    release: str | None = None,
+    dist: str | None = None,
+    scraping_attempts: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     exceptions = [] if exceptions is None else exceptions
     event = {
         "event_id": "a" * 32,
@@ -72,7 +75,7 @@ def create_event(
 
 
 class SourceMapDebugEndpointTestCase(APITestCase):
-    endpoint = "sentry-api-0-event-source-map-debug-blue-thunder-edition"
+    endpoint = "sentry-api-0-event-source-map-debug"
 
     def setUp(self) -> None:
         self.login_as(self.user)

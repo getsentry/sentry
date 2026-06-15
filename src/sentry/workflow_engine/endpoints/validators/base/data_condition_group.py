@@ -27,7 +27,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         conditions = []
         for condition in value:
-            condition_validator = BaseDataConditionValidator(data=condition)
+            condition_validator = BaseDataConditionValidator(data=condition, context=self.context)
             condition_validator.is_valid(raise_exception=True)
             conditions.append(condition_validator.validated_data)
 
@@ -95,7 +95,8 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
 
     def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
         logic_type = validated_data.get("logic_type", DataConditionGroup.Type.ANY.value)
-        self._validate_logic_type(validated_data.get("conditions", []), logic_type)
+        conditions = validated_data.get("conditions", [])
+        self._validate_logic_type(conditions, logic_type)
 
         with transaction.atomic(router.db_for_write(DataConditionGroup)):
             condition_group = DataConditionGroup.objects.create(
@@ -103,7 +104,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
                 organization_id=self.context["organization"].id,
             )
 
-            for condition in validated_data["conditions"]:
+            for condition in conditions:
                 # Always set condition_group_id programmatically to prevent cross-org IDOR
                 condition["condition_group_id"] = condition_group.id
                 condition_validator = BaseDataConditionValidator()

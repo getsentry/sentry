@@ -46,6 +46,7 @@ from sentry.integrations.types import (
     IntegrationResponse,
 )
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -523,13 +524,16 @@ class MsTeamsWebhookEndpoint(Endpoint):
             interaction_type, MsTeamsMessagingSpec()
         ).capture() as lifecycle:
             try:
-                response = client.put(
-                    path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-                    params={"id": group.id},
-                    data=action_data,
-                    user=user_service.get_user(user_id=identity.user_id),
-                    auth=event_write_key,
-                )
+                with action_context_scope(
+                    source=ActionSource.MSTEAMS, actor=GroupActionActor.user(identity.user_id)
+                ):
+                    response = client.put(
+                        path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
+                        params={"id": group.id},
+                        data=action_data,
+                        user=user_service.get_user(user_id=identity.user_id),
+                        auth=event_write_key,
+                    )
             except client.ApiError as e:
                 if e.status_code == 403:
                     lifecycle.record_halt(e)
