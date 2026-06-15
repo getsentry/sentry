@@ -3,7 +3,7 @@ import {lazy} from 'react';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {registerOverride} from 'sentry/overrideRegistry';
 import type {Overrides} from 'sentry/types/overrides';
-import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types';
 
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
