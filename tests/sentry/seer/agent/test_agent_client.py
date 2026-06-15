@@ -2,10 +2,11 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from pydantic import BaseModel
 
-from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client import SeerAgentClient, get_monitoring_provider_connections
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     FilePatch,
@@ -1192,3 +1193,85 @@ class TestStartRunExplorerIndexTrigger(TestCase):
             client.start_run("Why are my errors spiking?")
 
         mock_dispatch.assert_not_called()
+
+
+class TestGetMonitoringProviderConnections(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def test_returns_none_for_anonymous_user(self) -> None:
+        assert get_monitoring_provider_connections(AnonymousUser()) is None
+
+    def test_returns_none_for_none_user(self) -> None:
+        assert get_monitoring_provider_connections(None) is None
+
+    def test_returns_none_when_no_identities(self) -> None:
+        assert get_monitoring_provider_connections(self.user) is None
+
+    def test_returns_connection(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={
+                "access_token": "access-token",
+                "refresh_token": "refresh-token",
+                "client_id": "dd-client-id",
+                "client_secret": "dd-client-secret",
+                "site": "datadoghq.com",
+            },
+        )
+
+        result = get_monitoring_provider_connections(self.user)
+
+        assert result is not None
+        assert len(result) == 1
+        assert result[0] == {
+            "provider_key": "datadog",
+            "url": "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp",
+            "access_token": "access-token",
+            "identity_id": identity.id,
+        }
+
+    def test_returns_multiple_connections(self) -> None:
+        for site, ext_id in [("datadoghq.com", "org-1"), ("datadoghq.eu", "org-2")]:
+            idp = self.create_identity_provider(type="datadog", external_id=ext_id)
+            self.create_identity(
+                user=self.user,
+                identity_provider=idp,
+                external_id=f"user-{ext_id}",
+                data={"access_token": "access-token", "site": site},
+            )
+
+        result = get_monitoring_provider_connections(self.user)
+
+        assert result is not None
+        assert len(result) == 2
+        urls = {c["url"] for c in result}
+        assert "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp" in urls
+        assert "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp" in urls
+
+    def test_skips_identity_missing_access_token(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"site": "datadoghq.com"},
+        )
+
+        assert get_monitoring_provider_connections(self.user) is None
+
+    def test_ignores_non_monitoring_provider_identities(self) -> None:
+        idp = self.create_identity_provider(type="slack", external_id="slack-team")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="slack-user-1",
+            data={"access_token": "access-token"},
+        )
+
+        assert get_monitoring_provider_connections(self.user) is None
