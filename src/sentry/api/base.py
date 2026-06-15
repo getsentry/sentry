@@ -148,6 +148,11 @@ def apply_cors_headers(
                     "allow": allow,
                 },
             )
+            scope.set_attribute("cors_headers.url", request.path)
+            if request.method is not None:
+                scope.set_attribute("cors_headers.method", request.method)
+            scope.set_attribute("cors_headers.origin", request.META.get("HTTP_ORIGIN", ""))
+            scope.set_attribute("cors_headers.allow", allow)
             sentry_sdk.capture_message("api.cors.no_methods")
 
     response["Allow"] = allow
@@ -383,6 +388,7 @@ class Endpoint(APIView):
 
         if request.META.get("HTTP_REFERER"):
             sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER"))
+            sentry_sdk.set_attribute("http.referer", request.META.get("HTTP_REFERER"))
 
         start_time = time.time()
 
