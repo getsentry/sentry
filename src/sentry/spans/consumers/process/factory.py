@@ -17,7 +17,7 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry import killswitches, options
+from sentry import killswitches
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.options.rollout import in_random_rollout
 from sentry.spans.buffer import SpansBuffer
@@ -164,7 +164,7 @@ def process_batch(
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
     killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
-    use_msgspec_decoder = options.get("spans.buffer.use-msgspec-decoder")
+    use_msgspec_decoder = in_random_rollout("spans.buffer.use-msgspec-decoder")
     min_timestamp = None
     decode_time = 0.0
     spans = []
