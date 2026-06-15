@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useEffectEvent, useMemo, useRef, useState} from 'react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -102,6 +102,30 @@ function makeIntegrationIssueConfigQueryKey({
     ),
     {query: {action}},
   ];
+}
+
+function startExternalIssueFormSpan({
+  action,
+  group,
+  integration,
+  type,
+}: {
+  action: ExternalIssueAction;
+  group: Group;
+  integration: Integration;
+  type: 'load' | 'submit';
+}): Span {
+  return Sentry.withScope(scope => {
+    scope.setTag('issueAction', action);
+    scope.setTag('groupID', group.id);
+    scope.setTag('projectID', group.project.id);
+    scope.setTag('integrationSlug', integration.provider.slug);
+    scope.setTag('integrationType', 'firstParty');
+    return Sentry.startInactiveSpan({
+      name: `externalIssueForm.${type}`,
+      forceTransaction: true,
+    });
+  });
 }
 
 export function ExternalIssueForm({
@@ -219,31 +243,22 @@ export function ExternalIssueForm({
     ]
   );
 
-  const startSpan = useCallback(
-    (type: 'load' | 'submit') => {
-      return Sentry.withScope(scope => {
-        scope.setTag('issueAction', action);
-        scope.setTag('groupID', group.id);
-        scope.setTag('projectID', group.project.id);
-        scope.setTag('integrationSlug', integration.provider.slug);
-        scope.setTag('integrationType', 'firstParty');
-        return Sentry.startInactiveSpan({
-          name: `externalIssueForm.${type}`,
-          forceTransaction: true,
-        });
-      });
-    },
-    [action, group.id, group.project.id, integration.provider.slug]
-  );
+  const startLoadSpan = useEffectEvent(() => {
+    loadSpanRef.current = startExternalIssueFormSpan({
+      action,
+      group,
+      integration,
+      type: 'load',
+    });
+  });
 
   // Start the span for the load request
   useEffect(() => {
-    loadSpanRef.current = startSpan('load');
+    startLoadSpan();
     return () => {
       loadSpanRef.current?.end();
       loadSpanRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // End the span for the load request
@@ -268,7 +283,12 @@ export function ExternalIssueForm({
 
   const handleSubmit = useCallback(
     async (values: Record<string, unknown>) => {
-      const span = startSpan('submit');
+      const span = startExternalIssueFormSpan({
+        action,
+        group,
+        integration,
+        type: 'submit',
+      });
       try {
         const data: IntegrationExternalIssue = await api.requestPromise(endpointString, {
           method: action === 'create' ? 'POST' : 'PUT',
@@ -290,17 +310,7 @@ export function ExternalIssueForm({
         throw err;
       }
     },
-    [
-      api,
-      endpointString,
-      action,
-      organization,
-      group,
-      integration,
-      startSpan,
-      closeModal,
-      onChange,
-    ]
+    [api, endpointString, action, organization, group, integration, closeModal, onChange]
   );
 
   const formFields = useMemo((): JsonFormAdapterFieldConfig[] => {
