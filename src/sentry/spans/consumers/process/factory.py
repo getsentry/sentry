@@ -149,47 +149,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.__pool.close()
 
 
-class SpanAttributeValue(msgspec.Struct, gc=False):
-    value: str | None = None
-
-
-class SpanAttributes(msgspec.Struct, gc=False):
-    segment_id: SpanAttributeValue | None = msgspec.field(name="sentry.segment.id", default=None)
-
-
-class ProcessSpanEvent(msgspec.Struct, gc=False):
-    organization_id: int
-    project_id: int
-    trace_id: str
-    span_id: str
-    start_timestamp: float
-    end_timestamp: float
-    received: float
-    retention_days: int
-    status: str
-    name: str | None = None
-    parent_span_id: str | None = None
-    is_segment: bool | None = None
-    attributes: SpanAttributes | None = None
-
-    @property
-    def segment_id(self) -> str | None:
-        if self.attributes is None or self.attributes.segment_id is None:
-            return None
-        return self.attributes.segment_id.value
-
-    @property
-    def is_segment_span(self) -> bool:
-        return self.parent_span_id is None or bool(self.is_segment)
-
-
-_SPAN_EVENT_DECODER = msgspec.json.Decoder(type=ProcessSpanEvent)
-
-
-def decode_process_span_event(buf: bytes) -> ProcessSpanEvent:
-    return _SPAN_EVENT_DECODER.decode(buf)
-
-
 @metrics.wraps("spans.buffer.process_batch")
 def process_batch(
     buffer: SpansBuffer,
@@ -212,7 +171,7 @@ def process_batch(
             # and types); malformed spans raise here and are routed to the DLQ below. See also:
             # INC-1453, INC-1458.
             decode_start = time.monotonic()
-            span_event = _SPAN_EVENT_DECODER.decode(payload.value)
+            span_event = _PROCESS_SPAN_DECODER.decode(payload.value)
             decode_time += time.monotonic() - decode_start
 
             if killswitches.value_matches(
@@ -263,3 +222,44 @@ def process_batch(
     assert min_timestamp is not None
     buffer.process_spans(spans, now=min_timestamp)
     return min_timestamp
+
+
+class SpanAttributeValue(msgspec.Struct, gc=False):
+    value: str | None = None
+
+
+class SpanAttributes(msgspec.Struct, gc=False):
+    segment_id: SpanAttributeValue | None = msgspec.field(name="sentry.segment.id", default=None)
+
+
+class ProcessSpanEvent(msgspec.Struct, gc=False):
+    organization_id: int
+    project_id: int
+    trace_id: str
+    span_id: str
+    start_timestamp: float
+    end_timestamp: float
+    received: float
+    retention_days: int
+    status: str
+    name: str | None = None
+    parent_span_id: str | None = None
+    is_segment: bool | None = None
+    attributes: SpanAttributes | None = None
+
+    @property
+    def segment_id(self) -> str | None:
+        if self.attributes is None or self.attributes.segment_id is None:
+            return None
+        return self.attributes.segment_id.value
+
+    @property
+    def is_segment_span(self) -> bool:
+        return self.parent_span_id is None or bool(self.is_segment)
+
+
+_PROCESS_SPAN_DECODER = msgspec.json.Decoder(type=ProcessSpanEvent)
+
+
+def decode_process_span_event(buf: bytes) -> ProcessSpanEvent:
+    return _PROCESS_SPAN_DECODER.decode(buf)
