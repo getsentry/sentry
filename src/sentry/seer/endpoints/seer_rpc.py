@@ -908,11 +908,14 @@ def get_monitoring_provider_token(*, user_id: int, provider_type: str) -> dict:
 
     If the token is expired, proactively refreshes it before returning.
     """
-    identity = identity_service.get_identity(
+    identities = identity_service.get_identities(
         filter={"user_id": user_id, "provider_type": provider_type}
     )
-    if identity is None:
+    if not identities:
         return {"error": "identity_not_found"}
+    if len(identities) > 1:
+        return {"error": "multiple_identities"}
+    identity = identities[0]
 
     access_token = identity.data.get("access_token")
     if not access_token:

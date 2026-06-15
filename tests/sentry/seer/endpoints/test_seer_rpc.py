@@ -1718,6 +1718,19 @@ class TestGetMonitoringProviderToken(APITestCase):
 
         assert result == {"error": "identity_not_found"}
 
+    def test_multiple_identities(self) -> None:
+        second_idp = self.create_identity_provider(type="datadog", external_id="datadog-ext-2")
+        self.create_identity(
+            user=self.user,
+            identity_provider=second_idp,
+            external_id="dd-user-uuid-2",
+            data={"access_token": "token-2"},
+        )
+
+        result = get_monitoring_provider_token(user_id=self.user.id, provider_type="datadog")
+
+        assert result == {"error": "multiple_identities"}
+
     def test_missing_access_token(self) -> None:
         self.identity.data = {"refresh_token": "refresh-token"}
         self._save_identity()
