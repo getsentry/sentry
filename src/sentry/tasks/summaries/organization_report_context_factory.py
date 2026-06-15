@@ -68,37 +68,16 @@ class OrganizationReportContextFactory:
                 total = data["total"]
                 timestamp = int(parse_snuba_datetime(data["time"]).timestamp())
                 if data["category"] == DataCategory.TRANSACTION:
-                    # Transaction outcome
-                    if (
-                        data["outcome"] == Outcome.RATE_LIMITED
-                        or data["outcome"] == Outcome.FILTERED
-                    ):
-                        project_ctx.dropped_transaction_count += total
-                    else:
-                        project_ctx.accepted_transaction_count += total
-                        project_ctx.transaction_count_by_day[timestamp] = total
+                    project_ctx.accepted_transaction_count += total
+                    project_ctx.transaction_count_by_day[timestamp] = total
                 elif data["category"] == DataCategory.REPLAY:
-                    # Replay outcome
-                    if (
-                        data["outcome"] == Outcome.RATE_LIMITED
-                        or data["outcome"] == Outcome.FILTERED
-                    ):
-                        project_ctx.dropped_replay_count += total
-                    else:
-                        project_ctx.accepted_replay_count += total
-                        project_ctx.replay_count_by_day[timestamp] = total
+                    project_ctx.accepted_replay_count += total
+                    project_ctx.replay_count_by_day[timestamp] = total
                 else:
-                    # Error outcome
-                    if (
-                        data["outcome"] == Outcome.RATE_LIMITED
-                        or data["outcome"] == Outcome.FILTERED
-                    ):
-                        project_ctx.dropped_error_count += total
-                    else:
-                        project_ctx.accepted_error_count += total
-                        project_ctx.error_count_by_day[timestamp] = (
-                            project_ctx.error_count_by_day.get(timestamp, 0) + total
-                        )
+                    project_ctx.accepted_error_count += total
+                    project_ctx.error_count_by_day[timestamp] = (
+                        project_ctx.error_count_by_day.get(timestamp, 0) + total
+                    )
 
     @metrics.wraps("weekly_report.create_context.project_event_counts_previous_week")
     def _append_project_event_counts_previous_week(self, ctx: OrganizationReportContext) -> None:

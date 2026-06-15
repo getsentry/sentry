@@ -494,6 +494,19 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             ),
         )
 
+    def test_create_with_project_id(self) -> None:
+        data = {
+            "project": self.project.id,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+
+        response = self.get_success_response(self.organization.slug, **data)
+
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+        assert monitor.project_id == self.project.id
+
     def test_slug(self) -> None:
         data = {
             "project": self.project.slug,
