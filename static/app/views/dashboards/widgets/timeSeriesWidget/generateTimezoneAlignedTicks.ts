@@ -44,16 +44,23 @@ export function generateTimezoneAlignedTicks(
   }
 
   const interval = pickInterval(startMs, endMs, splitNumber);
-  const cursor = snapToRoundBoundary(startMs, interval.unit, interval.step, userTimezone);
-  const ticks: number[] = [];
+  const currentTick = snapToRoundBoundary(
+    startMs,
+    interval.unit,
+    interval.step,
+    userTimezone
+  );
 
-  while (cursor.valueOf() <= endMs) {
-    // The snap may place the cursor before startMs (e.g. snapping 01:30 to
-    // 00:00), so skip ticks until we're inside the requested range.
-    if (cursor.valueOf() >= startMs) {
-      ticks.push(cursor.valueOf());
-    }
-    cursor.add(interval.step, interval.unit);
+  // The floor snap may place the tick before startMs — advance one step to
+  // get inside the range.
+  if (currentTick.valueOf() < startMs) {
+    currentTick.add(interval.step, interval.unit);
+  }
+
+  const ticks: number[] = [];
+  while (currentTick.valueOf() <= endMs) {
+    ticks.push(currentTick.valueOf());
+    currentTick.add(interval.step, interval.unit);
   }
 
   return ticks;
@@ -79,8 +86,9 @@ const AXIS_UNIT_DURATIONS: Record<TimeAxisUnit, number> = {
  * `scaleIntervals` (echarts/src/scale/Time.ts:281-306). Each entry defines
  * a time unit and the "round" step sizes allowed for that unit. For example,
  * `{unit: 'hour', steps: [1, 2, 4, 6, 12]}` means we might place ticks
- * every 1, 2, 4, 6, or 12 hours — but never every 3 or 5 hours, because
- * those don't divide evenly into a day and would produce non-round labels.
+ * every 1, 2, 4, 6, or 12 hours. These specific multiples are chosen
+ * because they produce the "clock-friendly" labels people expect to see
+ * (e.g., 12:00, 4:00, 8:00 rather than 5:00, 10:00, 15:00, 20:00).
  *
  * {@link pickInterval} flattens this into duration-sorted (unit, step)
  * pairs and picks the smallest one whose duration exceeds the approximate

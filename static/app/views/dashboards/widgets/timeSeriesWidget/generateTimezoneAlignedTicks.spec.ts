@@ -4,37 +4,16 @@ import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
 
 describe('generateTimezoneAlignedTicks', () => {
   describe('interval selection', () => {
-    const assertYear = (m: moment.Moment) => {
-      expect(m.month()).toBe(0);
-      expect(m.date()).toBe(1);
-      expect(m.hour()).toBe(0);
-    };
-    const assertMonth = (m: moment.Moment) => {
-      expect(m.date()).toBe(1);
-      expect(m.hour()).toBe(0);
-    };
-    const assertDay = (m: moment.Moment) => {
-      expect(m.hour()).toBe(0);
-      expect(m.minute()).toBe(0);
-    };
-    const assertHour = (m: moment.Moment) => {
-      expect(m.minute()).toBe(0);
-      expect(m.second()).toBe(0);
-    };
-    const assertMinute = (m: moment.Moment) => {
-      expect(m.second()).toBe(0);
-    };
-
     it.each<[number, number, (m: moment.Moment) => void]>([
-      [5 * 60 * 1000, 5, assertMinute], // 5 minutes → minute ticks
-      [3600 * 1000, 5, assertMinute], // 1 hour → minute ticks
-      [6 * 3600 * 1000, 5, assertHour], // 6 hours → hour ticks
-      [24 * 3600 * 1000, 5, assertHour], // 24 hours → hour ticks
-      [7 * 86400 * 1000, 5, assertDay], // 7 days → day ticks
-      [30 * 86400 * 1000, 5, assertDay], // 30 days → day ticks
-      [90 * 86400 * 1000, 5, assertMonth], // 90 days → month ticks
-      [365 * 86400 * 1000, 5, assertMonth], // 365 days → month ticks
-      [3 * 365 * 86400 * 1000, 5, assertYear], // 3 years → year ticks
+      [5 * 60 * 1000, 5, assertAtMinuteBoundary], // 5 minutes → minute ticks
+      [3600 * 1000, 5, assertAtMinuteBoundary], // 1 hour → minute ticks
+      [6 * 3600 * 1000, 5, assertAtHourBoundary], // 6 hours → hour ticks
+      [24 * 3600 * 1000, 5, assertAtHourBoundary], // 24 hours → hour ticks
+      [7 * 86400 * 1000, 5, assertAtDayBoundary], // 7 days → day ticks
+      [30 * 86400 * 1000, 5, assertAtDayBoundary], // 30 days → day ticks
+      [90 * 86400 * 1000, 5, assertAtMonthBoundary], // 90 days → month ticks
+      [365 * 86400 * 1000, 5, assertAtMonthBoundary], // 365 days → month ticks
+      [3 * 365 * 86400 * 1000, 5, assertAtYearBoundary], // 3 years → year ticks
     ])(
       'selects correct-level ticks for a %d ms range with %d splits',
       (rangeMs, splitNumber, assertTick) => {
@@ -63,9 +42,7 @@ describe('generateTimezoneAlignedTicks', () => {
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
       for (const tick of ticks) {
-        const m = moment.tz(tick, tz);
-        expect(m.minute()).toBe(0);
-        expect(m.second()).toBe(0);
+        assertAtHourBoundary(moment.tz(tick, tz));
       }
 
       const ticksFormatted = ticks.map(t => formatInTz(t, tz, 'HH:mm'));
@@ -80,9 +57,7 @@ describe('generateTimezoneAlignedTicks', () => {
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
       for (const tick of ticks) {
-        const m = moment.tz(tick, tz);
-        expect(m.minute()).toBe(0);
-        expect(m.second()).toBe(0);
+        assertAtHourBoundary(moment.tz(tick, tz));
       }
 
       // IST midnight = 18:30 UTC previous day — verify UTC timestamps have :30 minutes
@@ -99,9 +74,7 @@ describe('generateTimezoneAlignedTicks', () => {
       const ticks = generateTimezoneAlignedTicks(start, end, 5, 'UTC');
 
       for (const tick of ticks) {
-        const m = moment.utc(tick);
-        expect(m.minute()).toBe(0);
-        expect(m.second()).toBe(0);
+        assertAtHourBoundary(moment.utc(tick));
       }
     });
   });
@@ -116,9 +89,7 @@ describe('generateTimezoneAlignedTicks', () => {
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
       for (const tick of ticks) {
-        const m = moment.tz(tick, tz);
-        expect(m.hour()).toBe(0);
-        expect(m.minute()).toBe(0);
+        assertAtDayBoundary(moment.tz(tick, tz));
       }
 
       // Check that the gap between ticks spanning DST is 23 hours (not 24)
@@ -139,9 +110,7 @@ describe('generateTimezoneAlignedTicks', () => {
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
       for (const tick of ticks) {
-        const m = moment.tz(tick, tz);
-        expect(m.hour()).toBe(0);
-        expect(m.minute()).toBe(0);
+        assertAtDayBoundary(moment.tz(tick, tz));
       }
 
       // Check that the gap spanning fall back is 25 hours
@@ -163,9 +132,7 @@ describe('generateTimezoneAlignedTicks', () => {
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
       for (const tick of ticks) {
-        const m = moment.tz(tick, tz);
-        expect(m.hour()).toBe(0);
-        expect(m.minute()).toBe(0);
+        assertAtDayBoundary(moment.tz(tick, tz));
       }
     });
 
@@ -177,9 +144,7 @@ describe('generateTimezoneAlignedTicks', () => {
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
       for (const tick of ticks) {
-        const m = moment.tz(tick, tz);
-        expect(m.minute()).toBe(0);
-        expect(m.second()).toBe(0);
+        assertAtHourBoundary(moment.tz(tick, tz));
       }
     });
   });
@@ -263,6 +228,31 @@ describe('generateTimezoneAlignedTicks', () => {
     });
   });
 });
+
+function assertAtYearBoundary(m: moment.Moment) {
+  expect(m.month()).toBe(0);
+  expect(m.date()).toBe(1);
+  expect(m.hour()).toBe(0);
+}
+
+function assertAtMonthBoundary(m: moment.Moment) {
+  expect(m.date()).toBe(1);
+  expect(m.hour()).toBe(0);
+}
+
+function assertAtDayBoundary(m: moment.Moment) {
+  expect(m.hour()).toBe(0);
+  expect(m.minute()).toBe(0);
+}
+
+function assertAtHourBoundary(m: moment.Moment) {
+  expect(m.minute()).toBe(0);
+  expect(m.second()).toBe(0);
+}
+
+function assertAtMinuteBoundary(m: moment.Moment) {
+  expect(m.second()).toBe(0);
+}
 
 /** Convert a timezone-local datetime string to UTC epoch milliseconds. */
 function toEpochMs(dateStr: string, timezone: string): number {
