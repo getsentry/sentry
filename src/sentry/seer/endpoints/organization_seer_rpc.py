@@ -4,6 +4,7 @@ from typing import Any
 
 import sentry_sdk
 from django.core.exceptions import ObjectDoesNotExist
+from pydantic import BaseModel
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -163,6 +164,13 @@ class SeerRpcPermission(OrganizationPermission):
     }
 
 
+def _serialize_result(result: Any) -> Any:
+    """Convert Pydantic returns to dict so DRF's JSONRenderer can serialize."""
+    if isinstance(result, BaseModel):
+        return result.dict()
+    return result
+
+
 @cell_silo_endpoint
 class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
@@ -221,7 +229,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         if method_name in public_org_seer_method_registry:
             method = public_org_seer_method_registry[method_name]
             arguments["organization_id"] = organization.id
-            return method(**arguments)
+            return _serialize_result(method(**arguments))
 
         # Check if this is a project-level method
         if method_name in public_project_seer_method_registry:
@@ -232,10 +240,12 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
             project = self._validate_project_access(request, organization, project_id)
 
             method = public_project_seer_method_registry[method_name]
-            return method(
-                **arguments,
-                organization_id=organization.id,
-                project_id=project.id,
+            return _serialize_result(
+                method(
+                    **arguments,
+                    organization_id=organization.id,
+                    project_id=project.id,
+                )
             )
 
         raise RpcResolutionException(f"Unknown method {method_name}")
