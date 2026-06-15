@@ -744,25 +744,6 @@ function buildRoutes(): RouteObject[] {
         () => import('sentry/views/settings/projectPlugins/legacyWebhookDetails')
       ),
     },
-    {
-      path: 'plugins/',
-      name: t('Legacy Integrations'),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/settings/projectPlugins')),
-        },
-        {
-          path: ':pluginId/',
-          name: t('Integration Details'),
-          component: make(() => import('sentry/views/settings/projectPlugins/details')),
-        },
-      ],
-    },
-    {
-      path: 'issue-tracking/',
-      redirectTo: '/settings/:orgId/:projectId/plugins/',
-    },
   ];
   const projectSettingsRoutes: SentryRouteObject = {
     path: 'projects/:projectId/',
@@ -2909,14 +2890,6 @@ function buildRoutes(): RouteObject[] {
           {
             path: 'security-headers/hpkp/',
             redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
-          },
-          {
-            path: 'plugins/',
-            redirectTo: '/settings/:orgId/projects/:projectId/plugins/',
-          },
-          {
-            path: 'plugins/:pluginId/',
-            redirectTo: '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
           },
           {
             path: 'integrations/:providerKey/',
