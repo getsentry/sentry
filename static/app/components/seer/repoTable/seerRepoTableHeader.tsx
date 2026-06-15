@@ -24,8 +24,7 @@ import {
   useListItemCheckboxContext,
   type ListItemCheckboxState,
 } from 'sentry/utils/list/useListItemCheckboxState';
-
-import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 
 interface Props {
   gridColumns: string;
