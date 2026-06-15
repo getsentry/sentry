@@ -18,6 +18,8 @@ import type {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
+import {AutofixRepositoriesItem} from 'sentry/components/seer/projectDetails/autofixRepositoriesItem';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -28,9 +30,6 @@ import {
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
-
-import {AutofixRepositoriesItem} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItem';
 
 interface Props {
   canWrite: boolean;

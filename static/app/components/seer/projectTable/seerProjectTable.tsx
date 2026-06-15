@@ -27,6 +27,7 @@ import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
@@ -50,12 +51,10 @@ import {
   coaleseStoppingPoint,
   useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
+import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
-import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const estimateSize = () => 41;
 
@@ -340,7 +339,7 @@ function AddProjectButton() {
         setIsLoadingModal(true);
         try {
           const {ProjectAddRepoModal} =
-            await import('getsentry/views/seerAutomation/components/projectAddRepoModal/projectAddRepoModal');
+            await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');
 
           openModal(
             deps => <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />,
