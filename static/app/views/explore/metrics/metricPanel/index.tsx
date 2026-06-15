@@ -22,10 +22,8 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {
-  getHeatmapXBucketInterval,
-  getHeatmapYBuckets,
-} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapBuckets';
+import {getHeatmapXBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXBucketInterval';
+import {getHeatmapYBuckets} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYBuckets';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';

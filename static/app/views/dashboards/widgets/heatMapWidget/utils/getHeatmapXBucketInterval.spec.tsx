@@ -1,8 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
-import {
-  getHeatmapXBucketInterval,
-  getHeatmapYBuckets,
-} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapBuckets';
+import {getHeatmapXBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXBucketInterval';
 
 const INTERVAL_OPTIONS = [
   {label: '1 minute', value: '1m'},
@@ -22,26 +19,6 @@ function makeSelection(period: string): PageFilters {
     datetime: {period, start: null, end: null, utc: null},
   };
 }
-
-describe('getHeatmapYBuckets()', () => {
-  it('returns 0 when the container has no width', () => {
-    expect(getHeatmapYBuckets(makeSelection('24h'), '1h', 0, 362)).toBe(0);
-  });
-
-  it('returns 0 for an invalid interval', () => {
-    expect(getHeatmapYBuckets(makeSelection('24h'), 'not-an-interval', 700, 362)).toBe(0);
-  });
-
-  it('scales the Y bucket count by the container aspect ratio', () => {
-    // 24h / 1h = 24 X buckets; 24 * (362 / 724) ≈ 12
-    expect(getHeatmapYBuckets(makeSelection('24h'), '1h', 724, 362)).toBe(12);
-  });
-
-  it('never returns fewer than 1 bucket when there is data', () => {
-    // A very wide, short container would round to 0 without the floor.
-    expect(getHeatmapYBuckets(makeSelection('1h'), '1h', 2000, 10)).toBe(1);
-  });
-});
 
 describe('getHeatmapXBucketInterval()', () => {
   it('falls back to the provided interval when the width is 0', () => {
