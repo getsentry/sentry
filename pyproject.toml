@@ -411,7 +411,6 @@ module = [
     "bitfield.*",
     "django_picklefield.*",
     "fixtures.apidocs_test_case",
-    "fixtures.gitlab",
     "fixtures.integrations.jira.mock",
     "fixtures.integrations.jira.stub_client",
     "fixtures.integrations.mock_service",
