@@ -289,13 +289,11 @@ export function ProjectKeyCredentials({
     ...defaultFormOptions,
     defaultValues: {
       dsn: data.dsn.public,
-      dsnDeprecated: data.dsn.secret,
       useCase: data.useCase ?? '',
     },
     validators: {
       onChange: z.object({
         dsn: z.string(),
-        dsnDeprecated: z.string(),
         useCase: z.string(),
       }),
     },
