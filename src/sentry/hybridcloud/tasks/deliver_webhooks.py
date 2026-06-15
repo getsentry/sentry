@@ -86,7 +86,7 @@ def _set_webhook_delivery_sentry_context(payload: WebhookPayload) -> None:
         "provider": payload.provider or "unknown",
     }
     sentry_sdk.set_context("webhook_delivery", context)
-    sentry_sdk.set_attribute("webhook_delivery", context)
+    sentry_sdk.set_attribute("webhook_delivery.provider", payload.provider or "unknown")
 
 
 class DeliveryFailed(Exception):

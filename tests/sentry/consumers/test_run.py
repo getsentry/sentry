@@ -83,7 +83,6 @@ def test_commit_log_consumer_config_keyed_by_own_topic() -> None:
             consumer_name="post-process-forwarder-transactions",
             consumer_args=["--mode=multithreaded"],
             topic=None,
-            cluster=None,
             group_id="test-group",
             auto_offset_reset="earliest",
             strict_offset_reset=False,

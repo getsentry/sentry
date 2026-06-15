@@ -65,7 +65,7 @@ export type AggregateSpanType = RawSpanType & {
 };
 
 /**
- * Extendeds the Raw type from json with a type for discriminating the union.
+ * Extends the Raw type from json with a type for discriminating the union.
  */
 type BaseSpanType = RawSpanType & {
   type?: undefined;
