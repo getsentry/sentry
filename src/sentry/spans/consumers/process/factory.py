@@ -2,8 +2,9 @@ import logging
 import time
 from collections.abc import Mapping
 from functools import partial
-from typing import cast
+from typing import Any, cast
 
+import msgspec
 import orjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -16,7 +17,7 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry import killswitches
+from sentry import killswitches, options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.options.rollout import in_random_rollout
 from sentry.spans.buffer import SpansBuffer
@@ -163,6 +164,7 @@ def process_batch(
     values: Message[ValuesBatch[tuple[int, KafkaPayload]]],
 ) -> int:
     killswitch_config = killswitches.get_killswitch_value("spans.drop-in-buffer")
+    use_msgspec_decoder = options.get("spans.buffer.use-msgspec-decoder")
     min_timestamp = None
     decode_time = 0.0
     spans = []
@@ -176,7 +178,10 @@ def process_batch(
                 min_timestamp = timestamp
 
             decode_start = time.monotonic()
-            val = cast(SpanEvent, orjson.loads(payload.value))
+            if use_msgspec_decoder:
+                val = cast(SpanEvent, decode_process_span_event(payload.value))
+            else:
+                val = cast(SpanEvent, orjson.loads(payload.value))
             decode_time += time.monotonic() - decode_start
 
             if killswitches.value_matches(
@@ -245,3 +250,44 @@ def validate_span_event(span_event: SpanEvent, segment_id: str | None) -> None:
     assert isinstance(span_event["trace_id"], str), "trace_id must be str"
     assert isinstance(span_event["span_id"], str), "span_id must be str"
     assert segment_id is None or isinstance(segment_id, str), "segment_id must be str or None"
+
+
+class SpanAttributeValue(msgspec.Struct, gc=False):
+    value: str | None = None
+
+
+class SpanAttributes(msgspec.Struct, gc=False):
+    segment_id: SpanAttributeValue | None = msgspec.field(name="sentry.segment.id", default=None)
+
+
+class ProcessSpanEvent(msgspec.Struct, gc=False):
+    trace_id: str
+    span_id: str
+    project_id: int
+
+    organization_id: int | None = None
+    parent_span_id: str | None = None
+    is_segment: bool | None = None
+    attributes: SpanAttributes | None = None
+
+
+decoder = msgspec.json.Decoder(type=ProcessSpanEvent)
+
+
+def decode_process_span_event(buf: bytes) -> dict[str, Any]:
+    process_span_event = decoder.decode(buf)
+
+    segment_id: str | None = None
+    if process_span_event.attributes:
+        if process_span_event.attributes.segment_id:
+            segment_id = process_span_event.attributes.segment_id.value
+
+    return {
+        "organization_id": process_span_event.organization_id,
+        "project_id": process_span_event.project_id,
+        "trace_id": process_span_event.trace_id,
+        "span_id": process_span_event.span_id,
+        "parent_span_id": process_span_event.parent_span_id,
+        "is_segment": process_span_event.is_segment,
+        "attributes": {"sentry.segment.id": {"value": segment_id}},
+    }

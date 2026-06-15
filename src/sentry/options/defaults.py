@@ -3015,6 +3015,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, the process consumer decodes span events with the typed msgspec
+# decoder instead of orjson. Used to roll out the faster decoder safely.
+register(
+    "spans.buffer.use-msgspec-decoder",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
