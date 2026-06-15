@@ -125,8 +125,11 @@ from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    GetRepoInstallationIdErrorResponse,
+    GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
+    HasRepoCodeMappingsResponse,
     OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProject,
@@ -135,6 +138,8 @@ from sentry.seer.sentry_data_models import (
     RepositoryIntegrationsStatusResponse,
     SendSeerWebhookErrorResponse,
     SendSeerWebhookSuccessResponse,
+    ValidateRepoErrorResponse,
+    ValidateRepoSuccessResponse,
 )
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -660,7 +665,7 @@ def send_seer_webhook(
 
 def has_repo_code_mappings(
     *, organization_id: int, provider: SeerSCMProvider, external_id: str, owner: str, name: str
-) -> dict[str, bool | dict[str, int]]:
+) -> HasRepoCodeMappingsResponse:
     """
     Validate that a repository exists and belongs to the given organization.
 
@@ -670,19 +675,18 @@ def has_repo_code_mappings(
         external_id: The repository's external ID in the provider's system
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
-
-    Returns:
-        dict: {"has_code_mappings": bool, "project_slug_to_id": dict[str, int]}
     """
     try:
         repo_projects = get_repo_and_projects(organization_id, provider, external_id, owner, name)
     except (Repository.DoesNotExist, NoProjectsForRepoError):
-        return {"has_code_mappings": False, "project_slug_to_id": {}}
+        return HasRepoCodeMappingsResponse(has_code_mappings=False, project_slug_to_id={})
 
     project_slug_to_id = dict(
         sorted((project.slug, project.id) for project in repo_projects.projects)
     )
-    return {"has_code_mappings": True, "project_slug_to_id": project_slug_to_id}
+    return HasRepoCodeMappingsResponse(
+        has_code_mappings=True, project_slug_to_id=project_slug_to_id
+    )
 
 
 def validate_repo(
@@ -692,7 +696,7 @@ def validate_repo(
     external_id: str,
     owner: str,
     name: str,
-) -> dict[str, Any]:
+) -> ValidateRepoSuccessResponse | ValidateRepoErrorResponse:
     """
     Validate that a repository exists and belongs to the given organization.
 
@@ -702,25 +706,21 @@ def validate_repo(
         external_id: The repository's external ID in the provider's system
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
-
-    Returns:
-        {"valid": True, "integration_id": <int|None>} if valid
-        {"valid": False, "reason": <str>} if invalid
     """
     repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
 
     if not repo:
-        return {"valid": False, "reason": "repository_not_found"}
+        return ValidateRepoErrorResponse(reason="repository_not_found")
 
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
     except Organization.DoesNotExist:
-        return {"valid": False, "reason": "organization_not_found"}
+        return ValidateRepoErrorResponse(reason="organization_not_found")
     if repo.provider not in get_supported_scm_providers(organization):
         logger.warning("seer.scm.unsupported_provider", extra={"provider": repo.provider})
-        return {"valid": False, "reason": "unsupported_provider"}
+        return ValidateRepoErrorResponse(reason="unsupported_provider")
 
-    return {"valid": True, "integration_id": repo.integration_id}
+    return ValidateRepoSuccessResponse(integration_id=repo.integration_id)
 
 
 def get_repo_installation_id(
@@ -730,7 +730,7 @@ def get_repo_installation_id(
     external_id: str,
     owner: str,
     name: str,
-) -> dict[str, Any]:
+) -> GetRepoInstallationIdSuccessResponse | GetRepoInstallationIdErrorResponse:
     """
     Look up a repository and return the external_id of its associated integration (the installation ID).
 
@@ -740,30 +740,26 @@ def get_repo_installation_id(
         external_id: The repository's external ID in the provider's system
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
-
-    Returns:
-        {"installation_id": <str>} if found
-        {"error": <str>} if not found or unsupported
     """
     repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
 
     if not repo:
-        return {"error": "repository_not_found"}
+        return GetRepoInstallationIdErrorResponse(error="repository_not_found")
 
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
     except Organization.DoesNotExist:
-        return {"error": "organization_not_found"}
+        return GetRepoInstallationIdErrorResponse(error="organization_not_found")
     if repo.provider not in get_supported_scm_providers(organization):
         logger.warning("seer.scm.unsupported_provider", extra={"provider": repo.provider})
-        return {"error": "unsupported_provider"}
+        return GetRepoInstallationIdErrorResponse(error="unsupported_provider")
 
     if repo.integration_id is None:
-        return {"error": "no_integration"}
+        return GetRepoInstallationIdErrorResponse(error="no_integration")
 
     integration = integration_service.get_integration(integration_id=repo.integration_id)
     if integration is None:
-        return {"error": "integration_not_found"}
+        return GetRepoInstallationIdErrorResponse(error="integration_not_found")
 
     # GitHub stores the installation ID as the integration's external_id,
     # while GitHub Enterprise stores it in metadata["installation_id"].
@@ -773,15 +769,15 @@ def get_repo_installation_id(
         installation_id = integration.external_id
     else:
         logger.warning("seer.scm.unsupported_provider", extra={"provider": integration.provider})
-        return {"error": "unsupported_provider"}
+        return GetRepoInstallationIdErrorResponse(error="unsupported_provider")
 
     if not installation_id:
-        return {"error": "installation_id_not_found"}
+        return GetRepoInstallationIdErrorResponse(error="installation_id_not_found")
 
-    return {
-        "installation_id": installation_id,
-        "permissions": integration.metadata.get("permissions"),
-    }
+    return GetRepoInstallationIdSuccessResponse(
+        installation_id=installation_id,
+        permissions=integration.metadata.get("permissions"),
+    )
 
 
 def check_repository_integrations_status(

@@ -146,3 +146,33 @@ class SendSeerWebhookErrorResponse(BaseModel):
 
 class RepositoryIntegrationsStatusResponse(BaseModel):
     integration_ids: list[int | None]
+
+
+class HasRepoCodeMappingsResponse(BaseModel):
+    has_code_mappings: bool
+    project_slug_to_id: dict[str, int]
+
+
+class ValidateRepoSuccessResponse(BaseModel):
+    valid: Literal[True] = True
+    integration_id: int | None
+
+
+class ValidateRepoErrorResponse(BaseModel):
+    valid: Literal[False] = False
+    reason: str
+
+
+class GetRepoInstallationIdSuccessResponse(BaseModel):
+    installation_id: int | str
+    permissions: dict[str, Any] | None
+
+    class Config:
+        # GitHub returns the installation_id as a str; GitHub Enterprise stores
+        # it as an int in metadata. smart_union preserves the runtime type
+        # instead of coercing through the first matching union arm.
+        smart_union = True
+
+
+class GetRepoInstallationIdErrorResponse(BaseModel):
+    error: str
