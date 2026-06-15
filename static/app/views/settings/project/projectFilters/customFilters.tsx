@@ -15,7 +15,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
+import {IconAdd, IconDelete, IconEdit, IconSearch, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 
@@ -49,6 +49,21 @@ const PROPERTY_OPTIONS = [
   {value: 'release', label: t('Release')},
 ];
 
+// A filter can only target a single data category, so these properties are
+// mutually exclusive within one filter — you can't mix error, metric, and log
+// conditions. Multiple conditions of the same exclusive property (e.g. two
+// error message globs) are still allowed. `release` is not in this set, so it
+// can be combined with any other property.
+const EXCLUSIVE_PROPERTIES = new Set(['error_message', 'metric_name', 'log_message']);
+
+function isExclusiveProperty(property: string) {
+  return EXCLUSIVE_PROPERTIES.has(property);
+}
+
+function getActiveExclusiveProperty(conditions: CustomFilterCondition[]) {
+  return conditions.find(condition => isExclusiveProperty(condition.property))?.property;
+}
+
 // Placeholder data so the table can be exercised locally. This will be
 // replaced by data from the API once the backend exists.
 const INITIAL_FILTERS: CustomFilter[] = [
@@ -81,12 +96,27 @@ const INITIAL_FILTERS: CustomFilter[] = [
   },
 ];
 
-function emptyCondition(): CustomFilterCondition {
-  return {id: uniqueId(), property: 'error_message', value: ''};
+function emptyCondition(property = 'error_message'): CustomFilterCondition {
+  return {id: uniqueId(), property, value: ''};
 }
 
 function getPropertyLabel(value: string) {
   return PROPERTY_OPTIONS.find(option => option.value === value)?.label ?? value;
+}
+
+function getValuePlaceholder(property: string) {
+  switch (property) {
+    case 'error_message':
+      return t('Glob pattern, e.g. *ConnectionError*');
+    case 'metric_name':
+      return t('Glob pattern, e.g. checkout.*');
+    case 'log_message':
+      return t('Glob pattern, e.g. *DEBUG*');
+    case 'release':
+      return t('Glob pattern, e.g. 2.41.*');
+    default:
+      return t('Glob pattern');
+  }
 }
 
 function ConditionTag({condition}: {condition: CustomFilterCondition}) {
@@ -130,6 +160,37 @@ function CustomFilterModal({
     }));
   };
 
+  // For a given condition, disable any exclusive property already claimed by a
+  // different condition. Two conditions sharing the same exclusive property is
+  // fine, and `release` is never exclusive so it stays enabled.
+  const getPropertyOptions = (condition: CustomFilterCondition) =>
+    PROPERTY_OPTIONS.map(option => {
+      if (!isExclusiveProperty(option.value)) {
+        return option;
+      }
+      const conflicts = draft.conditions.some(
+        other =>
+          other.id !== condition.id &&
+          isExclusiveProperty(other.property) &&
+          other.property !== option.value
+      );
+      return conflicts
+        ? {
+            ...option,
+            disabled: true,
+            trailingItems: (
+              <Tooltip
+                title={t(
+                  'A filter can only target one of error, metric, or log data. Remove the existing condition to switch.'
+                )}
+              >
+                <IconWarning size="sm" variant="warning" />
+              </Tooltip>
+            ),
+          }
+        : option;
+    });
+
   return (
     <Fragment>
       <Header closeButton>
@@ -153,23 +214,21 @@ function CustomFilterModal({
 
           <Flex direction="column" gap="sm">
             <Flex justify="between" align="center" gap="md">
-              <Flex direction="column" gap="xs">
-                <Text bold size="sm">
-                  {t('Conditions')}
-                </Text>
-                <Text variant="muted" size="sm">
-                  {t(
-                    'Each condition is a glob pattern matched against the selected field.'
-                  )}
-                </Text>
-              </Flex>
+              <Text variant="muted" size="sm">
+                {t(
+                  'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
+                )}
+              </Text>
               <Button
                 size="sm"
                 icon={<IconAdd />}
                 onClick={() =>
                   setDraft(current => ({
                     ...current,
-                    conditions: [...current.conditions, emptyCondition()],
+                    conditions: [
+                      ...current.conditions,
+                      emptyCondition(getActiveExclusiveProperty(current.conditions)),
+                    ],
                   }))
                 }
               >
@@ -183,7 +242,7 @@ function CustomFilterModal({
                     aria-label={t('Condition property')}
                     name={`condition-property-${condition.id}`}
                     clearable={false}
-                    options={PROPERTY_OPTIONS}
+                    options={getPropertyOptions(condition)}
                     value={condition.property}
                     onChange={(option: {value: string}) =>
                       updateCondition(condition.id, {property: option.value})
@@ -194,7 +253,7 @@ function CustomFilterModal({
                 <Flex flex={1}>
                   <Input
                     aria-label={t('Condition value')}
-                    placeholder={t('Glob pattern, e.g. *ConnectionError*')}
+                    placeholder={getValuePlaceholder(condition.property)}
                     value={condition.value}
                     onChange={e => updateCondition(condition.id, {value: e.target.value})}
                   />
