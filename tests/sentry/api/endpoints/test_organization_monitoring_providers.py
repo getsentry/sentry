@@ -127,21 +127,19 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         "sentry.api.endpoints.organization_monitoring_providers.IdentityPipeline.__init__",
         return_value=None,
     )
-    def test_connect_datadog_creates_identity_provider(
+    def test_connect_datadog_does_not_create_identity_provider(
         self, mock_init: MagicMock, mock_initialize: MagicMock, mock_current_step: MagicMock
     ) -> None:
         mock_current_step.return_value = HttpResponseRedirect(
             "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"
         )
 
-        assert not IdentityProvider.objects.filter(type="datadog").exists()
-
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_success_response(
                 self.organization.slug, "datadog", site="datadoghq.com"
             )
 
-        assert IdentityProvider.objects.filter(type="datadog", external_id="datadoghq.com").exists()
+        assert not IdentityProvider.objects.filter(type="datadog").exists()
         assert response.data["redirectUrl"].startswith("https://mcp.datadoghq.com/")
 
     def test_connect_datadog_requires_site(self) -> None:
@@ -149,7 +147,7 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
             response = self.get_response(self.organization.slug, "datadog")
 
         assert response.status_code == 400
-        assert "Invalid provider configuration" in response.data["detail"]
+        assert "site" in response.data["detail"]
 
     def test_connect_unknown_provider(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
@@ -172,7 +170,7 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
         assert response.status_code == 404
 
     def test_disconnect_deletes_identity_datadog(self) -> None:
-        idp = self.create_identity_provider(type="datadog", external_id="datadoghq.com")
+        idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")
         self.create_identity(
             user=self.user,
             identity_provider=idp,

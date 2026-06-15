@@ -28,32 +28,6 @@ MONITORING_PROVIDERS: dict[str, dict[str, str]] = {
 MONITORING_PROVIDER_FEATURE = "organizations:seer-infra-telemetry"
 
 
-def _get_pipeline_config(provider_key: str, request_data: dict[str, str]) -> dict[str, str]:
-    """Build provider-specific pipeline config from request body."""
-    config: dict[str, str] = {}
-    if provider_key == "datadog":
-        site = request_data.get("site")
-        if not site:
-            raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
-        config["site"] = site
-    return config
-
-
-def _get_identity_provider(provider_key: str, config: dict[str, str]) -> IdentityProvider:
-    """
-    Get or create the IdentityProvider for a monitoring provider.
-
-    Datadog uses per-site providers (external_id=site). GCP uses a single global provider.
-    """
-    if provider_key == "datadog":
-        external_id = config.get("site", "")
-    else:
-        external_id = ""
-
-    idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id=external_id)
-    return idp
-
-
 class MonitoringProviderPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -118,12 +92,20 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
-        try:
-            config = _get_pipeline_config(provider_key, request.data)
-        except ValueError:
-            return Response({"detail": "Invalid provider configuration."}, status=400)
+        config: dict[str, str] = {}
+        if provider_key == "datadog":
+            site = request.data.get("site")
+            if not site:
+                return Response(
+                    {"detail": "Datadog requires a 'site' parameter (e.g. 'datadoghq.com')."},
+                    status=400,
+                )
+            config["site"] = site
 
-        idp = _get_identity_provider(provider_key, config)
+        # Datadog: the IdentityProvider is auto-created during the pipeline
+        idp: IdentityProvider | None = None
+        if provider_key != "datadog":
+            idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
         pipeline = IdentityPipeline(
             request=request._request,
