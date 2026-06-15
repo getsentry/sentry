@@ -4,47 +4,51 @@ import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
 
 describe('generateTimezoneAlignedTicks', () => {
   describe('interval selection', () => {
-    it.each([
-      [0, 5 * 60 * 1000, 'minute'], // 5 minutes
-      [0, 3600 * 1000, 'minute'], // 1 hour
-      [0, 6 * 3600 * 1000, 'hour'], // 6 hours
-      [0, 24 * 3600 * 1000, 'hour'], // 24 hours
-      [0, 7 * 86400 * 1000, 'day'], // 7 days
-      [0, 30 * 86400 * 1000, 'day'], // 30 days
-      [0, 90 * 86400 * 1000, 'month'], // 90 days
-      [0, 365 * 86400 * 1000, 'month'], // 365 days
-      [0, 3 * 365 * 86400 * 1000, 'year'], // 3 years
+    const assertYear = (m: moment.Moment) => {
+      expect(m.month()).toBe(0);
+      expect(m.date()).toBe(1);
+      expect(m.hour()).toBe(0);
+    };
+    const assertMonth = (m: moment.Moment) => {
+      expect(m.date()).toBe(1);
+      expect(m.hour()).toBe(0);
+    };
+    const assertDay = (m: moment.Moment) => {
+      expect(m.hour()).toBe(0);
+      expect(m.minute()).toBe(0);
+    };
+    const assertHour = (m: moment.Moment) => {
+      expect(m.minute()).toBe(0);
+      expect(m.second()).toBe(0);
+    };
+    const assertMinute = (m: moment.Moment) => {
+      expect(m.second()).toBe(0);
+    };
+
+    it.each<[number, number, (m: moment.Moment) => void]>([
+      [5 * 60 * 1000, 5, assertMinute], // 5 minutes → minute ticks
+      [3600 * 1000, 5, assertMinute], // 1 hour → minute ticks
+      [6 * 3600 * 1000, 5, assertHour], // 6 hours → hour ticks
+      [24 * 3600 * 1000, 5, assertHour], // 24 hours → hour ticks
+      [7 * 86400 * 1000, 5, assertDay], // 7 days → day ticks
+      [30 * 86400 * 1000, 5, assertDay], // 30 days → day ticks
+      [90 * 86400 * 1000, 5, assertMonth], // 90 days → month ticks
+      [365 * 86400 * 1000, 5, assertMonth], // 365 days → month ticks
+      [3 * 365 * 86400 * 1000, 5, assertYear], // 3 years → year ticks
     ])(
-      'selects %s-level ticks for offset %d to %d',
-      (startOffset, endOffset, expectUnit) => {
+      'selects correct-level ticks for a %d ms range with %d splits',
+      (rangeMs, splitNumber, assertTick) => {
         const base = Date.UTC(2025, 0, 1);
         const ticks = generateTimezoneAlignedTicks(
-          base + startOffset,
-          base + endOffset,
-          5,
+          base,
+          base + rangeMs,
+          splitNumber,
           'UTC'
         );
 
         expect(ticks.length).toBeGreaterThan(0);
-
         for (const tick of ticks) {
-          const m = moment.utc(tick);
-          if (expectUnit === 'year') {
-            expect(m.month()).toBe(0);
-            expect(m.date()).toBe(1);
-            expect(m.hour()).toBe(0);
-          } else if (expectUnit === 'month') {
-            expect(m.date()).toBe(1);
-            expect(m.hour()).toBe(0);
-          } else if (expectUnit === 'day') {
-            expect(m.hour()).toBe(0);
-            expect(m.minute()).toBe(0);
-          } else if (expectUnit === 'hour') {
-            expect(m.minute()).toBe(0);
-            expect(m.second()).toBe(0);
-          } else if (expectUnit === 'minute') {
-            expect(m.second()).toBe(0);
-          }
+          assertTick(moment.utc(tick));
         }
       }
     );

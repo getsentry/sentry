@@ -434,20 +434,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const showXAxisProp = props.showXAxis ?? 'auto';
   const showXAxis = showXAxisProp === 'auto';
 
-  // ECharts can only snap axis ticks to browser-local or UTC boundaries. When
-  // the user's configured timezone differs from the browser timezone, ticks
-  // land at non-round times. Compute custom tick positions aligned to the
-  // user's timezone and pass them via ECharts' `customValues` option on both
-  // `axisTick` (tick mark positions) and `axisLabel` (label positions) — these
-  // are independent in ECharts and must both be set. The label formatter
-  // (`formatXAxisTimestamp`) then cascades through format levels based on what
-  // round boundary each tick falls on, producing mixed-granularity labels.
   const timezone = utc ? 'UTC' : getUserTimezone();
   const customTicks = useMemo(() => {
     if (earliestTimeStamp === undefined || latestTimeStamp === undefined) {
       return;
     }
-    return generateTimezoneAlignedTicks(earliestTimeStamp, latestTimeStamp, 10, timezone);
+    return generateTimezoneAlignedTicks(
+      earliestTimeStamp,
+      latestTimeStamp,
+      X_AXIS_SPLIT_NUMBER,
+      timezone
+    );
   }, [earliestTimeStamp, latestTimeStamp, timezone]);
 
   const xAxis = showXAxis
@@ -464,7 +461,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         axisTick: {
           ...(customTicks ? {customValues: customTicks} : {}),
         },
-        splitNumber: 5,
+        splitNumber: X_AXIS_SPLIT_NUMBER,
         ...releaseBubbleXAxis,
       }
     : HIDDEN_AXIS;
@@ -725,6 +722,8 @@ function getPlottableEventDataIndex(
 }
 
 // Hide every part of the axis so ECharts will remove those elements and also
+const X_AXIS_SPLIT_NUMBER = 5;
+
 // remove the visual space they would take up if they were there.
 const HIDDEN_AXIS = {
   show: false,

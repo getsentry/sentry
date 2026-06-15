@@ -14,11 +14,12 @@ import {getTimeFormat} from 'sentry/utils/dates';
  * ["12:00pm", "1:00am", "2:00am", "3:00am"] when ECharts aligns ticks with hours starts
  *
  * @param value Tick timestamp in UTC milliseconds
- * @param timezone IANA timezone string (e.g., 'America/New_York', 'UTC')
+ * @param userTimezone The user's configured Sentry timezone (IANA string,
+ *   e.g. 'America/New_York'). Pass 'UTC' when the page filter has UTC enabled.
  * @returns Formatted X axis label string
  */
-export function formatXAxisTimestamp(value: number, timezone: string): string {
-  const parsed = moment.tz(value, timezone);
+export function formatXAxisTimestamp(value: number, userTimezone: string): string {
+  const parsed = moment.tz(value, userTimezone);
 
   // Granularity-aware parsing, adjusts the format based on the
   // granularity of the object This works well with ECharts since the

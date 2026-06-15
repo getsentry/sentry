@@ -12,6 +12,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {DAY, HOUR, MINUTE} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import type {
@@ -1345,10 +1346,6 @@ const NULL_META: TimeSeriesMeta = {
   valueUnit: null,
   interval: 0,
 };
-
-const MINUTE = 60 * 1000;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
 
 // Base timestamp: Jan 15, 2025 00:00 UTC
 const TICK_STORY_BASE = Date.UTC(2025, 0, 15, 0, 0, 0);

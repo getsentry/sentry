@@ -60,29 +60,17 @@ describe('formatXAxisTimestamp', () => {
     });
 
     it.each([
-      // 05:00 UTC is midnight in America/New_York (EST, UTC-5) → date label
-      ['2025-02-05T05:00:00', 'America/New_York', 'Feb 5th'],
-      // 00:00 UTC is 7:00 PM previous day in America/New_York → time label
-      ['2025-02-05T00:00:00', 'America/New_York', '7:00 PM'],
-      // Year boundary: 05:00 UTC Jan 1 is midnight Jan 1 in EST → year label
-      ['2025-01-01T05:00:00', 'America/New_York', 'Jan 1st 2025'],
-      // But 00:00 UTC Jan 1 is still Dec 31 in EST → time label
-      ['2025-01-01T00:00:00', 'America/New_York', '7:00 PM'],
+      // America/New_York (EST, UTC-5)
+      ['2025-02-05T05:00:00', 'America/New_York', 'Feb 5th'], // 05:00 UTC = midnight EST → date
+      ['2025-02-05T00:00:00', 'America/New_York', '7:00 PM'], // 00:00 UTC = 7:00 PM EST → time
+      ['2025-01-01T05:00:00', 'America/New_York', 'Jan 1st 2025'], // midnight Jan 1 EST → year
+      ['2025-01-01T00:00:00', 'America/New_York', '7:00 PM'], // still Dec 31 in EST → time
+      // Asia/Kolkata (IST, UTC+5:30) — half-hour offset
+      ['2024-12-31T18:30:00', 'Asia/Kolkata', 'Jan 1st 2025'], // 18:30 UTC = midnight Jan 1 IST → year
+      ['2025-02-04T18:30:00', 'Asia/Kolkata', 'Feb 5th'], // 18:30 UTC = midnight Feb 5 IST → date
+      ['2025-02-05T06:30:00', 'Asia/Kolkata', '12:00 PM'], // 06:30 UTC = noon IST → time
+      ['2025-02-05T00:00:00', 'Asia/Kolkata', '5:30 AM'], // 00:00 UTC = 5:30 AM IST → time
     ])('formats %s in %s as %s', (raw, timezone, formatted) => {
-      const timestamp = moment.tz(raw, 'UTC').valueOf();
-      expect(formatXAxisTimestamp(timestamp, timezone)).toEqual(formatted);
-    });
-
-    it.each([
-      // 18:30 UTC Dec 31 is midnight Jan 1 in Asia/Kolkata (IST, UTC+5:30) → year label
-      ['2024-12-31T18:30:00', 'Asia/Kolkata', 'Jan 1st 2025'],
-      // 18:30 UTC Feb 4 is midnight Feb 5 in IST → date label
-      ['2025-02-04T18:30:00', 'Asia/Kolkata', 'Feb 5th'],
-      // 06:30 UTC is noon in IST → time label
-      ['2025-02-05T06:30:00', 'Asia/Kolkata', '12:00 PM'],
-      // 00:00 UTC is 5:30 AM in IST → time label
-      ['2025-02-05T00:00:00', 'Asia/Kolkata', '5:30 AM'],
-    ])('handles half-hour offset: formats %s in %s as %s', (raw, timezone, formatted) => {
       const timestamp = moment.tz(raw, 'UTC').valueOf();
       expect(formatXAxisTimestamp(timestamp, timezone)).toEqual(formatted);
     });

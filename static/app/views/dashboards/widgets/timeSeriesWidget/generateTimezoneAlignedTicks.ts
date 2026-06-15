@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import {DAY, HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
-type TimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year';
+type TimeAxisUnit = 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year';
 
 /**
  * Generate timezone-aligned tick positions for an ECharts time axis.
@@ -29,36 +29,31 @@ type TimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year';
  * @param startMs  Start of the time range (UTC milliseconds)
  * @param endMs    End of the time range (UTC milliseconds)
  * @param splitNumber  Desired number of ticks (approximate)
- * @param timezone  IANA timezone string (e.g., 'America/New_York')
+ * @param userTimezone  The user's configured Sentry timezone (IANA string,
+ *   e.g. 'America/New_York'). Pass 'UTC' when the page filter has UTC enabled.
  * @returns Array of UTC millisecond timestamps for tick positions
  */
 export function generateTimezoneAlignedTicks(
   startMs: number,
   endMs: number,
   splitNumber: number,
-  timezone: string
+  userTimezone: string
 ): number[] {
   if (endMs <= startMs || splitNumber <= 0) {
     return [];
   }
 
-  const {unit, step} = pickInterval(startMs, endMs, splitNumber);
-  const cursor = snapToRoundBoundary(startMs, unit, step, timezone);
+  const interval = pickInterval(startMs, endMs, splitNumber);
+  const cursor = snapToRoundBoundary(startMs, interval.unit, interval.step, userTimezone);
   const ticks: number[] = [];
 
-  // The cursor starts before `startMs` (snapped back to a round boundary),
-  // so early iterations may fall outside the range and get skipped. The
-  // maxIterations guard prevents an infinite loop if cursor.add() doesn't
-  // advance (e.g., a moment-timezone edge case).
-  const maxIterations = splitNumber * 10;
-  let iterations = 0;
-
-  while (cursor.valueOf() <= endMs && iterations < maxIterations) {
+  while (cursor.valueOf() <= endMs) {
+    // The snap may place the cursor before startMs (e.g. snapping 01:30 to
+    // 00:00), so skip ticks until we're inside the requested range.
     if (cursor.valueOf() >= startMs) {
       ticks.push(cursor.valueOf());
     }
-    cursor.add(step, unit);
-    iterations++;
+    cursor.add(interval.step, interval.unit);
   }
 
   return ticks;
@@ -70,7 +65,7 @@ export function generateTimezoneAlignedTicks(
  * used for picking the right order-of-magnitude interval, not for precise
  * arithmetic.
  */
-const UNIT_DURATIONS: Record<TimeUnit, number> = {
+const AXIS_UNIT_DURATIONS: Record<TimeAxisUnit, number> = {
   second: SECOND,
   minute: MINUTE,
   hour: HOUR,
@@ -91,7 +86,7 @@ const UNIT_DURATIONS: Record<TimeUnit, number> = {
  * pairs and picks the smallest one whose duration exceeds the approximate
  * per-tick interval for the given time range and desired tick count.
  */
-const INTERVAL_LEVELS: Array<{steps: number[]; unit: TimeUnit}> = [
+const INTERVAL_LEVELS: Array<{steps: number[]; unit: TimeAxisUnit}> = [
   {unit: 'second', steps: [1, 2, 5, 10, 15, 20, 30]},
   {unit: 'minute', steps: [1, 2, 5, 10, 15, 20, 30]},
   {unit: 'hour', steps: [1, 2, 4, 6, 12]},
@@ -100,50 +95,66 @@ const INTERVAL_LEVELS: Array<{steps: number[]; unit: TimeUnit}> = [
   {unit: 'year', steps: [1]},
 ];
 
+type TickInterval = {duration: number; step: number; unit: TimeAxisUnit};
+
 /**
  * Flattened and sorted list of all (unit, step) pairs with their
  * durations, for efficient interval selection.
+ *
+ * Example entries after flattening and sorting:
+ *   {unit: 'second', step: 1, duration: 1000}
+ *   {unit: 'second', step: 2, duration: 2000}
+ *   ...
+ *   {unit: 'minute', step: 1, duration: 60000}
+ *   ...
+ *   {unit: 'hour',   step: 1, duration: 3600000}
+ *   {unit: 'hour',   step: 2, duration: 7200000}
+ *   ...
  */
-const SORTED_INTERVALS: Array<{duration: number; step: number; unit: TimeUnit}> =
-  INTERVAL_LEVELS.flatMap(({unit, steps}) =>
-    steps.map(step => ({
-      unit,
-      step,
-      duration: UNIT_DURATIONS[unit] * step,
-    }))
-  ).sort((a, b) => a.duration - b.duration);
+const SORTED_INTERVALS: TickInterval[] = INTERVAL_LEVELS.flatMap(({unit, steps}) =>
+  steps.map(step => ({
+    unit,
+    step,
+    duration: AXIS_UNIT_DURATIONS[unit] * step,
+  }))
+).sort((a, b) => a.duration - b.duration);
 
 /**
  * Pick the best (unit, step) interval for a given time range and desired
- * number of ticks.
+ * number of ticks. Divides the range by the desired tick count to get an
+ * approximate per-tick duration, then walks the duration-sorted
+ * {@link SORTED_INTERVALS} list and returns the first entry whose duration
+ * meets or exceeds that target.
  */
 function pickInterval(
   startMs: number,
   endMs: number,
   splitNumber: number
-): {step: number; unit: TimeUnit} {
+): {step: number; unit: TimeAxisUnit} {
   const approxInterval = (endMs - startMs) / splitNumber;
 
   for (const {unit, step} of SORTED_INTERVALS) {
-    if (UNIT_DURATIONS[unit] * step >= approxInterval) {
+    if (AXIS_UNIT_DURATIONS[unit] * step >= approxInterval) {
       return {unit, step};
     }
   }
 
-  // Fallback to the coarsest interval (1 year)
   return {unit: 'year', step: 1};
 }
 
 /**
- * Snap a timestamp down to the nearest round boundary for the given
- * unit and step, in the specified timezone.
+ * Floor a timestamp to the nearest round boundary for the given unit and
+ * step, in the user's timezone. This gives the tick walk a clean starting
+ * point that falls on a "round" value.
  *
- * For example, with unit='hour' and step=6, a timestamp at 14:30 IST
- * would snap down to 12:00 IST.
+ * `step` is the interval multiplier from {@link INTERVAL_LEVELS} — e.g.,
+ * if the chosen interval is `(hour, 4)`, `step` is `4` meaning "every 4th
+ * hour." The snap floors the component to the nearest multiple of `step`:
+ * hour 14 → `floor(14/4)*4 = 12`, so 14:30 IST snaps to 12:00 IST.
  */
 function snapToRoundBoundary(
   ms: number,
-  unit: TimeUnit,
+  unit: TimeAxisUnit,
   step: number,
   timezone: string
 ): moment.Moment {
@@ -151,10 +162,7 @@ function snapToRoundBoundary(
 
   switch (unit) {
     case 'year':
-      m.year(Math.floor(m.year() / step) * step)
-        .month(0)
-        .date(1)
-        .startOf('day');
+      m.year(Math.floor(m.year() / step) * step).startOf('year');
       break;
     case 'month':
       m.month(Math.floor(m.month() / step) * step)
