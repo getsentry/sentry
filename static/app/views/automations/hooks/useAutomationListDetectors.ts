@@ -13,13 +13,7 @@ import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 const MAX_DETECTORS_PER_REQUEST = 100;
 
-interface UseAutomationListDetectorsResult {
-  detectorsById: Map<string, Detector>;
-  isError: boolean;
-  isLoading: boolean;
-}
-
-export function useAutomationListDetectors(): UseAutomationListDetectorsResult {
+export function useAutomationListQueryOptions() {
   const organization = useOrganization();
   const {selection, isReady} = usePageFilters();
   const {
@@ -35,8 +29,8 @@ export function useAutomationListDetectors(): UseAutomationListDetectorsResult {
   });
   const sort = sorts[0] ?? {kind: 'desc', field: 'lastTriggered'};
 
-  const {data: automations} = useQuery({
-    ...automationsApiOptions(organization, {
+  return {
+    queryOptions: automationsApiOptions(organization, {
       query,
       sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
       projects: selection.projects,
@@ -44,6 +38,25 @@ export function useAutomationListDetectors(): UseAutomationListDetectorsResult {
       cursor,
     }),
     enabled: isReady,
+    cursor,
+    sort,
+  };
+}
+
+interface UseAutomationListDetectorsResult {
+  detectorsById: Map<string, Detector>;
+  isError: boolean;
+  isLoading: boolean;
+}
+
+export function useAutomationListDetectors(): UseAutomationListDetectorsResult {
+  const organization = useOrganization();
+  const {queryOptions, enabled} = useAutomationListQueryOptions();
+
+  const {data: automations} = useQuery({
+    ...queryOptions,
+    enabled,
+    staleTime: Infinity,
   });
 
   const detectorIds = useMemo(() => {
