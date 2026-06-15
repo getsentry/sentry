@@ -170,6 +170,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
             )
 
         sentry_sdk.set_tag("query.tag_key", key)
+        sentry_sdk.set_attribute("query.tag_key", key)
 
         max_span_tag_values = options.get("performance.spans-tags-values.max")
 
