@@ -218,7 +218,8 @@ def process_profile_task(
         "profile",
         profile_context,
     )
-    sentry_sdk.set_attribute("profile", profile_context)
+    sentry_sdk.set_attribute("profile.organization_id", profile_context["organization_id"])
+    sentry_sdk.set_attribute("profile.project_id", profile_context["project_id"])
 
     sentry_sdk.set_tag("platform", profile["platform"])
     sentry_sdk.set_attribute("platform", profile["platform"])
