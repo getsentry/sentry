@@ -73,7 +73,7 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
 
         return self._option_cache.get(cache_key, {})
 
-    def reload_task_local_cache(self, organization_id: int):
+    def reload_task_local_cache(self, organization_id: int) -> None:
         cache_key = self._make_key(organization_id)
 
         # Reload the local cache with what's in the shared cache.  If the shared cache is
