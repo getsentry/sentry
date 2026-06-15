@@ -13,7 +13,6 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     profiles,
-    spans_indexed,
     spans_metrics,
     transactions,
 )
@@ -49,7 +48,6 @@ DATASET_OPTIONS = {
     SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
     SupportedTraceItemType.REPLAYS.value: Replays,
     SupportedTraceItemType.SPANS.value: Spans,
-    "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
     SupportedTraceItemType.TRACEMETRICS.value: TraceMetrics,
     SupportedTraceItemType.PROCESSING_ERRORS.value: ProcessingErrors,

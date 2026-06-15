@@ -607,6 +607,7 @@ def create_transaction_params(
     """Can't use the transaction params for errors since traces can be errors only"""
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
+    sentry_sdk.set_attribute("trace_view.queried_timestamp_projects", str(query_metadata))
     if not query_metadata:
         return snuba_params
 
@@ -967,8 +968,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             len_transactions = len(transactions)
 
             sentry_sdk.set_tag("trace_view.trace", trace_id)
+            sentry_sdk.set_attribute("trace_view.trace", trace_id)
             sentry_sdk.set_tag("trace_view.transactions", len_transactions)
+            sentry_sdk.set_attribute("trace_view.transactions", len_transactions)
             sentry_sdk.set_tag(
+                "trace_view.transactions.grouped", format_grouped_length(len_transactions)
+            )
+            sentry_sdk.set_attribute(
                 "trace_view.transactions.grouped", format_grouped_length(len_transactions)
             )
             set_span_attribute("trace_view.transactions", len_transactions)
@@ -979,7 +985,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
 
             len_projects = len(projects)
             sentry_sdk.set_tag("trace_view.projects", len_projects)
+            sentry_sdk.set_attribute("trace_view.projects", len_projects)
             sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
+            sentry_sdk.set_attribute(
+                "trace_view.projects.grouped", format_grouped_length(len_projects)
+            )
             set_span_attribute("trace_view.projects", len_projects)
 
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:

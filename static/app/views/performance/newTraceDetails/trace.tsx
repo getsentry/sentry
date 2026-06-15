@@ -1152,6 +1152,9 @@ const TraceStylingWrapper = styled('div')`
     &.info {
     }
     &.warning {
+      color: ${p => p.theme.tokens.content.warning};
+      --row-children-button-border-color: ${p => p.theme.tokens.content.warning};
+      --row-outline: ${p => p.theme.tokens.content.warning};
     }
     &.debug {
     }
@@ -1159,7 +1162,6 @@ const TraceStylingWrapper = styled('div')`
     &.fatal,
     &.occurrence {
       color: ${p => p.theme.tokens.content.danger};
-      --autogrouped: ${p => p.theme.tokens.content.danger};
       --row-children-button-border-color: ${p => p.theme.tokens.content.danger};
       --row-outline: ${p => p.theme.tokens.content.danger};
     }
