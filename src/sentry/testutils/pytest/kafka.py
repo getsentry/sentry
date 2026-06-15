@@ -130,7 +130,6 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
             "ingest-attachments",
             consumer_args=["--max-batch-size=1", "--max-batch-time-ms=10000", "--processes=1"],
             topic=topic_event_name,
-            cluster=cluster_name,
             group_id=group_id,
             auto_offset_reset="earliest",
             strict_offset_reset=False,
