@@ -161,11 +161,11 @@ class DatabaseBackedHookService(HookService):
                 )
                 sentry_sdk.set_attribute("existing_hooks.application_id", application_id)
                 sentry_sdk.set_attribute(
-                    "existing_hooks.existing_installation_ids", list(existing_installation_ids)
+                    "existing_hooks.existing_installation_ids", str(list(existing_installation_ids))
                 )
                 sentry_sdk.set_attribute(
                     "existing_hooks.existing_hooks",
-                    list(existing_hooks.values_list("id", flat=True)),
+                    str(list(existing_hooks.values_list("id", flat=True))),
                 )
                 sentry_sdk.capture_exception(
                     SentryAppSentryError(
