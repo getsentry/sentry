@@ -4,7 +4,6 @@ import hmac
 import logging
 import uuid
 from collections.abc import Callable
-from time import time
 from typing import Any, TypedDict
 
 import sentry_sdk
@@ -913,48 +912,6 @@ def deliver_feature_result(
     handler(organization_id, run_uuid, status, result, error)
 
 
-def get_monitoring_provider_token(*, user_id: int, provider_type: str) -> dict:
-    """Fetch the current access token for a monitoring provider identity.
-
-    If the token is expired, proactively refreshes it before returning.
-    """
-    identities = identity_service.get_identities(
-        filter={"user_id": user_id, "provider_type": provider_type}
-    )
-    if not identities:
-        return {"error": "identity_not_found"}
-    if len(identities) > 1:
-        return {"error": "multiple_identities"}
-    identity = identities[0]
-
-    access_token = identity.data.get("access_token")
-    if not access_token:
-        return {"error": "identity_not_valid", "identity_id": identity.id}
-
-    expires = identity.data.get("expires")
-    if expires is not None and time() >= expires:
-        # Access token has expired--use the refresh token to get a new one.
-        try:
-            provider = identity_manager.get(provider_type)
-            provider.refresh_identity(identity)
-
-            access_token = identity.data.get("access_token")
-            if not access_token:
-                raise IdentityNotValid()
-            expires = identity.data.get("expires")
-        except IdentityNotValid:
-            return {"error": "identity_not_valid", "identity_id": identity.id}
-        except (ApiError, KeyError, RequestException):
-            return {"error": "refresh_failed"}
-
-    return {
-        "identity_id": identity.id,
-        "access_token": access_token,
-        "expires": expires,
-        "site": identity.data.get("site"),
-    }
-
-
 def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
     """Refresh the access token for a monitoring provider identity."""
     identity = identity_service.get_identity(filter={"id": identity_id})
@@ -1135,7 +1092,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "update_pr_metrics": update_pr_metrics,
     #
     # Monitoring provider tokens (MCP)
-    "get_monitoring_provider_token": get_monitoring_provider_token,
     "refresh_monitoring_provider_token": refresh_monitoring_provider_token,
 }
 
