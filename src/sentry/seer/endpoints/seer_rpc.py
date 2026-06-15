@@ -259,9 +259,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         # As seer is a single service, we just directly expose the methods instead of services.
         method = seer_method_registry[method_name]
         result = method(**arguments)
-        # Per `openspec/changes/type-seer-rpc-coverage/`, registered methods
-        # return `pydantic.BaseModel | None` once Phase 1 completes. Convert
-        # to dict here so DRF's JSONRenderer can serialize.
+        # Convert Pydantic returns to dict so DRF's JSONRenderer can serialize.
         if isinstance(result, BaseModel):
             return result.dict()
         return result

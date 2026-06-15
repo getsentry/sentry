@@ -98,9 +98,7 @@ class TransactionIssues(BaseModel):
 
 
 # ── Seer RPC response models ────────────────────────────────────────────────
-# Pydantic response shapes for the Seer RPC registries. Tracked by
-# `openspec/changes/type-seer-rpc-coverage/`. Each model is the typed return
-# of one function registered in `seer_method_registry`,
+# Pydantic response shapes for functions registered in `seer_method_registry`,
 # `public_org_seer_method_registry`, or `public_project_seer_method_registry`.
 
 
