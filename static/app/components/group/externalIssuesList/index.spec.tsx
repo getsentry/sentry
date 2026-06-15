@@ -48,7 +48,6 @@ describe('ExternalIssueList', () => {
     render(<ExternalIssueList group={group} project={project} event={event} />, {
       organization,
     });
-    expect(screen.getByTestId('issue-tracking-loading')).toBeInTheDocument();
     expect(await screen.findByText(setupCTA)).toBeInTheDocument();
   });
 

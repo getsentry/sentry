@@ -260,7 +260,7 @@ def invalidate_project_config(
     sentry_sdk.set_tag("trigger_details", trigger_details)
     sentry_sdk.set_attribute("trigger_details", trigger_details)
     sentry_sdk.set_context("kwargs", kwargs)
-    sentry_sdk.set_attribute("kwargs", kwargs)
+    sentry_sdk.set_attribute("kwargs", str(kwargs))
 
     updated_configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key

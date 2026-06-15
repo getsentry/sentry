@@ -151,6 +151,7 @@ export function mapSeerResponseItem(
   item: SeerRawResponseItem,
   defaultMode = 'samples'
 ): AskSeerSearchQuery {
+  const interval = getRawSeerInterval(item);
   return {
     visualizations:
       item.visualization
@@ -168,7 +169,20 @@ export function mapSeerResponseItem(
     start: item.start ?? null,
     end: item.end ?? null,
     mode: item.mode || defaultMode,
+    ...(interval ? {interval} : {}),
   };
+}
+
+// Seer returns the interval nested per-visualization, but the chart uses a
+// single shared interval. Hoist the interval from the first plotted
+// visualization (one with y-axes, matching what `mapSeerResponseItem` keeps) so
+// we don't pick up an interval from a dropped, axis-less entry.
+function getRawSeerInterval(item: SeerRawResponseItem): string | undefined {
+  return (
+    item.visualization?.find(
+      ({interval, y_axes}) => Boolean(interval) && (y_axes?.length ?? 0) > 0
+    )?.interval ?? undefined
+  );
 }
 
 export interface SeerDateTimeSelection {

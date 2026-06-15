@@ -4,13 +4,13 @@ import logging
 from collections.abc import MutableMapping
 from functools import partial
 from typing import Any, cast
+from uuid import uuid4
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
-from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.hybridcloud.rpc import ValueEqualityEnum
@@ -18,10 +18,11 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.options.rollout import in_random_rollout
-from sentry.taskworker.adapters import SentryMetricsBackend
+from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +51,9 @@ _occurrence_producer = SingletonProducer(
     _get_occurrence_producer, max_futures=settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT
 )
 
-_occurrence_task_producer = TaskProducer(
-    name="sentry.issues.tasks.producer",
+_occurrence_task_producer = get_task_producer(
+    producer_name="sentry.issues.tasks.producer",
     producer_factory=partial(_get_occurrence_producer, name="sentry.issues.tasks.producer"),
-    metrics_backend=SentryMetricsBackend(),
 )
 
 
@@ -118,6 +118,18 @@ def _prepare_occurrence_message(
     payload_data = cast(MutableMapping[str, Any], occurrence.to_dict())
     payload_data["payload_type"] = PayloadType.OCCURRENCE.value
     if event_data:
+        # All errors need a trace ID.
+        if get_path(event_data, "contexts", "trace", "trace_id") is None:
+            set_path(
+                event_data,
+                "contexts",
+                "trace",
+                value={
+                    "trace_id": uuid4().hex,
+                    "span_id": None,
+                },
+            )
+
         payload_data["event"] = event_data
 
     if is_buffered_spans:

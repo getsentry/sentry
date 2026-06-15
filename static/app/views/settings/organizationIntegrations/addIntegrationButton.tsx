@@ -13,11 +13,7 @@ interface AddIntegrationButtonProps
     Omit<ButtonProps, 'children' | 'analyticsParams'>,
     Pick<
       AddIntegrationParams,
-      | 'provider'
-      | 'organization'
-      | 'analyticsParams'
-      | 'modalParams'
-      | 'suppressSuccessMessage'
+      'provider' | 'organization' | 'analyticsParams' | 'suppressSuccessMessage'
     > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
@@ -32,7 +28,6 @@ export function AddIntegrationButton({
   organization,
   reinstall,
   analyticsParams,
-  modalParams,
   installStatus,
   suppressSuccessMessage,
   ...buttonProps
@@ -67,7 +62,6 @@ export function AddIntegrationButton({
             organization,
             onInstall: onAddIntegration,
             analyticsParams,
-            modalParams,
             suppressSuccessMessage,
           });
         }}

@@ -1,9 +1,15 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import type {TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {findSuggestedColumns, viewSamplesTarget} from 'sentry/views/explore/utils';
+import {
+  findSuggestedColumns,
+  removeHiddenKeys,
+  viewSamplesTarget,
+} from 'sentry/views/explore/utils';
 
 describe('viewSamplesTarget', () => {
   const project = ProjectFixture();
@@ -319,4 +325,59 @@ describe('findSuggestedColumns', () => {
       expect(new Set(suggestion)).toEqual(new Set(cols));
     }
   );
+});
+
+describe('removeHiddenKeys', () => {
+  it('removes keys that match the hidden list', () => {
+    const tags: TagCollection = {
+      'log.field': {key: 'log.field', name: 'log.field', kind: FieldKind.TAG},
+      project_id: {key: 'project_id', name: 'project_id', kind: FieldKind.TAG},
+    };
+
+    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+      'log.field': {key: 'log.field', name: 'log.field', kind: FieldKind.TAG},
+    });
+  });
+
+  it('removes explicitly-typed keys by their display name', () => {
+    const tags: TagCollection = {
+      'log.duration': {
+        key: 'log.duration',
+        name: 'log.duration',
+        kind: FieldKind.MEASUREMENT,
+      },
+      // Number attributes are keyed by their explicit form but display the
+      // base name, which is what the hidden lists contain.
+      'tags[project_id,number]': {
+        key: 'tags[project_id,number]',
+        name: 'project_id',
+        kind: FieldKind.MEASUREMENT,
+      },
+    };
+
+    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+      'log.duration': {
+        key: 'log.duration',
+        name: 'log.duration',
+        kind: FieldKind.MEASUREMENT,
+      },
+    });
+  });
+
+  it('keeps attributes whose name only partially matches a hidden key', () => {
+    const tags: TagCollection = {
+      prev_project_id: {
+        key: 'prev_project_id',
+        name: 'prev_project_id',
+        kind: FieldKind.MEASUREMENT,
+      },
+      'tags[message.parameter.project_id,number]': {
+        key: 'tags[message.parameter.project_id,number]',
+        name: 'message.parameter.project_id',
+        kind: FieldKind.MEASUREMENT,
+      },
+    };
+
+    expect(removeHiddenKeys(tags, ['project_id'])).toEqual(tags);
+  });
 });
