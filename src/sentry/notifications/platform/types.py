@@ -74,7 +74,13 @@ class NotificationSource(StrEnum):
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
 
     # WORKFLOW_ENGINE
-    WORKFLOW_ENGINE_ACTIVITY_ACTION = "workflow-engine-activity-action"
+    ACTIVITY_SEER_RCA_STARTED = "activity-seer-rca-started"
+    ACTIVITY_SEER_RCA_COMPLETED = "activity-seer-rca-completed"
+    ACTIVITY_SEER_SOLUTION_STARTED = "activity-seer-solution-started"
+    ACTIVITY_SEER_SOLUTION_COMPLETED = "activity-seer-solution-completed"
+    ACTIVITY_SEER_CODING_STARTED = "activity-seer-coding-started"
+    ACTIVITY_SEER_CODING_COMPLETED = "activity-seer-coding-completed"
+    ACTIVITY_SEER_PR_CREATED = "activity-seer-pr-created"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -114,7 +120,13 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
     ],
     NotificationCategory.WORKFLOW_ENGINE: [
-        NotificationSource.WORKFLOW_ENGINE_ACTIVITY_ACTION,
+        NotificationSource.ACTIVITY_SEER_RCA_STARTED,
+        NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
+        NotificationSource.ACTIVITY_SEER_SOLUTION_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_CODING_STARTED,
+        NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
+        NotificationSource.ACTIVITY_SEER_PR_CREATED,
     ],
 }
 

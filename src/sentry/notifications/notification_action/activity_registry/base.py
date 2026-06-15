@@ -2,7 +2,10 @@ import logging
 
 from sentry.models.activity import Activity
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.templates.workflow_engine import WorkflowEngineActivityAction
+from sentry.notifications.platform.templates.workflow_engine import (
+    ACTIVITY_TYPE_TO_SOURCE,
+    WorkflowEngineActivityAction,
+)
 from sentry.notifications.platform.types import NotificationTarget
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
@@ -27,7 +30,12 @@ def build_activity_data(
 ) -> WorkflowEngineActivityAction:
     detector = invocation.detector
 
+    source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
+    if source is None:
+        raise ValueError(f"No notification source for activity type: {activity.type}")
+
     return WorkflowEngineActivityAction(
+        source=source,
         workflow_id=invocation.workflow_id,
         activity_type=activity.type,
         activity_id=activity.id,

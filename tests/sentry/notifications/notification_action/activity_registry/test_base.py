@@ -16,6 +16,7 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.templates.workflow_engine import WorkflowEngineActivityAction
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
+    NotificationSource,
     NotificationTargetResourceType,
 )
 from sentry.types.activity import ActivityType
@@ -67,6 +68,7 @@ class TestBuildActivityData(BaseWorkflowTest):
         data = build_activity_data(invocation, activity)
 
         assert isinstance(data, WorkflowEngineActivityAction)
+        assert data.source == NotificationSource.ACTIVITY_SEER_RCA_STARTED
         assert data.workflow_id == self.workflow.id
         assert data.activity_type == ActivityType.SEER_RCA_STARTED.value
         assert data.activity_id == activity.id
