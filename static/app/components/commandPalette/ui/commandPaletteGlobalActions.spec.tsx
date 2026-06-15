@@ -340,6 +340,12 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       /Settings.*Custom Integrations/,
       /Settings.*Personal Tokens/,
     ],
+    [
+      'api key',
+      /Settings.*Organization Tokens/,
+      /Settings.*Custom Integrations/,
+      /Settings.*Personal Tokens/,
+    ],
     ['source map', /Project Settings.*Source Maps/],
     ['codeowners', /Project Settings.*Ownership Rules/],
     ['inbound', /Project Settings.*Inbound Filters/],
