@@ -47,7 +47,7 @@ class IdentityPipelineFinishTest(TestCase):
         setattr(request, "_messages", FallbackStorage(request))
         return request
 
-    @patch.object(DummyProvider, "auto_create_identity_provider", True)
+    @patch.object(DummyProvider, "auto_create_provider_model", True)
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
     def test_auto_creates_identity_provider(
         self, mock_build: MagicMock, mock_record: MagicMock
@@ -64,7 +64,7 @@ class IdentityPipelineFinishTest(TestCase):
         assert identity.external_id == "user-123"
         assert identity.data["access_token"] == "token"
 
-    @patch.object(DummyProvider, "auto_create_identity_provider", True)
+    @patch.object(DummyProvider, "auto_create_provider_model", True)
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
     def test_auto_create_preserves_existing_identity_provider(
         self, mock_build: MagicMock, mock_record: MagicMock
