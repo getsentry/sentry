@@ -45,8 +45,8 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     Feedback,
     NoSeerQuotaException,
+    PrIterationNoPullRequestException,
     get_autofix_agent_state,
-    get_autofix_run_state,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -348,17 +348,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     {"detail": "run_id is required for pr_iteration"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            try:
-                state = get_autofix_run_state(group, resolved_run_id)
-            except SeerPermissionError as e:
-                if _is_unknown_run_id_error(e):
-                    return Response(status=status.HTTP_404_NOT_FOUND)
-                raise PermissionDenied(SEER_PERMISSION_DENIED)
-            if not state.repo_pr_states:
-                return Response(
-                    {"detail": "Cannot iterate on a PR before one has been created"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
         # Handle all built-in Seer steps. A missing run_id means this call starts a new
         # autofix run (the kickoff); a provided run_id is advancing an existing run.
@@ -415,6 +404,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
         except NoSeerQuotaException:
             return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
+        except PrIterationNoPullRequestException:
+            return Response(
+                {"detail": "Cannot iterate on a PR before one has been created"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except SeerPermissionError as e:
             if _is_unknown_run_id_error(e):
                 return Response(status=status.HTTP_404_NOT_FOUND)
