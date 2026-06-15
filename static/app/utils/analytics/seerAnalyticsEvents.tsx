@@ -10,6 +10,11 @@ export type SeerAnalyticsEventsParameters = {
   'ai_query.error': {
     area: string;
     natural_language_query: string;
+    /**
+     * True when the error occurred while polling/fetching results, false (or
+     * absent) when it occurred while starting the search agent.
+     */
+    is_fetch?: boolean;
   };
   'ai_query.feedback': {
     area: string;

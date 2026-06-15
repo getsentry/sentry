@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
@@ -124,6 +124,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasTrackedFetchErrorRef = useRef(false);
   const organization = useOrganization();
 
   const [searchQuery, setSearchQuery] = useState(() =>
@@ -165,6 +166,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         organization,
         area: analyticsArea,
         natural_language_query: searchQuery,
+        is_fetch: false,
       });
     },
   });
@@ -434,6 +436,22 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     setAutoSubmitSeer,
     submitQuery,
   ]);
+
+  // Track errors that occur while polling/fetching results. Guarded by a ref so
+  // we only fire once per error occurrence (and reset once the error clears).
+  useEffect(() => {
+    if (isError && !hasTrackedFetchErrorRef.current) {
+      hasTrackedFetchErrorRef.current = true;
+      trackAnalytics('ai_query.error', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery,
+        is_fetch: true,
+      });
+    } else if (!isError) {
+      hasTrackedFetchErrorRef.current = false;
+    }
+  }, [isError, organization, analyticsArea, searchQuery]);
 
   const onMouseLeave = () => {
     state.selectionManager.setFocusedKey(null);
