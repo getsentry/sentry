@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import binascii
 import logging
 from collections.abc import Mapping
 from typing import Any, TypedDict
@@ -141,7 +142,7 @@ class MsTeamsInitialDataSerializer(CamelSnakeSerializer):
             return unsign(attrs["signed_params"], max_age=INSTALL_EXPIRATION_TIME, salt=SALT)
         except SignatureExpired:
             raise serializers.ValidationError("Installation link expired")
-        except BadSignature:
+        except (BadSignature, UnicodeDecodeError, binascii.Error):
             raise serializers.ValidationError("Invalid installation link")
 
 
