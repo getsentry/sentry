@@ -78,52 +78,12 @@ function getUpdateUrl({projectId, orgId}: UpdateParams) {
     : `/organizations/${orgId}/issues/`;
 }
 
-function chainUtil<Args extends any[]>(
-  ...funcs: Array<((...args: Args) => any) | undefined>
-) {
-  const filteredFuncs = funcs.filter(
-    (f): f is (...args: Args) => any => typeof f === 'function'
-  );
-  return (...args: Args): void => {
-    filteredFuncs.forEach(func => {
-      func.apply(funcs, args);
-    });
-  };
-}
-
-async function wrapRequest(
-  api: Client,
-  path: string,
-  options: RequestOptions,
-  extraParams: RequestCallbacks = {}
-) {
-  const success = chainUtil(options.success, extraParams.success);
-  const error = chainUtil(options.error, extraParams.error);
-  const complete = chainUtil(options.complete, extraParams.complete);
-
-  delete options.success;
-  delete options.error;
-  delete options.complete;
-
-  try {
-    const [data, statusText, responseMeta] = await api.requestPromise(path, {
-      ...options,
-      includeAllArgs: true,
-    });
-    success(data, statusText, responseMeta);
-  } catch (err) {
-    error(err);
-  } finally {
-    complete();
-  }
-}
-
 type BulkDeleteParams = UpdateParams;
 
-export function bulkDelete(
+export async function bulkDelete(
   api: Client,
   params: BulkDeleteParams,
-  options: RequestCallbacks
+  options: RequestCallbacks = {}
 ) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
@@ -133,21 +93,20 @@ export function bulkDelete(
 
   GroupStore.onDelete(id, itemIds);
 
-  return wrapRequest(
-    api,
-    path,
-    {
+  try {
+    const [data, statusText, responseMeta] = await api.requestPromise(path, {
       query,
       method: 'DELETE',
-      success: response => {
-        GroupStore.onDeleteSuccess(id, itemIds, response);
-      },
-      error: error => {
-        GroupStore.onDeleteError(id, itemIds, error);
-      },
-    },
-    options
-  );
+      includeAllArgs: true,
+    });
+    GroupStore.onDeleteSuccess(id, itemIds, data);
+    options?.success?.(data, statusText, responseMeta);
+  } catch (error) {
+    GroupStore.onDeleteError(id, itemIds, error);
+    options?.error?.(error);
+  } finally {
+    options?.complete?.();
+  }
 }
 
 type BulkUpdateParams = UpdateParams & {
@@ -155,10 +114,10 @@ type BulkUpdateParams = UpdateParams & {
   failSilently?: boolean;
 };
 
-export function bulkUpdate(
+export async function bulkUpdate(
   api: Client,
   params: BulkUpdateParams,
-  options: RequestCallbacks
+  options: RequestCallbacks = {}
 ) {
   const {itemIds, failSilently, data} = params;
   const path = getUpdateUrl(params);
@@ -168,30 +127,29 @@ export function bulkUpdate(
 
   GroupStore.onUpdate(id, itemIds, data);
 
-  return wrapRequest(
-    api,
-    path,
-    {
+  try {
+    const [response, statusText, responseMeta] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data,
-      success: response => {
-        GroupStore.onUpdateSuccess(id, itemIds, response);
-      },
-      error: () => {
-        GroupStore.onUpdateError(id, itemIds, !!failSilently);
-      },
-    },
-    options
-  );
+      includeAllArgs: true,
+    });
+    GroupStore.onUpdateSuccess(id, itemIds, response);
+    options?.success?.(response, statusText, responseMeta);
+  } catch (error) {
+    GroupStore.onUpdateError(id, itemIds, !!failSilently);
+    options?.error?.(error);
+  } finally {
+    options?.complete?.();
+  }
 }
 
 type MergeGroupsParams = UpdateParams;
 
-export function mergeGroups(
+export async function mergeGroups(
   api: Client,
   params: MergeGroupsParams,
-  options: RequestCallbacks
+  options: RequestCallbacks = {}
 ) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
@@ -201,22 +159,21 @@ export function mergeGroups(
 
   GroupStore.onMerge(id, itemIds);
 
-  return wrapRequest(
-    api,
-    path,
-    {
+  try {
+    const [response, statusText, responseMeta] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data: {merge: 1},
-      success: response => {
-        GroupStore.onMergeSuccess(id, itemIds, response);
-      },
-      error: error => {
-        GroupStore.onMergeError(id, itemIds, error);
-      },
-    },
-    options
-  );
+      includeAllArgs: true,
+    });
+    GroupStore.onMergeSuccess(id, itemIds, response);
+    options?.success?.(response, statusText, responseMeta);
+  } catch (error) {
+    GroupStore.onMergeError(id, itemIds, error);
+    options?.error?.(error);
+  } finally {
+    options?.complete?.();
+  }
 }
 
 type FetchIssueTagValuesParameters = {
