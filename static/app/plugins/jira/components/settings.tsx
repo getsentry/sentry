@@ -98,14 +98,12 @@ export class Settings extends DefaultSettings<Props, State> {
     let responseMeta: any;
     let statusText: string | undefined;
     try {
-      const [data, status, meta]: [ApiData, string | undefined, any] = await this.api.requestPromise(
-        this.getPluginEndpoint(),
-        {
+      const [data, status, meta]: [ApiData, string | undefined, any] =
+        await this.api.requestPromise(this.getPluginEndpoint(), {
           data: body,
           method: 'PUT',
           includeAllArgs: true,
-        }
-      );
+        });
       statusText = status;
       responseMeta = meta;
       this.onSaveSuccess(() => {
