@@ -13,14 +13,14 @@ import {
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import {
-  FieldKind,
-  FieldValueType,
-  prettifyTagKey,
-  type FieldDefinition,
-} from 'sentry/utils/fields';
+  findExplicitTagKeyMatch,
+  getTagsFromResolverItems,
+  type TagResolverItem,
+} from 'sentry/utils/tag';
 
 export function shiftFocusToChild(
   element: HTMLElement,
@@ -54,80 +54,6 @@ export function useShiftFocusToChild(
   };
 }
 
-const EXPLICIT_TAG_KEY_PATTERN = /^tags\[(.*),(string|number|boolean)\]$/;
-
-type ExplicitTagType = 'string' | 'number' | 'boolean';
-
-type FilterKeyResolverItem = {
-  options?: FilterKeyResolverItem[];
-  tag?: Tag;
-  textValue?: string;
-  value?: string;
-};
-
-function getExplicitTagType(key: string): ExplicitTagType | null {
-  const tagType = key.match(EXPLICIT_TAG_KEY_PATTERN)?.[2] as ExplicitTagType | undefined;
-  return tagType ?? null;
-}
-
-function isQuotedExplicitTagKey(key: string): boolean {
-  const tagName = key.match(EXPLICIT_TAG_KEY_PATTERN)?.[1];
-  return !!tagName?.startsWith('"') && tagName.endsWith('"');
-}
-
-function tagMatchesInput(tag: Tag, input: string): boolean {
-  const prettyKey = prettifyTagKey(tag.key);
-  const matchValues = new Set([tag.key, prettyKey]);
-
-  // Quoted explicit tag keys must be typed with their quotes. Their `name` can be
-  // unquoted, so do not allow it as an alias unless it exactly matches the visible
-  // pretty key.
-  if (tag.name && (!isQuotedExplicitTagKey(tag.key) || tag.name === prettyKey)) {
-    matchValues.add(tag.name);
-  }
-
-  return matchValues.has(input);
-}
-
-function tagFromResolverItem(item: FilterKeyResolverItem): Tag | null {
-  if (item.tag) {
-    return item.tag;
-  }
-
-  if (!item.value) {
-    return null;
-  }
-
-  return {
-    key: item.value,
-    name: item.textValue ?? prettifyTagKey(item.value),
-  };
-}
-
-function getTagsFromResolverItems(items: FilterKeyResolverItem[]): Tag[] {
-  return items.flatMap(item => {
-    if (item.options) {
-      return getTagsFromResolverItems(item.options);
-    }
-
-    const tag = tagFromResolverItem(item);
-    return tag ? [tag] : [];
-  });
-}
-
-function findExplicitTagMatch(tags: Tag[], input: string): string | null {
-  for (const tagType of ['string', 'number', 'boolean'] satisfies ExplicitTagType[]) {
-    const match = tags.find(
-      tag => getExplicitTagType(tag.key) === tagType && tagMatchesInput(tag, input)
-    );
-    if (match) {
-      return match.key;
-    }
-  }
-
-  return null;
-}
-
 export function resolveFilterKey({
   key,
   filterKeys,
@@ -137,7 +63,7 @@ export function resolveFilterKey({
   filterKeys: TagCollection;
   key: string;
   getSuggestedFilterKey?: (key: string) => string | null;
-  loadedItems?: FilterKeyResolverItem[];
+  loadedItems?: TagResolverItem[];
 }): string {
   const trimmedKey = key.trim();
   if (!trimmedKey) {
@@ -159,12 +85,15 @@ export function resolveFilterKey({
     return suggestedKey;
   }
 
-  const staticExplicitMatch = findExplicitTagMatch(Object.values(filterKeys), trimmedKey);
+  const staticExplicitMatch = findExplicitTagKeyMatch(
+    Object.values(filterKeys),
+    trimmedKey
+  );
   if (staticExplicitMatch) {
     return staticExplicitMatch;
   }
 
-  const loadedExplicitMatch = findExplicitTagMatch(loadedTags, trimmedKey);
+  const loadedExplicitMatch = findExplicitTagKeyMatch(loadedTags, trimmedKey);
   if (loadedExplicitMatch) {
     return loadedExplicitMatch;
   }
