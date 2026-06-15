@@ -2,23 +2,35 @@
 Handler for GitLab merge_request webhook events.
 https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
 
-Known limitations
------------------
+Contributor seeding
+-------------------
 
-Code review does not fire in production yet: GitLab contributors are never seeded.
-``handle_merge_request_event`` runs ``CodeReviewPreflightService``, whose
-``_check_billing`` looks up ``OrganizationContributors`` by
-``(organization_id, integration_id, external_identifier=str(author_id))`` and
-returns ``ORG_CONTRIBUTOR_NOT_FOUND`` (before the beta exemption) when the row is
-missing. GitHub creates that row via ``track_contributor_seat`` in
-``PullRequestEventWebhook._handle`` on PR creation; the GitLab merge-request path
-(PR persistence inline in ``MergeEventWebhook.__call__``) does not, and nothing
-else seeds GitLab contributors. Until contributor seeding is added, every GitLab MR
-is filtered with ``ORG_CONTRIBUTOR_NOT_FOUND``. The handler tests pass only because
-they seed the row manually.
+``_check_billing`` in ``CodeReviewPreflightService`` requires an
+``OrganizationContributors`` row to exist before it will allow a review — even
+for beta orgs, which are only exempt from the quota check, not from the row
+existence check. ``MergeEventWebhook`` seeds that row via
+``track_gitlab_contributor_seat_processor``, which runs as the first entry in
+``WEBHOOK_EVENT_PROCESSORS`` (before ``handle_merge_request_event``) so the row
+exists when preflight runs. This mirrors GitHub's ``track_contributor_seat`` call
+in ``PullRequestEventWebhook._handle``.
 
-The code-review tests seed OrganizationContributors manually; consider a test that
-omits it to lock in the intended production behavior (related to Issue 1).
+Residual gaps
+-------------
+
+1. **Note-command path has no fallback seeding.** ``NoteEventWebhook`` only
+   registers ``handle_merge_request_note_event`` in its processors; there is no
+   ``track_gitlab_contributor_seat_processor`` equivalent. If a user types
+   ``@sentry review`` on an MR whose contributor row was never seeded (e.g. the
+   MR was opened before the seeding code was deployed, or the MR-open webhook
+   was missed), preflight returns ``ORG_CONTRIBUTOR_NOT_FOUND`` and the review
+   is silently denied.
+
+2. **MergeEventWebhook.__call__ can short-circuit before processors run.**
+   If the payload is missing ``last_commit`` (``KeyError``) or the author email
+   is absent (``Http404``), ``__call__`` returns before ``_handle`` is called,
+   so ``track_gitlab_contributor_seat_processor`` never runs and the MR author
+   is not seeded. Subsequent ``update`` events for the same MR do not fire the
+   processor either (it filters on ``action == "open"``). Tracked on SCM-99.
 
 GitLab has no dedicated "ready_for_review" action: un-drafting an MR arrives as an
 "update" whose top-level ``changes`` flips draft/work_in_progress to false, which is
