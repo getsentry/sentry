@@ -1243,7 +1243,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
             repo=self.repo,
         )
 
-    @patch(f"{MODULE}.forward_pr_to_seer.delay")
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_claims_sentinel_and_enqueues_forward(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -1260,7 +1260,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
             repository_id=self.repo.id,
         )
 
-    @patch(f"{MODULE}.forward_pr_to_seer.delay")
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_redelivery_forwards_only_once(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -1270,7 +1270,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         # The sentinel claim coalesces the redelivery, so Seer is forwarded to once.
         assert mock_delay.call_count == 1
 
-    @patch(f"{MODULE}.forward_pr_to_seer.delay")
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_forwards_when_metrics_row_missing(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -1284,7 +1284,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         )
         mock_delay.assert_called_once()
 
-    @patch(f"{MODULE}.forward_pr_to_seer.delay")
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_enqueue_failure_releases_claim_for_retry(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -1303,7 +1303,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         )
         assert mock_delay.call_count == 2
 
-    @patch(f"{MODULE}.forward_pr_to_seer.delay")
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_untracked_pr_is_not_forwarded(
         self, mock_record: MagicMock, mock_delay: MagicMock

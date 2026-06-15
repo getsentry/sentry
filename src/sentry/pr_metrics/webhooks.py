@@ -62,7 +62,7 @@ from sentry.pr_metrics.emit import (
     is_pr_tracked,
     select_verdict,
 )
-from sentry.pr_metrics.tasks import forward_pr_to_seer
+from sentry.pr_metrics.tasks import forward_pr_to_seer_task
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -198,7 +198,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
         return
 
     try:
-        forward_pr_to_seer.delay(
+        forward_pr_to_seer_task.delay(
             pull_request_id=pr.id,
             organization_id=organization.id,
             repository_id=pr.repository_id,

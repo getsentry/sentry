@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime
 from typing import Any
 
 from django.conf import settings
@@ -36,6 +35,7 @@ from sentry.pr_metrics.emit import (
     CloseAction,
     active_attributions,
     emit_pr_metrics_row,
+    iso_or_none,
     resolved_group_ids,
 )
 from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
@@ -58,10 +58,6 @@ seer_pr_metrics_connection_pool = connection_from_url(
 # The verdicts Seer may return: every real outcome, never the internal forward
 # sentinel. The callback rejects JUDGE_IN_PROGRESS coming back from Seer.
 RESULT_VERDICTS = frozenset(PullRequestVerdict.values) - {PullRequestVerdict.JUDGE_IN_PROGRESS}
-
-
-def _iso(value: datetime | None) -> str | None:
-    return value.isoformat() if value is not None else None
 
 
 # The models below are a manual mirror of Seer's PR-metrics contract — keep them
@@ -165,9 +161,9 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> P
         close_action=close_action,
         head_commit_sha=head_commit_sha,
         merge_commit_sha=pull_request.merge_commit_sha,
-        opened_at=_iso(pull_request.opened_at),
+        opened_at=iso_or_none(pull_request.opened_at),
         closed_at=closed_at.isoformat(),
-        merged_at=_iso(pull_request.merged_at),
+        merged_at=iso_or_none(pull_request.merged_at),
         draft=bool(pull_request.draft),
         additions=metrics_row.additions,
         deletions=metrics_row.deletions,

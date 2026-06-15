@@ -29,7 +29,7 @@ DELAY_BETWEEN_RETRIES = 60  # seconds
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=(HTTPError,)),
     silo_mode=SiloMode.CELL,
 )
-def forward_pr_to_seer(
+def forward_pr_to_seer_task(
     *,
     pull_request_id: int,
     organization_id: int,

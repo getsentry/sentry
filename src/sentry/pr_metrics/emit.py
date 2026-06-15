@@ -37,8 +37,12 @@ CLOSE_ACTION_MERGED: Final = "merged"
 CloseAction = Literal["closed", "merged"]
 
 
-def _iso(value: datetime | None) -> str | None:
-    """Serialize a persisted datetime to an ISO-8601 string for the row, or None."""
+def iso_or_none(value: datetime | None) -> str | None:
+    """Serialize a persisted datetime to an ISO-8601 string, or None.
+
+    Shared by the analytics row and the Seer judge request, which both encode the
+    PR's optional timestamps the same way.
+    """
     return value.isoformat() if value is not None else None
 
 
@@ -201,8 +205,8 @@ def build_pr_metrics_row(
         closed_at=closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
         merge_commit_id=_merge_commit_id(pull_request),
-        merged_at=_iso(pull_request.merged_at),
-        opened_at=_iso(pull_request.opened_at),
+        merged_at=iso_or_none(pull_request.merged_at),
+        opened_at=iso_or_none(pull_request.opened_at),
         draft=bool(pull_request.draft),
         additions=metrics.additions,
         deletions=metrics.deletions,

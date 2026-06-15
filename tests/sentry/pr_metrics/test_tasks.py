@@ -1,7 +1,7 @@
 from typing import Any
 from unittest.mock import patch
 
-from sentry.pr_metrics.tasks import forward_pr_to_seer
+from sentry.pr_metrics.tasks import forward_pr_to_seer_task
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -17,7 +17,7 @@ class ForwardPrToSeerTaskTest(TestCase):
         )
 
     def _run(self, **overrides: Any) -> None:
-        forward_pr_to_seer(
+        forward_pr_to_seer_task(
             pull_request_id=overrides.get("pull_request_id", self.pull_request.id),
             organization_id=overrides.get("organization_id", self.organization.id),
             repository_id=overrides.get("repository_id", self.repo.id),
