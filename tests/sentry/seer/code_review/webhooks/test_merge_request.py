@@ -1481,3 +1481,132 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
         assert self.mock_scm.create_pull_request_reaction.call_count == 1
         assert self.mock_seer.call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# Contributor-seeding gap: NoteEventWebhook has no fallback seeding
+# ---------------------------------------------------------------------------
+
+
+class MergeRequestNoteContributorGapTest(GitLabTestCase):
+    """Prove that NoteEventWebhook has no fallback OrganizationContributors seeding.
+
+    MergeEventWebhook seeds the contributor row via
+    track_gitlab_contributor_seat_processor (first in WEBHOOK_EVENT_PROCESSORS)
+    before handle_merge_request_event runs preflight.  NoteEventWebhook only
+    registers handle_merge_request_note_event — no seeding processor — so if the
+    contributor row was never created the review command is silently denied with
+    ORG_CONTRIBUTOR_NOT_FOUND.
+
+    This class intentionally omits the OrganizationContributors.get_or_create call
+    that _setup_code_review normally inserts, to exercise the production failure path.
+    """
+
+    @pytest.fixture(autouse=True)
+    def mock_seer_request(self) -> Generator[None]:
+        with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
+            self.mock_seer = mock_seer
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_scm(self) -> Generator[None]:
+        mock_scm_instance = MagicMock(spec=CreatePullRequestCommentReactionProtocol)
+        with patch(
+            "sentry.seer.code_review.webhooks.merge_request.make_scm",
+            return_value=mock_scm_instance,
+        ):
+            yield
+
+    def _setup_repo_without_contributor(self) -> None:
+        """Set up repo + settings, but deliberately omit the contributor row."""
+        repo = self.create_gitlab_repo(name="Cool Group / Sentry")
+        repo.config["path"] = "cool-group/sentry"
+        repo.save()
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT.value,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
+            ],
+        )
+        self.repo = repo
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_note_review_denied_when_contributor_row_missing(self) -> None:
+        """@sentry review on an MR whose contributor row was never seeded is denied.
+
+        The MERGE_REQUEST_NOTE_EVENT fixture has merge_request.author_id=51, matching
+        the external_identifier normally inserted by _setup_code_review.  When that
+        row is absent, _check_billing returns ORG_CONTRIBUTOR_NOT_FOUND and no Seer
+        task is enqueued — exactly what happens in production if the MR-open webhook
+        was missed or fired before track_gitlab_contributor_seat_processor was deployed.
+        """
+        self._setup_repo_without_contributor()
+
+        # Confirm the row really is absent before the test runs.
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="51",
+        ).exists()
+
+        event = _make_note_event()
+        with self.tasks():
+            handle_merge_request_note_event(
+                event=event,
+                organization=RpcOrganization(
+                    id=self.organization.id,
+                    slug=self.organization.slug,
+                    name=self.organization.name,
+                ),
+                repo=self.repo,
+                integration=self.integration,
+            )
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_note_review_succeeds_once_contributor_row_exists(self) -> None:
+        """Seeding the contributor row unblocks the @sentry review command.
+
+        This is the counterpart to test_note_review_denied_when_contributor_row_missing:
+        identical setup except we manually seed the row, proving it is the only missing
+        piece.  In production the row is created by track_gitlab_contributor_seat_processor
+        when the MR-open webhook fires.
+        """
+        self._setup_repo_without_contributor()
+
+        OrganizationContributors.objects.get_or_create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="51",
+            defaults={"alias": "root"},
+        )
+
+        event = _make_note_event()
+        with self.tasks():
+            handle_merge_request_note_event(
+                event=event,
+                organization=RpcOrganization(
+                    id=self.organization.id,
+                    slug=self.organization.slug,
+                    name=self.organization.name,
+                ),
+                repo=self.repo,
+                integration=self.integration,
+            )
+
+        self.mock_seer.assert_called_once()
