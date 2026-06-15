@@ -122,5 +122,6 @@ const SectionList = styled('dl')`
   margin: 0;
 `;
 const ParseError = styled('p')`
+  font-size: ${p => p.theme.font.size.sm};
   padding: ${p => p.theme.space.xl};
 `;
