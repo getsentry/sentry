@@ -158,11 +158,6 @@ class SpanAttributes(msgspec.Struct, gc=False):
 
 
 class ProcessSpanEvent(msgspec.Struct, gc=False):
-    """The minimum span event the buffer needs, decoded directly from the
-    ingest-spans payload. Decoding enforces the presence and types of every
-    required field, so a malformed span raises here and is routed to the DLQ.
-    """
-
     organization_id: int
     project_id: int
     trace_id: str
