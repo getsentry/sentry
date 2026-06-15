@@ -190,6 +190,9 @@ importers:
       '@sentry-internal/rrweb-snapshot':
         specifier: 2.41.0
         version: 2.41.0
+      '@sentry/browser':
+        specifier: 10.57.0
+        version: 10.57.0
       '@sentry/conventions':
         specifier: ^0.8.0
         version: 0.8.0
