@@ -19,7 +19,6 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.options.rollout import in_random_rollout
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned, post_update
 from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics, snuba
@@ -56,13 +55,17 @@ def _get_attribute_snapshot_producer(name: str = "sentry.issues.attributes") -> 
     )
 
 
-_attribute_snapshot_producer = SingletonProducer(
-    _get_attribute_snapshot_producer, max_futures=settings.SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT
-)
 _task_producer_name = "sentry.tasks.issues.attributes"
-_attribute_snapshot_task_producer = get_task_producer(
-    producer_name=_task_producer_name,
-    producer_factory=partial(_get_attribute_snapshot_producer, name=_task_producer_name),
+_attribute_snapshot_producer = (
+    get_task_producer(
+        producer_name=_task_producer_name,
+        producer_factory=partial(_get_attribute_snapshot_producer, name=_task_producer_name),
+    )
+    if settings.TASKWORKER_USE_TASK_PRODUCER
+    else SingletonProducer(
+        _get_attribute_snapshot_producer,
+        max_futures=settings.SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT,
+    )
 )
 
 
@@ -131,18 +134,10 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
             raise snuba.SnubaError(err)
     else:
         payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-            "tasks.producer.snapshots.rollout"
-        ):
-            _attribute_snapshot_task_producer.produce(
-                ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
-                payload,
-            )
-        else:
-            _attribute_snapshot_producer.produce(
-                ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
-                payload,
-            )
+        _attribute_snapshot_producer.produce(
+            ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
+            payload,
+        )
 
 
 def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:

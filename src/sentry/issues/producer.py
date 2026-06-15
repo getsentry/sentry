@@ -17,7 +17,6 @@ from sentry.hybridcloud.rpc import ValueEqualityEnum
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.options.rollout import in_random_rollout
 from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -47,13 +46,16 @@ def _get_occurrence_producer(name: str = "sentry.issues.producer") -> KafkaProdu
     )
 
 
-_occurrence_producer = SingletonProducer(
-    _get_occurrence_producer, max_futures=settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT
-)
-
-_occurrence_task_producer = get_task_producer(
-    producer_name="sentry.issues.tasks.producer",
-    producer_factory=partial(_get_occurrence_producer, name="sentry.issues.tasks.producer"),
+_task_producer_name = "sentry.issues.tasks.producer"
+_occurrence_producer = (
+    get_task_producer(
+        producer_name=_task_producer_name,
+        producer_factory=partial(_get_occurrence_producer, name=_task_producer_name),
+    )
+    if settings.TASKWORKER_USE_TASK_PRODUCER
+    else SingletonProducer(
+        _get_occurrence_producer, max_futures=settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT
+    )
 )
 
 
@@ -88,12 +90,7 @@ def produce_occurrence_to_kafka(
 
     try:
         topic = get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
-        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-            "tasks.producer.occurrences.rollout"
-        ):
-            _occurrence_task_producer.produce(ArroyoTopic(topic), payload)
-        else:
-            _occurrence_producer.produce(ArroyoTopic(topic), payload)
+        _occurrence_producer.produce(ArroyoTopic(topic), payload)
     except KafkaException:
         logger.exception(
             "Failed to send occurrence to issue platform",
