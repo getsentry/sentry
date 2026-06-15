@@ -43,7 +43,8 @@ class DatabaseBackedHookService(HookService):
                             "webhook_url": webhook_url,
                         },
                     )
-                    sentry_sdk.set_attribute("hook info.application_id", application_id)
+                    if application_id is not None:
+                        sentry_sdk.set_attribute("hook info.application_id", application_id)
                     sentry_sdk.set_attribute("hook info.updated_hook_count", updated_hook_count)
                     sentry_sdk.set_attribute("hook info.expected_hook_count", hook_count)
                     sentry_sdk.set_attribute("hook info.webhook_url", webhook_url)
