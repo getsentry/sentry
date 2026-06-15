@@ -16,10 +16,6 @@ import type {
 
 const POLL_INTERVAL = 500; // Poll every 500ms, matching Seer Explorer
 
-// Stop polling and surface an error if the agent hasn't reached a terminal
-// state within this window, to avoid polling forever.
-const SEARCH_TIMEOUT_MS = 120_000;
-
 /**
  * Generate the query key for polling the search agent state.
  */
@@ -89,31 +85,18 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   const [runId, setRunId] = useState<number | string | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
   const [startFailed, setStartFailed] = useState(false);
-  const [timedOut, setTimedOut] = useState(false);
   const inFlightQueryRef = useRef<string | null>(null);
-  const startTimeRef = useRef<number | null>(null);
 
   const queryKey = makeAskSeerQueryKey(orgSlug, runId ?? undefined);
 
   // Poll for state
-  const {
-    data: apiData,
-    isPending,
-    isFetching,
-  } = useApiQuery<AskSeerPollingResponse<T>>(
+  const {data: apiData, isPending} = useApiQuery<AskSeerPollingResponse<T>>(
     queryKey ?? (['__disabled__', {}] as unknown as ApiQueryKey),
     {
       staleTime: 0,
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
-        // Stop polling once we've been running longer than the timeout.
-        if (
-          startTimeRef.current &&
-          Date.now() - startTimeRef.current > SEARCH_TIMEOUT_MS
-        ) {
-          return false;
-        }
         const sessionData = query.state.data?.json?.session ?? null;
         if (isPolling(sessionData, waitingForResponse)) {
           return POLL_INTERVAL;
@@ -125,20 +108,6 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
   const sessionData = apiData?.session ?? null;
 
-  // When a poll settles after the timeout has elapsed, stop waiting and surface
-  // an error (the refetchInterval above stops scheduling further polls).
-  useEffect(() => {
-    if (
-      !isFetching &&
-      runId &&
-      startTimeRef.current &&
-      Date.now() - startTimeRef.current > SEARCH_TIMEOUT_MS
-    ) {
-      setTimedOut(true);
-      setWaitingForResponse(false);
-    }
-  }, [isFetching, runId]);
-
   // Start a new search
   const submitQuery = useCallback(
     async (query: string) => {
@@ -147,8 +116,6 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       }
       inFlightQueryRef.current = query;
       setWaitingForResponse(true);
-      setTimedOut(false);
-      startTimeRef.current = Date.now();
 
       try {
         const response = (await api.requestPromise(
@@ -211,11 +178,9 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   // Reset function
   const reset = useCallback(() => {
     inFlightQueryRef.current = null;
-    startTimeRef.current = null;
     setRunId(null);
     setWaitingForResponse(false);
     setStartFailed(false);
-    setTimedOut(false);
     if (queryKey) {
       // Will be fixed soon when we get rid of setApiQueryData.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
@@ -238,15 +203,15 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
     /**
      * Whether polling is active.
      */
-    isPolling: !timedOut && isPolling(sessionData, waitingForResponse),
+    isPolling: isPolling(sessionData, waitingForResponse),
     /**
      * Whether we're waiting for a response (initial load or polling).
      */
-    isSessionPending: !timedOut && isActuallyPending,
+    isSessionPending: isActuallyPending,
     /**
-     * Whether the agent run errored or polling timed out.
+     * Whether the agent run errored.
      */
-    isSessionError: sessionData?.status === 'error' || timedOut,
+    isSessionError: sessionData?.status === 'error',
     /**
      * Whether the start request failed (use fallback).
      */
