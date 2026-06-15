@@ -76,11 +76,10 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
     def reload_task_local_cache(self, organization_id: int):
         cache_key = self._make_key(organization_id)
 
+        # Reload the local cache with what's in the shared cache.  If the shared cache is
+        # not populated, then subsequent accesses (via get_all_values) will re-generate the
+        # value with an actual query.
         result = cache.get(cache_key)
-        if result is None:
-            result = {i.key: i.value for i in self.filter(organization=organization_id)}
-            cache.set(cache_key, result)
-
         self._option_cache[cache_key] = result
 
     def reload_cache(self, organization_id: int, update_reason: str) -> Mapping[str, Any]:
