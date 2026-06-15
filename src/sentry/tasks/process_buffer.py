@@ -63,6 +63,7 @@ def process_incr(
 
     if model:
         sentry_sdk.set_tag("model", model._meta.model_name)
+        sentry_sdk.set_attribute("model", model._meta.model_name)
 
     buffer.backend.process(
         model=model,
@@ -78,5 +79,6 @@ def buffer_incr(model: type[Model], *args, **kwargs):
     from sentry import buffer
 
     sentry_sdk.set_tag("model", model._meta.model_name)
+    sentry_sdk.set_attribute("model", model._meta.model_name)
 
     buffer.backend.incr(model, *args, **kwargs)

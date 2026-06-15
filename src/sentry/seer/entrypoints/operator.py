@@ -45,6 +45,8 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
     SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
     SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
+    SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
+    SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
 
 logger = logging.getLogger(__name__)

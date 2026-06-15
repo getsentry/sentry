@@ -8,17 +8,9 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, TypedDict
 
-# Tell P4 to look for a ".p4config" file when resolving per-connection
-# settings like P4TRUST and P4TICKETS. Each _connect() call creates a temp
-# directory with its own .p4config and sets p4.cwd to that directory.
-# P4 walks upward from cwd to find the config file, so each P4 instance
-# reads its own isolated config — no global state, no locks needed.
-os.environ.setdefault("P4CONFIG", ".p4config")
-
-from P4 import P4, P4Exception
-
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.perforce.p4protocol import P4, P4Exception
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
@@ -29,7 +21,12 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.net.socket import is_safe_hostname
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+
+# Names the per-connection P4CONFIG file that _connect() writes (P4TRUST,
+# P4TICKETS, P4CLIENTPATH) and that the client resolves relative to its cwd.
+os.environ.setdefault("P4CONFIG", ".p4config")
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +65,10 @@ def validate_p4port_transport(p4port: str) -> None:
         raise InvalidP4Port("Invalid P4PORT transport. Only tcp and ssl transports are allowed.")
     if not host:
         raise InvalidP4Port("P4PORT must include a host, e.g. ssl:perforce.example.com:1666.")
+    if not is_safe_hostname(host):
+        raise InvalidP4Port(
+            f"P4PORT host could not be resolved or is not an allowed address: {host}"
+        )
 
 
 class P4ChangeInfo(TypedDict):
@@ -133,7 +134,8 @@ class P4DepotPath:
 class PerforceClient(RepositoryClient, CommitContextClient):
     """
     Client for interacting with Perforce server.
-    Uses P4Python library to execute P4 commands.
+    Uses the in-tree pure-Python Perforce protocol client (``p4protocol``) to
+    execute P4 commands.
 
     Supports both plaintext and SSL connections. For production use over
     public internet, SSL is strongly recommended.
@@ -173,26 +175,37 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         # Empty / "none" means non-Unicode server — leave p4.charset alone.
         self.charset = metadata.get("charset") or ""
 
+    def _raise_for_connection_error(self, error_msg: str) -> None:
+        """Translate connection-level P4 failures into an actionable ApiError.
+
+        The pure-Python client surfaces these on the first command (run_login /
+        run("info")), not from connect(), so every auth handler routes through
+        here. Returns normally when the message isn't connection-level, letting
+        callers apply their own (e.g. auth) error mapping.
+        """
+        lowered = error_msg.lower()
+        if "unicode server" in lowered:
+            raise ApiError(
+                f"Failed to connect to Perforce: {error_msg}. "
+                "This server is running in Unicode mode — set "
+                "'Server Encoding' to 'Unicode server (UTF-8)' in the "
+                "integration configuration."
+            )
+        if "SSL" in error_msg or "trust" in lowered:
+            raise ApiError(
+                f"Failed to connect to Perforce (SSL issue): {error_msg}. "
+                f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+            )
+
     @contextmanager
     def _connect(self) -> Generator[P4]:
         """
         Context manager for P4 connections with automatic cleanup.
 
         Yields a connected P4 instance and ensures disconnection on exit.
-        Creates a temporary directory with a P4CONFIG file to isolate
-        P4TRUST and P4TICKETS per connection. This prevents lock contention
-        when multiple tenants connect concurrently.
-
-        P4Python's set_env("P4TRUST", ...) only works on Windows/macOS — on
-        Linux it raises and does NOT set the value. Instead we use the
-        P4CONFIG mechanism: a per-directory config file that P4 discovers
-        via p4.cwd. Each connection gets its own temp dir with its own
-        .p4config, so no global state or locks are needed.
-
-        Uses P4Python API:
-        - p4.connect(): https://www.perforce.com/manuals/p4python/Content/P4Python/python.programming.html#python.programming.connecting
-        - p4.run_trust(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_trust.html
-        - p4.run_login(): https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_login.html
+        Creates a temporary directory with a P4CONFIG file (P4TRUST, P4TICKETS
+        and P4CLIENTPATH) isolated per connection, so concurrent tenants never
+        share trust/ticket state.
 
         Example:
             with self._connect() as p4:
@@ -224,6 +237,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             p4.user = self.user
             p4.password = self.password
             p4.ticket_file = ticket_path
+            p4.ssl_fingerprint = self.ssl_fingerprint
 
             if self.client_name:
                 p4.client = self.client_name
@@ -241,18 +255,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 p4.connect()
             except P4Exception as e:
                 error_msg = str(e)
-                if "unicode server" in error_msg.lower():
-                    raise ApiError(
-                        f"Failed to connect to Perforce: {error_msg}. "
-                        "This server is running in Unicode mode — set "
-                        "'Server Encoding' to 'Unicode server (UTF-8)' in the "
-                        "integration configuration."
-                    )
-                if "SSL" in error_msg or "trust" in error_msg.lower():
-                    raise ApiError(
-                        f"Failed to connect to Perforce (SSL issue): {error_msg}. "
-                        f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
-                    )
+                self._raise_for_connection_error(error_msg)
                 raise ApiError(f"Failed to connect to Perforce: {error_msg}")
 
             # Assert SSL trust after connection (if needed)
@@ -281,6 +284,10 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                         p4.disconnect()
                     except Exception:
                         pass
+                    # The pure-Python client surfaces connection-level failures
+                    # (e.g. Unicode/SSL) here rather than from connect(); prefer
+                    # the actionable message over the generic password hint.
+                    self._raise_for_connection_error(str(login_error))
                     raise ApiUnauthorized(
                         f"Failed to authenticate with Perforce: {login_error}. "
                         "Verify your password is correct."
@@ -293,6 +300,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                         p4.disconnect()
                     except Exception:
                         pass
+                    self._raise_for_connection_error(str(e))
                     raise ApiUnauthorized(
                         f"Failed to authenticate with Perforce ticket: {e}. "
                         "Verify your P4 ticket is valid. Obtain a new ticket with: p4 login -p"
@@ -710,6 +718,15 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             # remaining elements are file content strings/bytes
             if not result or not isinstance(result[0], dict):
                 raise ApiError(f"File not found: {depot_path}", code=404)
+
+            # Binary depot files aren't source we can display; return nothing
+            # rather than decoding raw bytes into mojibake. Perforce file types
+            # carry "+modifiers" (e.g. "binary+x") and legacy aliases such as
+            # "xbinary"/"ubinary"/"uxbinary" all denote binary content, so match
+            # on the base type rather than a plain "binary" prefix.
+            base_type = result[0].get("type", "").split("+", 1)[0]
+            if "binary" in base_type or base_type in ("apple", "resource", "uresource"):
+                return ""
 
             content_parts = result[1:]
             if not content_parts:

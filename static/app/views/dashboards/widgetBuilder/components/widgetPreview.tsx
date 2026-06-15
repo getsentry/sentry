@@ -30,7 +30,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isWidgetInvalid?: boolean;
+  isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   shouldForceDescriptionTooltip?: boolean;
 }
@@ -40,7 +40,7 @@ const MIN_TABLE_COLUMN_WIDTH_PX = 125;
 export function WidgetPreview({
   dashboard,
   dashboardFilters,
-  isWidgetInvalid,
+  isQueryConditionInvalid,
   onDataFetched,
   shouldForceDescriptionTooltip,
 }: WidgetPreviewProps) {
@@ -119,13 +119,24 @@ export function WidgetPreview({
     }
   }
 
+  if (isQueryConditionInvalid) {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={widget.title} />}
+        Visualization={
+          <Widget.WidgetError error={t('Widget query condition is invalid.')} />
+        }
+        noVisualizationPadding
+      />
+    );
+  }
+
   return (
     <WidgetCard
       disableFullscreen
       borderless
       // need to pass in undefined to avoid tooltip not showing up on hover
       forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
-      isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
       selection={pageFilters.selection}
       widget={
