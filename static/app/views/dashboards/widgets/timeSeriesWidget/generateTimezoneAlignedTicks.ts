@@ -51,9 +51,14 @@ export function generateTimezoneAlignedTicks(
     userTimezone
   );
 
-  // Start from the snapped boundary even if it's slightly before startMs.
-  // ECharts clips ticks outside the visible axis range, and starting one
-  // step early ensures the first natural boundary tick always appears.
+  // Generate ticks one step beyond each end of the data range. The data
+  // range [startMs, endMs] is typically narrower than ECharts' visible axis
+  // (ECharts adds padding so the first/last bars aren't flush against the
+  // edge). If we only generated ticks within [startMs, endMs], boundary
+  // ticks would be missing — e.g., data starting at Jun 9 00:30 would snap
+  // to Jun 9 00:00 which is before startMs, so the first visible tick would
+  // be Jun 10. By extending one step past each end, those boundary ticks
+  // appear. ECharts automatically hides any ticks outside the visible axis.
   const ticks: number[] = [];
   while (
     currentTick.valueOf() <=
