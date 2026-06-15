@@ -6,6 +6,7 @@ import responses
 from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
+from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.notifications.models.notificationaction import (
@@ -91,6 +92,25 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         for action in notif_actions:
             assert serialize(action) in response.data
 
+    def test_get_project_slug_all_includes_org_actions(self) -> None:
+        project_notif_action = self.create_notification_action(
+            organization=self.organization,
+            projects=self.projects,
+        )
+        org_notif_action = self.create_notification_action(organization=self.organization)
+        other_notif_action = self.create_notification_action(organization=self.other_organization)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_200_OK,
+            qs_params={"projectSlug": ALL_ACCESS_PROJECTS_SLUG},
+        )
+
+        assert len(response.data) == 2
+        assert serialize(project_notif_action) in response.data
+        assert serialize(org_notif_action) in response.data
+        assert serialize(other_notif_action) not in response.data
+
     @patch.object(
         NotificationAction,
         "get_trigger_types",
@@ -131,6 +151,10 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "checks projects by default": {"query": {}, "result": {na1, na2, na3, na4}},
             "regular project": {
                 "query": {"project": project.id},
+                "result": {na2, na3},
+            },
+            "regular project slug": {
+                "query": {"project": project.slug},
                 "result": {na2, na3},
             },
             "regular trigger": {

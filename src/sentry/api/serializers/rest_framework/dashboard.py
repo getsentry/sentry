@@ -404,7 +404,16 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if widget_type_name is not None and display_type_id is not None:
             widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
             config = DATASET_CONFIG.get(widget_type_id)
-            if config is not None and display_type_id not in config["supported_display_types"]:
+            if (
+                config is not None
+                and display_type_id not in config["supported_display_types"]
+                # Existing tracemetrics table widgets (those sent with an ``id``)
+                # are allowed to save. The Widget Builder doesn't offer table for
+                # tracemetrics, but some widgets were created with this combo
+                # before display-type validation existed, and those dashboards
+                # must still be saveable. New widgets are still rejected.
+                and not self._is_existing_tracemetrics_table(widget_type_id, display_type_id)
+            ):
                 supported_names = sorted(
                     DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
                     for d in config["supported_display_types"]
@@ -417,6 +426,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return display_type_id
 
+    def _is_existing_tracemetrics_table(self, widget_type_id, display_type_id):
+        return (
+            self.context.get("widget_id") is not None
+            and widget_type_id == DashboardWidgetTypes.TRACEMETRICS
+            and display_type_id == DashboardWidgetDisplayTypes.TABLE
+        )
+
     def _validate_widget_type(self, data):
         widget_type = DashboardWidgetTypes.get_id_for_type_name(data.get("widget_type"))
         if widget_type == DashboardWidgetTypes.DISCOVER or widget_type is None:
@@ -426,6 +442,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     "org_slug": self.context["organization"].slug,
                 },
             )
+            sentry_sdk.set_attribute("dashboard.org_slug", self.context["organization"].slug)
             sentry_sdk.capture_message("Created or updated widget with discover dataset.")
             raise serializers.ValidationError(
                 {
@@ -451,6 +468,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         # instance across items, so stale values would otherwise leak between
         # widgets in the same request.
         self.context["widget_type"] = data.get("widget_type")
+        self.context["widget_id"] = data.get("id")
 
         if data.get("display_type"):
             additional_context["display_type"] = data.get("display_type")
@@ -957,6 +975,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                             "requested_widget_ids": widget_ids,
                         },
                     )
+                    sentry_sdk.set_attribute("dashboard.org_slug", instance.organization.slug)
+                    sentry_sdk.set_attribute("dashboard.dashboard_id", instance.id)
+                    sentry_sdk.set_attribute("dashboard.widget_id", widget_id)
+                    sentry_sdk.set_attribute(
+                        "dashboard.existing_widget_ids", str(list(existing_map.keys()))
+                    )
+                    sentry_sdk.set_attribute("dashboard.requested_widget_ids", str(widget_ids))
                     sentry_sdk.capture_message(
                         "Attempted to update widget not belonging to dashboard."
                     )

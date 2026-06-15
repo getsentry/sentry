@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
 import {AddOnCategory, BillingType} from 'getsentry/types';
-import {isEnterprise, isTrialPlan} from 'getsentry/utils/billing';
+import {isTrialPlan} from 'getsentry/utils/billing';
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -52,7 +52,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const safeCategories = planDetails?.planCategories || {};
 
   const isTrial = isTrialPlan(planDetails.id);
-  const isEnterpriseTrial = isTrial && isEnterprise(planDetails.id);
+  const isEnterpriseTrial = isTrial && planDetails.isEnterprise;
   const reservedBudgets = [];
   if (hasLegacySeer) {
     if (isTrial) {
@@ -81,7 +81,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     hasRestrictedIntegration: false,
     hadCustomDynamicSampling: false,
     id: '',
-    isBundleEligible: false,
     isEnterpriseTrial,
     isExemptFromForcedTrial: false,
     isForcedTrial: false,
@@ -96,7 +95,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     trialPlan: null,
     trialTier: null,
     onDemandPeriodStart: '2018-09-25',
-    gracePeriodStart: null,
     trialEnd: null,
     countryCode: null,
     cancelAtPeriodEnd: false,
@@ -116,7 +114,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     planDetails,
     totalMembers: 1,
     contractInterval: 'monthly',
-    canGracePeriod: true,
     totalLicenses: 1,
     billingPeriodStart: '2018-09-25',
     suspensionReason: null,
@@ -139,7 +136,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     isPastDue: false,
     onDemandDisabled: false,
     onDemandInvoiced: false,
-    gracePeriodEnd: null,
     contractPeriodStart: '2018-09-25',
     onDemandMaxSpend: 0,
     productTrials: [],
@@ -149,17 +145,11 @@ export function SubscriptionFixture(props: Props): TSubscription {
     slug: organization.slug,
     pendingChanges: null,
     usageExceeded: false,
-    isHeroku: false,
     name: organization.name,
     billingInterval: planDetails.billingInterval || 'monthly',
-    contactInfo: null,
     dateJoined: '2018-09-10T23:58:10.167Z',
-    vatStatus: null,
-    isGracePeriod: false,
     onDemandPeriodEnd: '2018-10-24',
-    vatID: null,
     msaUpdatedForDataConsent: false,
-    dataRetention: null,
     orgRetention: {standard: null, downsampled: null},
     addOns,
     reservedBudgets,
