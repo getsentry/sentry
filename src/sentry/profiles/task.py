@@ -1194,9 +1194,9 @@ def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
                 "duration_ms": duration_ms,
             },
         )
-        sentry_sdk.set_attribute("profile duration calculation.min_timestamp", min_timestamp)
-        sentry_sdk.set_attribute("profile duration calculation.max_timestamp", max_timestamp)
-        sentry_sdk.set_attribute("profile duration calculation.duration_ms", duration_ms)
+        sentry_sdk.set_attribute("profile_duration_calculation.min_timestamp", min_timestamp)
+        sentry_sdk.set_attribute("profile_duration_calculation.max_timestamp", max_timestamp)
+        sentry_sdk.set_attribute("profile_duration_calculation.duration_ms", duration_ms)
         sentry_sdk.capture_message("Calculated duration is above the limit")
         return MAX_DURATION_SAMPLE_V2
     return duration_ms
