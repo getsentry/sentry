@@ -86,6 +86,28 @@ class IdentityPipelineFinishTest(TestCase):
         assert identity.external_id == "user-123"
 
     @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
+    def test_no_auto_create_with_provider_model_links_identity(
+        self, mock_build: MagicMock, mock_record: MagicMock
+    ) -> None:
+        existing_idp = IdentityProvider.objects.create(
+            type="dummy", external_id="org-456", config={"site": "example.com"}
+        )
+
+        pipeline = IdentityPipeline(
+            request=self.request,
+            provider_key="dummy",
+            provider_model=existing_idp,
+        )
+        pipeline.initialize()
+
+        pipeline.finish_pipeline()
+
+        assert IdentityProvider.objects.filter(type="dummy").count() == 1
+        identity = Identity.objects.get(idp=existing_idp, user=self.user)
+        assert identity.external_id == "user-123"
+        assert identity.data["access_token"] == "token"
+
+    @patch.object(DummyProvider, "build_identity", return_value=DUMMY_IDENTITY_DATA)
     def test_no_auto_create_without_provider_model_raises(
         self, mock_build: MagicMock, mock_record: MagicMock
     ) -> None:
