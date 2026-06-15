@@ -55,7 +55,7 @@ export function NetworkDetailsContent(props: Props) {
           )}
           {output === Output.INCOMPLETE && (
             <ParseError>
-              {t('No response body was captured for this request.')}
+              {t('No request body was captured for this request.')}
             </ParseError>
           )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}

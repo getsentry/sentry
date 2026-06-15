@@ -467,7 +467,7 @@ describe('NetworkDetailsContent', () => {
         );
 
         expect(
-          screen.getByText('No response body was captured for this request.')
+          screen.getByText('No request body was captured for this request.')
         ).toBeInTheDocument();
         expect(queryScreenState().isShowingSetup).toBe(false);
       });
@@ -485,7 +485,7 @@ describe('NetworkDetailsContent', () => {
 
         expect(queryScreenState().isShowingSetup).toBe(true);
         expect(
-          screen.queryByText('No response body was captured for this request.')
+          screen.queryByText('No request body was captured for this request.')
         ).not.toBeInTheDocument();
       });
     });
