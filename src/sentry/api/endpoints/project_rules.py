@@ -31,7 +31,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
@@ -849,7 +849,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-rules")
     @deprecated(
-        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-workflow-index"
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-workflow-index",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def get(self, request: Request, project: Project) -> Response[list[RuleSerializerResponse]]:
         """
@@ -898,6 +900,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-index",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def post(self, request: Request, project) -> Response:
         """

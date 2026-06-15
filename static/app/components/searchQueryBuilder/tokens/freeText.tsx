@@ -19,6 +19,7 @@ import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/toke
 import {
   getInitialFilterText,
   itemIsSection,
+  resolveFilterKey,
   useShiftFocusToChild,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
@@ -643,7 +644,12 @@ function SearchQueryBuilderInputInternal({
               return textToken.key.text === filterValue;
             })
           ) {
-            const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
+            const filterKey = resolveFilterKey({
+              key: filterValue,
+              filterKeys,
+              getSuggestedFilterKey,
+              loadedItems: sortedFilteredItems,
+            });
             const key = filterKeys[filterKey];
             dispatch({
               type: 'UPDATE_FREE_TEXT_ON_COLON',
