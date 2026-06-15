@@ -373,6 +373,9 @@ class IntegrationPipelineViewType(StrEnum):
     IDENTITY_LINK = "identity_link"
     TOKEN_EXCHANGE = "token_exchange"
 
+    # Datadog
+    DCR_REGISTRATION = "dcr_registration"
+
     # GitHub
     OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"

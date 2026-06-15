@@ -79,6 +79,7 @@ export enum FieldKey {
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
   ISSUE_PRIORITY = 'issue.priority',
+  ISSUE_PROGRESS = 'issue.progress',
   ISSUE_SEER_ACTIONABILITY = 'issue.seer_actionability',
   ISSUE_SEER_LAST_RUN = 'issue.seer_last_run',
   ISSUE_TYPE = 'issue.type',
@@ -193,6 +194,7 @@ type ErrorFieldKey =
   | FieldKey.ISSUE
   | FieldKey.ISSUE_CATEGORY
   | FieldKey.ISSUE_PRIORITY
+  | FieldKey.ISSUE_PROGRESS
   | FieldKey.ISSUE_SEER_ACTIONABILITY
   | FieldKey.ISSUE_SEER_LAST_RUN
   | FieldKey.ISSUE_TYPE
@@ -2063,6 +2065,12 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
+  [FieldKey.ISSUE_PROGRESS]: {
+    desc: t('How far along an issue is toward resolution'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.ISSUE_SEER_ACTIONABILITY]: {
     desc: t('How easily you can fix the issue with a code change, estimated by Seer'),
     kind: FieldKind.FIELD,
@@ -2816,6 +2824,7 @@ export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.IS,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_PRIORITY,
+  FieldKey.ISSUE_PROGRESS,
   FieldKey.ISSUE_SEER_ACTIONABILITY,
   FieldKey.ISSUE_SEER_LAST_RUN,
   FieldKey.ISSUE_TYPE,

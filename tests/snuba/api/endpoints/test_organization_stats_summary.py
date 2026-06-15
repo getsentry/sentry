@@ -606,6 +606,24 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
+    def test_project_filter_with_id_and_slug(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id, self.project2.slug],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert {project["id"] for project in response.data["projects"]} == {
+            self.project.id,
+            self.project2.id,
+        }
+
+    @freeze_time(_now)
     def test_reason_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,

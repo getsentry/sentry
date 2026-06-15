@@ -26,7 +26,7 @@ import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {
-  useSeerAgentSelectOptions,
+  seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
@@ -222,7 +222,9 @@ export default Storybook.story('SeerProjectSettings', story => {
         knownAgentIntegrationsQueryOptions({organization})
       );
 
-      const agentSelectOptions = useSeerAgentSelectOptions();
+      const {data: agentSelectOptions = []} = useQuery(
+        seerAgentIntegrationsSelectQueryOptions({organization})
+      );
       const stoppingPointOptions = useStoppingPointSelectOptions();
 
       const {data, isPending, isError, error} = useQuery({
