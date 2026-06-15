@@ -31,7 +31,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayl
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +237,7 @@ class IndexerBatch:
         if self.tags_validator(tags) is False:
             # sentry doesn't seem to actually capture nested logger.error extra args
             sentry_sdk.set_extra("all_metric_tags", tags)
-            sentry_sdk.set_attribute("all_metric_tags", tags)
+            sentry_sdk.set_attribute("all_metric_tags", json.dumps(tags))
             logger.error(
                 "process_messages.invalid_tags",
                 extra={
