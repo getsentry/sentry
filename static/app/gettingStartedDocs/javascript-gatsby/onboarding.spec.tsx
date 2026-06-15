@@ -155,7 +155,9 @@ describe('javascript-gatsby onboarding docs', () => {
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/\/\/ dataCollection: \{ userInfo: false \}/)
+        textWithMarkupMatcher(
+          /\/\/ dataCollection: \{ userInfo: false, httpBodies: \[\] \}/
+        )
       )
     ).toBeInTheDocument();
   });

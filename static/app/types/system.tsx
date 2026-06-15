@@ -176,8 +176,6 @@ export interface Config {
   };
   // The list of localities (formerly regions) that are available
   localities: Locality[];
-  // A list of regions that the user has membership in.
-  memberRegions: Region[];
   /**
    * This comes from django (django.contrib.messages)
    */
@@ -188,8 +186,6 @@ export interface Config {
   }>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
-  // The list of regions the user has has access to.
-  regions: Region[];
   sentryConfig: {
     allowUrls: string[];
     dsn: string;

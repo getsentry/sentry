@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 
@@ -10,7 +11,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
@@ -27,6 +28,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
@@ -232,6 +234,106 @@ def _project_key_errors_snuba(
     )
     query_result = raw_snql_query(request, referrer=referrer)
     return query_result["data"]
+
+
+_KEY_ERRORS_CHUNK_SIZE = 100
+
+
+def _org_key_errors_snuba(
+    ctx: OrganizationReportContext,
+    project_ids: Sequence[int],
+    referrer: str,
+    per_project_limit: int = 3,
+) -> dict[int, list[dict[str, Any]]]:
+    if not project_ids:
+        return {}
+
+    results: dict[int, list[dict[str, Any]]] = {}
+    for i in range(0, len(project_ids), _KEY_ERRORS_CHUNK_SIZE):
+        chunk = project_ids[i : i + _KEY_ERRORS_CHUNK_SIZE]
+        chunk_results = _org_key_errors_snuba_chunk(ctx, chunk, referrer, per_project_limit)
+        results.update(chunk_results)
+
+    return results
+
+
+def _org_key_errors_snuba_chunk(
+    ctx: OrganizationReportContext,
+    project_ids: Sequence[int],
+    referrer: str,
+    per_project_limit: int,
+) -> dict[int, list[dict[str, Any]]]:
+    events_entity = Entity("events", alias="events")
+    group_attributes_entity = Entity("group_attributes", alias="group_attributes")
+    query = Query(
+        match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
+        select=[
+            Column("project_id", entity=events_entity),
+            Column("group_id", entity=events_entity),
+            Function("count", []),
+        ],
+        where=[
+            Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
+            Condition(
+                Column("timestamp", entity=events_entity),
+                Op.LT,
+                ctx.end + timedelta(days=1),
+            ),
+            Condition(
+                Column("project_id", entity=events_entity),
+                Op.IN,
+                project_ids,
+            ),
+            Condition(
+                Column("project_id", entity=group_attributes_entity),
+                Op.IN,
+                project_ids,
+            ),
+            Condition(
+                Column("group_status", entity=group_attributes_entity),
+                Op.EQ,
+                GroupStatus.UNRESOLVED,
+            ),
+            Condition(Column("level", entity=events_entity), Op.EQ, "error"),
+        ],
+        groupby=[
+            Column("project_id", entity=events_entity),
+            Column("group_id", entity=events_entity),
+        ],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limitby=LimitBy([Column("project_id", entity=events_entity)], per_project_limit),
+        limit=Limit(len(project_ids) * per_project_limit),
+    )
+
+    request = Request(
+        dataset=Dataset.Events.value,
+        app_id="reports",
+        query=query,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+
+    results: dict[int, list[dict[str, Any]]] = {}
+    for row in rows:
+        pid = row["events.project_id"]
+        if pid not in results:
+            results[pid] = []
+        results[pid].append({"events.group_id": row["events.group_id"], "count()": row["count()"]})
+
+    return results
+
+
+def org_key_errors(
+    ctx: OrganizationReportContext,
+    project_ids: Sequence[int],
+    referrer: str,
+) -> dict[int, list[dict[str, Any]]]:
+    op = "weekly_reports.org_key_errors"
+    with sentry_sdk.start_span(op=op):
+        if not project_ids:
+            return {}
+
+        return _org_key_errors_snuba(ctx=ctx, project_ids=project_ids, referrer=referrer)
 
 
 def _project_key_errors_eap(
@@ -486,8 +588,15 @@ def project_key_transactions_this_week(ctx, project):
             orderby=[OrderBy(Function("count", []), Direction.DESC)],
             limit=Limit(3),
         )
-        request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-        query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.this_week")
+        request = Request(
+            dataset=Dataset.Transactions.value,
+            app_id="reports",
+            query=query,
+            tenant_ids={"organization_id": ctx.organization.id},
+        )
+        query_result = raw_snql_query(
+            request, referrer=Referrer.REPORTS_KEY_TRANSACTIONS_THIS_WEEK.value
+        )
         key_transactions = query_result["data"]
         return key_transactions
 
@@ -513,8 +622,15 @@ def project_key_transactions_last_week(ctx, project, key_transactions):
         ],
         groupby=[Column("transaction_name")],
     )
-    request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-    query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.last_week")
+    request = Request(
+        dataset=Dataset.Transactions.value,
+        app_id="reports",
+        query=query,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
+    query_result = raw_snql_query(
+        request, referrer=Referrer.REPORTS_KEY_TRANSACTIONS_LAST_WEEK.value
+    )
     return query_result
 
 

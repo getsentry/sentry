@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
 import {AddOnCategory, BillingType} from 'getsentry/types';
-import {isEnterprise, isTrialPlan} from 'getsentry/utils/billing';
+import {isTrialPlan} from 'getsentry/utils/billing';
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -52,7 +52,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const safeCategories = planDetails?.planCategories || {};
 
   const isTrial = isTrialPlan(planDetails.id);
-  const isEnterpriseTrial = isTrial && isEnterprise(planDetails.id);
+  const isEnterpriseTrial = isTrial && planDetails.isEnterprise;
   const reservedBudgets = [];
   if (hasLegacySeer) {
     if (isTrial) {
