@@ -493,10 +493,10 @@ function IssueListOverviewInner({
         organization,
         search_type: 'issues',
         search_source: 'main_search',
-        error: parseApiError(err),
+        error: parseApiError(err as RequestError),
       });
 
-      setError(parseApiError(err));
+      setError(parseApiError(err as RequestError));
       setIssuesLoading(false);
       setIssuesSuccessfullyLoaded(false);
 
@@ -510,7 +510,7 @@ function IssueListOverviewInner({
           resultCount: 0,
           orgSlug: organization.slug,
           runId: aiQueryRunId,
-          error: parseApiError(err),
+          error: parseApiError(err as RequestError),
         });
       }
     } finally {
