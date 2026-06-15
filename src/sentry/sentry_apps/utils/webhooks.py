@@ -53,6 +53,8 @@ class SeerActionType(SentryAppActionType):
     CODING_STARTED = "coding_started"
     CODING_COMPLETED = "coding_completed"
     PR_CREATED = "pr_created"
+    ITERATION_STARTED = "iteration_started"
+    ITERATION_COMPLETED = "iteration_completed"
 
 
 class PreprodArtifactActionType(SentryAppActionType):

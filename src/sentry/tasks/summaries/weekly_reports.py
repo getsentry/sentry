@@ -195,7 +195,9 @@ def prepare_organization_report(
         return
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
+    sentry_sdk.set_attribute("org.slug", organization.slug)
     set_tag("org.id", organization_id)
+    sentry_sdk.set_attribute("org.id", organization_id)
     with WeeklyReportSLO(
         operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
     ).capture() as lifecycle:
@@ -214,6 +216,7 @@ def prepare_organization_report(
         with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
             report_is_available = not ctx.is_empty()
         set_tag("report.available", report_is_available)
+        sentry_sdk.set_attribute("report.available", report_is_available)
 
         if not report_is_available:
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)

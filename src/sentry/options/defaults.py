@@ -957,6 +957,19 @@ register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+register(
+    "store.ingest-events-raw-task.inline-save-event",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "store.ingest-events-raw-task.inline-save-event-transaction",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Enable sending the flag to the microservice to tell it to purposefully take longer than our
 # timeout, to see the effect on the overall error event processing backlog
@@ -1541,6 +1554,21 @@ register(
 # Used when a deprecation doesn't have a custom key defined.
 register(
     "api.deprecation.brownout-duration",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Brownout schedule for the deprecated alerts API endpoints.
+# 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
+register(
+    "api.deprecation.alerts-cron",
+    default="0 */4 * * *",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "api.deprecation.alerts-duration",
     type=Int,
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2802,6 +2830,14 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Store the regression-triggering event's metadata in the activity data so
+# notifications show the correct title/message instead of stale group data.
+register(
+    "groups.regression-activity-event-metadata",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -3699,14 +3735,6 @@ register(
     "provision_organization.override.rate",
     type=Float,
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# TODO(cells): Fully rolled out and no longer read anywhere. Unregister once the
-# value is removed from sentry-options-automator.
-register(
-    "cells.use-control-org-listing",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

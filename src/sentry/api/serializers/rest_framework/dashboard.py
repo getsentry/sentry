@@ -442,6 +442,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     "org_slug": self.context["organization"].slug,
                 },
             )
+            sentry_sdk.set_attribute("dashboard.org_slug", self.context["organization"].slug)
             sentry_sdk.capture_message("Created or updated widget with discover dataset.")
             raise serializers.ValidationError(
                 {
@@ -974,6 +975,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                             "requested_widget_ids": widget_ids,
                         },
                     )
+                    sentry_sdk.set_attribute("dashboard.org_slug", instance.organization.slug)
+                    sentry_sdk.set_attribute("dashboard.dashboard_id", instance.id)
+                    sentry_sdk.set_attribute("dashboard.widget_id", widget_id)
+                    sentry_sdk.set_attribute(
+                        "dashboard.existing_widget_ids", str(list(existing_map.keys()))
+                    )
+                    sentry_sdk.set_attribute("dashboard.requested_widget_ids", str(widget_ids))
                     sentry_sdk.capture_message(
                         "Attempted to update widget not belonging to dashboard."
                     )

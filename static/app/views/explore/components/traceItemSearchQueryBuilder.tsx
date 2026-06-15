@@ -1,11 +1,13 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -74,9 +76,9 @@ const typeMap: Partial<
 function getTraceItemFieldDefinitionFunction(
   itemType: TraceItemDataset,
   tags: TagCollection
-) {
-  return (key: string) => {
-    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
+): FieldDefinitionGetter {
+  return (key, options) => {
+    return getFieldDefinition(key, typeMap[itemType], options?.kind ?? tags[key]?.kind);
   };
 }
 
@@ -96,6 +98,7 @@ export function useTraceItemSearchQueryBuilderProps({
   onSearch,
   portalTarget,
   projects,
+  datetime,
   supportedAggregates = [],
   namespace,
   replaceRawSearchKeys,
@@ -113,6 +116,8 @@ export function useTraceItemSearchQueryBuilderProps({
   placeholder,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
+  const {selection} = usePageFilters();
+  const effectiveProjects = projects ?? selection.projects;
 
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
@@ -128,6 +133,7 @@ export function useTraceItemSearchQueryBuilderProps({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    datetime,
     query: attributeQuery,
   });
 
@@ -148,10 +154,32 @@ export function useTraceItemSearchQueryBuilderProps({
   // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
   // the allowlist (and unrecognized keys are auto-rejected).
   const getTagKeys = allowedAttributeKeys ? undefined : dynamicTagKeys;
+  const asyncFilterKeyRegistryQueryKey = useMemo(
+    () => [
+      'trace-item-search-query-builder-filter-key-registry',
+      itemType,
+      effectiveProjects,
+      selection.environments,
+      selection.datetime,
+      attributeQuery,
+      hiddenAttributeKeys,
+      allowedAttributeKeys,
+    ],
+    [
+      allowedAttributeKeys,
+      attributeQuery,
+      effectiveProjects,
+      hiddenAttributeKeys,
+      itemType,
+      selection.datetime,
+      selection.environments,
+    ]
+  );
 
   return useMemo(
     () => ({
       placeholder: placeholderText,
+      asyncFilterKeyRegistryQueryKey,
       filterKeys: filterTags,
       initialQuery,
       fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
@@ -185,6 +213,7 @@ export function useTraceItemSearchQueryBuilderProps({
       onCaseInsensitiveClick,
     }),
     [
+      asyncFilterKeyRegistryQueryKey,
       booleanSecondaryAliases,
       caseInsensitive,
       disabled,
@@ -226,7 +255,7 @@ export function TraceItemSearchQueryBuilder({
   searchSource,
   stringAttributes,
   itemType,
-  datetime: _datetime,
+  datetime,
   getFilterTokenWarning,
   onBlur,
   onChange,
@@ -280,6 +309,7 @@ export function TraceItemSearchQueryBuilder({
     hiddenAttributeKeys,
     allowedAttributeKeys,
     placeholder,
+    datetime,
   });
 
   return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;

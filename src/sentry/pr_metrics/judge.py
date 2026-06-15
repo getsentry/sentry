@@ -35,9 +35,8 @@ from sentry.pr_metrics.emit import (
     CloseAction,
     active_attributions,
     emit_pr_metrics_row,
-    iso_or_none,
-    resolved_group_ids,
 )
+from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
 from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 from sentry.seer.code_review.utils import build_repo_definition
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request

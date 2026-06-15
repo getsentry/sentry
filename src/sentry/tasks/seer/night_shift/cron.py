@@ -515,9 +515,7 @@ def _run_autofix_for_candidates(
     the resulting run id onto a newly created SeerNightShiftRunResult row.
     Returns the list of rows that were created.
     """
-    fixable_candidates = [
-        c for c in candidates if c.action in (TriageAction.AUTOFIX, TriageAction.ROOT_CAUSE_ONLY)
-    ]
+    fixable_candidates = [c for c in candidates if c.action == TriageAction.AUTOFIX]
     if not fixable_candidates:
         logger.info(
             "night_shift.no_fixable_candidates",
@@ -529,11 +527,7 @@ def _run_autofix_for_candidates(
 
     results: list[SeerNightShiftRunResult] = []
     for c in fixable_candidates:
-        stopping_point = (
-            AutofixStoppingPoint.ROOT_CAUSE
-            if c.action == TriageAction.ROOT_CAUSE_ONLY
-            else stopping_point_by_project_id[c.group.project_id]
-        )
+        stopping_point = stopping_point_by_project_id[c.group.project_id]
 
         user_context = (
             f"Night-shift triage already investigated this issue and concluded:\n{c.reason}"

@@ -20,9 +20,9 @@ from sentry.pr_metrics.emit import (
     build_pr_metrics_row,
     emit_pr_metrics_row,
     is_pr_tracked,
-    resolved_group_ids,
     select_verdict,
 )
+from sentry.pr_metrics.utils import resolved_group_ids
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event

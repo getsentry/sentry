@@ -5,9 +5,12 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.issues.constants import ISSUE_VIEW_CACHE_KEY_TTL, cache_key_for_issue_view
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestActivity,
     PullRequestActivityType,
@@ -142,6 +145,79 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
+
+    # --- MCP attribution ---
+
+    def test_mcp_attribution_recorded_when_referenced_issue_viewed_via_mcp(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        attr = PullRequestAttribution.objects.get(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        )
+        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
+        assert attr.signal_details == {"group_ids": {str(group.id): "cursor"}}
+
+    def test_mcp_attribution_not_recorded_without_cache_hit(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
+    def test_mcp_attribution_not_recorded_without_group_link(self) -> None:
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
+    def test_mcp_and_app_attribution_coexist(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+        ).exists()
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
 
     # --- Feature flag ---
 
@@ -1314,3 +1390,139 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         self._call()
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+
+@with_feature(["organizations:pr-metrics-attribution", "organizations:gen-ai-features"])
+@cell_silo_test
+class HandleDelegatedAgentDetectionTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+        self.group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group=self.group,
+            project=self.project,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+    def _call(
+        self,
+        *,
+        action: str = "opened",
+        login: str = "a-human",
+        user_id: int = 999,
+        head_ref: str = "feature/x",
+        head_sha: str = "headsha123",
+        number: int = 42,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "number": number,
+            "user": {"id": user_id, "login": login},
+            "head": {"ref": head_ref, "sha": head_sha},
+        }
+        handle_attribution(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": action, "pull_request": payload},
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+    def _mock_count(self) -> Any:
+        return patch("sentry_sdk.metrics.count")
+
+    # --- Candidate detection fires the signal ---
+
+    def test_claude_branch_prefix_detects_candidate(self) -> None:
+        with self._mock_count() as mock_count:
+            self._call(head_ref="claude/fix-the-bug")
+
+        mock_count.assert_called_once_with(
+            "pr_metrics.delegated_agent.seer_match.not_implemented",
+            1,
+            attributes={"provider_hint": "claude_code"},
+        )
+
+    def test_copilot_branch_prefix_detects_candidate(self) -> None:
+        with self._mock_count() as mock_count:
+            self._call(head_ref="copilot/fix-the-bug")
+
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "github_copilot"
+
+    def test_copilot_author_login_detects_candidate(self) -> None:
+        # Copilot opens PRs from a non-prefixed branch but as a distinct bot user.
+        with self._mock_count() as mock_count:
+            self._call(login="copilot-swe-agent[bot]", head_ref="some-branch")
+
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "github_copilot"
+
+    def test_branch_prefix_takes_precedence_over_author(self) -> None:
+        with self._mock_count() as mock_count:
+            self._call(login="copilot-swe-agent[bot]", head_ref="claude/fix")
+
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "claude_code"
+
+    # --- Non-candidates do not fire ---
+
+    def test_non_candidate_branch_and_author_does_not_detect(self) -> None:
+        with self._mock_count() as mock_count:
+            self._call(login="a-human", head_ref="feature/x")
+
+        mock_count.assert_not_called()
+
+    def test_non_opened_action_does_not_detect(self) -> None:
+        for action in ("synchronize", "closed", "reopened", "edited", "labeled"):
+            with self._mock_count() as mock_count:
+                self._call(action=action, head_ref="claude/fix")
+                mock_count.assert_not_called()
+
+    # --- Gating ---
+
+    def test_attribution_flag_off_does_not_detect(self) -> None:
+        with self._mock_count() as mock_count:
+            with self.feature({"organizations:pr-metrics-attribution": False}):
+                self._call(head_ref="claude/fix")
+
+        mock_count.assert_not_called()
+
+    def test_no_seer_access_via_flag_does_not_detect(self) -> None:
+        with self._mock_count() as mock_count:
+            with self.feature({"organizations:gen-ai-features": False}):
+                self._call(head_ref="claude/fix")
+
+        mock_count.assert_not_called()
+
+    def test_no_seer_access_via_hidden_ai_features_does_not_detect(self) -> None:
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        with self._mock_count() as mock_count:
+            self._call(head_ref="claude/fix")
+
+        mock_count.assert_not_called()
+
+    def test_missing_pr_does_not_detect(self) -> None:
+        # Candidate gate passes, but no PullRequest row exists for this number.
+        with self._mock_count() as mock_count:
+            self._call(head_ref="claude/fix", number=9999)
+
+        mock_count.assert_not_called()
+
+    def test_no_linked_groups_does_not_detect(self) -> None:
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=self.pr.id,
+        ).delete()
+
+        with self._mock_count() as mock_count:
+            self._call(head_ref="claude/fix")
+
+        mock_count.assert_not_called()

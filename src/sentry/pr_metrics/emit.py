@@ -8,13 +8,11 @@ production). A PR is "tracked" once it has at least one valid
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, Final, Literal
 
 from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -25,6 +23,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
+from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -35,15 +34,6 @@ CLOSE_ACTION_CLOSED: Final = "closed"
 CLOSE_ACTION_MERGED: Final = "merged"
 
 CloseAction = Literal["closed", "merged"]
-
-
-def iso_or_none(value: datetime | None) -> str | None:
-    """Serialize a persisted datetime to an ISO-8601 string, or None.
-
-    Shared by the analytics row and the Seer judge request, which both encode the
-    PR's optional timestamps the same way.
-    """
-    return value.isoformat() if value is not None else None
 
 
 def select_verdict(
@@ -130,21 +120,6 @@ def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
         {"signal_type": a.signal_type, "source": a.source, "signal_details": a.signal_details}
         for a in ordered
     ]
-
-
-def resolved_group_ids(pull_request: PullRequest) -> list[int]:
-    """Group IDs this PR resolves, from the resolving GroupLink rows.
-
-    Sorted for a deterministic row; empty when the PR resolves no issues. Shared
-    by emission and the Seer judge forward.
-    """
-    return sorted(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=pull_request.id,
-        ).values_list("group_id", flat=True)
-    )
 
 
 def _merge_commit_id(pull_request: PullRequest) -> int | None:

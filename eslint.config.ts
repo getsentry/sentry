@@ -655,6 +655,20 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/service-worker-allow-sentry-browser',
+    files: ['static/app/serviceWorker/worker/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [restrictedThemeImportPattern],
+          paths: restrictedImportPaths.filter(p => p.name !== '@sentry/browser'),
+        },
+      ],
+      'import/no-extraneous-dependencies': 'off',
+    },
+  },
+  {
     name: 'files/chartcuterie-no-browser-imports',
     files: ['static/app/chartcuterie/**/*.{ts,tsx}'],
     rules: {
