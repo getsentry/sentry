@@ -134,7 +134,7 @@ export interface AutofixRepoDefinition {
   provider: string;
 }
 
-export interface BranchOverride {
+interface BranchOverride {
   branch_name: string;
   tag_name: string;
   tag_value: string;
