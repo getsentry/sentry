@@ -28,6 +28,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   canWrite: boolean;
+  includeInstructions: boolean;
   project: Project;
 }
 
@@ -49,7 +50,7 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   null,
 ];
 
-export function AutofixRepositoriesList({canWrite, project}: Props) {
+export function AutofixRepositoriesList({canWrite, includeInstructions, project}: Props) {
   const {openModal} = useModal();
 
   const queryClient = useQueryClient();
@@ -79,15 +80,6 @@ export function AutofixRepositoriesList({canWrite, project}: Props) {
       queryClient,
     })
   );
-
-  // Save the whole form?
-  // const {mutateAsync: handleFormSubmit} = useMutation(
-  //   getMutateSeerProjectReposOptionsReplaceRepos({
-  //     organization,
-  //     project,
-  //     queryClient,
-  //   })
-  // );
 
   const handleAddRepoClick = () => {
     openModal(deps => (
@@ -160,6 +152,7 @@ export function AutofixRepositoriesList({canWrite, project}: Props) {
         {data.map(repository => (
           <AutofixRepositoriesItem
             key={repository.repositoryId}
+            includeInstructions={includeInstructions}
             canWrite={canWrite}
             onRemoveRepo={handleRemoveRepo}
             project={project}

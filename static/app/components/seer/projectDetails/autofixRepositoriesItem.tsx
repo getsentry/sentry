@@ -28,6 +28,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   canWrite: boolean;
+  includeInstructions: boolean;
   onRemoveRepo: ({repoId}: {repoId: string}) => void;
   project: AvatarProject;
   repositories: SeerProjectReposResponse[];
@@ -66,10 +67,11 @@ const repoSchema = z.object({
 
 export function AutofixRepositoriesItem({
   canWrite,
+  includeInstructions,
   onRemoveRepo,
+  project,
   repositories,
   repository,
-  project,
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -297,6 +299,31 @@ export function AutofixRepositoriesItem({
                         {t('Add Override')}
                       </Button>
                     </Flex>
+
+                    {includeInstructions && (
+                      <AutoSaveForm
+                        name="instructions"
+                        schema={repoSchema}
+                        initialValue={repository.instructions}
+                        mutationOptions={mutationOptions}
+                      >
+                        {field => (
+                          <Stack gap="sm" borderTop="primary" paddingTop="lg">
+                            <Heading as="h4">{t('Context for Seer')}</Heading>
+                            <field.TextArea
+                              size="sm"
+                              rows={3}
+                              disabled={!canWrite}
+                              placeholder={t(
+                                'Add any general context or instructions to help Seer understand this repository...'
+                              )}
+                              value={field.state.value ?? ''}
+                              onChange={field.handleChange}
+                            />
+                          </Stack>
+                        )}
+                      </AutoSaveForm>
+                    )}
                   </Stack>
                 )}
               </form.AppField>
