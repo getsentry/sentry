@@ -1,8 +1,5 @@
 import {AM_ADD_ON_CATEGORIES as AM3_ADD_ON_CATEGORIES} from 'getsentry-test/fixtures/constants';
-import {
-  DynamicSamplingReservedBudgetCategoryFixture,
-  SeerReservedBudgetCategoryFixture,
-} from 'getsentry-test/fixtures/reservedBudget';
+import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reservedBudget';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -31,26 +28,8 @@ const AM3_ONDEMAND_CATEGORIES = [
 
 const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES] as DataCategory[];
 
-const AM3_DS_CHECKOUT_CATEGORIES = [
-  ...AM3_CHECKOUT_CATEGORIES,
-  'spansIndexed',
-] as DataCategory[];
-const AM3_DS_CATEGORIES = [
-  ...AM3_DS_CHECKOUT_CATEGORIES,
-  'profileDuration',
-  'profileDurationUI',
-  'seerAutofix',
-  'seerScanner',
-] as DataCategory[];
-
 const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
   [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
-};
-
-const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
-  ...AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
-  [ReservedBudgetCategoryType.DYNAMIC_SAMPLING]:
-    DynamicSamplingReservedBudgetCategoryFixture({}),
 };
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
@@ -74,11 +53,6 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
     singular: 'build distribution install',
     plural: 'build distribution installs',
   },
-};
-
-const AM3_DS_CATEGORY_DISPLAY_NAMES = {
-  ...AM3_CATEGORY_DISPLAY_NAMES,
-  spansIndexed: {plural: 'stored spans', singular: 'stored span'},
 };
 
 const AM3_FREE_FEATURES = [
@@ -137,12 +111,6 @@ const AM3_BUSINESS_FEATURES = [
 const AM3_TRIAL_FEATURES = AM3_BUSINESS_FEATURES.filter(
   feature => feature !== 'sso-saml2' && feature !== 'baa'
 );
-
-const AM3_DS_FEATURES = [
-  ...AM3_BUSINESS_FEATURES,
-  'dynamic-sampling',
-  'dynamic-sampling-custom',
-];
 
 export const LEGACY_SEER_TIERS_DEVELOPER = {
   seerAutofix: [
@@ -278,16 +246,6 @@ const commonFields = {
   hasOnDemandModes: false,
   budgetTerm: BUDGET_TERM as 'pay-as-you-go', // for whatever reason TS is unhappy without this
   retentions: RETENTION_SETTINGS,
-};
-
-const commonFieldsForDs = {
-  ...commonFields,
-  categories: AM3_DS_CATEGORIES,
-  categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
-  checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
-  availableCategories: AM3_DS_CATEGORIES,
-  onDemandCategories: AM3_DS_CATEGORIES,
-  availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
 };
 
 export const AM3_PLANS = {
@@ -1779,256 +1737,6 @@ export const AM3_PLANS = {
     dashboardLimit: -1,
     metricDetectorLimit: -1,
   },
-  am3_business_ent_ds: {
-    ...commonFieldsForDs,
-    id: 'am3_business_ent_ds',
-    isEnterprise: true,
-    name: 'Enterprise (Business)',
-    description: '',
-    price: 10_000_00,
-    basePrice: 0,
-    totalPrice: 10_000_00,
-    trialPlan: 'am3_business',
-    isTestPlan: false,
-    maxMembers: null,
-    retentionDays: 90,
-    userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
-    features: AM3_DS_FEATURES,
-    billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
-    onDemandEventPrice: 0.1157,
-    allowOnDemand: true,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: true,
-    planCategories: {
-      errors: [
-        {
-          events: 1_000_000,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      replays: [
-        {
-          events: 10_000,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      spans: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      spansIndexed: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      monitorSeats: [
-        {
-          events: 100,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      uptime: [
-        {
-          events: 100,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDuration: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      attachments: [
-        {
-          events: 1,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      logBytes: [
-        {
-          events: 5,
-          unitPrice: 0.5,
-          price: 0,
-          onDemandPrice: 0.5,
-        },
-      ],
-      sizeAnalyses: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      installableBuilds: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
-      ...SEER_TIERS,
-    },
-    dashboardLimit: -1,
-    metricDetectorLimit: -1,
-  },
-  am3_business_ent_ds_auf: {
-    ...commonFieldsForDs,
-    id: 'am3_business_ent_ds_auf',
-    isEnterprise: true,
-    name: 'Enterprise (Business)',
-    description: '',
-    price: 10_000_00,
-    basePrice: 0,
-    totalPrice: 10_000_00,
-    trialPlan: 'am3_business',
-    maxMembers: null,
-    retentionDays: 90,
-    isTestPlan: false,
-    userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
-    features: AM3_DS_FEATURES,
-    billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
-    onDemandEventPrice: 0.1157,
-    allowOnDemand: true,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: true,
-    planCategories: {
-      errors: [
-        {
-          events: 1_000_000,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      replays: [
-        {
-          events: 10_000,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      spans: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      spansIndexed: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      monitorSeats: [
-        {
-          events: 100,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      uptime: [
-        {
-          events: 100,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDuration: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      attachments: [
-        {
-          events: 1,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      logBytes: [
-        {
-          events: 5,
-          unitPrice: 0.5,
-          price: 0,
-          onDemandPrice: 0.5,
-        },
-      ],
-      sizeAnalyses: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      installableBuilds: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
-      ...SEER_TIERS,
-    },
-    dashboardLimit: -1,
-    metricDetectorLimit: -1,
-  },
   am3_f: {
     ...commonFields,
     id: 'am3_f',
@@ -2226,131 +1934,6 @@ export const AM3_PLANS = {
         },
       ],
       spans: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      logBytes: [
-        {
-          events: 5,
-          unitPrice: 0.5,
-          price: 0,
-          onDemandPrice: 0.5,
-        },
-      ],
-      sizeAnalyses: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      installableBuilds: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
-      ...SEER_TIERS,
-    },
-    dashboardLimit: 20,
-    metricDetectorLimit: 20,
-  },
-  am3_t_ent_ds: {
-    ...commonFieldsForDs,
-    id: 'am3_t_ent_ds',
-    isEnterprise: true,
-    name: 'Enterprise Trial',
-    description: '',
-    price: 0,
-    basePrice: 0,
-    totalPrice: 0,
-    trialPlan: null,
-    maxMembers: null,
-    retentionDays: 90,
-    isTestPlan: false,
-    userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
-    features: AM3_DS_FEATURES,
-    billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
-    allowOnDemand: false,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: false,
-    planCategories: {
-      errors: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      replays: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      attachments: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      monitorSeats: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      uptime: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDuration: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      spans: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      spansIndexed: [
         {
           events: 0,
           unitPrice: 0,

@@ -113,6 +113,7 @@ class RepoPRState(BaseModel):
     pr_creation_error: str | None = None
     title: str | None = None
     description: str | None = None
+    integration_id: str | None = None
 
     class Config:
         extra = "ignore"

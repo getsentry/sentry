@@ -14,12 +14,12 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';
-import {formatReservedWithUnits, isAm3Plan} from 'getsentry/utils/billing';
+import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getSingularCategoryName,
@@ -533,7 +533,7 @@ export function PlanFeatures({
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>
-        {!isAm3Plan(activePlan.id) && (
+        {!activePlan.categories.includes(DataCategory.SPANS) && (
           <Flex gap="sm">
             <Container paddingTop="xs">
               <IconLightning size="sm" variant="accent" />
