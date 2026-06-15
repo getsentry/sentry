@@ -113,9 +113,7 @@ function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
 
-  const prIterationEnabled =
-    organization.features.includes('autofix-pr-iteration') ||
-    group.project.features.includes('autofix-pr-iteration');
+  const prIterationEnabled = group.project.features.includes('autofix-pr-iteration');
 
   if (!prIterationEnabled || !isRunValidForPrIteration(runState)) {
     return null;
