@@ -316,7 +316,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     });
   });
 
-  function renderPalette() {
+  function renderPalette(org = organization) {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
@@ -324,9 +324,9 @@ describe('GlobalCommandPaletteActions - search recall', () => {
         <CommandPalette {...makeRenderProps(jest.fn())} />
       </CommandPaletteProvider>,
       {
-        organization,
+        organization: org,
         initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/issues/`},
+          location: {pathname: `/organizations/${org.slug}/issues/`},
         },
       }
     );
@@ -362,9 +362,10 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     }
   });
 
-  it('routes "insights" search to Dashboards', async () => {
-    // Insights is migrating into Dashboards (insights-to-dashboards-ui-rollout),
-    // so searching "insights" should surface the Dashboards destination.
+  it('routes "insights" search to Dashboards when prebuilt insights dashboards are enabled', async () => {
+    // For orgs in the prebuilt insights dashboards rollout, Insights lives in
+    // Dashboards, so searching "insights" should surface that destination.
+    // (The describe-level org enables `dashboards-prebuilt-insights-dashboards`.)
     renderPalette();
 
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
@@ -373,6 +374,22 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     expect(
       (await screen.findAllByRole('option', {name: /Dashboards/})).length
     ).toBeGreaterThan(0);
+  });
+
+  it('does not route "insights" to Dashboards without prebuilt insights dashboards', async () => {
+    // Orgs not in the rollout keep their standalone Insights section, so the
+    // keyword must not redirect "insights" to Dashboards.
+    renderPalette(
+      OrganizationFixture({features: ['session-replay-ui', 'performance-view']})
+    );
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'insights');
+
+    // The standalone Insights section still matches the query...
+    expect(await screen.findByRole('option', {name: /Insights/})).toBeInTheDocument();
+    // ...but Dashboards must not be surfaced by the (now gated) keyword.
+    expect(screen.queryByRole('option', {name: /Dashboards/})).not.toBeInTheDocument();
   });
 
   it.each([
