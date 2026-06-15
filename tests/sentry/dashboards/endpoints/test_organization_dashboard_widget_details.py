@@ -1485,6 +1485,54 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_widget_type_tracemetrics_heatmap_requires_flag(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "metric.name:foo",
+                    "fields": ["sum(value)"],
+                    "columns": [],
+                    "aggregates": ["sum(value)"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "displayType" in response.data, response.data
+
+    def test_widget_type_tracemetrics_heatmap_with_flag(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "metric.name:foo",
+                    "fields": ["sum(value)"],
+                    "columns": [],
+                    "aggregates": ["sum(value)"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 200, response.data
+
     def test_widget_type_tracemetrics_rejects_table(self) -> None:
         data = {
             "title": "Test Metrics Query",
