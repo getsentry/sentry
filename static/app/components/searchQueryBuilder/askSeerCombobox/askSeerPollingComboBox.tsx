@@ -162,7 +162,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     strategy,
     options: extraOptions,
     onError: error => {
-      addErrorMessage(t('Seer was unable to process your search. Please try again.'));
+      addErrorMessage(t('Seer failed to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,
@@ -529,7 +529,9 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             </SeerContent>
           ) : isSessionError ? (
             <SeerContent>
-              <AskSeerSearchHeader title={t('An error occurred while processing')} />
+              <AskSeerSearchHeader
+                title={t('Seer failed to process your search. Please try again.')}
+              />
             </SeerContent>
           ) : hasResults ? (
             <SeerContent onMouseLeave={onMouseLeave}>
