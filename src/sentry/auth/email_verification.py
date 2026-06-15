@@ -25,14 +25,6 @@ def _get_salt() -> str:
     return options.get("auth.signup-verification-email-salt")
 
 
-def _format_expiry(minutes: int) -> str:
-    """Convert minutes to a human-friendly expiry string."""
-    if minutes >= 60 and minutes % 60 == 0:
-        hours = minutes // 60
-        return f"{hours} hour{'s' if hours != 1 else ''}"
-    return f"{minutes} minute{'s' if minutes != 1 else ''}"
-
-
 def send_signup_verification_email(
     request: HttpRequest,
     email: str,
