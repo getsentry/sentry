@@ -41,7 +41,7 @@ class TestGetTriggerMetadata:
         assert result["trigger_comment_id"] == 12345
         assert result["trigger_user"] == "test-user"
         assert result["trigger_user_id"] == 99999
-        assert result["trigger_comment_type"] == "issue_comment"
+        assert result["trigger_comment_type"] == "pull_request_review_comment"
         assert result["trigger_at"] == "2024-01-15T10:30:00Z"
 
     def test_extracts_issue_comment_trigger_at_defaults_to_now_when_missing(self) -> None:
@@ -296,7 +296,7 @@ class TestTransformWebhookToCodegenRequest:
         assert config["trigger"] == SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
         assert config["trigger_comment_id"] == 12345
         assert config["trigger_user"] == "commenter"
-        assert config["trigger_comment_type"] == "issue_comment"
+        assert config["trigger_comment_type"] == "pull_request_review_comment"
         assert config["trigger_at"] == "2024-01-15T14:00:00Z"
         # sentry_received_trigger_at is set to current time when transform happens
         assert isinstance(config["sentry_received_trigger_at"], str)
@@ -866,9 +866,9 @@ class TestBuildRepoDefinition:
         return repo
 
     def test_provider_is_github_for_cloud_integration(self) -> None:
-        from sentry.seer.code_review.utils import _build_repo_definition
+        from sentry.seer.code_review.utils import build_repo_definition
 
-        result = _build_repo_definition(
+        result = build_repo_definition(
             repo=self._make_repo("integrations:github"),
             target_commit_sha="abc123",
             event_payload={"repository": {"private": False}},
@@ -876,9 +876,9 @@ class TestBuildRepoDefinition:
         assert result["provider"] == "github"
 
     def test_provider_is_github_enterprise_for_ghe_integration(self) -> None:
-        from sentry.seer.code_review.utils import _build_repo_definition
+        from sentry.seer.code_review.utils import build_repo_definition
 
-        result = _build_repo_definition(
+        result = build_repo_definition(
             repo=self._make_repo("integrations:github_enterprise"),
             target_commit_sha="abc123",
             event_payload={"repository": {"private": False}},
@@ -886,14 +886,14 @@ class TestBuildRepoDefinition:
         assert result["provider"] == "github_enterprise"
 
     def test_gitlab_uses_config_path_not_display_name(self) -> None:
-        from sentry.seer.code_review.utils import _build_repo_definition
+        from sentry.seer.code_review.utils import build_repo_definition
 
         repo = self._make_repo("integrations:gitlab")
         # Repository.name is the display "name_with_namespace"; it must not be used.
         repo.name = "Cool Group / Sentry"
         repo.config = {"path": "cool-group/sentry"}
 
-        result = _build_repo_definition(
+        result = build_repo_definition(
             repo=repo,
             target_commit_sha="abc123",
             event_payload={"project": {"visibility_level": 0}},
@@ -903,14 +903,14 @@ class TestBuildRepoDefinition:
         assert result["name"] == "sentry"
 
     def test_gitlab_missing_config_path_raises_rather_than_using_display_name(self) -> None:
-        from sentry.seer.code_review.utils import _build_repo_definition
+        from sentry.seer.code_review.utils import build_repo_definition
 
         repo = self._make_repo("integrations:gitlab")
         repo.name = "Cool Group / Sentry"
         repo.config = {}
 
         with pytest.raises(ValueError):
-            _build_repo_definition(
+            build_repo_definition(
                 repo=repo,
                 target_commit_sha="abc123",
                 event_payload={"project": {}},

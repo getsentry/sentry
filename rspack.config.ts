@@ -770,6 +770,7 @@ if (IS_UI_DEV_ONLY) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
+      'Service-Worker-Allowed': '/',
     },
     static: {
       publicPath: '/_assets/',
