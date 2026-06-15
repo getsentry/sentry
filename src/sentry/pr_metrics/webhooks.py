@@ -20,6 +20,7 @@ from collections.abc import Mapping
 from dataclasses import asdict
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
@@ -75,10 +76,6 @@ from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
-# Actions that set attribution for who authored the PR. The PR author is fixed
-# at creation time and never changes, so app attribution is a one-shot write.
-_AUTHOR_ATTRIBUTION_ACTIONS = frozenset({"opened"})
-
 _ACTIVITY_ACTIONS = frozenset(
     {
         "opened",
@@ -131,9 +128,6 @@ def handle_attribution(
     if not (action and github_user):
         return
 
-    if action not in _AUTHOR_ATTRIBUTION_ACTIONS:
-        return
-
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
@@ -141,19 +135,12 @@ def handle_attribution(
     if pr is None:
         return
 
-    _write_author_attribution(pr, github_user)
+    if action == "opened":
+        _write_author_attribution(pr, github_user)
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
-    if pull_request is not None and has_seer_access(organization):
-        provider_hint = _is_delegated_agent_candidate(pull_request, github_user)
-        if provider_hint is not None:
-            if resolved_group_ids(pr):
-                # TODO: Fire-and-forget request to Seer when the match endpoint exists.
-                metrics.incr(
-                    "pr_metrics.delegated_agent.seer_match.not_implemented",
-                    tags={"provider_hint": provider_hint},
-                    sample_rate=1.0,
-                )
+    if action == "opened" and pull_request is not None and has_seer_access(organization):
+        _detect_delegated_agent(pr, pull_request)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -541,9 +528,7 @@ def _metrics_counters(pull_request: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _is_delegated_agent_candidate(
-    pull_request: Mapping[str, Any], github_user: Mapping[str, Any]
-) -> str | None:
+def _is_delegated_agent_candidate(webhook_pull_request: Mapping[str, Any]) -> str | None:
     """Return a provider hint if a PR looks like a delegated coding-agent PR, else None.
 
     Two payload-native signals are used. The head branch prefix is primary because
@@ -553,13 +538,13 @@ def _is_delegated_agent_candidate(
     when both match. This is a cheap heuristic; the authoritative match happens in
     Seer downstream.
     """
-    head_ref = (pull_request.get("head") or {}).get("ref") or ""
+    head_ref = (webhook_pull_request.get("head") or {}).get("ref") or ""
     for provider, prefix in DELEGATED_AGENT_BRANCH_PREFIXES.items():
         if prefix and head_ref.startswith(prefix):
             return provider
 
-    login = github_user.get("login") or ""
-    return DELEGATED_AGENT_AUTHOR_LOGINS.get(login)
+    github_login = (webhook_pull_request or {}).get("user", {}).get("login") or ""
+    return DELEGATED_AGENT_AUTHOR_LOGINS.get(github_login)
 
 
 def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType | None:
@@ -582,6 +567,26 @@ def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> N
         signal_type=signal_type,
         source=PullRequestAttributionSource.WEBHOOK_DATA,
     )
+
+
+def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, Any]) -> None:
+    """
+    Filter PRs that could have been delegated by Autofix to external coding agents,
+    and fire the matching request to Seer if it's a candidate.
+
+    Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
+    """
+    provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
+    # Our candidates are PRs from delegated agents
+    # That explicitly address a Sentry issue
+    if provider_hint is not None and resolved_group_ids(pr):
+        # TODO: Fire-and-forget request to Seer when the match endpoint exists.
+        # We will send: provider_hint, github_login, head_ref
+        sentry_sdk.metrics.count(
+            "pr_metrics.delegated_agent.seer_match.not_implemented",
+            1,
+            attributes={"provider_hint": provider_hint},
+        )
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:

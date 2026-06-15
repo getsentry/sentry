@@ -1315,87 +1315,87 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             repo=self.repo,
         )
 
-    def _mock_incr(self) -> Any:
-        return patch(f"{MODULE}.metrics.incr")
+    def _mock_count(self) -> Any:
+        return patch("sentry_sdk.metrics.count")
 
     # --- Candidate detection fires the signal ---
 
     def test_claude_branch_prefix_detects_candidate(self) -> None:
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             self._call(head_ref="claude/fix-the-bug")
 
-        mock_incr.assert_called_once_with(
+        mock_count.assert_called_once_with(
             "pr_metrics.delegated_agent.seer_match.not_implemented",
-            tags={"provider_hint": "claude_code"},
-            sample_rate=1.0,
+            1,
+            attributes={"provider_hint": "claude_code"},
         )
 
     def test_copilot_branch_prefix_detects_candidate(self) -> None:
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             self._call(head_ref="copilot/fix-the-bug")
 
-        assert mock_incr.call_count == 1
-        assert mock_incr.call_args.kwargs["tags"]["provider_hint"] == "github_copilot"
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "github_copilot"
 
     def test_copilot_author_login_detects_candidate(self) -> None:
         # Copilot opens PRs from a non-prefixed branch but as a distinct bot user.
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             self._call(login="copilot-swe-agent[bot]", head_ref="some-branch")
 
-        assert mock_incr.call_count == 1
-        assert mock_incr.call_args.kwargs["tags"]["provider_hint"] == "github_copilot"
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "github_copilot"
 
     def test_branch_prefix_takes_precedence_over_author(self) -> None:
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             self._call(login="copilot-swe-agent[bot]", head_ref="claude/fix")
 
-        assert mock_incr.call_count == 1
-        assert mock_incr.call_args.kwargs["tags"]["provider_hint"] == "claude_code"
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "claude_code"
 
     # --- Non-candidates do not fire ---
 
     def test_non_candidate_branch_and_author_does_not_detect(self) -> None:
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             self._call(login="a-human", head_ref="feature/x")
 
-        mock_incr.assert_not_called()
+        mock_count.assert_not_called()
 
     def test_non_opened_action_does_not_detect(self) -> None:
         for action in ("synchronize", "closed", "reopened", "edited", "labeled"):
-            with self._mock_incr() as mock_incr:
+            with self._mock_count() as mock_count:
                 self._call(action=action, head_ref="claude/fix")
-                mock_incr.assert_not_called()
+                mock_count.assert_not_called()
 
     # --- Gating ---
 
     def test_attribution_flag_off_does_not_detect(self) -> None:
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             with self.feature({"organizations:pr-metrics-attribution": False}):
                 self._call(head_ref="claude/fix")
 
-        mock_incr.assert_not_called()
+        mock_count.assert_not_called()
 
     def test_no_seer_access_via_flag_does_not_detect(self) -> None:
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             with self.feature({"organizations:gen-ai-features": False}):
                 self._call(head_ref="claude/fix")
 
-        mock_incr.assert_not_called()
+        mock_count.assert_not_called()
 
     def test_no_seer_access_via_hidden_ai_features_does_not_detect(self) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
 
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             self._call(head_ref="claude/fix")
 
-        mock_incr.assert_not_called()
+        mock_count.assert_not_called()
 
     def test_missing_pr_does_not_detect(self) -> None:
         # Candidate gate passes, but no PullRequest row exists for this number.
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             self._call(head_ref="claude/fix", number=9999)
 
-        mock_incr.assert_not_called()
+        mock_count.assert_not_called()
 
     def test_no_linked_groups_does_not_detect(self) -> None:
         GroupLink.objects.filter(
@@ -1403,7 +1403,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             linked_id=self.pr.id,
         ).delete()
 
-        with self._mock_incr() as mock_incr:
+        with self._mock_count() as mock_count:
             self._call(head_ref="claude/fix")
 
-        mock_incr.assert_not_called()
+        mock_count.assert_not_called()
