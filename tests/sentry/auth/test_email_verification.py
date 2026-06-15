@@ -6,7 +6,6 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.test import RequestFactory
 
 from sentry.auth.email_verification import (
-    _format_expiry,
     send_signup_verification_email,
     unsign_signup_verification,
 )
@@ -132,16 +131,3 @@ class UnsignSignupVerificationTest(TestCase):
         signed = sign(salt=TEST_SALT, email="a@b.com", session_id="else", expires_at=exp)
         with pytest.raises(ValueError, match="Session mismatch"):
             unsign_signup_verification(signed, self.request)
-
-
-class FormatExpiryTest(TestCase):
-    def test_hours(self) -> None:
-        assert _format_expiry(60) == "1 hour"
-        assert _format_expiry(120) == "2 hours"
-
-    def test_minutes(self) -> None:
-        assert _format_expiry(1) == "1 minute"
-        assert _format_expiry(10) == "10 minutes"
-
-    def test_non_round_hours(self) -> None:
-        assert _format_expiry(90) == "90 minutes"
