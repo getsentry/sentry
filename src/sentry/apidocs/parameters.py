@@ -760,7 +760,7 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        description="""The aggregate field to create the timeseries for, defaults to `count(span.duration)` when
+        description="""The aggregate field to create the timeseries for, defaults to `count()` when
         not included.
 - `count()` - Total count of events over the period.
 - `avg(field)` - Average value of the field over the period.
