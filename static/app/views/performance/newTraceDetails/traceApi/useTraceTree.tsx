@@ -57,7 +57,15 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
     }
 
     return TraceTree.Empty();
-  }, [organization, projects, replay, trace.status, trace.data, traceSlug, traceState.preferences]);
+  }, [
+    organization,
+    projects,
+    replay,
+    trace.status,
+    trace.data,
+    traceSlug,
+    traceState.preferences,
+  ]);
 
   return tree;
 }
