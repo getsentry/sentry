@@ -62,30 +62,6 @@ register(
     "system.internal-url-prefix",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Base hostname that account domains are subdomains of.
-register(
-    "system.base-hostname",
-    default=os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# The template for organization subdomain hostnames.
-register(
-    "system.organization-base-hostname",
-    default=os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# Template for organization URL including protocol
-register(
-    "system.organization-url-template",
-    default=os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-# Template for region based API URL
-register(
-    "system.region-api-url-template",
-    default=os.environ.get("SENTRY_REGION_API_URL_TEMPLATE"),
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
 # The region that this instance is currently running in.
 register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 
@@ -174,7 +150,6 @@ register(
     default="root@localhost",
     flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
-register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register(
     "mail.enable-replies",
     default=False,
@@ -345,54 +320,6 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Filestore (default)
-register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
-register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
-register("filestore.relocation-backend", default="filesystem", flags=FLAG_NOSTORE)
-register(
-    "filestore.relocation-options",
-    default={"location": "/tmp/sentry-relocation-files"},
-    flags=FLAG_NOSTORE,
-)
-register("filestore.profiles-backend", default="filesystem", flags=FLAG_NOSTORE)
-register(
-    "filestore.profiles-options",
-    default={"location": "/tmp/sentry-profiles", "allow_overwrite": True},
-    flags=FLAG_NOSTORE,
-)
-
-# Filestore for control silo
-register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
-register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
-
-
-# New `objectstore` service configuration. Additional supported options and
-# their defaults:
-#  - propagate_traces: bool = False,
-#  - retries: int | None = None,
-#  - timeout_ms: float | None = None,
-#  - connection_kwargs: Mapping[str, Any] | None = None,
-#  - token_generator: Mapping[str, Any] | None = None,
-#
-# For an always up-to-date list, see:
-# https://getsentry.github.io/objectstore/python/objectstore_client.html#objectstore_client.Client
-register(
-    "objectstore.config",
-    default={
-        "base_url": "http://127.0.0.1:8888",
-        # Test-only token generator with no permissions. Only active when no real
-        # objectstore config is deployed. Exists so mint_token() does not raise in
-        # test/dev environments that lack signing keys.
-        "token_generator": {
-            "kid": "test",
-            "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-            "permissions": [],
-        },
-    },
-    flags=FLAG_NOSTORE,
-)
-
 
 # Symbol server
 register(
@@ -629,11 +556,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Analytics
-register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
-register("analytics.options", default={}, flags=FLAG_NOSTORE)
-
-
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -827,9 +749,6 @@ register("aws-lambda.python.layer-version", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # the number of threads we should use to install Lambdas
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Intercom Integration
-register("intercom.sentry-api-secret", flags=FLAG_NOSTORE | FLAG_CREDENTIAL, default="")
 
 # Snuba
 register(
@@ -1333,7 +1252,6 @@ register(
 
 
 # All Relay options (statically authenticated Relays can be registered here)
-register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 # Whether Relay requests sent from internal ip addresses should be allowed even if the
 # credentials can not be verified.
 register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3751,15 +3669,6 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# ViewerContext — unified caller identity for all entrypoints.
-# Set via deploy config (SENTRY_OPTIONS); requires restart to change.
-register(
-    "viewer-context.enabled",
-    default=True,
-    type=Bool,
-    flags=FLAG_NOSTORE,
 )
 
 # Allows the recording of Seer actions as issue activities
