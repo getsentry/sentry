@@ -456,10 +456,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           formatter: (value: number) => {
             return formatXAxisTimestamp(value, timezone);
           },
-          ...(customTicks ? {customValues: customTicks} : {}),
+          ...(customTicks?.length ? {customValues: customTicks} : {}),
         },
         axisTick: {
-          ...(customTicks ? {customValues: customTicks} : {}),
+          ...(customTicks?.length ? {customValues: customTicks} : {}),
         },
         splitNumber: X_AXIS_SPLIT_NUMBER,
         ...releaseBubbleXAxis,
