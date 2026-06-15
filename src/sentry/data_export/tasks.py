@@ -40,7 +40,7 @@ from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, Assemble
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import export_tasks
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
@@ -475,7 +475,9 @@ def export_data_to_stored_blobs_sync(
         "requested_rows": export_limit,
     }
     sentry_sdk.set_tag("download_type", "sync")
+    sentry_sdk.set_attribute("download_type", "sync")
     sentry_sdk.set_context("data_export", extra)
+    sentry_sdk.set_attribute("data_export", extra)
     _set_data_on_scope(data_export)
     with sentry_sdk.start_span(op="assemble", name="Sync Export Data"):
         logger.info("dataexport.start", extra=extra)
@@ -858,9 +860,14 @@ def _set_data_on_scope(data_export: ExportedData) -> None:
         user = dict(id=data_export.user_id)
         scope.set_user(user)
     scope.set_tag("organization.slug", data_export.organization.slug)
+    scope.set_attribute("organization.slug", data_export.organization.slug)
     scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+    scope.set_attribute("export.type", ExportQueryType.as_str(data_export.query_type))
     scope.set_tag("export.format", data_export.export_format)
+    if data_export.export_format is not None:
+        scope.set_attribute("export.format", data_export.export_format)
     qi = data_export.query_info
     if qi.get("dataset") is not None:
         scope.set_tag("export.dataset", str(qi.get("dataset")))
     scope.set_extra("export.query", data_export.query_info)
+    scope.set_attribute("export.query", json.dumps(data_export.query_info))
