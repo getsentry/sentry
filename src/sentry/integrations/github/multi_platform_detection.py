@@ -33,9 +33,6 @@ from sentry.integrations.github.platform_registry import (
     _apply_supersession as _apply_supersession,
 )
 from sentry.integrations.github.platform_registry import (
-    _framework_matches as _framework_matches,
-)
-from sentry.integrations.github.platform_registry import (
     _package_in_manifest as _package_in_manifest,
 )
 from sentry.integrations.github.platform_registry import (
@@ -220,19 +217,24 @@ class _TreeIndex:
     def __init__(
         self,
         dirs: set[str],
-        full_paths_by_basename: dict[str, set[str]],
+        files_full_paths_by_basename: dict[str, set[str]],
+        dirs_full_paths_by_basename: dict[str, set[str]],
         full_repo_size_bytes: int,
     ) -> None:
+        # basename → set of all non-ignored full file paths with that name.
+        self.files_full_paths_by_basename = files_full_paths_by_basename
+        # basename → set of all non-ignored full directory paths with that name.
+        # Kept alongside the fast-lookup basename set below.
+        self.dirs_full_paths_by_basename = dirs_full_paths_by_basename
+        # Fast basename-only sets for O(1) existence checks.
         self.dirs = dirs
-        # Maps basename → all non-ignored full paths with that name.
-        self.full_paths_by_basename = full_paths_by_basename
         # Sum of ALL blobs including vendored/build dirs — the true tarball
         # weight.
         self.full_repo_size_bytes = full_repo_size_bytes
 
     @property
     def files(self) -> set[str]:
-        return set(self.full_paths_by_basename.keys())
+        return set(self.files_full_paths_by_basename.keys())
 
 
 def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
@@ -244,7 +246,8 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
     ``full_repo_size_bytes`` is the sum of ``size`` across all blobs.
     """
     dirs: set[str] = set()
-    full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
+    files_full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
+    dirs_full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
     full_repo_size_bytes = 0
 
     for entry in entries:
@@ -261,13 +264,15 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
         basename = path.rsplit("/", 1)[-1]
 
         if entry_type == "blob":
-            full_paths_by_basename[basename].add(path)
+            files_full_paths_by_basename[basename].add(path)
         elif entry_type == "tree":
             dirs.add(basename)
+            dirs_full_paths_by_basename[basename].add(path)
 
     return _TreeIndex(
         dirs=dirs,
-        full_paths_by_basename=dict(full_paths_by_basename),
+        files_full_paths_by_basename=dict(files_full_paths_by_basename),
+        dirs_full_paths_by_basename=dict(dirs_full_paths_by_basename),
         full_repo_size_bytes=full_repo_size_bytes,
     )
 
@@ -292,7 +297,7 @@ class MultiDetectionResult(TypedDict):
 
 def _collect_needed_paths(
     active_platforms: dict[str, list[tuple[str, int]]],
-    full_paths_by_basename: dict[str, set[str]],
+    files_full_paths_by_basename: dict[str, set[str]],
 ) -> set[str]:
     """Collect the full file paths that content/package rules would need to fetch.
 
@@ -311,8 +316,8 @@ def _collect_needed_paths(
     for base_platform in active_platforms:
         # Package manifest for match_package rules
         manifest_file = _PACKAGE_MANIFEST_FILES.get(base_platform)
-        if manifest_file and manifest_file in full_paths_by_basename:
-            needed.update(full_paths_by_basename[manifest_file])
+        if manifest_file and manifest_file in files_full_paths_by_basename:
+            needed.update(files_full_paths_by_basename[manifest_file])
 
         # Files required by match_content rules
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
@@ -321,15 +326,158 @@ def _collect_needed_paths(
                     continue
                 path = rule.get("path")
                 if path:
-                    if path in full_paths_by_basename:
-                        needed.update(full_paths_by_basename[path])
+                    if path in files_full_paths_by_basename:
+                        needed.update(files_full_paths_by_basename[path])
                 elif "match_ext" in rule:
                     ext = rule["match_ext"]
-                    for basename, paths in full_paths_by_basename.items():
+                    for basename, paths in files_full_paths_by_basename.items():
                         if basename.endswith(ext):
                             needed.update(paths)
 
     return needed
+
+
+def _parent_dir(full_path: str) -> str:
+    """Return the parent directory of a full path ('' = repo root)."""
+    return full_path.rsplit("/", 1)[0] if "/" in full_path else ""
+
+
+def _rule_parent_dirs(
+    rule: DetectorRule,
+    files_full_paths_by_basename: dict[str, set[str]],
+    dirs_full_paths_by_basename: dict[str, set[str]],
+) -> set[str] | None:
+    """Collect parent directories where this existence rule is satisfiable.
+
+    Returns None when the rule needs content or package data (match_content /
+    match_package) — those rules cannot be evaluated in the existence pass.
+    Returns an empty set when the rule is an existence rule but no matching
+    file or directory is present in the tree.
+    """
+    if "match_package" in rule or "match_content" in rule:
+        return None
+
+    if "match_dir" in rule:
+        dirname = rule["match_dir"]
+        matching: set[str] = set()
+        if dirname.startswith("."):
+            for bn, paths in dirs_full_paths_by_basename.items():
+                if bn.endswith(dirname):
+                    matching.update(paths)
+        else:
+            matching = dirs_full_paths_by_basename.get(dirname, set())
+        return {_parent_dir(p) for p in matching}
+
+    if "match_ext" in rule:
+        ext = rule["match_ext"]
+        parents: set[str] = set()
+        for bn, paths in files_full_paths_by_basename.items():
+            if bn.endswith(ext):
+                for p in paths:
+                    parents.add(_parent_dir(p))
+        return parents
+
+    path = rule.get("path")
+    if path is None:
+        return set()
+    return {_parent_dir(p) for p in files_full_paths_by_basename.get(path, set())}
+
+
+def _rule_existence_fires_in_scope(
+    rule: DetectorRule,
+    scope: str,
+    files_full_paths_by_basename: dict[str, set[str]],
+    dirs_full_paths_by_basename: dict[str, set[str]],
+) -> bool:
+    """Return True if an existence rule fires within the given scope.
+
+    A file or directory is "in scope" when its immediate parent directory
+    equals ``scope`` ('' = repo root).
+    Rules requiring content or package data always return False.
+    """
+    if "match_package" in rule or "match_content" in rule:
+        return False
+    if "match_dir" in rule:
+        dirname = rule["match_dir"]
+        if dirname.startswith("."):
+            for bn, paths in dirs_full_paths_by_basename.items():
+                if bn.endswith(dirname) and any(_parent_dir(p) == scope for p in paths):
+                    return True
+            return False
+        return any(_parent_dir(p) == scope for p in dirs_full_paths_by_basename.get(dirname, set()))
+    if "match_ext" in rule:
+        ext = rule["match_ext"]
+        for bn, paths in files_full_paths_by_basename.items():
+            if bn.endswith(ext) and any(_parent_dir(p) == scope for p in paths):
+                return True
+        return False
+    path = rule.get("path")
+    if path is None:
+        return False
+    return any(_parent_dir(p) == scope for p in files_full_paths_by_basename.get(path, set()))
+
+
+def _framework_matches_scoped(
+    fw: FrameworkDef,
+    files_full_paths_by_basename: dict[str, set[str]],
+    dirs_full_paths_by_basename: dict[str, set[str]],
+) -> bool:
+    """Co-location-aware existence-only framework matcher for the multi detector.
+
+    For ``some``-only frameworks any single self-contained signal anywhere in
+    the tree is sufficient — no co-location constraint needed since a single
+    rule is already self-contained.
+
+    For frameworks with ``every`` rules all rules must be satisfiable within
+    the same parent directory, preventing stray files in unrelated subtrees
+    from causing false positives (e.g. a deployment ``.csproj`` in
+    ``tools/deploy/`` combined with an unrelated ``appsettings.json`` in
+    ``backend/`` must not fire ``dotnet-aspnetcore``).
+    If ``some`` rules are also present they are additionally required to fire
+    within at least one scope where all ``every`` rules are satisfied.
+    """
+    every = fw.get("every", [])
+    some = fw.get("some", [])
+
+    if not every and not some:
+        return False
+
+    if not every:
+        # some-only: any single rule firing anywhere is sufficient.
+        # _rule_matches with empty file_contents and no manifest evaluates
+        # existence-only signals — identical to the flat single-detector pass.
+        files_basenames = set(files_full_paths_by_basename.keys())
+        dirs_basenames = set(dirs_full_paths_by_basename.keys())
+        return any(_rule_matches(rule, files_basenames, {}, None, dirs_basenames) for rule in some)
+
+    # Collect the intersection of parent-dir scopes across all every rules.
+    scopes: set[str] | None = None
+    for rule in every:
+        rule_scopes = _rule_parent_dirs(
+            rule, files_full_paths_by_basename, dirs_full_paths_by_basename
+        )
+        if rule_scopes is None:
+            # Rule needs content/package data → cannot fire in existence pass.
+            return False
+        scopes = set(rule_scopes) if scopes is None else scopes & rule_scopes
+        if not scopes:
+            return False
+
+    if not scopes:
+        return False
+
+    if not some:
+        return True
+
+    # every+some: at least one some rule must fire within a scope where all
+    # every rules are already satisfied.
+    return any(
+        _rule_existence_fires_in_scope(
+            rule, scope, files_full_paths_by_basename, dirs_full_paths_by_basename
+        )
+        for scope in scopes
+        for rule in some
+    )
 
 
 def detect_platforms_multi(
@@ -360,15 +508,13 @@ def detect_platforms_multi(
     results: list[DetectedPlatform] = []
     seen_platforms: set[str] = set()
 
-    # Materialise once — _TreeIndex.files rebuilds a set from dict keys on
-    # every access; with up to 35 frameworks per bucket and a 100k-entry tree
-    tree_files = index.files
-
     # Pass 1: framework (existence) matches across all base-platform buckets.
     # Running this before the medium fallback pass ensures a framework match
     # from any bucket (e.g. Swift firing apple-ios high) claims the platform
     # id before the bare-language fallback for a differently-keyed bucket
     # (e.g. Objective-C → base "apple-ios" medium) can occupy it first.
+    # Co-location enforcement: every-rules must all fire within the same parent
+    # directory so stray files in unrelated subtrees don't produce false hits.
     for base_platform, lang_entries in active_platforms.items():
         # Use the dominant language as the label, but sum all bytes in the
         # bucket so the sort reflects the platform's true weight (e.g. TS +
@@ -377,9 +523,9 @@ def detect_platforms_multi(
         byte_count = sum(b for _, b in lang_entries)
 
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
-            # Pass empty file_contents and no manifest so only path/dir/ext
-            # existence rules fire; content/package rules return False here.
-            if _framework_matches(fw, tree_files, {}, None, index.dirs):
+            if _framework_matches_scoped(
+                fw, index.files_full_paths_by_basename, index.dirs_full_paths_by_basename
+            ):
                 platform_id = fw["platform"]
                 if platform_id not in seen_platforms:
                     seen_platforms.add(platform_id)
@@ -416,7 +562,7 @@ def detect_platforms_multi(
         reverse=True,
     )
 
-    needed_paths = _collect_needed_paths(active_platforms, index.full_paths_by_basename)
+    needed_paths = _collect_needed_paths(active_platforms, index.files_full_paths_by_basename)
 
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.duration",
