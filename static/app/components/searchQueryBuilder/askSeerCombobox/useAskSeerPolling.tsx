@@ -99,7 +99,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
   const {
     data: apiData,
     isPending,
-    dataUpdatedAt,
+    isFetching,
   } = useApiQuery<AskSeerPollingResponse<T>>(
     queryKey ?? (['__disabled__', {}] as unknown as ApiQueryKey),
     {
@@ -107,10 +107,10 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       retry: false,
       enabled: !!runId && !!orgSlug,
       refetchInterval: query => {
-        // Stop polling once the last fetch landed past the timeout window.
+        // Stop polling once we've been running longer than the timeout.
         if (
           startTimeRef.current &&
-          query.state.dataUpdatedAt - startTimeRef.current > SEARCH_TIMEOUT_MS
+          Date.now() - startTimeRef.current > SEARCH_TIMEOUT_MS
         ) {
           return false;
         }
@@ -125,17 +125,19 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
   const sessionData = apiData?.session ?? null;
 
-  // Check for timeout on each successful poll.
+  // When a poll settles after the timeout has elapsed, stop waiting and surface
+  // an error (the refetchInterval above stops scheduling further polls).
   useEffect(() => {
     if (
+      !isFetching &&
       runId &&
       startTimeRef.current &&
-      dataUpdatedAt - startTimeRef.current > SEARCH_TIMEOUT_MS
+      Date.now() - startTimeRef.current > SEARCH_TIMEOUT_MS
     ) {
       setTimedOut(true);
       setWaitingForResponse(false);
     }
-  }, [dataUpdatedAt, runId]);
+  }, [isFetching, runId]);
 
   // Start a new search
   const submitQuery = useCallback(
