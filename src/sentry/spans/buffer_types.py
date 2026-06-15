@@ -225,7 +225,7 @@ class FlushedSegment(NamedTuple):
 
         spans: list[SpanPayload] = [span.payload for span in self.spans]
 
-        sizes = [len(span.payload_bytes) for span in self.spans]
+        sizes = [len(s.payload_bytes) for s in self.spans]
         if sum(sizes) <= max_segment_bytes:
             return [{"flush_id": uuid.uuid4().hex, "spans": spans}]
 
