@@ -505,7 +505,6 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if not show_past_issues %}
   {% if key_errors|length > 0 and not enhanced_privacy %}
   <div id="key-errors">
     <h4>Issues with the most errors</h4>
@@ -545,7 +544,6 @@
     </div>
     {% endfor %}
   </div>
-  {% endif %}
   {% endif %}
   {% if key_transactions|length > 0 and not enhanced_privacy %}
   <div id="key-transactions">
