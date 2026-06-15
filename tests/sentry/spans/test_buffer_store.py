@@ -409,7 +409,12 @@ def test_cleanup_flushed_segments_removes_segment_data(storage: SpansBufferStore
         {
             segment_key: FlushedSegment(
                 queue_key=queue_key,
-                spans=[OutputSpan(payload={"span_id": span_id})],
+                spans=[
+                    OutputSpan(
+                        payload={"span_id": span_id},
+                        payload_bytes=orjson.dumps({"span_id": span_id}),
+                    )
+                ],
                 project_id=_TEST_PROJECT_ID,
                 payload_keys=[payload_key],
             )

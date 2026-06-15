@@ -12,8 +12,6 @@ import uuid
 from collections.abc import Sequence
 from typing import Any, NamedTuple
 
-import orjson
-
 from sentry import options
 from sentry.spans.segment_key import PayloadKey, SegmentKey
 from sentry.utils import metrics
@@ -122,6 +120,7 @@ class OutputSpan(NamedTuple):
     """
 
     payload: SpanPayload
+    payload_bytes: bytes
 
 
 class FlushCandidate(NamedTuple):
@@ -226,7 +225,7 @@ class FlushedSegment(NamedTuple):
 
         spans: list[SpanPayload] = [span.payload for span in self.spans]
 
-        sizes = [len(orjson.dumps(s)) for s in spans]
+        sizes = [len(span.payload_bytes) for span in self.spans]
         if sum(sizes) <= max_segment_bytes:
             return [{"flush_id": uuid.uuid4().hex, "spans": spans}]
 

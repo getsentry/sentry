@@ -515,7 +515,9 @@ class SpansBuffer:
                 if is_segment:
                     has_root_span = True
 
-                output_spans.append(OutputSpan(payload=cast(dict[str, Any], span)))
+                output_spans.append(
+                    OutputSpan(payload=cast(dict[str, Any], span), payload_bytes=payload)
+                )
 
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard",

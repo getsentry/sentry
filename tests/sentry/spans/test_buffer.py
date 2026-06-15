@@ -79,15 +79,14 @@ def _payload(span_id: str) -> bytes:
 
 
 def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> OutputSpan:
-    return OutputSpan(
-        payload={
-            "span_id": span_id.decode("ascii"),
-            "is_segment": is_segment,
-            "attributes": {
-                "sentry.segment.id": {"type": "string", "value": segment_id.decode("ascii")},
-            },
-        }
-    )
+    payload = {
+        "span_id": span_id.decode("ascii"),
+        "is_segment": is_segment,
+        "attributes": {
+            "sentry.segment.id": {"type": "string", "value": segment_id.decode("ascii")},
+        },
+    }
+    return OutputSpan(payload=payload, payload_bytes=orjson.dumps(payload))
 
 
 def _span(
@@ -1327,7 +1326,7 @@ def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
     spans = [{"span_id": "a"}, {"span_id": "b"}]
     segment = FlushedSegment(
         queue_key=b"test",
-        spans=[OutputSpan(payload=s) for s in spans],
+        spans=[OutputSpan(payload=s, payload_bytes=orjson.dumps(s)) for s in spans],
         project_id=1,
     )
     with override_options(
@@ -1374,7 +1373,7 @@ def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
     ]
     segment = FlushedSegment(
         queue_key=b"test",
-        spans=[OutputSpan(payload=s) for s in spans],
+        spans=[OutputSpan(payload=s, payload_bytes=orjson.dumps(s)) for s in spans],
         project_id=1,
     )
     with override_options(
@@ -1409,7 +1408,11 @@ def test_to_messages_single_large_span(buffer: SpansBuffer) -> None:
     """A single span larger than max_bytes still gets its own message."""
     segment = FlushedSegment(
         queue_key=b"test",
-        spans=[OutputSpan(payload={"span_id": "a" * 16})],
+        spans=[
+            OutputSpan(
+                payload={"span_id": "a" * 16}, payload_bytes=orjson.dumps({"span_id": "a" * 16})
+            )
+        ],
         project_id=1,
     )
     with override_options(
@@ -1430,7 +1433,7 @@ def test_to_messages_unique_flush_ids_across_calls(buffer: SpansBuffer) -> None:
     spans = [{"span_id": "a"}, {"span_id": "b"}]
     segment = FlushedSegment(
         queue_key=b"test",
-        spans=[OutputSpan(payload=s) for s in spans],
+        spans=[OutputSpan(payload=s, payload_bytes=orjson.dumps(s)) for s in spans],
         project_id=1,
     )
     with override_options(
