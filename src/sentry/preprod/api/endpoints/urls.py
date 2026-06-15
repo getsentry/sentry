@@ -185,7 +185,7 @@ preprod_organization_urlpatterns = [
         name="sentry-api-0-organization-builds",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/builds/export/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/builds-export/$",
         BuildsExportEndpoint.as_view(),
         name="sentry-api-0-organization-builds-export",
     ),
