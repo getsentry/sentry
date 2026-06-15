@@ -966,7 +966,6 @@ def record_pr_attribution(
                 detail="signal_details does not match DelegatedAgentSignalDetails schema"
             )
 
-
     attribution = record_attribution_signal(
         pull_request=pull_request,
         signal_type=signal,
