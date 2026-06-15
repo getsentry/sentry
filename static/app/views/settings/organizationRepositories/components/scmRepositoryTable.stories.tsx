@@ -23,7 +23,6 @@ const GITHUB_PROVIDER: IntegrationProvider = {
   canAdd: true,
   canDisable: false,
   features: [],
-  setupDialog: {url: '', width: 600, height: 600},
   metadata: {
     description: '',
     features: [],

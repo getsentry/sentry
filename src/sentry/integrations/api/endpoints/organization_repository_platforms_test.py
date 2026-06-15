@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import time
-from typing import Any
-
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,24 +13,24 @@ from sentry.integrations.api.bases.organization_repository import (
     OrganizationRepositoryEndpoint,
 )
 from sentry.integrations.github.client import GitHubApiClient
+from sentry.integrations.github.multi_platform_detection import detect_platforms_multi
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiConflictError
 
-# Metric namespace for the candidate (tree-based) detector.
 _MULTI_METRICS_PREFIX = "onboarding-scm.platform_detection.multi"
 
 
 @cell_silo_endpoint
 class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint):
-    """Measurement-only endpoint for the tree-based detector.
+    """Measurement-only endpoint for the tree-based multi-platform detector.
 
-    Fetches the repository git tree in a single call and emits structural
-    metrics (`onboarding-scm.platform_detection.multi.*`). It returns 204 No
-    Content and has no effect on the live detector; the frontend fires it
-    fire-and-forget alongside the real detection request.
+    Runs ``detect_platforms_multi`` and emits metrics under
+    ``onboarding-scm.platform_detection.multi.*``. Returns 204 No Content;
+    the frontend fires this fire-and-forget alongside the live detection
+    request.
     """
 
     owner = ApiOwner.INTEGRATION_PLATFORM
@@ -73,56 +70,14 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
 
         client = GitHubApiClient(integration=integration, org_integration_id=org_integration.id)
 
-        self._measure_tree(client, repo)
-
-        # Measurement-only: no body.
-        return Response(status=204)
-
-    def _measure_tree(self, client: GitHubApiClient, repo: Repository) -> None:
-        """Fetch the full git tree once and emit structural metrics.
-
-        Uses the ``HEAD`` ref so a single ``git/trees`` call suffices (no branch
-        resolution). The client's ``get_tree`` helper drops the ``truncated``
-        flag, so we call ``client.get`` directly to keep ``truncated`` and the
-        per-entry ``size`` for now.
-        """
-        start_time = time.monotonic()
         try:
-            response = client.get(
-                f"/repos/{repo.name}/git/trees/HEAD",
-                params={"recursive": 1},
-            )
-
-            tree: list[dict[str, Any]] = (
-                response.get("tree", []) if isinstance(response, dict) else []
-            )
-            is_truncated = bool(response.get("truncated")) if isinstance(response, dict) else False
-            repo_size_bytes = sum(
-                entry.get("size", 0) for entry in tree if entry.get("type") == "blob"
-            )
-
-            sentry_sdk.metrics.distribution(
-                f"{_MULTI_METRICS_PREFIX}.duration",
-                (time.monotonic() - start_time) * 1000,
-                unit="millisecond",
-            )
-            sentry_sdk.metrics.count(
-                f"{_MULTI_METRICS_PREFIX}.completed",
-                1,
-                attributes={"is_truncated": is_truncated},
-            )
-            sentry_sdk.metrics.distribution(f"{_MULTI_METRICS_PREFIX}.tree.entry_count", len(tree))
-            sentry_sdk.metrics.distribution(
-                f"{_MULTI_METRICS_PREFIX}.repo_size_bytes",
-                repo_size_bytes,
-                unit="byte",
-            )
+            detect_platforms_multi(client, repo.name)
         except Exception as e:
-            # Empty repositories return a 409 (ApiConflictError) — an expected
-            # measurement failure, so log only. Surface anything else as an issue.
             sentry_logger.warning(
                 f"{_MULTI_METRICS_PREFIX}.failed",
                 attributes={"repo_id": repo.id, "repo_name": repo.name},
             )
             if not isinstance(e, ApiConflictError):
                 sentry_sdk.capture_exception()
+
+        return Response(status=204)

@@ -1509,6 +1509,59 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
 
+    def test_widget_type_tracemetrics_allows_existing_table(self) -> None:
+        # Tracemetrics tables can't be created in the UI, but some existing
+        # widgets predate display-type validation and must still be saveable.
+        # Existing widgets are identified by the presence of an ``id``.
+        data = {
+            "id": "1",
+            "title": "Test Metrics Query",
+            "widgetType": "tracemetrics",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "metric.name:foo",
+                    "fields": ["sum(value)"],
+                    "columns": [],
+                    "aggregates": ["sum(value)"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_existing_widget_still_rejects_other_unsupported_display_types(self) -> None:
+        # The grandfather exception only applies to tracemetrics tables. Other
+        # unsupported combinations are still rejected even for existing widgets.
+        data = {
+            "id": "1",
+            "title": "Table on preprod-app-size",
+            "displayType": "table",
+            "widgetType": "preprod-app-size",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "displayType" in response.data, response.data
+
     def test_text_widget_post(self) -> None:
         data = {
             "title": "Text Widget Title",
