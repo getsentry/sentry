@@ -29,6 +29,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 import {AvatarCropper} from './avatarCropper';
@@ -202,8 +203,8 @@ export function AvatarChooser({
       setModel(resp);
       onSave?.(resp);
       addSuccessMessage(t('Successfully saved avatar preferences'));
-    } catch (resp) {
-      const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
+    } catch (error: RequestError) {
+      const avatarPhotoErrors = error?.responseJSON?.avatar_photo || [];
       if (avatarPhotoErrors.length) {
         avatarPhotoErrors.map(addErrorMessage);
       } else {
