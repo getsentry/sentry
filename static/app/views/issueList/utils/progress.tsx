@@ -22,11 +22,11 @@ const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.FIX_APPLIED]: t('Fix Applied'),
 };
 
-export function formatProgressState(state: string | null | undefined): string {
+export function formatProgressState(state: ProgressState | null): string {
   if (!state) {
     return '—';
   }
-  return PROGRESS_STATE_LABELS[state as ProgressState] ?? state;
+  return PROGRESS_STATE_LABELS[state] ?? state;
 }
 
 const PROGRESS_STATE_ICONS: Record<ProgressState, ReactNode> = {
