@@ -111,7 +111,7 @@ def is_valid_hostname(maybe_hostname_str: str) -> bool:
 DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="email",
-        raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
+        raw_pattern=r"""[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]{1,254}@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*""",
     ),
     ParameterizationRegex(
         name="url",
@@ -271,7 +271,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (datetime.datetime\(.*?\))
         """,
     ),
-    ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    ParameterizationRegex(
+        name="duration", raw_pattern=r"""\b(\d{1,20}ms)\b | \b(\d{1,20}(\.\d{1,20})?s)\b"""
+    ),
     ParameterizationRegex(
         name="mac_addr",
         raw_pattern=r"""
@@ -528,6 +530,9 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
 
 
 class Parameterizer:
+    # Inputs longer than this are not parameterized, as a defense against ReDoS
+    MAX_INPUT_LENGTH = 8192
+
     def __init__(
         self,
         # List of `ParameterizationRegex` objects defining the regexes to use. If nothing is passed,
@@ -592,6 +597,10 @@ class Parameterizer:
 
         For example, turn "Error with order #1231" into "Error with order #<int>".
         """
+
+        if len(input_str) > self.MAX_INPUT_LENGTH:
+            metrics.incr("grouping.parameterization_skipped_long_input")
+            return input_str
 
         replacement_counts: defaultdict[str, int] = defaultdict(int)
         # Track whether any regex matches don't lead to a replacement

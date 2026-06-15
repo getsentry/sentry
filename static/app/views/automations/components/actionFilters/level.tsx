@@ -1,6 +1,7 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   LEVEL_CHOICES,

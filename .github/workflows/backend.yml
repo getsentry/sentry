@@ -59,23 +59,11 @@ jobs:
           node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
-
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: default
-
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: default
-          skip-devservices: 'true'
-
-      - name: Wait for devservices
-        run: |
-          sentry init
-          ./.github/actions/setup-devservices/wait.py
 
       - name: Run API docs tests
         run: |
@@ -246,31 +234,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: backend-ci
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
-          skip-devservices: 'true'
-
-      - name: Wait for devservices
-        run: |
-          sentry init
-          # Start Snuba per-worker bootstrap in background — it polls for
-          # ClickHouse readiness itself, so it can begin before all containers
-          # are healthy, overlapping with the remaining devservices health checks.
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            (
-              python3 ./.github/workflows/scripts/bootstrap-snuba.py
-              echo $? > /tmp/snuba-bootstrap-exit
-            ) &
-          fi
-          ./.github/actions/setup-devservices/wait.py
 
       # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
@@ -309,22 +277,9 @@ jobs:
           sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
           rm odiff-linux-x64
 
-      - name: Wait for Snuba bootstrap
+      - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: |
-          SECONDS=0
-          while [ ! -f /tmp/snuba-bootstrap-exit ]; do
-            if [ $SECONDS -gt 600 ]; then
-              echo "::error::Timed out waiting for Snuba bootstrap after 600s"
-              exit 1
-            fi
-            sleep 2
-          done
-          SNUBA_RC=$(cat /tmp/snuba-bootstrap-exit)
-          if [ "$SNUBA_RC" -ne 0 ]; then
-            echo "::error::Snuba per-worker bootstrap failed"
-            exit 1
-          fi
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -365,11 +320,6 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          if [ -f /tmp/ds.log ]; then
-            echo "--- devservices startup log ---"
-            cat /tmp/ds.log
-          fi
-
           if command -v devservices; then
             devservices logs
           fi
@@ -407,22 +357,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: default
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: default
-          skip-devservices: 'true'
-
-      - name: Wait for devservices
-        run: |
-          sentry init
-          ./.github/actions/setup-devservices/wait.py
 
       - name: run tests
         run: |
@@ -456,22 +395,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: migrations
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
-          skip-devservices: 'true'
-
-      - name: Wait for devservices
-        run: |
-          sentry init
-          ./.github/actions/setup-devservices/wait.py
 
       - name: Run test
         env:
@@ -543,21 +471,10 @@ jobs:
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: backend-ci
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         with:
           mode: backend-ci
-          skip-devservices: 'true'
-
-      - name: Wait for devservices
-        run: |
-          sentry init
-          ./.github/actions/setup-devservices/wait.py
 
       - name: Sync API Urls to TypeScript
         run: |
@@ -580,22 +497,11 @@ jobs:
       - name: Checkout sentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: migrations
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
-          skip-devservices: 'true'
-
-      - name: Wait for devservices
-        run: |
-          sentry init
-          ./.github/actions/setup-devservices/wait.py
 
       - name: Migration & lockfile checks
         env:
@@ -625,22 +531,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: migrations
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
-          skip-devservices: 'true'
-
-      - name: Wait for devservices
-        run: |
-          sentry init
-          ./.github/actions/setup-devservices/wait.py
 
       - name: Run test
         run: |

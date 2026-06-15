@@ -1,12 +1,25 @@
+from typing import NotRequired, TypedDict
+
 import jsonschema
 import orjson
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, ReleaseParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.release import Release
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -17,20 +30,58 @@ from sentry.tasks.assemble import (
 from sentry.utils import metrics
 
 
+class OrganizationReleaseAssembleSerializer(serializers.Serializer):
+    checksum = serializers.RegexField(
+        r"^[0-9a-f]{40}$",
+        required=True,
+        help_text="The SHA1 checksum of the assembled artifact bundle.",
+    )
+    chunks = serializers.ListField(
+        child=serializers.RegexField(r"^[0-9a-f]{40}$"),
+        required=True,
+        help_text="The SHA1 checksums of the chunks the bundle is assembled from.",
+    )
+
+
+class ReleaseAssembleResponse(TypedDict):
+    state: str
+    detail: NotRequired[str | None]
+    missingChunks: list[str]
+
+
+class _AssembleErrorResponse(TypedDict):
+    error: str
+
+
+@extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, organization, version) -> Response:
+    @extend_schema(
+        operation_id="Assemble a Release Artifact Bundle",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
+        request=OrganizationReleaseAssembleSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ReleaseAssembleResponse", ReleaseAssembleResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization, version
+    ) -> Response[ReleaseAssembleResponse] | Response[_AssembleErrorResponse]:
         """
-        Handle an artifact bundle and merge it into the release
-        ```````````````````````````````````````````````````````
-
-        :auth: required
+        Assemble an artifact bundle from previously uploaded chunks and merge it into the
+        release. Returns the current assembly state.
         """
-
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:

@@ -15,8 +15,8 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -67,6 +67,7 @@ import {Alerts} from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
 import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
+import {HttpErrorCard} from './sections/httpErrorCard';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
 import {hasSpanMeasurements, Measurements} from './sections/measurements';
 import {hasSpanTags, Tags} from './sections/tags';
@@ -239,6 +240,7 @@ function SpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
+        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
         <SpanDescription
           node={node}
           project={project}
@@ -549,6 +551,7 @@ function EAPSpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
+        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
         <EAPSpanDescription
           node={node}
           project={project}

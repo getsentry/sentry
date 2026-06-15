@@ -165,9 +165,6 @@
       text-align: center;
     }
 
-    .project-breakdown .col-errors-dropped {
-      padding-right: 2rem;
-    }
   </style>
 
   <style type="text/css" inline="false">
@@ -185,10 +182,6 @@
 
       .header td {
         text-align: center !important;
-      }
-
-      .project-breakdown .col-dropped {
-        display: none;
       }
 
       #events-by-issue-type .legend {
@@ -231,7 +224,13 @@
 
     <td class="project-breakdown-graph-cell {% if has_replay_graph %}errors-wide{% else %}errors{% endif %}" {% if has_replay_graph %}colspan="2"{% endif %}>
     <h4 class="total-count-title">Total Project Errors</h4>
-    <h1 style="margin: 0;" class="total-count">{{ trends.total_error_count|small_count:1 }}</h1>
+    <h1 style="margin: 0;" class="total-count">
+      {{ trends.total_error_count|small_count:1 }}
+      {% if show_week_over_week_metric and trends.error_pct_change %}
+      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #80708F;">{{ trends.error_pct_change }}</span>
+      <span style="font-size: 12px; font-weight: normal; color: #80708F; margin-left: 4px; vertical-align: middle;">(vs. last week)</span>
+      {% endif %}
+    </h1>
     {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
     {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
     <a href="{% org_url organization issue_list query=query %}"
@@ -273,7 +272,13 @@
     {% if trends.total_transaction_count > 0 %}
     <td class="project-breakdown-graph-cell {% if has_replay_graph %}transactions-below{% else %}transactions{% endif %} {% if has_replay_graph and trends.total_replay_count == 0 %}some-empty-below{% endif %}">
       <h4 class="total-count-title">Total Project Transactions</h4>
-      <h1 style="margin: 0;" class="total-count">{{ trends.total_transaction_count|small_count:1 }}</h1>
+      <h1 style="margin: 0;" class="total-count">
+        {{ trends.total_transaction_count|small_count:1 }}
+        {% if show_week_over_week_metric and trends.transaction_pct_change %}
+        <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #80708F;">{{ trends.transaction_pct_change }}</span>
+        <span style="font-size: 12px; font-weight: normal; color: #80708F; margin-left: 4px; vertical-align: middle;">(vs. last week)</span>
+        {% endif %}
+      </h1>
       {% url 'sentry-organization-performance' organization.slug as performance_landing %}
       {% querystring referrer="weekly_report_view_all" notification_uuid=notification_uuid as query %}
       <a href="{% org_url organization performance_landing query=query %}"
@@ -378,10 +383,8 @@
         <tr>
           <th style="width: 2em; padding-right: 0.5em"></th>
           <th>Project</th>
-          <th style="width: 5em;" class="numeric">Errors</th>
-          <th style="width: 5em;" class="numeric col-dropped col-errors-dropped">Dropped</th>
+          <th style="width: 5em; padding-right: 2em;" class="numeric">Errors</th>
           <th style="width: 7em;" class="numeric">Transactions</th>
-          <th style="width: 7em;" class="numeric col-dropped">Dropped</th>
         </tr>
       </thead>
       <tbody>
@@ -393,10 +396,8 @@
           <td>
               {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
           </td>
-          <td class="numeric">{{ project.accepted_error_count|small_count:1 }}</td>
-          <td class="numeric col-dropped col-errors-dropped">{{ project.dropped_error_count|small_count:1 }}</td>
+          <td class="numeric" style="padding-right: 2em;">{{ project.accepted_error_count|small_count:1 }}</td>
           <td class="numeric">{{ project.accepted_transaction_count|small_count:1 }}</td>
-          <td class="numeric col-dropped">{{ project.dropped_transaction_count|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -476,7 +477,17 @@
 
   </div>
 
-  {% if key_errors|length > 0 %}
+  {% if enhanced_privacy %}
+  <div style="padding: 16px; margin: 16px 0; background-color: #f5f3f7; border-radius: 4px; font-size: 14px;">
+    Details about specific issues and transactions are not shown in this report since enhanced privacy
+    controls are enabled. For more details,
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
+    {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
+    <a href="{% org_url organization issue_list query=query %}">view your issues on Sentry</a>.
+  </div>
+  {% endif %}
+
+  {% if key_errors|length > 0 and not enhanced_privacy %}
   <div id="key-errors">
     <h4>Issues with the most errors</h4>
     {% for a in key_errors %}
@@ -498,7 +509,7 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if key_performance_issues|length > 0 %}
+  {% if key_performance_issues|length > 0 and not enhanced_privacy %}
   <div id="key-performance-issues">
     <h4>Most frequent performance issues</h4>
     {% for a in key_performance_issues %}
@@ -516,7 +527,7 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if key_transactions|length > 0 %}
+  {% if key_transactions|length > 0 and not enhanced_privacy %}
   <div id="key-transactions">
     <h4>Most frequent transactions</h4>
     {% for a in key_transactions %}

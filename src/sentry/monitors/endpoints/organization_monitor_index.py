@@ -281,7 +281,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: AuthenticatedHttpRequest, organization) -> Response:
+    def post(
+        self, request: AuthenticatedHttpRequest, organization
+    ) -> Response[MonitorSerializerResponse]:
         """
         Create a new monitor.
         """

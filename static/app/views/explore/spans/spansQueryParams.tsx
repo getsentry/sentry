@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';

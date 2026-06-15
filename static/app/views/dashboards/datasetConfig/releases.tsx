@@ -1,7 +1,8 @@
 import omit from 'lodash/omit';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {SessionField} from 'sentry/types/sessions';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';

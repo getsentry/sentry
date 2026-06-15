@@ -9,8 +9,8 @@ import type {Event} from 'sentry/types/event';
 import type {Group, KeyValueListData} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,6 +46,20 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
       <StyledKeyValueList data={data} shouldSort={false} />
     </FoldSection>
   );
+}
+
+export function keyValueListDataToMarkdownLines(data: KeyValueListData): string[] {
+  return data
+    .map(item => {
+      const raw = item.value;
+      const value =
+        typeof raw === 'string' ? raw : typeof raw === 'number' ? String(raw) : '';
+      if (!item.subject || value === '') {
+        return null;
+      }
+      return `**${item.subject}:** ${value}`;
+    })
+    .filter((line): line is string => line !== null);
 }
 
 export function getKeyValueListData(

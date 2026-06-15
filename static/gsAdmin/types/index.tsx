@@ -1,7 +1,7 @@
 import type * as Sentry from '@sentry/react';
 
 import type {ConfigStore} from 'sentry/stores/configStore';
-import type {Region} from 'sentry/types/system';
+import type {Locality} from 'sentry/types/system';
 
 declare global {
   interface Window {
@@ -70,7 +70,7 @@ export type Relocation = {
   latestUnclaimedEmailsSentAt: string | null;
   owner: RelocationAssociatedUser | null;
   provenance: RelocationProvenance;
-  region: Region;
+  region: Locality;
   scheduledCancelAtStep: RelocationStep | null;
   scheduledPauseAtStep: RelocationStep | null;
   status: RelocationStatus;

@@ -1,9 +1,10 @@
 import calendar
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +13,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
@@ -20,11 +31,28 @@ from sentry.utils.prompts import prompt_config
 VALID_STATUSES = frozenset(("snoozed", "dismissed", "visible"))
 
 
+class _NoFeatureSpecifiedResponse(TypedDict):
+    # XXX: this is a legacy typo — the field is `details`, not the standard
+    # DRF `detail`. Kept as-is to preserve wire compatibility.
+    details: str
+
+
+class PromptsActivityResponse(TypedDict):
+    # Maps each requested feature name to its stored prompt data (or null).
+    features: dict[str, Any]
+    # Only present when a single feature is requested: the stored data for that feature.
+    data: NotRequired[dict[str, Any] | None]
+
+
 # Endpoint to retrieve multiple PromptsActivity at once
 class PromptsActivitySerializer(serializers.Serializer):
-    feature = serializers.CharField(required=True)
+    feature = serializers.CharField(
+        required=True, help_text="The name of the feature prompt to update."
+    )
     status = serializers.ChoiceField(
-        choices=list(zip(VALID_STATUSES, VALID_STATUSES)), required=True
+        choices=list(zip(VALID_STATUSES, VALID_STATUSES)),
+        required=True,
+        help_text="The new prompt status: `snoozed`, `dismissed`, or `visible`.",
     )
 
     def validate_feature(self, value):
@@ -42,17 +70,55 @@ class PromptsActivityPermission(OrganizationPermission):
     }
 
 
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class PromptsActivityEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (PromptsActivityPermission,)
 
-    def get(self, request: Request, organization: Organization, **kwargs) -> Response:
-        """Return feature prompt status if dismissed or in snoozed period"""
-
+    @extend_schema(
+        operation_id="Retrieve Prompt Statuses",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="feature",
+                location="query",
+                required=True,
+                type=str,
+                many=True,
+                description="One or more feature prompt names to look up.",
+            ),
+            OpenApiParameter(
+                name="project_id",
+                location="query",
+                required=False,
+                type=str,
+                description="The project the prompt is scoped to, when the feature requires it.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "PromptsActivityResponse", PromptsActivityResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization, **kwargs
+    ) -> (
+        Response[PromptsActivityResponse]
+        | Response[DetailResponse]
+        | Response[_NoFeatureSpecifiedResponse]
+    ):
+        """
+        Return whether feature prompts have been dismissed or are currently snoozed.
+        """
         if not request.user.is_authenticated:
             return Response(status=400)
 
@@ -93,7 +159,22 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
         else:
             return Response({"features": featuredata})
 
+    @extend_schema(
+        operation_id="Update a Prompt Status",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=PromptsActivitySerializer,
+        responses={
+            201: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def put(self, request: Request, organization: Organization, **kwargs) -> Response:
+        """
+        Snooze, dismiss, or restore a feature prompt for the current user.
+        """
         serializer = PromptsActivitySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

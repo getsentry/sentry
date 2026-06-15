@@ -147,6 +147,8 @@ class AuthLoginView(BaseView):
         """
         If an authenticated user sends a GET request to AuthLoginView, we redirect them forwards in the auth process.
         """
+        if not request.user.is_active:
+            return self.redirect(url=reverse("sentry-reactivate-account"))
         if is_valid_redirect(url=next_uri, allowed_hosts=(request.get_host(),)):
             return self.redirect(url=next_uri)
         return self.redirect_to_org(request=request)

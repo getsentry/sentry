@@ -4,11 +4,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {
   ReplayPlayerPluginsContextProvider,
   useReplayPlayerPlugins,
 } from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function makeWrapper(organization: Organization) {
   return function ({children}: {children?: ReactNode}) {

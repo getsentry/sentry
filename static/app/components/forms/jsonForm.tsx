@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {useLocation} from 'sentry/utils/useLocation';
 

@@ -5,10 +5,12 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
+import {getReplayTraceSearchQuery} from './replayTraceSearch';
 import {
   useTraceMeta,
   type TraceMetaQueryResults,
@@ -38,13 +40,14 @@ export function useReplayTraceMeta(
     }
     const replayId = replayRecord?.id;
     const projectId = replayRecord?.project_id;
+    const query = getReplayTraceSearchQuery(replayId);
 
     return EventView.fromSavedQuery({
       id: undefined,
       name: `Traces in replay ${replayId}`,
-      fields: ['trace', 'count(trace)', 'min(timestamp)'],
-      orderby: 'min_timestamp',
-      query: `replayId:${replayId}`,
+      fields: ['trace', 'min(precise.start_ts)'],
+      orderby: 'min_precise_start_ts',
+      query,
       projects: [Number(projectId)],
       version: 2,
       start,
@@ -67,7 +70,9 @@ export function useReplayTraceMeta(
                 end,
                 limit: 10,
               } as unknown as Location),
-              sort: ['min_timestamp', 'trace'],
+              dataset: DiscoverDatasets.SPANS,
+              referrer: 'api.replays.replay-trace-meta',
+              sort: ['min_precise_start_ts', 'trace'],
             }
           : {},
       },
@@ -85,7 +90,7 @@ export function useReplayTraceMeta(
       if (row.trace) {
         traces.push({
           traceSlug: String(row.trace),
-          timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+          timestamp: getTimeStampFromTableDateField(row['min(precise.start_ts)']),
         });
       }
     }

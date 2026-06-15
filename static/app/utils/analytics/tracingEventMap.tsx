@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -44,7 +44,7 @@ export type TracingEventParameters = {
     version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    ai_query_run_id?: number;
+    ai_query_run_id?: number | string;
     attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
     cross_event_log_query_count?: number;
     cross_event_metric_query_count?: number;

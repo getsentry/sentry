@@ -7,8 +7,8 @@ import {
 } from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 

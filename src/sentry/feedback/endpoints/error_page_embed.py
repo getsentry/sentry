@@ -97,9 +97,13 @@ class ErrorEmbedResolver(CellRequestResolver):
         except Exception:
             return None
 
-        host = parsed.netloc
-        app_host = urlparse(options.get("system.url-prefix")).netloc
-        if not host.endswith(app_host):
+        # Match against hostname, ignoring port and key, since these seem
+        # irrelevant to routing decisions.
+        host = parsed.hostname
+        if not host:
+            return None
+        app_host = urlparse(options.get("system.url-prefix")).hostname
+        if not app_host or not host.endswith(app_host):
             # Don't further parse URLs that aren't for us.
             return None
 

@@ -8,14 +8,16 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import omitBy from 'lodash/omitBy';
 
 import {Flex} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {t} from 'sentry/locale';
-import type {Choices, Choice, SelectValue} from 'sentry/types/core';
+import type {Choices, Choice} from 'sentry/types/core';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -1019,7 +1021,9 @@ export function SentryAppExternalFormNew({
         method: 'POST',
         data: {
           ...normalizedExtraFields,
-          ...values,
+          // The adapter seeds untouched fields (selects become null); the legacy
+          // FormModel sent only filled values, so reuse hasValue to drop empties.
+          ...omitBy(values, value => !hasValue(value)),
           action,
           uri: config.uri,
         },

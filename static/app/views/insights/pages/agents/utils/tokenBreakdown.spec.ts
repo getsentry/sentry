@@ -1,4 +1,4 @@
-import {getTokenBreakdown} from './tokenBreakdown';
+import {getTokenBreakdown, hasTokenMismatch} from './tokenBreakdown';
 
 describe('getTokenBreakdown', () => {
   it('returns input as netNewInput when there are no cached tokens', () => {
@@ -156,5 +156,108 @@ describe('getTokenBreakdown', () => {
       output: 50,
       total: 150,
     });
+  });
+});
+
+describe('hasTokenMismatch', () => {
+  it('returns false when tokens add up correctly', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 150,
+      })
+    ).toBe(false);
+  });
+
+  it('returns false when tokens add up with cached included', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 80,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 150,
+      })
+    ).toBe(false);
+  });
+
+  it('returns true when any token value is negative', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: -10,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 40,
+      })
+    ).toBe(true);
+  });
+
+  it('returns true when total tokens is negative', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: -50,
+      })
+    ).toBe(true);
+  });
+
+  it('returns true when total does not match input + output', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 500,
+      })
+    ).toBe(true);
+  });
+
+  it('returns false within small rounding tolerance', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 151,
+      })
+    ).toBe(false);
+  });
+
+  it('returns false when cached exceeds input but total still matches', () => {
+    // OTel: input=100 includes cached=80, output=50, total=150
+    // netNewInput would be clamped to 20, but adjusted input (100) + output (50) = total
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 80,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 150,
+      })
+    ).toBe(false);
+  });
+
+  it('returns true when displayed values do not add up due to clamping', () => {
+    // input=5796, cached=9500, output=4, total=5800
+    // Raw: adjustedInput(5796) + output(4) = 5800 = total ✓
+    // Display: netNewInput=max(0, 5796-9500)=0, so 0+9500+4=9504 ≠ 5800 ✗
+    expect(
+      hasTokenMismatch({
+        inputTokens: 5796,
+        cachedTokens: 9500,
+        outputTokens: 4,
+        reasoningTokens: 0,
+        totalTokens: 5800,
+      })
+    ).toBe(true);
   });
 });

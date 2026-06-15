@@ -24,7 +24,7 @@ from sentry.api.serializers.models.organization import (
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.user_examples import UserExamples
-from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
+from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -131,6 +131,7 @@ class OrganizationIndexEndpoint(Endpoint):
             CursorQueryParam,
             OrganizationParams.QUERY,
             OrganizationParams.SORT_BY,
+            VisibilityParams.PER_PAGE,
         ],
         request=None,
         responses={

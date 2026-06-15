@@ -2,12 +2,12 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LowValueSpanIssueDetails} from './lowValueSpanIssueDetails';
 
 describe('LowValueSpanIssueDetails', () => {
-  it('renders only problem and troubleshooting sections from backend evidence', () => {
+  it('renders collapsible problem and troubleshooting sections from backend evidence', async () => {
     render(
       <LowValueSpanIssueDetails
         event={EventFixture({
@@ -36,11 +36,17 @@ describe('LowValueSpanIssueDetails', () => {
     expect(screen.getByText('Problem')).toBeInTheDocument();
     expect(screen.getByText('Troubleshooting')).toBeInTheDocument();
     expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(0);
-    expect(screen.getByText('60,000')).toBeInTheDocument();
+    expect(screen.getByText('60K')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
     expect(screen.queryByText('Value score')).not.toBeInTheDocument();
     expect(screen.queryByText('15%')).not.toBeInTheDocument();
     expect(screen.queryByText('Diagnosis')).not.toBeInTheDocument();
     expect(screen.queryByText('Impact')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse Problem Section'}));
+    expect(screen.queryByText('Affected span')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'View Problem Section'}));
+    expect(screen.getByText('Affected span')).toBeInTheDocument();
   });
 });

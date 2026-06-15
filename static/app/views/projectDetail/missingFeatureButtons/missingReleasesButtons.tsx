@@ -6,7 +6,7 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RELEASES_TOUR_STEPS} from 'sentry/views/explore/releases/list/releasesPromo';
 

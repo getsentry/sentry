@@ -22,7 +22,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -175,6 +175,7 @@ export function useSortedFilterKeyItems({
     replaceRawSearchKeys,
     matchKeySuggestions,
     getTagKeys,
+    filterKeyRegistryQueryKey,
   } = useSearchQueryBuilderConfig();
   const {enableAISearch} = useSearchQueryBuilderAI();
 
@@ -183,8 +184,15 @@ export function useSortedFilterKeyItems({
   const debouncedFilterValue = useDebouncedValue(filterValue);
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
-    queryKey: ['search-query-builder-tag-keys', debouncedFilterValue],
-    queryFn: ctx => getTagKeys!(ctx.queryKey[1] ?? ''),
+    queryKey: [
+      'search-query-builder-tag-keys',
+      filterKeyRegistryQueryKey,
+      debouncedFilterValue,
+    ],
+    queryFn: ctx => {
+      const searchQuery = ctx.queryKey[2];
+      return getTagKeys!(typeof searchQuery === 'string' ? searchQuery : '');
+    },
     enabled: shouldFetchAsync,
   });
 

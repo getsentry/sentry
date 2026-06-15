@@ -209,10 +209,9 @@ class IntegrationProviderResponse(TypedDict):
     canAdd: bool
     canDisable: bool
     features: list[str]
-    setupDialog: dict[str, Any]
 
 
-class IntegrationProviderSerializer(Serializer):
+class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
     def serialize(
         self,
         obj: IntegrationProvider,
@@ -221,7 +220,6 @@ class IntegrationProviderSerializer(Serializer):
         **kwargs: Any,
     ) -> IntegrationProviderResponse:
         organization = kwargs.pop("organization")
-        org_slug = organization.slug
         metadata: Any = obj.metadata
         metadata = metadata and metadata.asdict() or None
 
@@ -243,8 +241,4 @@ class IntegrationProviderSerializer(Serializer):
             "canAdd": can_add,
             "canDisable": obj.can_disable,
             "features": [f.value for f in obj.features],
-            "setupDialog": dict(
-                url=f"/organizations/{org_slug}/integrations/{obj.key}/setup/",
-                **obj.setup_dialog_config,
-            ),
         }

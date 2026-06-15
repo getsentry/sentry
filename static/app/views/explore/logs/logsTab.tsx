@@ -364,9 +364,19 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   };
 
   /**
-   * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 hour.
+   * Manual refresh doesn't work for longer relative periods as it hits cacheing.
+   * Only allow manual refresh if the relative period or absolute time range is less than 1 hour,
+   * or if auto-refresh is disabled.
    */
   const {canManuallyRefresh, manualRefreshDisabledReason} = useMemo(() => {
+    if (autorefreshEnabled) {
+      return {
+        canManuallyRefresh: false,
+        manualRefreshDisabledReason: t(
+          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh the table.'
+        ),
+      };
+    }
     if (pageFilters.selection.datetime.period) {
       const parsedPeriod = parsePeriodToHours(pageFilters.selection.datetime.period);
       if (parsedPeriod <= 1) {
@@ -402,7 +412,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
         'Manual refresh is only available for time ranges of 1 hour or less.'
       ),
     };
-  }, [pageFilters.selection.datetime]);
+  }, [pageFilters.selection.datetime, autorefreshEnabled]);
 
   const {infiniteLogsQueryResult} = useLogsPageData();
 

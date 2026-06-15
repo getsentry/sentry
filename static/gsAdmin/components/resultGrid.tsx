@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {cloneElement, Component, isValidElement} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -16,8 +16,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
-import {ConfigStore} from 'sentry/stores/configStore';
-import type {Region} from 'sentry/types/system';
+import type {Cell} from 'sentry/types/system';
+import {getCells} from 'sentry/utils/cells';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -26,6 +26,23 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {ResultTable} from 'admin/components/resultTable';
 
 type Option = [key: string, label: string];
+
+function extractColumnLabel(col: React.ReactNode): string {
+  if (!isValidElement(col)) {
+    return '';
+  }
+  const {children} = col.props as {children?: React.ReactNode};
+  if (typeof children === 'string') {
+    return children.trim();
+  }
+  if (Array.isArray(children)) {
+    return children
+      .filter((c: unknown): c is string => typeof c === 'string')
+      .join(' ')
+      .trim();
+  }
+  return '';
+}
 
 type FilterProps = {
   name: string;
@@ -198,7 +215,7 @@ interface ResultGridProps {
   /**
    * Translates the data object from the request into rows
    */
-  rowsFromData?: (data: any, region: Region | undefined) => any[];
+  rowsFromData?: (data: any, cell: Cell | undefined) => any[];
   /**
    * Allowed sorting options
    */
@@ -210,13 +227,13 @@ interface ResultGridProps {
 }
 
 export type State = {
+  cell: Cell | undefined;
   cursor: string;
   error: boolean;
   filters: Location['query'];
   loading: boolean;
   pageLinks: string | null;
   query: string;
-  region: Region | undefined;
   rows: any[];
   sortBy: string;
 };
@@ -250,9 +267,11 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   constructor(props: any) {
     super(props);
     const queryParams = this.props.location?.query ?? {};
+    // In this context regionUrl == cell.locality_url
     const {cursor, query, sortBy, regionUrl} = queryParams;
 
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
+    const cells = getCells();
 
     this.state = {
       rows: [],
@@ -261,10 +280,10 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       pageLinks: null,
       cursor: extractQuery(cursor),
       query: extractQuery(query),
-      region: needsRegion
+      cell: needsRegion
         ? regionUrl
-          ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
-          : ConfigStore.get('regions')[0]
+          ? cells.find(c => c.locality_url === extractQuery(regionUrl))
+          : cells[0]
         : undefined,
       sortBy: extractQuery(sortBy, this.props.defaultSort),
       filters: Object.assign({}, queryParams),
@@ -329,19 +348,19 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // Currently using region.name (e.g., "us", "de") as the cell_id.
     // In the future when there's a cell selector, we would use the actual cell ID instead.
     const endpoint =
-      this.props.isCellScoped && this.state.region
-        ? `/_admin/cells/${this.state.region.name}${this.props.endpoint}`
+      this.props.isCellScoped && this.state.cell
+        ? `/_admin/cells/${this.state.cell.name}${this.props.endpoint}`
         : this.props.endpoint;
 
     this.props.api.request(endpoint, {
       method: this.props.method,
-      host: this.state.region ? this.state.region.url : undefined,
+      host: this.state.cell ? this.state.cell.locality_url : undefined,
       data: queryParams,
       success: (data, _, resp) => {
         this.setState({
           loading: false,
           error: false,
-          rows: this.props.rowsFromData?.(data, this.state.region) ?? data,
+          rows: this.props.rowsFromData?.(data, this.state.cell) ?? data,
           pageLinks: resp?.getResponseHeader('Link') ?? '',
         });
         if (this.props.onLoad) {
@@ -423,11 +442,40 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   }
 
   renderResults() {
-    return this.state.rows.map((row, i) => (
-      <tr key={this.props.keyForRow?.(row) ?? i}>
-        {this.props.columnsForRow?.(row, this.state.rows, this.state)}
-      </tr>
-    ));
+    const columnLabels = this.props.columns.map(extractColumnLabel);
+    const firstPrimaryIndex = columnLabels.findIndex(label => (label ?? '') !== '');
+
+    // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
+    // via inheritance, which works even when cells are rendered inside wrapper components
+    // (where cloneElement can't reach the inner <td> elements).
+    const labelVars = Object.fromEntries(
+      columnLabels.map((label, j) => [
+        `--cl-${j + 1}`,
+        `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
+      ])
+    );
+
+    return this.state.rows.map((row, i) => {
+      const cells = this.props.columnsForRow?.(row, this.state.rows, this.state) ?? [];
+      const labeledCells = cells.map((cell, j) => {
+        if (!isValidElement(cell)) {
+          return cell;
+        }
+        const extraProps: Record<string, unknown> = {'data-label': columnLabels[j] ?? ''};
+        if (j === firstPrimaryIndex) {
+          extraProps['data-mobile-primary'] = 'true';
+        }
+        return cloneElement(
+          cell as React.ReactElement<Record<string, unknown>>,
+          extraProps
+        );
+      });
+      return (
+        <tr key={this.props.keyForRow?.(row) ?? i} style={labelVars}>
+          {labeledCells}
+        </tr>
+      );
+    });
   }
 
   render() {
@@ -447,20 +495,22 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const ensuredFilters = filters ?? {};
 
     const resultTable = (
-      <ResultTable>
-        <thead>
-          <tr>{columns}</tr>
-        </thead>
-        <tbody>
-          {this.state.loading
-            ? this.renderLoading()
-            : this.state.error
-              ? this.renderError()
-              : this.state.rows.length === 0
-                ? this.renderNoResults()
-                : this.renderResults()}
-        </tbody>
-      </ResultTable>
+      <TableScrollWrapper>
+        <ResultTable>
+          <thead>
+            <tr>{columns}</tr>
+          </thead>
+          <tbody>
+            {this.state.loading
+              ? this.renderLoading()
+              : this.state.error
+                ? this.renderError()
+                : this.state.rows.length === 0
+                  ? this.renderNoResults()
+                  : this.renderResults()}
+          </tbody>
+        </ResultTable>
+      </TableScrollWrapper>
     );
 
     const CustomPanel = inPanel;
@@ -483,6 +533,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       resultTable
     );
 
+    const cells = getCells();
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
     return (
@@ -493,21 +544,19 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} prefix="Region" />
               )}
-              value={this.state.region ? this.state.region.url : undefined}
-              options={ConfigStore.get('regions').map((r: any) => ({
-                label: r.name,
-                value: r.url,
+              value={this.state.cell ? this.state.cell.locality_url : undefined}
+              options={cells.map(c => ({
+                label: c.name,
+                value: c.locality_url,
               }))}
               onChange={opt => {
-                const region = ConfigStore.get('regions').find(
-                  (r: any) => r.url === opt.value
-                );
-                if (region === undefined) {
+                const cellOption = cells.find(c => c.locality_url === opt.value);
+                if (cellOption === undefined) {
                   return;
                 }
                 this.setState(
                   {
-                    region,
+                    cell: cellOption,
                   },
                   this.fetchData
                 );
@@ -568,8 +617,17 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   }
 }
 
+const TableScrollWrapper = styled(Container)`
+  overflow-x: auto;
+
+  @media (max-width: 768px) {
+    overflow-x: visible;
+  }
+`;
+
 const SortSearchForm = styled('form')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${p => p.theme.space.lg};
 
   &:not(:empty) {

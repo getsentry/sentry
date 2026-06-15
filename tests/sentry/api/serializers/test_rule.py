@@ -124,11 +124,11 @@ class WorkflowRuleSerializerTest(TestCase):
             workflow, self.user, WorkflowEngineRuleSerializer(prepare_component_fields=True)
         )
 
-        # Pop and compare lists of dicts
-        rule_conditions = serialized_rule.pop("conditions")
-        workflow_conditions = serialized_workflow_rule.pop("conditions")
-        rule_filters = serialized_rule.pop("filters")
-        workflow_filters = serialized_workflow_rule.pop("filters")
+        # Compare lists of dicts independent of order, then compare the rest.
+        rule_conditions = serialized_rule["conditions"]
+        workflow_conditions = serialized_workflow_rule["conditions"]
+        rule_filters = serialized_rule["filters"]
+        workflow_filters = serialized_workflow_rule["filters"]
 
         assert len(rule_conditions) == len(workflow_conditions)
         for condition in rule_conditions:
@@ -138,14 +138,17 @@ class WorkflowRuleSerializerTest(TestCase):
         for filter in rule_filters:
             assert filter in workflow_filters
 
-        rule_actions = serialized_rule.pop("actions")
-        workflow_actions = serialized_workflow_rule.pop("actions")
+        rule_actions = serialized_rule["actions"]
+        workflow_actions = serialized_workflow_rule["actions"]
 
         assert len(rule_actions) == len(workflow_actions)
         for action in rule_actions:
             assert action in workflow_actions
 
-        assert serialized_rule == serialized_workflow_rule
+        list_keys = {"conditions", "filters", "actions"}
+        rule_rest = {k: v for k, v in serialized_rule.items() if k not in list_keys}
+        workflow_rest = {k: v for k, v in serialized_workflow_rule.items() if k not in list_keys}
+        assert rule_rest == workflow_rest
 
     def test_fetch_workflow_users(self) -> None:
         workflow = self.create_workflow(created_by_id=self.user.id)

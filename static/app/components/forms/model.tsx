@@ -8,8 +8,8 @@ import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicato
 import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 export const fieldIsRequiredMessage = t('Field is required');

@@ -10,7 +10,7 @@ import {StacktraceBanners} from 'sentry/components/events/interfaces/crashConten
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebugQuery,
-  type SourceMapDebugBlueThunderResponse,
+  type SourceMapDebugResponse,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
@@ -19,7 +19,7 @@ import {tct, tn} from 'sentry/locale';
 import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -160,7 +160,7 @@ function InnerContent({
   hasChainedExceptions: boolean;
   hiddenExceptions: ExceptionRenderStateMap;
   isSampleError: boolean;
-  sourceMapDebuggerData: SourceMapDebugBlueThunderResponse | undefined;
+  sourceMapDebuggerData: SourceMapDebugResponse | undefined;
   toggleRelatedExceptions: (exceptionId: number) => void;
   values: ExceptionValue[];
   project?: Project;

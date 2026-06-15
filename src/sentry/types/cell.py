@@ -99,6 +99,9 @@ class Cell:
     # TODO(cells): drop once category is fully moved to Locality
     category: RegionCategory
 
+    api_gateway_address: str | None = None
+    """optional address for API gateway traffic."""
+
     visible: bool = True
     """Whether the cell is visible in API responses"""
 
@@ -121,6 +124,13 @@ class Cell:
         """
 
         return self.name == settings.SENTRY_MONOLITH_REGION
+
+    def api_serialize(self) -> dict[str, Any]:
+        """Serialize a Cell into a JSON compatible dict"""
+        locality_name = get_locality_name_for_cell(self.name)
+        locality = get_locality_by_name(locality_name)
+
+        return {"name": self.name, "locality_url": locality.to_url(""), "visible": self.visible}
 
 
 class CellResolutionError(Exception):
@@ -219,6 +229,16 @@ class CellDirectory:
                     f"which is not in its cells={set(loc.cells)!r}"
                 )
 
+        # SENTRY_MONOLITH_REGION is resolved as a live cell at runtime
+        # (historic monolith region lookups), so a dangling name should fail
+        # here rather than at request time.
+        if settings.SENTRY_MONOLITH_REGION not in defined_cells:
+            raise CellConfigurationError(
+                "The SENTRY_MONOLITH_REGION setting must point to a cell name "
+                f"({settings.SENTRY_MONOLITH_REGION=!r}; "
+                f"cell names = {sorted(defined_cells)!r})"
+            )
+
 
 def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
     for config_value in cell_config:
@@ -227,32 +247,33 @@ def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
             snowflake_id=config_value["snowflake_id"],
             category=RegionCategory(config_value["category"]),
             address=config_value["address"],
+            api_gateway_address=config_value.get("api_gateway_address", None),
             visible=config_value.get("visible", True),
         )
 
 
-def _generate_monolith_cell_if_needed(cells: Collection[Cell]) -> Iterable[Cell]:
-    """Check whether a default monolith cell must be generated.
-
-    Check the provided set of cells to see whether a cell with the configured
-    name is present. If so, return an empty iterator. Else, yield the newly generated
-    cell.
+def generate_monolith_cell_directory() -> CellDirectory:
     """
-    if not settings.SENTRY_MONOLITH_REGION:
-        raise CellConfigurationError("`SENTRY_MONOLITH_REGION` must provide a default cell name")
-    if not cells:
-        yield Cell(
-            name=settings.SENTRY_MONOLITH_REGION,
-            snowflake_id=0,
-            address=options.get("system.url-prefix"),
-            category=RegionCategory.MULTI_TENANT,
-        )
-    elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in cells):
-        raise CellConfigurationError(
-            "The SENTRY_MONOLITH_REGION setting must point to a cell name "
-            f"({settings.SENTRY_MONOLITH_REGION=!r}; "
-            f"cell names = {[r.name for r in cells]!r})"
-        )
+    Build the directory for deployments with no cell topology configured.
+
+    Monolith environments (single-tenant, self-hosted) don't define
+    SENTRY_CELLS or SENTRY_LOCALITIES; they get a single cell named after
+    SENTRY_MONOLITH_REGION with a matching 1:1 locality.
+    """
+    cell = Cell(
+        name=settings.SENTRY_MONOLITH_REGION,
+        snowflake_id=0,
+        address=options.get("system.url-prefix"),
+        category=RegionCategory.MULTI_TENANT,
+    )
+    locality = Locality(
+        name=cell.name,
+        category=cell.category,
+        cells=frozenset([cell.name]),
+        new_org_cell=cell.name,
+        visible=cell.visible,
+    )
+    return CellDirectory({cell}, {locality})
 
 
 def _parse_locality_config(
@@ -273,29 +294,11 @@ def load_from_config(
     locality_config: list[LocalityConfig],
 ) -> CellDirectory:
     try:
+        if not region_config and not locality_config:
+            return generate_monolith_cell_directory()
         cells = set(_parse_raw_config(region_config))
-        cells |= set(_generate_monolith_cell_if_needed(cells))
         localities = set(_parse_locality_config(locality_config))
-
-        if not locality_config:
-            # TODO(cells): If no locality config present — create a synthetic 1:1 locality per cell
-            # as a temporary fallback. Once SENTRY_LOCALITIES is configured, all cells
-            # must be explicitly assigned; missing cells will have no locality mapping.
-            for cell in cells:
-                localities.add(
-                    Locality(
-                        name=cell.name,
-                        category=cell.category,
-                        cells=frozenset([cell.name]),
-                        new_org_cell=cell.name,
-                        visible=cell.visible,
-                    )
-                )
-
         return CellDirectory(cells, localities)
-    except CellConfigurationError as e:
-        sentry_sdk.capture_exception(e)
-        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
         raise CellConfigurationError("Unable to parse region_config.") from e
@@ -322,9 +325,6 @@ def get_global_directory() -> CellDirectory:
 
     from django.conf import settings
 
-    # For now, assume that all cell configs can be taken in through Django
-    # settings. We may investigate other ways of delivering those configs in
-    # production.
     _global_directory = load_from_config(settings.SENTRY_CELLS, settings.SENTRY_LOCALITIES)
     return _global_directory
 

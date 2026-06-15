@@ -11,6 +11,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+import {getReplayTraceSearchQuery} from 'sentry/views/performance/newTraceDetails/traceApi/replayTraceSearch';
 
 export type ReplayTrace = {
   timestamp: number | undefined;
@@ -58,13 +59,14 @@ export function useReplayTraces({
     }
     const replayId = replayRecord?.id;
     const projectId = replayRecord?.project_id;
+    const query = getReplayTraceSearchQuery(replayId);
 
     return EventView.fromSavedQuery({
       id: undefined,
       name: `Traces in replay ${replayId}`,
       fields: ['trace', 'min(precise.start_ts)'],
       orderby: 'min_precise_start_ts',
-      query: `replayId:${replayId}`,
+      query,
       projects: [Number(projectId)],
       version: 2,
       start,

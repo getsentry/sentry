@@ -9,7 +9,7 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
 import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';

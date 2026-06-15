@@ -19,7 +19,7 @@ import {Client} from 'sentry/api';
 import {FormField} from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 

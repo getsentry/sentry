@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register
@@ -15,7 +16,8 @@ class EventUserSerializerResponse(TypedDict):
     ipAddress: str
     avatarUrl: str
     hash: str
-    dateCreated: None
+    # Legacy field, always null; typed nullable so it resolves in the OpenAPI schema.
+    dateCreated: datetime | None
 
 
 @register(EventUser)

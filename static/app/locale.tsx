@@ -22,21 +22,6 @@ export const DEFAULT_LOCALE_DATA = {
   },
 };
 
-function setLocaleDebug(value: boolean) {
-  localStorageWrapper.setItem('localeDebug', value ? '1' : '0');
-  // eslint-disable-next-line no-console
-  console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
-}
-
-/**
- * Toggles the locale debug flag in local storage, but does _not_ reload the
- * page. The caller should do this.
- */
-export function toggleLocaleDebug() {
-  const currentValue = localStorageWrapper.getItem('localeDebug');
-  setLocaleDebug(currentValue !== '1');
-}
-
 /**
  * Global Jed locale object loaded with translations via setLocale
  */
@@ -277,7 +262,7 @@ function renderTemplate(
  * mark is used to debug translations by visually marking translated strings.
  *
  * NOTE: This is a no-op and will return the node if LOCALE_DEBUG is not
- * currently enabled. See setLocaleDebug and toggleLocaleDebug.
+ * currently enabled. See the LOCALE_DEBUG local-storage key.
  */
 function mark<T extends React.ReactNode>(node: T): T {
   if (!LOCALE_DEBUG) {
