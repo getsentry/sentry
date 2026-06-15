@@ -4,11 +4,12 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.services import eventstore
 from sentry.tasks.post_process import post_process_group
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -202,6 +203,9 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         evaluation_result = self.process_packet_and_return_result(data_packet)
         assert isinstance(evaluation_result, StatusChangeMessage)
         message = evaluation_result.to_dict()
+        # Packet processing already resolved the group; reset it so update_status creates a
+        # genuine SET_RESOLVED activity, which is what dispatches workflow processing.
+        group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         # TODO: Actions don't trigger on resolution yet. Update this test when this functionality exists.
         with patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             with self.tasks():
@@ -233,6 +237,9 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         evaluation_result = self.process_packet_and_return_result(data_packet)
         assert isinstance(evaluation_result, StatusChangeMessage)
         message = evaluation_result.to_dict()
+        # Packet processing already resolved the group; reset it so update_status creates a
+        # genuine SET_RESOLVED activity, which is what dispatches workflow processing.
+        group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         # TODO: Actions don't trigger on resolution yet. Update this test when this functionality exists.
         with patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             with self.tasks():
