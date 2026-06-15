@@ -269,8 +269,8 @@ class ProcessSpanEvent(msgspec.Struct, gc=False):
     end_timestamp: float
     received: float
     retention_days: int
-    name: str | None
     status: str
+    name: str | None = None
     parent_span_id: str | None = None
     is_segment: bool | None = None
     attributes: SpanAttributes | None = None

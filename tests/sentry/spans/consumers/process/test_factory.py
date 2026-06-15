@@ -109,7 +109,6 @@ def test_decode_without_attributes() -> None:
         "end_timestamp",
         "received",
         "retention_days",
-        "name",
         "status",
     ],
 )
