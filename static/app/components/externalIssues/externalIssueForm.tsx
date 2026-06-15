@@ -405,11 +405,13 @@ export function ExternalIssueForm({
       <Header
         closeButton
         css={css`
-          align-items: flex-start;
-          padding-bottom: 0 !important;
+          && {
+            align-items: flex-start;
+            padding-bottom: 0;
+          }
         `}
       >
-        <Flex direction="column" align="stretch" gap="lg" flex={1}>
+        <Flex direction="column" align="stretch" gap="lg" flex={1} minWidth={0}>
           <Heading as="h4">{title}</Heading>
           <Tabs value={action} onChange={handleClick} disableOverflow>
             <TabList>
