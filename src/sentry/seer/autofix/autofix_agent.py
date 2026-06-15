@@ -408,18 +408,6 @@ def trigger_autofix_agent(
         else:
             iteration_index = get_latest_iteration_index(run_state) + 1
 
-    if config.started_event is not None:
-        analytics.record(
-            config.started_event(
-                organization_id=group.organization.id,
-                project_id=group.project_id,
-                group_id=group.id,
-                referrer=referrer.value,
-                iteration_index=iteration_index,
-                pr_iteration_enabled=pr_iteration_enabled,
-            )
-        )
-
     prompt = build_step_prompt(step, group, user_context, run_state=run_state)
     prompt_metadata = {
         "step": step.value,
@@ -470,6 +458,21 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             insert_index=insert_index,
+        )
+
+    # Emit the started event after run_id is resolved so it can be joined to
+    # downstream completed/PR events.
+    if config.started_event is not None:
+        analytics.record(
+            config.started_event(
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                referrer=referrer.value,
+                run_id=run_id,
+                iteration_index=iteration_index,
+                pr_iteration_enabled=pr_iteration_enabled,
+            )
         )
 
     payload: dict[str, Any] = {
@@ -738,6 +741,7 @@ def trigger_coding_agent_handoff(
             project_id=group.project_id,
             group_id=group.id,
             referrer=referrer.value,
+            run_id=run_id,
             coding_agent=coding_agent_name,
         )
     )
@@ -783,6 +787,7 @@ def trigger_push_changes(
             project_id=group.project_id,
             group_id=group.id,
             referrer=referrer.value,
+            run_id=run_id,
         )
     )
 
