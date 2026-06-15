@@ -12,10 +12,12 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import (
+    AUTOFIX_PR_DESCRIPTION_REFERRER,
     STEP_CONFIGS,
     AutofixStep,
     NoSeerQuotaException,
     PrIterationNoPullRequestException,
+    build_pr_description_suffix,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     get_iteration_for_insert_index,
@@ -1149,12 +1151,110 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].branch_name == "release/v2"
 
 
+class TestBuildPrDescriptionSuffix(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _expected_sentry_issue_line(self) -> str:
+        url = self.group.get_absolute_url(params={"referrer": AUTOFIX_PR_DESCRIPTION_REFERRER})
+        return f"Fixes [{self.group.qualified_short_id}]({url})"
+
+    def test_includes_markdown_link_with_referrer(self):
+        assert build_pr_description_suffix(self.group) == self._expected_sentry_issue_line()
+
+    def test_returns_none_without_short_id_or_linear_issues(self):
+        group = self.create_group(project=self.project)
+        group.short_id = None
+        group.save()
+
+        assert build_pr_description_suffix(group) is None
+
+    def test_includes_linear_issue_with_sentry_link(self):
+        self.create_platform_external_issue(
+            group=self.group,
+            service_type="linear",
+            display_name="PROJ#123",
+            web_url="https://linear.app/proj/issue/PROJ-123",
+        )
+
+        expected = (
+            f"{self._expected_sentry_issue_line()}\n"
+            "Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        )
+        assert build_pr_description_suffix(self.group) == expected
+
+    def test_skips_invalid_linear_issue(self):
+        self.create_platform_external_issue(
+            group=self.group,
+            service_type="linear",
+            display_name="invalid-linear-id",
+            web_url="https://linear.app/proj/issue/invalid",
+        )
+
+        assert build_pr_description_suffix(self.group) == self._expected_sentry_issue_line()
+
+    @patch("sentry.seer.autofix.autofix_agent.metrics.incr")
+    def test_falls_back_to_short_id_when_get_absolute_url_raises(self, mock_incr):
+        with patch.object(
+            type(self.group),
+            "get_absolute_url",
+            side_effect=RuntimeError("url build failed"),
+        ):
+            suffix = build_pr_description_suffix(self.group)
+
+        assert suffix == f"Fixes {self.group.qualified_short_id}"
+        mock_incr.assert_any_call(
+            "autofix.pr_description_suffix.sentry_issue_line",
+            tags={"format": "short_id"},
+        )
+
+    @patch("sentry.seer.autofix.autofix_agent.metrics.incr")
+    def test_records_url_metric_on_success(self, mock_incr):
+        build_pr_description_suffix(self.group)
+
+        mock_incr.assert_any_call(
+            "autofix.pr_description_suffix.sentry_issue_line",
+            tags={"format": "url"},
+        )
+
+    @patch("sentry.seer.autofix.autofix_agent.metrics.incr")
+    def test_falls_back_to_short_id_but_keeps_linear_lines(self, mock_incr):
+        self.create_platform_external_issue(
+            group=self.group,
+            service_type="linear",
+            display_name="PROJ#123",
+            web_url="https://linear.app/proj/issue/PROJ-123",
+        )
+
+        with patch.object(
+            type(self.group),
+            "get_absolute_url",
+            side_effect=RuntimeError("url build failed"),
+        ):
+            suffix = build_pr_description_suffix(self.group)
+
+        expected = (
+            f"Fixes {self.group.qualified_short_id}\n"
+            "Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        )
+        assert suffix == expected
+        mock_incr.assert_any_call(
+            "autofix.pr_description_suffix.sentry_issue_line",
+            tags={"format": "short_id"},
+        )
+
+
 class TestTriggerPushChanges(TestCase):
     """Tests for trigger_push_changes function."""
 
     def setUp(self):
         super().setUp()
         self.group = self.create_group(project=self.project)
+
+    def _expected_sentry_issue_line(self) -> str:
+        url = self.group.get_absolute_url(params={"referrer": AUTOFIX_PR_DESCRIPTION_REFERRER})
+        return f"Fixes [{self.group.qualified_short_id}]({url})"
 
     def test_raises_permission_denied_when_coding_disabled(self):
         self.organization.update_option("sentry:enable_seer_coding", False)
@@ -1188,7 +1288,7 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"
+        assert body["payload"]["pr_description_suffix"] == self._expected_sentry_issue_line()
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_includes_linear_issue(self, mock_post):
@@ -1217,7 +1317,10 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        expected = (
+            f"{self._expected_sentry_issue_line()}\n"
+            "Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        )
         assert body["payload"]["pr_description_suffix"] == expected
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
@@ -1247,5 +1350,41 @@ class TestTriggerPushChanges(TestCase):
             )
 
         body = mock_post.call_args[0][0]
-        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
+        expected = (
+            f"{self._expected_sentry_issue_line()}\n"
+            "Fixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
+        )
         assert body["payload"]["pr_description_suffix"] == expected
+
+    @patch("sentry.seer.autofix.autofix_agent.metrics.incr")
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_falls_back_when_url_build_fails(self, mock_post, mock_incr):
+        mock_post.return_value = MagicMock(status=200)
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with patch.object(
+            type(self.group),
+            "get_absolute_url",
+            side_effect=RuntimeError("url build failed"),
+        ):
+            with self.feature("organizations:gen-ai-features"):
+                trigger_push_changes(
+                    group=self.group,
+                    run_id=123,
+                    referrer=AutofixReferrer.UNKNOWN,
+                    state=state,
+                )
+
+        body = mock_post.call_args[0][0]
+        assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"
+        mock_incr.assert_any_call(
+            "autofix.pr_description_suffix.sentry_issue_line",
+            tags={"format": "short_id"},
+        )

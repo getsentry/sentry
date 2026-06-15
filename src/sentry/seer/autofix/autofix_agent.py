@@ -792,11 +792,38 @@ def trigger_push_changes(
     )
 
 
+AUTOFIX_PR_DESCRIPTION_REFERRER = "autofix_pr"
+
+
+def _sentry_issue_fix_line(group: Group) -> str | None:
+    short_id = group.qualified_short_id
+    if not short_id:
+        return None
+
+    try:
+        url = group.get_absolute_url(params={"referrer": AUTOFIX_PR_DESCRIPTION_REFERRER})
+        metrics.incr(
+            "autofix.pr_description_suffix.sentry_issue_line",
+            tags={"format": "url"},
+        )
+        return f"Fixes [{short_id}]({url})"
+    except Exception:
+        logger.exception(
+            "autofix.pr_description_suffix.sentry_issue_url_failed",
+            extra={"group_id": group.id, "project_id": group.project_id},
+        )
+        metrics.incr(
+            "autofix.pr_description_suffix.sentry_issue_line",
+            tags={"format": "short_id"},
+        )
+        return f"Fixes {short_id}"
+
+
 def build_pr_description_suffix(group: Group) -> str | None:
     lines = []
 
-    if group.qualified_short_id:
-        lines.append(f"Fixes {group.qualified_short_id}")
+    if sentry_issue_line := _sentry_issue_fix_line(group):
+        lines.append(sentry_issue_line)
 
     for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
         if external_issue.service_type == "linear":
