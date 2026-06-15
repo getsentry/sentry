@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any, NotRequired, Required, TypedDict
 
-from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
+    SpanEvent,
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue,
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueType,
+)
 
 # Ideally this would be fully aligned with sentry_kafka_schemas, but many mutations
 # happen in the ingestion pipeline (adding new attributes and removing required
@@ -30,6 +34,14 @@ class Span(TypedDict, total=False):
 class StandaloneSpan(SpanEvent):
     hash: NotRequired[str]
 
+
+# Alias these because... jeez
+Attribute = (
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue
+)
+AttributeType = (
+    _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalueType
+)
 
 #: Sentry tags used in performance issue detection.
 #:
