@@ -318,6 +318,7 @@ class DatadogIdentityProvider(OAuth2Provider):
                 "User info response missing required fields (user_uuid, org_uuid)"
             )
 
+        site = self._get_oauth_parameter("site")
         oauth_data = self.get_oauth_data(token_data)
 
         # Persist DCR credentials and site so refresh_identity can access them outside a pipeline context.

@@ -110,13 +110,17 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key != "datadog":
             idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
-        pipeline = IdentityPipeline(
-            request=request._request,
-            provider_key=provider_key,
-            organization=organization,
-            provider_model=idp,
-            config=config,
-        )
+        try:
+            pipeline = IdentityPipeline(
+                request=request._request,
+                provider_key=provider_key,
+                organization=organization,
+                provider_model=idp,
+                config=config,
+            )
+        except ValueError:
+            return Response({"detail": "Invalid provider configuration."}, status=400)
+
         pipeline.initialize()
 
         response = pipeline.current_step()
