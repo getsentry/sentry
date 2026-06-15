@@ -87,6 +87,7 @@ def test_basic(kafka_slice_id: int | None) -> None:
 
             result = orjson.loads(msg.value)
             assert result.pop("flush_id")
+            assert result.pop("segment_id") == "aaaaaaaaaaaaaaaa"
             assert result == {
                 "spans": [
                     {
@@ -183,6 +184,7 @@ def test_basic_msgspec_decoder() -> None:
 
             result = orjson.loads(msg.value)
             assert result.pop("flush_id") is not None
+            assert result.pop("segment_id") == "aaaaaaaaaaaaaaaa"
             # The buffered payload is the original raw bytes (enriched by the
             # buffer with the segment id), not the decoded subset, so all
             # original fields are preserved.
