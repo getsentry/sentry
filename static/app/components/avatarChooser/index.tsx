@@ -194,7 +194,7 @@ export function AvatarChooser({
     }
 
     try {
-      const resp = await api.requestPromise(endpoint, {
+      const [resp] = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
         includeAllArgs: true,
