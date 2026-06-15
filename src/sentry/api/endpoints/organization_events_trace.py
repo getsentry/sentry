@@ -607,7 +607,7 @@ def create_transaction_params(
     """Can't use the transaction params for errors since traces can be errors only"""
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
-    sentry_sdk.set_attribute("trace_view.queried_timestamp_projects", query_metadata)
+    sentry_sdk.set_attribute("trace_view.queried_timestamp_projects", str(query_metadata))
     if not query_metadata:
         return snuba_params
 

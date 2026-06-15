@@ -1,7 +1,11 @@
 from collections.abc import Iterable
 from unittest.mock import MagicMock, patch
 
+import pytest
+from django.core.exceptions import ValidationError
+
 from sentry.constants import ObjectStatus
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
@@ -48,6 +52,13 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class ProjectTest(APITestCase, TestCase):
+    def test_slug_rejects_numeric_values(self) -> None:
+        slug_field = Project._meta.get_field("slug")
+
+        assert isinstance(slug_field, SentrySlugField)
+        with pytest.raises(ValidationError):
+            slug_field.run_validators("123")
+
     def test_member_set_simple(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)

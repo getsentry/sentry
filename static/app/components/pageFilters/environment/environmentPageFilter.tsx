@@ -233,7 +233,7 @@ export function EnvironmentPageFilter({
 
   return (
     <CompactSelect
-      grid
+      mode="grid"
       multiple
       {...selectProps}
       {...stagedSelect.compactSelectProps}
