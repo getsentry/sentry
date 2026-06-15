@@ -1,5 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
@@ -9,6 +11,7 @@ import {
   collectPatches,
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
+  isPrIterationBlock,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -18,15 +21,39 @@ import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifa
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tn} from 'sentry/locale';
+import type {User} from 'sentry/types/user';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 interface CodeChangesCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   section: AutofixSection;
+}
+
+interface IterationFeedback {
+  iterationIndex: number;
+  text: string;
+  timestamp?: string;
+  user?: User | null;
+}
+
+/**
+ * Feedback is stored as a JSON object (`{text, source, timestamp}`), where
+ * `source` identifies who submitted it (e.g. `{type: 'user-ui', user_id, user}`).
+ * The backend resolves `user_id` into a serialized `user` so we can render
+ * attribution directly without a per-item fetch.
+ */
+function parseFeedback(raw: string): Omit<IterationFeedback, 'iterationIndex'> {
+  const parsed = JSON.parse(raw);
+  return {
+    text: parsed.text,
+    user: parsed.source?.user,
+    timestamp: parsed.timestamp,
+  };
 }
 
 /**
@@ -51,6 +78,36 @@ function getFinalExplanation(section: AutofixSection): string | null {
 }
 
 export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
+  // PR iterations are folded into this section's blocks. Surface the feedback
+  // that drove each one — the cumulative diff is already merged into the
+  // section's code-change artifact by getOrderedAutofixSections.
+  const feedback = useMemo<IterationFeedback[]>(
+    () =>
+      section.blocks.filter(isPrIterationBlock).flatMap(block => {
+        const metadata = block.message.metadata;
+        const value = metadata?.feedback;
+        const iterationIndex = metadata?.iteration_index;
+        if (!value || iterationIndex === undefined) {
+          return [];
+        }
+        return [{...parseFeedback(value), iterationIndex: Number(iterationIndex)}];
+      }),
+    [section.blocks]
+  );
+
+  const latestIterationIndex = useMemo(
+    () =>
+      feedback.reduce<number | null>(
+        (max, item) =>
+          max === null ? item.iterationIndex : Math.max(max, item.iterationIndex),
+        null
+      ),
+    [feedback]
+  );
+
+  const isIterating =
+    section.status === 'processing' && section.blocks.some(isPrIterationBlock);
+
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
@@ -95,10 +152,22 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
+  const isProcessing = section.status === 'processing';
+
   return (
     <ArtifactCard
       icon={<IconCode />}
-      title={t('Code Changes')}
+      title={
+        latestIterationIndex === null ? (
+          t('Code Changes')
+        ) : (
+          <Flex gap="md" align="center">
+            {t('Code Changes')}
+            {/* `iteration_index` is zero-based; display a one-based version number. */}
+            <Tag variant="muted">{t('v%s - Latest', latestIterationIndex + 1)}</Tag>
+          </Flex>
+        )
+      }
       onCopy={
         markdown
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
@@ -107,10 +176,20 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
       allowReset
       onReset={canReset ? () => setShouldShowReset(true) : undefined}
     >
-      {section.status === 'processing' ? (
+      {feedback.length > 0 && (
+        <ArtifactDetails>
+          <Text bold>{t('Feedback')}</Text>
+          {feedback.map(item => (
+            <FeedbackItem key={item.iterationIndex} item={item} />
+          ))}
+        </ArtifactDetails>
+      )}
+      {isProcessing ? (
         <ArtifactLoadingDetails
           blocks={section.blocks}
-          loadingMessage={t('Implementing changes\u2026')}
+          loadingMessage={
+            isIterating ? t('Iterating on PR…') : t('Implementing changes…')
+          }
         />
       ) : artifact && patchesByRepo.size ? (
         <Fragment>
@@ -144,7 +223,14 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
           ))}
         </Fragment>
       ) : explanation ? (
-        <ArtifactDetails>
+        <ArtifactDetails gap="lg">
+          <Flex direction="column" gap="md">
+            <Text bold>
+              {t("Seer proposed a fix but couldn't apply it automatically")}
+            </Text>
+            <Markdown raw={explanation} />
+          </Flex>
+
           {shouldShowReset ? (
             <AutofixResetPrompt
               onClosePrompt={() => setShouldShowReset(false)}
@@ -154,11 +240,8 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
               )}
               prompt={t('What additional context should Seer use?')}
             />
-          ) : null}
-          <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
-          <Markdown raw={explanation} />
-          {shouldShowReset ? null : (
-            <div>
+          ) : (
+            <Flex>
               <Button
                 variant="primary"
                 icon={<IconRefresh />}
@@ -167,7 +250,7 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
               >
                 {t('Add context & retry')}
               </Button>
-            </div>
+            </Flex>
           )}
         </ArtifactDetails>
       ) : (
@@ -189,5 +272,23 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
         </ArtifactDetails>
       )}
     </ArtifactCard>
+  );
+}
+
+function FeedbackItem({item}: {item: IterationFeedback}) {
+  return (
+    <Flex gap="md" align="start" justify="between">
+      <Flex gap="md" align="center" flex="1" minWidth={0}>
+        {item.user && <UserAvatar size={20} user={item.user} />}
+        <Text wordBreak="break-word">{t('"%s"', item.text)}</Text>
+      </Flex>
+      {item.timestamp && (
+        <Flex flex="0 0 auto">
+          <Text variant="muted" size="sm" wrap="nowrap">
+            <TimeSince date={item.timestamp} />
+          </Text>
+        </Flex>
+      )}
+    </Flex>
   );
 }

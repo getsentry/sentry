@@ -1,8 +1,9 @@
-import {useCallback, useMemo, useState, type ReactNode} from 'react';
+import {useCallback, useMemo, useRef, useState, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -16,13 +17,17 @@ import {
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
+  isPullRequestsSection,
   isRootCauseSection,
+  isRunValidForPrIteration,
   isSolutionSection,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconAdd} from 'sentry/icons/iconAdd';
+import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconReturn} from 'sentry/icons/iconReturn';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
@@ -42,6 +47,11 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!defined(runId) || !defined(section)) {
+    return null;
+  }
+
+  // needed to hide PR iteration after clicking "submit feedback" button
+  if (autofix.isPolling) {
     return null;
   }
 
@@ -81,7 +91,97 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
     );
   }
 
+  if (isPullRequestsSection(section)) {
+    return (
+      <PullRequestNextStep
+        group={group}
+        autofix={autofix}
+        runId={runId}
+        section={section}
+        referrer={referrer}
+      />
+    );
+  }
+
   return null;
+}
+
+function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
+  const organization = useOrganization();
+  const {isPolling, startStep, runState} = autofix;
+  const [feedback, setFeedback] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+
+  if (
+    !organization.features.includes('autofix-pr-iteration') ||
+    !isRunValidForPrIteration(runState)
+  ) {
+    return null;
+  }
+
+  const prompt = t('Anything else you want to see on your PR?');
+
+  const handleSubmit = () => {
+    if (!feedback.trim()) {
+      return;
+    }
+    // Show the loader immediately on click. We don't reuse `isPolling` here
+    // because submitting kicks off a run that flips it, which hides the whole
+    // next-step section via the guard in `SeerDrawerNextStep` before a polling-
+    // driven busy state could render. The component unmounts and remounts fresh
+    // (resetting this flag) once the run completes.
+    setIsSubmitting(true);
+    startStep('pr_iteration', {runId, userContext: feedback});
+    trackAnalytics('autofix.pr_iteration.feedback', {
+      organization,
+      group_id: group.id,
+      mode: 'explorer',
+      referrer,
+    });
+  };
+
+  return (
+    <Flex direction="column" gap="lg">
+      <Text>{prompt}</Text>
+      <InputGroup>
+        <InputGroup.TextArea
+          autosize
+          rows={2}
+          placeholder={t(
+            'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
+          )}
+          value={feedback}
+          onChange={event => setFeedback(event.target.value)}
+          onKeyDown={event => {
+            if (event.nativeEvent.isComposing) {
+              return;
+            }
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              // Simulate a real click on the submit button (matching the Ask Seer
+              // hotkey behavior) so the press goes through the button itself.
+              submitButtonRef.current?.click();
+            }
+          }}
+        />
+        <InputGroup.TrailingItems style={{alignItems: 'flex-start', top: 8}}>
+          <IconReturn />
+        </InputGroup.TrailingItems>
+      </InputGroup>
+      <Flex gap="md">
+        <Button
+          ref={submitButtonRef}
+          icon={<IconArrow size="md" direction="right" />}
+          busy={isSubmitting}
+          disabled={isPolling || !feedback.trim()}
+          onClick={handleSubmit}
+        >
+          {t('Submit')}
+        </Button>
+      </Flex>
+    </Flex>
+  );
 }
 
 interface NextStepProps {

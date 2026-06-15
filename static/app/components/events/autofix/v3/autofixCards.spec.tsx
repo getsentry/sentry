@@ -40,6 +40,29 @@ function makeAssistantBlock(content: string | null): AutofixSection['blocks'][nu
   };
 }
 
+function makePrIterationBlock(
+  iterationIndex: number,
+  feedback: {text: string; timestamp?: string; user?: any}
+): AutofixSection['blocks'][number] {
+  return {
+    id: `block-pr-${iterationIndex}`,
+    timestamp: '2026-01-01T00:00:00Z',
+    message: {
+      role: 'user',
+      content: null,
+      metadata: {
+        step: 'pr_iteration',
+        iteration_index: String(iterationIndex),
+        feedback: JSON.stringify({
+          text: feedback.text,
+          timestamp: feedback.timestamp,
+          source: feedback.user ? {user: feedback.user} : undefined,
+        }),
+      },
+    },
+  };
+}
+
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
   return {
     repo_name: repoName,
@@ -623,6 +646,73 @@ describe('ArtifactCard', () => {
       expect(
         screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
       ).not.toBeInTheDocument();
+    });
+
+    it('renders feedback from pr_iteration blocks', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(1, {text: 'Add a test for this'})]
+          )}
+        />
+      );
+
+      expect(screen.getByText('Feedback')).toBeInTheDocument();
+      expect(screen.getByText('"Add a test for this"')).toBeInTheDocument();
+    });
+
+    it('renders a one-based version tag for the latest iteration', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [
+              makePrIterationBlock(0, {text: 'first pass'}),
+              makePrIterationBlock(1, {text: 'second pass'}),
+            ]
+          )}
+        />
+      );
+
+      // iteration_index is zero-based; the latest (1) renders as v2.
+      expect(screen.getByText('v2 - Latest')).toBeInTheDocument();
+    });
+
+    it('does not render a version tag without iterations', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />
+      );
+
+      expect(screen.queryByText(/- Latest/)).not.toBeInTheDocument();
+    });
+
+    it('shows the iterating loading message when processing a pr_iteration', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [makePrIterationBlock(0, {text: 'keep going'})]
+          )}
+        />
+      );
+
+      expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
     });
   });
 
