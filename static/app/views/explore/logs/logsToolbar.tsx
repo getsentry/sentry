@@ -217,12 +217,14 @@ function VisualizeDropdown({
   stringTags,
 }: VisualizeDropdownProps) {
   const firstNumberOptionValue = useMemo(() => {
-    const firstNumberKey = Object.keys(numberTags).sort()[0];
-    if (!firstNumberKey) {
+    const firstNumberTag = Object.values(numberTags).sort((a, b) =>
+      a.key.localeCompare(b.key)
+    )[0];
+    if (!firstNumberTag) {
       return null;
     }
 
-    return optionFromTag(numberTags[firstNumberKey]!, TraceItemDataset.LOGS).value;
+    return optionFromTag(firstNumberTag, TraceItemDataset.LOGS).value;
   }, [numberTags]);
 
   const aggregateOptions: Array<SelectOption<OurLogsAggregate>> = useMemo(() => {

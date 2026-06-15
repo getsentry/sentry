@@ -23,8 +23,15 @@ export type TagResolverItem = {
 };
 
 function getExplicitTagType(key: string): ExplicitTagType | null {
-  const tagType = key.match(EXPLICIT_TAG_KEY_PATTERN)?.[2] as ExplicitTagType | undefined;
-  return tagType ?? null;
+  const tagType = key.match(EXPLICIT_TAG_KEY_PATTERN)?.[2];
+  switch (tagType) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+      return tagType;
+    default:
+      return null;
+  }
 }
 
 export function getExplicitTagBaseKey(key: string): string {
