@@ -14,6 +14,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 from ..metrics import record_webhook_filtered
@@ -81,7 +82,7 @@ def handle_webhook_event(
         )
         sentry_sdk.set_tags(tags)
         sentry_sdk.set_context("code_review_context", tags)
-        sentry_sdk.set_attribute("code_review_context", tags)
+        sentry_sdk.set_attribute("code_review_context", json.dumps(tags))
         if github_delivery_id:
             sentry_sdk.set_tag("github_delivery_id", github_delivery_id)
             sentry_sdk.set_attribute("github_delivery_id", github_delivery_id)
