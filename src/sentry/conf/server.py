@@ -3290,8 +3290,8 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
-    SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
-    SENTRY_OPTIONS["system.region-api-url-template"] = ""
+    SENTRY_BASE_HOSTNAME = ngrok_host
+    SENTRY_REGION_API_URL_TEMPLATE = ""
 
     # No multi-region in non-siloed ngrok dev.
     SENTRY_FEATURES["system:multi-region"] = False
@@ -3364,7 +3364,7 @@ if SILO_DEVSERVER:
 if ngrok_host and SILO_DEVSERVER:
     # In siloed mode + ngrok we enable multi-region so that
     # the region API URL template is set to the ngrok host.
-    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
+    SENTRY_REGION_API_URL_TEMPLATE = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
 
 CONDUIT_GATEWAY_PRIVATE_KEY: str | None = os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
@@ -3387,8 +3387,8 @@ if SILO_DEVSERVER or IS_DEV:
 if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
     # Pair with `devservices --mode cell-routing`. Cell-scoped API XHRs cross
     # to Synapse on :13000; UI HTML and control API stay on the devserver.
-    SENTRY_OPTIONS["system.region-api-url-template"] = "http://dev.getsentry.net:13000"
-    SENTRY_OPTIONS["system.organization-base-hostname"] = "{slug}.dev.getsentry.net:8000"
-    SENTRY_OPTIONS["system.organization-url-template"] = "http://{hostname}"
+    SENTRY_REGION_API_URL_TEMPLATE = "http://dev.getsentry.net:13000"
+    SENTRY_ORGANIZATION_BASE_HOSTNAME = "{slug}.dev.getsentry.net:8000"
+    SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
     SENTRY_FEATURES["system:multi-region"] = True
     SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"
