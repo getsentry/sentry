@@ -47,7 +47,7 @@ function SecurityTab({securityEndpoint}: SecurityTabProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {securityEndpoint},
-    validators: {onChange: securitySchema},
+    validators: {onDynamic: securitySchema},
   });
 
   return (
@@ -91,7 +91,7 @@ function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {minidumpEndpoint},
-    validators: {onChange: minidumpSchema},
+    validators: {onDynamic: minidumpSchema},
   });
 
   return (
@@ -135,7 +135,7 @@ function UnrealTab({unrealEndpoint}: UnrealTabProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {unrealEndpoint},
-    validators: {onChange: unrealSchema},
+    validators: {onDynamic: unrealSchema},
   });
 
   return (
@@ -184,7 +184,7 @@ function CredentialsTab({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {publicKey, secretKey, projectId},
-    validators: {onChange: credentialsSchema},
+    validators: {onDynamic: credentialsSchema},
   });
 
   return (
@@ -292,7 +292,7 @@ export function ProjectKeyCredentials({
       useCase: data.useCase ?? '',
     },
     validators: {
-      onChange: z.object({
+      onDynamic: z.object({
         dsn: z.string(),
         useCase: z.string(),
       }),
