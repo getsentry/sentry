@@ -1309,9 +1309,13 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                             sentry_sdk.set_tag(
                                 allocation_policy_prefix + k + "." + nested_k, nested_v
                             )
+                            sentry_sdk.set_attribute(
+                                allocation_policy_prefix + k + "." + nested_k, nested_v
+                            )
                     else:
                         span.set_tag(allocation_policy_prefix + k, v)
                         sentry_sdk.set_tag(allocation_policy_prefix + k, v)
+                        sentry_sdk.set_attribute(allocation_policy_prefix + k, v)
 
             if response.status != 200:
                 _log_request_query(snuba_requests_list[index].request)
@@ -1422,6 +1426,7 @@ def _snuba_query(
                 # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
                 # but we still want to know a general sense of how referrers impact performance
                 sentry_sdk.set_tag("query.referrer", referrer)
+                sentry_sdk.set_attribute("query.referrer", referrer)
 
                 if isinstance(request.query, MetricsQuery):
                     return (
