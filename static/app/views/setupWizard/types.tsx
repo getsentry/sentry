@@ -1,6 +1,6 @@
 import type {OrganizationSummary} from 'sentry/types/organization';
-import type {Region} from 'sentry/types/system';
+import type {Locality} from 'sentry/types/system';
 
-export type OrganizationSummaryWithRegion = OrganizationSummary & {
-  region: Region;
+export type OrganizationSummaryWithLocality = OrganizationSummary & {
+  region: Locality;
 };
