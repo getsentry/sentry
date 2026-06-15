@@ -98,7 +98,7 @@ export class Settings extends DefaultSettings<Props, State> {
     let responseMeta: any;
     let statusText: string | undefined;
     try {
-      const [data, status, meta] = await this.api.requestPromise(
+      const [data, status, meta]: [ApiData, string, any] = await this.api.requestPromise(
         this.getPluginEndpoint(),
         {
           data: body,
