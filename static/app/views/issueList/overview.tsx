@@ -402,11 +402,14 @@ function IssueListOverviewInner({
     pollerRef.current?.disable();
 
     try {
-      const [data, _, resp] = await api.requestPromise(`/organizations/${organization.slug}/issues/`, {
-        method: 'GET',
-        data: qs.stringify(requestParams),
-        includeAllArgs: true,
-      });
+      const [data, _, resp] = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/`,
+        {
+          method: 'GET',
+          data: qs.stringify(requestParams),
+          includeAllArgs: true,
+        }
+      );
 
       if (!resp) {
         return;
