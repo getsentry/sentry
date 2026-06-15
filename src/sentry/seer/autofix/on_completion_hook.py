@@ -183,8 +183,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 webhook_action_type = SeerActionType.CODING_COMPLETED
                 webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
         elif current_step == AutofixStep.PR_ITERATION:
-            # PR iteration only runs against an existing PR, so there must be pr states.
-            assert state.repo_pr_states, "PR iteration completed without any repo PR states"
+            # PR iteration only runs against an existing PR, so there should be pr states.
+            if not state.repo_pr_states:
+                logger.error(
+                    "autofix.on_completion_hook.pr_iteration_missing_repo_pr_states",
+                    extra={"run_id": run_id, "organization_id": organization.id},
+                )
             webhook_action_type = SeerActionType.ITERATION_COMPLETED
             iteration_index = get_latest_iteration_index(state)
             webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)

@@ -231,7 +231,14 @@ def get_latest_iteration_index(state: SeerRunState) -> int:
     for block in reversed(state.blocks):
         metadata = block.message.metadata or {}
         if metadata.get("step") == AutofixStep.PR_ITERATION.value:
-            return int(metadata["iteration_index"])
+            iteration_index = metadata.get("iteration_index")
+            if iteration_index is None:
+                logger.error(
+                    "autofix.get_latest_iteration_index.missing_iteration_index",
+                    extra={"run_id": state.run_id},
+                )
+                return 0
+            return int(iteration_index)
     return 0
 
 
