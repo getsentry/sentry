@@ -50,11 +50,14 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 import {WidgetWrapper} from './styles';
 
-export function getMetricsChartTypeOptions(organization: Organization) {
+export function getMetricsChartTypeOptions(
+  organization: Organization,
+  isEquation: boolean
+) {
   if (canUseMetricsHeatMap(organization)) {
     return [
       ...EXPLORE_CHART_TYPE_OPTIONS,
-      {value: ChartType.HEATMAP, label: t('Heat Map')},
+      {value: ChartType.HEATMAP, label: t('Heat Map'), disabled: isEquation},
     ];
   }
   return EXPLORE_CHART_TYPE_OPTIONS;

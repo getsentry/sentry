@@ -504,7 +504,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         response = self.client.get(
             url,
             {
-                "dataset": "spans",
                 "query": "",
                 "lowerBound": "0",
                 "firstBound": "100",
@@ -552,7 +551,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         response = self.client.get(
             url,
             {
-                "dataset": "spans",
                 "lowerBound": "0",
                 "firstBound": "100",
                 "secondBound": "250",
@@ -571,7 +569,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         response = self.client.get(
             url,
             {
-                "dataset": "spans",
                 "lowerBound": "0",
                 "firstBound": "100",
                 "secondBound": "250",
@@ -587,15 +584,12 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert data[0]["span.duration"] == 20
         assert data[1]["span.duration"] == 200
 
-
-class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestBase):
-    viewname = "sentry-api-0-organization-spans-samples"
-
-    def do_request(self, query, features=None, **kwargs):
-        query["dataset"] = "spans"
-        return super().do_request(query, features, **kwargs)
-
     def test_simple(self) -> None:
+        self.login_as(user=self.user)
+        url = reverse(
+            self.url_name, kwargs={"organization_id_or_slug": self.project.organization.slug}
+        )
+
         spans = [
             self.create_span(
                 {"description": "bar", "trace_id": "1" * 32},
@@ -636,7 +630,8 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
             spans,
         )
 
-        response = self.do_request(
+        response = self.client.get(
+            url,
             {
                 "query": "",
                 "lowerBound": "0",
@@ -646,6 +641,7 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
                 "column": "span.duration",
                 "project": self.project.id,
             },
+            format="json",
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]

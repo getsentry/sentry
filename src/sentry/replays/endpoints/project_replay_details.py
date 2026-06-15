@@ -67,7 +67,8 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
             return Response({"data": replay_data[0]}, status=200)
 
     @extend_schema(
-        operation_id="Delete a Replay Instance",
+        operation_id="deleteProjectReplay",
+        summary="Delete a Replay Instance",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

@@ -32,6 +32,7 @@ from requests.adapters import HTTPAdapter, Retry
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
@@ -523,11 +524,14 @@ def _get_connection(retry_count: int) -> requests.Session:
     if not hasattr(_connections, "lookup"):
         _connections.lookup = {}
 
-    if not _connections.lookup.get(retry_count, None):
-        http = _create_request_session(retry_count)
-        _connections.lookup[retry_count] = http
+    if in_random_rollout("hybridcloud.rpc.use_pooling_rate"):
+        if not _connections.lookup.get(retry_count, None):
+            http = _create_request_session(retry_count)
+            _connections.lookup[retry_count] = http
 
-    return _connections.lookup[retry_count]
+        return _connections.lookup[retry_count]
+
+    return _create_request_session(retry_count)
 
 
 @dataclass(frozen=True)
@@ -667,9 +671,10 @@ class _RemoteSiloCall:
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         rpc_method = f"{self.service_name}.{self.method_name}"
-        scope = sentry_sdk.get_isolation_scope()
-        scope.set_tag("rpc_method", rpc_method)
-        scope.set_tag("rpc_status_code", response.status_code)
+        sentry_sdk.set_tag("rpc_method", rpc_method)
+        sentry_sdk.set_attribute("rpc_method", rpc_method)
+        sentry_sdk.set_tag("rpc_status_code", response.status_code)
+        sentry_sdk.set_attribute("rpc_status_code", response.status_code)
 
         if response.status_code == 422:
             # Validation/Operation errors that should be shown to end user behave the same

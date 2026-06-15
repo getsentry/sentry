@@ -452,6 +452,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return introspect_solution(organization, run_id, state, group)
         elif step == AutofixStep.CODE_CHANGES:
             return introspect_code_changes(organization, run_id, state, group)
+        return None
 
     @classmethod
     def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:
