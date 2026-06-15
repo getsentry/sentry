@@ -67,23 +67,15 @@ export function KeyStats() {
     };
   }, []);
 
-  const {
-    data,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<KeyStatPoint[]>(
+  const {data, isPending, isError, refetch} = useApiQuery<KeyStatPoint[]>(
     [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/stats/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
-            keyId,
-          },
-        }
-      ),
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/stats/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectId,
+          keyId,
+        },
+      }),
       {query: {...queryBase, resolution: '1d'}},
     ],
     {staleTime: 0}
