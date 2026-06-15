@@ -23,7 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
-import {ScmIntegrationConnectMultiOrg} from 'sentry/views/onboarding/components/scmIntegrationConnectMultiOrg';
+import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
 import {useScmPlatformDetection} from 'sentry/views/onboarding/components/useScmPlatformDetection';
@@ -278,8 +278,9 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 </Heading>
               </Stack>
 
-              <ScmIntegrationConnectMultiOrg
+              <ScmIntegrationConnect
                 analyticsFlow="project-creation"
+                allowIntegrationSwitching
                 selectedIntegration={selectedIntegration}
                 selectedRepository={selectedRepository}
                 onIntegrationChange={handleIntegrationChange}
