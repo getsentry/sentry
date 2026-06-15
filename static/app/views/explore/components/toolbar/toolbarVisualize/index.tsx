@@ -14,6 +14,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {getFieldDefinition, type GetFieldDefinitionType} from 'sentry/utils/fields';
+import {getAttributeOptionValue} from 'sentry/views/explore/components/attributeOption';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -93,6 +94,8 @@ export function ToolbarVisualizeDropdown({
         onChange={onChangeAggregate}
       />
       {aggregateDefinition?.parameters?.map((param, index) => {
+        const argumentValue =
+          parsedFunction?.arguments[index] ?? param.defaultValue ?? '';
         return (
           <FieldCompactSelect
             key={param.name}
@@ -107,7 +110,7 @@ export function ToolbarVisualizeDropdown({
               },
             }}
             options={fieldOptions}
-            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            value={getAttributeOptionValue(fieldOptions, argumentValue) ?? ''}
             onChange={option => onChangeArgument(index, option)}
             disabled={fieldOptions.length === 1}
             onClose={onClose}
@@ -128,7 +131,9 @@ export function ToolbarVisualizeDropdown({
             },
           }}
           options={fieldOptions}
-          value={parsedFunction?.arguments[0] ?? ''}
+          value={
+            getAttributeOptionValue(fieldOptions, parsedFunction?.arguments[0]) ?? ''
+          }
           onChange={option => onChangeArgument(0, option)}
           disabled
           onClose={onClose}

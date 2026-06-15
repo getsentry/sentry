@@ -36,6 +36,10 @@ import {
 } from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  getAttributeOptionForValue,
+  getAttributeOptionValue,
+} from 'sentry/views/explore/components/attributeOption';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -351,12 +355,16 @@ function GroupBySelector({
     return [...baseOptions, ...additions];
   }, [hasSearch, baseOptions, searchedOptions]);
 
-  const label = useMemo(() => {
-    const tag =
-      options.find(option => option.value === groupBy.groupBy) ??
-      baseOptions.find(option => option.value === groupBy.groupBy);
-    return <TriggerLabel>{tag?.label ?? groupBy.groupBy}</TriggerLabel>;
+  const selectedOption = useMemo(() => {
+    return (
+      getAttributeOptionForValue(options, groupBy.groupBy) ??
+      getAttributeOptionForValue(baseOptions, groupBy.groupBy)
+    );
   }, [groupBy.groupBy, options, baseOptions]);
+
+  const label = useMemo(() => {
+    return <TriggerLabel>{selectedOption?.label ?? groupBy.groupBy}</TriggerLabel>;
+  }, [groupBy.groupBy, selectedOption]);
 
   const handleChange = useCallback(
     (option: SelectOption<SelectKey>) => {
@@ -369,7 +377,7 @@ function GroupBySelector({
     <SingleWidthCompactSelect
       data-test-id="editor-groupby"
       options={options}
-      value={groupBy.groupBy}
+      value={selectedOption?.value ?? groupBy.groupBy}
       onChange={handleChange}
       search={{
         onChange: setSearch,
@@ -602,18 +610,22 @@ function AttributeArgumentSelect({
   // list, which can go blank when a search query doesn't match the current
   // value. Match the sibling selectors and fall back to baseOptions, then to
   // the raw value, so the trigger always reflects the current selection.
-  const label = useMemo(() => {
-    const tag =
-      options.find(option => option.value === value) ??
-      baseOptions.find(option => option.value === value);
-    return <TriggerLabel>{tag?.label ?? value}</TriggerLabel>;
+  const selectedOption = useMemo(() => {
+    return (
+      getAttributeOptionForValue(options, value) ??
+      getAttributeOptionForValue(baseOptions, value)
+    );
   }, [value, options, baseOptions]);
+
+  const label = useMemo(() => {
+    return <TriggerLabel>{selectedOption?.label ?? value}</TriggerLabel>;
+  }, [value, selectedOption]);
 
   return (
     <DoubleWidthCompactSelect
       data-test-id="editor-visualize-argument"
       options={options}
-      value={value}
+      value={getAttributeOptionValue(options, value) ?? value}
       onChange={onChange}
       search={{
         onChange: setSearch,

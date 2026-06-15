@@ -18,7 +18,10 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
+import {
+  buildAttributeOptions,
+  getAttributeOptionForValue,
+} from 'sentry/views/explore/components/attributeOption';
 import {
   DASHBOARD_ONLY_SPAN_ATTRIBUTES,
   EXPLORE_FIVE_MIN_STALE_TIME,
@@ -266,31 +269,33 @@ function ColumnEditorRow({
     }
   }
 
+  const selectedOption = useMemo(() => {
+    return (
+      getAttributeOptionForValue(options, column.column) ??
+      getAttributeOptionForValue(baseOptions, column.column)
+    );
+  }, [column.column, options, baseOptions]);
+
   // The compact select component uses the option label to render the current
   // selection. This overrides it to render in a trailing item showing the type.
   const label = useMemo(() => {
-    if (defined(column.column)) {
-      const tag =
-        options.find(option => option.value === column.column) ??
-        baseOptions.find(option => option.value === column.column);
-      if (defined(tag)) {
-        return (
-          <TriggerLabel>
-            <TriggerLabelText>{tag.label}</TriggerLabelText>
-            {tag.trailingItems &&
-              (typeof tag.trailingItems === 'function'
-                ? tag.trailingItems({
-                    disabled: false,
-                    isFocused: false,
-                    isSelected: false,
-                  })
-                : tag.trailingItems)}
-          </TriggerLabel>
-        );
-      }
+    if (defined(selectedOption)) {
+      return (
+        <TriggerLabel>
+          <TriggerLabelText>{selectedOption.label}</TriggerLabelText>
+          {selectedOption.trailingItems &&
+            (typeof selectedOption.trailingItems === 'function'
+              ? selectedOption.trailingItems({
+                  disabled: false,
+                  isFocused: false,
+                  isSelected: false,
+                })
+              : selectedOption.trailingItems)}
+        </TriggerLabel>
+      );
     }
     return <TriggerLabel>{column.column || t('\u2014')}</TriggerLabel>;
-  }, [column.column, options, baseOptions]);
+  }, [column.column, selectedOption]);
 
   return (
     <RowContainer
@@ -306,7 +311,7 @@ function ColumnEditorRow({
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
-        value={column.column ?? ''}
+        value={selectedOption?.value ?? column.column ?? ''}
         onChange={handleColumnChange}
         disabled={required}
         search={{

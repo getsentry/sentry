@@ -14,6 +14,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {type GetFieldDefinitionType} from 'sentry/utils/fields';
+import {getAttributeOptionForValue} from 'sentry/views/explore/components/attributeOption';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -72,10 +73,14 @@ export function ToolbarGroupByDropdown({
     }
   }
 
+  const selectedOption = useMemo(
+    () => getAttributeOptionForValue(options, column.column),
+    [column.column, options]
+  );
+
   const label = useMemo(() => {
-    const tag = options.find(option => option.value === column.column);
-    return <TriggerLabel>{tag?.label ?? column.column}</TriggerLabel>;
-  }, [column.column, options]);
+    return <TriggerLabel>{selectedOption?.label ?? column.column}</TriggerLabel>;
+  }, [column.column, selectedOption]);
 
   return (
     <ToolbarRow
@@ -88,7 +93,7 @@ export function ToolbarGroupByDropdown({
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
-        value={column.column ?? ''}
+        value={selectedOption?.value ?? column.column ?? ''}
         onChange={handleColumnChange}
         search={{
           onChange: onSearch,

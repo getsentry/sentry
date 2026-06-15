@@ -1,23 +1,20 @@
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import type {Tag, TagCollection} from 'sentry/types/group';
+import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {
-  classifyTagKey,
-  FieldKind,
-  getFieldDefinition,
-  prettifyTagKey,
-} from 'sentry/utils/fields';
+  findExplicitTagKeyMatch,
+  getExplicitTagBaseKey,
+  getTagsFromResolverItems,
+} from 'sentry/utils/tag';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {extractBaseKey} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
-import {getFieldDefinitionType} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
-  const typedKey = getTypedOptionKey(tag.key, tag.kind, traceItemType);
   return {
     label: tag.name,
-    value: typedKey,
+    value: tag.key,
     textValue: tag.key,
     trailingItems: <TypeBadge kind={tag.kind} />,
     showDetailsInOverlay: true,
@@ -32,28 +29,49 @@ export function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
   };
 }
 
-function getTypedOptionKey(
-  key: string,
-  kind: FieldKind | undefined,
-  traceItemType: TraceItemDataset
-): string {
-  if (extractBaseKey(key) !== key) {
-    return key;
+export function getAttributeOptionForValue<Value extends string | number>(
+  options: Array<SelectOption<Value>>,
+  value: string | undefined
+): SelectOption<Value> | undefined {
+  if (value === undefined) {
+    return undefined;
   }
-  if (getFieldDefinition(key, getFieldDefinitionType(traceItemType))) {
-    return key;
+
+  const exactMatch = options.find(option => option.value === value);
+  if (exactMatch) {
+    return exactMatch;
   }
-  if (kind === FieldKind.MEASUREMENT) {
-    return `tags[${key},number]`;
+
+  const resolverItems = options.flatMap(option =>
+    typeof option.value === 'string'
+      ? [{value: option.value, textValue: option.textValue}]
+      : []
+  );
+  const explicitMatch = findExplicitTagKeyMatch(
+    getTagsFromResolverItems(resolverItems),
+    value
+  );
+  if (explicitMatch) {
+    return options.find(option => option.value === explicitMatch);
   }
-  if (kind === FieldKind.BOOLEAN) {
-    return `tags[${key},boolean]`;
+
+  const baseValue = getExplicitTagBaseKey(value);
+  if (baseValue !== value) {
+    return options.find(option => option.value === baseValue);
   }
-  return key;
+
+  return undefined;
+}
+
+export function getAttributeOptionValue<Value extends string | number>(
+  options: Array<SelectOption<Value>>,
+  value: string | undefined
+): Value | string | undefined {
+  return getAttributeOptionForValue(options, value)?.value ?? value;
 }
 
 function hasTag(tags: TagCollection, column: string): boolean {
-  const baseColumn = extractBaseKey(column);
+  const baseColumn = getExplicitTagBaseKey(column);
   return column in tags || baseColumn in tags;
 }
 

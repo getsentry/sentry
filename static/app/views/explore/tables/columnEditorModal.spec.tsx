@@ -341,7 +341,7 @@ describe('ColumnEditorModal', () => {
     expect(screen.getByTestId('editor-column')).toHaveTextContent('boolean');
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
-    expect(onColumnsChange).toHaveBeenCalledWith(['tags[span.is_segment,boolean]']);
+    expect(onColumnsChange).toHaveBeenCalledWith(['span.is_segment']);
   });
 
   it('renders existing boolean column with correct type badge', async () => {
@@ -370,5 +370,33 @@ describe('ColumnEditorModal', () => {
     expect(columns[0]).toHaveTextContent('boolean');
     expect(columns[1]).toHaveTextContent('id');
     expect(columns[1]).toHaveTextContent('string');
+  });
+
+  it('renders legacy raw measurement and boolean columns with typed selections', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['span.duration', 'span.is_segment']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const columns = screen.getAllByTestId('editor-column');
+    expect(columns[0]).toHaveTextContent('span.duration');
+    expect(columns[0]).toHaveTextContent('number');
+    expect(columns[1]).toHaveTextContent('span.is_segment');
+    expect(columns[1]).toHaveTextContent('boolean');
   });
 });
