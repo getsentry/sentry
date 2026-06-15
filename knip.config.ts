@@ -7,6 +7,7 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
+  'static/app/serviceWorker/worker/worker.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
@@ -32,8 +33,7 @@ const testingEntryPoints = [
   'static/**/*.spec.{js,ts,tsx}',
   'static/**/*.snapshots.tsx',
   'tests/js/**/*.spec.{js,ts,tsx}',
-  // jest uses this
-  'tests/js/test-balancer/index.js',
+  'tests/js/test-balancer/*.ts',
 ];
 
 const storyBookEntryPoints = [

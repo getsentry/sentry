@@ -1,6 +1,6 @@
 from django.urls import re_path
 
-from sentry.integrations.web.vsts_extension_configuration import VstsExtensionConfigurationView
+from sentry.integrations.vsts.views.configure_redirect import VstsExtensionConfigureRedirectView
 
 from .search import VstsSearchEndpoint
 from .webhooks import WorkItemWebhook
@@ -16,10 +16,12 @@ urlpatterns = [
         VstsSearchEndpoint.as_view(),
         name="sentry-extensions-vsts-search",
     ),
-    # VSTS Marketplace extension install flow
+    # The Azure DevOps Marketplace links here with `targetId`/`targetName`. We
+    # forward those to the link view, which opens the install pipeline modal to
+    # finish the install.
     re_path(
         r"^configure/$",
-        VstsExtensionConfigurationView.as_view(),
+        VstsExtensionConfigureRedirectView.as_view(),
         name="vsts-extension-configuration",
     ),
 ]
