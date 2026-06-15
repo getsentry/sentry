@@ -11,14 +11,13 @@ import type {
   BranchOverride,
   SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import {isOverrideValid} from 'sentry/components/events/autofix/utils/isOverrideValid';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {AutofixRepositoriesItemBranchOverride} from 'sentry/components/seer/projectDetails/autofixRepositoriesItemBranchOverride';
+import {overrideHasAllValues} from 'sentry/components/seer/projectDetails/overrideHasAllValues';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct, tn} from 'sentry/locale';
-
-import {AutofixRepositoriesItemBranchOverride} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItemBranchOverride';
 
 interface Props {
   canWrite: boolean;
@@ -63,7 +62,7 @@ export function AutofixRepositoriesItem({
     setLocalOverrides(newLocalOverrides);
 
     // Only sync valid overrides to the server if they changed
-    const branchOverrides = newLocalOverrides.filter(isOverrideValid);
+    const branchOverrides = newLocalOverrides.filter(overrideHasAllValues);
     if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
       onUpdateRepo({
         ...repository,
@@ -77,7 +76,7 @@ export function AutofixRepositoriesItem({
     setLocalOverrides(newLocalOverrides);
 
     // Sync valid overrides to the server if they changed
-    const branchOverrides = newLocalOverrides.filter(isOverrideValid);
+    const branchOverrides = newLocalOverrides.filter(overrideHasAllValues);
     if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
       onUpdateRepo({
         ...repository,
