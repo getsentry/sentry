@@ -763,7 +763,7 @@ def bind_ambiguous_org_context(
     scope.set_context(
         "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
     )
-    scope.set_attribute("organization.multiple possible", org_slugs)
+    scope.set_attribute("organization.multiple_possible", org_slugs)
     scope.set_attribute("organization.source", source or "unknown")
 
 
