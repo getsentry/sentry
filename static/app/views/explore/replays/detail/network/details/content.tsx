@@ -109,6 +109,11 @@ export function NetworkDetailsContent(props: Props) {
           {[Output.SETUP, Output.URL_SKIPPED, Output.DATA].includes(output) && (
             <Setup showSnippet={output} {...props} />
           )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>
+              {t('No headers were captured for this request.')}
+            </ParseError>
+          )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="headers" />}
         </OverflowFluidHeight>
       );

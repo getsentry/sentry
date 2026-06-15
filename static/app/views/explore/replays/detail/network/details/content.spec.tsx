@@ -280,6 +280,40 @@ describe('NetworkDetailsContent', () => {
           });
         }
       );
+
+      it('should render the `did not complete` message instead of the setup message when the request did not complete', () => {
+        render(
+          <NetworkDetailsContent
+            {...basicSectionProps()}
+            isCaptureBodySetup
+            isSetup
+            item={mockItems.fetchAborted}
+            visibleTab={visibleTab}
+          />
+        );
+
+        expect(
+          screen.getByText('No headers were captured for this request.')
+        ).toBeInTheDocument();
+        expect(queryScreenState().isShowingSetup).toBe(false);
+      });
+
+      it('should still render the setup message when the request did not complete and the URL is not allow-listed', () => {
+        render(
+          <NetworkDetailsContent
+            {...basicSectionProps()}
+            isCaptureBodySetup
+            isSetup
+            item={mockItems.fetchAbortedUrlSkipped}
+            visibleTab={visibleTab}
+          />
+        );
+
+        expect(queryScreenState().isShowingSetup).toBe(true);
+        expect(
+          screen.queryByText('No headers were captured for this request.')
+        ).not.toBeInTheDocument();
+      });
     });
   });
 

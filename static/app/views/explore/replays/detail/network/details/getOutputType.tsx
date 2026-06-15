@@ -61,11 +61,7 @@ export function getOutputType({
   const hasExplicitUrlSkip =
     request?._meta?.warnings?.includes('URL_SKIPPED') ||
     response?._meta?.warnings?.includes('URL_SKIPPED');
-  if (
-    didNotComplete &&
-    !hasExplicitUrlSkip &&
-    ['request', 'response'].includes(visibleTab)
-  ) {
+  if (didNotComplete && !hasExplicitUrlSkip) {
     return Output.INCOMPLETE;
   }
 
