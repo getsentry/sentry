@@ -722,7 +722,7 @@ function getPlottableEventDataIndex(
 }
 
 // Hide every part of the axis so ECharts will remove those elements and also
-const X_AXIS_SPLIT_NUMBER = 5;
+const X_AXIS_SPLIT_NUMBER = 10;
 
 // remove the visual space they would take up if they were there.
 const HIDDEN_AXIS = {
