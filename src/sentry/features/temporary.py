@@ -197,6 +197,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:pr-metrics-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Emit the BigQuery row on a tracked PR's close/merge (PR Merge Live Metrics rollout)
     manager.add("organizations:pr-metrics-emit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Forward a terminal PR event that needs a judge to Seer (PR Merge Live Metrics judge path)
+    manager.add("organizations:pr-metrics-judge", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod_artifact webhook subscription UI in Sentry App settings
     manager.add("organizations:preprod-artifact-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod PR comments for build distribution
@@ -276,6 +278,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-ui-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer to generate rich component embeds from an adjusted prompt
     manager.add("organizations:seer-explorer-embeds", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:seer-explorer-stream", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable structured LLM context (JSON snapshot) instead of ASCII DOM snapshot
     manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
@@ -393,8 +396,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable seer activities to be evaluated in workflow engine
     manager.add("organizations:workflow-engine-evaluate-seer-activities", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Route group status change activities through the workflow activity registry (replaces group_status_update_registry)
-    manager.add("organizations:workflow-engine-status-change-via-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable our logs product (known internally as ourlogs) in UI and backend
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.

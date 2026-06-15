@@ -666,6 +666,19 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         assert {p.id for p in result} == {self.project_1.id, self.project_2.id}
 
+    def test_explicit_project_ids_and_slugs(self) -> None:
+        self.create_team_membership(user=self.user, team=self.team_3)
+        request = self.build_request()
+
+        result = self.endpoint.get_projects(
+            request,
+            self.org,
+            project_ids={self.project_1.id},
+            project_slugs={self.project_2.slug},
+        )
+
+        assert {p.id for p in result} == {self.project_1.id, self.project_2.id}
+
     def test_project_param_with_nonexistent_slug(self) -> None:
         self.create_team_membership(user=self.user, team=self.team_1)
         request = self.build_request(project=["nonexistent-slug"])

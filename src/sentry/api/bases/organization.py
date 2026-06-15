@@ -394,16 +394,12 @@ class OrganizationEndpoint(Endpoint):
         :return: A list of Project objects, or raises PermissionDenied. When project_ids or project_slugs
         are explicitly provided, the returned list is guaranteed non-empty (or PermissionDenied is raised).
 
-        NOTE: Passing both project_ids and project_slugs raises ``ParseError``.
         """
         qs = Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
-        if project_slugs and project_ids:
-            raise ParseError(detail="Cannot query for both ids and slugs")
-
-        if project_ids:
-            requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
-        elif project_slugs:
-            requested_projects = ParsedProjectIdOrSlugParams(ids=set(), slugs=set(project_slugs))
+        if project_ids or project_slugs:
+            requested_projects = ParsedProjectIdOrSlugParams(
+                ids=project_ids or set(), slugs=set(project_slugs or ())
+            )
         else:
             requested_projects = self.get_requested_project_params_unchecked(request)
         ids = requested_projects.ids
