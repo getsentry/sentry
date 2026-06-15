@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -92,9 +92,40 @@ export function ScmIntegrationConnect({
   // active integration so the repo selector has something to search.
   const effectiveIntegration = selectedIntegration ?? activeIntegrations[0];
 
+  // Guards the auto-select analytics event below so it fires once.
+  const defaultIntegrationTrackedRef = useRef(false);
+
   useEffect(() => {
     trackAnalytics(STEP_VIEWED_EVENT[analyticsFlow], {organization});
   }, [organization, analyticsFlow]);
+
+  // Fire scm_connect_integration_selected once for the integration auto-selected
+  // on entry, when the selector is in use and the user hasn't explicitly picked
+  // one. Otherwise a user who keeps the default never emits the event, leaving
+  // the funnel without an integration-selected step. An explicit switch fires
+  // its own `source: 'manual'` event in the handler below.
+  useEffect(() => {
+    if (
+      !allowIntegrationSwitching ||
+      defaultIntegrationTrackedRef.current ||
+      selectedIntegration ||
+      !effectiveIntegration
+    ) {
+      return;
+    }
+    defaultIntegrationTrackedRef.current = true;
+    trackAnalytics(INTEGRATION_SELECTED_EVENT[analyticsFlow], {
+      organization,
+      provider: effectiveIntegration.provider.key,
+      source: 'default',
+    });
+  }, [
+    allowIntegrationSwitching,
+    selectedIntegration,
+    effectiveIntegration,
+    analyticsFlow,
+    organization,
+  ]);
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -109,17 +140,25 @@ export function ScmIntegrationConnect({
   // an integration) and everything derived from it (platform, features, form).
   const handleIntegrationSelect = useCallback(
     (integration: Integration) => {
+      // Reselecting the active integration is a no-op; clearing here would wipe
+      // the in-progress repo/platform/form for no reason (CompactSelect fires
+      // onChange even when the already-selected option is re-picked).
+      if (integration.id === effectiveIntegration?.id) {
+        return;
+      }
       onClearDerivedState();
       onIntegrationChange(integration);
       onRepositoryChange(undefined);
       trackAnalytics(INTEGRATION_SELECTED_EVENT[analyticsFlow], {
         organization,
         provider: integration.provider.key,
+        source: 'manual',
       });
     },
     [
       analyticsFlow,
       organization,
+      effectiveIntegration?.id,
       onClearDerivedState,
       onIntegrationChange,
       onRepositoryChange,

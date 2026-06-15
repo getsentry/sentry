@@ -46,6 +46,9 @@ export type OnboardingEventParameters = {
   };
   'onboarding.scm_connect_integration_selected': {
     provider: string;
+    // 'default' when the integration was auto-selected on entry, 'manual' when
+    // the user explicitly switched via the selector.
+    source: 'default' | 'manual';
   };
   'onboarding.scm_connect_repo_selected': {
     provider: string;
