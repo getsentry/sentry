@@ -429,7 +429,10 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction
+          display={{label: t('Dashboards'), icon: <IconDashboard />}}
+          keywords={[t('insights'), t('performance')]}
+        >
           {hasPrebuiltDashboards && (
             <CMDKAction
               display={{label: t('Dashboards')}}

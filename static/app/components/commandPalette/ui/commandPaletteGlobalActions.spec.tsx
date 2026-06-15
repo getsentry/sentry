@@ -362,6 +362,19 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     }
   });
 
+  it('routes "insights" search to Dashboards', async () => {
+    // Insights is migrating into Dashboards (insights-to-dashboards-ui-rollout),
+    // so searching "insights" should surface the Dashboards destination.
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'insights');
+
+    expect(
+      (await screen.findAllByRole('option', {name: /Dashboards/})).length
+    ).toBeGreaterThan(0);
+  });
+
   it.each([
     {
       body: {
