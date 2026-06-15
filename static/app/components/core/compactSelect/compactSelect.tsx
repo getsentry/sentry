@@ -36,10 +36,10 @@ interface BaseSelectProps<Value extends SelectKey> extends Omit<
 }
 
 export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
-  DistributedOmit<SingleListProps<Value>, 'children' | 'items' | 'grid' | 'label'>;
+  DistributedOmit<SingleListProps<Value>, 'children' | 'items' | 'mode' | 'label'>;
 
 export type MultipleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
-  DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'grid' | 'label'>;
+  DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'mode' | 'label'>;
 
 export type SelectProps<Value extends SelectKey> =
   | SingleSelectProps<Value>
@@ -73,7 +73,7 @@ export function CompactSelect<Value extends SelectKey>({
   virtualizeThreshold,
 
   // Control props
-  grid,
+  mode,
   disabled,
   emptyMessage,
   size = 'md',
@@ -94,7 +94,7 @@ export function CompactSelect<Value extends SelectKey>({
         value,
         onChange,
         closeOnSelect,
-        grid,
+        mode,
       };
     }
 
@@ -105,7 +105,7 @@ export function CompactSelect<Value extends SelectKey>({
         value,
         onChange,
         closeOnSelect,
-        grid,
+        mode,
       };
     }
 
@@ -115,9 +115,9 @@ export function CompactSelect<Value extends SelectKey>({
       value,
       onChange,
       closeOnSelect,
-      grid,
+      mode,
     };
-  }, [multiple, clearable, value, onChange, closeOnSelect, grid]);
+  }, [multiple, clearable, value, onChange, closeOnSelect, mode]);
 
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
@@ -198,7 +198,7 @@ export function CompactSelect<Value extends SelectKey>({
       menuHeight={needsMeasuring ? '1px' : undefined}
       triggerId={triggerId}
       disabled={controlDisabled}
-      grid={grid}
+      mode={mode}
       size={size}
       items={allItemsWithKey}
       value={value}

@@ -96,15 +96,6 @@ export function generateOrgSlugUrl(orgSlug: any) {
   return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
 }
 
-/**
- * Encodes given object into url-friendly format
- */
-export function urlEncode(object: Record<string, any>): string {
-  return Object.keys(object)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
-    .join('&');
-}
-
 export function isNumericString(value: string): boolean {
   const s = value.trim();
 

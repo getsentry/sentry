@@ -107,7 +107,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
 
     // renders category-specific fields when a plan is selected
@@ -164,7 +164,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am2)'
+      'Enterprise (Business) (am2_business_ent)'
     );
 
     expect(screen.getByLabelText('Reserved Performance Units')).toBeInTheDocument();
@@ -176,7 +176,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
 
     // enable span fields, disable performance unit fields
@@ -314,7 +314,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
 
     await selectEvent.select(
@@ -353,7 +353,7 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
     const enabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
     expect(enabledSoftCapFields.length).toBeGreaterThan(0);
@@ -383,7 +383,7 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),
@@ -411,7 +411,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
 
     expect(within(container).queryByText(/accepted spans/i)).not.toBeInTheDocument();
@@ -428,40 +428,9 @@ describe('provisionSubscriptionAction', () => {
     expect(within(container).getByLabelText('Reserved Spans')).toBeInTheDocument();
     expect(within(container).getByLabelText('Soft Cap Type Spans')).toBeInTheDocument();
     expect(within(container).getByLabelText('Price for Spans')).toBeInTheDocument();
-
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) with Dynamic Sampling (am3)'
-    );
-
-    expect(
-      within(container).getByLabelText('Reserved Accepted Spans')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('Soft Cap Type Accepted Spans')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('Price for Accepted Spans')
-    ).toBeInTheDocument();
-    expect(within(container).queryByText('Dynamic Sampling ARR')).not.toBeInTheDocument();
-    expect(within(container).getByLabelText('Reserved Stored Spans')).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('Soft Cap Type Stored Spans')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('Price for Stored Spans')
-    ).toBeInTheDocument();
-
-    typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
-    typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
-    expect(
-      within(container).getByLabelText('Price for Accepted Spans (Dynamic Sampling ARR)')
-    ).toBeInTheDocument();
-    expect(within(container).getByLabelText('Price for Stored Spans')).toHaveValue(0);
-    expect(within(container).getByLabelText('Price for Stored Spans')).toBeDisabled();
   });
 
-  it('reserved CPE fields are cleared when non-DS plan is selected', async () => {
+  it('reserved CPE fields are cleared when another plan is selected', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -473,32 +442,26 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) with Dynamic Sampling (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
-    expect(screen.getByLabelText('Reserved Cost-Per-Event Accepted Spans')).toBeEnabled();
-    expect(screen.getByLabelText('Reserved Cost-Per-Event Stored Spans')).toBeEnabled();
+    expect(screen.getByLabelText('Reserved Cost-Per-Event Issue Fixes')).toBeEnabled();
+    expect(screen.getByLabelText('Reserved Cost-Per-Event Issue Scans')).toBeEnabled();
 
-    typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
-    typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
+    typeNumForField('Reserved Cost-Per-Event Issue Fixes', '1');
+    typeNumForField('Reserved Cost-Per-Event Issue Scans', '2');
 
-    expect(screen.getByLabelText('Reserved Accepted Spans')).toBeDisabled();
-    expect(screen.getByLabelText('Reserved Accepted Spans')).toHaveValue(-2);
-    expect(screen.getByLabelText('Reserved Stored Spans')).toBeDisabled();
-    expect(screen.getByLabelText('Reserved Stored Spans')).toHaveValue(-2);
+    expect(screen.getByLabelText('Reserved Issue Fixes')).toBeDisabled();
+    expect(screen.getByLabelText('Reserved Issue Fixes')).toHaveValue(-2);
+    expect(screen.getByLabelText('Reserved Issue Scans')).toBeDisabled();
+    expect(screen.getByLabelText('Reserved Issue Scans')).toHaveValue(-2);
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am2_business_ent)'
     );
-    expect(
-      screen.queryByLabelText('Reserved Cost-Per-Event Accepted Spans')
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('Reserved Cost-Per-Event Stored Spans')
-    ).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Reserved Spans')).toBeEnabled();
-    expect(screen.queryByLabelText('Reserved Accepted Spans')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Reserved Stored Spans')).not.toBeInTheDocument();
+    // the reserved CPEs were reset, so the reserved fields are editable again
+    expect(screen.getByLabelText('Reserved Issue Fixes')).toBeEnabled();
+    expect(screen.getByLabelText('Reserved Issue Scans')).toBeEnabled();
   });
 
   it('prefills the form based on the enterprise subscription', async () => {
@@ -536,7 +499,9 @@ describe('provisionSubscriptionAction', () => {
 
     loadModal();
 
-    expect(await screen.findByText('Enterprise (Business) (am3)')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Enterprise (Business) (am3_business_ent)')
+    ).toBeInTheDocument();
     expect(screen.getByText('Annual')).toBeInTheDocument();
     expect(screen.getByText('Invoiced')).toBeInTheDocument();
     expect(screen.getByText('Shared')).toBeInTheDocument();
@@ -565,7 +530,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am1)'
+      'Enterprise (Business) (am1_business_ent)'
     );
 
     expect(getSpinbutton('Annual Contract Value')).toBeEnabled();
@@ -590,7 +555,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am1)'
+      'Enterprise (Business) (am1_business_ent)'
     );
 
     await selectEvent.select(
@@ -715,7 +680,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am2)'
+      'Enterprise (Business) (am2_business_ent)'
     );
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Billing Interval'}),
@@ -883,7 +848,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am2)'
+      'Enterprise (Business) (am2_business_ent)'
     );
 
     await selectEvent.select(
@@ -1008,7 +973,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am2)'
+      'Enterprise (Business) (am2_business_ent)'
     );
 
     await selectEvent.select(
@@ -1142,7 +1107,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
 
     await selectEvent.select(
@@ -1269,143 +1234,6 @@ describe('provisionSubscriptionAction', () => {
     });
   }, 15_000);
 
-  it('calls api with correct am3 dynamic sampling args', async () => {
-    const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
-    triggerProvisionSubscription({
-      subscription: am3Sub,
-      orgId: am3Sub.slug,
-      onSuccess,
-      billingConfig: mockBillingConfig,
-    });
-
-    await loadModal();
-
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) with Dynamic Sampling (am3)'
-    );
-
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
-      'Annual'
-    );
-
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
-      'Invoiced'
-    );
-
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
-      'Disable'
-    );
-
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Accepted Spans'}),
-      'True Forward'
-    );
-
-    await clickCheckbox('Apply Changes To Current Subscription');
-    typeNumForField('Reserved Replays', '75000');
-    typeNumForField('Reserved Uptime Monitors', '250');
-    typeNumForField('Reserved Cost-Per-Event Accepted Spans', '1');
-    typeNumForField('Reserved Cost-Per-Event Stored Spans', '2');
-    typeNumForField('Reserved Issue Fixes', '0');
-    typeNumForField('Reserved Issue Scans', '0');
-    typeNumForMatchingFields('Price for', '0', false);
-    typeNumForField('Price for Accepted Spans (Dynamic Sampling ARR)', '12000'); // custom price for stored spans is auto-filled to 0
-    typeNumForField('Dynamic Sampling Budget', '12000');
-    typeNumForField('Price for PCSS', '500');
-    typeNumForField('Annual Contract Value', '12500');
-
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/provision-subscription/`,
-      method: 'POST',
-      body: {},
-    });
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
-
-    expect(updateMock).toHaveBeenCalledWith(
-      `/customers/${mockOrg.slug}/provision-subscription/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          billingInterval: 'annual',
-          coterm: true,
-          customPrice: 1250000,
-          customPriceAttachments: 0,
-          customPriceErrors: 0,
-          customPriceInstallableBuilds: 0,
-          customPriceLogBytes: 0,
-          customPriceMonitorSeats: 0,
-          customPricePcss: 50000,
-          customPriceProfileDuration: 0,
-          customPriceProfileDurationUI: 0,
-          customPriceReplays: 0,
-          customPriceSeerAutofix: 0,
-          customPriceSeerScanner: 0,
-          customPriceSizeAnalyses: 0,
-          customPriceSpans: 1200000,
-          customPriceSpansIndexed: 0,
-          customPriceUptime: 0,
-          managed: true,
-          onDemandInvoicedManual: 'DISABLE',
-          plan: 'am3_business_ent_ds',
-          reservedAttachments: 1,
-          reservedBudgets: [{budget: 1200000, categories: ['spans', 'spansIndexed']}],
-          reservedCpeSpans: 100000000,
-          reservedCpeSpansIndexed: 200000000,
-          reservedErrors: 50000,
-          reservedInstallableBuilds: 0,
-          reservedLogBytes: 5,
-          reservedMonitorSeats: 1,
-          reservedProfileDuration: 0,
-          reservedProfileDurationUI: 0,
-          reservedReplays: 75000,
-          reservedSeerAutofix: 0,
-          reservedSeerScanner: 0,
-          reservedSizeAnalyses: 100,
-          reservedSpans: -2,
-          reservedSpansIndexed: -2,
-          reservedUptime: 250,
-          retainOnDemandBudget: false,
-          softCapTypeAttachments: null,
-          softCapTypeErrors: null,
-          softCapTypeInstallableBuilds: null,
-          softCapTypeLogBytes: null,
-          softCapTypeMonitorSeats: null,
-          softCapTypeProfileDuration: null,
-          softCapTypeProfileDurationUI: null,
-          softCapTypeReplays: null,
-          softCapTypeSeerAutofix: null,
-          softCapTypeSeerScanner: null,
-          softCapTypeSizeAnalyses: null,
-          softCapTypeSpans: 'TRUE_FORWARD',
-          softCapTypeSpansIndexed: null,
-          softCapTypeUptime: null,
-          trueForward: {
-            attachments: false,
-            errors: false,
-            installableBuilds: false,
-            monitorSeats: false,
-            profileDuration: false,
-            profileDurationUI: false,
-            replays: false,
-            seerAutofix: false,
-            seerScanner: false,
-            sizeAnalyses: false,
-            spans: true,
-            spansIndexed: false,
-            uptime: false,
-            logBytes: false,
-          },
-          type: 'invoiced',
-        },
-      })
-    );
-  }, 15_000);
-
   it('calls api with correct seer reserved budget args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
     triggerProvisionSubscription({
@@ -1419,7 +1247,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
 
     await selectEvent.select(
@@ -1547,7 +1375,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
 
     expect(screen.queryByLabelText('Seer Budget')).not.toBeInTheDocument();
@@ -1572,7 +1400,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am3)'
+      'Enterprise (Business) (am3_business_ent)'
     );
 
     await selectEvent.select(
@@ -1698,7 +1526,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am2)'
+      'Enterprise (Business) (am2_business_ent)'
     );
 
     await selectEvent.select(
@@ -1822,63 +1650,6 @@ describe('provisionSubscriptionAction', () => {
     });
   }, 15_000);
 
-  it('calls api with correct mm2 args', async () => {
-    triggerProvisionSubscription({
-      subscription: mockSub,
-      orgId: mockSub.slug,
-      onSuccess,
-      billingConfig: mockBillingConfig,
-    });
-
-    loadModal();
-
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
-      'Business (mm2)'
-    );
-
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
-      'Annual'
-    );
-
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
-      'Invoiced'
-    );
-
-    await clickCheckbox('Managed Subscription');
-    await clickCheckbox('Apply Changes To Current Subscription');
-    typeNumForField('Reserved Errors', '2000000');
-    typeNumForField('Annual Contract Value', '4550');
-
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/provision-subscription/`,
-      method: 'POST',
-      body: {},
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
-
-    expect(updateMock).toHaveBeenCalledWith(
-      `/customers/${mockOrg.slug}/provision-subscription/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          billingInterval: 'annual',
-          coterm: true,
-          customPrice: 455000,
-          managed: true,
-          plan: 'mm2_a',
-          reservedBudgets: [],
-          reservedErrors: 2000000,
-          retainOnDemandBudget: false,
-          type: 'invoiced',
-        },
-      })
-    );
-  }, 15_000);
-
   it('returns submit error on incorrect custom price', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
@@ -1891,7 +1662,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am1)'
+      'Enterprise (Business) (am1_business_ent)'
     );
 
     await selectEvent.select(
@@ -1946,7 +1717,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am1)'
+      'Enterprise (Business) (am1_business_ent)'
     );
 
     await selectEvent.select(
@@ -2069,7 +1840,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am1)'
+      'Enterprise (Business) (am1_business_ent)'
     );
 
     // Verify ATTACHMENTS has (in GB) suffix as expected
@@ -2090,7 +1861,7 @@ describe('provisionSubscriptionAction', () => {
 
     await selectEvent.select(
       await screen.findByRole('textbox', {name: 'Plan'}),
-      'Enterprise (Business) (am1)'
+      'Enterprise (Business) (am1_business_ent)'
     );
 
     // Non-byte categories should not have (in GB) suffix
@@ -2115,7 +1886,7 @@ describe('provisionSubscriptionAction', () => {
 
       await selectEvent.select(
         await screen.findByRole('textbox', {name: 'Plan'}),
-        'Enterprise (Business) with Dynamic Sampling (am3)'
+        'Enterprise (Business) (am3_business_ent)'
       );
 
       await selectEvent.select(
@@ -2136,17 +1907,15 @@ describe('provisionSubscriptionAction', () => {
       await clickCheckbox('Apply Changes To Current Subscription');
 
       // Set valid CPE values
-      typeNumForField('Reserved Cost-Per-Event Accepted Spans', '0.00005');
-      typeNumForField('Reserved Cost-Per-Event Stored Spans', '0.00003');
+      typeNumForField('Reserved Cost-Per-Event Issue Fixes', '0.00005');
+      typeNumForField('Reserved Cost-Per-Event Issue Scans', '0.00003');
 
       // Fill in other required fields
       typeNumForField('Reserved Replays', '75000');
       typeNumForField('Reserved Uptime Monitors', '250');
-      typeNumForField('Reserved Issue Fixes', '0');
-      typeNumForField('Reserved Issue Scans', '0');
       typeNumForMatchingFields('Price for', '0', false);
-      typeNumForField('Price for Accepted Spans (Dynamic Sampling ARR)', '10000');
-      typeNumForField('Dynamic Sampling Budget', '10000');
+      typeNumForField('Price for Issue Fixes (Seer ARR)', '10000');
+      typeNumForField('Seer Budget', '10000');
       typeNumForField('Price for PCSS', '500');
       typeNumForField('Annual Contract Value', '10500');
 
@@ -2164,8 +1933,8 @@ describe('provisionSubscriptionAction', () => {
           `/customers/${mockOrg.slug}/provision-subscription/`,
           expect.objectContaining({
             data: expect.objectContaining({
-              reservedSpans: RESERVED_BUDGET_QUOTA,
-              reservedSpansIndexed: RESERVED_BUDGET_QUOTA,
+              reservedSeerAutofix: RESERVED_BUDGET_QUOTA,
+              reservedSeerScanner: RESERVED_BUDGET_QUOTA,
             }),
           })
         );
@@ -2185,7 +1954,7 @@ describe('provisionSubscriptionAction', () => {
 
       await selectEvent.select(
         await screen.findByRole('textbox', {name: 'Plan'}),
-        'Enterprise (Business) (am3)'
+        'Enterprise (Business) (am3_business_ent)'
       );
 
       await selectEvent.select(
@@ -2247,7 +2016,7 @@ describe('provisionSubscriptionAction', () => {
 
       await selectEvent.select(
         await screen.findByRole('textbox', {name: 'Plan'}),
-        'Enterprise (Business) with Dynamic Sampling (am3)'
+        'Enterprise (Business) (am3_business_ent)'
       );
 
       await selectEvent.select(
@@ -2262,8 +2031,8 @@ describe('provisionSubscriptionAction', () => {
 
       await clickCheckbox('Apply Changes To Current Subscription');
 
-      const cpeField = screen.getByLabelText('Reserved Cost-Per-Event Accepted Spans');
-      const reservedField = screen.getByLabelText('Reserved Accepted Spans');
+      const cpeField = screen.getByLabelText('Reserved Cost-Per-Event Issue Fixes');
+      const reservedField = screen.getByLabelText('Reserved Issue Fixes');
 
       // Set a valid CPE value
       fireEvent.change(cpeField, {target: {value: '0.00005'}});
