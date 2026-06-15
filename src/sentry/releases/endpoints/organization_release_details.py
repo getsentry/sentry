@@ -456,6 +456,7 @@ class OrganizationReleaseDetailsEndpoint(
 
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("version", version)
+        scope.set_attribute("version", version)
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
             projects = release.projects.all()
@@ -523,6 +524,7 @@ class OrganizationReleaseDetailsEndpoint(
                     release.clear_commits()
 
         scope.set_tag("has_refs", bool(refs))
+        scope.set_attribute("has_refs", bool(refs))
         if refs:
             if not request.user.is_authenticated and not request.auth:
                 scope.set_tag("failure_reason", "user_not_authenticated")

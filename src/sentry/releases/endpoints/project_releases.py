@@ -236,4 +236,5 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             )
             return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
+        scope.set_attribute("failure_reason", "serializer_error")
         return Response(as_validation_errors(serializer), status=400)
