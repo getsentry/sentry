@@ -19,7 +19,7 @@ TEST_SALT = "test-salt"
 
 @control_silo_test
 class SendSignupVerificationEmailTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.factory = RequestFactory()
         self.request = self.factory.get("/")
         session = mock.MagicMock()
@@ -31,7 +31,9 @@ class SendSignupVerificationEmailTest(TestCase):
         return_value="/api/0/signup/verify-email/fakeblob/",
     )
     @mock.patch("sentry.auth.email_verification.MessageBuilder")
-    def test_sends_verification_email(self, mock_builder, mock_reverse):
+    def test_sends_verification_email(
+        self, mock_builder: mock.MagicMock, mock_reverse: mock.MagicMock
+    ) -> None:
         mock_msg = mock.MagicMock()
         mock_builder.return_value = mock_msg
 
@@ -48,7 +50,9 @@ class SendSignupVerificationEmailTest(TestCase):
         return_value="/api/0/signup/verify-email/fakeblob/",
     )
     @mock.patch("sentry.auth.email_verification.MessageBuilder")
-    def test_signed_blob_contains_payload(self, mock_builder, mock_reverse):
+    def test_signed_blob_contains_payload(
+        self, mock_builder: mock.MagicMock, mock_reverse: mock.MagicMock
+    ) -> None:
         mock_builder.return_value = mock.MagicMock()
 
         send_signup_verification_email(self.request, "user@example.com")
@@ -64,7 +68,9 @@ class SendSignupVerificationEmailTest(TestCase):
         return_value="/api/0/signup/verify-email/fakeblob/",
     )
     @mock.patch("sentry.auth.email_verification.MessageBuilder")
-    def test_creates_session_if_missing(self, mock_builder, mock_reverse):
+    def test_creates_session_if_missing(
+        self, mock_builder: mock.MagicMock, mock_reverse: mock.MagicMock
+    ) -> None:
         mock_builder.return_value = mock.MagicMock()
         request = self.factory.get("/")
         session = mock.MagicMock()
@@ -78,7 +84,7 @@ class SendSignupVerificationEmailTest(TestCase):
 
 @control_silo_test
 class UnsignSignupVerificationTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.factory = RequestFactory()
         self.request = self.factory.get("/")
         session = mock.MagicMock()
@@ -86,7 +92,7 @@ class UnsignSignupVerificationTest(TestCase):
         self.request.session = session
 
     @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_valid_signature(self, mock_salt):
+    def test_valid_signature(self, mock_salt: mock.MagicMock) -> None:
         exp = time.time() + 300
         signed = sign(salt=TEST_SALT, email="a@b.com", session_id="s1", expires_at=exp)
         result = unsign_signup_verification(signed, self.request)
@@ -94,28 +100,34 @@ class UnsignSignupVerificationTest(TestCase):
         assert result["session_id"] == "s1"
 
     @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_expired_link(self, mock_salt):
+    def test_expired_link(self, mock_salt: mock.MagicMock) -> None:
         exp = time.time() - 1
         signed = sign(salt=TEST_SALT, email="a@b.com", session_id="s1", expires_at=exp)
         with pytest.raises(SignatureExpired):
             unsign_signup_verification(signed, self.request)
 
     @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_tampered_signature(self, mock_salt):
+    def test_tampered_signature(self, mock_salt: mock.MagicMock) -> None:
         exp = time.time() + 300
         signed = sign(salt=TEST_SALT, email="a@b.com", session_id="s1", expires_at=exp)
+        tampered = signed[:-1] + ("A" if signed[-1] != "A" else "B")
         with pytest.raises(BadSignature):
-            unsign_signup_verification(signed + "x", self.request)
+            unsign_signup_verification(tampered, self.request)
 
     @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_wrong_salt(self, mock_salt):
+    def test_malformed_link_throws_bad_sig(self, mock_salt: mock.MagicMock) -> None:
+        with pytest.raises(BadSignature):
+            unsign_signup_verification("not-valid-base64-!!!", self.request)
+
+    @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
+    def test_wrong_salt(self, mock_salt: mock.MagicMock) -> None:
         exp = time.time() + 300
         signed = sign(salt="wrong-salt", email="a@b.com", session_id="s1", expires_at=exp)
         with pytest.raises(BadSignature):
             unsign_signup_verification(signed, self.request)
 
     @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_session_mismatch(self, mock_salt):
+    def test_session_mismatch(self, mock_salt: mock.MagicMock) -> None:
         exp = time.time() + 300
         signed = sign(salt=TEST_SALT, email="a@b.com", session_id="else", expires_at=exp)
         with pytest.raises(ValueError, match="Session mismatch"):
@@ -123,13 +135,13 @@ class UnsignSignupVerificationTest(TestCase):
 
 
 class FormatExpiryTest(TestCase):
-    def test_hours(self):
+    def test_hours(self) -> None:
         assert _format_expiry(60) == "1 hour"
         assert _format_expiry(120) == "2 hours"
 
-    def test_minutes(self):
+    def test_minutes(self) -> None:
         assert _format_expiry(1) == "1 minute"
         assert _format_expiry(10) == "10 minutes"
 
-    def test_non_round_hours(self):
+    def test_non_round_hours(self) -> None:
         assert _format_expiry(90) == "90 minutes"
