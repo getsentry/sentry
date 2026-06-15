@@ -613,11 +613,6 @@ function setUpMocks(
     body: BillingConfigFixture(PlanTier.ALL),
     match: [MockApiClient.matchQuery({tier: 'all'})],
   });
-  // TODO(isabella): remove this once all billing config api calls are updated to use tier=all
-  MockApiClient.addMockResponse({
-    url: `/customers/${organization.slug}/billing-config/?tier=mm2`,
-    body: BillingConfigFixture(PlanTier.MM2),
-  });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/billing-config/?tier=am1`,
     body: BillingConfigFixture(PlanTier.AM1),

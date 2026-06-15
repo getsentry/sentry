@@ -1047,11 +1047,8 @@ class WeeklyReportsTest(
             "slug": "bar",
             "url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&project={self.project.id}",
             "color": "#422C6E",
-            "dropped_error_count": 2,
             "accepted_error_count": 1,
             "accepted_replay_count": 0,
-            "dropped_replay_count": 0,
-            "dropped_transaction_count": 9,
             "accepted_transaction_count": 3,
         }
 
@@ -1110,11 +1107,8 @@ class WeeklyReportsTest(
             "slug": "bar",
             "url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&project={self.project.id}",
             "color": "#422C6E",
-            "dropped_error_count": 0,
             "accepted_error_count": 0,
             "accepted_replay_count": 6,
-            "dropped_replay_count": 7,
-            "dropped_transaction_count": 0,
             "accepted_transaction_count": 0,
         }
 
