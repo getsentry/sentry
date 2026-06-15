@@ -30,6 +30,7 @@ class TestMSTeamsActivityHandler(BaseWorkflowTest):
             type=Action.Type.MSTEAMS,
             integration_id=self.integration.id,
             config={
+                "target_identifier": "MS123",
                 "target_display": "General",
                 "target_type": 0,
             },
@@ -57,4 +58,4 @@ class TestMSTeamsActivityHandler(BaseWorkflowTest):
         target = mock_send.call_args[0][2]
         assert isinstance(target, IntegrationNotificationTarget)
         assert target.provider_key == NotificationProviderKey.MSTEAMS
-        assert target.resource_id == "General"
+        assert target.resource_id == "MS123"
