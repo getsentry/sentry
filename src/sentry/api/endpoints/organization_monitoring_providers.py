@@ -14,6 +14,7 @@ from sentry.api.bases.organization import (
     ControlSiloOrganizationEndpoint,
     OrganizationPermission,
 )
+from sentry.identity.datadog.provider import DATADOG_VALID_SITES
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -103,6 +104,8 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
                     {"detail": "Datadog requires a 'site' parameter (e.g. 'datadoghq.com')."},
                     status=400,
                 )
+            elif site not in DATADOG_VALID_SITES:
+                return Response({"detail": f"Invalid Datadog site: {site}"}, status=400)
             config["site"] = site
 
         # Datadog: the IdentityProvider is auto-created during the pipeline
@@ -110,17 +113,13 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         if provider_key != "datadog":
             idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
-        try:
-            pipeline = IdentityPipeline(
-                request=request._request,
-                provider_key=provider_key,
-                organization=organization,
-                provider_model=idp,
-                config=config,
-            )
-        except ValueError:
-            return Response({"detail": "Invalid provider configuration."}, status=400)
-
+        pipeline = IdentityPipeline(
+            request=request._request,
+            provider_key=provider_key,
+            organization=organization,
+            provider_model=idp,
+            config=config,
+        )
         pipeline.initialize()
 
         response = pipeline.current_step()
