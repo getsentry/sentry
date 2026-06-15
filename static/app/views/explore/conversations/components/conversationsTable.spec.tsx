@@ -48,7 +48,7 @@ function mockConversations(data: Conversation[], overrides = {}) {
   } as any);
 }
 
-const MISSING_MESSAGES_TEXT = 'Missing the input and output of your conversations?';
+const MISSING_MESSAGES_TEXT = 'Capture Your Conversation Messages';
 
 describe('ConversationsTable missing messages alert', () => {
   const organization = OrganizationFixture({features: ['gen-ai-conversations']});
