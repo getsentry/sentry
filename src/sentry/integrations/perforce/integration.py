@@ -40,7 +40,7 @@ from sentry.integrations.source_code_management.repository import (
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 logger = logging.getLogger(__name__)
@@ -605,6 +605,16 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         """
         from sentry.integrations.services.integration import integration_service
 
+        data = dict(data)
+
+        if "p4port" in data:
+            p4port = str(data["p4port"]).strip().rstrip("/")
+            try:
+                validate_p4port_transport(p4port)
+            except InvalidP4Port as e:
+                raise IntegrationError(str(e))
+            data["p4port"] = p4port
+
         # Update integration metadata with new values
         metadata = dict(self.model.metadata)  # Create a mutable copy
         metadata.update(data)  # Only update fields present in data
@@ -640,9 +650,6 @@ class PerforceIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.COMMITS,
         ]
     )
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [PerforceInstallationApiStep()]

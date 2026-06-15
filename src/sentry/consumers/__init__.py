@@ -516,7 +516,6 @@ def get_stream_processor(
     consumer_name: str,
     consumer_args: Sequence[str],
     topic: str | None,
-    cluster: str | None,
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
@@ -563,9 +562,6 @@ def get_stream_processor(
     if topic is None:
         topic = real_topic
 
-    if cluster is None:
-        cluster = cluster_from_config
-
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
     )
@@ -583,11 +579,9 @@ def get_stream_processor(
     )
 
     def build_consumer_config(group_id: str, topic: Topic | None = consumer_topic):
-        assert cluster is not None
-
         consumer_config = build_kafka_consumer_configuration(
             kafka_config.get_kafka_consumer_cluster_options(
-                cluster,
+                cluster_from_config,
                 topic=topic,
             ),
             group_id=group_id,

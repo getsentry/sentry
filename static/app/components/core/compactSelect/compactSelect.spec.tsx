@@ -1023,7 +1023,7 @@ describe('CompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             value={state}
             options={[
               {value: 'opt_one', label: 'Option One'},
@@ -1056,7 +1056,7 @@ describe('CompactSelect', () => {
         const [state, setState] = useState<string[]>([]);
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             options={[
               {value: 'opt_one', label: 'Option One'},
@@ -1094,7 +1094,7 @@ describe('CompactSelect', () => {
         const [state, setState] = useState<string[]>([]);
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             options={[
               {value: '"opt_one"', label: 'Option One'},
@@ -1127,7 +1127,7 @@ describe('CompactSelect', () => {
     it('displays trigger button with prefix', async () => {
       render(
         <CompactSelect
-          grid
+          mode="grid"
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix="Prefix" />
           )}
@@ -1147,7 +1147,7 @@ describe('CompactSelect', () => {
     it('can search', async () => {
       render(
         <CompactSelect
-          grid
+          mode="grid"
           search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
@@ -1173,7 +1173,7 @@ describe('CompactSelect', () => {
     it('restores full list when search query is cleared', async () => {
       render(
         <CompactSelect
-          grid
+          mode="grid"
           search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
@@ -1201,7 +1201,7 @@ describe('CompactSelect', () => {
     it('resets search query and shows all options when menu is closed and reopened', async () => {
       render(
         <CompactSelect
-          grid
+          mode="grid"
           search={{placeholder: 'Search here…'}}
           options={[
             {value: 'opt_one', label: 'Option One'},
@@ -1236,7 +1236,7 @@ describe('CompactSelect', () => {
     it('uses custom searchMatcher when provided', async () => {
       render(
         <CompactSelect
-          grid
+          mode="grid"
           search={{
             placeholder: 'Search here…',
             filter: (option, search) => ({
@@ -1264,7 +1264,7 @@ describe('CompactSelect', () => {
     it('can limit the number of options', async () => {
       render(
         <CompactSelect
-          grid
+          mode="grid"
           sizeLimit={2}
           sizeLimitMessage="Use search for more options…"
           search
@@ -1308,7 +1308,7 @@ describe('CompactSelect', () => {
 
         return (
           <CompactSelect
-            grid
+            mode="grid"
             multiple
             value={state}
             onChange={selection => {
@@ -1398,7 +1398,7 @@ describe('CompactSelect', () => {
       const onCloseMock = jest.fn();
       render(
         <CompactSelect
-          grid
+          mode="grid"
           value={undefined}
           onChange={jest.fn()}
           onClose={onCloseMock}
@@ -1426,7 +1426,7 @@ describe('CompactSelect', () => {
 
       render(
         <CompactSelect
-          grid
+          mode="grid"
           value={undefined}
           onChange={jest.fn()}
           options={[

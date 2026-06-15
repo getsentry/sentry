@@ -120,6 +120,7 @@ export function createItem(
     description: description ?? '',
     value: tag.key,
     textValue: tag.key,
+    tag,
     hideCheck: true,
     showDetailsInOverlay: true,
     details: () => <KeyDescription tag={tag} />,
