@@ -5,7 +5,7 @@ from random import Random
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
 
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
@@ -117,6 +117,10 @@ class DebugWeeklyReportView(MailPreviewView):
                 (g, None, random.randint(0, 1000))
                 for g in Group.objects.filter(type__gte=1000, type__lt=2000).all()[:3]
             ]
+            project_context.past_resolved_issues = [
+                (g, random.randint(100, 5000), random.choice([True, False]))
+                for g in Group.objects.filter(status=GroupStatus.RESOLVED)[:3]
+            ]
 
             ctx.projects_context_map[project.id] = project_context
 
@@ -127,6 +131,7 @@ class DebugWeeklyReportView(MailPreviewView):
             context["show_week_over_week_metric"] = (
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
+            context["show_past_issues"] = request.GET.get("show_past_issues", "0") == "1"
         return context
 
     @property
