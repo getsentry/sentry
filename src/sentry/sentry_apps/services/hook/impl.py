@@ -12,6 +12,7 @@ from sentry.sentry_apps.services.hook import HookService, RpcServiceHook
 from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPair
 from sentry.sentry_apps.services.hook.serial import serialize_service_hook
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -161,11 +162,12 @@ class DatabaseBackedHookService(HookService):
                 )
                 sentry_sdk.set_attribute("existing_hooks.application_id", application_id)
                 sentry_sdk.set_attribute(
-                    "existing_hooks.existing_installation_ids", str(list(existing_installation_ids))
+                    "existing_hooks.existing_installation_ids",
+                    json.dumps(list(existing_installation_ids)),
                 )
                 sentry_sdk.set_attribute(
                     "existing_hooks.existing_hooks",
-                    str(list(existing_hooks.values_list("id", flat=True))),
+                    json.dumps(list(existing_hooks.values_list("id", flat=True))),
                 )
                 sentry_sdk.capture_exception(
                     SentryAppSentryError(
