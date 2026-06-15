@@ -91,17 +91,31 @@ function chainUtil<Args extends any[]>(
   };
 }
 
-function wrapRequest(
+async function wrapRequest(
   api: Client,
   path: string,
   options: RequestOptions,
   extraParams: RequestCallbacks = {}
 ) {
-  options.success = chainUtil(options.success, extraParams.success);
-  options.error = chainUtil(options.error, extraParams.error);
-  options.complete = chainUtil(options.complete, extraParams.complete);
+  const success = chainUtil(options.success, extraParams.success);
+  const error = chainUtil(options.error, extraParams.error);
+  const complete = chainUtil(options.complete, extraParams.complete);
 
-  return api.request(path, options);
+  delete options.success;
+  delete options.error;
+  delete options.complete;
+
+  try {
+    const [data, statusText, responseMeta] = await api.requestPromise(path, {
+      ...options,
+      includeAllArgs: true,
+    });
+    success(data, statusText, responseMeta);
+  } catch (err) {
+    error(err);
+  } finally {
+    complete();
+  }
 }
 
 type BulkDeleteParams = UpdateParams;
