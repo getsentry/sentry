@@ -1,8 +1,4 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
-
 import {Alert} from '@sentry/scraps/alert';
-import {CodeBlock} from '@sentry/scraps/code';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Prose} from '@sentry/scraps/text';
@@ -26,34 +22,12 @@ export function ConversationMissingMessagesAlert() {
           </Heading>
           <Prose>
             {t(
-              'These conversations are missing their input and output. Turn on message capture in your SDK to see the messages in each conversation.'
+              'These conversations are missing their input and output. Make sure message capture is enabled in your SDK so you can see the messages in each conversation.'
             )}
           </Prose>
           <Prose>
-            {tct('For Python, set [code:send_default_pii] in your [code:init] call:', {
-              code: <StyledCode />,
-            })}
-          </Prose>
-          <CodeBlock dark language="python" css={codeSnippetStyles}>
-            {`sentry_sdk.init(
-  # ...
-  send_default_pii=True,
-)`}
-          </CodeBlock>
-          <Prose>
-            {tct('For JavaScript, set [code:sendDefaultPii] in your [code:init] call:', {
-              code: <StyledCode />,
-            })}
-          </Prose>
-          <CodeBlock dark language="javascript" css={codeSnippetStyles}>
-            {`Sentry.init({
-  // ...
-  sendDefaultPii: true,
-});`}
-          </CodeBlock>
-          <Prose>
             {tct(
-              'For more details, see the [pythonLink:Python] or [javascriptLink:JavaScript] instrumentation docs, or let an AI agent set it up.',
+              'See the [pythonLink:Python] or [javascriptLink:JavaScript] instrumentation docs for details, or let an AI agent set it up.',
               {
                 pythonLink: <ExternalLink href={AI_INSTRUMENTATION_DOCS_LINKS.python} />,
                 javascriptLink: (
@@ -70,12 +44,3 @@ export function ConversationMissingMessagesAlert() {
     </Alert.Container>
   );
 }
-
-// TODO(aknaus): Remove this once the Prose component adds styling for code elements
-const StyledCode = styled('code')`
-  color: ${p => p.theme.colors.pink500};
-`;
-
-const codeSnippetStyles = css`
-  margin: 0 !important;
-`;
