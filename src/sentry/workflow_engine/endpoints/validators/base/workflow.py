@@ -110,7 +110,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
         for action_filter in value:
             actions, condition_group = self._split_action_and_condition_group(action_filter)
-            BaseDataConditionGroupValidator(data=condition_group).is_valid(raise_exception=True)
+            BaseDataConditionGroupValidator(data=condition_group, context=self.context).is_valid(
+                raise_exception=True
+            )
 
             validated_actions = []
             for action in actions:

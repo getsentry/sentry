@@ -4,16 +4,6 @@ import {tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Team} from 'sentry/types/organization';
 
-type CallbackOptions = {
-  error?: (...args: unknown[]) => void;
-  success?: (...args: unknown[]) => void;
-};
-
-const doCallback = (
-  params: CallbackOptions = {},
-  name: keyof CallbackOptions,
-  ...args: any[]
-) => params[name]?.(...args);
 /**
  * Note these are both slugs
  */
@@ -33,30 +23,6 @@ export async function fetchUserTeams(api: Client, params: OrgSlug) {
 
 export function updateTeamSuccess(teamId: OrgAndTeamSlug['teamId'], data: Team) {
   TeamStore.onUpdateSuccess(teamId, data);
-}
-
-/**
- * @deprecated use joinTeamPromise instead
- */
-export function joinTeam(
-  api: Client,
-  params: OrgAndTeamSlug & Partial<MemberId>,
-  options: CallbackOptions
-) {
-  const endpoint = `/organizations/${params.orgId}/members/${
-    params.memberId ?? 'me'
-  }/teams/${params.teamId}/`;
-
-  return api.request(endpoint, {
-    method: 'POST',
-    success: data => {
-      TeamStore.onUpdateSuccess(params.teamId, data);
-      doCallback(options, 'success', data);
-    },
-    error: error => {
-      doCallback(options, 'error', error);
-    },
-  });
 }
 
 export async function joinTeamPromise(

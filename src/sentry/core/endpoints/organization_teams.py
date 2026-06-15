@@ -22,6 +22,7 @@ from sentry.apidocs.parameters import (
     TeamParams,
     VisibilityParams,
 )
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.integrations.models.external_actor import ExternalActor
@@ -185,7 +186,9 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         },
         examples=TeamExamples.CREATE_TEAM,
     )
-    def post(self, request: Request, organization, **kwargs) -> Response:
+    def post(
+        self, request: Request, organization, **kwargs
+    ) -> Response[TeamSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new team bound to an organization. Requires at least one of the `name`
         or `slug` body params to be set.
@@ -242,8 +245,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 event=audit_log.get_event_id("TEAM_ADD"),
                 data=team.get_audit_log_data(),
             )
-            return Response(
-                serialize(team, request.user, self.team_serializer_for_post()),
-                status=201,
+            body: TeamSerializerResponse = serialize(
+                team, request.user, self.team_serializer_for_post()
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(body, status=201)
+        return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)

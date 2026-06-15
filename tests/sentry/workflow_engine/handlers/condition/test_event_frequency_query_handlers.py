@@ -65,6 +65,19 @@ def test_error_handled_is_set_not_set_skips_normalization(attribute: str, match:
     assert cond is not None
 
 
+@pytest.mark.parametrize("key", ["flags[use-iframe-in-sidebar]", "foo]"])
+def test_tag_filter_with_invalid_key_raises_invalid_filter(key: str) -> None:
+    from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+        InvalidFilter,
+    )
+
+    with pytest.raises(InvalidFilter):
+        BaseEventFrequencyQueryHandler.convert_filter_to_snuba_condition(
+            {"key": key, "match": "eq", "value": "true"},
+            TSDBModel.group,
+        )
+
+
 class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
     handler = EventFrequencyQueryHandler
 
@@ -560,3 +573,24 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
             environment_id=self.environment2.id,
         )
         assert batch_query == {self.event3.group_id: percent}
+
+    @patch(
+        "sentry.workflow_engine.handlers.condition.event_frequency_query_handlers.MIN_SESSIONS_TO_FIRE",
+        1,
+    )
+    def test_batch_query_percent_invalid_tag_filter_returns_zero(self) -> None:
+        self._make_sessions(60, self.environment.name, received=self.end.timestamp())
+
+        batch_query = self.handler().batch_query(
+            groups=self.groups,
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "flags[use-iframe-in-sidebar]", "match": "eq", "value": "true"}],
+        )
+
+        assert batch_query == {
+            self.event.group_id: 0,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 0,
+        }

@@ -6,6 +6,17 @@ from django.db import router, transaction
 from sentry import deletions, tsdb
 from sentry.auth.access import Access, OrganizationGlobalMembership, from_user
 from sentry.auth.services.auth.model import AuthenticationContext
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    GroupActionActor,
+    publish_action,
+)
+from sentry.issues.action_log.types import (
+    CreatePlatformExternalIssueAction,
+    LinkPlatformExternalIssueAction,
+    UnlinkPlatformExternalIssueAction,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -160,6 +171,24 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         except (SentryAppIntegratorError, SentryAppSentryError) as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
+        action_cls = (
+            CreatePlatformExternalIssueAction
+            if action == "create"
+            else LinkPlatformExternalIssueAction
+        )
+        publish_action(
+            action_cls(
+                service_type=external_issue.service_type,
+                display_name=external_issue.display_name,
+                web_url=external_issue.web_url,
+            ),
+            source=ActionSource.API,
+            group_id=group.id,
+            organization_id=organization_id,
+            project_id=external_issue.project_id or group.project_id,
+            actor=GroupActionActor.user(user.id),
+        )
+
         return RpcPlatformExternalIssueResult(
             external_issue=serialize_platform_external_issue(external_issue)
         )
@@ -224,6 +253,19 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         except SentryAppSentryError as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
+        publish_action(
+            CreatePlatformExternalIssueAction(
+                service_type=external_issue.service_type,
+                display_name=external_issue.display_name,
+                web_url=external_issue.web_url,
+            ),
+            source=ActionSource.API,
+            group_id=group.id,
+            organization_id=organization_id,
+            project_id=external_issue.project_id or group.project_id,
+            actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
+        )
+
         return RpcPlatformExternalIssueResult(
             external_issue=serialize_platform_external_issue(external_issue)
         )
@@ -285,6 +327,19 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                         status_code=403,
                     ),
                 )
+
+        publish_action(
+            UnlinkPlatformExternalIssueAction(
+                service_type=platform_external_issue.service_type,
+                display_name=platform_external_issue.display_name,
+                web_url=platform_external_issue.web_url,
+            ),
+            source=ActionSource.API,
+            group_id=platform_external_issue.group_id,
+            organization_id=organization_id,
+            project_id=issue_project.id,
+            actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
+        )
 
         deletions.exec_sync(platform_external_issue)
 

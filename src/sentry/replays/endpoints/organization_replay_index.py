@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import cast
+from typing import TypedDict, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -25,6 +25,10 @@ from sentry.replays.validators import ReplayValidator
 from sentry.utils.cursors import Cursor, CursorResult
 
 
+class _ListReplaysResponse(TypedDict):
+    data: list[ReplayDetailsResponse]
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
@@ -33,17 +37,18 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
     }
 
     @extend_schema(
-        operation_id="List an Organization's Replays",
+        operation_id="listOrganizationReplays",
+        summary="List an Organization's Replays",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReplayValidator],
         responses={
-            200: inline_sentry_response_serializer("ListReplays", list[ReplayDetailsResponse]),
+            200: inline_sentry_response_serializer("ListReplays", _ListReplaysResponse),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
         examples=ReplayExamples.GET_REPLAYS,
     )
     @handled_snuba_exceptions
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[_ListReplaysResponse]:
         """
         Return a list of replays belonging to an organization.
         """

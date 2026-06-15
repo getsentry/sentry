@@ -58,6 +58,16 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
         """
         return new_data
 
+    def post_link_identity(self, identity: dict[str, Any], user_id: int) -> None:
+        """
+        Hook invoked after an identity is linked via the social-auth pipeline.
+
+        ``identity`` is the mapping returned by ``build_identity`` and ``user_id`` is
+        the Sentry user the identity was linked to. No-op by default; providers may
+        override to perform side effects (e.g. backfilling derived mappings). Callers
+        invoke this best-effort, so implementations must not assume they can raise.
+        """
+
     def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         """
         Updates the AuthIdentity with any changes from upstream. The primary

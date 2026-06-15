@@ -14,6 +14,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
@@ -44,10 +45,16 @@ const renderRow = (dataRow: LogTableRowItem) => (
 
 function PinnedLogsWrapper() {
   const logsPinning = useLogsPinning()!;
+  const pinnedLogsQuery = usePinnedLogsQuery({allRows, logsPinning});
 
   return (
     <table>
-      <PinnedLogs allRows={allRows} logsPinning={logsPinning} renderRow={renderRow} />
+      <PinnedLogs
+        allRows={allRows}
+        logsPinning={logsPinning}
+        pinnedLogsQuery={pinnedLogsQuery}
+        renderRow={renderRow}
+      />
     </table>
   );
 }
@@ -121,7 +128,7 @@ describe('PinnedLogs', () => {
     expect(await screen.findByTestId('pinned-row-log-3')).toBeInTheDocument();
   });
 
-  it('shows a loading indicator while a missing pinned row is being fetched', async () => {
+  it('shows a loading placeholder while a missing pinned row is being fetched', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -135,7 +142,7 @@ describe('PinnedLogs', () => {
       },
     });
 
-    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
     expect(screen.queryByTestId('pinned-row-missing-log')).not.toBeInTheDocument();
   });
 

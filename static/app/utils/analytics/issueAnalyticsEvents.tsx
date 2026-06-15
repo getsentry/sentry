@@ -97,7 +97,6 @@ export type IssueEventParameters = {
   'issue_details.copy_issue_details_as_markdown': {
     groupId: string;
     hasAutofix: boolean;
-    hasSummary: boolean;
     eventId?: string;
   };
   'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;

@@ -159,7 +159,7 @@ export function getHighlightTagData({
     return tm;
   }, {});
   return highlightTags.map(tagKey => ({
-    subtree: {},
+    subtree: new Map<string, TagTreeContent>(),
     meta: tagMap[tagKey]?.meta ?? {},
     value:
       tagMap[tagKey] && Object.hasOwn(tagMap[tagKey], 'value')

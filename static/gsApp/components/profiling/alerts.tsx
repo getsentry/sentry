@@ -23,13 +23,7 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {BilledDataCategoryInfo, ProductTrial, Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {
-  displayBudgetName,
-  getProductTrial,
-  isAm2Plan,
-  isAm3Plan,
-  UsageAction,
-} from 'getsentry/utils/billing';
+import {displayBudgetName, getProductTrial, UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {BudgetUsage, checkBudgetUsageFor} from 'getsentry/utils/profiling';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -281,8 +275,8 @@ export function ContinuousProfilingBillingRequirementBanner({
     return null;
   }
 
-  // only check quota for AM2/AM3 plans
-  if (!isAm2Plan(subscription.plan) && !isAm3Plan(subscription.plan)) {
+  // only check quota for plans with continuous profiling
+  if (!subscription.planDetails?.categories?.includes(DataCategory.PROFILE_DURATION)) {
     return null;
   }
 

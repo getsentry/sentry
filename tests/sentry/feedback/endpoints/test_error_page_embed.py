@@ -23,7 +23,6 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
@@ -303,7 +302,6 @@ class ErrorEmbedCellProxyTest(ApiGatewayTestCase):
 
         return project_key
 
-    @override_options({"apigateway.cell_resolver.enabled": True})
     def test_proxy_error_embed_dsn(self) -> None:
         self.httpx_router.add(
             "GET",

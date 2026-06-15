@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.release import Release
@@ -63,7 +64,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         },
         examples=ReleaseExamples.RETRIEVE_RELEASE,
     )
-    def get(self, request: Request, project, version) -> Response:
+    def get(self, request: Request, project, version) -> Response[ReleaseSerializerResponse]:
         """
         Return details on an individual release.
         """
@@ -85,16 +86,15 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         if with_health:
             release._for_project_id = project.id
 
-        return Response(
-            serialize(
-                release,
-                request.user,
-                project=project,
-                with_health_data=with_health,
-                summary_stats_period=summary_stats_period,
-                health_stats_period=health_stats_period,
-            )
+        data: ReleaseSerializerResponse = serialize(
+            release,
+            request.user,
+            project=project,
+            with_health_data=with_health,
+            summary_stats_period=summary_stats_period,
+            health_stats_period=health_stats_period,
         )
+        return Response(data)
 
     @extend_schema(
         operation_id="Update a Project's Release",
@@ -114,7 +114,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, project, version) -> Response:
+    def put(
+        self, request: Request, project, version
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update a release. This can change metadata associated with the release
         (its ref, url, dates, and status) and associate commits with it.
@@ -134,7 +136,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
 
@@ -171,11 +173,10 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
                 datetime=release.date_released,
             )
         no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        return Response(
-            serialize(
-                release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-            )
+        body: ReleaseSerializerResponse = serialize(
+            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
         )
+        return Response(body)
 
     @extend_schema(
         operation_id="Delete a Project's Release",

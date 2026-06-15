@@ -1,4 +1,4 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {Integration, Repository} from 'sentry/types/integrations';
@@ -76,6 +76,29 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
     'onboarding',
     initialValue
   );
+
+  // An optimistic repo (empty id, see useScmRepoSelection) persisted by a
+  // refresh mid-resolution can never fetch detection and would hold the
+  // platform step in a permanent spinner. Drop it once on load, also clearing
+  // the repo-derived state so the platform step doesn't show a platform with no
+  // connected repo (mirrors clearDerivedState on a repo change). Live in-session
+  // optimistic selections arrive after mount and keep their loading state.
+  const hadStaleRepoOnLoad = useRef(
+    !!onboarding?.selectedRepository && !onboarding.selectedRepository.id
+  );
+  useEffect(() => {
+    if (hadStaleRepoOnLoad.current) {
+      hadStaleRepoOnLoad.current = false;
+      setOnboarding(prev => ({
+        ...prev,
+        selectedRepository: undefined,
+        selectedPlatform: undefined,
+        selectedFeatures: undefined,
+        createdProjectSlug: undefined,
+        projectDetailsForm: undefined,
+      }));
+    }
+  }, [setOnboarding]);
 
   const contextValue = useMemo(
     () => ({

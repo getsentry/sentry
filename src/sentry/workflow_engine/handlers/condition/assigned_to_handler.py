@@ -1,8 +1,11 @@
 from collections.abc import Sequence
 from typing import Any
 
+from rest_framework import serializers
+
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.types import AssigneeTargetType
@@ -35,6 +38,31 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
             }
         ],
     }
+
+    @classmethod
+    def validate_comparison(
+        cls, comparison: dict[str, Any], organization: Organization
+    ) -> dict[str, Any]:
+        target_type = comparison.get("target_type")
+        target_identifier = comparison.get("target_identifier")
+        if target_type == AssigneeTargetType.UNASSIGNED.value or not target_identifier:
+            return comparison
+
+        try:
+            target_identifier = int(target_identifier)
+        except (TypeError, ValueError):
+            raise serializers.ValidationError("target_identifier must be an integer")
+
+        if target_type == AssigneeTargetType.TEAM.value:
+            if not Team.objects.filter(id=target_identifier, organization=organization).exists():
+                raise serializers.ValidationError("This team is not part of the organization.")
+        elif target_type == AssigneeTargetType.MEMBER.value:
+            if not OrganizationMember.objects.filter(
+                user_id=target_identifier, organization=organization
+            ).exists():
+                raise serializers.ValidationError("This user is not part of the organization.")
+
+        return comparison
 
     @staticmethod
     def get_assignees(group: Group) -> Sequence[GroupAssignee]:

@@ -27,7 +27,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         conditions = []
         for condition in value:
-            condition_validator = BaseDataConditionValidator(data=condition)
+            condition_validator = BaseDataConditionValidator(data=condition, context=self.context)
             condition_validator.is_valid(raise_exception=True)
             conditions.append(condition_validator.validated_data)
 

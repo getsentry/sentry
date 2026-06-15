@@ -37,9 +37,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, Autof
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
-    SeerApiError,
     SeerAutomationHandoffConfiguration,
-    SeerPermissionError,
     SeerProjectPreference,
     SeerRepoDefinition,
 )
@@ -144,16 +142,12 @@ class CodingAgentStatus(StrEnum):
         return status_mapping.get(cursor_status.upper(), None)
 
 
-class AutofixTriggerSource(StrEnum):
-    ROOT_CAUSE = "root_cause"
-    SOLUTION = "solution"
-
-
 class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
     pr_url: str | None = None
+    branch_name: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
@@ -217,68 +211,9 @@ autofix_connection_pool = connection_from_url(
 )
 
 
-class GetAutofixStateRequest(TypedDict):
-    group_id: int | None
-    run_id: int | None
-    check_repo_access: bool
-    is_user_fetching: bool
-
-
-class GetAutofixStatePrRequest(TypedDict):
-    provider: str
-    pr_id: int
-
-
-class GetAutofixPromptRequest(TypedDict):
-    run_id: int
-    include_root_cause: bool
-    include_solution: bool
-
-
 class StoreCodingAgentStatesRequest(TypedDict):
     run_id: int
     coding_agent_states: list[dict[str, Any]]
-
-
-def make_get_autofix_state_request(
-    body: GetAutofixStateRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_state_pr_request(
-    body: GetAutofixStatePrRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state/pr",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_prompt_request(
-    body: GetAutofixPromptRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/prompt",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
 
 
 def make_update_coding_agent_state_request(
@@ -921,63 +856,6 @@ def get_autofix_repos_from_project_code_mappings(
     return list(repos.values())
 
 
-def get_autofix_state(
-    *,
-    group_id: int | None = None,
-    run_id: int | None = None,
-    check_repo_access: bool = False,
-    is_user_fetching: bool = False,
-    organization_id: int,
-) -> AutofixState | None:
-    body = GetAutofixStateRequest(
-        group_id=group_id,
-        run_id=run_id,
-        check_repo_access=check_repo_access,
-        is_user_fetching=is_user_fetching,
-    )
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_get_autofix_state_request(body, viewer_context=viewer_context)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-
-    result = response.json()
-
-    if result:
-        if (
-            group_id is not None
-            and result["group_id"] == group_id
-            or run_id is not None
-            and result["run_id"] == run_id
-        ):
-            state = AutofixState.validate(result["state"])
-
-            if state.request.organization_id != organization_id:
-                raise SeerPermissionError("Different organization ID found in autofix state")
-
-            return state
-
-    return None
-
-
-def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
-    body = GetAutofixStatePrRequest(provider=provider, pr_id=pr_id)
-    response = make_get_autofix_state_pr_request(body)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-    result = response.json()
-
-    if not result:
-        return None
-
-    state = result.get("state", None)
-    if state is None:
-        return None
-
-    return AutofixState.validate(state)
-
-
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
     """
     Check if Seer Scanner automation is rate limited for a given project and organization.
@@ -1146,59 +1024,16 @@ def is_seer_autotriggered_autofix_rate_limited_and_increment(
     return is_rate_limited
 
 
-def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str:
-    """Get the autofix prompt from Seer API."""
-
-    body = GetAutofixPromptRequest(
-        run_id=run_id,
-        include_root_cause=include_root_cause,
-        include_solution=include_solution,
-    )
-    response = make_get_autofix_prompt_request(body, timeout=15)
-
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-    response_data = orjson.loads(response.data)
-
-    return response_data.get("prompt")
-
-
-def get_coding_agent_prompt(
-    run_id: int,
-    trigger_source: AutofixTriggerSource,
-    instruction: str | None = None,
-    short_id: str | None = None,
-) -> str:
-    """Get the coding agent prompt with prefix from Seer API."""
-    include_root_cause = trigger_source in [
-        AutofixTriggerSource.ROOT_CAUSE,
-        AutofixTriggerSource.SOLUTION,
-    ]
-    include_solution = trigger_source == AutofixTriggerSource.SOLUTION
-
-    autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
-
-    base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
-
-    if short_id:
-        base_prompt = f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the commit message."
-
-    if instruction and instruction.strip():
-        base_prompt = f"{base_prompt}\n\n{instruction.strip()}"
-
-    return f"{base_prompt}\n\n{autofix_prompt}"
-
-
 def update_coding_agent_state(
     *,
     agent_id: str,
     status: CodingAgentStatus,
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
-) -> None:
+) -> bool:
     """Send coding agent state update to Seer.
 
+    Returns True if Seer accepted the update (2xx), False otherwise.
     Errors are logged and swallowed so that callers iterating over
     multiple agents are never interrupted by a single failed update.
     """
@@ -1220,7 +1055,7 @@ def update_coding_agent_state(
             "coding_agent.state_update_error",
             extra={"agent_id": agent_id},
         )
-        return
+        return False
 
     if response.status >= 400:
         logger.error(
@@ -1231,3 +1066,6 @@ def update_coding_agent_state(
                 "response": response.data.decode("utf-8"),
             },
         )
+        return False
+
+    return True

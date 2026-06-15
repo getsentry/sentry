@@ -16,7 +16,6 @@ class OrganizationConfigIntegrationsTest(APITestCase):
         assert len(providers) == 1
         provider = providers[0]
         assert provider["name"] == "Example"
-        assert provider["setupDialog"]["url"]
 
     def test_provider_key(self) -> None:
         response = self.get_success_response(

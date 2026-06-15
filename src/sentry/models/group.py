@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections import defaultdict, namedtuple
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
@@ -37,6 +37,13 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.types import (
+    ArchiveAction,
+    GroupAction,
+    ResolveAction,
+    UnresolveAction,
+)
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -236,6 +243,17 @@ STATUS_UPDATE_CHOICES = {
     "muted": GroupStatus.IGNORED,
 }
 
+# Maps the Activity type driving a status change to the action we record, mirroring
+# ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS. Substatus-only transitions (e.g.
+# AUTO_SET_ONGOING, SET_ESCALATING) have no entry and are intentionally not recorded.
+ACTIVITY_TYPE_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
+    ActivityType.SET_RESOLVED.value: ResolveAction,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value: ResolveAction,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value: ResolveAction,
+    ActivityType.SET_IGNORED.value: ArchiveAction,
+    ActivityType.SET_UNRESOLVED.value: UnresolveAction,
+}
+
 
 class EventOrdering(Enum):
     LATEST = ["project_id", "-timestamp", "-id"]
@@ -350,12 +368,37 @@ class GroupManager(BaseManager["Group"]):
             .with_post_update_signal(options.get("groups.enable-post-update-signal"))
         )
 
-    def by_qualified_short_id(self, organization_id: int, short_id: str):
-        return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
+    def by_qualified_short_id(
+        self,
+        organization_id: int,
+        short_id: str,
+        *,
+        project_ids: Collection[int] | None,
+    ):
+        return self.by_qualified_short_id_bulk(
+            organization_id, [short_id], project_ids=project_ids
+        )[0]
 
     def by_qualified_short_id_bulk(
-        self, organization_id: int, short_ids_raw: list[str]
+        self,
+        organization_id: int,
+        short_ids_raw: list[str],
+        *,
+        project_ids: Collection[int] | None,
     ) -> Sequence[Group]:
+        """
+        Resolve qualified short ids (e.g. ``PROJECT-123``) to groups.
+
+        Always scoped to ``organization_id``. ``project_ids`` is **required** (keyword-only, no
+        default) to prevent an accidental in-org IDOR: when it is a collection (including an
+        empty one), the lookup is additionally scoped to those projects so a short id
+        referencing a project the caller cannot access does not resolve. Callers with an
+        authorized-project set (the projects the actor is allowed to see) MUST pass it so
+        project-level permissions are enforced at the query layer rather than via a post-hoc
+        check. Pass ``project_ids=None`` ONLY when the caller legitimately operates
+        organization-wide (e.g. commit/PR linking, system RPCs, or reads already scoped to the
+        requested projects downstream); doing so is explicit and reviewable at the call site.
+        """
         short_ids = []
         for short_id_raw in short_ids_raw:
             parsed_short_id = parse_short_id(short_id_raw)
@@ -385,15 +428,23 @@ class GroupManager(BaseManager["Group"]):
             ]
         ).filter(project__organization=organization_id)
 
+        if project_ids is not None:
+            base_group_queryset = base_group_queryset.filter(project_id__in=project_ids)
+
         groups = list(base_group_queryset.filter(short_id_lookup).select_related("project"))
-        group_lookup: set[int] = {group.short_id for group in groups}
+        # Key the lookup by ShortId(project_slug, short_id): short ids are only unique per
+        # project, so the integer short_id alone collides across projects (PROJ-A-1 vs PROJ-B-1).
+        # parse_short_id lowercases the slug, so lowercase the project slug to match.
+        group_lookup: set[ShortId] = {
+            ShortId(group.project.slug.lower(), group.short_id) for group in groups
+        }
 
         # If any requested short_ids are missing after the exact slug match,
         # fallback to a case-insensitive slug lookup to handle legacy/mixed-case slugs.
         # Handles legacy project slugs that may not be entirely lowercase.
         missing_by_slug = defaultdict(list)
         for sid in short_ids:
-            if sid.short_id not in group_lookup:
+            if sid not in group_lookup:
                 missing_by_slug[sid.project_slug].append(sid.short_id)
 
         if len(missing_by_slug) > 0:
@@ -405,13 +456,18 @@ class GroupManager(BaseManager["Group"]):
                 ],
             )
 
-            fallback_groups = list(base_group_queryset.filter(ci_short_id_lookup))
+            fallback_groups = list(
+                base_group_queryset.filter(ci_short_id_lookup).select_related("project")
+            )
 
             groups.extend(fallback_groups)
-            group_lookup.update(group.short_id for group in fallback_groups)
+            group_lookup.update(
+                ShortId(group.project.slug.lower(), group.short_id) for group in fallback_groups
+            )
 
+        # Throw an error if we cannot find a group for any short id requested
         for short_id in short_ids:
-            if short_id.short_id not in group_lookup:
+            if short_id not in group_lookup:
                 raise Group.DoesNotExist()
         return groups
 
@@ -544,8 +600,18 @@ class GroupManager(BaseManager["Group"]):
                 data=activity_data,
                 send_notification=send_activity_notification,
                 datetime=update_date,
+                detector_id=detector_id,
             )
             record_group_history_from_activity_type(group, activity_type.value)
+
+            action_cls = ACTIVITY_TYPE_TO_GROUP_ACTION.get(activity_type.value)
+            if action_cls is not None:
+                publish_action_from_context(
+                    action_cls(),
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                )
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
@@ -557,6 +623,7 @@ class GroupManager(BaseManager["Group"]):
                         "reason": PriorityChangeReason.ONGOING,
                     },
                     datetime=update_date,
+                    detector_id=detector_id,
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 

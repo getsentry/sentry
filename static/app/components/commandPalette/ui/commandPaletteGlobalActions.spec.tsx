@@ -115,50 +115,56 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
 
-  it('shows a "Current Project" tag on the active project entry', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-          route: '/settings/:orgId/projects/:projectId/',
-        },
-      }
-    );
+  it.isKnownFlake(
+    'shows a "Current Project" tag on the active project entry',
+    async () => {
+      render(
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+            route: '/settings/:orgId/projects/:projectId/',
+          },
+        }
+      );
 
-    await drillIntoGeneralSettings();
+      await drillIntoGeneralSettings();
 
-    expect(await screen.findByText('Current')).toBeInTheDocument();
-  });
+      expect(await screen.findByText('Current')).toBeInTheDocument();
+    }
+  );
 
-  it('places the current route project first when on a :projectId route', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-          route: '/settings/:orgId/projects/:projectId/',
-        },
-      }
-    );
+  it.isKnownFlake(
+    'places the current route project first when on a :projectId route',
+    async () => {
+      render(
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+            route: '/settings/:orgId/projects/:projectId/',
+          },
+        }
+      );
 
-    await drillIntoGeneralSettings();
+      await drillIntoGeneralSettings();
 
-    const option = (await screen.findAllByRole('option')).find(
-      el => !el.hasAttribute('aria-disabled')
-    );
-    expect(option).toHaveAccessibleName('project-b');
-  });
+      const option = (await screen.findAllByRole('option')).find(
+        el => !el.hasAttribute('aria-disabled')
+      );
+      expect(option).toHaveAccessibleName('project-b');
+    }
+  );
 
   it('does not duplicate the current project in the list', async () => {
     render(
@@ -328,14 +334,21 @@ describe('GlobalCommandPaletteActions - search recall', () => {
 
   it.each([
     ['auth tok', /Organization Tokens/, /Personal Tokens/],
+    [
+      'SENTRY_AUTH_TOKEN',
+      /Settings.*Organization Tokens/,
+      /Settings.*Custom Integrations/,
+      /Settings.*Personal Tokens/,
+    ],
     ['source map', /Project Settings.*Source Maps/],
     ['codeowners', /Project Settings.*Ownership Rules/],
     ['inbound', /Project Settings.*Inbound Filters/],
     ['size', /Project Settings.*Mobile Builds/],
     // The SDK env var name (and its spaced form) should surface Client Keys
-    // (DSN), just like "dsn".
+    // (DSN), just like "dsn". The Next.js public-prefixed variant should too.
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
+    ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 

@@ -9,7 +9,6 @@ import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {ChargeFixture} from 'getsentry-test/fixtures/charge';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {OnboardingTasksFixture} from 'getsentry-test/fixtures/onboardingTasks';
 import {OwnerFixture} from 'getsentry-test/fixtures/owner';
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
@@ -614,11 +613,6 @@ function setUpMocks(
     body: BillingConfigFixture(PlanTier.ALL),
     match: [MockApiClient.matchQuery({tier: 'all'})],
   });
-  // TODO(isabella): remove this once all billing config api calls are updated to use tier=all
-  MockApiClient.addMockResponse({
-    url: `/customers/${organization.slug}/billing-config/?tier=mm2`,
-    body: BillingConfigFixture(PlanTier.MM2),
-  });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/billing-config/?tier=am1`,
     body: BillingConfigFixture(PlanTier.AM1),
@@ -655,10 +649,6 @@ function setUpMocks(
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/history/`,
     body: [BillingHistoryFixture()],
-  });
-  MockApiClient.addMockResponse({
-    url: `/internal-stats/${organization.slug}/onboarding-tasks/`,
-    body: OnboardingTasksFixture(),
   });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/policies/`,
@@ -2089,7 +2079,7 @@ describe('Customer Details', () => {
 
   describe('fork customer', () => {
     beforeEach(() => {
-      ConfigStore.set('regions', [
+      ConfigStore.set('localities', [
         {
           name: 'foo',
           url: 'https://foo.example.com/api/0/',

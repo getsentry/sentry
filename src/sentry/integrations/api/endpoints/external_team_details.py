@@ -113,7 +113,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
             403: RESPONSE_FORBIDDEN,
         },
     )
-    def delete(self, request: Request, team: Team, external_team: ExternalActor) -> Response:
+    def delete(self, request: Request, team: Team, external_team: ExternalActor) -> Response[None]:
         """
         Delete the link between a team from an external provider and a Sentry team.
         """

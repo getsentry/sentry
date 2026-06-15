@@ -22,7 +22,6 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
       />
     );
 
-    expect(screen.getByText('Troubleshooting')).toBeInTheDocument();
     expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
     expect(screen.queryByText('function - compute_checksum')).not.toBeInTheDocument();
     expect(screen.queryByText('1. Find the custom span')).not.toBeInTheDocument();
@@ -48,7 +47,42 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
   });
 
-  it('recommends JavaScript span filtering and mentions beforeSendSpan', () => {
+  it('links to the platform-redirect custom instrumentation docs for manual spans', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          spanOrigin: 'manual',
+        }}
+        projectPlatform={null}
+      />
+    );
+
+    expect(
+      screen.getByRole('link', {name: 'Read the custom instrumentation docs'})
+    ).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platform-redirect/?next=/tracing/instrumentation/custom-instrumentation/'
+    );
+  });
+
+  it('uses the platform-redirect filtering docs as a fallback', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={baseEvidenceData}
+        projectPlatform="ruby-rails"
+      />
+    );
+
+    expect(
+      screen.getByRole('link', {name: 'Read the SDK filtering docs'})
+    ).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platform-redirect/?next=/configuration/filtering/'
+    );
+  });
+
+  it('recommends JavaScript span filtering', () => {
     render(
       <TroubleshootingSection
         evidenceData={baseEvidenceData}
@@ -57,7 +91,6 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     );
 
     expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
-    expect(screen.getByText('beforeSendSpan')).toBeInTheDocument();
     expect(screen.getByText(/op: "function"/)).toBeInTheDocument();
     expect(screen.getByText(/name: "compute_checksum"/)).toBeInTheDocument();
   });
@@ -124,5 +157,38 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
 
     expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
     expect(screen.queryByText('1. Find the custom span')).not.toBeInTheDocument();
+  });
+
+  it('emits op-only ignoreSpans with an over-match warning when description is null', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          description: null,
+        }}
+        projectPlatform="javascript-nextjs"
+      />
+    );
+
+    expect(screen.getByText(/op: "function"/)).toBeInTheDocument();
+    expect(screen.queryByText(/name:/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/will also drop other spans with this op/)
+    ).toBeInTheDocument();
+  });
+
+  it('uses `is None` in the Python snippet when description is null', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          description: null,
+        }}
+        projectPlatform="python-django"
+      />
+    );
+
+    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
+    expect(screen.getByText(/span.get\("description"\) is None/)).toBeInTheDocument();
   });
 });
