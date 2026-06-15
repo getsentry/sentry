@@ -70,7 +70,7 @@ export function KeySettings({
   };
 
   const handleRemove = async () => {
-    addLoadingMessage(t('Revoking key…'));
+    addLoadingMessage(t('Revoking key\u2026'));
 
     try {
       await api.requestPromise(
