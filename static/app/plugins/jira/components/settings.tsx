@@ -79,7 +79,7 @@ export class Settings extends DefaultSettings<Props, State> {
     this.setState({editing: true});
   };
 
-  onSubmit() {
+  async onSubmit() {
     if (isEqual(this.state.initialData, this.state.formData)) {
       if (this.isLastPage()) {
         this.setState({editing: false, page: 0});
@@ -95,10 +95,12 @@ export class Settings extends DefaultSettings<Props, State> {
       body.default_issue_type = null;
       body.default_priority = null;
     }
-    this.api.request(this.getPluginEndpoint(), {
-      data: body,
-      method: 'PUT',
-      success: this.onSaveSuccess.bind(this, (data: ApiData) => {
+    try {
+      const data: ApiData = await this.api.requestPromise(this.getPluginEndpoint(), {
+        data: body,
+        method: 'PUT',
+      });
+      this.onSaveSuccess(() => {
         const formData = {};
         const initialData = {};
         data.config.forEach(field => {
@@ -122,14 +124,16 @@ export class Settings extends DefaultSettings<Props, State> {
           state.page = this.state.page + 1;
         }
         this.setState(state);
-      }),
-      error: this.onSaveError.bind(this, (error: any) => {
+      });
+    } catch (error: any) {
+      this.onSaveError(() => {
         this.setState({
           errors: error.responseJSON?.errors || {},
         });
-      }),
-      complete: this.onSaveComplete,
-    });
+      });
+    } finally {
+      this.onSaveComplete();
+    }
   }
 
   back = (ev: React.MouseEvent) => {
