@@ -46,6 +46,7 @@ class IntegrationProviderSlug(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
+    DATADOG = "datadog"
     GCP = "gcp"
 
 

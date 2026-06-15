@@ -21,16 +21,14 @@ SEER_WORKFLOW_ACTIVITIES = [
     ActivityType.SEER_CODING_STARTED,
     ActivityType.SEER_CODING_COMPLETED,
     ActivityType.SEER_PR_CREATED,
+    ActivityType.SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED,
 ]
 
-# Activity types handled by the generic activity_handler. This replaces the
-# group_status_update_registry path (see workflow_status_update_handler) once the
-# organizations:workflow-engine-status-change-via-activity flag is fully rolled out.
+# Activity types handled by the generic activity_handler.
 SUPPORTED_ACTIVITIES = [
     ActivityType.SET_RESOLVED,
 ]
-
-STATUS_CHANGE_VIA_ACTIVITY_FLAG = "organizations:workflow-engine-status-change-via-activity"
 
 
 @workflow_activity_registry.register("seer_activity")
@@ -123,12 +121,6 @@ def activity_handler(
     logging_ctx["activity_name"] = activity_type.name
 
     if activity_type not in SUPPORTED_ACTIVITIES:
-        return
-
-    if not features.has(
-        STATUS_CHANGE_VIA_ACTIVITY_FLAG,
-        group.organization,
-    ):
         return
 
     event_data = WorkflowEventData(event=activity, group=group)

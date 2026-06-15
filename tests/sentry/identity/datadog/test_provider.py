@@ -3,10 +3,12 @@ from __future__ import annotations
 import base64
 import hashlib
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import orjson
+import pytest
 import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
@@ -15,7 +17,9 @@ from requests import ConnectionError, HTTPError
 from requests.exceptions import SSLError
 
 import sentry.identity
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.datadog.provider import (
+    DatadogIdentityProvider,
     DatadogOAuth2CallbackView,
     DatadogOAuth2DCRView,
     DatadogOAuth2LoginView,
@@ -26,11 +30,12 @@ from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.identity import IdentityProvider
+from sentry.users.models.identity import Identity
 
 REGISTER_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/register"
 AUTHORIZE_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"
 TOKEN_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/token"
+MCP_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
 RESOURCE = "https://mcp.datadoghq.com"
 
 
@@ -369,7 +374,7 @@ class DatadogOAuthPipelineIntegrationTest(TestCase):
         sentry.identity.register(DatadogTestProvider)
         super().setUp()
         self.request = self._make_request()
-        self.identity_provider = IdentityProvider.objects.create(type="datadog-test")
+        self.identity_provider = self.create_identity_provider(type="datadog-test")
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -441,3 +446,167 @@ class DatadogOAuthPipelineIntegrationTest(TestCase):
             f"Basic {base64.b64encode(b'dcr-client-id:dcr-client-secret').decode()}"
         )
         assert exchange_token_request.headers["Authorization"] == expected_auth_header
+
+
+@control_silo_test
+class DatadogIdentityProviderTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = DatadogIdentityProvider()
+        self.provider.config = {"site": "datadoghq.com"}
+        self.identity_provider = self.create_identity_provider(type="datadog")
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "user_email": "user@example.com",
+            "user_name": "Test User",
+        }
+
+        result = self.provider.build_identity(
+            {
+                "data": {
+                    "access_token": "token-abc",
+                    "refresh_token": "refresh-xyz",
+                    "expires_in": 3600,
+                    "token_type": "Bearer",
+                    "scope": "mcp_read",
+                },
+                "dcr_client_id": "dcr-client-id",
+                "dcr_client_secret": "dcr-client-secret",
+            }
+        )
+
+        assert result["id"] == "dd-user-123"
+        assert result["email"] == "user@example.com"
+        assert result["name"] == "Test User"
+        assert result["type"] == "datadog"
+        assert result["data"]["access_token"] == "token-abc"
+        assert result["data"]["refresh_token"] == "refresh-xyz"
+        assert "expires" in result["data"]
+        assert result["data"]["token_type"] == "Bearer"
+        assert result["data"]["scope"] == "mcp_read"
+        assert result["data"]["client_id"] == "dcr-client-id"
+        assert result["data"]["client_secret"] == "dcr-client-secret"
+        assert result["data"]["site"] == "datadoghq.com"
+        mock_get_user_info.assert_called_once_with("token-abc", "datadoghq.com")
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_access_token(self, mock_get_user_info: MagicMock) -> None:
+        with pytest.raises(ValueError, match="did not return an access_token"):
+            self.provider.build_identity(
+                {
+                    "data": {},
+                    "dcr_client_id": "dcr-id",
+                    "dcr_client_secret": "dcr-secret",
+                }
+            )
+        mock_get_user_info.assert_not_called()
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_dcr_credentials(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {"user_uuid": "dd-user-456"}
+
+        with pytest.raises(IdentityNotValid, match="Missing DCR credentials"):
+            self.provider.build_identity({"data": {"access_token": "token"}})
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_missing_user_attributes(self, mock_get_user_info: MagicMock) -> None:
+        mock_get_user_info.return_value = {"user_uuid": "dd-user-456"}
+
+        result = self.provider.build_identity(
+            {
+                "data": {"access_token": "token"},
+                "dcr_client_id": "dcr-id",
+                "dcr_client_secret": "dcr-secret",
+            }
+        )
+
+        assert result["id"] == "dd-user-456"
+        assert result["email"] is None
+        assert result["name"] is None
+
+    @responses.activate
+    def test_build_identity_malformed_user_info(self) -> None:
+        responses.add(
+            responses.POST,
+            MCP_URL,
+            json={"jsonrpc": "2.0", "id": 1, "result": {}},
+            headers={"mcp-session-id": "session-id"},
+        )
+        responses.add(responses.POST, MCP_URL, body="not json", status=200)
+
+        with pytest.raises(IdentityNotValid, match="unexpected response"):
+            self.provider.build_identity(
+                {
+                    "data": {"access_token": "token"},
+                    "dcr_client_id": "dcr-id",
+                    "dcr_client_secret": "dcr-secret",
+                }
+            )
+
+    def _make_identity(self, **data_overrides: Any) -> Identity:
+        data = {
+            "access_token": "old-token",
+            "refresh_token": "old-refresh",
+            "client_id": "dcr-client-id",
+            "client_secret": "dcr-client-secret",
+            "site": "datadoghq.com",
+        }
+        data.update(data_overrides)
+        return self.create_identity(
+            user=self.user,
+            identity_provider=self.identity_provider,
+            external_id="dd-user-123",
+            data=data,
+        )
+
+    @responses.activate
+    def test_refresh_identity_success(self) -> None:
+        responses.add(
+            responses.POST,
+            TOKEN_URL,
+            json={"access_token": "new-token", "refresh_token": "new-refresh", "expires_in": 3600},
+        )
+
+        identity = self._make_identity()
+        self.provider.refresh_identity(identity)
+
+        auth_header = responses.calls[0].request.headers["Authorization"]
+        assert (
+            auth_header == f"Basic {base64.b64encode(b'dcr-client-id:dcr-client-secret').decode()}"
+        )
+
+        data = dict(parse_qsl(responses.calls[0].request.body))
+        assert data["grant_type"] == "refresh_token"
+        assert data["refresh_token"] == "old-refresh"
+        assert "client_id" not in data
+        assert "client_secret" not in data
+
+        assert responses.calls[0].request.url == TOKEN_URL
+
+        identity.refresh_from_db()
+        assert identity.data["access_token"] == "new-token"
+        assert identity.data["refresh_token"] == "new-refresh"
+        assert identity.data["client_id"] == "dcr-client-id"
+        assert identity.data["client_secret"] == "dcr-client-secret"
+        assert identity.data["site"] == "datadoghq.com"
+
+    def test_refresh_identity_missing_site(self) -> None:
+        identity = self._make_identity(site=None)
+
+        with pytest.raises(IdentityNotValid, match="Missing Datadog site"):
+            self.provider.refresh_identity(identity)
+
+    def test_refresh_identity_missing_dcr_credentials(self) -> None:
+        identity = self._make_identity(client_id=None, client_secret=None)
+
+        with pytest.raises(IdentityNotValid, match="Missing DCR credentials"):
+            self.provider.refresh_identity(identity)
+
+    def test_refresh_identity_missing_refresh_token(self) -> None:
+        identity = self._make_identity(refresh_token=None)
+
+        with pytest.raises(IdentityNotValid, match="Missing refresh token"):
+            self.provider.refresh_identity(identity)
