@@ -116,7 +116,7 @@ def compare_rebalanced_projects_with_cache(
             "dynamic_sampling.per_org.project_balancing_comparison",
             extra={
                 "org_id": config.organization.id,
-                "project_id": project_id,
+                "dynamic_sampling_project_id": project_id,
                 "generic_metrics_sample_rate": generic_metrics_sample_rate,
                 "eap_sample_rate": eap_sample_rate,
                 "relative_deviation": get_relative_deviation(
@@ -149,27 +149,27 @@ def _emit_project_balancing_debug_metrics(
     eap_volume_without_extrapolation: float | None,
 ) -> None:
     tags = {"org_id": str(org_id), "dynamic_sampling_project_id": str(project_id)}
-    metrics.gauge(
+    metrics.distribution(
         f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_sample_rate",
         eap_sample_rate,
         sample_rate=1.0,
         tags=tags,
     )
     if generic_metrics_sample_rate is not None:
-        metrics.gauge(
+        metrics.distribution(
             f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.generic_metrics_sample_rate",
             generic_metrics_sample_rate,
             sample_rate=1.0,
             tags=tags,
         )
-    metrics.gauge(
+    metrics.distribution(
         f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_volume",
         eap_volume,
         sample_rate=1.0,
         tags=tags,
     )
     if eap_volume_without_extrapolation is not None:
-        metrics.gauge(
+        metrics.distribution(
             f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_volume_without_extrapolation",
             eap_volume_without_extrapolation,
             sample_rate=1.0,
@@ -294,7 +294,7 @@ def compare_rebalanced_transactions_with_cache(
             "dynamic_sampling.per_org.transaction_balancing_implicit_comparison",
             extra={
                 "org_id": config.organization.id,
-                "project_id": project_id,
+                "dynamic_sampling_project_id": project_id,
                 "generic_metrics_implicit_rate": generic_metrics_implicit_rate,
                 "eap_implicit_rate": eap_implicit_rate,
                 "relative_deviation": get_relative_deviation(
@@ -315,7 +315,7 @@ def compare_rebalanced_transactions_with_cache(
                 "dynamic_sampling.per_org.transaction_balancing_comparison",
                 extra={
                     "org_id": config.organization.id,
-                    "project_id": project_id,
+                    "dynamic_sampling_project_id": project_id,
                     "transaction": transaction,
                     "generic_metrics_sample_rate": generic_metrics_rate,
                     "eap_sample_rate": item.new_sample_rate,

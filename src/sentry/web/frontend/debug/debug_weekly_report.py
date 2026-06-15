@@ -81,15 +81,6 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.accepted_replay_count = sum(
                 project_context.replay_count_by_day.values()
             )
-            project_context.dropped_error_count = int(
-                random.weibullvariate(5, 1) * random.paretovariate(0.2)
-            )
-            project_context.dropped_transaction_count = int(
-                random.weibullvariate(5, 1) * random.paretovariate(0.2)
-            )
-            project_context.dropped_replay_count = int(
-                random.weibullvariate(5, 1) * random.paretovariate(0.2)
-            )
             project_context.prev_week_accepted_error_count = int(
                 project_context.accepted_error_count * random.uniform(0.5, 1.5)
             )

@@ -21,6 +21,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
+import {AutofixRepoItem} from 'sentry/components/seer/legacy/autofixRepoItem';
+import {MAX_REPOS_LIMIT} from 'sentry/components/seer/legacy/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -31,10 +34,6 @@ import {
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {AddAutofixRepoModal} from './addAutofixRepoModal';
-import {AutofixRepoItem} from './autofixRepoItem';
-import {MAX_REPOS_LIMIT} from './constants';
 
 interface ProjectSeerProps {
   project: Project;

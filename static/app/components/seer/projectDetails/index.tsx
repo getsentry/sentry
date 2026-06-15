@@ -9,15 +9,14 @@ import {useProjectSeerPreferences} from 'sentry/components/events/autofix/prefer
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {AutofixAgent} from 'sentry/components/seer/projectDetails/autofixAgent';
+import {AutofixRepositories} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
+import {NightShift} from 'sentry/components/seer/projectDetails/nightShift';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-
-import {AutofixAgent} from 'getsentry/views/seerAutomation/components/projectDetails/autofixAgent';
-import {AutofixRepositories} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';
-import {NightShift} from 'getsentry/views/seerAutomation/components/projectDetails/nightShift';
 
 const DEFAULT_PREFERENCE: ProjectSeerPreferences = {
   repositories: [],
