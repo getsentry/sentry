@@ -16,6 +16,7 @@ import type {Project, ProjectKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [
   0, 60, 300, 900, 3600, 7200, 14400, 21600, 43200, 86400,
@@ -85,8 +86,13 @@ export function KeyRateLimitsForm({
       updateData(responseData);
       form.reset();
     },
-    onError: () => {
-      addErrorMessage(t('Unable to save rate limit.'));
+    onError: error => {
+      let message: string | undefined;
+      if (error instanceof RequestError) {
+        const detail = error.responseJSON?.detail;
+        message = typeof detail === 'string' ? detail : detail?.message;
+      }
+      addErrorMessage(message ?? t('Unable to save rate limit.'));
     },
   });
 
