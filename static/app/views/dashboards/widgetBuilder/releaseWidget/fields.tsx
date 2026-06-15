@@ -1,6 +1,7 @@
 import invert from 'lodash/invert';
 
-import type {SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {SessionStatus} from 'sentry/types/organization';
 import type {
   SessionAggregationColumn,

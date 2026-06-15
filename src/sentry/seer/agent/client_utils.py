@@ -102,6 +102,12 @@ class AgentPrStateRequest(TypedDict):
     pr_id: int
 
 
+class SeerFeatureRunRequest(TypedDict):
+    feature_id: str
+    ref: str
+    payload: dict[str, Any]
+
+
 def make_agent_state_request(
     body: AgentStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -165,6 +171,28 @@ def make_agent_state_pr_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
+
+
+def trigger_seer_feature(
+    body: SeerFeatureRunRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> int | None:
+    """Trigger a Seer feature run and return the resulting agent run id.
+
+    Seer runs the feature asynchronously and pushes results back via
+    deliver_feature_result. Raises SeerApiError on a non-2xx response.
+    """
+    response = make_signed_seer_api_request(
+        connection_pool or agent_connection_pool,
+        "/v1/automation/agent/feature/run",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+    if response.status >= 400:
+        raise SeerApiError("Seer feature run request failed", response.status)
+
+    return response.json().get("run_id")
 
 
 def get_agent_state_from_pr_id(

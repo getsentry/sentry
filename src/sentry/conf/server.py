@@ -861,6 +861,11 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
+# If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
+# from within tasks.
+# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
+TASKWORKER_USE_TASK_PRODUCER: bool = False
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -884,6 +889,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
@@ -2250,7 +2256,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira.JiraIntegrationProvider",
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
-    "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
@@ -2340,6 +2345,7 @@ DEAD = object()
 # This will eventually get set from values in SENTRY_OPTIONS during
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
+SENTRY_LOGGING_FORMAT = "human"
 EMAIL_BACKEND = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
@@ -2706,6 +2712,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
+    "taskworker-push": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
     "taskworker-buffer": "default",
@@ -2720,6 +2727,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-example": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
+    "taskworker-ingest-push": "default",
     "taskworker-ingest-errors": "default",
     "taskworker-ingest-errors-dlq": "default",
     "taskworker-ingest-errors-postprocess": "default",
@@ -2807,6 +2815,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.sentry_apps.api.endpoints",
     "sentry.preprod.api.endpoints",
     "sentry.workflow_engine.endpoints",
+    "sentry.feedback.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3282,10 +3291,21 @@ if SILO_DEVSERVER:
         {
             "name": "us",
             "snowflake_id": 1,
+            # TODO(cells): Deprecate category
             "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
         }
     ]
+    SENTRY_LOCALITIES = [
+        {
+            "name": "us",
+            # TODO(cells): Deprecate category
+            "category": "MULTI_TENANT",
+            "cells": ["us"],
+            "new_org_cell": "us",
+        }
+    ]
+
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication

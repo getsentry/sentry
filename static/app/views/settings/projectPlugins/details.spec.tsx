@@ -114,42 +114,31 @@ describe('ProjectPluginDetails - webhook routing', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders webhook details page for pluginId=webhooks', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
-      method: 'GET',
-      body: {urls: ['https://example.com/hook'], enabled: true},
-    });
-
-    render(<ProjectPluginDetails />, {
+  it('redirects to legacy-webhooks route for pluginId=webhooks', () => {
+    const {router} = render(<ProjectPluginDetails />, {
       organization,
       outletContext: {project},
       initialRouterConfig: webhookRouterConfig,
     });
 
-    expect(await screen.findByText(/strongly recommend using an/)).toBeInTheDocument();
+    expect(router.location.pathname).toBe(
+      `/settings/${organization.slug}/projects/${project.slug}/legacy-webhooks/`
+    );
   });
 
-  it('does not call plugin API for webhooks route', async () => {
+  it('does not call plugin API for webhooks route', () => {
     const pluginsMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
       body: [],
     });
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
-      method: 'GET',
-      body: {urls: [], enabled: false},
-    });
-
     render(<ProjectPluginDetails />, {
       organization,
       outletContext: {project},
       initialRouterConfig: webhookRouterConfig,
     });
 
-    await screen.findByText(/strongly recommend using an/);
     expect(pluginsMock).not.toHaveBeenCalled();
   });
 });

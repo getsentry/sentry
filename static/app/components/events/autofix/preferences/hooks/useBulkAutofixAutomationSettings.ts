@@ -1,16 +1,6 @@
-import {useMemo} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
-import type {UseMutationOptions} from '@tanstack/react-query';
-
-import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 
 type AutofixAutomationTuning =
   | 'off'
@@ -21,26 +11,7 @@ type AutofixAutomationTuning =
   | 'always' // deprecated
   | null; // deprecated
 
-// Mirrors the backend SeerRepoDefinition type
-interface BackendRepository {
-  external_id: string;
-  integration_id: string;
-  name: string;
-  organization_id: number;
-  owner: string;
-  provider: string;
-  base_commit_sha?: string;
-  branch_name?: string;
-  branch_overrides?: Array<{
-    branch_name: string;
-    tag_name: string;
-    tag_value: string;
-  }>;
-  instructions?: string;
-  provider_raw?: string;
-}
-
-export type AutofixAutomationSettings = {
+type AutofixAutomationSettings = {
   autofixAutomationTuning: AutofixAutomationTuning;
   automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
   automationHandoff: ProjectSeerPreferences['automation_handoff'];
@@ -61,96 +32,4 @@ export function bulkAutofixAutomationSettingsInfiniteOptions({
       staleTime: 0,
     }
   );
-}
-
-type AutofixAutomationUpdate =
-  | {
-      autofixAutomationTuning: AutofixAutomationTuning;
-      projectIds: string[];
-      automatedRunStoppingPoint?:
-        | never
-        | ProjectSeerPreferences['automated_run_stopping_point'];
-      projectRepoMappings?: never | Record<string, BackendRepository[]>;
-    }
-  | {
-      automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
-      projectIds: string[];
-      autofixAutomationTuning?: never | AutofixAutomationTuning;
-      projectRepoMappings?: never | Record<string, BackendRepository[]>;
-    }
-  | {
-      autofixAutomationTuning: AutofixAutomationTuning;
-      automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
-      projectIds: string[];
-      projectRepoMappings?: never | Record<string, BackendRepository[]>;
-    }
-  | {
-      projectIds: string[];
-      projectRepoMappings: Record<string, BackendRepository[]>;
-      autofixAutomationTuning?: never | AutofixAutomationTuning;
-      automatedRunStoppingPoint?:
-        | never
-        | ProjectSeerPreferences['automated_run_stopping_point'];
-    };
-
-export function useUpdateBulkAutofixAutomationSettings(
-  options?: Omit<
-    UseMutationOptions<unknown, Error, AutofixAutomationUpdate>,
-    'mutationFn'
-  >
-) {
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-
-  const {projects} = useProjects();
-  const projectsById = useMemo(
-    () => new Map(projects.map(project => [project.id, project])),
-    [projects]
-  );
-
-  return useMutation<unknown, Error, AutofixAutomationUpdate>({
-    mutationFn: (data: AutofixAutomationUpdate) => {
-      return fetchMutation({
-        method: 'POST',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/autofix/automation-settings/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-          }
-        ),
-        data,
-      });
-    },
-    ...options,
-    onSettled: (...args) => {
-      const bulkAutofixAutomationSettingsQueryOptions =
-        bulkAutofixAutomationSettingsInfiniteOptions({
-          organization,
-        });
-      queryClient.invalidateQueries({
-        queryKey: bulkAutofixAutomationSettingsQueryOptions.queryKey,
-      });
-
-      const [, , data] = args;
-      data.projectIds.forEach(projectId => {
-        const project = projectsById.get(projectId);
-        if (!project) {
-          return;
-        }
-        // Invalidate the query for ProjectOptions to Settings>Project>Seer details page
-        queryClient.invalidateQueries({
-          queryKey: makeDetailedProjectQueryKey({
-            orgSlug: organization.slug,
-            projectSlug: project.slug,
-          }),
-        });
-        // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
-        queryClient.invalidateQueries(
-          projectSeerPreferencesApiOptions(organization.slug, project.slug)
-        );
-      });
-
-      options?.onSettled?.(...args);
-    },
-  });
 }

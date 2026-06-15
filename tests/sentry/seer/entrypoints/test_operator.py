@@ -644,7 +644,7 @@ class SeerOperatorTest(TestCase):
             == "https://github.com/owner/repo/pull/42"
         )
 
-    @patch("sentry.seer.entrypoints.operator.invoke_workflow_activity_handlers")
+    @patch("sentry.models.activity.invoke_workflow_activity_handlers")
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_invokes_workflow_activity_handlers(
         self, _mock_has_access, mock_invoke
@@ -658,9 +658,9 @@ class SeerOperatorTest(TestCase):
         )
 
         mock_invoke.assert_called_once()
-        call_kwargs = mock_invoke.call_args[1]
-        assert call_kwargs["group"] == self.group
-        assert call_kwargs["activity"].type == ActivityType.SEER_RCA_STARTED.value
+        group, activity = mock_invoke.call_args[0][:2]
+        assert group == self.group
+        assert activity.type == ActivityType.SEER_RCA_STARTED.value
 
 
 class TestGetAutofixExplorerStatus(TestCase):
@@ -1069,7 +1069,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_slack_code_mode_enabled(self, mock_client_cls):
         mock_client = Mock()
         mock_client.get_runs.return_value = []
-        mock_client.start_run.return_value = 1
+        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client_cls.return_value = mock_client
 
         with self.feature("organizations:seer-slack-code-mode"):
@@ -1088,7 +1088,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_slack_code_mode_disabled(self, mock_client_cls):
         mock_client = Mock()
         mock_client.get_runs.return_value = []
-        mock_client.start_run.return_value = 1
+        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client_cls.return_value = mock_client
 
         self.operator.trigger_agent(
@@ -1106,7 +1106,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_non_slack_category_ignores_flag(self, mock_client_cls):
         mock_client = Mock()
         mock_client.get_runs.return_value = []
-        mock_client.start_run.return_value = 1
+        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client_cls.return_value = mock_client
 
         with self.feature("organizations:seer-slack-code-mode"):

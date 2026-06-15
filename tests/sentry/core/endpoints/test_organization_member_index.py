@@ -15,8 +15,9 @@ from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 
 
@@ -264,6 +265,23 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         assert len(response.data) == 1
         assert response.data[0]["email"] == "billy@localhost"
+
+    def test_list_with_missing_user(self) -> None:
+        # We can't guarantee that a user will always exist, due to tombstone
+        # deletions, so we need to ensure we can still serialize the org member.
+        secondary_user = self.create_user("secondary@localhost", username="dos")
+        OrganizationMember.objects.create(
+            user_id=secondary_user.id, email=None, organization=self.organization
+        )
+        user_id = secondary_user.id
+        with assume_test_silo_mode_of(User):
+            secondary_user.delete()
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"user.id:{user_id}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == ""
 
     def test_email_query(self) -> None:
         response = self.get_success_response(

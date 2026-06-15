@@ -46,7 +46,12 @@ export function SavedQueriesLandingContent() {
             onSearch={newQuery => {
               navigate({
                 pathname: location.pathname,
-                query: {...location.query, query: newQuery},
+                query: {
+                  ...location.query,
+                  query: newQuery,
+                  ownedCursor: undefined,
+                  sharedCursor: undefined,
+                },
               });
             }}
             defaultQuery={searchQuery}

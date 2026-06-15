@@ -6,14 +6,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
-import {
-  getOutputType,
-  Output,
-} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
+import {getOutputType} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
 import {
   Setup,
   UnsupportedOp,
 } from 'sentry/views/explore/replays/detail/network/details/onboarding';
+import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
 import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
 import {
   GeneralSection,

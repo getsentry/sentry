@@ -18,6 +18,7 @@
  * Add new types here as new context-aware components are registered.
  */
 export type LLMContextNodeType =
+  | 'autofix'
   | 'chart'
   | 'dashboard'
   | 'issue-detail'

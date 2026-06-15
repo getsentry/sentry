@@ -6,6 +6,7 @@ import time
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from hashlib import md5
@@ -31,15 +32,20 @@ from sentry.issues.search import (
     UnsupportedSearchQuery,
     get_search_strategies,
     group_categories_from,
+    group_types_from,
 )
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, run_eap_group_search
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
+from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import (
@@ -78,6 +84,22 @@ DEFAULT_TRENDS_WEIGHTS: TrendsSortWeights = {
 class Clauses(Enum):
     HAVING = auto()
     WHERE = auto()
+
+
+@dataclass(frozen=True)
+class PostgresSortStrategy:
+    """A sort strategy that uses Postgres Group model data, optionally combined with Snuba."""
+
+    postgres_fields: dict[str, str]
+    snuba_aggregations: list[str] = dataclass_field(default_factory=list)
+    # Computed signals that aren't a single Group column (e.g. assignment affinity).
+    # Each resolver is called once in bulk with (actor, organization, group_ids) and
+    # returns {group_id: value}; the value is merged into the score_fn dict under its key.
+    signal_resolvers: dict[str, Callable[[Any, Organization, list[int]], dict[int, Any]]] = (
+        dataclass_field(default_factory=dict)
+    )
+    score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
+    exclude_null_postgres: bool = True
 
 
 # we cannot use snuba for these fields because they require a join with tables that don't exist there
@@ -583,7 +605,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return _run_snuba_query()
 
     def has_sort_strategy(self, sort_by: str) -> bool:
-        return sort_by in self.sort_strategies.keys()
+        return sort_by in self.sort_strategies or sort_by in getattr(
+            self, "postgres_sort_strategies", {}
+        )
 
 
 def trends_aggregation(
@@ -869,6 +893,99 @@ def recommended_issue_platform_aggregation(
     )
 
 
+# Seer agent progress stages, mirroring the `issue.agent` search filter
+# (ISSUE_AGENT_TO_ACTIVITY_TYPES in sentry.issues.issue_search). A group's signal is
+# the furthest stage reached, normalized to [0, 1].
+ISSUE_AGENT_STAGE_SIGNALS: dict[int, float] = {
+    ActivityType.SEER_RCA_COMPLETED.value: 0.25,
+    ActivityType.SEER_SOLUTION_COMPLETED.value: 0.5,
+    ActivityType.SEER_CODING_COMPLETED.value: 0.75,
+    ActivityType.SEER_PR_CREATED.value: 1.0,
+}
+
+
+def resolve_assignment_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, float]:
+    """Assignment affinity for the viewer: 1.0 for groups assigned directly to them,
+    0.5 for groups assigned to one of their teams, absent otherwise."""
+    if actor is None or not getattr(actor, "is_authenticated", False):
+        return {}
+    assignments = list(
+        GroupAssignee.objects.filter(group_id__in=group_ids).values_list(
+            "group_id", "user_id", "team_id"
+        )
+    )
+    team_ids: set[int] = set()
+    if any(team_id is not None for _, _, team_id in assignments):
+        team_ids = {team.id for team in Team.objects.get_for_user(organization, actor)}
+    signal: dict[int, float] = {}
+    for group_id, user_id, team_id in assignments:
+        if user_id is not None and user_id == actor.id:
+            signal[group_id] = 1.0
+        elif team_id is not None and team_id in team_ids:
+            signal[group_id] = 0.5
+    return signal
+
+
+def resolve_issue_agent_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, float]:
+    """Furthest Seer agent stage reached per group, normalized to [0, 1].
+
+    A regression resets progress: stages reached before the group's latest
+    SET_REGRESSION activity don't count, since that fix evidently didn't hold.
+    """
+    activities = Activity.objects.filter(
+        group_id__in=group_ids,
+        type__in=[*ISSUE_AGENT_STAGE_SIGNALS, ActivityType.SET_REGRESSION.value],
+    ).values_list("group_id", "type", "datetime")
+    last_regressed: dict[int, datetime] = {}
+    seer_activities: list[tuple[int, int, datetime]] = []
+    for group_id, activity_type, date in activities:
+        if activity_type == ActivityType.SET_REGRESSION.value:
+            if group_id not in last_regressed or date > last_regressed[group_id]:
+                last_regressed[group_id] = date
+        else:
+            seer_activities.append((group_id, activity_type, date))
+    signal: dict[int, float] = {}
+    for group_id, activity_type, date in seer_activities:
+        if group_id in last_regressed and date < last_regressed[group_id]:
+            continue
+        signal[group_id] = max(signal.get(group_id, 0.0), ISSUE_AGENT_STAGE_SIGNALS[activity_type])
+    return signal
+
+
+def recommended_v2_strategy() -> PostgresSortStrategy:
+    """Recommended sort v2: the Snuba recommended score (recency/spike/severity/user
+    impact/event volume) plus additive boosts for viewer assignment, Seer fixability,
+    and Seer agent progress."""
+    assignment_weight = options.get("snuba.search.recommended.assignment-weight")
+    fixability_weight = options.get("snuba.search.recommended.fixability-weight")
+    agent_weight = options.get("snuba.search.recommended.agent-weight")
+
+    def score_fn(data: dict[str, Any]) -> float:
+        return (
+            (data.get("recommended") or 0.0)
+            + assignment_weight * data.get("assignment", 0.0)
+            + fixability_weight * (data.get("fixability") or 0.0)
+            + agent_weight * data.get("agent", 0.0)
+        )
+
+    return PostgresSortStrategy(
+        postgres_fields={"fixability": "seer_fixability_score"},
+        snuba_aggregations=["recommended"],
+        signal_resolvers={
+            "assignment": resolve_assignment_signal,
+            "agent": resolve_issue_agent_signal,
+        },
+        score_fn=score_fn,
+        # seer_fixability_score is null for most groups; score those as 0 rather
+        # than excluding them.
+        exclude_null_postgres=False,
+    )
+
+
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
@@ -885,6 +1002,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "new": "first_seen",
         "trends": "trends",
         "recommended": "recommended",
+        # Postgres-data sort; mapped to the recommended aggregation so the chunked
+        # Snuba path can take over when there are too many candidates to score in memory.
+        "recommended_v2": "recommended",
         "user": "user_count",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
@@ -907,6 +1027,152 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     @property
     def dataset(self) -> Dataset:
         return Dataset.Events
+
+    @property
+    def postgres_sort_strategies(self) -> dict[str, PostgresSortStrategy]:
+        return {"recommended_v2": recommended_v2_strategy()}
+
+    def _apply_type_visibility_filter(
+        self,
+        group_queryset: BaseQuerySet,
+        search_filters: Sequence[SearchFilter] | None,
+    ) -> BaseQuerySet:
+        return group_queryset.filter(type__in=group_types_from(search_filters))
+
+    def _execute_postgres_sort(
+        self,
+        strategy: PostgresSortStrategy,
+        sort_by: str,
+        group_queryset: BaseQuerySet,
+        projects: Sequence[Project],
+        environments: Sequence[Environment] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        limit: int,
+        cursor: Cursor | None,
+        count_hits: bool,
+        paginator_options: Mapping[str, Any],
+        max_hits: int | None,
+        actor: Any | None,
+        start: datetime,
+        end: datetime,
+        aggregate_kwargs: TrendsSortWeights | None = None,
+        *,
+        referrer: str,
+    ) -> CursorResult[Group] | None:
+        """Execute a sort using Postgres data, with optional Snuba filtering/aggregation.
+
+        Returns None to signal the caller should fall back to the Snuba-only path (e.g.
+        when there are too many candidates to score in memory).
+        """
+        organization = projects[0].organization
+        postgres_fields = strategy.postgres_fields
+
+        group_queryset = self._apply_type_visibility_filter(group_queryset, search_filters)
+        if strategy.exclude_null_postgres:
+            for model_field in postgres_fields.values():
+                group_queryset = group_queryset.filter(**{f"{model_field}__isnull": False})
+
+        # Bound candidates by the lower edge of the search window using last_seen (the
+        # group's max event timestamp). When Snuba runs it enforces the full event window.
+        group_queryset = group_queryset.filter(last_seen__gte=start)
+
+        non_snuba_fields = self.postgres_only_fields.union({"date", "timestamp"})
+        has_snuba_filters = any(
+            sf.key.name not in non_snuba_fields for sf in (search_filters or ())
+        )
+
+        max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
+        candidate_ids = list(
+            group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
+        )
+
+        if not candidate_ids:
+            return self.empty_result
+
+        if len(candidate_ids) > max_candidates:
+            # Too many candidates to score in memory. Signal the caller to fall through
+            # to the Snuba chunked path, which can paginate without an in-memory bound.
+            return None
+
+        # Hit Snuba when the strategy needs an aggregation value or the query has
+        # event-level filters. The aggregation is passed as the Snuba sort field so its
+        # per-group value comes back as the score; with no aggregation we sort by last_seen
+        # (ignored by score_fn) and just use the result to narrow candidates to those
+        # matching the filters. One aggregation is supported.
+        snuba_data: dict[int, dict[str, Any]] = {}
+        if strategy.snuba_aggregations or has_snuba_filters:
+            sort_field = (
+                strategy.snuba_aggregations[0] if strategy.snuba_aggregations else "last_seen"
+            )
+            # sort_field is used directly as a key into aggregation_defs downstream; a
+            # misconfigured strategy should fail loudly here rather than with an opaque
+            # KeyError deep in query construction.
+            if sort_field not in self.aggregation_defs:
+                raise InvalidQueryForExecutor(
+                    f"Unknown snuba aggregation {sort_field!r} in Postgres sort strategy"
+                )
+            snuba_groups, _ = self.snuba_search(
+                start=start,
+                end=end,
+                project_ids=[p.id for p in projects],
+                environment_ids=[env.id for env in environments] if environments else None,
+                organization=organization,
+                sort_field=sort_field,
+                cursor=None,
+                group_ids=candidate_ids,
+                limit=len(candidate_ids),
+                offset=0,
+                search_filters=search_filters,
+                referrer=referrer,
+                actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
+            )
+            snuba_data = {gid: {sort_field: score} for gid, score in snuba_groups}
+            candidate_ids = list(snuba_data.keys())
+
+        if not candidate_ids:
+            return self.empty_result
+
+        logical_names = list(postgres_fields.keys())
+        pg_rows = (
+            group_queryset.filter(id__in=candidate_ids)
+            .using_replica()
+            .values_list("id", *postgres_fields.values())
+        )
+        pg_data = {row[0]: dict(zip(logical_names, row[1:])) for row in pg_rows}
+
+        # Each signal resolver runs once over all candidates, returning {group_id: value}.
+        signal_data: dict[str, dict[int, Any]] = {
+            name: resolver(actor, organization, candidate_ids)
+            for name, resolver in strategy.signal_resolvers.items()
+        }
+
+        scored_groups: list[tuple[Any, int]] = []
+        for gid in candidate_ids:
+            pg_values = pg_data.get(gid)
+            if pg_values is None:
+                continue
+            merged = {
+                **pg_values,
+                **snuba_data.get(gid, {}),
+                **{name: values[gid] for name, values in signal_data.items() if gid in values},
+            }
+            try:
+                score = strategy.score_fn(merged)
+            except (TypeError, KeyError):
+                continue
+            scored_groups.append((score, gid))
+
+        if not scored_groups:
+            return self.empty_result
+
+        paginator_results = SequencePaginator(
+            scored_groups, reverse=True, **paginator_options
+        ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
+        groups = Group.objects.in_bulk(paginator_results.results)
+        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+        return paginator_results
 
     def query(
         self,
@@ -976,6 +1242,46 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # is invalid.
             return self.empty_result
 
+        pg_overflow_fallback = False
+        pg_strategy = self.postgres_sort_strategies.get(sort_by)
+        if pg_strategy is not None:
+            pg_result = self._execute_postgres_sort(
+                strategy=pg_strategy,
+                sort_by=sort_by,
+                group_queryset=group_queryset,
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                limit=limit,
+                cursor=cursor,
+                count_hits=count_hits,
+                paginator_options=paginator_options,
+                max_hits=max_hits,
+                actor=actor,
+                start=start,
+                end=end,
+                aggregate_kwargs=aggregate_kwargs,
+                referrer=referrer,
+            )
+            if pg_result is not None:
+                metrics.timing(
+                    "snuba.search.query",
+                    (timezone.now() - now).total_seconds(),
+                    tags={"postgres_only": False, "sort": sort_by},
+                )
+                return pg_result
+            # Overflow: too many candidates to score in memory. Fall through to the Snuba
+            # chunked path (which applies issue-type visibility), never the postgres-only
+            # `date` shortcut below. If this sort has no Snuba-only equivalent, fall back
+            # to `date`.
+            pg_overflow_fallback = True
+            # Keep the original sort only if it maps to a real Snuba aggregation for the
+            # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
+            # sorts like "inbox"), have no aggregation and must fall back to `date` instead
+            # of flowing an empty sort_field into the aggregation lookup.
+            if not self.sort_strategies.get(sort_by):
+                sort_by = "date"
+
         # If the requested sort is `date` (`last_seen`) and there
         # are no other Snuba-based search predicates, we can simply
         # return the results from Postgres.
@@ -983,6 +1289,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # XXX: Don't enable this for now, it doesn't properly respect issue platform rules for hiding issue types.
             # We'll need to consolidate where we apply the type filters if we do want this.
             allow_postgres_only_search
+            and not pg_overflow_fallback
             and cursor is None
             and sort_by == "date"
             and

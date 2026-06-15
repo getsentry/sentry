@@ -6,7 +6,11 @@ from django.db.models.signals import post_save, pre_save
 from sentry import analytics
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
-from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log import (
+    ActionSource,
+    GroupActionActor,
+    action_context_scope,
+)
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
@@ -137,7 +141,7 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                 if acting_user:
                     if self_assign_issue == "1" and not group.assignee_set.exists():
                         with action_context_scope(
-                            source=ActionSource.SYSTEM, actor_id=acting_user.id
+                            source=ActionSource.SYSTEM, actor=GroupActionActor.user(acting_user.id)
                         ):
                             GroupAssignee.objects.assign(
                                 group=group, assigned_to=acting_user, acting_user=acting_user
@@ -216,7 +220,9 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                 acting_user: RpcUser | None = None
                 if user_list:
                     acting_user = user_list[0]
-                    with action_context_scope(source=ActionSource.SYSTEM, actor_id=acting_user.id):
+                    with action_context_scope(
+                        source=ActionSource.SYSTEM, actor=GroupActionActor.user(acting_user.id)
+                    ):
                         GroupAssignee.objects.assign(
                             group=group, assigned_to=acting_user, acting_user=acting_user
                         )

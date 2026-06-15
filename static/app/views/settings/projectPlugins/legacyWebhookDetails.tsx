@@ -32,7 +32,7 @@ interface LegacyWebhookResponse {
   urls: string[];
 }
 
-export function LegacyWebhookDetails() {
+export default function LegacyWebhookDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const queryClient = useQueryClient();
@@ -146,8 +146,8 @@ export function LegacyWebhookDetails() {
 
   return (
     <div>
-      <SentryDocumentTitle title="WebHooks" projectSlug={project.slug} />
-      <SettingsPageHeader title="WebHooks" />
+      <SentryDocumentTitle title="Webhooks" projectSlug={project.slug} />
+      <SettingsPageHeader title="Webhooks" />
       <Alert.Container>
         <Alert variant="warning">
           {tct(

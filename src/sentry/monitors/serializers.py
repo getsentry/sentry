@@ -214,7 +214,9 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
         )
         filtered_actors = list(filter(None, actors))
 
-        actors_serialized = serialize(Actor.resolve_many(filtered_actors), user, ActorSerializer())
+        actors_serialized = serialize(
+            Actor.resolve_many(filtered_actors, filter_none=False), user, ActorSerializer()
+        )
         actor_data = {
             actor: serialized_actor
             for actor, serialized_actor in zip(filtered_actors, actors_serialized)

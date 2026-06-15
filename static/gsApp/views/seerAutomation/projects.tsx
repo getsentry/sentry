@@ -1,6 +1,7 @@
 import {Outlet} from 'react-router-dom';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -12,7 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SeerProjectTable} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTable';
-import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
+import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 
 export default function SeerAutomationProjects() {
   const location = useLocation();
@@ -47,9 +48,10 @@ export default function SeerAutomationProjects() {
           }
         )}
       />
-      <SeerSettingsPageContent>
+      <Stack gap="lg" flex="1" minHeight="0" contain="size">
+        <SeerSettingsPageBanners />
         <SeerProjectTable />
-      </SeerSettingsPageContent>
+      </Stack>
       <Outlet />
     </AnalyticsArea>
   );

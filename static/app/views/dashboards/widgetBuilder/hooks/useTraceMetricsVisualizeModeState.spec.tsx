@@ -4,7 +4,10 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useWidgetBuilderContext,
+  WidgetBuilderProvider,
+} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   type EquationModeSnapshot,
   useTraceMetricsVisualizeModeState,
@@ -265,6 +268,48 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
+  it('clears legend aliases when switching to equation mode and restores them on return', async () => {
+    function useCombinedStateHooks() {
+      const modeState = useTraceMetricsVisualizeModeState();
+      const {state} = useWidgetBuilderContext();
+      return {visualizeModeState: modeState, widgetBuilderState: state};
+    }
+
+    const {result} = renderHookWithProviders(useCombinedStateHooks, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
+            legendAlias: ['my alias'],
+          },
+        },
+      },
+    });
+
+    // Switch to equation mode — aliases should be cleared
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(true);
+    });
+
+    await waitFor(() => {
+      expect(result.current.widgetBuilderState.legendAlias).toEqual([]);
+    });
+
+    // Switch back to series mode — aliases should be restored
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.widgetBuilderState.legendAlias).toEqual(['my alias']);
+    });
+  });
+
   it('restores equation yAxis when toggling to equation mode with a cached snapshot', async () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
@@ -348,7 +393,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
-  it('falls back to first query when selectedLabel does not match', async () => {
+  it('falls back to first aggregate when selectedLabel does not match', async () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -358,7 +403,10 @@ describe('useTraceMetricsVisualizeModeState', () => {
           query: {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
-            yAxis: ['count(value,gamma_metric,counter,none)'],
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,gamma_metric,counter,none)',
+            ],
+            label: 'test',
           },
         },
       },
@@ -379,12 +427,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-              },
-            ]),
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
           }),
         }),
         expect.anything()
@@ -534,7 +577,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
-  it('does not dispatch when equation snapshot is empty', () => {
+  it('seeds snapshot and dispatches equation yAxis when toggling to equation mode without a cached snapshot', async () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -556,13 +599,18 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
 
     expect(result.current.isEquationMode).toBe(true);
-    expect(mockNavigate).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          yAxis: expect.anything(),
+    expect(result.current.equationSnapshot.current).not.toBeNull();
+    expect(result.current.equationSnapshot.current?.selectedLabel).toBe('ƒ1');
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: ['equation|'],
+          }),
         }),
-      }),
-      expect.anything()
-    );
+        expect.anything()
+      );
+    });
   });
 });

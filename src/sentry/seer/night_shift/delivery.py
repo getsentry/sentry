@@ -70,6 +70,14 @@ def deliver_night_shift_result(
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
 
+    # A failed dispatch may have left a stale error_message even though Seer went
+    # on to process the run and is now delivering verdicts. Clear it so the run's
+    # state reflects the successful delivery.
+    if (run.extras or {}).get("error_message"):
+        extras = {**run.extras}
+        del extras["error_message"]
+        run.update(extras=extras)
+
     _process_verdicts(
         run=run,
         organization=run.organization,
@@ -108,16 +116,21 @@ def _process_verdicts(
             extra={**log_extra, "unknown_group_ids": unknown_group_ids},
         )
 
+    # SKIP and ROOT_CAUSE_ONLY are both suppressed from future runs via the skip
+    # cache. ROOT_CAUSE_ONLY keeps its own action value for tracking, but is
+    # otherwise treated identically to SKIP (it does not trigger autofix).
     for v in triage_response.verdicts:
-        if v.action == TriageAction.SKIP and v.group_id in groups_by_id:
+        if (
+            v.action in (TriageAction.SKIP, TriageAction.ROOT_CAUSE_ONLY)
+            and v.group_id in groups_by_id
+        ):
             mark_skipped(v.group_id)
 
     # Convert verdicts to TriageResult objects for the shared function
     fixable_candidates = [
         TriageResult(group=groups_by_id[v.group_id], action=v.action, reason=v.reason)
         for v in triage_response.verdicts
-        if v.action in (TriageAction.AUTOFIX, TriageAction.ROOT_CAUSE_ONLY)
-        and v.group_id in groups_by_id
+        if v.action == TriageAction.AUTOFIX and v.group_id in groups_by_id
     ]
 
     sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(fixable_candidates))

@@ -6,7 +6,13 @@ from typing import Any
 
 from django.urls import URLPattern, URLResolver
 
-EXCLUDED_ROUTE_PREFIXES = ("/groups/$issueId/", "/issues/$issueId/")
+EXCLUDED_ROUTE_PREFIXES = (
+    # Prefer org scoped endpoints
+    "/groups/$issueId/",
+    "/issues/$issueId/",
+    # Prefer /issues/ instead of /groups/
+    "/organizations/$organizationIdOrSlug/groups/",
+)
 
 
 def snake_to_camel_case(value: str) -> str:

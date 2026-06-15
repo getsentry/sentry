@@ -107,7 +107,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
     )
     def delete(
         self, request: Request, organization: Organization, external_user: ExternalActor
-    ) -> Response:
+    ) -> Response[None]:
         """
         Delete the link between a user from an external provider and a Sentry user.
         """

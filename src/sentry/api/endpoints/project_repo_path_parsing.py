@@ -144,7 +144,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, project: Project) -> Response:
+    def post(self, request: Request, project: Project) -> Response[RepoPathParsingResponse]:
         """
         Derive the code-mapping parameters (stack root, source root, default branch) that
         Sentry would create for a given stack trace frame and source code URL.

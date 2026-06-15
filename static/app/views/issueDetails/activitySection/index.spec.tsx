@@ -2,6 +2,7 @@ import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -23,6 +24,7 @@ import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
+  const tenMinutesAgo = () => new Date(Date.now() - 10 * 60 * 1000).toISOString();
   user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
@@ -182,7 +184,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.NOTE,
           id: 'note-1',
           data: {text: '**Bold Note** and [docs](https://docs.sentry.io/)'},
-          dateCreated: '2020-01-01T00:00:00',
+          dateCreated: tenMinutesAgo(),
           user,
         },
       ],
@@ -198,6 +200,7 @@ describe('ActivitySection', () => {
       'href',
       'https://docs.sentry.io/'
     );
+    expect(screen.getByText('10m ago')).toBeInTheDocument();
   });
 
   it('renders activity actor markers', async () => {
@@ -301,6 +304,90 @@ describe('ActivitySection', () => {
 
     expect(await screen.findByText('Test Issue')).toBeInTheDocument();
     expect(screen.queryByTestId('icon-add')).not.toBeInTheDocument();
+  });
+
+  it('renders create issue title based on whether the external issue is new', async () => {
+    const createIssueGroup = GroupFixture({
+      id: '1346',
+      activity: [
+        {
+          type: GroupActivityType.CREATE_ISSUE,
+          id: 'create-issue-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            provider: 'GitHub',
+            location: 'https://github.com/org/repo/issues/1',
+            title: 'Created external issue',
+            new: true,
+          },
+          user,
+        },
+        {
+          type: GroupActivityType.CREATE_ISSUE,
+          id: 'link-issue-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            provider: 'GitHub',
+            location: 'https://github.com/org/repo/issues/2',
+            title: 'Linked external issue',
+            new: false,
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={createIssueGroup} />);
+
+    expect(await screen.findByText('Created Issue')).toBeInTheDocument();
+    expect(screen.getByText('Created external issue')).toBeInTheDocument();
+    expect(screen.getByText('Linked Issue')).toBeInTheDocument();
+    expect(screen.getByText('Linked external issue')).toBeInTheDocument();
+  });
+
+  it('renders auto-resolved activity age as an inactivity duration', async () => {
+    const autoResolvedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {age: 504},
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-2',
+          dateCreated: '2020-01-02T00:00:00',
+          data: {age: 11},
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-3',
+          dateCreated: '2020-01-03T00:00:00',
+          data: {age: 30},
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED_BY_AGE,
+          id: 'set-resolved-by-age-4',
+          dateCreated: '2020-01-04T00:00:00',
+          data: {age: '48'},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={autoResolvedGroup} />);
+
+    expect(await screen.findByText(/after 21 days of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 11 hours of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 30 hours of inactivity/)).toBeInTheDocument();
+    expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
   });
 
   it('renders note and allows for edit', async () => {
@@ -439,7 +526,7 @@ describe('ActivitySection', () => {
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
-      dateCreated: '2020-01-01T00:00:00',
+      dateCreated: tenMinutesAgo(),
       user: UserFixture({id: '2'}),
       project,
     }));
@@ -461,6 +548,8 @@ describe('ActivitySection', () => {
     }
 
     expect(screen.queryByText('View 4 more')).not.toBeInTheDocument();
+    expect(screen.getAllByText('10 minutes ago')).toHaveLength(7);
+    expect(screen.queryByText('10m ago')).not.toBeInTheDocument();
   });
 
   it('filters comments correctly', async () => {
@@ -505,6 +594,30 @@ describe('ActivitySection', () => {
         ).toBeInTheDocument();
       }
     }
+  });
+
+  it('renders auto ongoing activity duration from backend data', async () => {
+    const ongoingGroup = GroupFixture({
+      id: '1339',
+      activity: [
+        {
+          type: GroupActivityType.AUTO_SET_ONGOING,
+          id: 'auto-ongoing-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {after_days: 7},
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={ongoingGroup} />);
+
+    expect(await screen.findByText('Marked as Ongoing')).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
+        (_, element) => element?.textContent === 'automatically by Sentry after 7 days'
+      )
+    ).not.toHaveLength(0);
   });
 
   it('renders resolved in release with integration', async () => {
@@ -658,5 +771,77 @@ describe('ActivitySection', () => {
 
     render(<ActivitySection group={seerPrGroup} />, {organization: org});
     expect(screen.queryByText('Pull Request Created')).not.toBeInTheDocument();
+  });
+
+  it('renders PR author name when activity user is null', async () => {
+    const prGroup = GroupFixture({
+      id: '1345',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-author-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={prGroup} />);
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByText('Shashank N Jarmale')).toBeInTheDocument();
+    expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
+  });
+
+  it('falls back to Sentry when PR has no author', async () => {
+    const prGroup = GroupFixture({
+      id: '1346',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-author-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture(),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={prGroup} />);
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByText('Sentry')).toBeInTheDocument();
+  });
+
+  it('falls back to Sentry for bot authors with @localhost email', async () => {
+    const prGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-author-3',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: {name: 'sentry[bot]', email: 'sentry[bot]@localhost'},
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={prGroup} />);
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByText('Sentry')).toBeInTheDocument();
+    expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
   });
 });

@@ -13,7 +13,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.action_log import ActionType, publish_action_from_context
+from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.types import MarkReviewedAction
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouphistory import (
@@ -105,7 +106,7 @@ def remove_group_from_inbox(
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
 
             publish_action_from_context(
-                action=ActionType.MARK_REVIEWED,
+                MarkReviewedAction(),
                 group_id=group_inbox.group_id,
                 organization_id=group_inbox.group.project.organization_id,
                 project_id=group_inbox.group.project_id,

@@ -26,8 +26,6 @@ class OrganizationLegacyWebhooksEndpoint(OrganizationEndpoint):
 
         result = []
         for option in project_options:
-            if not option.value:
-                continue
             project = option.project
             result.append(
                 {
@@ -35,7 +33,7 @@ class OrganizationLegacyWebhooksEndpoint(OrganizationEndpoint):
                     "projectSlug": project.slug,
                     "projectName": project.name,
                     "projectPlatform": project.platform,
-                    "enabled": True,
+                    "enabled": bool(option.value),
                 }
             )
 

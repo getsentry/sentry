@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,13 +18,28 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.eventuser import EventUser
 
+PROJECT_USERS_EXAMPLE = [
+    {
+        "id": "1",
+        "tagValue": "email:sentry@example.com",
+        "identifier": "1",
+        "username": "sentry",
+        "email": "sentry@example.com",
+        "name": "Sentry",
+        "ipAddress": "127.0.0.1",
+        "avatarUrl": "https://secure.gravatar.com/avatar/7ddf6ed64b36a1a28182f2c9af87c910?s=32",
+        "hash": "7ddf6ed64b36a1a28182f2c9af87c910",
+        "dateCreated": None,
+    }
+]
+
 
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectUsersEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -61,8 +76,16 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "Project users",
+                value=PROJECT_USERS_EXAMPLE,
+                response_only=True,
+                status_codes=["200"],
+            )
+        ],
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[EventUserSerializerResponse]]:
         """
         Return a list of users seen within this project.
         """

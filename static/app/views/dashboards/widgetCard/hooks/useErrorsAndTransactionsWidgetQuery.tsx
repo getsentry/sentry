@@ -1,7 +1,7 @@
 import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
+import type {ApiResult} from 'sentry/types/api';
 import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,

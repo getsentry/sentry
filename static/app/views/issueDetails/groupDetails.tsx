@@ -597,7 +597,8 @@ function getIssueDetailContextHint(view: IssueView): string {
   const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
   const tools =
     'You can get issue details for aggregate stats and stack trace, get event details for a specific error event, ' +
-    'and search live telemetry for related spans/errors/logs/metrics.';
+    'and search live telemetry for related spans/errors/logs/metrics. ' +
+    "If an autofix section appears in the page context below, Sentry's Autofix has already analyzed this issue — use that analysis as a starting point if needed.";
   return `${preamble} ${shortIdNote}${tools}`;
 }
 

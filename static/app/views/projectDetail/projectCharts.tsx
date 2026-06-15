@@ -3,6 +3,8 @@ import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
@@ -24,7 +26,6 @@ import {
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

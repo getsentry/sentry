@@ -72,7 +72,9 @@ Sentry.init({
   enableLogs: true,`
       : ''
   }
-  sendDefaultPii: true,
+  // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false, httpBodies: [] },
 });`;
 }
 
@@ -113,7 +115,9 @@ app.use(
     enableLogs: true,`
         : ''
     }
-    sendDefaultPii: true,
+    // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
+    // dataCollection: { userInfo: false, httpBodies: [] },
   }),
 );
 

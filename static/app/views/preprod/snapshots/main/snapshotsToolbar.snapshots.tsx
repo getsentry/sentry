@@ -119,27 +119,29 @@ describe('SnapshotsToolbar', () => {
     it.snapshot.breakpoints(
       ['xs', 'sm', 'md'],
       'all controls',
-      width => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: '100%'}}>
-            <SnapshotsToolbarWithControls
-              viewMode="list"
-              onViewModeChange={noop}
-              progress={{current: 3, total: 12, percent: 25}}
-              sort={{value: 'diff', onChange: noop}}
-              diff={{
-                mode: 'split',
-                onModeChange: noop,
-                overlayColor: '#f55459',
-                onOverlayColorChange: noop,
-                // Mirror production's `showSplit={breakpoints.sm}`.
-                showSplit: width >= parseInt(themes[themeName].breakpoints.sm, 10),
-              }}
-              solo={{isActive: false, onToggle: noop}}
-            />
-          </div>
-        </ThemeProvider>
-      ),
+      width => {
+        const isSm = width >= parseInt(themes[themeName].breakpoints.sm, 10);
+        return (
+          <ThemeProvider theme={themes[themeName]}>
+            <div style={{width: '100%'}}>
+              <SnapshotsToolbarWithControls
+                viewMode="list"
+                onViewModeChange={noop}
+                progress={{current: 3, total: 12, percent: 25}}
+                sort={{value: 'diff', onChange: noop}}
+                diff={{
+                  mode: isSm ? 'split' : 'wipe',
+                  onModeChange: noop,
+                  overlayColor: '#f55459',
+                  onOverlayColorChange: noop,
+                  showSplit: isSm,
+                }}
+                solo={{isActive: false, onToggle: noop}}
+              />
+            </div>
+          </ThemeProvider>
+        );
+      },
       {tags: {area: 'snapshots'}}
     );
 
@@ -188,6 +190,28 @@ describe('SnapshotsToolbar', () => {
         </ThemeProvider>
       ),
       {tags: {area: 'snapshots'}}
+    );
+
+    it.snapshot.each<DiffMode>(['split', 'wipe', 'onion'])(
+      '%s',
+      diffMode => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{width: 960}}>
+            <SnapshotsToolbarWithControls
+              viewMode="single"
+              onViewModeChange={noop}
+              progress={{current: 1, total: 5, percent: 20}}
+              diff={{
+                mode: diffMode,
+                onModeChange: noop,
+                overlayColor: '#f55459',
+                onOverlayColorChange: noop,
+              }}
+            />
+          </div>
+        </ThemeProvider>
+      ),
+      diffMode => ({tags: {area: 'snapshots', diffMode}})
     );
   });
 });

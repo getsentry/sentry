@@ -13,6 +13,7 @@ import {TraceEAPSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
+import {HTTP_ERROR_STATUSES} from './constants';
 import {traceChronologicalSort} from './utils';
 
 export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
@@ -155,6 +156,21 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     return this.value.is_transaction
       ? undefined
       : this.findClosestParentTransaction()?.profileId;
+  }
+
+  get hasHttpError(): boolean {
+    const statusCode = Number(
+      this.value.additional_attributes?.['http.response.status_code']
+    );
+    if (!isNaN(statusCode) && statusCode >= 400) {
+      return true;
+    }
+
+    const status = this.value.additional_attributes?.['span.status'];
+    if (typeof status === 'string' && HTTP_ERROR_STATUSES.has(status)) {
+      return true;
+    }
+    return false;
   }
 
   get profilerId(): string | undefined {

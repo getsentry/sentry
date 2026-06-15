@@ -129,6 +129,7 @@ type LogsRowProps = {
   };
   expansionKey?: string;
   isExpanded?: boolean;
+  isHoverLinked?: boolean;
   isPinned?: boolean;
   logEnd?: string;
   logStart?: string;
@@ -136,6 +137,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  setHoveredRowId?: (logItemId: string | null) => void;
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
   togglePinnedRow?: (logItemId: string) => void;
@@ -226,6 +228,8 @@ export const LogRowContent = memo(function LogRowContent({
   logStart,
   logEnd,
   isPinned,
+  isHoverLinked,
+  setHoveredRowId,
   togglePinnedRow,
   showCellActions,
   showExploreSimilarSpansLink,
@@ -418,6 +422,7 @@ export const LogRowContent = memo(function LogRowContent({
     <Fragment>
       <LogTableRow
         data-test-id="log-table-row"
+        data-row-hover-linked={isHoverLinked}
         highlighted={isPseudoRow}
         pinned={isPinned}
         {...omit(rowInteractProps, 'className')}
@@ -425,9 +430,15 @@ export const LogRowContent = memo(function LogRowContent({
         onMouseEnter={e => {
           setShouldRenderHoverElements(true);
           rowInteractProps.onMouseEnter?.(e);
+          if (isPinned) {
+            setHoveredRowId?.(rowId);
+          }
         }}
         onMouseLeave={e => {
           rowInteractProps.onMouseLeave?.(e);
+          if (isPinned) {
+            setHoveredRowId?.(null);
+          }
         }}
       >
         <LogsTableBodyFirstCell key="first">
@@ -499,7 +510,7 @@ export const LogRowContent = memo(function LogRowContent({
 
           if (!defined(value)) {
             return (
-              <LogTableBodyCell key={field}>
+              <LogTableBodyCell key={field} reservePinGutter={!!pin}>
                 {shouldRenderActions ? (
                   <Flex position="relative" height="100%" width="100%" justify="end">
                     {pin}
@@ -533,7 +544,11 @@ export const LogRowContent = memo(function LogRowContent({
           };
 
           return (
-            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
+            <LogTableBodyCell
+              key={field}
+              data-test-id={'log-table-cell-' + field}
+              reservePinGutter={!!pin}
+            >
               {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}

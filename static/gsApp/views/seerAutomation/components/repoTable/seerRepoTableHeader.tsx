@@ -19,6 +19,7 @@ import {t, tct, tn} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {
   useListItemCheckboxContext,
   type ListItemCheckboxState,
@@ -69,15 +70,8 @@ export function SeerRepoTableHeader({
 }: Props) {
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {
-    countSelected,
-    isAllSelected,
-    isAnySelected,
-    endpointOptionsRef,
-    selectAll,
-    selectedIds,
-    knownIds,
-  } = listItemCheckboxState;
+  const {countSelected, endpointOptionsRef, selectAll, selectedIds, knownIds} =
+    listItemCheckboxState;
   const endpointOptions = endpointOptionsRef.current;
   const rawQuery = endpointOptions?.query?.query;
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
@@ -243,7 +237,7 @@ export function SeerRepoTableHeader({
 
   return (
     <Fragment>
-      {isAnySelected ? null : (
+      <ListItemSelectedState selected="none">
         <TableHeader gridColumns={gridColumns}>
           <SimpleTable.HeaderCell>
             <SelectAllCheckbox
@@ -275,9 +269,9 @@ export function SeerRepoTableHeader({
             </SimpleTable.HeaderCell>
           ))}
         </TableHeader>
-      )}
+      </ListItemSelectedState>
 
-      {isAnySelected ? (
+      <ListItemSelectedState selected="indeterminate-or-all">
         <TableHeader gridColumns={gridColumns}>
           <TableCellFirst>
             <SelectAllCheckbox
@@ -346,9 +340,9 @@ export function SeerRepoTableHeader({
             />
           </TableCellsRemainingContent>
         </TableHeader>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === 'indeterminate' ? (
+      <ListItemSelectedState selected="indeterminate">
         <FullGridAlert variant="info" system>
           <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
@@ -362,9 +356,9 @@ export function SeerRepoTableHeader({
             </a>
           </Flex>
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === true ? (
+      <ListItemSelectedState selected="all">
         <FullGridAlert variant="info" system>
           {queryString
             ? tct('Selected all [count] repositories matching: [queryString].', {
@@ -379,7 +373,7 @@ export function SeerRepoTableHeader({
                   countSelected
                 )}
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
     </Fragment>
   );
 }

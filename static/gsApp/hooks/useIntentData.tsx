@@ -1,7 +1,8 @@
 import {useEffect, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
-import {fetchMutation, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';

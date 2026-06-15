@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {LegacyWebhookDetails} from 'sentry/views/settings/projectPlugins/legacyWebhookDetails';
+import LegacyWebhookDetails from 'sentry/views/settings/projectPlugins/legacyWebhookDetails';
 
 describe('LegacyWebhookDetails', () => {
   const organization = OrganizationFixture();

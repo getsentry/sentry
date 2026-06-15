@@ -1,9 +1,10 @@
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -14,16 +15,45 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tsdb.base import TSDBModel
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+PROJECT_STATS_EXAMPLE = [
+    [1541455200, 1184],
+    [1541458800, 1410],
+    [1541462400, 1440],
+    [1541466000, 1682],
+    [1541469600, 1203],
+    [1541473200, 497],
+    [1541476800, 661],
+    [1541480400, 1481],
+    [1541484000, 678],
+    [1541487600, 1857],
+    [1541491200, 819],
+    [1541494800, 1013],
+    [1541498400, 1883],
+    [1541502000, 1450],
+    [1541505600, 1102],
+    [1541509200, 1317],
+    [1541512800, 1017],
+    [1541516400, 813],
+    [1541520000, 1189],
+    [1541523600, 496],
+    [1541527200, 1936],
+    [1541530800, 1405],
+    [1541534400, 617],
+    [1541538000, 1533],
+]
 
 
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     rate_limits = RateLimitConfig(
@@ -78,8 +108,16 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "Project event counts",
+                value=PROJECT_STATS_EXAMPLE,
+                response_only=True,
+                status_codes=["200"],
+            )
+        ],
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response[list[tuple[int, int]]]:
         """
         Return a set of points representing a normalized timestamp and the number of
         events seen in the period.

@@ -26,7 +26,7 @@ type GroupListBodyProps = {
   groupIds: string[];
   groupStatsPeriod: string;
   loading: boolean;
-  memberList: IndexedMembersByProject;
+  memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   pageSize: number;
   query: string;
@@ -39,7 +39,7 @@ type GroupListProps = {
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
-  memberList: IndexedMembersByProject;
+  memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
   supergroupLookup?: SupergroupLookup;
@@ -207,7 +207,7 @@ function GroupList({
         statsPeriod={groupStatsPeriod}
         query={query}
         hasGuideAnchor={id === topIssue}
-        memberList={group.project ? memberList[group.project.slug] : undefined}
+        memberList={group.project ? memberList?.get(group.project.slug) : undefined}
         displayReprocessingLayout={displayReprocessingLayout}
         useFilteredStats
         canSelect={!selectDisabled}

@@ -104,7 +104,7 @@ class TagStorage(Service):
 
     def get_tag_key(
         self, project_id, environment_id, key: str, status=TagKeyStatus.ACTIVE, tenant_ids=None
-    ):
+    ) -> GroupTagKey | TagKey:
         """
         >>> get_tag_key(1, 2, "key1")
         """

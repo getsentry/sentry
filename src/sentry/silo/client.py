@@ -50,26 +50,30 @@ def get_cell_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6A
     cell_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
     for cell in get_global_directory().cells:
-        url = urllib3.util.parse_url(cell.address)
-        if url.host:
-            # This is an IPv4 address.
-            # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
-            try:
-                ip = socket.gethostbyname(url.host)
-            except Exception:
-                metrics.incr(
-                    "hybrid_cloud.silo_client.ip_address_resolution_error",
-                    tags={"cell": cell.name},
-                )
+        addresses = [cell.address]
+        if cell.api_gateway_address:
+            addresses.append(cell.api_gateway_address)
+        for address in addresses:
+            url = urllib3.util.parse_url(address)
+            if url.host:
+                # This is an IPv4 address.
+                # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
+                try:
+                    ip = socket.gethostbyname(url.host)
+                except Exception:
+                    metrics.incr(
+                        "hybrid_cloud.silo_client.ip_address_resolution_error",
+                        tags={"cell": cell.name},
+                    )
+                    sentry_sdk.capture_exception(
+                        CellResolutionError(f"Unable to resolve cell host for: {url.host}")
+                    )
+                    continue
+                cell_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
+            else:
                 sentry_sdk.capture_exception(
-                    CellResolutionError(f"Unable to resolve cell host for: {url.host}")
+                    CellResolutionError(f"Unable to parse url to host for: {address}")
                 )
-                continue
-            cell_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
-        else:
-            sentry_sdk.capture_exception(
-                CellResolutionError(f"Unable to parse url to host for: {cell.address}")
-            )
 
     return frozenset(cell_ip_addresses)
 

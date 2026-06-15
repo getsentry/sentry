@@ -300,8 +300,8 @@ function DuplicateGroupFileRow({
             </Button>
           )}
         >
-          {group.files.map((duplicateFile, index) => (
-            <Flex key={`${duplicateFile.file_path}-${index}`} align="center" gap="sm">
+          {group.files.map(duplicateFile => (
+            <Flex key={duplicateFile.file_path} align="center" gap="sm">
               <Text size="xs" variant="muted" ellipsis style={{flex: 1, minWidth: 0}}>
                 {duplicateFile.file_path}
               </Text>

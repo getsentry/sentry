@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import orjson
 import sentry_sdk
@@ -20,7 +20,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
@@ -30,10 +30,15 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
+PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 logger = logging.getLogger(__name__)
 
 
@@ -92,13 +97,21 @@ def compare_rebalanced_projects_with_cache(
     config: BaseDynamicSamplingConfiguration,
     rebalanced_projects: list[RebalancedItem],
     cached_sample_rates: dict[int, float | None],
+    project_volumes: list[ProjectVolume],
 ) -> None:
-    calculated_sample_rates = {
-        int(project.id): project.new_sample_rate for project in rebalanced_projects
+    rebalanced_projects_by_id = {int(project.id): project for project in rebalanced_projects}
+    project_volumes_by_id = {
+        project_volume.project_id: project_volume for project_volume in project_volumes
     }
+    debug_project_ids = project_balancing_debug_project_ids()
 
-    for project_id, eap_sample_rate in sorted(calculated_sample_rates.items()):
+    for project_id, rebalanced_project in sorted(rebalanced_projects_by_id.items()):
+        eap_sample_rate = rebalanced_project.new_sample_rate
         generic_metrics_sample_rate = cached_sample_rates.get(project_id)
+        project_volume = project_volumes_by_id.get(project_id)
+        eap_volume_without_extrapolation = (
+            project_volume.keep if project_volume is not None else None
+        )
         logger.info(
             "dynamic_sampling.per_org.project_balancing_comparison",
             extra={
@@ -112,7 +125,55 @@ def compare_rebalanced_projects_with_cache(
                 "is_equal": is_within_relative_tolerance(
                     generic_metrics_sample_rate, eap_sample_rate
                 ),
+                "total_volume_eap": rebalanced_project.count,
+                "total_volume_eap_without_extrapolation": eap_volume_without_extrapolation,
             },
+        )
+        if project_id in debug_project_ids:
+            _emit_project_balancing_debug_metrics(
+                org_id=config.organization.id,
+                project_id=project_id,
+                eap_sample_rate=eap_sample_rate,
+                generic_metrics_sample_rate=generic_metrics_sample_rate,
+                eap_volume=rebalanced_project.count,
+                eap_volume_without_extrapolation=eap_volume_without_extrapolation,
+            )
+
+
+def _emit_project_balancing_debug_metrics(
+    org_id: int,
+    project_id: int,
+    eap_sample_rate: float,
+    generic_metrics_sample_rate: float | None,
+    eap_volume: float,
+    eap_volume_without_extrapolation: float | None,
+) -> None:
+    tags = {"org_id": str(org_id), "dynamic_sampling_project_id": str(project_id)}
+    metrics.gauge(
+        f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_sample_rate",
+        eap_sample_rate,
+        sample_rate=1.0,
+        tags=tags,
+    )
+    if generic_metrics_sample_rate is not None:
+        metrics.gauge(
+            f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.generic_metrics_sample_rate",
+            generic_metrics_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    metrics.gauge(
+        f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_volume",
+        eap_volume,
+        sample_rate=1.0,
+        tags=tags,
+    )
+    if eap_volume_without_extrapolation is not None:
+        metrics.gauge(
+            f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_volume_without_extrapolation",
+            eap_volume_without_extrapolation,
+            sample_rate=1.0,
+            tags=tags,
         )
 
 

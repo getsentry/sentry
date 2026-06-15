@@ -4,8 +4,6 @@
  * Before a type is put here it should be required in multiple other types.
  * or used in multiple views.
  */
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
-
 import type {getInterval} from 'sentry/components/charts/utils';
 
 export type {Scope} from 'sentry/constants/scopes';
@@ -44,19 +42,6 @@ export type TimeseriesValue = [timestamp: number, value: number];
 
 // taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
-
-/**
- * The option format used by react-select based components
- */
-export interface SelectValue<T> extends MenuListItemProps {
-  value: T;
-  /**
-   * In scenarios where you're using a react element as the label react-select
-   * will be unable to filter to that label. Use this to specify the plain text of
-   * the label.
-   */
-  textValue?: string;
-}
 
 /**
  * The 'other' option format used by checkboxes, radios and more.

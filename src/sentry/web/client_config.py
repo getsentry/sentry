@@ -19,6 +19,7 @@ from sentry import features, options
 from sentry.api.utils import generate_locality_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticationContext
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.organizationmapping import OrganizationMapping
@@ -31,9 +32,12 @@ from sentry.organizations.services.organization import (
 from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.silo.base import SiloMode
 from sentry.types.cell import (
+    Cell,
     Locality,
     RegionCategory,
+    find_all_cell_names,
     find_all_multitenant_locality_names,
+    get_cell_by_name,
     get_global_directory,
     get_locality_by_name,
     get_locality_name_for_cell,
@@ -225,6 +229,10 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
+        if self.last_org and features.has(
+            "organizations:api-fetch-v2", self.last_org, actor=self.user
+        ):
+            yield "organizations:api-fetch-v2"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -359,8 +367,9 @@ class _ClientConfig:
 
         This will include *all* multi-tenant regions, and if the user
         has membership on any single-tenant regions those will also be included.
-        """
 
+        :deprecated: Once the UI has been transitioned to `localities` and `cells` this can be removed.
+        """
         # Only expose visible regions.
         # When new regions are added they can take some work to get working correctly.
         # Before they are working we need ways to bring parts of the region online without
@@ -389,8 +398,57 @@ class _ClientConfig:
     def member_regions(self) -> list[Mapping[str, Any]]:
         """
         The regions the user has membership in. Includes single-tenant regions.
+
+        :deprecated: Once the UI has been transitioned to use control silo org-list this can be removed.
         """
         return self._serialize_localities(self._member_locality_names, lambda loc: loc.name)
+
+    @property
+    def localities(self) -> list[Mapping[str, Any]]:
+        """
+        The localities (formerly regions) that are visible to customers
+        """
+        locality_names = find_all_multitenant_locality_names()
+
+        if not locality_names:
+            return [{"name": "default", "url": options.get("system.url-prefix")}]
+
+        monolith_locality = get_locality_name_for_cell(settings.SENTRY_MONOLITH_REGION)
+
+        def region_display_order(region: Locality) -> tuple[bool, bool, str]:
+            return (
+                region.name != monolith_locality,  # default locality comes first
+                region.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
+                region.name,  # then sort alphabetically
+            )
+
+        return self._serialize_localities(locality_names, region_display_order)
+
+    @property
+    def cells(self) -> list[Mapping[str, Any]]:
+        """
+        The list of cells available.
+
+        The cell list is only available with a staff/superuser session.
+        """
+        if not self.request or not (
+            is_active_staff(self.request) or is_active_superuser(self.request)
+        ):
+            return []
+
+        def cell_display_order(cell: Cell) -> tuple[bool, bool, bool, str]:
+            return (
+                cell.name != settings.SENTRY_MONOLITH_REGION,  # default historical cell comes first
+                cell.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
+                not cell.visible,  # visible cells first
+                cell.name,  # then sort alphabetically
+            )
+
+        cell_names = find_all_cell_names()
+        cells = [get_cell_by_name(name) for name in cell_names]
+        cells.sort(key=cell_display_order)
+
+        return [cell.api_serialize() for cell in cells]
 
     @property
     def should_preload_data(self) -> bool:
@@ -449,6 +507,8 @@ class _ClientConfig:
             # organization is not in context
             "lastOrganization": self.last_org_slug,
             "languageCode": self.language_code,
+            "cells": self.cells,
+            "localities": self.localities,
             "userIdentity": dict(self.user_identity),
             "csrfCookieName": settings.CSRF_COOKIE_NAME,
             "superUserCookieName": superuser.COOKIE_NAME,

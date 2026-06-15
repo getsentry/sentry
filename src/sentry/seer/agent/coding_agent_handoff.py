@@ -22,9 +22,9 @@ from sentry.integrations.services.github_copilot_identity import github_copilot_
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.seer.autofix.coding_agent import (
-    _validate_and_get_integration,
     sanitize_branch_name,
     store_coding_agent_states_to_seer,
+    validate_and_get_integration,
 )
 from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
@@ -61,7 +61,7 @@ def _resolve_client(
         return GithubCopilotAgentClient(user_access_token), None
 
     if integration_id is not None:
-        _integration, installation = _validate_and_get_integration(organization, integration_id)
+        _integration, installation = validate_and_get_integration(organization, integration_id)
         return None, installation
 
     raise ValidationError("Either integration_id or provider must be provided")

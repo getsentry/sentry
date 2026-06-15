@@ -150,11 +150,15 @@ describe('javascript-gatsby onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('includes sendDefaultPii configuration', () => {
+  it('includes dataCollection configuration', () => {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/sendDefaultPii: true/))
+      screen.getByText(
+        textWithMarkupMatcher(
+          /\/\/ dataCollection: \{ userInfo: false, httpBodies: \[\] \}/
+        )
+      )
     ).toBeInTheDocument();
   });
 
