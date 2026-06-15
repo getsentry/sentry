@@ -68,6 +68,9 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +89,40 @@ def _parse_autofix_referrer(raw: str | None) -> AutofixReferrer:
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
+
+
+def _hydrate_feedback_users(blocks: list[dict[str, Any]], request_user: Any) -> None:
+    parsed_by_index: dict[int, dict[str, Any]] = {}
+    user_ids: set[int] = set()
+    for index, block in enumerate(blocks):
+        raw = (block.get("message") or {}).get("metadata", {}).get("feedback")
+        if not raw:
+            continue
+        try:
+            feedback = json.loads(raw)
+        except (ValueError, TypeError):
+            continue
+        user_id = (feedback.get("source") or {}).get("user_id")
+        if not isinstance(user_id, int):
+            continue
+        parsed_by_index[index] = feedback
+        user_ids.add(user_id)
+
+    if not user_ids:
+        return
+
+    users = {
+        u["id"]: u
+        for u in user_service.serialize_many(
+            filter={"user_ids": list(user_ids)},
+            as_user=serialize_generic_user(request_user),
+        )
+    }
+
+    for index, feedback in parsed_by_index.items():
+        user_id = feedback["source"]["user_id"]
+        feedback["source"]["user"] = users.get(user_id)
+        blocks[index]["message"]["metadata"]["feedback"] = json.dumps(feedback)
 
 
 class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
@@ -305,13 +342,13 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     {"detail": "PR iteration is not enabled for this organization"},
                     status=status.HTTP_403_FORBIDDEN,
                 )
-            if not run_id:
+            if resolved_run_id is None:
                 return Response(
                     {"detail": "run_id is required for pr_iteration"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             try:
-                state = get_autofix_run_state(group, run_id)
+                state = get_autofix_run_state(group, resolved_run_id)
             except SeerPermissionError as e:
                 if _is_unknown_run_id_error(e):
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -436,13 +473,15 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 )
 
         run = get_seer_run(state.run_id, group.organization)
+        blocks = [block.dict() for block in state.blocks]
+        _hydrate_feedback_users(blocks, request.user)
         return Response(
             {
                 "autofix": {
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
                     "status": state.status,
-                    "blocks": [block.dict() for block in state.blocks],
+                    "blocks": blocks,
                     "updated_at": state.updated_at,
                     "pending_user_input": (
                         state.pending_user_input.dict() if state.pending_user_input else None
