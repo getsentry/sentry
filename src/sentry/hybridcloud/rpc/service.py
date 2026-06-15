@@ -669,7 +669,9 @@ class _RemoteSiloCall:
         rpc_method = f"{self.service_name}.{self.method_name}"
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("rpc_method", rpc_method)
+        scope.set_attribute("rpc_method", rpc_method)
         scope.set_tag("rpc_status_code", response.status_code)
+        scope.set_attribute("rpc_status_code", response.status_code)
 
         if response.status_code == 422:
             # Validation/Operation errors that should be shown to end user behave the same
