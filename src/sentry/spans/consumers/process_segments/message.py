@@ -49,7 +49,10 @@ outcome_aggregator = OutcomeAggregator()
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(
-    unprocessed_spans: list[SpanEvent], skip_produce: bool = False, skip_enrichment: bool = False
+    unprocessed_spans: list[SpanEvent],
+    segment_id: str | None = None,
+    skip_produce: bool = False,
+    skip_enrichment: bool = False,
 ) -> list[CompatibleSpan]:
     sample_rate = (
         settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
@@ -61,13 +64,17 @@ def process_segment(
             "sample_rate": sample_rate,
         },
     ):
-        return _process_segment(unprocessed_spans, skip_produce, skip_enrichment)
+        return _process_segment(unprocessed_spans, segment_id, skip_produce, skip_enrichment)
 
 
 def _process_segment(
-    unprocessed_spans: list[SpanEvent], skip_produce: bool, skip_enrichment: bool
+    unprocessed_spans: list[SpanEvent],
+    segment_id: str | None,
+    skip_produce: bool,
+    skip_enrichment: bool,
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
+    _set_segment_attributes(unprocessed_spans, segment_id)
 
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]
@@ -176,6 +183,33 @@ def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dic
     return result
 
 
+def _set_segment_attributes(spans: list[SpanEvent], segment_id: str | None) -> None:
+    """
+    Enriches the span with segment information.
+
+    The `segment_id` value is always specified. For now its marked as optional because it may
+    not be passed for older messages still present in the queue. After an appropriate amount
+    of soaking time this type can be strengthened.
+
+    This function mirrors the behavior in `buffer.py`. Eventually that code will be removed,
+    however, it still exists for now during the transitionary period.
+    """
+    if not segment_id:
+        return
+
+    for span in spans:
+        if not attribute_value(span, "sentry.segment.id"):
+            attributes = span.get("attributes")
+            if not isinstance(attributes, dict):
+                span["attributes"] = attributes = {}
+            attributes["sentry.segment.id"] = {
+                "type": "string",
+                "value": segment_id,
+            }
+
+        span["is_segment"] = span["span_id"] == segment_id
+
+
 def _redact(data: Any) -> Any:
     if isinstance(data, list):
         return [_redact(item) for item in data]
@@ -200,7 +234,6 @@ def _enrich_spans(
 
     Returns the segment span, if any, and the list of enriched spans.
     """
-
     segment_idx, tree_spans = TreeEnricher.enrich_spans(unprocessed_spans)
 
     # Set attributes that are needed by logic shared with the event processing pipeline.

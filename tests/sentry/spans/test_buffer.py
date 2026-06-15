@@ -560,6 +560,7 @@ def test_basic(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -627,6 +628,7 @@ def test_observability_metrics(
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -675,6 +677,7 @@ def test_duplicate_batch_is_idempotent(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -760,6 +763,7 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -839,6 +843,7 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -911,6 +916,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=2,
             spans=[_output_segment(b"b" * 16, b"b" * 16, True)],
@@ -925,6 +931,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -992,12 +999,14 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=2,
             spans=[_output_segment(b"b" * 16, b"b" * 16, True)],
         ),
         _segment_id(1, "a" * 32, "c" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -1014,6 +1023,7 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[
@@ -1051,6 +1061,7 @@ def test_flush_rebalance(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[_output_segment(b"a" * 16, b"a" * 16, True)],
@@ -1326,6 +1337,7 @@ def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
     spans = [{"span_id": "a"}, {"span_id": "b"}]
     segment = FlushedSegment(
         queue_key=b"test",
+        segment_id="a" * 16,
         spans=[OutputSpan(payload=s) for s in spans],
         project_id=1,
     )
@@ -1338,6 +1350,7 @@ def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
         messages = segment.to_messages()
     assert len(messages) == 1
     assert messages[0]["spans"] == spans
+    assert messages[0]["segment_id"] == "a" * 16
     assert "skip_enrichment" not in messages[0]
     assert "flush_id" in messages[0]
     assert len(messages[0]["flush_id"]) == 32  # UUID hex string
@@ -1373,6 +1386,7 @@ def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
     ]
     segment = FlushedSegment(
         queue_key=b"test",
+        segment_id="a" * 16,
         spans=[OutputSpan(payload=s) for s in spans],
         project_id=1,
     )
@@ -1392,6 +1406,7 @@ def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
 
     for message in messages:
         assert message["skip_enrichment"] is True
+        assert message["segment_id"] == "a" * 16
         assert "flush_id" in message
         assert len(message["flush_id"]) == 32
 
@@ -1408,6 +1423,7 @@ def test_to_messages_single_large_span(buffer: SpansBuffer) -> None:
     """A single span larger than max_bytes still gets its own message."""
     segment = FlushedSegment(
         queue_key=b"test",
+        segment_id="a" * 16,
         spans=[OutputSpan(payload={"span_id": "a" * 16})],
         project_id=1,
     )
@@ -1429,6 +1445,7 @@ def test_to_messages_unique_flush_ids_across_calls(buffer: SpansBuffer) -> None:
     spans = [{"span_id": "a"}, {"span_id": "b"}]
     segment = FlushedSegment(
         queue_key=b"test",
+        segment_id="a" * 16,
         spans=[OutputSpan(payload=s) for s in spans],
         project_id=1,
     )
@@ -1507,6 +1524,7 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            segment_id=mock.ANY,
             payload_keys=mock.ANY,
             project_id=1,
             spans=[

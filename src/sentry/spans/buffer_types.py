@@ -210,6 +210,7 @@ class FlushedSegment(NamedTuple):
     queue_key: QueueKey
     spans: list[OutputSpan]
     project_id: int  # Used to track outcomes
+    segment_id: str  # The segment's root span id, forwarded to the segment consumer
     payload_keys: list[PayloadKey] = []  # For cleanup
 
     def to_messages(self) -> list[dict[str, Any]]:
@@ -228,7 +229,7 @@ class FlushedSegment(NamedTuple):
 
         sizes = [len(orjson.dumps(s)) for s in spans]
         if sum(sizes) <= max_segment_bytes:
-            return [{"flush_id": uuid.uuid4().hex, "spans": spans}]
+            return [{"flush_id": uuid.uuid4().hex, "segment_id": self.segment_id, "spans": spans}]
 
         messages: list[dict[str, Any]] = []
         current: list[SpanPayload] = []
@@ -237,7 +238,12 @@ class FlushedSegment(NamedTuple):
         for span, size in zip(spans, sizes):
             if current and current_size + size > max_segment_bytes:
                 messages.append(
-                    {"flush_id": uuid.uuid4().hex, "spans": current, "skip_enrichment": True}
+                    {
+                        "flush_id": uuid.uuid4().hex,
+                        "segment_id": self.segment_id,
+                        "spans": current,
+                        "skip_enrichment": True,
+                    }
                 )
                 current = []
                 current_size = 0
@@ -246,7 +252,12 @@ class FlushedSegment(NamedTuple):
 
         if current:
             messages.append(
-                {"flush_id": uuid.uuid4().hex, "spans": current, "skip_enrichment": True}
+                {
+                    "flush_id": uuid.uuid4().hex,
+                    "segment_id": self.segment_id,
+                    "spans": current,
+                    "skip_enrichment": True,
+                }
             )
 
         if len(messages) > 1:

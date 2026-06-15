@@ -169,7 +169,10 @@ def _process_message(
         segment = orjson.loads(value)
         skip_enrichment = segment.get("skip_enrichment", False)
         processed = process_segment(
-            segment["spans"], skip_produce=skip_produce, skip_enrichment=skip_enrichment
+            segment["spans"],
+            segment_id=segment.get("segment_id"),
+            skip_produce=skip_produce,
+            skip_enrichment=skip_enrichment,
         )
         processed = _check_span_duplicates(processed)
         return [_serialize_payload(span, message.timestamp) for span in processed]

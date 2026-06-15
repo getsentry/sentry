@@ -526,6 +526,7 @@ class SpansBuffer:
                 queue_key=loaded_segment.queue_key,
                 spans=output_spans,
                 project_id=int(project_id.decode("ascii")),
+                segment_id=segment_span_id,
                 payload_keys=loaded_segment.payload_keys,
             )
             num_has_root_spans += int(has_root_span)
