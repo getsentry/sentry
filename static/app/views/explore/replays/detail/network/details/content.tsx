@@ -110,9 +110,7 @@ export function NetworkDetailsContent(props: Props) {
             <Setup showSnippet={output} {...props} />
           )}
           {output === Output.INCOMPLETE && (
-            <ParseError>
-              {t('No headers were captured for this request.')}
-            </ParseError>
+            <ParseError>{t('No headers were captured for this request.')}</ParseError>
           )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="headers" />}
         </OverflowFluidHeight>
