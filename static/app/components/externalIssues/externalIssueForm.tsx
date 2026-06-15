@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
@@ -126,11 +127,14 @@ export function ExternalIssueForm({
     })
   );
   const queryClient = useQueryClient();
-  const title = tct('[integration] Issue', {integration: integration.provider.name});
 
   const [hasTrackedLoad, setHasTrackedLoad] = useState(false);
   const [loadSpan, setLoadSpan] = useState<Span | null>(null);
   const [action, setAction] = useState<ExternalIssueAction>('create');
+  const title = tct('[action] [integration] Issue', {
+    action: action === 'create' ? t('Create') : t('Link'),
+    integration: integration.provider.name,
+  });
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
   // Stable fields don't depend on other fields. We keep the values the user typed
   // so they survive the remounts that dynamic-field refetches cause.
@@ -390,71 +394,58 @@ export function ExternalIssueForm({
     [formFields]
   );
 
-  if (isPending) {
-    return (
-      <Fragment>
-        <Header closeButton>
-          <Heading as="h4">{title}</Heading>
-        </Header>
-        <Body>
-          <LoadingIndicator />
-        </Body>
-      </Fragment>
-    );
-  }
-
-  if (isError) {
-    const errorDetail = error?.responseJSON?.detail;
-    const errorMessage =
-      typeof errorDetail === 'string'
-        ? errorDetail
-        : t('An error occurred loading the issue form');
-    return (
-      <Fragment>
-        <Header closeButton>
-          <Heading as="h4">{title}</Heading>
-        </Header>
-        <Body>
-          <LoadingError message={errorMessage} />
-        </Body>
-      </Fragment>
-    );
-  }
+  const errorDetail = error?.responseJSON?.detail;
+  const errorMessage =
+    typeof errorDetail === 'string'
+      ? errorDetail
+      : t('An error occurred loading the issue form');
 
   return (
     <Fragment>
-      <Header closeButton>
-        <Heading as="h4">{title}</Heading>
+      <Header
+        closeButton
+        css={css`
+          align-items: flex-start;
+          padding-bottom: 0 !important;
+        `}
+      >
+        <Flex direction="column" align="stretch" gap="lg" flex={1}>
+          <Heading as="h4">{title}</Heading>
+          <Tabs value={action} onChange={handleClick} disableOverflow>
+            <TabList>
+              <TabList.Item key="create">{t('Create')}</TabList.Item>
+              <TabList.Item key="link">{t('Link')}</TabList.Item>
+            </TabList>
+          </Tabs>
+        </Flex>
       </Header>
-      <Container marginBottom="xl">
-        <Tabs value={action} onChange={handleClick}>
-          <TabList>
-            <TabList.Item key="create">{t('Create')}</TabList.Item>
-            <TabList.Item key="link">{t('Link')}</TabList.Item>
-          </TabList>
-        </Tabs>
-      </Container>
       <Body>
-        <BackendJsonSubmitForm
-          key={formKey}
-          fields={formFields}
-          initialValues={{...stableFieldValues, ...lastChangedField}}
-          onSubmit={handleSubmit}
-          submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
-          isLoading={isDynamicallyRefetching}
-          dynamicFieldValues={dynamicFieldValues}
-          onAsyncOptionsFetched={handleAsyncOptionsFetched}
-          onFieldChange={onFieldChange}
-          onValueChange={handleValueChange}
-          submitDisabled={hasFormErrors}
-          footer={({SubmitButton, disabled}) => (
-            <Footer>
-              <SubmitButton disabled={disabled}>
-                {SUBMIT_LABEL_BY_ACTION[action]}
-              </SubmitButton>
-            </Footer>
-          )}
-        />
+        {isPending ? (
+          <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError message={errorMessage} />
+        ) : (
+          <BackendJsonSubmitForm
+            key={formKey}
+            fields={formFields}
+            initialValues={{...stableFieldValues, ...lastChangedField}}
+            onSubmit={handleSubmit}
+            submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
+            isLoading={isDynamicallyRefetching}
+            dynamicFieldValues={dynamicFieldValues}
+            onAsyncOptionsFetched={handleAsyncOptionsFetched}
+            onFieldChange={onFieldChange}
+            onValueChange={handleValueChange}
+            submitDisabled={hasFormErrors}
+            footer={({SubmitButton, disabled}) => (
+              <Footer>
+                <SubmitButton disabled={disabled}>
+                  {SUBMIT_LABEL_BY_ACTION[action]}
+                </SubmitButton>
+              </Footer>
+            )}
+          />
+        )}
       </Body>
     </Fragment>
   );
