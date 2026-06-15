@@ -546,6 +546,13 @@ describe('ExternalIssueForm', () => {
       await userEvent.type(summaryInput, 'User typed text');
       expect(summaryInput).toHaveValue('User typed text');
 
+      // User picks an issue type that will not exist in the next project config.
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue Type'}),
+        'Story'
+      );
+      expect(screen.getByText('Story')).toBeInTheDocument();
+
       // User changes project (a dynamic field that triggers a refetch)
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Project'}),
@@ -556,14 +563,11 @@ describe('ExternalIssueForm', () => {
       expect(screen.getByRole('textbox', {name: 'Summary'})).toHaveValue(
         'User typed text'
       );
-      // Issue Type is a dynamic field (updatesForm: true) that was NOT the
-      // trigger for this refetch. It is intentionally excluded from
-      // stableFieldValues, so it picks up the new server default ('Bug') rather
-      // than retaining any previously selected value. We can't assert its
-      // displayed label via toHaveValue because custom selects render the label
-      // in a sibling element, not the input value — the input is the search
-      // query and stays empty. The implementation-level guarantee is that
-      // issuetype is absent from stableFieldValues and lastChangedField.
+
+      // Issue Type is dynamic but did not trigger this refetch, so it should
+      // use the new server default instead of keeping the stale Story value.
+      expect(screen.getByText('Bug')).toBeInTheDocument();
+      expect(screen.queryByText('Story')).not.toBeInTheDocument();
     });
 
     it('should preserve async select value after dynamic refetch when value is not in initial choices', async () => {

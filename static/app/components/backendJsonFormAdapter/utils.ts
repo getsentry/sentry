@@ -44,11 +44,66 @@ export function transformChoices(
   return choices.map(([value, label]) => ({value, label}));
 }
 
-export function getDisabledProp(field: JsonFormAdapterFieldConfig): boolean | string {
+export function getDisabledProp(
+  field: JsonFormAdapterFieldConfig,
+  forceDisabled?: boolean
+): boolean | string {
+  if (forceDisabled) {
+    return true;
+  }
   if (field.disabled && field.disabledReason) {
     return field.disabledReason;
   }
   return field.disabled ?? false;
+}
+
+/** Removes values for fields no longer present in the backend config. */
+export function getSubmitValues(
+  fields: JsonFormAdapterFieldConfig[],
+  values: Record<string, unknown>
+): Record<string, unknown> {
+  const submitValues: Record<string, unknown> = {};
+  for (const field of fields) {
+    if (field.type !== 'blank' && Object.hasOwn(values, field.name)) {
+      submitValues[field.name] = values[field.name];
+    }
+  }
+  return submitValues;
+}
+
+/** Returns true when a config update should reset a field to its default. */
+export function shouldUseFieldDefault(
+  field: JsonFormAdapterFieldConfig,
+  value: unknown,
+  options: {validateChoices?: boolean} = {}
+): boolean {
+  if (value === undefined) {
+    return true;
+  }
+  if (options.validateChoices === false) {
+    return false;
+  }
+  if ((field.type !== 'select' && field.type !== 'choice') || !field.choices?.length) {
+    return false;
+  }
+
+  const choiceValues = new Set(field.choices.map(([choiceValue]) => String(choiceValue)));
+  const hasChoice = (item: unknown) => {
+    if (
+      typeof item !== 'string' &&
+      typeof item !== 'number' &&
+      typeof item !== 'boolean'
+    ) {
+      return false;
+    }
+    return choiceValues.has(String(item));
+  };
+
+  if (field.multiple) {
+    return !Array.isArray(value) || value.some(item => !hasChoice(item));
+  }
+
+  return value !== null && !hasChoice(value);
 }
 
 export function getDefaultForField(field: JsonFormAdapterFieldConfig): unknown {
