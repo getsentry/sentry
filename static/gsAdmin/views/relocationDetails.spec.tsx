@@ -75,7 +75,7 @@ describe('Relocation Details', () => {
   }
 
   beforeEach(() => {
-    ConfigStore.set('regions', [
+    ConfigStore.set('localities', [
       {
         name: 'test',
         url: 'https://example.com/api/0/',
