@@ -5,7 +5,7 @@ These should be kept in sync with the models in Seer.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -95,3 +95,54 @@ class TransactionIssues(BaseModel):
     transaction_name: str
     project_id: int
     issues: list[IssueDetails]
+
+
+# ── Seer RPC response models ────────────────────────────────────────────────
+# Pydantic response shapes for functions registered in `seer_method_registry`,
+# `public_org_seer_method_registry`, or `public_project_seer_method_registry`.
+
+
+class OrganizationSlugResponse(BaseModel):
+    slug: str
+
+
+class OrganizationProject(BaseModel):
+    id: int
+    slug: str
+
+
+class OrganizationProjectIdsResponse(BaseModel):
+    projects: list[OrganizationProject]
+
+
+class OrganizationFeaturesResponse(BaseModel):
+    features: list[str]
+
+
+class OrganizationAutofixConsentResponse(BaseModel):
+    consent: bool
+
+
+class GitHubEnterpriseConfigSuccessResponse(BaseModel):
+    success: Literal[True] = True
+    base_url: str
+    verify_ssl: bool
+    encrypted_access_token: str
+    permissions: dict[str, Any]
+
+
+class GitHubEnterpriseConfigErrorResponse(BaseModel):
+    success: Literal[False] = False
+
+
+class SendSeerWebhookSuccessResponse(BaseModel):
+    success: Literal[True] = True
+
+
+class SendSeerWebhookErrorResponse(BaseModel):
+    success: Literal[False] = False
+    error: str
+
+
+class RepositoryIntegrationsStatusResponse(BaseModel):
+    integration_ids: list[int | None]

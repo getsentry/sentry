@@ -20,6 +20,14 @@ class ResolvedSeerRun(NamedTuple):
     uuid: str | None
 
 
+def get_seer_run(seer_run_state_id: int, organization: Organization) -> SeerRun | None:
+    """Return the SeerRun mirror row for ``seer_run_state_id`` within this org,
+    or None when no row exists (legacy runs predating SeerRun mirroring)."""
+    return SeerRun.objects.filter(
+        seer_run_state_id=seer_run_state_id, organization=organization
+    ).first()
+
+
 def resolve_seer_run(
     run_id: str | int,
     organization: Organization,
@@ -40,9 +48,7 @@ def resolve_seer_run(
     if seer_run_state_id is not None:
         if not validate_bigint(seer_run_state_id):
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
-        run = SeerRun.objects.filter(
-            seer_run_state_id=seer_run_state_id, organization=organization
-        ).first()
+        run = get_seer_run(seer_run_state_id, organization)
         return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
 
     try:

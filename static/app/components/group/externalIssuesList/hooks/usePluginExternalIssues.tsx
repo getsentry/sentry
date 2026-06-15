@@ -45,7 +45,7 @@ export function usePluginExternalIssues({
         displayIcon,
         title: plugin.issue.issue_id,
         url: plugin.issue.url,
-        onUnlink: () => {
+        onUnlink: async () => {
           const newPlugin: any = {
             ...plugin,
             // Remove issue from plugin
@@ -55,19 +55,17 @@ export function usePluginExternalIssues({
           newPluginIssues.push(newPlugin);
 
           const endpoint = `/issues/${group.id}/plugins/${plugin.slug}/unlink/`;
-          api.request(endpoint, {
-            success: () => {
-              plugins.load(newPlugin, () => {
-                addSuccessMessage(t('Successfully unlinked issue.'));
-              });
-              GroupStore.onUpdateSuccess(uniqueId(), [group.id], {
-                pluginIssues: newPluginIssues,
-              });
-            },
-            error: () => {
-              addErrorMessage(t('Unable to unlink issue'));
-            },
-          });
+          try {
+            await api.requestPromise(endpoint, {includeAllArgs: true});
+            plugins.load(newPlugin, () => {
+              addSuccessMessage(t('Successfully unlinked issue.'));
+            });
+            GroupStore.onUpdateSuccess(uniqueId(), [group.id], {
+              pluginIssues: newPluginIssues,
+            });
+          } catch {
+            addErrorMessage(t('Unable to unlink issue'));
+          }
         },
       });
     } else {

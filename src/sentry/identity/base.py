@@ -17,6 +17,8 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
     A provider indicates how identity authenticate should happen for a given service.
     """
 
+    auto_create_provider_model = False
+
     def __init__(self, **config):
         super().__init__()
         self.config = config
