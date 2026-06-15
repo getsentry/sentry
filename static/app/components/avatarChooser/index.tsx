@@ -205,7 +205,8 @@ export function AvatarChooser({
       addSuccessMessage(t('Successfully saved avatar preferences'));
     } catch (error) {
       const requestError = error as RequestError;
-      const avatarPhotoErrors = requestError?.responseJSON?.avatar_photo || [];
+      const avatarPhotoErrors = (requestError?.responseJSON?.avatar_photo ||
+        []) as string[];
       if (avatarPhotoErrors.length) {
         avatarPhotoErrors.map(addErrorMessage);
       } else {
