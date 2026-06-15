@@ -153,9 +153,16 @@ function CustomFilterModal({
 
           <Flex direction="column" gap="sm">
             <Flex justify="between" align="center" gap="md">
-              <Text bold size="sm">
-                {t('Conditions')}
-              </Text>
+              <Flex direction="column" gap="xs">
+                <Text bold size="sm">
+                  {t('Conditions')}
+                </Text>
+                <Text variant="muted" size="sm">
+                  {t(
+                    'Each condition is a glob pattern matched against the selected field.'
+                  )}
+                </Text>
+              </Flex>
               <Button
                 size="sm"
                 icon={<IconAdd />}
@@ -169,9 +176,6 @@ function CustomFilterModal({
                 {t('Add Condition')}
               </Button>
             </Flex>
-            <Text variant="muted" size="sm">
-              {t('Each condition is a glob pattern matched against the selected field.')}
-            </Text>
             {draft.conditions.map(condition => (
               <Flex key={condition.id} gap="md" align="center">
                 <Container width="160px">
