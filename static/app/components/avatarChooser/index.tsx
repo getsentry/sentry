@@ -195,10 +195,9 @@ export function AvatarChooser({
     }
 
     try {
-      const [resp] = await api.requestPromise(endpoint, {
+      const resp = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
-        includeAllArgs: true,
       });
       setModel(resp);
       onSave?.(resp);
@@ -208,7 +207,7 @@ export function AvatarChooser({
       const avatarPhotoErrors = (requestError?.responseJSON?.avatar_photo ||
         []) as string[];
       if (avatarPhotoErrors.length) {
-        avatarPhotoErrors.forEach(addErrorMessage);
+        avatarPhotoErrors.forEach(msg => addErrorMessage(msg));
       } else {
         addErrorMessage(t('There was an error saving your preferences.'));
       }
