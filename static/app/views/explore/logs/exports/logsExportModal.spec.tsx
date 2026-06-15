@@ -140,6 +140,56 @@ describe('LogsExportModal', () => {
     expect(addSuccessMessage).toHaveBeenCalledWith('Downloading file to your browser.');
   });
 
+  it("disables the Format radios and selects JSONL when the 'All Columns' switch is on", async () => {
+    mockTimeseriesCount();
+    renderModal();
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'All Columns?'}));
+
+    expect(screen.getByRole('radio', {name: 'CSV'})).toBeDisabled();
+    expect(screen.getByRole('radio', {name: 'JSONL'})).toBeDisabled();
+    expect(screen.getByRole('radio', {name: 'JSONL'})).toBeChecked();
+  });
+
+  it("POSTs with trace_item_full_export query type and jsonl format when the 'All Columns' switch is on", async () => {
+    mockTimeseriesCount();
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 721},
+    });
+
+    renderModal();
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'All Columns?'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(dataExportMock).toHaveBeenCalled();
+    });
+
+    expect(dataExportMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/data-export/`,
+      expect.objectContaining({
+        data: {
+          format: 'jsonl',
+          limit: 500,
+          query_type: 'trace_item_full_export',
+          query_info: {
+            ...queryInfo,
+            dataset: 'logs',
+            field: [],
+          },
+        },
+        method: 'POST',
+        error: expect.anything(),
+        success: expect.anything(),
+      })
+    );
+    expect(mockDownloadLogs).not.toHaveBeenCalled();
+  });
+
   it('POSTs to data-export when row limit is above the sync limit', async () => {
     const aboveSyncLimit = tableData.length;
     mockTimeseriesCount();
@@ -152,9 +202,9 @@ describe('LogsExportModal', () => {
 
     renderModal();
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('button', {name: 'Number of rows'}));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {
+      await screen.findByRole('option', {
         name: /\(All\)$/,
       })
     );

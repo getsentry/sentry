@@ -135,6 +135,7 @@ export function SpansTabSeerComboBox() {
         groupBy: seerQuery.groupBys,
         sort: seerQuery.sort,
         mode: seerQuery.mode,
+        interval: seerQuery.interval,
       });
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -144,6 +145,7 @@ export function SpansTabSeerComboBox() {
         groupBy: seerQuery.groupBys,
         sort: seerQuery.sort,
         mode: seerQuery.mode,
+        interval: seerQuery.interval,
       });
       trackAnalytics('ai_query.applied', {
         organization,

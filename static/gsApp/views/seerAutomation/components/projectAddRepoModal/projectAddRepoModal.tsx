@@ -1,11 +1,11 @@
 import {Fragment, useMemo} from 'react';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -13,7 +13,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -28,15 +28,18 @@ import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
 import {
-  useOrgDefaultAgentOption,
-  useSeerAgentSelectOptions,
+  orgDefaultAgentQueryOptions,
+  seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
   useOrgDefaultStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
 import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
-import {useMutateAutofixProject} from 'sentry/utils/seer/useMutateAutofixProject';
+import {
+  AutofixSettingsPartialSaveError,
+  useMutateAutofixProject,
+} from 'sentry/utils/seer/useMutateAutofixProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -60,7 +63,9 @@ export function ProjectAddRepoModal({
   const unconfiguredProjects = useUnconfiguredProjects();
   const projectOptions = useCompactSelectProjectOptions({projects: unconfiguredProjects});
   const repositoryOptions = useCompactSelectRepositoryOptions();
-  const agentOptions = useSeerAgentSelectOptions();
+  const {data: agentOptions = []} = useQuery(
+    seerAgentIntegrationsSelectQueryOptions({organization})
+  );
   const stoppingPointOptions = PROJECT_STOPPING_POINT_OPTIONS;
 
   const repoEntrySchema = z.object({
@@ -87,14 +92,16 @@ export function ProjectAddRepoModal({
   });
 
   const saveMutation = useMutateAutofixProject();
-
+  const agentOption =
+    useQuery(orgDefaultAgentQueryOptions({organization})).data ?? 'seer';
+  const stoppingPoint = useOrgDefaultStoppingPoint();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
       project: defaultProject?.id ?? '',
       repoEntries: [] as Array<{branch: string; repoId: string}>,
-      agentOption: useOrgDefaultAgentOption(),
-      stoppingPoint: useOrgDefaultStoppingPoint(),
+      agentOption,
+      stoppingPoint,
     },
     validators: {
       onMount: formSchema.extend({
@@ -103,18 +110,35 @@ export function ProjectAddRepoModal({
       }),
       onDynamic: formSchema,
     },
-    onSubmit: ({value}) => {
+    onSubmit: ({value, formApi}) => {
       return saveMutation
         .mutateAsync(formSchema.parse(value), {
           onSuccess: () => {
             addSuccessMessage(t('Project saved successfully'));
             closeModal();
           },
-          onError: () => {
-            addErrorMessage(t('Failed to save project settings'));
-          },
         })
-        .catch(() => {});
+        .catch(error => {
+          // Surface failures on the affected fields instead of a toast. The
+          // modal stays open so the user can adjust and retry (both writes are
+          // idempotent full-replaces).
+          if (error instanceof AutofixSettingsPartialSaveError) {
+            // Repos already saved; only the settings write failed.
+            setFieldErrors(formApi, {
+              agentOption: {
+                message: t(
+                  'Your repositories were saved, but these settings could not be updated. Adjust and try again.'
+                ),
+              },
+              stoppingPoint: {message: t('Could not be saved. Please try again.')},
+            });
+          } else {
+            // The repos write failed first, so nothing was persisted.
+            setFieldErrors(formApi, {
+              repoEntries: {message: t('Could not save repositories. Please try again.')},
+            });
+          }
+        });
     },
   });
 

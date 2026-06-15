@@ -2,8 +2,10 @@ import {useMemo} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,8 +25,19 @@ import {useLogsExportEstimatedRowCount} from 'sentry/views/explore/logs/exports/
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+enum ModalColumnValue {
+  ALL = 'all',
+  SELECTED = 'selected',
+}
+
+enum ModalColumnFormat {
+  CSV = 'csv',
+  JSONL = 'jsonl',
+}
+
 const exportModalFormSchema = z.object({
-  format: z.enum(['csv', 'jsonl']),
+  columns: z.enum(ModalColumnValue),
+  format: z.enum(ModalColumnFormat),
   limit: z.number(),
 });
 
@@ -59,7 +72,8 @@ export function LogsExportModal({
   const {rowCountDefault, rowCountOptions} =
     generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
-    format: 'csv',
+    columns: ModalColumnValue.SELECTED,
+    format: ModalColumnFormat.CSV,
     limit: rowCountDefault.value,
   };
 
@@ -70,22 +84,35 @@ export function LogsExportModal({
       onDynamic: exportModalFormSchema,
     },
     onSubmit: async ({value}) => {
+      const isAllColumns = value.columns === 'all';
       const passedSyncLimit = value.limit > ROW_COUNT_VALUE_SYNC_LIMIT;
+
+      // The backend only supports exporting all columns in JSONL format.
+      const format = isAllColumns ? 'jsonl' : value.format;
 
       trackAnalytics('explore.table_exported', {
         organization,
         traceItemDataset: TraceItemDataset.LOGS,
-        ...queryInfo,
+        query: queryInfo.query,
+        sort: queryInfo.sort,
+        project: queryInfo.project,
+        environment: queryInfo.environment,
+        start: queryInfo.start,
+        end: queryInfo.end,
+        statsPeriod: queryInfo.statsPeriod,
+        field: isAllColumns ? undefined : queryInfo.field,
         export_row_limit: value.limit,
-        export_file_format: value.format,
-        export_type: passedSyncLimit ? 'export_download' : 'browser_sync',
+        export_file_format: format,
+        export_type: isAllColumns || passedSyncLimit ? 'export_download' : 'browser_sync',
       });
 
-      if (passedSyncLimit) {
+      if (isAllColumns || passedSyncLimit) {
         await handleDataExport({
-          format: value.format,
-          queryInfo: payload.queryInfo,
-          queryType: payload.queryType,
+          format,
+          queryInfo: isAllColumns ? {...payload.queryInfo, field: []} : payload.queryInfo,
+          queryType: isAllColumns
+            ? ExportQueryType.TRACE_ITEM_FULL_EXPORT
+            : ExportQueryType.EXPLORE,
           limit: value.limit,
         });
       } else {
@@ -93,7 +120,7 @@ export function LogsExportModal({
           rows: tableData.slice(0, value.limit),
           fields: queryInfo.field,
           filename: 'logs',
-          format: value.format,
+          format,
         });
         addSuccessMessage(t('Downloading file to your browser.'));
       }
@@ -101,6 +128,8 @@ export function LogsExportModal({
       closeModal();
     },
   });
+
+  const columnsValue = useStore(form.store, state => state.values.columns);
 
   return (
     <form.AppForm form={form}>
@@ -111,21 +140,44 @@ export function LogsExportModal({
         <Stack gap="xl">
           <Text>
             {t(
-              'If you select more than %s rows your file will be sent to your email address.',
+              'If you select more than %s rows or to export all columns of data your file will be sent to your email address.',
               formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
             )}
           </Text>
+          <form.AppField name="columns">
+            {field => (
+              <field.Layout.Stack label={t('All Columns?')}>
+                <field.Switch
+                  checked={field.state.value === ModalColumnValue.ALL}
+                  onChange={checked =>
+                    field.handleChange(
+                      checked ? ModalColumnValue.ALL : ModalColumnValue.SELECTED
+                    )
+                  }
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
           <form.AppField name="format">
             {field => (
               <field.Radio.Group
-                value={field.state.value}
+                value={
+                  columnsValue === ModalColumnValue.ALL
+                    ? ModalColumnFormat.JSONL
+                    : field.state.value
+                }
                 onChange={value =>
                   field.handleChange(value as ExportModalFormValues['format'])
                 }
+                disabled={columnsValue === ModalColumnValue.ALL}
               >
                 <field.Layout.Stack label={t('Format')}>
-                  <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
-                  <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
+                  <field.Radio.Item value={ModalColumnFormat.CSV}>
+                    {t('CSV')}
+                  </field.Radio.Item>
+                  <field.Radio.Item value={ModalColumnFormat.JSONL}>
+                    {t('JSONL')}
+                  </field.Radio.Item>
                 </field.Layout.Stack>
               </field.Radio.Group>
             )}
@@ -133,12 +185,17 @@ export function LogsExportModal({
           <form.AppField name="limit">
             {field => (
               <field.Layout.Stack label={t('Number of rows')}>
-                <field.Select
+                <CompactSelect
                   disabled={rowCountOptions.length === 1}
                   options={rowCountOptions}
-                  onChange={field.handleChange}
                   value={field.state.value}
-                  defaultValue={rowCountDefault}
+                  onChange={option => field.handleChange(option.value)}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      aria-label={t('Number of rows')}
+                    />
+                  )}
                 />
               </field.Layout.Stack>
             )}
