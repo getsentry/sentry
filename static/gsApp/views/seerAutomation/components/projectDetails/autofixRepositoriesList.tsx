@@ -10,7 +10,6 @@ import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {
   ProjectSeerPreferences,
   SeerRepoDefinition,
@@ -27,6 +26,7 @@ import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
+import {useUpdateSeerRepos} from 'sentry/utils/seer/useUpdateSeerRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 
@@ -72,7 +72,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
   useFetchAllPages({result: repositoriesQuery});
   const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
 
-  const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+  const {mutate: updateSeerRepos} = useUpdateSeerRepos(project);
 
   const tableHeaders = getTableHeaders(organization);
 
@@ -82,20 +82,33 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
   );
 
   const handleSaveRepoList = (updatedRepositories: SeerRepoDefinition[]) => {
-    updateProjectSeerPreferences(
-      {
-        repositories: updatedRepositories,
-        automated_run_stopping_point: preference?.automated_run_stopping_point,
-        automation_handoff: preference?.automation_handoff,
-      },
-      {
-        onError: () => addErrorMessage(t('Failed to connect repositories')),
-        onSuccess: () =>
-          addSuccessMessage(
-            t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
-          ),
-      }
-    );
+    // The repos endpoint is keyed by internal repository id, so resolve each
+    // SeerRepoDefinition (which only carries external_id) against the org repo
+    // list. This sidesteps the legacy preferences endpoint's provider/owner/name
+    // lookup that 400s on GitLab repo names containing spaces. Settings such as
+    // stopping point and handoff are left untouched by this endpoint.
+    const reposPayload = updatedRepositories
+      .map(def => {
+        const orgRepo = repositories?.find(repo => repo.externalId === def.external_id);
+        if (!orgRepo) {
+          return null;
+        }
+        return {
+          repositoryId: Number(orgRepo.id),
+          branchName: def.branch_name || null,
+          instructions: def.instructions || null,
+          branchOverrides: def.branch_overrides || [],
+        };
+      })
+      .filter(repo => repo !== null);
+
+    updateSeerRepos(reposPayload, {
+      onError: () => addErrorMessage(t('Failed to connect repositories')),
+      onSuccess: () =>
+        addSuccessMessage(
+          t('%s repo(s) connected to %s', updatedRepositories.length, project.slug)
+        ),
+    });
   };
 
   const handleAddRepoClick = () => {
