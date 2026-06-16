@@ -3,7 +3,7 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -56,15 +56,16 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
 
   // Step 1: Search in the parent selected range for pins that are not loaded yet.
   // Start with this smaller range so we don't have to scan the org's full retention period.
-  const inRangeQuery = useQuery(
-    usePinnedLogsEventsQueryOptions({
+  const inRangeQuery = useQuery({
+    ...usePinnedLogsEventsQueryOptions({
       ids: missingIds,
       dateParams: normalizeDateTimeParams(selection.datetime),
       baseQuery,
       canFetch,
       staleTime: 0,
-    })
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
   // Step 2: Any IDs not found in the parent selected range escalate to a wide window.
   // Only populated if there are IDs still missing after the in-range query succeeds.
@@ -73,20 +74,21 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
       return [];
     }
     const foundIds = new Set(
-      (inRangeQuery.data?.data ?? []).map(row => row[OurLogKnownFieldKey.ID])
+      (inRangeQuery.data?.json.data ?? []).map(row => row[OurLogKnownFieldKey.ID])
     );
     return missingIds.filter(id => !foundIds.has(id));
-  }, [inRangeQuery.isSuccess, inRangeQuery.isError, inRangeQuery.data?.data, missingIds]);
+  }, [inRangeQuery.isSuccess, inRangeQuery.isError, inRangeQuery.data?.json, missingIds]);
 
-  const wideQuery = useQuery(
-    usePinnedLogsEventsQueryOptions({
+  const wideQuery = useQuery({
+    ...usePinnedLogsEventsQueryOptions({
       ids: stillMissingIds,
       dateParams: {statsPeriod: WIDE_STATS_PERIOD},
       baseQuery,
       canFetch,
       staleTime: Infinity,
-    })
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
   const {removePinnedRows} = logsPinning ?? {};
 
@@ -94,12 +96,14 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     if (
       !removePinnedRows ||
       !wideQuery.isSuccess ||
-      wideQuery.data.meta?.dataScanned === 'partial'
+      wideQuery.data.json.meta?.dataScanned === 'partial'
     ) {
       return;
     }
 
-    const foundIds = new Set(wideQuery.data.data.map(row => row[OurLogKnownFieldKey.ID]));
+    const foundIds = new Set(
+      wideQuery.data.json.data.map(row => row[OurLogKnownFieldKey.ID])
+    );
 
     const idsToRemove = stillMissingIds.filter(id => !foundIds.has(id));
     if (idsToRemove.length > 0) {
@@ -108,7 +112,7 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   }, [wideQuery.isSuccess, wideQuery.data, stillMissingIds, removePinnedRows]);
 
   const fetchedRows = useMemo(
-    () => [...(inRangeQuery.data?.data ?? []), ...(wideQuery.data?.data ?? [])],
+    () => [...(inRangeQuery.data?.json.data ?? []), ...(wideQuery.data?.json.data ?? [])],
     [inRangeQuery.data, wideQuery.data]
   );
 
