@@ -1046,13 +1046,15 @@ class PullRequestEventWebhook(GitHubWebhook):
                 organization_id=organization.id, external_id=self.get_external_id(user["login"])
             )
         except CommitAuthor.DoesNotExist:
+            # Don't set external_id on @localhost authors -- the push webhook
+            # needs to claim it on the real-email CommitAuthor instead.
+            defaults: dict[str, str] = {"name": user["login"][:128]}
+            if not author_email.endswith("@localhost"):
+                defaults["external_id"] = self.get_external_id(user["login"])
             author, author_created = CommitAuthor.objects.get_or_create(
                 organization_id=organization.id,
                 email=author_email,
-                defaults={
-                    "name": user["login"][:128],
-                    "external_id": self.get_external_id(user["login"]),
-                },
+                defaults=defaults,
             )
             if author_created:
                 try:

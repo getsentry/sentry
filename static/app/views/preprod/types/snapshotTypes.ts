@@ -62,6 +62,8 @@ export interface SnapshotDetailsApiResponse {
   renamed_count?: number;
   unchanged: SnapshotImage[];
   unchanged_count: number;
+  errored?: SnapshotDiffPair[];
+  errored_count?: number;
   skipped?: SnapshotImage[];
   skipped_count?: number;
 }
@@ -72,6 +74,7 @@ export enum DiffStatus {
   REMOVED = 'removed',
   RENAMED = 'renamed',
   UNCHANGED = 'unchanged',
+  ERRORED = 'errored',
   SKIPPED = 'skipped',
 }
 
@@ -95,7 +98,14 @@ export type SidebarItem =
   | (SidebarItemBase & {type: 'solo'; images: SnapshotImage[]})
   | (SidebarItemBase & {type: 'changed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {type: 'renamed'; pairs: SnapshotDiffPair[]})
+  | (SidebarItemBase & {type: 'errored'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {
       type: 'added' | 'removed' | 'unchanged' | 'skipped';
       images: SnapshotImage[];
     });
+
+type SidebarPairItem = Extract<SidebarItem, {pairs: SnapshotDiffPair[]}>;
+
+export function isPairSidebarItem(item: SidebarItem): item is SidebarPairItem {
+  return item.type === 'changed' || item.type === 'renamed' || item.type === 'errored';
+}

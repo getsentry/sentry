@@ -435,11 +435,25 @@ class SeerAgentClient:
             agent_run_options["use_agent_sandbox"] = True
 
         if features.has(
+            "organizations:seer-explorer-thinking-summary",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_tool_summary"] = True
+
+        if features.has(
             "organizations:seer-explorer-embeds",
             self.organization,
             actor=self.user,
         ):
             agent_run_options["embed_widgets"] = get_embed_widgets()
+
+        if features.has(
+            "organizations:seer-explorer-stream",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_streaming"] = True
 
         user_id = (
             self.user.id
@@ -589,11 +603,25 @@ class SeerAgentClient:
             agent_run_options["use_agent_sandbox"] = True
 
         if features.has(
+            "organizations:seer-explorer-thinking-summary",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_tool_summary"] = True
+
+        if features.has(
             "organizations:seer-explorer-embeds",
             self.organization,
             actor=self.user,
         ):
             agent_run_options["embed_widgets"] = get_embed_widgets()
+
+        if features.has(
+            "organizations:seer-explorer-stream",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_streaming"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
