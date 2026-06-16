@@ -203,9 +203,9 @@ describe('generateTimezoneAlignedTicks', () => {
           'UTC'
         );
 
-        // Allow splitNumber ± 3
-        expect(ticks.length).toBeGreaterThanOrEqual(splitNumber - 3);
-        expect(ticks.length).toBeLessThanOrEqual(splitNumber + 3);
+        // Allow splitNumber ± 5 (boundary extension adds extra ticks)
+        expect(ticks.length).toBeGreaterThanOrEqual(splitNumber - 5);
+        expect(ticks.length).toBeLessThanOrEqual(splitNumber + 5);
       }
     );
   });
