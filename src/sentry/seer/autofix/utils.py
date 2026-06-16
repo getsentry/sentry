@@ -224,7 +224,7 @@ def make_update_coding_agent_state_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/coding-agent/state/update",
+        "/v1/automation/coding-agent/state/update",
         body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -239,7 +239,7 @@ def make_store_coding_agent_states_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/coding-agent/state/set",
+        "/v1/automation/coding-agent/state/set",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

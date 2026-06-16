@@ -3,7 +3,6 @@ import {t} from 'sentry/locale';
 import {DataCategoryExact} from 'sentry/types/core';
 
 import type {BilledDataCategoryInfo} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 
 export const MONTHLY = 'monthly';
 export const ANNUAL = 'annual';
@@ -18,10 +17,20 @@ export const CPE_MULTIPLIER_TO_CENTS = 0.000001;
 
 export const GIGABYTE = 10 ** 9;
 
-// the first tier is the default tier
-const SUPPORTED_TIERS = [PlanTier.AM3, PlanTier.AM2, PlanTier.AM1];
-export const DEFAULT_TIER = SUPPORTED_TIERS[0];
-export const UPSELL_TIER = SUPPORTED_TIERS[1]; // TODO(am3): Update to DEFAULT_TIER when upsells are configured for AM3
+/**
+ * Pseudo-tiers accepted by the customer billing-config endpoint as its `tier`
+ * query param. The backend resolves each to a concrete plan tier so the
+ * frontend doesn't have to replicate the selection logic. See getsentry's
+ * `CustomerBillingConfigEndpoint`.
+ */
+export enum BillingConfigTier {
+  /** Tier to show in upsells: AM3 for AM3 customers, otherwise AM2. */
+  UPSELL = 'upsell',
+  /** Tier a customer should check out on. */
+  CHECKOUT = 'checkout',
+  /** The latest tier, independent of the org's current plan. */
+  DEFAULT = 'default',
+}
 
 const BASIC_TRIAL_PLANS = ['am1_t', 'am2_t', 'am3_t'];
 const ENTERPRISE_TRIAL_PLANS = ['am1_t_ent', 'am2_t_ent', 'am3_t_ent'];
