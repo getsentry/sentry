@@ -15,7 +15,8 @@ class IdentityManager:
     def all(self):
         for key in self.__values.keys():
             provider = self.get(key)
-            if provider.is_configured():
+            is_configured = getattr(provider, "is_configured", None)
+            if is_configured is None or is_configured():
                 yield provider
 
     def get(self, key: str, **kwargs) -> Provider:
