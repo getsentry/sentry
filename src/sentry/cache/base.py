@@ -51,4 +51,6 @@ class BaseCache(local):
         # equates to having a transaction).
         if scope.transaction:
             sentry_sdk.set_tag(f"{op}_default_cache", "true")
+            sentry_sdk.set_attribute(f"{op}_default_cache", "true")
             sentry_sdk.set_tag("used_default_cache", "true")
+            sentry_sdk.set_attribute("used_default_cache", "true")

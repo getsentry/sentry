@@ -842,6 +842,7 @@ export class Results extends Component<Props, State> {
           onSearch={this.handleSearch}
           customMeasurements={customMeasurements}
           dataset={eventView.dataset}
+          enableAISearch
           includeTransactions
           recentSearches={savedSearchType}
         />
