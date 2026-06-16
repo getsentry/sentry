@@ -4,7 +4,6 @@ from unittest import mock
 import pytest
 from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
-from django.test import RequestFactory
 
 from sentry.auth.email_verification import (
     _format_expiry,
@@ -20,13 +19,6 @@ SALT = settings.SIGNUP_VERIFICATION_EMAIL_SALT
 
 @control_silo_test
 class SendSignupVerificationEmailTest(TestCase):
-    def setUp(self):
-        self.factory = RequestFactory()
-        self.request = self.factory.get("/")
-        session = mock.MagicMock()
-        session.session_key = "test-session-key"
-        self.request.session = session
-
     @mock.patch(
         "sentry.auth.email_verification.reverse",
         return_value="/auth/signup/verify-email/fakeblob/",
@@ -61,24 +53,7 @@ class SendSignupVerificationEmailTest(TestCase):
         signed_blob = mock_reverse.call_args[1]["args"][0]
         payload = verify_signup_link(signed_blob)
         assert payload["email"] == "user@example.com"
-        assert payload["session_id"] == "test-session-key"
         assert payload["expires_at"] > time.time()
-
-    @mock.patch(
-        "sentry.auth.email_verification.reverse",
-        return_value="/api/0/signup/verify-email/fakeblob/",
-    )
-    @mock.patch("sentry.auth.email_verification.MessageBuilder")
-    def test_creates_session_if_missing(self, mock_builder, mock_reverse):
-        mock_builder.return_value = mock.MagicMock()
-        request = self.factory.get("/")
-        session = mock.MagicMock()
-        session.session_key = None
-        request.session = session
-
-        send_signup_verification_email(request, "test@example.com")
-
-        session.create.assert_called_once()
 
 
 @control_silo_test
