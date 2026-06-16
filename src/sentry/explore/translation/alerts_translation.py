@@ -41,7 +41,10 @@ COUNT_AGGREGATE_PREFIX = "count("
 
 
 def snapshot_snuba_query(snuba_query: SnubaQuery):
-    if not snuba_query.query_snapshot and snuba_query.dataset in [
+    if (
+        (snuba_query.query_snapshot and snuba_query.query_snapshot.get("metrics_to_transactions"))
+        or not snuba_query.query_snapshot
+    ) and snuba_query.dataset in [
         Dataset.PerformanceMetrics.value,
         Dataset.Transactions.value,
     ]:

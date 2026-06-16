@@ -24,7 +24,9 @@ export function useTraceExploreAiQuerySetup({
   const memberProjects = projects.filter(p => p.isMember);
 
   useEffect(() => {
-    if (!enableAISearch) return;
+    if (!enableAISearch) {
+      return;
+    }
 
     const selectedProjects =
       pageFilters.selection.projects &&
@@ -40,7 +42,9 @@ export function useTraceExploreAiQuerySetup({
       const projectsChanged =
         prevSet.size !== currentSet.size || ![...prevSet].every(id => currentSet.has(id));
 
-      if (!projectsChanged) return;
+      if (!projectsChanged) {
+        return;
+      }
     }
 
     previousProjects.current = selectedProjects.map(Number);

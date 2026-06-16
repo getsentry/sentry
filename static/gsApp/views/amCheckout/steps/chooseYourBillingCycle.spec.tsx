@@ -48,11 +48,6 @@ describe('ChooseYourBillingCycle', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {
@@ -109,7 +104,6 @@ describe('ChooseYourBillingCycle', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         api={api}
-        checkoutTier={PlanTier.AM3}
         location={location}
         navigate={jest.fn()}
       />,

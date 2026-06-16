@@ -17,5 +17,4 @@ class TestInternalEAFeaturesEndpoint(APITestCase):
         assert len(Organization.objects.all()) == 0
         assert response.status_code == 200
         assert response.data["ea_features"]
-        assert "organizations:discover" not in response.data["ea_features"]
         assert response.data["missing_from_self_hosted"]

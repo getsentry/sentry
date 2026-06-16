@@ -1,13 +1,8 @@
-import {ThemeProvider} from '@emotion/react';
-import {ThemeFixture} from 'sentry-fixture/theme';
-
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
 
 import {useRenderToString} from './renderToString';
-
-const theme = ThemeFixture();
 
 describe('renderToString', () => {
   it('should render a simple component to string', async () => {
@@ -15,7 +10,7 @@ describe('renderToString', () => {
       return <div>Hello, World!</div>;
     }
 
-    const {result} = renderHook(() => useRenderToString());
+    const {result} = renderHook(useRenderToString);
 
     const string = await act(() => result.current(<SimpleComponent />));
 
@@ -26,9 +21,7 @@ describe('renderToString', () => {
       return <Tag variant="success">SuccessTag</Tag>;
     }
 
-    const {result} = renderHook(() => useRenderToString(), {
-      wrapper: ({children}) => <ThemeProvider theme={theme}>{children}</ThemeProvider>,
-    });
+    const {result} = renderHookWithProviders(useRenderToString);
 
     const string = await act(() => result.current(<ScrapsComponent />));
 

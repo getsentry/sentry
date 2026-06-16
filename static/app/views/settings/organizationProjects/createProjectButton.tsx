@@ -12,7 +12,7 @@ export function CreateProjectButton() {
 
   return (
     <LinkButton
-      priority="primary"
+      variant="primary"
       size="sm"
       disabled={!canUserCreateProject}
       tooltipProps={{

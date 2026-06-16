@@ -9,10 +9,11 @@ from taskbroker_client.retry import Retry
 from sentry import eventstream, nodestore
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
+from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
@@ -37,7 +38,9 @@ def reprocess_group(
     acting_user_id: int | None = None,
 ) -> None:
     sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_attribute("project", project_id)
     sentry_sdk.set_tag("group_id", group_id)
+    sentry_sdk.set_attribute("group_id", group_id)
 
     from sentry.reprocessing2 import (
         CannotReprocess,
@@ -48,6 +51,7 @@ def reprocess_group(
     )
 
     sentry_sdk.set_tag("is_start", "false")
+    sentry_sdk.set_attribute("is_start", "false")
 
     # Only executed once during reprocessing
     if start_time is None:
@@ -55,6 +59,7 @@ def reprocess_group(
         start_time = time.time()
         metrics.incr("events.reprocessing.start_group_reprocessing", sample_rate=1.0)
         sentry_sdk.set_tag("is_start", "true")
+        sentry_sdk.set_attribute("is_start", "true")
         new_group_id = start_group_reprocessing(
             project_id,
             group_id,
@@ -73,6 +78,7 @@ def reprocess_group(
         tenant_ids={
             "organization_id": Project.objects.get_from_cache(id=project_id).organization_id
         },
+        eap_conditions=build_group_id_in_filter([group_id]),
     )
 
     if not events:
@@ -139,10 +145,9 @@ def reprocess_group(
     name="sentry.tasks.reprocessing2.handle_remaining_events",
     namespace=issues_tasks,
     processing_deadline_duration=60 * 5,
-    retry=Retry(times=5),
+    retry=Retry(times=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-@retry
 def handle_remaining_events(
     project_id: int,
     new_group_id: int,
@@ -162,8 +167,11 @@ def handle_remaining_events(
     See doc comment in sentry.reprocessing2.
     """
     sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_attribute("project", project_id)
     sentry_sdk.set_tag("old_group_id", old_group_id)
+    sentry_sdk.set_attribute("old_group_id", old_group_id)
     sentry_sdk.set_tag("new_group_id", new_group_id)
+    sentry_sdk.set_attribute("new_group_id", new_group_id)
 
     from sentry.models.group import Group
     from sentry.reprocessing2 import EVENT_MODELS_TO_MIGRATE, pop_batched_events_from_redis

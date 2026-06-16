@@ -13,7 +13,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
-import {usePerformanceUsageStats} from 'getsentry/hooks/performance/usePerformanceUsageStats';
+import {usePerformanceUsageStats} from 'getsentry/overrides/performance/usePerformanceUsageStats';
 import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 

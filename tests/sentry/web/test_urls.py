@@ -17,3 +17,11 @@ class ApiDocsRedirectTest(TestCase):
         resp = self.client.get(path)
         assert resp["Location"] == "https://docs.sentry.io/api/"
         assert resp.status_code == 302, resp.status_code
+
+
+class ScrapsRedirectTest(TestCase):
+    def test_response(self) -> None:
+        path = reverse("sentry-scraps-redirect")
+        resp = self.client.get(path)
+        assert resp["Location"] == reverse("stories")
+        assert resp.status_code == 302, resp.status_code

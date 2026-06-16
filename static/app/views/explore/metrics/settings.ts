@@ -1,0 +1,2 @@
+export const MINIMIZED_GRAPH_HEIGHT = 50;
+export const STACKED_GRAPH_HEIGHT = 362;

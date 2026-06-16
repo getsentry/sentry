@@ -1,7 +1,6 @@
 import logging
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import sentry_sdk
@@ -30,6 +29,7 @@ from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils import json, snuba_rpc
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -59,6 +59,7 @@ class Spans(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -73,6 +74,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 page_token=page_token,
                 resolver=search_resolver or cls.get_resolver(params, config),
                 additional_queries=additional_queries,
+                max_string_length=max_string_length,
             ),
             params.debug,
         )
@@ -109,17 +111,18 @@ class Spans(rpc_dataset_common.RPCBase):
             "sdk.name",
             "measurements.time_to_initial_display",
             "measurements.time_to_full_display",
+            "measurements.lcp",
+            "measurements.score.ratio.lcp",
+            "measurements.fcp",
+            "measurements.score.ratio.fcp",
+            "measurements.inp",
+            "measurements.score.ratio.inp",
+            "measurements.cls",
+            "measurements.score.ratio.cls",
+            "measurements.ttfb",
+            "measurements.score.ratio.ttfb",
             *additional_attributes,
         ]
-        for key in {
-            "lcp",
-            "fcp",
-            "inp",
-            "cls",
-            "ttfb",
-        }:
-            trace_attributes.append(f"measurements.{key}")
-            trace_attributes.append(f"measurements.score.ratio.{key}")
         resolver = cls.get_resolver(params=params, config=SearchResolverConfig())
         columns, _ = resolver.resolve_attributes(trace_attributes)
         meta = resolver.resolve_meta(referrer=referrer)
@@ -141,7 +144,7 @@ class Spans(rpc_dataset_common.RPCBase):
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
 
         @sentry_sdk.tracing.trace
-        def process_item_groups(item_groups):
+        def process_item_groups(item_groups: Any) -> None:
             for item_group in item_groups:
                 for span_item in item_group.items:
                     span: dict[str, Any] = {
@@ -200,7 +203,9 @@ class Spans(rpc_dataset_common.RPCBase):
                 break
             request.page_token.CopyFrom(response.page_token)
             # We want to process the spans while querying the next page
-            with ThreadPoolExecutor(thread_name_prefix=__name__, max_workers=2) as thread_pool:
+            with ContextPropagatingThreadPoolExecutor(
+                thread_name_prefix=__name__, max_workers=2
+            ) as thread_pool:
                 _ = thread_pool.submit(process_item_groups, response.item_groups)
                 response_future = thread_pool.submit(snuba_rpc.get_trace_rpc, request)
             response = response_future.result()

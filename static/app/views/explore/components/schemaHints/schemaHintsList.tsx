@@ -1,35 +1,39 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {Placeholder} from 'sentry/components/placeholder';
+import {
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
 import {
+  type AggregationKey,
+  type FieldDefinition,
   FieldKind,
   FieldValueType,
   getFieldDefinition,
   prettifyTagKey,
-  type AggregationKey,
-  type FieldDefinition,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsDrawer} from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
+  CONVERSATIONS_INCLUDES_KEYS,
   getSchemaHintsListOrder,
   onlyShowSchemaHintsKeys,
   removeHiddenSchemaHintsKeys,
@@ -45,6 +49,23 @@ import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
+
+const PLACEHOLDER_WIDTHS = [
+  '8%',
+  '10%',
+  '9%',
+  '11%',
+  '8%',
+  '10%',
+  '9%',
+  '8%',
+  '11%',
+  '9%',
+  '8%',
+  '10%',
+  '9%',
+  '8%',
+];
 
 interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
@@ -96,6 +117,8 @@ export function addFilterToQuery(
   if (tag.kind === FieldKind.FUNCTION) {
     const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue ?? '';
     filterQuery.addFilterValue(`${tag.key}(${defaultFunctionParam})`, '>0');
+  } else if (CONVERSATIONS_INCLUDES_KEYS.has(tag.key)) {
+    filterQuery.addContainsFilterValue(tag.key, '');
   } else {
     const isBoolean = fieldDefinition?.valueType === FieldValueType.BOOLEAN;
     filterQuery.addFilterValue(
@@ -118,6 +141,8 @@ const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
   [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
   [SchemaHintsSources.CONVERSATIONS]: SPANS_FILTER_KEY_SECTIONS,
+  // TODO: add error filter key sections when they are implemented
+  [SchemaHintsSources.ERRORS]: [],
 };
 
 function getFilterKeySections(source: SchemaHintsSources) {
@@ -135,6 +160,9 @@ function formatHintOperator(hint: Tag) {
   if (hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION) {
     return '>';
   }
+  if (CONVERSATIONS_INCLUDES_KEYS.has(hint.key)) {
+    return 'contains';
+  }
   return 'is';
 }
 
@@ -147,13 +175,13 @@ export function SchemaHintsList({
   source = SchemaHintsSources.EXPLORE,
   searchBarWidthOffset,
 }: SchemaHintsListProps) {
-  const theme = useTheme();
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, panelRef} = useDrawer();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const {dispatch, query, wrapperRef: searchBarWrapperRef} = useSearchQueryBuilder();
+  const {dispatch, query} = useSearchQueryBuilderState();
+  const {wrapperRef: searchBarWrapperRef} = useSearchQueryBuilderLayout();
 
   // Create a ref to hold the latest query for the drawer
   const queryRef = useRef(query);
@@ -245,7 +273,10 @@ export function SchemaHintsList({
         // Render items in hidden div to measure
         [...filterTagsSorted, seeFullListTag].forEach(hint => {
           const el = container.children[0]?.cloneNode(true) as HTMLElement;
-          el.innerHTML = getHintText(hint);
+          const button = el?.firstElementChild;
+          if (button instanceof HTMLElement) {
+            button.textContent = getHintText(hint);
+          }
           measureDiv.appendChild(el);
         });
 
@@ -311,114 +342,97 @@ export function SchemaHintsList({
     return () => resizeObserver.disconnect();
   }, [isDrawerOpen, panelRef, searchBarWidthOffset, searchBarWrapperRef]);
 
-  const onHintClick = useCallback(
-    (hint: Tag) => {
-      if (hint.key === seeFullListTag.key) {
-        if (!isDrawerOpen) {
-          setIsDrawerOpen(true);
-          openDrawer(
-            () => (
-              <SchemaHintsDrawer
-                hints={fullFilterTagsSorted}
-                exploreQuery={query}
-                searchBarDispatch={dispatch}
-                queryRef={queryRef}
-              />
-            ),
-            {
-              ariaLabel: t('Schema Hints Drawer'),
-              drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
-              drawerKey: 'schema-hints-drawer',
-              resizable: true,
-              drawerCss: css`
-                height: calc(100% - ${theme.space['3xl']});
-              `,
-              shouldCloseOnLocationChange: newLocation => {
-                return (
-                  location.pathname !== newLocation.pathname ||
-                  // will close if anything but the filter query has changed
-                  !isEqual(
-                    omit(location.query, [
-                      'query',
-                      'field',
-                      LOGS_FIELDS_KEY,
-                      LOGS_QUERY_KEY,
-                    ]),
-                    omit(newLocation.query, [
-                      'query',
-                      'field',
-                      LOGS_FIELDS_KEY,
-                      LOGS_QUERY_KEY,
-                    ])
-                  )
-                );
-              },
-              onOpen: () => {
-                trackAnalytics('trace.explorer.schema_hints_drawer', {
-                  drawer_open: true,
-                  organization,
-                });
-                if (searchBarWrapperRef.current) {
-                  searchBarWrapperRef.current.style.minWidth = '20%';
-                }
-              },
+  const onHintClick = (hint: Tag) => {
+    if (hint.key === seeFullListTag.key) {
+      if (!isDrawerOpen) {
+        setIsDrawerOpen(true);
+        openDrawer(
+          () => (
+            <SchemaHintsDrawer
+              hints={fullFilterTagsSorted}
+              exploreQuery={query}
+              searchBarDispatch={dispatch}
+              queryRef={queryRef}
+            />
+          ),
+          {
+            ariaLabel: t('Schema Hints Drawer'),
+            drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+            drawerKey: 'schema-hints-drawer',
+            resizable: true,
+            shouldCloseOnLocationChange: newLocation => {
+              return (
+                location.pathname !== newLocation.pathname ||
+                // will close if anything but the filter query has changed
+                !isEqual(
+                  omit(location.query, [
+                    'query',
+                    'field',
+                    LOGS_FIELDS_KEY,
+                    LOGS_QUERY_KEY,
+                  ]),
+                  omit(newLocation.query, [
+                    'query',
+                    'field',
+                    LOGS_FIELDS_KEY,
+                    LOGS_QUERY_KEY,
+                  ])
+                )
+              );
+            },
+            onOpen: () => {
+              trackAnalytics('trace.explorer.schema_hints_drawer', {
+                drawer_open: true,
+                organization,
+              });
+              if (searchBarWrapperRef.current) {
+                searchBarWrapperRef.current.style.minWidth = '20%';
+              }
+            },
 
-              onClose: () => {
-                setIsDrawerOpen(false);
-                trackAnalytics('trace.explorer.schema_hints_drawer', {
-                  drawer_open: false,
-                  organization,
-                });
-                if (searchBarWrapperRef.current) {
-                  searchBarWrapperRef.current.style.width = '100%';
-                  searchBarWrapperRef.current.style.minWidth = '';
-                }
-              },
-            }
-          );
-        }
-        return;
+            onClose: () => {
+              setIsDrawerOpen(false);
+              trackAnalytics('trace.explorer.schema_hints_drawer', {
+                drawer_open: false,
+                organization,
+              });
+              if (searchBarWrapperRef.current) {
+                searchBarWrapperRef.current.style.width = '100%';
+                searchBarWrapperRef.current.style.minWidth = '';
+              }
+            },
+          }
+        );
       }
+      return;
+    }
 
-      const newSearchQuery = new MutableSearch(query);
-      const fieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
-      addFilterToQuery(newSearchQuery, hint, fieldDefinition);
+    const newSearchQuery = new MutableSearch(query);
+    const fieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+    addFilterToQuery(newSearchQuery, hint, fieldDefinition);
 
-      const newQuery = newSearchQuery.formatString();
+    const newQuery = newSearchQuery.formatString();
 
-      dispatch({
-        type: 'UPDATE_QUERY',
-        query: newQuery,
-        focusOverride: {
-          itemKey: `filter:${newSearchQuery
-            .getTokenKeys()
-            .filter(key => key !== undefined)
-            .map(parseTagKey)
-            .lastIndexOf(hint.key)}`,
-          part: 'value',
-        },
-        shouldCommitQuery: false,
-      });
+    dispatch({
+      type: 'UPDATE_QUERY',
+      query: newQuery,
+      focusOverride: {
+        itemKey: `filter:${newSearchQuery
+          .getTokenKeys()
+          .filter(key => key !== undefined)
+          .map(parseTagKey)
+          .lastIndexOf(hint.key)}`,
+        part: 'value',
+      },
+      shouldCommitQuery: false,
+    });
 
-      trackAnalytics('trace.explorer.schema_hints_click', {
-        hint_key: hint.key,
-        source: 'list',
-        organization,
-      });
-    },
-    [
-      query,
-      dispatch,
+    trackAnalytics('trace.explorer.schema_hints_click', {
+      hint_key: hint.key,
+      source: 'list',
       organization,
-      isDrawerOpen,
-      searchBarWrapperRef,
-      openDrawer,
-      fullFilterTagsSorted,
-      location.pathname,
-      location.query,
-      theme.space,
-    ]
-  );
+    });
+  };
 
   const getHintText = (hint: Tag) => {
     if (hint.key === seeFullListTag.key) {
@@ -435,55 +449,46 @@ export function SchemaHintsList({
 
     return (
       <Flex gap="xs">
-        <HintName>{formatHintName(hint)}</HintName>
-        <HintOperator>{formatHintOperator(hint)}</HintOperator>
-        <HintValue>...</HintValue>
+        <Text bold={false}>{formatHintName(hint)}</Text>
+        <Text bold={false} variant="muted">
+          {formatHintOperator(hint)}
+        </Text>
+        <Text bold={false} variant="accent">
+          ...
+        </Text>
       </Flex>
     );
   };
 
   if (isLoading) {
     return (
-      <Flex justify="center" align="center" height="24px">
-        <LoadingIndicator mini />
+      <Flex aria-label={t('Schema Hints List')} gap="md" wrap="nowrap" overflow="hidden">
+        {PLACEHOLDER_WIDTHS.map((width, index) => (
+          <Container key={index} flexShrink={0} width={width}>
+            <Placeholder width="100%" height="28px" />
+          </Container>
+        ))}
       </Flex>
     );
   }
 
   return (
-    <SchemaHintsContainer
+    <Flex
       ref={schemaHintsContainerRef}
       aria-label={t('Schema Hints List')}
+      gap="md"
+      wrap="nowrap"
     >
       {visibleHints.map(hint => (
-        <SchemaHintOption
-          size="xs"
-          key={hint.key}
-          data-type={hint.key}
-          onClick={() => onHintClick(hint)}
-        >
-          {getHintElement(hint)}
-        </SchemaHintOption>
+        <Container key={hint.key} flexShrink={0}>
+          <Button size="xs" data-type={hint.key} onClick={() => onHintClick(hint)}>
+            {getHintElement(hint)}
+          </Button>
+        </Container>
       ))}
-    </SchemaHintsContainer>
+    </Flex>
   );
 }
-
-const SchemaHintsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
-  flex-wrap: nowrap;
-
-  > * {
-    flex-shrink: 0;
-  }
-`;
-
-const SchemaHintOption = styled(Button)`
-  /* Ensures that filters do not grow outside of the container */
-  min-width: fit-content;
-`;
 
 export const SchemaHintsSection = styled('div')`
   display: grid;
@@ -498,19 +503,4 @@ export const SchemaHintsSection = styled('div')`
     margin-bottom: 0;
     margin-top: 0;
   }
-`;
-
-const HintName = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
-const HintOperator = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const HintValue = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.accent};
 `;

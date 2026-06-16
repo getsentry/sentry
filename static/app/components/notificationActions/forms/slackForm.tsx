@@ -113,7 +113,7 @@ export function SlackForm({
         <Button onClick={onCancel} size="xs">
           {t('Cancel')}
         </Button>
-        <Button priority="primary" size="xs" onClick={onSave}>
+        <Button variant="primary" size="xs" onClick={onSave}>
           {t('Save')}
         </Button>
       </Grid>

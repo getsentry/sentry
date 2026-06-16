@@ -19,7 +19,7 @@ export function JSXNode({name, props = {}, children}: JSXNodeProps) {
             <JSXProperty name={propName} value={value} />
           </Fragment>
         ))}
-        {`>`}
+        {'>'}
         <br />
         {children}
         <br />
@@ -35,7 +35,7 @@ export function JSXNode({name, props = {}, children}: JSXNodeProps) {
           <JSXProperty name={propName} value={value} />{' '}
         </Fragment>
       ))}
-      {`/>`}
+      {'/>'}
     </Code>
   );
 }
@@ -59,7 +59,7 @@ interface JSXPropertyProps {
 
 export function JSXProperty({name, value}: JSXPropertyProps) {
   if (name === 'children') {
-    return <code data-property="children">{`{children}`}</code>;
+    return <code data-property="children">{'{children}'}</code>;
   }
   if (value === null || value === undefined) {
     return <code data-property="nullish">{`${name}={${value}}`}</code>;

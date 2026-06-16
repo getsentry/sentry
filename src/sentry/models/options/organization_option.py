@@ -53,11 +53,9 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         self.reload_cache(organization.id, "organizationoption.unset_value")
 
     def set_value(self, organization: Organization, key: str, value: Any) -> bool:
-        inst, created = self.create_or_update(
-            organization=organization, key=key, values={"value": value}
-        )
+        self.update_or_create(organization=organization, key=key, defaults={"value": value})
         self.reload_cache(organization.id, "organizationoption.set_value")
-        return bool(created) or inst > 0
+        return True
 
     def get_all_values(self, organization: Organization | int) -> Mapping[str, Any]:
         if isinstance(organization, models.Model):
@@ -122,3 +120,12 @@ class OrganizationOption(Model):
         unique_together = (("organization", "key"),)
 
     __repr__ = sane_repr("organization_id", "key", "value")
+
+
+def get_option(
+    organization: int | Organization,
+    key: str,
+    default: Any | None = None,
+    validate: Callable[[object], bool] | None = None,
+) -> Any:
+    return OrganizationOption.objects.get_value(organization, key, default, validate)

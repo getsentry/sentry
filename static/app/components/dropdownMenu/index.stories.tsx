@@ -265,7 +265,7 @@ export default Storybook.story('DropdownMenu', story => {
           <DropdownMenu
             items={items}
             trigger={(props, isOpen) => (
-              <Button {...props} priority="primary">
+              <Button {...props} variant="primary">
                 {isOpen ? '▲ Menu' : '▼ Menu'}
               </Button>
             )}

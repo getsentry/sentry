@@ -54,8 +54,8 @@ class OutboxCategory(IntEnum):
     ISSUE_COMMENT_UPDATE = 34
     EXTERNAL_ACTOR_UPDATE = 35
 
-    RELOCATION_EXPORT_REQUEST = 36  # no longer in use
-    RELOCATION_EXPORT_REPLY = 37  # no longer in use
+    UNUSED_FIVE = 36
+    UNUSED_SIX = 37
 
     SEND_VERCEL_INVOICE = 38
     FTC_CONSENT = 39
@@ -65,6 +65,10 @@ class OutboxCategory(IntEnum):
     SENTRY_APP_INSTALLATION_DELETE = 42
     IDENTITY_UPDATE = 43
     SENTRY_APP_NORMALIZE_ACTIONS = 44
+    PROJECT_KEY_UPDATE = 45
+    SCM_INTEGRATION_CONFIG_BACKFILL = 46
+    ORGANIZATION_AVATAR_UPDATE = 47
+    SEER_RUN_CREATE = 48
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -97,25 +101,25 @@ class OutboxCategory(IntEnum):
             object_identifier: int,
             payload: Mapping[str, Any] | None,
             shard_identifier: int,
-            region_name: str,
+            cell_name: str,
             *args: Any,
             **kwds: Any,
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
             maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, cell_name=region_name
+                cast(Any, model), object_identifier, cell_name=cell_name
             )
             if maybe_instance is None:
                 model.handle_async_deletion(
                     identifier=object_identifier,
-                    cell_name=region_name,
+                    cell_name=cell_name,
                     shard_identifier=shard_identifier,
                     payload=payload,
                 )
             else:
                 maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, cell_name=region_name
+                    shard_identifier=shard_identifier, cell_name=cell_name
                 )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
@@ -129,7 +133,7 @@ class OutboxCategory(IntEnum):
             raise KeyError
         return OutboxScope(scope_int)
 
-    def as_region_outbox(
+    def as_cell_outbox(
         self,
         model: Any | None = None,
         payload: dict[str, Any] | None = None,
@@ -198,6 +202,7 @@ class OutboxCategory(IntEnum):
         from sentry.models.apiapplication import ApiApplication
         from sentry.models.apitoken import ApiToken
         from sentry.models.organization import Organization
+        from sentry.seer.models.run import SeerRun
         from sentry.users.models.user import User
 
         assert (model is not None) ^ (object_identifier is not None), (
@@ -235,6 +240,9 @@ class OutboxCategory(IntEnum):
                     shard_identifier = model.id
                 elif hasattr(model, "api_token_id"):
                     shard_identifier = model.api_token_id
+            if scope == OutboxScope.SEER_SCOPE:
+                if isinstance(model, SeerRun):
+                    shard_identifier = model.id
 
         assert (model is not None) or shard_identifier is not None, (
             "Either model or shard_identifier must be specified"
@@ -279,6 +287,9 @@ class OutboxScope(IntEnum):
             OutboxCategory.ISSUE_COMMENT_UPDATE,
             OutboxCategory.SEND_VERCEL_INVOICE,
             OutboxCategory.FTC_CONSENT,
+            OutboxCategory.PROJECT_KEY_UPDATE,
+            OutboxCategory.SCM_INTEGRATION_CONFIG_BACKFILL,
+            OutboxCategory.ORGANIZATION_AVATAR_UPDATE,
         },
     )
     USER_SCOPE = scope_categories(
@@ -326,11 +337,10 @@ class OutboxScope(IntEnum):
     )
     SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})
     # relocation scope is no longer in use.
-    RELOCATION_SCOPE = scope_categories(
-        10, {OutboxCategory.RELOCATION_EXPORT_REQUEST, OutboxCategory.RELOCATION_EXPORT_REPLY}
-    )
+    RELOCATION_SCOPE = scope_categories(10, {OutboxCategory.UNUSED_FIVE, OutboxCategory.UNUSED_SIX})
     API_TOKEN_SCOPE = scope_categories(11, {OutboxCategory.API_TOKEN_UPDATE})
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
+    SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})
 
     def __str__(self) -> str:
         return self.name
@@ -353,6 +363,8 @@ class OutboxScope(IntEnum):
             return "app_id"
         if scope == OutboxScope.API_TOKEN_SCOPE:
             return "api_token_id"
+        if scope == OutboxScope.SEER_SCOPE:
+            return "seer_run_id"
 
         return "shard_identifier"
 

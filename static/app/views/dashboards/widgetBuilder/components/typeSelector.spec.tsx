@@ -47,7 +47,7 @@ describe('TypeSelector', () => {
     expect(await screen.findByText('Please select a type')).toBeInTheDocument();
   });
 
-  it('shows text widget option when dashboards-text-widgets feature is enabled', async () => {
+  it('shows text widget option', async () => {
     mockUseNavigate.mockReturnValue(jest.fn());
 
     render(
@@ -55,28 +55,12 @@ describe('TypeSelector', () => {
         <TypeSelector />
       </WidgetBuilderProvider>,
       {
-        organization: OrganizationFixture({features: ['dashboards-text-widgets']}),
+        organization: OrganizationFixture(),
       }
     );
 
     await userEvent.click(await screen.findByText('Table'));
     expect(screen.getByText('Text (Markdown)')).toBeInTheDocument();
-  });
-
-  it('does not show text widget option without dashboards-text-widgets feature', async () => {
-    mockUseNavigate.mockReturnValue(jest.fn());
-
-    render(
-      <WidgetBuilderProvider>
-        <TypeSelector />
-      </WidgetBuilderProvider>,
-      {
-        organization: OrganizationFixture({features: []}),
-      }
-    );
-
-    await userEvent.click(await screen.findByText('Table'));
-    expect(screen.queryByText('Text (Markdown)')).not.toBeInTheDocument();
   });
 
   it('resets the widget builder state when the display type is changed on an issue widget', async () => {
@@ -120,6 +104,54 @@ describe('TypeSelector', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           field: ['issue', 'assignee', 'title'],
+        }),
+      }),
+      expect.anything()
+    );
+  });
+
+  it('resets the widget builder state to dataset defaults when display type is changed from text widget', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(
+      <WidgetBuilderProvider>
+        <TypeSelector />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {displayType: 'text'},
+          },
+        },
+        organization: OrganizationFixture(),
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Text (Markdown)'));
+    await userEvent.click(await screen.findByText('Table'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          displayType: 'table',
+        }),
+      }),
+      expect.anything()
+    );
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: WidgetType.ERRORS,
+        }),
+      }),
+      expect.anything()
+    );
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['count_unique(user)'],
         }),
       }),
       expect.anything()

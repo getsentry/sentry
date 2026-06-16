@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
-import {normalizeUnit} from 'sentry/views/dashboards/utils';
+import {normalizeUnit} from 'sentry/views/dashboards/utils/normalizeUnit';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {ThresholdsHoverWrapper} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 

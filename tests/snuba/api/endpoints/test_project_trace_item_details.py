@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from unittest import mock
 
 import pytest
@@ -6,16 +7,23 @@ from django.urls import reverse
 
 from sentry.testutils.cases import (
     APITestCase,
+    OccurrenceTestCase,
     OurLogTestCase,
     SnubaTestCase,
     SpanTestCase,
     TraceAttachmentTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
 class ProjectTraceItemDetailsEndpointTest(
-    APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase, TraceAttachmentTestCase
+    APITestCase,
+    SnubaTestCase,
+    OurLogTestCase,
+    SpanTestCase,
+    TraceAttachmentTestCase,
+    OccurrenceTestCase,
 ):
     def setUp(self) -> None:
         super().setUp()
@@ -26,7 +34,7 @@ class ProjectTraceItemDetailsEndpointTest(
         self.one_min_ago = before_now(minutes=1)
         self.trace_uuid = str(uuid.uuid4()).replace("-", "")
 
-    def do_request(self, event_type: str, item_id: str, features=None):
+    def do_request(self, event_type: str, item_id: str, extra_data=None, features=None):
         item_details_url = reverse(
             "sentry-api-0-project-trace-item-details",
             kwargs={
@@ -37,13 +45,16 @@ class ProjectTraceItemDetailsEndpointTest(
         )
         if features is None:
             features = self.features
+        data = {
+            "item_type": event_type,
+            "trace_id": self.trace_uuid,
+        }
+        if extra_data is not None:
+            data.update(extra_data)
         with self.feature(features):
             return self.client.get(
                 item_details_url,
-                {
-                    "item_type": event_type,
-                    "trace_id": self.trace_uuid,
-                },
+                data,
             )
 
     def test_simple(self) -> None:
@@ -161,6 +172,80 @@ class ProjectTraceItemDetailsEndpointTest(
             + "Z",
         }
 
+    @pytest.mark.xfail(
+        reason=(
+            "On snuba, attributes_array JSON column is no longer read on the trace-item-details hot path "
+            "and stack.* array attributes are not returned"
+        ),
+    )
+    def test_details_exposes_arrays(self) -> None:
+        event_id = uuid.uuid4().hex
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            event_id=event_id,
+            group_id=group.id,
+            trace_id=self.trace_uuid,
+            project=self.project,
+            timestamp=self.one_min_ago,
+            attributes={
+                "fingerprint": ["trace-item-details-stack-arrays"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "bad value",
+                            "mechanism": {"type": "generic", "handled": True},
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/app/sentry/web/urls.py",
+                                        "filename": "sentry/web/urls.py",
+                                        "module": "sentry.web.urls",
+                                        "function": "dispatch",
+                                        "in_app": True,
+                                        "lineno": 45,
+                                        "colno": 12,
+                                    },
+                                    {
+                                        "abs_path": "/usr/lib/django/views/base.py",
+                                        "filename": "django/views/base.py",
+                                        "module": "django.views.base",
+                                        "function": "handler",
+                                        "in_app": False,
+                                        "lineno": 200,
+                                        "colno": 0,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+        )
+        self.store_eap_items([occ])
+        item_id = occ.item_id.hex()
+
+        response = self.do_request("occurrences", item_id)
+        assert response.status_code == 200, response.content
+        by_name = {a["name"]: a for a in response.data["attributes"]}
+        assert "stack.filename" not in by_name
+        assert "stack.lineno" not in by_name
+        assert "stack.in_app" not in by_name
+
+        response = self.do_request(
+            "occurrences",
+            item_id,
+            features={**self.features, "organizations:trace-item-details-array-fields": True},
+        )
+        assert response.status_code == 200, response.content
+        by_name = {a["name"]: a for a in response.data["attributes"]}
+        assert by_name["stack.filename"]["type"] == "array"
+        assert by_name["stack.filename"]["value"] == ["sentry/web/urls.py", "django/views/base.py"]
+        assert by_name["stack.lineno"]["type"] == "array"
+        assert by_name["stack.lineno"]["value"] == ["45", "200"]
+        assert by_name["stack.in_app"]["type"] == "array"
+        assert by_name["stack.in_app"]["value"] == [True, False]
+
     def test_simple_using_spans_item_type(self) -> None:
         previous_trace = uuid.uuid4().hex
         span_1 = self.create_span(
@@ -206,76 +291,6 @@ class ProjectTraceItemDetailsEndpointTest(
             {"name": "span.duration", "type": "int", "value": "1000"},
             {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
             {"name": "previous_trace", "type": "str", "value": previous_trace},
-            {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
-            {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
-            {"name": "sdk.version", "type": "str", "value": "1.0"},
-            {"name": "span.description", "type": "str", "value": "foo"},
-            {"name": "span.status", "type": "str", "value": "success"},
-            {"name": "trace", "type": "str", "value": self.trace_uuid},
-            {
-                "name": "transaction.event_id",
-                "type": "str",
-                "value": span_1["event_id"],
-            },
-            {
-                "name": "transaction.span_id",
-                "type": "str",
-                "value": span_1["segment_id"],
-            },
-        ]
-        assert trace_details_response.data["itemId"] == item_id
-        assert (
-            trace_details_response.data["timestamp"]
-            == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
-        )
-
-    def test_simple_using_spans_item_type_with_sentry_conventions(self) -> None:
-        span_1 = self.create_span(
-            {"description": "foo", "sentry_tags": {"status": "success"}},
-            measurements={
-                "code.lineno": {"value": 420},
-                "http.response_content_length": {"value": 100},
-                "http.response.body.size": {"value": 100},
-            },
-            start_ts=self.one_min_ago,
-        )
-        span_1["trace_id"] = self.trace_uuid
-        item_id = span_1["span_id"]
-
-        self.store_span(span_1)
-
-        trace_details_response = self.do_request(
-            "spans",
-            item_id,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:performance-sentry-conventions-fields": True,
-            },
-        )
-        assert trace_details_response.status_code == 200, trace_details_response.content
-        assert trace_details_response.data["attributes"] == [
-            {"name": "is_transaction", "type": "bool", "value": False},
-            {"name": "code.lineno", "type": "float", "value": 420.0},
-            {"name": "http.response.body.size", "type": "float", "value": 100.0},
-            {
-                "name": "precise.finish_ts",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {
-                "name": "precise.start_ts",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {
-                "name": "received",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {"name": "span.self_time", "type": "float", "value": 1000.0},
-            {"name": "project_id", "type": "int", "value": str(self.project.id)},
-            {"name": "span.duration", "type": "int", "value": "1000"},
-            {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
             {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
             {"name": "sdk.version", "type": "str", "value": "1.0"},
@@ -559,3 +574,180 @@ class ProjectTraceItemDetailsEndpointTest(
             "meta": {},
             "timestamp": mock.ANY,
         }
+
+    def test_debug_param_as_superuser(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(user=superuser, organization=self.organization)
+        self.login_as(user=superuser, superuser=True)
+
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id, extra_data={"debug": "true"})
+        assert response.status_code == 200, response.content
+        assert "debug_info" in response.data["meta"]
+        assert "raw_response" in response.data["meta"]["debug_info"]
+        assert "raw_request" in response.data["meta"]["debug_info"]
+        assert "itemId" in response.data
+        assert "attributes" in response.data
+
+        raw_attrs = {
+            a["name"]: a["value"]
+            for a in response.data["meta"]["debug_info"]["raw_response"]["attributes"]
+        }
+        assert raw_attrs["sentry.body"] == {"valStr": "debug test"}
+
+    def test_debug_param_as_regular_user(self) -> None:
+        regular_user = self.create_user(is_superuser=False)
+        self.create_member(user=regular_user, organization=self.organization)
+        self.login_as(user=regular_user)
+
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id, extra_data={"debug": "true"})
+        assert response.status_code == 200, response.content
+        assert "debug_info" not in response.data.get("meta", {})
+
+    def test_with_timestamp(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
+                },
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        for extra_data in [
+            {"timestamp": self.one_min_ago.isoformat()},
+            {"statsPeriod": "24h"},
+        ]:
+            trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
+
+            assert trace_details_response.status_code == 200, trace_details_response.content
+
+            timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
+            assert trace_details_response.data["attributes"] == [
+                {"name": "tags[bool_attr,boolean]", "type": "bool", "value": True},
+                {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
+                {
+                    "name": "observed_timestamp",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
+                {"name": "project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "severity_number", "type": "int", "value": "0"},
+                {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
+                {
+                    "name": "timestamp_precise",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
+                {"name": "message", "type": "str", "value": "foo"},
+                {"name": "severity", "type": "str", "value": "INFO"},
+                {"name": "str_attr", "type": "str", "value": "1"},
+                {"name": "trace", "type": "str", "value": self.trace_uuid},
+            ]
+            assert trace_details_response.data["itemId"] == item_id
+            assert (
+                trace_details_response.data["timestamp"]
+                == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+            )
+
+    def test_with_incorrect_timestamp(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
+                },
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        for extra_data in [
+            {"timestamp": (self.one_min_ago - timedelta(days=30)).isoformat()},
+            {"statsPeriodEnd": "24h", "statsPeriodStart": "48h"},
+        ]:
+            trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
+
+            assert trace_details_response.status_code == 404, trace_details_response.content
+
+    def test_with_invalid_timestamp(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
+                },
+                "int_attr": {"int_value": 2},
+                "float_attr": {
+                    "double_value": 3.0,
+                },
+                "bool_attr": {
+                    "bool_value": True,
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        for extra_data in [
+            {"timestamp": "beepboop"},
+            {"statsPeriod": "hello"},
+        ]:
+            trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
+
+            assert trace_details_response.status_code == 400, trace_details_response.content
+
+    @mock.patch("sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc")
+    def test_snuba_rate_limit_error_makes_429(self, mock_trace_item_details_rpc):
+        mock_trace_item_details_rpc.side_effect = SnubaRPCRateLimitExceeded("too much traffic")
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id)
+        assert response.status_code == 429
+        assert b"Rate limit exceeded" in response.content

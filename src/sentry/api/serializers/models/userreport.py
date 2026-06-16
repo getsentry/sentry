@@ -8,6 +8,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
+from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
@@ -46,12 +47,14 @@ class UserReportSerializer(Serializer):
         project = Project.objects.get(id=item_list[0].project_id)
         retention = quotas.backend.get_event_retention(organization=project.organization)
 
+        event_ids = [item.event_id for item in item_list]
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(
-                event_ids=[item.event_id for item in item_list],
+                event_ids=event_ids,
                 project_ids=[project.id],
                 start=timezone.now() - timedelta(days=retention) if retention else None,
             ),
+            eap_conditions=build_event_id_in_filter(event_ids),
             referrer="UserReportSerializer.get_attrs",
             dataset=Dataset.Events,
             tenant_ids={"organization_id": project.organization_id},

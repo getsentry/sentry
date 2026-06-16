@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {t, tct} from 'sentry/locale';
@@ -21,7 +21,7 @@ import type {
   PreprodDetector,
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';

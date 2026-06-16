@@ -10,6 +10,7 @@ describe('ScrollCarousel', () => {
   window.IntersectionObserver = class IntersectionObserver {
     root = null;
     rootMargin = '';
+    scrollMargin = '';
     thresholds = [];
     takeRecords = jest.fn();
 

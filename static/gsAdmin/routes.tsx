@@ -5,12 +5,12 @@ import {BeaconDetails} from 'admin/views/beaconDetails';
 import {Beacons} from 'admin/views/beacons';
 import {BillingAdmins} from 'admin/views/billingAdmins';
 import {BillingPlans} from 'admin/views/billingPlans';
+import {BillingPlatform} from 'admin/views/billingPlatform';
 import {BroadcastDetails} from 'admin/views/broadcastDetails';
 import {Broadcasts} from 'admin/views/broadcasts';
 import {CustomerContractDetails} from 'admin/views/customerContractDetails';
 import {CustomerDetails} from 'admin/views/customerDetails';
 import {Customers} from 'admin/views/customers';
-import {CustomerUpgradeRequest} from 'admin/views/customerUpgradeRequest';
 import {DataRequests} from 'admin/views/dataRequests';
 import {DebuggingTools} from 'admin/views/debuggingTools';
 import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
@@ -35,6 +35,7 @@ import {RelocationArtifactDetails} from 'admin/views/relocationArtifactDetails';
 import {RelocationCreate} from 'admin/views/relocationCreate';
 import {RelocationDetails} from 'admin/views/relocationDetails';
 import {Relocations} from 'admin/views/relocations';
+import {SeerAdminPage} from 'admin/views/seerAdminPage';
 import {SentryAppDetails} from 'admin/views/sentryAppDetails';
 import {SentryApps} from 'admin/views/sentryApps';
 import {SentryEmployees} from 'admin/views/sentryEmployees';
@@ -89,10 +90,6 @@ function buildRoutes() {
               {
                 index: true,
                 component: CustomerDetails,
-              },
-              {
-                path: 'upgrade-request/',
-                component: CustomerUpgradeRequest,
               },
               {
                 path: 'contract/',
@@ -254,6 +251,10 @@ function buildRoutes() {
         ],
       },
       {
+        path: 'billing-platform/',
+        component: BillingPlatform,
+      },
+      {
         path: 'instance-level-oauth',
         children: [
           {
@@ -290,6 +291,15 @@ function buildRoutes() {
           {
             index: true,
             component: LaunchpadAdminPage,
+          },
+        ],
+      },
+      {
+        path: 'seer/',
+        children: [
+          {
+            index: true,
+            component: SeerAdminPage,
           },
         ],
       },

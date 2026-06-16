@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {inlineCodeStyles} from '@sentry/scraps/code';
+import {kbdStyles} from '@sentry/scraps/hotkey/kbd';
 
 type ProsePropsWithChildren<T extends keyof HTMLElementTagNameMap = 'div'> = {
   as?: T;
@@ -45,6 +46,9 @@ export const Prose = styled(
   }
   code:not(pre code) {
     ${p => inlineCodeStyles(p.theme)};
+  }
+  kbd {
+    ${p => kbdStyles(p.theme)};
   }
   /* stylelint-enable */
 `;

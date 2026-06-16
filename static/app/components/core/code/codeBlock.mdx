@@ -84,7 +84,7 @@ Display a filename at the top of the code block using the `filename` prop.
 
 <Storybook.Demo>
   <CodeBlock filename="index.tsx" language="javascript">
-    {`const myVariable = 'testing';`}
+    {"const myVariable = 'testing';"}
   </CodeBlock>
 </Storybook.Demo>
 ```jsx
@@ -97,7 +97,7 @@ Display a filename at the top of the code block using the `filename` prop.
 
 <Storybook.Demo>
   <CodeBlock dark filename="index.tsx" language="javascript">
-    {`const myVariable = 'testing';`}
+    {"const myVariable = 'testing';"}
   </CodeBlock>
 </Storybook.Demo>
 ```jsx
@@ -122,7 +122,7 @@ export function TabExample() {
       onTabClick={t => setTab(t)}
       language="bash"
     >
-      {tab === 'npm' ? `npm install --save @sentry/browser` : 'yarn add @sentry/browser'}
+      {tab === 'npm' ? 'npm install --save @sentry/browser' : 'yarn add @sentry/browser'}
     </CodeBlock>
   );
 }

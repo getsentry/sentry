@@ -13,7 +13,7 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
-from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder, TopEventsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -1054,3 +1054,35 @@ class DiscoverQueryBuilderTest(TestCase):
             ],
         )
         query.get_snql_query().validate()
+
+
+class TopEventsQueryBuilderTest(TestCase):
+    def setUp(self) -> None:
+        self.start = datetime.datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        self.end = self.start + datetime.timedelta(days=1)
+        self.projects = [self.project.id]
+        self.params: ParamsType = {
+            "project_id": self.projects,
+            "start": self.start,
+            "end": self.end,
+        }
+
+    @pytest.mark.querybuilder
+    def test_resolve_top_event_conditions_duplicate_list_values(self) -> None:
+        """Regression test: duplicate list values in top events must not raise TypeError."""
+        # When the same list value appears in multiple top-event rows, the old
+        # code fell into the `else` branch and called set.add() on a list,
+        # raising TypeError: unhashable type: 'list'.
+        top_events = [
+            {"tags[foo]": ["a", "b"]},
+            {"tags[foo]": ["a", "b"]},
+        ]
+        # Should not raise TypeError
+        builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            interval=3600,
+            top_events=top_events,
+            selected_columns=["tags[foo]"],
+        )
+        assert builder is not None

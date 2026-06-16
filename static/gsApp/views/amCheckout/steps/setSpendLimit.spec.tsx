@@ -57,13 +57,8 @@ describe('SetSpendLimit', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture({})}
-        api={api}
-        organization={organization}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />
+      <AMCheckout {...RouteComponentPropsFixture({})} api={api} navigate={jest.fn()} />,
+      {organization}
     );
 
     expect(await screen.findByText('Set your pay-as-you-go limit')).toBeInTheDocument();
@@ -95,13 +90,8 @@ describe('SetSpendLimit', () => {
     });
     SubscriptionStore.set(preAm3Organization.slug, sub);
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        organization={preAm3Organization}
-        checkoutTier={PlanTier.AM2}
-        navigate={jest.fn()}
-      />
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
+      {organization: preAm3Organization}
     );
 
     expect(await screen.findByText('Set your on-demand limit')).toBeInTheDocument();

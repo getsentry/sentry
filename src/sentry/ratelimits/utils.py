@@ -103,7 +103,7 @@ def get_rate_limit_key(
         else:
             assert False  # Can't happen as asserted by is_api_token_auth check
 
-        if request_user.is_sentry_app:
+        if getattr(request_user, "is_sentry_app", False):
             category = "org"
             id = get_organization_id_from_token(token_id)
 

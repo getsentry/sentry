@@ -103,6 +103,7 @@ BACKEND = {
     "python-falcon",
     "python-fastapi",
     "python-flask",
+    "python-litestar",
     "python-pylons",
     "python-pymongo",
     "python-pyramid",

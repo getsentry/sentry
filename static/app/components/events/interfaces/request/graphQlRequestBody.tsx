@@ -9,8 +9,8 @@ import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {List} from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
+import {defined} from 'sentry/utils/defined';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
@@ -98,7 +98,6 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
-    // @ts-expect-error TS(7016): Could not find a declaration file for module 'pris... Remove this comment to see the full error message
     import('prismjs/plugins/line-highlight/prism-line-highlight');
   }, []);
 

@@ -2,13 +2,14 @@ import type {Location} from 'history';
 
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {ToolBox} from 'sentry/components/charts/components/toolBox';
+import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
   ECharts,
 } from 'sentry/types/echarts';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RenderProps = {
   dataZoom: ReturnType<typeof DataZoomInside>;
@@ -81,6 +82,8 @@ export function BarChartZoom({
   paramStart,
   xAxisIndex,
 }: Props) {
+  const navigate = useNavigate();
+
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
@@ -92,16 +95,7 @@ export function BarChartZoom({
    * Chart event when *any* rendering+animation finishes
    */
   const handleChartFinished = (_props: any, chart: any) => {
-    // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find((c: any) => c._features?.dataZoom);
-    if (zoom && !zoom._features.dataZoom._isZoomActive) {
-      // Calling dispatchAction will re-trigger handleChartFinished
-      chart.dispatchAction({
-        type: 'takeGlobalCursor',
-        key: 'dataZoomSelect',
-        dataZoomSelectActive: true,
-      });
-    }
+    activateZoomAreaSelect(chart);
   };
 
   const handleDataZoom = (evt: any, chart: any) => {
@@ -127,7 +121,7 @@ export function BarChartZoom({
         if (onHistoryPush) {
           onHistoryPush(start, end);
         } else {
-          browserHistory.push(target);
+          navigate(target);
         }
       } else {
         // Dispatch the restore action here to stop ECharts from zooming

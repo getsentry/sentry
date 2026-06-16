@@ -141,13 +141,13 @@ class DiscordRequestParserTest(TestCase):
             responses.POST,
             "http://us.testserver/extensions/discord/interactions/",
             status=202,
-            body=b"region_response",
+            body=b"cell_response",
         )
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        assert response.content == b"region_response"
+        assert response.content == b"cell_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
 
@@ -186,13 +186,13 @@ class DiscordRequestParserTest(TestCase):
             responses.POST,
             "http://us.testserver/extensions/discord/interactions/",
             status=201,
-            body=b"region_response",
+            body=b"cell_response",
         )
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.content == b"region_response"
+        assert response.content == b"cell_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
 
@@ -239,7 +239,7 @@ class DiscordRequestParserTest(TestCase):
         payload = create_async_request_payload(self.request)
         mock_discord_task.apply_async.assert_called_once_with(
             kwargs={
-                "region_names": ["us"],
+                "cell_names": ["us"],
                 "payload": payload,
                 "response_url": response_url,
             }

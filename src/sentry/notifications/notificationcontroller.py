@@ -32,7 +32,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 Recipient = Union[Actor, Team, RpcUser, User]
-TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK]
+TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK, ExternalProviderEnum.SLACK_STAGING]
 
 
 def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSettingProvider) -> int:

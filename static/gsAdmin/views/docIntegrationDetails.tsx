@@ -1,6 +1,9 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   addErrorMessage,
@@ -8,17 +11,11 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {DocIntegration} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -31,12 +28,14 @@ import {DetailsPage} from 'admin/components/detailsPage';
 import {DocIntegrationModal} from 'admin/components/docIntegrationModal';
 
 export function DocIntegrationDetails() {
+  const {openModal} = useModal();
+
   const {docIntegrationSlug} = useParams<{docIntegrationSlug: string}>();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const ENDPOINT = getApiUrl(`/doc-integrations/$docIntegrationIdOrSlug/`, {
+  const ENDPOINT = getApiUrl('/doc-integrations/$docIntegrationIdOrSlug/', {
     path: {docIntegrationIdOrSlug: docIntegrationSlug},
   });
 
@@ -57,7 +56,7 @@ export function DocIntegrationDetails() {
     onSuccess: updatedData => {
       addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
       clearIndicators();
-      setApiQueryData<any>(queryClient, [ENDPOINT], updatedData);
+      setApiQueryData(queryClient, [ENDPOINT], updatedData);
     },
     onError: () => {
       addErrorMessage('There was an internal error with updating the resource.');

@@ -20,6 +20,8 @@ export enum ChartType {
   SLACK_METRIC_DETECTOR_SESSIONS = 'slack:metricDetector.sessions',
   SLACK_PERFORMANCE_ENDPOINT_REGRESSION = 'slack:performance.endpointRegression',
   SLACK_PERFORMANCE_FUNCTION_REGRESSION = 'slack:performance.functionRegression',
+  SLACK_TIMESERIES = 'slack:timeseries',
+  SLACK_DASHBOARDS_WIDGET = 'slack:dashboardsWidget',
 }
 
 /**

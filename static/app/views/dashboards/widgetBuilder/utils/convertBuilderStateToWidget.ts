@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   generateFieldAsString,
   getEquation,
@@ -136,7 +136,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const limit = [DisplayType.BIG_NUMBER, DisplayType.TABLE].includes(
     state.displayType ?? DisplayType.TABLE
   )
-    ? undefined
+    ? null
     : state.limit;
 
   return {
@@ -147,7 +147,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     queries: widgetQueries,
     widgetType: state.dataset,
     limit,
-    legendType: state.legendType,
+    legendType: state.legendType ?? null,
     thresholds: state.thresholds,
     axisRange: getAxisRange(state.axisRange) ?? datasetConfig.axisRange,
   };

@@ -2,7 +2,7 @@ import {createContext, useContext} from 'react';
 
 type SizeVariant = 'xs' | 'sm' | 'md';
 
-const SizeContext = createContext<SizeVariant | undefined>(undefined);
+export const SizeContext = createContext<SizeVariant | undefined>(undefined);
 
 export function SizeProvider({
   size,

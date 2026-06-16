@@ -10,8 +10,11 @@ import {
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
+  type SampleTableColumnKey,
   type TraceMetricFieldKey,
 } from 'sentry/views/explore/metrics/types';
+
+export const NONE_UNIT = 'none';
 
 const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.ID,
@@ -62,9 +65,13 @@ export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
+export const HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET = new Set(
+  HiddenTraceMetricGroupByFields
+);
+
 const TRACEMETRICS_FILTERS: FilterKeySection = {
   value: 'tracemetrics_filters',
-  label: t('Metrics'),
+  label: t('Application Metrics'),
   children: [...SENTRY_TRACEMETRIC_STRING_TAGS, ...SENTRY_TRACEMETRIC_NUMBER_TAGS],
 };
 
@@ -72,37 +79,44 @@ export const TRACEMETRICS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
   TRACEMETRICS_FILTERS,
 ];
 
-export const TraceSamplesTableStatColumns: VirtualTableSampleColumnKey[] = [
-  VirtualTableSampleColumnKey.LOGS,
-  VirtualTableSampleColumnKey.SPANS,
-  VirtualTableSampleColumnKey.ERRORS,
-];
-
 export const TraceSamplesTableColumns: Array<
   TraceMetricFieldKey | VirtualTableSampleColumnKey
 > = [
   VirtualTableSampleColumnKey.EXPAND_ROW,
-  TraceMetricKnownFieldKey.TIMESTAMP,
   TraceMetricKnownFieldKey.TRACE,
-  ...TraceSamplesTableStatColumns,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
 export const TraceSamplesTableEmbeddedColumns: Array<
   TraceMetricFieldKey | VirtualTableSampleColumnKey
 > = [
   VirtualTableSampleColumnKey.EXPAND_ROW,
-  TraceMetricKnownFieldKey.TIMESTAMP,
-  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
   TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
-export const NoPaddingColumns: VirtualTableSampleColumnKey[] = [
-  VirtualTableSampleColumnKey.EXPAND_ROW,
-  VirtualTableSampleColumnKey.PROJECT_BADGE,
-];
+const VIRTUAL_SAMPLE_COLUMNS = new Set<string>(
+  Object.values(VirtualTableSampleColumnKey)
+);
+
+function isVirtualSampleColumn(
+  column: SampleTableColumnKey
+): column is VirtualTableSampleColumnKey {
+  return VIRTUAL_SAMPLE_COLUMNS.has(column);
+}
+
+export function getTraceSamplesTableFields(
+  columns: SampleTableColumnKey[]
+): TraceMetricFieldKey[] {
+  return columns.filter(
+    (column): column is TraceMetricFieldKey => !isVirtualSampleColumn(column)
+  );
+}
 
 export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
   counter: [
@@ -202,7 +216,6 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'per_second',
           value: 'per_second',
-          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
         {
           label: 'per_minute',
@@ -217,6 +230,7 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'sum',
           value: 'sum',
+          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
       ],
     },
@@ -268,7 +282,6 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'p75',
           value: 'p75',
-          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
         {
           label: 'p90',
@@ -303,6 +316,7 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
         {
           label: 'sum',
           value: 'sum',
+          trailingItems: <Text size="xs">{t('Default')}</Text>,
         },
         {
           label: 'count',
@@ -328,8 +342,8 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
 };
 
 export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
-  counter: 'per_second',
-  distribution: 'p75',
+  counter: 'sum',
+  distribution: 'sum',
   gauge: 'avg',
 };
 

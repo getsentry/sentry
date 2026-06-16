@@ -11,6 +11,7 @@ ORGANIZATION_MEMBER = {
         "email": "sirpenguin@antarcticarocks.com",
         "avatarUrl": "https://secure.gravatar.com/avatar/16aeb26c5fdba335c7078e9e9ddb5149?s=32&d=mm",
         "isActive": True,
+        "isSuspended": False,
         "hasPasswordAuth": True,
         "isManaged": False,
         "dateJoined": "2021-07-06T21:13:58.375239Z",

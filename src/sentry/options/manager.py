@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING
 from typing import Any as TAny
 
 from django.conf import settings
 
+from sentry.silo.base import SiloMode
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, Type, type_from_value
@@ -16,12 +18,21 @@ from sentry.utils.types import Any, Type, type_from_value
 if TYPE_CHECKING:
     from sentry.options.store import GroupingInfo, Key, OptionsStore
 
+    # A read hook receives the key and its resolved registry entry and returns
+    # either a value to serve or READ_HOOK_FALLBACK to defer to the normal
+    # store/disk/default resolution.
+    ReadHook = Callable[[str, Key], object]
+
 # Prevent ourselves from clobbering the builtin
 _type = type
 
 logger = logging.getLogger("sentry")
 
 NoneType = type(None)
+
+# Returned by a read hook when it has no value to serve for the key. A unique
+# object so it can never collide with a value a hook might legitimately return.
+READ_HOOK_FALLBACK = object()
 
 
 class UpdateChannel(Enum):
@@ -181,6 +192,19 @@ class OptionsManager:
     def __init__(self, store: OptionsStore):
         self.store = store
         self.registry: dict[str, Key] = {}
+        # Optional hook consulted at the start of get(). Open-source Sentry leaves
+        # this unset; getsentry installs one to dual-read FLAG_AUTOMATOR_MODIFIABLE
+        # options from sentry-options.
+        self._read_hook: ReadHook | None = None
+
+    def set_read_hook(self, hook: ReadHook | None) -> None:
+        """Install (or clear) a hook consulted at the start of every get().
+
+        Because the hook is consulted inside get() itself, every caller observes
+        it regardless of how they imported get — including references captured via
+        ``from sentry.options import get`` before the hook was installed.
+        """
+        self._read_hook = hook
 
     def set(self, key: str, value, coerce=True, channel: UpdateChannel = UpdateChannel.UNKNOWN):
         """
@@ -268,6 +292,10 @@ class OptionsManager:
         """
         opt = self.lookup_key(key)
 
+        # Keep parity with get(): a value served by the read hook counts as set.
+        if self._read_hook is not None and self._read_hook(key, opt) is not READ_HOOK_FALLBACK:
+            return True
+
         if not opt.has_any_flag({FLAG_NOSTORE}):
             result = self.store.get(opt, silent=True)
             if result is not None:
@@ -292,45 +320,66 @@ class OptionsManager:
         """
         # TODO(mattrobenolt): Perform validation on key returned for type Justin Case
         # values change. This case is unlikely, but good to cover our bases.
-        opt = self.lookup_key(key)
+        from sentry.utils import metrics
 
-        # First check if the option should exist on disk, and if it actually
-        # has a value set, let's use that one instead without even attempting
-        # to fetch from network storage.
-        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
-            try:
-                result = settings.SENTRY_OPTIONS[key]
-            except KeyError:
-                pass
-            else:
-                if result is not None:
+        sentry_env = os.environ.get("CUSTOMER_ID", settings.SENTRY_LOCAL_CELL) or "unknown"
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            sentry_env = SiloMode.CONTROL.name
+
+        with metrics.timer(
+            "options.store.get",
+            tags={"key": key, "region": sentry_env},
+            sample_rate=0.01,
+        ) as tags:
+            opt = self.lookup_key(key)
+
+            if self._read_hook is not None:
+                result = self._read_hook(key, opt)
+                if result is not READ_HOOK_FALLBACK:
+                    tags["source"] = "hook"
                     record_option(key, result)
                     return result
 
-        if not (opt.flags & FLAG_NOSTORE):
-            result = self.store.get(opt, silent=silent)
-            if result is not None:
-                record_option(key, result)
-                return result
-
-        # Some values we don't want to allow them to be configured through
-        # config files and should only exist in the datastore
-        if opt.has_any_flag({FLAG_STOREONLY}):
-            optval = opt.default()
-        else:
-            try:
-                # default to the hardcoded local configuration for this key
-                optval = settings.SENTRY_OPTIONS[key]
-            except KeyError:
+            # First check if the option should exist on disk, and if it actually
+            # has a value set, let's use that one instead without even attempting
+            # to fetch from network storage.
+            if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
                 try:
-                    optval = settings.SENTRY_DEFAULT_OPTIONS[key]
+                    result = settings.SENTRY_OPTIONS[key]
                 except KeyError:
-                    optval = opt.default()
-        # options already present in store are cached by store
-        # caching here to avoid database queries
-        self.store.set_cache(opt, optval)
-        record_option(key, optval)
-        return optval
+                    pass
+                else:
+                    if result is not None:
+                        tags["source"] = "disk"
+                        record_option(key, result)
+                        return result
+
+            if not (opt.flags & FLAG_NOSTORE):
+                result = self.store.get(opt, silent=silent)
+                if result is not None:
+                    tags["source"] = "store"
+                    record_option(key, result)
+                    return result
+
+            # Some values we don't want to allow them to be configured through
+            # config files and should only exist in the datastore
+            if opt.has_any_flag({FLAG_STOREONLY}):
+                optval = opt.default()
+            else:
+                try:
+                    # default to the hardcoded local configuration for this key
+                    optval = settings.SENTRY_OPTIONS[key]
+                except KeyError:
+                    try:
+                        optval = settings.SENTRY_DEFAULT_OPTIONS[key]
+                    except KeyError:
+                        optval = opt.default()
+            # options already present in store are cached by store
+            # caching here to avoid database queries
+            self.store.set_cache(opt, optval)
+            tags["source"] = "default"
+            record_option(key, optval)
+            return optval
 
     def delete(self, key: str):
         """
@@ -474,11 +523,17 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
-    def can_update(self, key: str, value, channel: UpdateChannel) -> NotWritableReason | None:
+    def can_update(
+        self, key: str, value, channel: UpdateChannel, include_drift: bool = True
+    ) -> NotWritableReason | None:
         """
         Return the reason the provided channel cannot update the option
         to the provided value or None if there is no reason and the update
         is allowed.
+
+        Drift detection requires reading the current value from the option
+        store. Pass ``include_drift=False`` to skip it and rely only on
+        the option's registration and flags.
         """
 
         required_flag = WRITE_REQUIRED_FLAGS.get(channel)
@@ -494,13 +549,18 @@ class OptionsManager:
         if required_flag and not opt.has_any_flag({required_flag}):
             return NotWritableReason.CHANNEL_NOT_ALLOWED
 
+        if not include_drift:
+            return None
+
         if not self.isset(key):
             # If the option is not readonly and it is not stored in the
             # option store it means we are relying on default. So we can
             # update.
             return None
 
-        stored_value = self.get(key)
+        # Judge drift against the stored value, never a read-hook override:
+        # writability is governed by what is actually in the legacy store.
+        stored_value = self.store.get(opt, silent=True)
         if stored_value == value:
             # In theory options could have any type so this equality may
             # not be correct.

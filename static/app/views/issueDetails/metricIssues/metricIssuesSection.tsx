@@ -12,12 +12,12 @@ import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/u
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
   useMetricIssueAlertId,
   useMetricTimePeriod,
 } from 'sentry/views/issueDetails/metricIssues/utils';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface MetricIssuesSectionProps {
   group: Group;
@@ -78,10 +78,9 @@ export function MetricIssuesSection({
     );
 
     return (
-      <InterimSection
+      <FoldSection
+        sectionKey={SectionKey.CORRELATED_ISSUES}
         title={t('Correlated Issues')}
-        type={SectionKey.CORRELATED_ISSUES}
-        help={t('A list of issues that are correlated with this event')}
         actions={actions}
       >
         <RelatedIssues
@@ -99,16 +98,15 @@ export function MetricIssuesSection({
           }
           skipHeader
         />
-      </InterimSection>
+      </FoldSection>
     );
   }
 
   if ([Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset)) {
     return (
-      <InterimSection
+      <FoldSection
+        sectionKey={SectionKey.CORRELATED_TRANSACTIONS}
         title={t('Correlated Transactions')}
-        type={SectionKey.CORRELATED_TRANSACTIONS}
-        help={t('A list of transactions that are correlated with this event')}
       >
         <RelatedTransactions
           organization={organization}
@@ -118,7 +116,7 @@ export function MetricIssuesSection({
           timePeriod={timePeriod}
           filter={extractEventTypeFilterFromRule(rule)}
         />
-      </InterimSection>
+      </FoldSection>
     );
   }
 

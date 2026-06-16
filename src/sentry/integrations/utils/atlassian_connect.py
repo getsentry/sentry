@@ -52,6 +52,9 @@ def get_token(request: HttpRequest) -> str:
         raise AtlassianConnectValidationError("Missing/Invalid authorization header")
 
 
+EXPECTED_ALG_FORMAT = "HS256"
+
+
 def get_integration_from_jwt(
     token: str | None,
     path: str,
@@ -83,6 +86,14 @@ def get_integration_from_jwt(
     # audience to the JWT validation that is require to match.  Bitbucket does give us an
     # audience claim however, so disable verification of this.
     key_id = headers.get("kid")
+    alg = headers.get("alg")
+
+    # Reject JWTs that specify an algorithm other than HS256 for symmetric validation.
+    # This prevents algorithm confusion attacks where an attacker could specify "none"
+    # or an asymmetric algorithm to bypass signature verification.
+    if not key_id and alg != EXPECTED_ALG_FORMAT:
+        raise AtlassianConnectValidationError("Invalid algorithm in JWT header")
+
     try:
         # We only authenticate asymmetrically (through the CDN) if the event provides a key ID
         # in its JWT headers. This should only appear for install/uninstall events.

@@ -834,6 +834,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 {
                     "integration": "1",
                     "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                    "repo": "owner/repo",
                     "uuid": "test-uuid",
                 },
                 Action.Type.GITHUB,
@@ -843,6 +844,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 {
                     "integration": "1",
                     "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                    "repo": "owner/repo",
                     "uuid": "test-uuid",
                 },
                 Action.Type.GITHUB_ENTERPRISE,

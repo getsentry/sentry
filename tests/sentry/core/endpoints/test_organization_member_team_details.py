@@ -763,7 +763,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=idp_team, organizationmember=member
         ).exists()
 
-    def test_unsubscribe_user_from_team_issues_legacy(self):
+    def test_unsubscribe_user_from_team_issues_legacy(self) -> None:
         """
         We have some legacy DB rows from before the GroupSubscription table had a team_id
         where there is a row for each user_id of all team members. If a user leaves the team

@@ -1,9 +1,11 @@
+import type {ReactNode} from 'react';
+
 import {Link} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-function AlertsMemberWriteSettingsLink() {
+function AlertsMemberWriteSettingsLink({children}: {children?: ReactNode}) {
   const organization = useOrganization();
 
   return (
@@ -12,7 +14,9 @@ function AlertsMemberWriteSettingsLink() {
         hash: 'alertsMemberWrite',
         pathname: `/settings/${organization.slug}/`,
       }}
-    />
+    >
+      {children}
+    </Link>
   );
 }
 

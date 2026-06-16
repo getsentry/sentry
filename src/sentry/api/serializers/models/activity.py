@@ -1,15 +1,33 @@
+from typing import TypedDict
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
-from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
+    SentryAppAvatarSerializer,
+    SentryAppAvatarSerializerResponse,
+)
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+
+
+class _ActivitySentryAppEmbed(TypedDict):
+    id: str
+    name: str
+    slug: str
+    avatars: list[SentryAppAvatarSerializerResponse]
+
+
+COMMIT_ACTIVITY_TYPES = {
+    ActivityType.SET_RESOLVED_IN_COMMIT.value,
+    ActivityType.REFERENCED_IN_COMMIT.value,
+}
 
 
 @register(Activity)
@@ -34,7 +52,7 @@ class ActivitySerializer(Serializer):
         if user_ids:
             sentry_apps_list = app_service.get_sentry_apps_by_proxy_users(proxy_user_ids=user_ids)
         # Minimal Sentry App serialization to keep the payload minimal
-        sentry_apps = {
+        sentry_apps: dict[str, _ActivitySentryAppEmbed] = {
             str(app.proxy_user_id): {
                 "id": str(app.id),
                 "name": app.name,
@@ -45,11 +63,7 @@ class ActivitySerializer(Serializer):
             if app.proxy_user_id
         }
 
-        commit_ids = {
-            i.data["commit"]
-            for i in item_list
-            if i.type == ActivityType.SET_RESOLVED_IN_COMMIT.value
-        }
+        commit_ids = {i.data["commit"] for i in item_list if i.type in COMMIT_ACTIVITY_TYPES}
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids))
             commits_by_id = {
@@ -62,7 +76,7 @@ class ActivitySerializer(Serializer):
             commits = {
                 i: commits_by_id.get(i.data["commit"])
                 for i in item_list
-                if i.type == ActivityType.SET_RESOLVED_IN_COMMIT.value
+                if i.type in COMMIT_ACTIVITY_TYPES
             }
         else:
             commits = {}
@@ -122,7 +136,7 @@ class ActivitySerializer(Serializer):
         }
 
     def serialize(self, obj: Activity, attrs, user, **kwargs):
-        if obj.type == ActivityType.SET_RESOLVED_IN_COMMIT.value:
+        if obj.type in COMMIT_ACTIVITY_TYPES:
             data = {"commit": attrs["commit"]}
         elif obj.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value:
             data = {"pullRequest": attrs["pull_request"]}

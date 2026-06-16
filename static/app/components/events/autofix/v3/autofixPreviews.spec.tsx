@@ -26,7 +26,7 @@ function makeSection(
   artifacts: any[] = [],
   {status}: {status: 'completed' | 'processing'} = {status: 'completed'}
 ): AutofixSection {
-  return {step, artifacts, messages: [], status};
+  return {step, artifacts, blocks: [], status};
 }
 
 describe('RootCausePreview', () => {
@@ -47,12 +47,12 @@ describe('RootCausePreview', () => {
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
   });
 
-  it('renders placeholder when processing', () => {
+  it('renders loading text when processing', () => {
     render(
       <RootCausePreview section={makeSection('root_cause', [], {status: 'processing'})} />
     );
 
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Finding the root cause…')).toBeInTheDocument();
   });
 
   it('handles null data', () => {
@@ -74,7 +74,7 @@ describe('RootCausePreview', () => {
 });
 
 describe('SolutionPreview', () => {
-  it('renders implementation plan title and summary', () => {
+  it('renders plan title and summary', () => {
     const artifact: Artifact<SolutionArtifact> = {
       key: 'solution',
       reason: 'Found solution',
@@ -86,16 +86,16 @@ describe('SolutionPreview', () => {
 
     render(<SolutionPreview section={makeSection('solution', [artifact])} />);
 
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
   });
 
-  it('renders placeholder when processing', () => {
+  it('renders loading text when processing', () => {
     render(
       <SolutionPreview section={makeSection('solution', [], {status: 'processing'})} />
     );
 
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Formulating a plan…')).toBeInTheDocument();
   });
 
   it('handles null data', () => {
@@ -107,10 +107,10 @@ describe('SolutionPreview', () => {
 
     render(<SolutionPreview section={makeSection('solution', [artifact])} />);
 
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(screen.getByText('Plan')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+        'Seer failed to generate a plan. This one is on us. Try running it again.'
       )
     ).toBeInTheDocument();
   });
@@ -176,14 +176,14 @@ describe('CodeChangesPreview', () => {
     expect(screen.getByText('3 files changed in 2 repos')).toBeInTheDocument();
   });
 
-  it('renders placeholder when processing', () => {
+  it('renders loading text when processing', () => {
     render(
       <CodeChangesPreview
         section={makeSection('code_changes', [], {status: 'processing'})}
       />
     );
 
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Implementing changes…')).toBeInTheDocument();
   });
 
   it('renders empty array with error message', () => {
@@ -227,8 +227,16 @@ describe('PullRequestsPreview', () => {
       <PullRequestsPreview
         section={makeSection('pull_request', [
           [
-            makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
-            makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
+            makePR({
+              repo_name: 'org/repo-a',
+              pr_number: 10,
+              pr_url: 'https://pr/10',
+            }),
+            makePR({
+              repo_name: 'org/repo-b',
+              pr_number: 20,
+              pr_url: 'https://pr/20',
+            }),
           ],
         ])}
       />
@@ -242,7 +250,13 @@ describe('PullRequestsPreview', () => {
     render(
       <PullRequestsPreview
         section={makeSection('pull_request', [
-          [makePR({pr_creation_status: 'creating', pr_url: null, pr_number: null})],
+          [
+            makePR({
+              pr_creation_status: 'creating',
+              pr_url: null,
+              pr_number: null,
+            }),
+          ],
         ])}
       />
     );
@@ -319,7 +333,11 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -331,7 +349,11 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -343,7 +365,11 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
+          [
+            makeCodingAgent({
+              provider: CodingAgentProvider.GITHUB_COPILOT_AGENT,
+            }),
+          ],
         ])}
       />
     );
@@ -429,7 +455,11 @@ describe('CodingAgentPreview', () => {
         section={makeSection('coding_agents', [
           [
             makeCodingAgent({id: 'a1', name: 'Agent One', status: 'running'}),
-            makeCodingAgent({id: 'a2', name: 'Agent Two', status: 'completed'}),
+            makeCodingAgent({
+              id: 'a2',
+              name: 'Agent Two',
+              status: 'completed',
+            }),
           ],
         ])}
       />

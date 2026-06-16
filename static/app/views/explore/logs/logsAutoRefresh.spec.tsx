@@ -13,8 +13,14 @@ import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 
 describe('LogsAutoRefresh Integration Tests', () => {
-  const {organization, project, routerConfig, setupPageFilters, setupEventsMock} =
-    initializeLogsTest();
+  const {
+    organization,
+    project,
+    routerConfig,
+    setupPageFilters,
+    setupEventsMock,
+    setupTotalPayloadMock,
+  } = initializeLogsTest();
 
   const testDate = new Date('2024-01-15T10:00:00.000Z');
   const {baseFixtures} = createLogFixtures(organization, project, testDate);
@@ -290,6 +296,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         Link: '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:1000:0>; rel="next"; results="true"',
       },
     });
+    setupTotalPayloadMock();
 
     const {router} = renderWithProviders(<AutorefreshToggle />, {
       initialRouterConfig: enabledRouterConfig,
@@ -317,6 +324,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         Link: '', // No Link header means no more data
       },
     });
+    setupTotalPayloadMock();
 
     const {router} = renderWithProviders(<AutorefreshToggle />, {
       initialRouterConfig: enabledRouterConfig,
@@ -348,6 +356,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         meta: {fields: {}},
       },
     });
+    setupTotalPayloadMock();
 
     const {router} = renderWithProviders(<AutorefreshToggle />, {
       initialRouterConfig: enabledRouterConfig,

@@ -1,13 +1,18 @@
 import type {ReactNode} from 'react';
-import {Children, Fragment, useEffect} from 'react';
+import {Children, Fragment, Suspense, lazy, useEffect} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {StoryHeading} from 'sentry/stories/view/storyHeading';
-
-import {APIReference} from './apiReference';
 import {Section, SideBySide} from './layout';
+
+// Lazy-loaded to bypass circular dependencies on Button
+const StoryHeading = lazy(() =>
+  import('sentry/stories/view/storyHeading').then(m => ({default: m.StoryHeading}))
+);
+const APIReference = lazy(() =>
+  import('./apiReference').then(m => ({default: m.APIReference}))
+);
 
 function makeStorybookDocumentTitle(title: string | undefined): string {
   return title ? `${title} — Scraps` : 'Scraps';
@@ -51,7 +56,9 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
           <Story key={name + idx} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <APIReference key={i} componentProps={documentation} />
+          <Suspense key={i} fallback={null}>
+            <APIReference componentProps={documentation} />
+          </Suspense>
         ))}
       </Fragment>
     );
@@ -65,9 +72,11 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   return (
     <Section>
       <Container borderBottom="primary">
-        <StoryHeading as="h2" size="2xl">
-          {props.name}
-        </StoryHeading>
+        <Suspense fallback={<Heading as="h2">{props.name}</Heading>}>
+          <StoryHeading as="h2" size="2xl">
+            {props.name}
+          </StoryHeading>
+        </Suspense>
       </Container>
       {isOneChild ? children : <SideBySide>{children}</SideBySide>}
     </Section>

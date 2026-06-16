@@ -1,13 +1,12 @@
 import {useMemo} from 'react';
 
-import {HookStore} from 'sentry/stores/hookStore';
-import type {FeatureDisabledHooks} from 'sentry/types/hooks';
+import {getOverride} from 'sentry/overrideRegistry';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
+import type {FeatureDisabledOverrides} from 'sentry/types/overrides';
 import type {Project} from 'sentry/types/project';
-import type {Config} from 'sentry/types/system';
-import {withConfig} from 'sentry/utils/withConfig';
 import {withOrganization} from 'sentry/utils/withOrganization';
-import {withProject} from 'sentry/utils/withProject';
 
 import {ComingSoon} from './comingSoon';
 
@@ -22,7 +21,6 @@ type Props = {
    * all the required feature.
    */
   children: React.ReactNode | ChildrenRenderFn;
-  config: Config;
   /**
    * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
    * On the backend end, feature tags have a scope prefix string that is stripped out on the
@@ -35,17 +33,17 @@ type Props = {
    * The following properties will be set by the HoCs
    */
   organization: Organization;
+  organizationAllowNull?: undefined | true;
   /**
-   * Specify the key to use for hookstore functionality.
+   * Specify the key to use for override registry functionality.
    *
-   * The hookName should be prefixed with `feature-disabled`.
+   * The overrideName should be prefixed with `feature-disabled`.
    *
-   * When specified, the hookstore will be checked if the feature is
-   * disabled, and the first available hook will be used as the render
+   * When specified, the override registry will be checked if the feature is
+   * disabled, and the registered override will be used as the render
    * function.
    */
-  hookName?: keyof FeatureDisabledHooks;
-  organizationAllowNull?: undefined | true;
+  overrideName?: keyof FeatureDisabledOverrides;
   project?: Project;
   /**
    * Custom renderer function for when the feature is not enabled.
@@ -133,14 +131,15 @@ const hasFeature = (
  */
 function Feature({
   children,
-  config,
   features: featuresProp,
-  hookName,
+  overrideName,
   organization,
   project,
   renderDisabled = false,
   requireAll = true,
 }: Props) {
+  const config = useLegacyStore(ConfigStore);
+
   const features = useMemo(
     () => (Array.isArray(featuresProp) ? featuresProp : [featuresProp]),
     [featuresProp]
@@ -172,13 +171,13 @@ function Feature({
         ? renderDisabled
         : renderComingSoon;
 
-  // Override the renderDisabled function with a hook store function if there
-  // is one registered for the feature.
-  if (hookName) {
-    const hooks = HookStore.get(hookName);
+  // Override the renderDisabled function with an override registry function if
+  // there is one registered for the feature.
+  if (overrideName) {
+    const override = getOverride(overrideName);
 
-    if (hooks.length > 0) {
-      customDisabledRender = hooks[0]!;
+    if (override) {
+      customDisabledRender = override;
     }
   }
   const renderProps = {
@@ -199,4 +198,4 @@ function Feature({
   return hasFeatureEnabled && children ? children : null;
 }
 
-export default withOrganization(withProject(withConfig(Feature)));
+export default withOrganization(Feature);

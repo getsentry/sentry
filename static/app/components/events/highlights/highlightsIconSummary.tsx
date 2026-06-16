@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
-import {openModal} from 'sentry/actionCreators/modal';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -31,7 +31,7 @@ import type {Organization} from 'sentry/types/organization';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;
@@ -39,6 +39,8 @@ interface HighlightsIconSummaryProps {
 }
 
 export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
 
@@ -132,7 +134,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
             <Fragment>
               <ScreenshotButton
                 type="button"
-                priority="transparent"
+                variant="transparent"
                 size="zero"
                 icon={<IconAttachment variant="muted" />}
                 tooltipProps={{title: t('View Screenshot')}}

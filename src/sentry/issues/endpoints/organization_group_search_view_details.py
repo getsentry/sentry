@@ -12,6 +12,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
 from sentry.api.serializers.rest_framework.groupsearchview import ViewValidator
+from sentry.api.utils import to_valid_int_id
 from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
@@ -45,8 +46,9 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         """
         Get an issue view for the current organization member.
         """
+        view_id_int = to_valid_int_id("view_id", view_id, raise_404=True)
         try:
-            view = GroupSearchView.objects.get(id=view_id, organization=organization)
+            view = GroupSearchView.objects.get(id=view_id_int, organization=organization)
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -68,8 +70,9 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:issue-views", organization, actor=request.user):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        view_id_int = to_valid_int_id("view_id", view_id, raise_404=True)
         try:
-            view = GroupSearchView.objects.get(id=view_id, organization=organization)
+            view = GroupSearchView.objects.get(id=view_id_int, organization=organization)
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -110,8 +113,9 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         """
         Delete an issue view for the current organization member.
         """
+        view_id_int = to_valid_int_id("view_id", view_id, raise_404=True)
         try:
-            view = GroupSearchView.objects.get(id=view_id, organization=organization)
+            view = GroupSearchView.objects.get(id=view_id_int, organization=organization)
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 

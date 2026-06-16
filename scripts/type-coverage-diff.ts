@@ -15,12 +15,12 @@ type GitDiffChange = {
 };
 
 const colors = {
-  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
-  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
-  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
-  cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
-  bold: (text: string) => `\x1b[1m${text}\x1b[0m`,
-  dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
+  red: (text: string) => `\x1B[31m${text}\x1B[0m`,
+  green: (text: string) => `\x1B[32m${text}\x1B[0m`,
+  yellow: (text: string) => `\x1B[33m${text}\x1B[0m`,
+  cyan: (text: string) => `\x1B[36m${text}\x1B[0m`,
+  bold: (text: string) => `\x1B[1m${text}\x1B[0m`,
+  dim: (text: string) => `\x1B[2m${text}\x1B[0m`,
 };
 
 type TypeCoverageResult = {
@@ -119,7 +119,9 @@ function parseArgs(): Options {
     } else if (arg === '--verbose' || arg === '-v') {
       opts.verbose = true;
     } else if (arg === '--ignore-files') {
-      if (!opts.ignoreFiles) opts.ignoreFiles = [];
+      if (!opts.ignoreFiles) {
+        opts.ignoreFiles = [];
+      }
       opts.ignoreFiles.push(args[++i]!);
     } else {
       console.error(colors.red(`Unknown option: ${arg}`));
@@ -361,14 +363,18 @@ function formatItems<
   color: (text: string) => string,
   formatter?: (item: T) => string
 ): void {
-  if (items.length === 0) return;
+  if (items.length === 0) {
+    return;
+  }
 
   console.log(colors.bold(`\n${title} (${items.length})`));
   console.log('='.repeat(title.length + ` (${items.length})`.length));
 
   // Sort by file, then by line
   const sortedItems = items.sort((a, b) => {
-    if (a.file !== b.file) return a.file.localeCompare(b.file);
+    if (a.file !== b.file) {
+      return a.file.localeCompare(b.file);
+    }
     return a.line - b.line;
   });
 
@@ -529,7 +535,7 @@ async function main() {
 
     console.log(
       colors.dim(
-        `\n📝 Note: Only showing type issues on lines that were literally added (+) or removed (-) in git diff`
+        '\n📝 Note: Only showing type issues on lines that were literally added (+) or removed (-) in git diff'
       )
     );
 

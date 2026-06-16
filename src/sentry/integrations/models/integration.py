@@ -45,7 +45,7 @@ class Integration(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Global
 
     provider = models.CharField(max_length=64)
-    external_id = models.CharField(max_length=64)
+    external_id = models.CharField(max_length=256)
     name = models.CharField(max_length=200)
     # metadata might be used to store things like credentials, but it should NOT
     # be used to store organization-specific information, as an Integration

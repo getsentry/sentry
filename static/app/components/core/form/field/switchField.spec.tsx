@@ -155,7 +155,7 @@ describe('SwitchField auto-save', () => {
     expect(
       await screen.findByRole('status', {name: 'Saving enabled'})
     ).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true}, expect.anything());
   });
 
   it('shows checkmark when auto-save succeeds', async () => {
@@ -172,7 +172,7 @@ describe('SwitchField auto-save', () => {
       const checkmarks = screen.getAllByTestId('icon-check-mark');
       expect(checkmarks.length).toBeGreaterThan(1);
     });
-    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true}, expect.anything());
   });
 
   it('disables switch while auto-save is pending', async () => {
@@ -198,14 +198,14 @@ describe('SwitchField auto-save', () => {
     // First click: OFF → ON, triggers mutation
     await userEvent.click(checkbox);
     expect(mutationFn).toHaveBeenCalledTimes(1);
-    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true}, expect.anything());
 
     // After save succeeds, form.reset() resets to initialValue (false/OFF).
     // Second click: OFF → ON again, triggers another mutation.
     mutationFn.mockClear();
     await userEvent.click(checkbox);
     expect(mutationFn).toHaveBeenCalledTimes(1);
-    expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+    expect(mutationFn).toHaveBeenCalledWith({enabled: true}, expect.anything());
   });
 
   it('does not hang when mutation fails', async () => {
@@ -221,7 +221,7 @@ describe('SwitchField auto-save', () => {
 
     // Mutation should be called
     await waitFor(() => {
-      expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+      expect(mutationFn).toHaveBeenCalledWith({enabled: true}, expect.anything());
     });
 
     // Error handler should be invoked by TanStack Query
@@ -416,7 +416,7 @@ describe('SwitchField with confirm', () => {
 
     // Mutation should be called immediately
     await waitFor(() => {
-      expect(mutationFn).toHaveBeenCalledWith({enabled: false});
+      expect(mutationFn).toHaveBeenCalledWith({enabled: false}, expect.anything());
     });
   });
 
@@ -451,7 +451,7 @@ describe('SwitchField with confirm', () => {
 
     // Mutation should be called after confirmation
     await waitFor(() => {
-      expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+      expect(mutationFn).toHaveBeenCalledWith({enabled: true}, expect.anything());
     });
   });
 
@@ -487,7 +487,7 @@ describe('SwitchField with confirm', () => {
 
     // Mutation should be called
     await waitFor(() => {
-      expect(mutationFn).toHaveBeenCalledWith({enabled: true});
+      expect(mutationFn).toHaveBeenCalledWith({enabled: true}, expect.anything());
     });
 
     // Error handler should be invoked by TanStack Query

@@ -12,7 +12,7 @@ from .client import BITBUCKET_KEY
 
 @control_silo_endpoint
 class BitbucketDescriptorEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

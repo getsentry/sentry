@@ -2,8 +2,13 @@ import type {LocationDescriptor} from 'history';
 
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
-// We do not want people using this type as it should only be used
-// internally by the different button implementations
+export type ButtonVariant =
+  | 'secondary'
+  | 'primary'
+  | 'danger'
+  | 'warning'
+  | 'link'
+  | 'transparent';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export interface DO_NOT_USE_CommonButtonProps {
@@ -30,12 +35,6 @@ export interface DO_NOT_USE_CommonButtonProps {
    */
   icon?: React.ReactNode;
   /**
-   * The semantic "priority" of the button. Use `primary` when the action is
-   * contextually the primary action, `danger` if the button will do something
-   * destructive, `link` for visual similarity to a link.
-   */
-  priority?: 'default' | 'primary' | 'danger' | 'warning' | 'link' | 'transparent';
-  /**
    * The size of the button
    */
   size?: 'zero' | 'xs' | 'sm' | 'md';
@@ -43,6 +42,12 @@ export interface DO_NOT_USE_CommonButtonProps {
    * Button Tooltip Props
    */
   tooltipProps?: ButtonTooltipProps;
+  /**
+   * The semantic "variant" of the button. Use `primary` when the action is
+   * contextually the primary action, `danger` if the button will do something
+   * destructive, `link` for visual similarity to a link.
+   */
+  variant?: ButtonVariant;
 }
 
 interface ButtonTooltipProps extends Omit<
@@ -77,7 +82,7 @@ export type DO_NOT_USE_ButtonProps =
 
 type LinkElementProps = Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
-  'label' | 'size' | 'title' | 'href'
+  'label' | 'size' | 'title' | 'href' | 'target'
 >;
 
 interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementProps {
@@ -90,13 +95,19 @@ interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementP
 interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
   href: string;
   /**
-   * Determines if the link is external and should open in a new tab.
+   * Determines if the link is external. External links always open in a new tab.
    */
   external?: boolean;
 }
 
 interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
   to: string | LocationDescriptor;
+  /**
+   * Opens the link in a new tab. Use sparingly — internal links typically
+   * should not open in a new tab. For external links, use `href` with
+   * `external` instead, which always opens in a new tab.
+   */
+  openInNewTab?: boolean;
   /**
    * If true, the link will not reset the scroll position of the page when clicked.
    */

@@ -14,17 +14,18 @@ const DEPLOY_COUNT = 2;
 
 type Props = {
   project: Project;
+  latestDeploys?: Project['latestDeploys'];
 };
 
-export function Deploys({project}: Props) {
-  const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
+export function Deploys({latestDeploys, project}: Props) {
+  const flattenedDeploys = Object.entries(latestDeploys ?? {}).map(
     ([environment, value]): Pick<
       DeployType,
       'version' | 'dateFinished' | 'environment'
     > => ({environment, ...value})
   );
 
-  const deploys = (flattenedDeploys || [])
+  const deploys = flattenedDeploys
     .sort(
       (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
     )

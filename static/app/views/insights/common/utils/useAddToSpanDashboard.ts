@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';

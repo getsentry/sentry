@@ -5,10 +5,8 @@
  */
 import type {Location, LocationDescriptor} from 'history';
 
-export type RouteComponent = React.ComponentClass<any> | React.FunctionComponent<any>;
-
 interface IndexRouteProps<Props = any> {
-  component?: RouteComponent | undefined;
+  component?: React.ComponentType<any> | undefined;
   props?: Props | undefined;
 }
 
@@ -56,22 +54,5 @@ export interface InjectedRouter<P = Record<string, string | undefined>, Q = any>
   params: P;
   push: LocationFunction;
   replace: LocationFunction;
-  routes: PlainRoute[];
-}
-
-/**
- * @deprecated Do not use in new components. use `use{Layout,Props}` instead.
- */
-export interface WithRouterProps<P = Record<string, string | undefined>, Q = any> {
-  location: Location<Q>;
-  params: P;
-  router: InjectedRouter<P, Q>;
-  routes: PlainRoute[];
-}
-
-export interface RouteContextInterface<P = Record<string, string | undefined>, Q = any> {
-  location: Location<Q>;
-  params: P;
-  router: InjectedRouter<P, Q>;
   routes: PlainRoute[];
 }

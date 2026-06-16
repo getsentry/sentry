@@ -1,6 +1,7 @@
 import {
   detectAIContentType,
   parseXmlTagSegments,
+  preprocessInlineXmlTags,
   tryParsePythonDict,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 
@@ -117,6 +118,18 @@ describe('tryParsePythonDict', () => {
     expect(tryParsePythonDict("{'key': 'text with \"inner\" quotes'}")).toBeNull();
   });
 
+  it('returns null for double-quoted values with apostrophes', () => {
+    expect(
+      tryParsePythonDict(`[{'role': 'user', 'content': "the user's message"}]`)
+    ).toBeNull();
+  });
+
+  it('parses arrays of Python dicts', () => {
+    expect(tryParsePythonDict("[{'role': 'user', 'content': 'hello'}]")).toEqual([
+      {role: 'user', content: 'hello'},
+    ]);
+  });
+
   it('handles Python dicts where values contain markdown', () => {
     const result = tryParsePythonDict(
       "{'content': 'Given a query, you should **determine** if the passage is relevant'}"
@@ -124,6 +137,41 @@ describe('tryParsePythonDict', () => {
     expect(result).toEqual({
       content: 'Given a query, you should **determine** if the passage is relevant',
     });
+  });
+});
+
+describe('preprocessInlineXmlTags', () => {
+  it('replaces inline XML tags with italic markdown', () => {
+    const text = 'Before <thinking>inner thought</thinking> After';
+    expect(preprocessInlineXmlTags(text)).toBe('Before *thinking: inner thought* After');
+  });
+
+  it('leaves block-level tags at start of text untouched', () => {
+    const text = '<plan>step 1</plan> then more';
+    expect(preprocessInlineXmlTags(text)).toBe('<plan>step 1</plan> then more');
+  });
+
+  it('leaves block-level tags after newline untouched', () => {
+    const text = 'Some text\n<thinking>deep thought</thinking>';
+    expect(preprocessInlineXmlTags(text)).toBe(text);
+  });
+
+  it('handles mixed inline and block tags', () => {
+    const text =
+      'See the <code>details</code> here.\n<thinking>\ndeep thought\n</thinking>';
+    expect(preprocessInlineXmlTags(text)).toBe(
+      'See the *code: details* here.\n<thinking>\ndeep thought\n</thinking>'
+    );
+  });
+
+  it('trims whitespace from inline tag content', () => {
+    const text = 'before <tag>  spaced  </tag> after';
+    expect(preprocessInlineXmlTags(text)).toBe('before *tag: spaced* after');
+  });
+
+  it('strips nested XML tags from inline tag content', () => {
+    const text = 'Text <outer>before <inner>nested</inner> after</outer> more';
+    expect(preprocessInlineXmlTags(text)).toBe('Text *outer: before nested after* more');
   });
 });
 
@@ -157,9 +205,9 @@ describe('parseXmlTagSegments', () => {
   });
 
   it('returns single text segment when no XML tags', () => {
-    const text = 'just plain text';
-    const segments = parseXmlTagSegments(text);
-    expect(segments).toEqual([{type: 'text', content: 'just plain text'}]);
+    expect(parseXmlTagSegments('just plain text')).toEqual([
+      {type: 'text', content: 'just plain text'},
+    ]);
   });
 
   it('handles empty string', () => {
@@ -168,7 +216,20 @@ describe('parseXmlTagSegments', () => {
 
   it('handles tags with hyphens in names', () => {
     const text = '<my-tag>content</my-tag>';
-    const segments = parseXmlTagSegments(text);
-    expect(segments).toEqual([{type: 'xml-tag', tagName: 'my-tag', content: 'content'}]);
+    expect(parseXmlTagSegments(text)).toEqual([
+      {type: 'xml-tag', tagName: 'my-tag', content: 'content'},
+    ]);
+  });
+
+  it('extracts outer tag with nested tags preserved in content', () => {
+    const text =
+      '<bug_report>\n<location>file.ts</location>\n<description>a bug</description>\n</bug_report>';
+    expect(parseXmlTagSegments(text)).toEqual([
+      {
+        type: 'xml-tag',
+        tagName: 'bug_report',
+        content: '\n<location>file.ts</location>\n<description>a bug</description>\n',
+      },
+    ]);
   });
 });

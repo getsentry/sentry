@@ -1,5 +1,8 @@
-import type {SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select';
 
+// explicitly using object here because Record<PropertyKey, unknown> requires an index signature
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+export type ListItemBase = object & {showToggleAllButton?: boolean};
 export type SelectKey = string | number;
 
 export interface SelectOption<Value extends SelectKey> extends SelectValue<Value> {

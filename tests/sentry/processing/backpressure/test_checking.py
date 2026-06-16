@@ -30,6 +30,7 @@ EVENTS_MSG = json.dumps(
         "backpressure.checking.interval": 5,
         "backpressure.monitoring.enabled": False,
         "backpressure.status_ttl": 60,
+        "profiling.process.raw_bytes_payload.enabled": False,
     }
 )
 def test_bad_config() -> None:
@@ -44,6 +45,7 @@ def test_bad_config() -> None:
         "backpressure.checking.interval": 5,
         "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
+        "profiling.process.raw_bytes_payload.enabled": False,
     }
 )
 def test_backpressure_healthy_profiles(process_profile_task: MagicMock) -> None:
@@ -112,6 +114,7 @@ def test_backpressure_healthy_events(preprocess_event: MagicMock) -> None:
     {
         "backpressure.checking.enabled": False,
         "backpressure.checking.interval": 5,
+        "profiling.process.raw_bytes_payload.enabled": False,
     }
 )
 def test_backpressure_not_enabled(process_profile_task: MagicMock) -> None:

@@ -12,23 +12,12 @@ describe('SubscriptionUpsellBanner', () => {
       snoozed_ts: undefined,
     };
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/prompts-activity/`,
+      url: '/organizations/org-slug/prompts-activity/',
       body: promptResponse,
     });
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/plan-migrations/?applied=0`,
-      method: 'GET',
+      url: '/customers/org-slug/',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/org-slug/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/org-slug/plan-migrations/`,
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
     });
   });
 

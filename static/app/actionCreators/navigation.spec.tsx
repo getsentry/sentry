@@ -1,4 +1,6 @@
+import {isValidElement} from 'react';
 import type {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -19,7 +21,7 @@ describe('navigation ActionCreator', () => {
     ProjectsStore.init();
     const initialData = initializeOrg();
     navigate = jest.fn();
-    location = {...initialData.router.location, query: {}};
+    location = LocationFixture({query: {}});
     ProjectsStore.loadInitialData(initialData.projects);
     configState = ConfigStore.getState();
   });
@@ -120,12 +122,15 @@ describe('navigation ActionCreator', () => {
     navigateTo('/settings/:orgId/teams/:teamId/settings/', navigate, location);
     expect(openModal).toHaveBeenCalled();
 
-    const modalFactory = (openModal as jest.Mock).mock.calls[0]?.[0];
+    const modalFactory = jest.mocked(openModal).mock.calls[0]?.[0];
     if (!modalFactory) {
       throw new Error('Expected openModal to be called with a renderer');
     }
 
     const modal = modalFactory({closeModal: jest.fn()} as any);
+    if (!isValidElement<{needOrg: boolean; needTeam: boolean}>(modal)) {
+      throw new Error('Expected modalFactory to return a React element');
+    }
     expect(modal.props.needOrg).toBe(true);
     expect(modal.props.needTeam).toBe(true);
   });

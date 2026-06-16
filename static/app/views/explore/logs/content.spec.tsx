@@ -16,10 +16,13 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 import LogsPage from './content';
+
+beforeEach(mockGetBoundingClientRect);
 
 describe('LogsPage', () => {
   let organization: Organization;
@@ -214,7 +217,6 @@ describe('LogsPage', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'ourlogs',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -228,7 +230,7 @@ describe('LogsPage', () => {
             sampling: 'NORMAL',
             sort: '-count_message',
             statsPeriod: '24h',
-            topEvents: 5,
+            topEvents: 9,
             yAxis: ['count(message)'],
           }),
         })
@@ -364,7 +366,8 @@ describe('LogsPage', () => {
       // - one for the table
       // - one for the normal sample mode count
       // - one for the high accuracy sample mode count
-      expect(eventTableMock).toHaveBeenCalledTimes(3);
+      // - one for the table refetch triggered by resetQueries when auto-refresh is paused
+      expect(eventTableMock).toHaveBeenCalledTimes(4);
 
       eventTableMock.mockClear();
       eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));

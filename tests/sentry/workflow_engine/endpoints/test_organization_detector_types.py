@@ -85,8 +85,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             type_id = 1
             slug = MetricIssue.slug
             description = "Metric alert"
-            category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.METRIC.value
+            category = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
@@ -95,8 +94,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             type_id = 2
             slug = MonitorIncidentType.slug
             description = "Crons"
-            category = GroupCategory.CRON.value
-            category_v2 = GroupCategory.OUTAGE.value
+            category = GroupCategory.OUTAGE.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
@@ -105,8 +103,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             type_id = 3
             slug = UptimeDomainCheckFailure.slug
             description = "Uptime"
-            category = GroupCategory.UPTIME.value
-            category_v2 = GroupCategory.OUTAGE.value
+            category = GroupCategory.OUTAGE.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
@@ -116,8 +113,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             type_id = 4
             slug = PerformanceSlowDBQueryGroupType.slug
             description = "Performance"
-            category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.DB_QUERY.value
+            category = GroupCategory.DB_QUERY.value
             released = True
 
     def tearDown(self) -> None:

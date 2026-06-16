@@ -41,7 +41,7 @@ export function GroupingComponentFrames({
             <GroupingComponentListItem key={index}>
               <ToggleCollapse
                 size="sm"
-                priority="link"
+                variant="link"
                 icon={<IconAdd legacySize="8px" />}
                 onClick={() => setCollapsed(false)}
               >
@@ -60,7 +60,7 @@ export function GroupingComponentFrames({
         <GroupingComponentListItem>
           <ToggleCollapse
             size="sm"
-            priority="link"
+            variant="link"
             icon={<IconSubtract legacySize="8px" />}
             onClick={() => setCollapsed(true)}
           >

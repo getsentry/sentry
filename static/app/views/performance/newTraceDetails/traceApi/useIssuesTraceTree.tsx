@@ -1,13 +1,14 @@
 import {useEffect, useState} from 'react';
+import type {QueryStatus} from '@tanstack/react-query';
 
-import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {isEmptyTrace} from './utils';
 
@@ -39,7 +40,7 @@ export function useIssuesTraceTree({
   const traceState = useTraceState();
   const organization = useOrganization();
 
-  const [tree, setTree] = useState<IssuesTraceTree>(IssuesTraceTree.Empty());
+  const [tree, setTree] = useState(IssuesTraceTree.Empty());
 
   useEffect(() => {
     const status = getTraceViewQueryStatus(trace.status);
@@ -48,7 +49,7 @@ export function useIssuesTraceTree({
       setTree(t =>
         t.type === 'error'
           ? t
-          : IssuesTraceTree.Error(
+          : IssuesTraceTree.ErrorState(
               {
                 project_slug: projects?.[0]?.slug ?? '',
                 event_id: traceSlug,

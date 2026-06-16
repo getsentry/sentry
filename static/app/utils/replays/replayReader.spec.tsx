@@ -22,6 +22,7 @@ import {
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {EventType, IncrementalSource} from 'sentry/utils/replays/types';
 
@@ -57,6 +58,13 @@ describe('ReplayReader', () => {
   it('should calculate started_at/finished_at/duration based on first/last events', () => {
     const minuteZero = new Date('2023-12-25T00:00:00');
     const minuteTen = new Date('2023-12-25T00:10:00');
+    const originalStartedAt = new Date('2023-12-25T00:01:00');
+    const originalFinishedAt = new Date('2023-12-25T00:09:00');
+    const inputReplayRecord = ReplayRecordFixture({
+      started_at: originalStartedAt,
+      finished_at: originalFinishedAt,
+      duration: undefined, // will be calculated on the adjusted copy
+    });
 
     const replay = ReplayReader.factory({
       attachments: [
@@ -65,11 +73,7 @@ describe('ReplayReader', () => {
       ],
       errors: [],
       fetching: false,
-      replayRecord: ReplayRecordFixture({
-        started_at: new Date('2023-12-25T00:01:00'),
-        finished_at: new Date('2023-12-25T00:09:00'),
-        duration: undefined, // will be calculated
-      }),
+      replayRecord: inputReplayRecord,
     });
 
     const expectedDuration = 10 * 60 * 1000; // 10 minutes, in ms
@@ -77,6 +81,9 @@ describe('ReplayReader', () => {
     expect(replay?.getReplay().finished_at).toEqual(minuteTen);
     expect(replay?.getReplay().duration.asMilliseconds()).toEqual(expectedDuration);
     expect(replay?.getDurationMs()).toEqual(expectedDuration);
+    expect(inputReplayRecord.started_at).toEqual(originalStartedAt);
+    expect(inputReplayRecord.finished_at).toEqual(originalFinishedAt);
+    expect(inputReplayRecord.duration).toBeUndefined();
   });
 
   it('should make the replayRecord available through a getter method', () => {
@@ -488,7 +495,7 @@ describe('ReplayReader', () => {
         }),
         expect.objectContaining({
           category: 'issue',
-          timestampMs: new Date(error2.timestamp).getTime(),
+          timestampMs: parseEventTimestampMs(error2.timestamp_ms).getTime(),
           offsetMs: 6_000,
         }),
       ]);

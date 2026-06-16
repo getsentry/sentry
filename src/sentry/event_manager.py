@@ -49,6 +49,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
+from sentry.event_manager_auto_tags import get_enabled_derivers
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
@@ -65,7 +66,6 @@ from sentry.grouping.ingest.config import is_in_transition, update_or_set_groupi
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
     get_or_create_grouphashes,
-    maybe_run_background_grouping,
     maybe_run_secondary_grouping,
     run_primary_grouping,
 )
@@ -115,6 +115,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.options.rollout import in_random_rollout
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
@@ -540,7 +541,7 @@ class EventManager:
             except ProjectKey.DoesNotExist:
                 pass
 
-        _derive_plugin_tags_many(jobs, projects)
+        _derive_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
         _derive_client_error_sampling_rate(jobs, projects)
 
@@ -783,19 +784,17 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
 
 
 @sentry_sdk.tracing.trace
-def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    # XXX: We ought to inline or remove this one for sure
-    plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
-
+def _derive_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    derivers = get_enabled_derivers()
     for job in jobs:
-        for plugin in plugins_for_projects[job["project_id"]]:
-            added_tags = safe_execute(plugin.get_tags, job["event"])
-            if added_tags:
-                data = job["data"]
-                # plugins should not override user provided tags
-                for key, value in added_tags:
+        data = job["data"]
+        for deriver in derivers:
+            try:
+                for key, value in deriver.get_tags(job["event"]):
                     if get_tag(data, key) is None:
                         set_tag(data, key, value)
+            except Exception:
+                logger.exception("auto_tag.derive_error")
 
 
 def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:
@@ -1117,39 +1116,40 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 tags={"event_type": job["event"].data.get("type") or "null"},
             )
 
-        # Record processing errors to analytics at 1% sample rate
+        # Record processing errors to analytics. Sample at 100% for orgs <30 days old
+        # so new-customer cohorts are fully observable; 1% otherwise.
         processing_errors = job["data"].get("errors", [])
         event = job["event"]
-        if (
-            processing_errors
-            and features.has("organizations:processing-error-analytics", event.project.organization)
-            and random.random() < 0.01
-        ):
-            group_id = job["groups"][0].group.id if job["groups"] else None
-            for error in processing_errors:
-                try:
-                    error_type = error.get("type", "unknown")
-                    error_name = error.get("name")
-                    error_value = error.get("value")
-                    # Convert non-string values to JSON and truncate
-                    if error_value is not None:
-                        if not isinstance(error_value, str):
-                            error_value = orjson.dumps(error_value).decode()
-                        error_value = error_value[:256]
-                    analytics.record(
-                        EventProcessingErrorRecorded(
-                            organization_id=event.project.organization_id,
-                            project_id=event.project_id,
-                            event_id=event.event_id,
-                            group_id=group_id,
-                            error_type=error_type,
-                            platform=job["data"].get("platform"),
-                            name=error_name,
-                            value=error_value,
+        if processing_errors:
+            org_age = datetime.now(timezone.utc) - event.project.organization.date_added
+            sample_rate = 1.0 if org_age < timedelta(days=30) else 0.01
+            if random.random() < sample_rate:
+                group_id = job["groups"][0].group.id if job["groups"] else None
+                for error in processing_errors:
+                    try:
+                        error_type = error.get("type", "unknown")
+                        error_name = error.get("name")
+                        error_value = error.get("value")
+                        # Convert non-string values to JSON and truncate
+                        if error_value is not None:
+                            if not isinstance(error_value, str):
+                                error_value = orjson.dumps(error_value).decode()
+                            error_value = error_value[:256]
+                        analytics.record(
+                            EventProcessingErrorRecorded(
+                                organization_id=event.project.organization_id,
+                                project_id=event.project_id,
+                                event_id=event.event_id,
+                                group_id=group_id,
+                                error_type=error_type,
+                                platform=job["data"].get("platform"),
+                                sample_rate=sample_rate,
+                                name=error_name,
+                                value=error_value,
+                            )
                         )
-                    )
-                except Exception:
-                    logger.warning("Failed to save EventProcessingErrorRecorded", exc_info=True)
+                    except Exception:
+                        logger.warning("Failed to save EventProcessingErrorRecorded", exc_info=True)
 
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
@@ -1358,11 +1358,6 @@ def assign_event_to_group(
 
     # From here on out, we're just doing housekeeping
 
-    # Background grouping is a way for us to get performance metrics for a new
-    # config without having it actually affect on how events are grouped. It runs
-    # either before or after the main grouping logic, depending on the option value.
-    maybe_run_background_grouping(project, job)
-
     record_hash_calculation_metrics(
         project, primary.config, primary.hashes, secondary.config, secondary.hashes, result
     )
@@ -1447,7 +1442,7 @@ def handle_existing_grouphash(
     # this function had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
-    group = Group.objects.get(id=existing_grouphash.group_id)
+    group = Group.objects.get_from_cache(id=existing_grouphash.group_id, use_replica=False)
 
     # As far as we know this has never happened, but in theory at least, the error event hashing
     # algorithm and other event hashing algorithms could come up with the same hash value in the
@@ -1707,7 +1702,12 @@ def _get_next_short_id(project: Project, delta: int = 1) -> int:
     return short_id
 
 
-def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
+def _handle_regression(
+    group: Group,
+    event: BaseEvent,
+    release: Release | None,
+    incoming_group_values: Mapping[str, Any] | None = None,
+) -> bool | None:
     if not group.is_resolved():
         return None
 
@@ -1820,10 +1820,15 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             )
 
     if is_regression:
-        activity_data: dict[str, str | bool] = {
+        activity_data: dict[str, Any] = {
             "event_id": event.event_id,
             "version": release.version if release else "",
         }
+        if incoming_group_values and options.get("groups.regression-activity-event-metadata"):
+            event_data = incoming_group_values.get("data", {})
+            activity_data["event_metadata"] = event_data.get("metadata", {})
+            activity_data["event_title"] = event_data.get("title", "")
+            activity_data["event_type"] = event_data.get("type", "default")
         if resolved_in_activity and release:
             activity_data.update(
                 {
@@ -1921,7 +1926,7 @@ def _process_existing_aggregate(
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
-    is_regression = _handle_regression(group, event, release)
+    is_regression = _handle_regression(group, event, release, incoming_group_values)
 
     existing_data = group.data
     existing_metadata = group.data.get("metadata", {})
@@ -1959,9 +1964,15 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEER_GROUPING_URL,
+    settings.SEER_SCORING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
+)
+
+severity_connection_pool_cpu = connection_from_url(
+    settings.SEER_SUMMARIZATION_URL,
+    retries=settings.SEER_SEVERITY_RETRIES,
+    timeout=settings.SEER_SEVERITY_TIMEOUT,
 )
 
 
@@ -2006,7 +2017,7 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
-    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
+    from sentry.workflow_engine.receivers.project_workflows import PLATFORMS_WITH_PRIORITY_ALERTS
 
     if killswitch_matches_context(
         "issues.severity.skip-seer-requests", {"project_id": event.project_id}
@@ -2212,9 +2223,17 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
+                pool = (
+                    severity_connection_pool_cpu
+                    if in_random_rollout("seer.severity.cpu-rollout")
+                    else severity_connection_pool
+                )
                 viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
                 response = make_severity_score_request(
-                    payload, timeout=timeout, viewer_context=viewer_context
+                    payload,
+                    connection_pool=pool,
+                    timeout=timeout,
+                    viewer_context=viewer_context,
                 )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
@@ -2508,6 +2527,7 @@ def save_attachment(
         sha1=file.sha1,
         # storage:
         blob_path=file.blob_path,
+        date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
 
     track_outcome(
@@ -2746,7 +2766,7 @@ def save_transaction_events(
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
+    _derive_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
@@ -2785,7 +2805,7 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
+    _derive_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)

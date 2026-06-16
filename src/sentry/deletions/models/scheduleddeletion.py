@@ -33,7 +33,7 @@ class BaseScheduledDeletion(Model):
     the tasks/deletion/scheduled.py job in the future.  They are cancellable, and provide automatic, batched cascade
     in an async way for performance reasons.
 
-    Note that BOTH region AND control silos need to be able to schedule deletions of different records that will be
+    Note that BOTH cell AND control silos need to be able to schedule deletions of different records that will be
     reconciled in different places.  For that reason, the ScheduledDeletion model is split into two identical models
     representing this split.  Use the corresponding ScheduledDeletion based on the silo of the model being scheduled
     for deletion.
@@ -139,9 +139,9 @@ class BaseScheduledDeletion(Model):
 class ScheduledDeletion(BaseScheduledDeletion):
     """
     This model schedules deletions to be processed in control and monolith silo modes.  All historic schedule deletions
-    occur in this table.  In the future, when RegionScheduledDeletions have proliferated for the appropriate models,
-    we will allow any region models scheduled in this table to finish processing before ensuring that all models discretely
-    process in either this table or the region table.
+    occur in this table.  In the future, when CellScheduledDeletions have proliferated for the appropriate models,
+    we will allow any cell models scheduled in this table to finish processing before ensuring that all models discretely
+    process in either this table or the cell table.
     """
 
     class Meta:
@@ -165,7 +165,7 @@ class CellScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_regionscheduleddeletion"
 
 
-def get_regional_scheduled_deletion(mode: SiloMode) -> type[BaseScheduledDeletion]:
+def get_cell_scheduled_deletion(mode: SiloMode) -> type[BaseScheduledDeletion]:
     if mode != SiloMode.CONTROL:
         return CellScheduledDeletion
     return ScheduledDeletion

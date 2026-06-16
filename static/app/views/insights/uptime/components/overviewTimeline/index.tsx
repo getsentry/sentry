@@ -25,7 +25,7 @@ interface Props {
 
 export function OverviewTimeline({uptimeDetectors}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
@@ -45,7 +45,7 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
             dateNavigation={dateNavigation}
             direction="back"
             size="xs"
-            priority="transparent"
+            variant="transparent"
           />
         </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
@@ -54,7 +54,7 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
             dateNavigation={dateNavigation}
             direction="forward"
             size="xs"
-            priority="transparent"
+            variant="transparent"
           />
         </HeaderControlsRight>
       </Header>

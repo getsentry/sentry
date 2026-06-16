@@ -14,12 +14,6 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/members', () => ({
-  fetchOrgMembers: jest.fn(() => Promise.resolve([])),
-  indexMembersByProject: jest.fn(() => {
-    return {};
-  }),
-}));
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startSpan: jest.fn(() => ({
@@ -50,12 +44,12 @@ describe('ProjectAlertsCreate', () => {
       body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       body: {},
       match: [MockApiClient.matchQuery({expand: 'hasAlertIntegration'})],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/ownership/`,
+      url: '/projects/org-slug/project-slug/ownership/',
       method: 'GET',
       body: {
         fallthrough: false,
@@ -68,14 +62,18 @@ describe('ProjectAlertsCreate', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/`,
+      url: '/organizations/org-slug/integrations/',
       body: [],
       match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
     });
     const providerKeys = ['slack', 'discord', 'msteams'];
     providerKeys.forEach(providerKey => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/config/integrations/`,
+        url: '/organizations/org-slug/config/integrations/',
         body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
         match: [MockApiClient.matchQuery({provider_key: providerKey})],
       });
@@ -542,9 +540,12 @@ describe('ProjectAlertsCreate', () => {
         );
       });
       expect(
-        screen.getByText('4 issues would have triggered this rule in the past 14 days', {
-          exact: false,
-        })
+        await screen.findByText(
+          '4 issues would have triggered this rule in the past 14 days',
+          {
+            exact: false,
+          }
+        )
       ).toBeInTheDocument();
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
@@ -591,7 +592,9 @@ describe('ProjectAlertsCreate', () => {
         expect(mock).toHaveBeenCalled();
       });
       expect(
-        screen.getByText("We couldn't find any issues that would've triggered your rule")
+        await screen.findByText(
+          "We couldn't find any issues that would've triggered your rule"
+        )
       ).toBeInTheDocument();
     });
   });

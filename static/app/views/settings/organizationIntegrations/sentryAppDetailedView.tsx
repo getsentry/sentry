@@ -1,40 +1,34 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {
   installSentryApp,
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
+import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {
-  IntegrationFeature,
-  SentryApp,
-  SentryAppInstallation,
-} from 'sentry/types/integrations';
+import type {IntegrationFeature, SentryAppInstallation} from 'sentry/types/integrations';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {toPermissions} from 'sentry/utils/consolidatedScopes';
+import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getSentryAppInstallStatus,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -49,13 +43,15 @@ import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegr
 
 function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
   return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/sentry-app-installations/`, {
+    getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
   ];
 }
 
 export default function SentryAppDetailedView() {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const tabs: IntegrationTab[] = ['overview'];
   const api = useApi({persistInFlight: true});
@@ -68,17 +64,11 @@ export default function SentryAppDetailedView() {
     data: sentryApp,
     isPending: isSentryAppPending,
     isError: isSentryAppError,
-  } = useApiQuery<SentryApp>(
-    [
-      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
-        path: {sentryAppIdOrSlug: integrationSlug},
-      }),
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+  } = useQuery({
+    ...sentryAppApiOptions({appSlug: integrationSlug}),
+    retry: false,
+    staleTime: Infinity,
+  });
 
   const {
     data: featureData = [],
@@ -86,7 +76,7 @@ export default function SentryAppDetailedView() {
     isError: isFeatureDataError,
   } = useApiQuery<IntegrationFeature[]>(
     [
-      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/features/`, {
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
         path: {sentryAppIdOrSlug: integrationSlug},
       }),
     ],
@@ -133,6 +123,14 @@ export default function SentryAppDetailedView() {
     () => toPermissions(sentryApp?.scopes || []),
     [sentryApp?.scopes]
   );
+  const specialPermissions = useMemo(
+    () => getSpecialPermissions(sentryApp?.scopes || []),
+    [sentryApp?.scopes]
+  );
+  const hasStandardPermissions =
+    permissions.read.length > 0 ||
+    permissions.write.length > 0 ||
+    permissions.admin.length > 0;
   const installationStatus = useMemo(() => getSentryAppInstallStatus(install), [install]);
   const isPending = isSentryAppPending || isFeatureDataPending || isAppInstallsPending;
   const isError = isSentryAppError || isFeatureDataError || isAppInstallsError;
@@ -181,6 +179,7 @@ export default function SentryAppDetailedView() {
       view: 'integrations_directory_integration_detail',
       integration: integrationSlug,
       integration_type: integrationType,
+      is_scm: false,
       already_installed: installationStatus !== 'Not Installed',
       organization,
       integration_status: sentryApp.status,
@@ -195,6 +194,7 @@ export default function SentryAppDetailedView() {
         view: 'integrations_directory_integration_detail',
         integration: integrationSlug,
         integration_type: integrationType,
+        is_scm: false,
         already_installed: installationStatus !== 'Not Installed',
         organization,
         integration_status: sentryApp.status,
@@ -230,6 +230,7 @@ export default function SentryAppDetailedView() {
     installationStatus,
     integrationSlug,
     redirectUser,
+    openModal,
   ]);
 
   const handleUninstall = useCallback(
@@ -282,8 +283,7 @@ export default function SentryAppDetailedView() {
   }, [integrationSlug, integrationType, organization, sentryApp?.status]);
 
   const renderPermissions = useCallback(() => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    if (!Object.keys(permissions).some(scope => permissions[scope].length > 0)) {
+    if (!hasStandardPermissions && specialPermissions.length === 0) {
       return null;
     }
     return (
@@ -323,9 +323,20 @@ export default function SentryAppDetailedView() {
             </Text>
           </Flex>
         )}
+        {specialPermissions.map(permission => (
+          <Flex key={permission.scope}>
+            <Indicator />
+            <Text>
+              {tct('[label]: [summary]', {
+                label: <strong>{permission.label}</strong>,
+                summary: permission.summary,
+              })}
+            </Text>
+          </Flex>
+        ))}
       </PermissionWrapper>
     );
-  }, [permissions]);
+  }, [hasStandardPermissions, permissions, specialPermissions]);
 
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
@@ -333,9 +344,9 @@ export default function SentryAppDetailedView() {
         integrationSlug.charAt(0).toUpperCase() + integrationSlug.slice(1);
       if (install?.status === 'pending_deletion') {
         return (
-          <StyledButton size="sm" disabled>
+          <Button size="sm" disabled>
             {t('Pending Deletion')}
-          </StyledButton>
+          </Button>
         );
       }
       if (install) {
@@ -349,10 +360,10 @@ export default function SentryAppDetailedView() {
             onConfirming={recordUninstallClicked} // called when the confirm modal opens
             priority="danger"
           >
-            <StyledButton size="sm" data-test-id="sentry-app-uninstall">
+            <Button size="sm" data-test-id="sentry-app-uninstall">
               <IconSubtract style={{marginRight: theme.space.sm}} />
               {t('Uninstall')}
-            </StyledButton>
+            </Button>
           </Confirm>
         );
       }
@@ -366,7 +377,7 @@ export default function SentryAppDetailedView() {
               disabledFromFeatures || integrationSlug === 'github-deployment-gates'
             }
             onClick={() => handleInstall()}
-            priority="primary"
+            variant="primary"
             size="sm"
             style={{marginLeft: theme.space.md}}
           >
@@ -458,14 +469,4 @@ const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
 
 const InstallButton = styled(Button)`
   margin-left: ${p => p.theme.space.md};
-`;
-
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-  background: ${p => p.theme.tokens.background.primary};
-
-  border: ${p => `1px solid ${p.theme.colors.gray400}`};
-  box-sizing: border-box;
-  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
 `;

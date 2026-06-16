@@ -13,6 +13,23 @@ import {
 
 describe('ContinuousProfile', () => {
   describe('sampled profile', () => {
+    it('single sample renders using a default 10ms weight', () => {
+      const chunk: Profiling.ContinuousProfile = {
+        samples: [{timestamp: Date.now() / 1e3, stack_id: 0, thread_id: '0'}],
+        frames: [{function: 'foo', in_app: true}],
+        stacks: [[0]],
+      };
+
+      const profile = ContinuousProfile.FromProfile(
+        chunk,
+        createContinuousProfileFrameIndex(chunk.frames, 'node'),
+        {minTimestamp: 0, type: 'flamechart'}
+      );
+
+      expect(profile.samples).toHaveLength(1);
+      expect(profile.duration).toBe(10);
+    });
+
     it('imports the base properties', () => {
       const trace = makeSentryContinuousProfile({
         profile: {

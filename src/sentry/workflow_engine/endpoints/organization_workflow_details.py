@@ -1,6 +1,4 @@
-from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,11 +23,11 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowEndpoint,
 )
-from sentry.workflow_engine.endpoints.serializers.workflow_serializer import WorkflowSerializer
-from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkWorkflowDetectorsValidator,
+from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
+    WorkflowSerializer,
+    WorkflowSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Workflow
 
 
@@ -41,7 +39,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.ALERTS_MONITORS
 
     @extend_schema(
         operation_id="Fetch an Alert",
@@ -58,10 +56,10 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.GET_WORKFLOW,
     )
-    def get(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
+    def get(
+        self, request: Request, organization: Organization, workflow: Workflow
+    ) -> Response[WorkflowSerializerResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Returns an alert.
         """
         serialized_workflow = serialize(
@@ -87,10 +85,10 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.UPDATE_WORKFLOW,
     )
-    def put(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
+    def put(
+        self, request: Request, organization: Organization, workflow: Workflow
+    ) -> Response[WorkflowSerializerResponse]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Updates an alert.
         """
         validator = WorkflowValidator(
@@ -103,34 +101,15 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         )
 
         validator.is_valid(raise_exception=True)
+        validator.update(workflow, validator.validated_data)
 
-        with transaction.atomic(router.db_for_write(Workflow)):
-            validator.update(workflow, validator.validated_data)
-
-            detector_ids = request.data.get("detectorIds")
-            if detector_ids is not None:
-                bulk_validator = BulkWorkflowDetectorsValidator(
-                    data={
-                        "workflow_id": workflow.id,
-                        "detector_ids": detector_ids,
-                    },
-                    context={
-                        "organization": organization,
-                        "request": request,
-                    },
-                )
-                if not bulk_validator.is_valid():
-                    raise ValidationError({"detectorIds": bulk_validator.errors})
-
-                bulk_validator.save()
-
-            create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=workflow.id,
-                event=audit_log.get_event_id("WORKFLOW_EDIT"),
-                data=workflow.get_audit_log_data(),
-            )
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=workflow.id,
+            event=audit_log.get_event_id("WORKFLOW_EDIT"),
+            data=workflow.get_audit_log_data(),
+        )
 
         workflow.refresh_from_db()
 
@@ -153,10 +132,10 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, workflow: Workflow
+    ) -> Response[None]:
         """
-        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
-
         Deletes an alert.
         """
         CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)

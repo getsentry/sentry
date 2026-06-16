@@ -12,8 +12,7 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {testableTransition} from 'sentry/utils/testableTransition';
+import {getLocalityUrlOptions} from 'sentry/utils/cells';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,7 +25,7 @@ import {EncryptBackup} from './encryptBackup';
 import {GetStarted} from './getStarted';
 import {InProgress} from './inProgress';
 import {PublicKey} from './publicKey';
-import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
+import type {MaybeUpdateRelocationState, StepDescriptor} from './types';
 import {UploadBackup} from './uploadBackup';
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
@@ -77,14 +76,14 @@ export function RelocationOnboarding() {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
   const api = useApi();
-  const regions = ConfigStore.get('regions');
+  const localityOptions = getLocalityUrlOptions();
   const [existingRelocationState, setExistingRelocationState] = useState(
     LoadingState.FETCHING
   );
   const [existingRelocation, setExistingRelocation] = useState('');
   const [publicKeys, setPublicKeys] = useState(new Map<string, string>());
   const [publicKeysState, setPublicKeysState] = useState(LoadingState.FETCHING);
-  const [relocationState, setRelocationState] = useSessionStorage<RelocationState>(
+  const [relocationState, setRelocationState] = useSessionStorage(
     'relocationOnboarding',
     {
       orgSlugs: '',
@@ -96,10 +95,10 @@ export function RelocationOnboarding() {
   const fetchExistingRelocation = useCallback(() => {
     setExistingRelocationState(LoadingState.FETCHING);
     return Promise.all(
-      regions.map(region =>
-        api.requestPromise(`/relocations/`, {
+      localityOptions.map(option =>
+        api.requestPromise('/relocations/', {
           method: 'GET',
-          host: region.url,
+          host: option.value,
         })
       )
     )
@@ -143,7 +142,7 @@ export function RelocationOnboarding() {
         setExistingRelocation('');
         setExistingRelocationState(LoadingState.ERROR);
       });
-  }, [api, navigate, regions, relocationState, stepId]);
+  }, [api, navigate, localityOptions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -152,17 +151,20 @@ export function RelocationOnboarding() {
   const fetchPublicKeys = useCallback(() => {
     setPublicKeysState(LoadingState.FETCHING);
     return Promise.all(
-      regions.map(region =>
-        api.requestPromise(`/publickeys/relocations/`, {
+      localityOptions.map(option =>
+        api.requestPromise('/publickeys/relocations/', {
           method: 'GET',
-          host: region.url,
+          host: option.value,
         })
       )
     )
       .then(responses => {
         setPublicKeys(
           new Map<string, string>(
-            regions.map((region, index) => [region.url, responses[index].public_key])
+            localityOptions.map((option, index) => [
+              option.value,
+              responses[index].public_key,
+            ])
           )
         );
         setPublicKeysState(LoadingState.FETCHED);
@@ -171,7 +173,7 @@ export function RelocationOnboarding() {
         setPublicKeys(new Map<string, string>());
         setPublicKeysState(LoadingState.ERROR);
       });
-  }, [api, regions]);
+  }, [api, localityOptions]);
   useEffect(() => {
     fetchPublicKeys();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -191,15 +193,12 @@ export function RelocationOnboarding() {
     navigate(normalizeUrl(`/relocation/${step.id}/`));
   };
 
-  const goNextStep = useCallback(
-    (step: StepDescriptor) => {
-      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1]!;
+  const goNextStep = (step: StepDescriptor) => {
+    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+    const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      navigate(normalizeUrl(`/relocation/${nextStep.id}/`));
-    },
-    [onboardingSteps, navigate]
-  );
+    navigate(normalizeUrl(`/relocation/${nextStep.id}/`));
+  };
 
   if (!stepObj || stepIndex === -1) {
     return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0]!.id}/`)} />;
@@ -227,12 +226,11 @@ export function RelocationOnboarding() {
       <BackMotionDiv
         initial="initial"
         animate="visible"
-        transition={testableTransition()}
         variants={{
           initial: {opacity: 0, visibility: 'hidden'},
           visible: {
             opacity: 1,
-            transition: testableTransition({delay: 1}),
+            transition: {delay: 1},
             transitionEnd: {
               visibility: 'visible',
             },
@@ -242,7 +240,7 @@ export function RelocationOnboarding() {
         <Button
           onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
           icon={<IconArrow direction="left" />}
-          priority="link"
+          variant="link"
         >
           {t('Back')}
         </Button>
@@ -369,9 +367,9 @@ const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) =
     animate="animate"
     exit="exit"
     variants={{animate: {}}}
-    transition={testableTransition({
+    transition={{
       staggerChildren: 0.2,
-    })}
+    }}
     {...props}
   />
 ))`

@@ -3,26 +3,28 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
+import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 describe('SubscriptionBox', () => {
   const onChange = jest.fn();
-  let org = OrganizationFixture();
 
   beforeEach(() => {
     onChange.mockReset();
   });
-  function renderComponent(props: Partial<ComponentProps<typeof SubscriptionBox>> = {}) {
+  function renderComponent(
+    props: Partial<ComponentProps<typeof SubscriptionBox>> = {},
+    {organization = OrganizationFixture()} = {}
+  ) {
     return render(
       <SubscriptionBox
         resource="issue"
         checked={false}
         disabledFromPermissions={false}
         onChange={onChange}
-        organization={org}
         isNew={false}
         {...props}
-      />
+      />,
+      {organization}
     );
   }
 
@@ -63,8 +65,10 @@ describe('SubscriptionBox', () => {
     });
 
     it('checkbox visible with integrations-event-hooks flag', () => {
-      org = OrganizationFixture({features: ['integrations-event-hooks']});
-      renderComponent({resource: 'error', organization: org});
+      renderComponent(
+        {resource: 'error'},
+        {organization: OrganizationFixture({features: ['integrations-event-hooks']})}
+      );
 
       expect(screen.getByRole('checkbox')).toBeEnabled();
     });
@@ -81,5 +85,22 @@ describe('SubscriptionBox', () => {
         'Cannot enable webhook subscription without specifying a webhook url'
       )
     ).toBeInTheDocument();
+  });
+
+  describe('preprod_artifact resource subscription', () => {
+    it('hidden without preprod-artifact-webhooks flag', () => {
+      renderComponent({resource: 'preprod_artifact'});
+
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    });
+
+    it('renders preprod_artifact checkbox enabled with preprod-artifact-webhooks flag', () => {
+      renderComponent(
+        {resource: 'preprod_artifact'},
+        {organization: OrganizationFixture({features: ['preprod-artifact-webhooks']})}
+      );
+
+      expect(screen.getByRole('checkbox')).toBeEnabled();
+    });
   });
 });

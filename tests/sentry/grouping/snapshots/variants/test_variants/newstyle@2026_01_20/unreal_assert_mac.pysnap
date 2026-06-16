@@ -11,7 +11,7 @@ app:
         type*
           "EXC_BAD_ACCESS"
         value (ignored because stacktrace takes precedence)
-          "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
+          "p__commonOp__fn__fn__makeReturn__fn__<int>_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
         stacktrace*
           frame (marked out of app by built-in stacktrace rule (package:/usr/lib/** -app))
             function*
@@ -120,7 +120,7 @@ system:
         type*
           "EXC_BAD_ACCESS"
         value (ignored because stacktrace takes precedence)
-          "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
+          "p__commonOp__fn__fn__makeReturn__fn__<int>_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
         stacktrace*
           frame (ignored by built-in stacktrace rule (category:threadbase -group v-group))
             function*

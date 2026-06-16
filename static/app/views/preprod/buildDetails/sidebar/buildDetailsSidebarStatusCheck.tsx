@@ -102,7 +102,7 @@ function getErrorMessage(
   switch (errorType) {
     case StatusCheckErrorType.INTEGRATION_ERROR:
       return t(
-        'An error occured with the %s integration. Please ensure the Sentry app is installed, has the required permissions, and that the organization has accepted any updated permissions.',
+        'An error occurred with the %s integration. Please ensure the Sentry app is installed, has the required permissions, and that the organization has accepted any updated permissions.',
         providerName
       );
     case StatusCheckErrorType.API_ERROR:

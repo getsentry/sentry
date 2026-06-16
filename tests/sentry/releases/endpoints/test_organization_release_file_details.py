@@ -120,6 +120,80 @@ class ReleaseFileDetailsTest(APITestCase):
 
 
 class ReleaseFileUpdateTest(APITestCase):
+    def test_no_access_to_all_projects(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="1")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        releasefile = ReleaseFile.objects.create(
+            organization_id=org.id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="http://example.com/application.js",
+        )
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-file-details",
+            kwargs={
+                "organization_id_or_slug": org.slug,
+                "version": release.version,
+                "file_id": releasefile.id,
+            },
+        )
+        response = self.client.put(url, {"name": "foobar"})
+
+        assert response.status_code == 404
+
+    def test_no_access_to_all_projects_open_membership(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = True
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="1")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        releasefile = ReleaseFile.objects.create(
+            organization_id=org.id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="http://example.com/application.js",
+        )
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-file-details",
+            kwargs={
+                "organization_id_or_slug": org.slug,
+                "version": release.version,
+                "file_id": releasefile.id,
+            },
+        )
+        response = self.client.put(url, {"name": "foobar"})
+
+        assert response.status_code == 200
+
     def test_simple(self) -> None:
         self.login_as(user=self.user)
 
@@ -155,6 +229,44 @@ class ReleaseFileUpdateTest(APITestCase):
 
 
 class ReleaseFileDeleteTest(APITestCase):
+    def test_no_access_to_all_projects(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="1")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        releasefile = ReleaseFile.objects.create(
+            organization_id=org.id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="http://example.com/application.js",
+        )
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-file-details",
+            kwargs={
+                "organization_id_or_slug": org.slug,
+                "version": release.version,
+                "file_id": releasefile.id,
+            },
+        )
+        response = self.client.delete(url)
+
+        assert response.status_code == 404
+        assert ReleaseFile.objects.filter(id=releasefile.id).exists()
+
     def test_simple(self) -> None:
         self.login_as(user=self.user)
 

@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.utils import to_valid_int_id
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
@@ -35,12 +36,14 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
 
-    def post(self, request: Request, organization: Organization, view_id: int) -> Response:
+    def post(self, request: Request, organization: Organization, view_id: str) -> Response:
         """
         Update the starred status of a group search view for the current organization member.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        view_id_int = to_valid_int_id("view_id", view_id, raise_404=True)
 
         serializer = StarViewSerializer(data=request.data)
         if not serializer.is_valid():
@@ -49,7 +52,7 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
         is_starred = serializer.validated_data["starred"]
 
         try:
-            view = GroupSearchView.objects.get(id=view_id, organization=organization)
+            view = GroupSearchView.objects.get(id=view_id_int, organization=organization)
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 

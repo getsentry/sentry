@@ -95,8 +95,8 @@ class GitlabSearchTest(GitLabTestCase):
 
         assert resp.status_code == 200
         assert resp.data == [
-            {"value": "1", "label": "GetSentry / Sentry"},
-            {"value": "2", "label": "GetSentry2 / Sentry2"},
+            {"value": "getsentry/sentry", "label": "GetSentry / Sentry"},
+            {"value": "getsentry2/sentry2", "label": "GetSentry2 / Sentry2"},
         ]
         assert len(mock_record.mock_calls) == 8
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
@@ -141,8 +141,8 @@ class GitlabSearchTest(GitLabTestCase):
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
 
         assert resp.status_code == 200
-        assert resp.data[0] == {"value": "1", "label": "GetSentry / Sentry"}
-        assert resp.data[1] == {"value": "2", "label": "GetSentry2 / Sentry2"}
+        assert resp.data[0] == {"value": "getsentry/sentry", "label": "GetSentry / Sentry"}
+        assert resp.data[1] == {"value": "getsentry2/sentry2", "label": "GetSentry2 / Sentry2"}
 
         assert len(resp.data) == 220
 

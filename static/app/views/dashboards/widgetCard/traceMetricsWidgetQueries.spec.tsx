@@ -27,8 +27,8 @@ describe('traceMetricsWidgetQueries', () => {
       queries: [
         {
           name: '',
-          aggregates: ['avg(value,duration,d,-)'],
-          fields: ['avg(value,duration,d,-)'],
+          aggregates: ['avg(value,duration,d,none)'],
+          fields: ['avg(value,duration,d,none)'],
           columns: [],
           conditions: '',
           orderby: '',
@@ -41,7 +41,7 @@ describe('traceMetricsWidgetQueries', () => {
       body: {
         timeSeries: [
           {
-            yAxis: 'avg(value,duration,d,-)',
+            yAxis: 'avg(value,duration,d,none)',
             meta: {
               interval: 3600000,
               valueType: 'duration',

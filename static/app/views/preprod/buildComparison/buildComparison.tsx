@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -9,12 +11,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -23,10 +20,7 @@ import {SizeCompareMainContent} from 'sentry/views/preprod/buildComparison/main/
 import {SizeCompareSelectionContent} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectionContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
-import {
-  handleStaffPermissionError,
-  type StaffErrorDetail,
-} from 'sentry/views/preprod/utils/staffPermissionError';
+import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 export default function BuildComparison() {
   const organization = useOrganization();
@@ -66,7 +60,7 @@ export default function BuildComparison() {
     RequestError
   >({
     mutationFn: () => {
-      return fetchMutation({url: compareUrl, method: 'POST'});
+      return fetchMutation({url: `${compareUrl}?rerun=true`, method: 'POST'});
     },
     onSuccess: response => {
       if (response?.status === 'exists') {
@@ -78,7 +72,7 @@ export default function BuildComparison() {
     },
     onError: (error: RequestError) => {
       if (error.status === 403) {
-        handleStaffPermissionError(error.responseJSON?.detail as StaffErrorDetail);
+        handleStaffPermissionError(error.responseJSON?.detail);
         return;
       }
       addErrorMessage(t('Failed to rerun comparison'));
@@ -88,7 +82,7 @@ export default function BuildComparison() {
   if (headBuildDetailsQuery.isLoading) {
     return (
       <SentryDocumentTitle title={t('Build comparison')}>
-        <Layout.Page>
+        <Stack flex={1}>
           <Layout.Header>
             <Placeholder
               height="20px"
@@ -102,7 +96,7 @@ export default function BuildComparison() {
               <LoadingIndicator />
             </Layout.Main>
           </Layout.Body>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -128,7 +122,7 @@ export default function BuildComparison() {
 
   return (
     <SentryDocumentTitle title={t('Build comparison')}>
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header>
           <BuildCompareHeaderContent
             buildDetails={headBuildDetailsQuery.data}
@@ -142,7 +136,7 @@ export default function BuildComparison() {
         <Layout.Body>
           <Layout.Main width="full">{mainContent}</Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

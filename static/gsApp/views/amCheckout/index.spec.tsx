@@ -13,7 +13,7 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/spendLimits/utils';
 
-function assertCheckoutSteps({
+async function assertCheckoutSteps({
   tier,
   hasBillingCycleStep = true,
   hasBillingInfoStep = true,
@@ -22,7 +22,7 @@ function assertCheckoutSteps({
   hasBillingCycleStep?: boolean;
   hasBillingInfoStep?: boolean;
 }) {
-  expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
+  expect(await screen.findByTestId('checkout-steps')).toBeInTheDocument();
   [
     'Select a plan',
     [PlanTier.AM1, PlanTier.AM2].includes(tier)
@@ -67,11 +67,6 @@ describe('Legacy Tier Checkout', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
@@ -83,12 +78,7 @@ describe('Legacy Tier Checkout', () => {
 
   it('renders for AM2', async () => {
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        checkoutTier={PlanTier.AM2}
-        navigate={jest.fn()}
-        api={api}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -97,22 +87,17 @@ describe('Legacy Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am2'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({tier: PlanTier.AM2});
+    await assertCheckoutSteps({tier: PlanTier.AM2});
   });
 
   it('renders for AM1', async () => {
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        checkoutTier={PlanTier.AM1}
-        navigate={jest.fn()}
-        api={api}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -121,12 +106,12 @@ describe('Legacy Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am1'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({tier: PlanTier.AM1});
+    await assertCheckoutSteps({tier: PlanTier.AM1});
   });
 
   it('renders standard checkout for business bundle', async () => {
@@ -147,12 +132,7 @@ describe('Legacy Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, am2BizSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -161,12 +141,12 @@ describe('Legacy Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am2'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({tier: PlanTier.AM2});
+    await assertCheckoutSteps({tier: PlanTier.AM2});
 
     // Verify that Business is preselected
     expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
@@ -196,11 +176,6 @@ describe('Default Tier Checkout', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
@@ -212,12 +187,7 @@ describe('Default Tier Checkout', () => {
 
   it('renders', async () => {
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-        api={api}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -226,12 +196,12 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({tier: PlanTier.AM3});
+    await assertCheckoutSteps({tier: PlanTier.AM3});
   });
 
   it('renders for new customers (default free plan)', async () => {
@@ -242,12 +212,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -256,12 +221,12 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({tier: PlanTier.AM3});
+    await assertCheckoutSteps({tier: PlanTier.AM3});
   });
 
   it('renders for customers migrating from partner billing', async () => {
@@ -287,12 +252,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -301,12 +261,12 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({tier: PlanTier.AM3});
+    await assertCheckoutSteps({tier: PlanTier.AM3});
 
     expect(
       screen.getByText(
@@ -340,12 +300,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -354,12 +309,12 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({tier: PlanTier.AM3, hasBillingInfoStep: false});
+    await assertCheckoutSteps({tier: PlanTier.AM3, hasBillingInfoStep: false});
     expect(
       screen.queryByText(
         'Your promotional plan with BAR ends on ' + contractPeriodEnd.format('ll') + '.'
@@ -389,12 +344,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -403,12 +353,12 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({tier: PlanTier.AM3, hasBillingInfoStep: false});
+    await assertCheckoutSteps({tier: PlanTier.AM3, hasBillingInfoStep: false});
     expect(
       screen.getByText('Billing handled externally through BAR')
     ).toBeInTheDocument();
@@ -437,12 +387,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -451,12 +396,12 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    assertCheckoutSteps({
+    await assertCheckoutSteps({
       tier: PlanTier.AM3,
       hasBillingInfoStep: false,
       hasBillingCycleStep: false,
@@ -472,12 +417,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -486,12 +426,12 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
     expect(hasOnDemandBudgetsFeature(organization, sub)).toBe(false);
-    assertCheckoutSteps({tier: PlanTier.AM3});
+    await assertCheckoutSteps({tier: PlanTier.AM3});
     expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
   });
 
@@ -527,12 +467,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -541,13 +476,15 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
     expect(
-      screen.getByRole('textbox', {name: 'Custom shared spending limit (in dollars)'})
+      await screen.findByRole('textbox', {
+        name: 'Custom shared spending limit (in dollars)',
+      })
     ).toHaveValue('20');
     expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('100K');
     expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('25 GB');
@@ -584,12 +521,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -598,13 +530,15 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
     expect(
-      screen.getByRole('textbox', {name: 'Custom shared spending limit (in dollars)'})
+      await screen.findByRole('textbox', {
+        name: 'Custom shared spending limit (in dollars)',
+      })
     ).toHaveValue('20');
     expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('100K');
     expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('25 GB');
@@ -660,12 +594,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -674,13 +603,13 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
     await userEvent.click(
-      screen.getByRole('button', {name: 'Show reserved volume sliders'})
+      await screen.findByRole('button', {name: 'Show reserved volume sliders'})
     );
     // Check that missing 'Errors' category defaults to 50,000 errors
     expect(screen.getByTestId('errors-volume-item')).toHaveTextContent('50K');
@@ -728,12 +657,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -742,12 +666,12 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
-    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Business'})).toBeChecked();
 
     await userEvent.click(screen.getByRole('radio', {name: 'Team'}));
     expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
@@ -806,12 +730,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, trialSub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -820,14 +739,14 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
 
     // not open by default because it's a trial subscription
     await userEvent.click(
-      screen.getByRole('button', {name: 'Show reserved volume sliders'})
+      await screen.findByRole('button', {name: 'Show reserved volume sliders'})
     );
 
     // Verify that sliders show reasonable values, NOT the high trial volumes

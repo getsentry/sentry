@@ -650,7 +650,7 @@ def make_cloudbuild_step_args(indent: int, args: list[str]) -> str:
 # The set of arguments to invoke a "docker compose" in a cloudbuild step is tedious and repetitive -
 # better to just handle it here.
 @lru_cache(maxsize=1)
-def get_docker_compose_cmd():
+def get_docker_compose_cmd() -> str:
     return make_cloudbuild_step_args(
         3,
         [
@@ -666,7 +666,7 @@ def get_docker_compose_cmd():
 # The set of arguments to invoke a "docker compose run" in a cloudbuild step is tedious and
 # repetitive - better to just handle it here.
 @lru_cache(maxsize=1)
-def get_docker_compose_run():
+def get_docker_compose_run() -> str:
     return make_cloudbuild_step_args(
         3,
         [
@@ -678,7 +678,7 @@ def get_docker_compose_run():
 
 
 @lru_cache(maxsize=1)
-def get_relocations_bucket_name():
+def get_relocations_bucket_name() -> str:
     """
     When using the local FileSystemStorage (ie, in tests), we use a contrived bucket name, since
     this is really just an alias for a bespoke local directory in that case.

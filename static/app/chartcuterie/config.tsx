@@ -11,10 +11,12 @@
 // eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {lightTheme} from 'sentry/utils/theme/theme';
 
+import {makeDashboardsWidgetCharts} from './dashboardsWidget';
 import {makeDiscoverCharts} from './discover';
 import {makeMetricAlertCharts} from './metricAlert';
 import {makeMetricDetectorCharts} from './metricDetector';
 import {makePerformanceCharts} from './performance';
+import {makeTimeseriesCharts} from './timeseries';
 import type {
   ChartcuterieConfig,
   ChartType,
@@ -42,6 +44,8 @@ const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
   renderConfig.set(renderDescriptor.key, renderDescriptor);
 
 makeDiscoverCharts(lightTheme).forEach(register);
+makeTimeseriesCharts(lightTheme).forEach(register);
+makeDashboardsWidgetCharts(lightTheme).forEach(register);
 makeMetricAlertCharts(lightTheme).forEach(register);
 makeMetricDetectorCharts(lightTheme).forEach(register);
 makePerformanceCharts(lightTheme).forEach(register);

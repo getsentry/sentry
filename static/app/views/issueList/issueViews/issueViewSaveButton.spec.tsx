@@ -11,7 +11,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {GlobalModal} from 'sentry/components/globalModal';
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -86,7 +87,7 @@ describe('IssueViewSaveButton', () => {
       }
     );
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Save As'}));
+    await userEvent.click(await screen.findByRole('button', {name: /save as/i}));
 
     const modal = screen.getByRole('dialog');
 
@@ -139,7 +140,7 @@ describe('IssueViewSaveButton', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Save as new view'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: /save as new view/i}));
 
     const modal = screen.getByRole('dialog');
 
@@ -249,7 +250,7 @@ describe('IssueViewSaveButton', () => {
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save As'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     const modal = screen.getByRole('dialog');
 
@@ -331,6 +332,6 @@ describe('IssueViewSaveButton', () => {
         features: [],
       }),
     });
-    expect(await screen.findByRole('button', {name: 'Save As'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: /save as/i})).toBeDisabled();
   });
 });

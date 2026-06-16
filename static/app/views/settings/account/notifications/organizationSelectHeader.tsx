@@ -5,12 +5,12 @@ import {Select} from '@sentry/scraps/select';
 
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 
 type OrganizationSelectHeaderProps = {
   handleOrgChange: (orgId: string) => void;
   organizationId: string | undefined;
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
 };
 
 export function OrganizationSelectHeader({
@@ -41,7 +41,7 @@ export function OrganizationSelectHeader({
         styles={{
           container: (provided: Record<string, string>) => ({
             ...provided,
-            minWidth: `200px`,
+            minWidth: '200px',
           }),
         }}
       />

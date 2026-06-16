@@ -87,7 +87,12 @@ class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
-            expand = ["ownershipSyntax", "errors", "hasTargetingContext"]
+            expand = [
+                "ownershipSyntax",
+                "errors",
+                "renameIdentifier",
+                "hasTargetingContext",
+            ]
 
             return Response(
                 serialize(

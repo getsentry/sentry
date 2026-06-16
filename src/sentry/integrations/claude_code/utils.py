@@ -9,10 +9,10 @@ from pydantic import BaseModel
 
 
 class ClaudeSessionEventStatus(StrEnum):
-    PENDING = "status_pending"
-    RUNNING = "status_running"
-    IDLE = "status_idle"
-    CLOSED = "status_closed"
+    RESCHEDULING = "session.status_rescheduling"
+    RUNNING = "session.status_running"
+    IDLE = "session.status_idle"
+    TERMINATED = "session.status_terminated"
 
 
 class ClaudeSessionEvent(BaseModel):

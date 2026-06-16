@@ -1,16 +1,18 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,
@@ -22,6 +24,7 @@ import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/u
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,26 +32,31 @@ import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   ErrorCell,
   NumberPlaceholder,
 } from 'sentry/views/insights/pages/agents/utils/cells';
 import {
   getAgentRunsFilter,
+  getHasAgentNameFilter,
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TableData {
   agents: string[];
@@ -92,10 +100,11 @@ const rightAlignColumns = new Set([
 const DEFAULT_LIMIT = 10;
 
 interface TracesTableProps {
-  openTraceViewDrawer: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
   dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
+  linkToTraceView?: boolean;
+  openTraceViewDrawer?: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
   tableWidths?: number[];
 }
 
@@ -105,6 +114,7 @@ export function TracesTable({
   dashboardFilters,
   limit = DEFAULT_LIMIT,
   tableWidths,
+  linkToTraceView,
 }: TracesTableProps) {
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns:
@@ -126,20 +136,24 @@ export function TracesTable({
 
   const {cursor, setCursor} = useTableCursor();
 
-  const tracesRequest = useTraces({
-    query: combinedQuery,
-    sort: `-timestamp`,
-    keepPreviousData: true,
-    cursor,
-    limit,
+  const tracesRequest = useQuery({
+    ...useTracesApiOptions({
+      query: combinedQuery,
+      sort: '-timestamp',
+      cursor,
+      limit,
+    }),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
   });
 
-  const pageLinks = tracesRequest.getResponseHeader?.('Link') ?? undefined;
+  const pageLinks = tracesRequest?.data?.headers.Link;
+  const tracesData = tracesRequest.data?.json?.data;
 
   const spansRequest = useSpans(
     {
       // Exclude agent runs as they include aggregated data which would lead to double counting e.g. token usage
-      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesRequest.data?.data.map(span => span.trace).join(',')}]`,
+      search: `${getAgentRunsFilter({negated: true})} trace:[${tracesData?.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
         'count_if(gen_ai.operation.type,equals,ai_client)',
@@ -147,8 +161,8 @@ export function TracesTable({
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.cost.total_tokens)',
       ],
-      limit: tracesRequest.data?.data.length ?? 0,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      limit: tracesData?.length ?? 0,
+      enabled: Boolean(tracesData && tracesData.length > 0),
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -157,11 +171,11 @@ export function TracesTable({
 
   const agentsRequest = useSpans(
     {
-      search: `${getAgentRunsFilter()} has:gen_ai.agent.name trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}]`,
-      fields: ['trace', 'gen_ai.agent.name', 'timestamp'],
+      search: `${getAgentRunsFilter()} ${getHasAgentNameFilter()} trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}]`,
+      fields: ['trace', 'gen_ai.agent.name', 'gen_ai.function_id', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'asc'}],
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      enabled: Boolean(tracesData && tracesData.length > 0),
     },
     Referrer.TRACES_TABLE
   );
@@ -171,19 +185,22 @@ export function TracesTable({
       return new Map();
     }
     return agentsRequest.data.reduce((acc, span) => {
-      const agentsSet = acc.get(span.trace) ?? new Set();
-      agentsSet.add(span['gen_ai.agent.name']);
-      acc.set(span.trace, agentsSet);
+      const agentName = resolveAgentName(span);
+      if (agentName) {
+        const agentsSet = acc.get(span.trace) ?? new Set();
+        agentsSet.add(agentName);
+        acc.set(span.trace, agentsSet);
+      }
       return acc;
     }, new Map<string, Set<string>>());
   }, [agentsRequest.data]);
 
   const traceErrorRequest = useSpans(
     {
-      search: `span.status:internal_error trace:[${tracesRequest.data?.data.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
+      search: `span.status:internal_error trace:[${tracesData?.map(span => `"${span.trace}"`).join(',')}] has:gen_ai.operation.name`,
       fields: ['trace', 'count(span.duration)'],
-      limit: tracesRequest.data?.data.length ?? 0,
-      enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      limit: tracesData?.length ?? 0,
+      enabled: Boolean(tracesData && tracesData.length > 0),
       samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
       extrapolationMode: 'none',
     },
@@ -195,26 +212,13 @@ export function TracesTable({
       return {};
     }
     // sum up the error spans for a trace
-    const errors = traceErrorRequest.data?.reduce(
-      (acc, span) => {
-        acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const errors = traceErrorRequest.data?.reduce<Record<string, number>>((acc, span) => {
+      acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
+      return acc;
+    }, {});
 
-    return spansRequest.data.reduce(
-      (acc, span) => {
-        acc[span.trace] = {
-          llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
-          toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
-          totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
-          totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
-          totalErrors: Number(errors[span.trace] ?? 0),
-        };
-        return acc;
-      },
-      {} as Record<
+    return spansRequest.data.reduce<
+      Record<
         string,
         {
           llmCalls: number;
@@ -224,15 +228,24 @@ export function TracesTable({
           totalTokens: number;
         }
       >
-    );
+    >((acc, span) => {
+      acc[span.trace] = {
+        llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
+        toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
+        totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
+        totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
+        totalErrors: Number(errors[span.trace] ?? 0),
+      };
+      return acc;
+    }, {});
   }, [spansRequest.data, traceErrorRequest.data]);
 
   const tableData = useMemo(() => {
-    if (!tracesRequest.data) {
+    if (!tracesData) {
       return [];
     }
 
-    return tracesRequest.data.data.map(span => ({
+    return tracesData.map(span => ({
       traceId: span.trace,
       transaction: span.name ?? '',
       duration: span.duration,
@@ -247,7 +260,7 @@ export function TracesTable({
       isSpanDataLoading: spansRequest.isLoading || traceErrorRequest.isLoading,
     }));
   }, [
-    tracesRequest.data,
+    tracesData,
     spanDataMap,
     spansRequest.isLoading,
     traceErrorRequest.isLoading,
@@ -273,10 +286,11 @@ export function TracesTable({
           dataRow={dataRow}
           query={combinedQuery}
           openTraceViewDrawer={openTraceViewDrawer}
+          linkToTraceView={linkToTraceView}
         />
       );
     },
-    [combinedQuery, openTraceViewDrawer]
+    [combinedQuery, openTraceViewDrawer, linkToTraceView]
   );
 
   const additionalGridProps = frameless
@@ -324,23 +338,41 @@ const BodyCell = memo(function BodyCell({
   dataRow,
   query,
   openTraceViewDrawer,
+  linkToTraceView,
 }: {
   column: GridColumnHeader<string>;
   dataRow: TableData;
-  openTraceViewDrawer: (traceSlug: string, spanId?: string, timestamp?: number) => void;
   query: string;
+  linkToTraceView?: boolean;
+  openTraceViewDrawer?: (traceSlug: string, spanId?: string, timestamp?: number) => void;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const location = useLocation();
 
   switch (column.key) {
     case 'traceId':
+      if (linkToTraceView || !openTraceViewDrawer) {
+        const traceUrl = getTraceDetailsUrl({
+          organization,
+          traceSlug: dataRow.traceId,
+          dateSelection: normalizeDateTimeParams(selection.datetime),
+          timestamp: dataRow.timestamp / 1000,
+          location: {
+            ...location,
+            query: {},
+          },
+          source: TraceViewSources.AGENT_MONITORING,
+          tab: TraceLayoutTabKeys.AI_SPANS,
+        });
+        return <Link to={traceUrl}>{dataRow.traceId.slice(0, 8)}</Link>;
+      }
       return (
         <span>
           <TraceIdButton
-            priority="link"
+            variant="link"
             onClick={() =>
-              openTraceViewDrawer(dataRow.traceId, undefined, dataRow.timestamp / 1000)
+              openTraceViewDrawer?.(dataRow.traceId, undefined, dataRow.timestamp / 1000)
             }
           >
             {dataRow.traceId.slice(0, 8)}
@@ -391,11 +423,7 @@ const BodyCell = memo(function BodyCell({
       if (dataRow.isSpanDataLoading) {
         return <NumberPlaceholder />;
       }
-      return (
-        <TextAlignRight>
-          <LLMCosts cost={dataRow.totalCost} />
-        </TextAlignRight>
-      );
+      return <CurrencyCell value={dataRow.totalCost} />;
     case 'timestamp':
       return (
         <TextAlignRight>
@@ -418,15 +446,19 @@ function AgentTags({agents}: {agents: string[]}) {
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleShowAll = useCallback(() => {
+  const handleShowAll = () => {
     setShowAll(!showAll);
 
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      return;
+    }
     // While the all tags are visible, observe the container to see if it displays more than one line (22px)
     // so we can reset the show all state accordingly
     const observer = new ResizeObserver(entries => {
       const containerElement = entries[0]?.target;
-      if (!containerElement || containerElement.clientHeight > 22) return;
+      if (!containerElement || containerElement.clientHeight > 22) {
+        return;
+      }
       setShowToggle(false);
       setShowAll(false);
       resizeObserverRef.current?.disconnect();
@@ -434,7 +466,7 @@ function AgentTags({agents}: {agents: string[]}) {
     });
     resizeObserverRef.current = observer;
     observer.observe(containerRef.current);
-  }, [showAll]);
+  };
 
   // Cleanup the resize observer when the component unmounts
   useEffect(() => {
@@ -495,7 +527,7 @@ function AgentTags({agents}: {agents: string[]}) {
         padding="2xs xs 0 xl"
         style={{bottom: '0', right: '0'}}
       >
-        <Button priority="link" size="xs" onClick={handleShowAll}>
+        <Button variant="link" size="xs" onClick={handleShowAll}>
           {showAll ? t('Show less') : t('Show all')}
         </Button>
       </Container>

@@ -5,15 +5,16 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -93,7 +94,7 @@ function SoftCapTypeDetail({
       }
       return null;
     })
-    .filter(i => i);
+    .filter(Boolean);
   return <Fragment>{softCapTypes.length ? softCapTypes : <span>None</span>}</Fragment>;
 }
 
@@ -315,10 +316,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
   ) {
     const {onDemandBudgets} = customer;
 
-    if (
-      onDemandBudgets &&
-      onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-    ) {
+    if (onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       return (
         <Fragment>
           {onDemandPeriod}
@@ -408,7 +406,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
 
   const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],
@@ -477,14 +475,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
 
-  const regionMap = ConfigStore.get('regions').reduce(
-    (acc, region) => {
-      acc[region.url] = region.name;
-      return acc;
-    },
-    {} as Record<string, string>
-  );
-  const region = regionMap[organization.links.regionUrl] ?? '??';
+  const localityMap = getLocalities().reduce<Record<string, string>>((acc, locality) => {
+    acc[locality.url] = locality.name;
+    return acc;
+  }, {});
+  // TODO(cells) We also should show the customer's cell.
+  const locality = localityMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
     categoryInfo => {
@@ -627,7 +623,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               disabled={!hasActiveProductTrial || lessThanOneDayLeft}
               tooltipProps={{
                 title: lessThanOneDayLeft
-                  ? `Current product trial will end in less than one day`
+                  ? 'Current product trial will end in less than one day'
                   : hasActiveProductTrial
                     ? `Stop the current product trial for ${formattedTrialName}`
                     : `No product trial is active for ${formattedTrialName}`,
@@ -712,7 +708,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             <ExternalLink href={orgUrl}>{customer.slug}</ExternalLink>
           </DetailLabel>
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
-          <DetailLabel title="Data Storage Location">{region}</DetailLabel>
+          <DetailLabel title="Data Storage Location">{locality}</DetailLabel>
           <DetailLabel title="Data Retention">
             {customer.orgRetention?.standard ??
               customer.categories?.errors?.retention?.standard ??
@@ -726,6 +722,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.owner ? <CustomerContact owner={customer.owner} /> : 'n/a'}{' '}
           </DetailLabel>
           <DetailLabel title="Type">{customer.type || 'n/a'}</DetailLabel>
+          <DetailLabel title="Managed" yesNo={customer.isManaged} />
           <DetailLabel title="Channel">{customer.channel || 'n/a'}</DetailLabel>
           <DetailLabel title="Sponsored Type">
             {customer.sponsoredType || 'n/a'}
@@ -759,9 +756,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           </DetailLabel>
           <DetailLabel
             title={
-              <Tooltip title="A partner account is managed by a third-party (such as Heroku).">
+              <InfoText
+                variant="inherit"
+                title="A partner account is managed by a third-party (such as Heroku)."
+              >
                 <abbr>Partner</abbr>
-              </Tooltip>
+              </InfoText>
             }
           >
             {customer.partner ? (
@@ -772,7 +772,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                     (active)
                     <br />
                     <Button
-                      priority="link"
+                      variant="link"
                       onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
                     >
                       Deactivate Partner
@@ -876,14 +876,20 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                 <th>Standard</th>
                 <th>Default</th>
                 <th>
-                  <Tooltip title="Null means use the Downsample default">
+                  <InfoText
+                    variant="inherit"
+                    title="Null means use the Downsample default"
+                  >
                     Downsampled
-                  </Tooltip>
+                  </InfoText>
                 </th>
                 <th>
-                  <Tooltip title="Zero means use the standard retention.">
+                  <InfoText
+                    variant="inherit"
+                    title="Zero means use the standard retention."
+                  >
                     Downsample Default
-                  </Tooltip>
+                  </InfoText>
                 </th>
               </tr>
             </thead>

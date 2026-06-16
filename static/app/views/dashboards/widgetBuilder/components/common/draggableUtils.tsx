@@ -1,4 +1,4 @@
-import type {Translate} from '@dnd-kit/core';
+import type {Modifier, Translate} from '@dnd-kit/core';
 
 export type WidgetDragPositioning = {
   initialTranslate: Translate;
@@ -53,3 +53,26 @@ export function snapPreviewToCorners(over: any | null): WidgetDragPositioning {
       : undefined,
   };
 }
+
+/**
+ * Corrects the DragOverlay ghost position when the DndContext is inside a CSS-transformed
+ * container (e.g. a SlideOverPanel animated with framer-motion). Without this, the ghost
+ * is offset by the container's distance from the viewport edge.
+ *
+ * Positions the ghost at the original element's viewport position, preserving the
+ * natural grab offset — the exact point clicked stays under the cursor.
+ */
+export const correctDragOverlayOffset: Modifier = ({
+  activeNodeRect,
+  draggingNodeRect,
+  transform,
+}) => {
+  if (!activeNodeRect || !draggingNodeRect) {
+    return transform;
+  }
+  return {
+    ...transform,
+    x: transform.x + activeNodeRect.left - draggingNodeRect.left,
+    y: transform.y + activeNodeRect.top - draggingNodeRect.top,
+  };
+};

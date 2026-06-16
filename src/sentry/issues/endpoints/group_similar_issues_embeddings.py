@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, options
+from sentry import analytics
 from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -19,7 +19,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.seer.similarity.config import get_grouping_model_version
+from sentry.seer.similarity.config import get_grouping_model_version, should_skip_seer_fallback
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
@@ -123,20 +123,16 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "exception_type": get_path(latest_event.data, "exception", "values", -1, "type"),
             "read_only": True,
             "referrer": "similar_issues",
-            "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
             "model": model_version,
             "training_mode": False,
             "platform": latest_event.platform or "unknown",
+            "skip_fallback": should_skip_seer_fallback(group.project),
         }
         # Add optional parameters
         if request.GET.get("k"):
             similar_issues_params["k"] = int(request.GET["k"])
         if request.GET.get("threshold"):
             similar_issues_params["threshold"] = float(request.GET["threshold"])
-
-        # Override `use_reranking` value if necessary
-        if request.GET.get("useReranking"):
-            similar_issues_params["use_reranking"] = request.GET["useReranking"] == "true"
 
         logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 

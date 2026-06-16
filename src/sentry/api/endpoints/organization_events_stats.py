@@ -32,7 +32,6 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    spans_indexed,
     spans_metrics,
     transactions,
 )
@@ -52,7 +51,9 @@ SENTRY_BACKEND_REFERRERS = [
     Referrer.API_ALERTS_CHARTCUTERIE.value,
     Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
     Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
+    Referrer.DASHBOARDS_SLACK_UNFURL.value,
     Referrer.DISCOVER_SLACK_UNFURL.value,
+    Referrer.EXPLORE_SLACK_UNFURL.value,
 ]
 
 logger = logging.getLogger(__name__)
@@ -68,8 +69,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         self, organization: Organization, request: Request
     ) -> Mapping[str, bool | None]:
         feature_names = [
-            "organizations:performance-use-metrics",
-            "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
         ]
@@ -169,7 +168,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
             batch_features = self.get_features(organization, request)
 
-            dataset = self.get_dataset(request)
+            dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 dataset = (
@@ -180,7 +179,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        spans_indexed,
                         spans_metrics,
                         Spans,
                         OurLogs,
@@ -198,6 +196,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+            sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
 
         try:
             use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
@@ -232,6 +231,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     raise NotImplementedError
 
                 extrapolation_mode = self.get_extrapolation_mode(request)
+                disable_array_attributes = not features.has(
+                    "organizations:trace-item-details-array-fields",
+                    organization,
+                    actor=request.user,
+                )
 
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -246,6 +250,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         )
                         == "1",
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
                 if scoped_dataset == PreprodSize:
@@ -257,6 +262,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         )
                         == "1",
                         extrapolation_mode=extrapolation_mode,
+                        disable_array_attributes=disable_array_attributes,
                     )
 
                 return SearchResolverConfig(
@@ -267,6 +273,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     )
                     == "1",
                     extrapolation_mode=extrapolation_mode,
+                    disable_array_attributes=disable_array_attributes,
                 )
 
             if top_events > 0:
@@ -443,6 +450,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     if has_errors and has_other_data and not using_metrics:
                         # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                         sentry_sdk.set_tag("third_split_query", True)
+                        sentry_sdk.set_attribute("third_split_query", True)
                         transactions_only_query = f"({query}) AND event.type:transaction"
                         transaction_results = _get_event_stats(
                             discover,

@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,42 +6,34 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUser} from 'sentry/utils/useUser';
 
-interface CommitWithGroupOwner extends Commit {
-  group_owner_id: number;
-}
-
 interface SuspectCommitFeedbackProps {
-  commit: CommitWithGroupOwner;
+  groupOwnerId: number;
   organization: Organization;
 }
 
 export function SuspectCommitFeedback({
-  commit,
+  groupOwnerId,
   organization,
 }: SuspectCommitFeedbackProps) {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const user = useUser();
 
-  const handleFeedback = useCallback(
-    (isCorrect: boolean) => {
-      const analyticsData = {
-        choice_selected: isCorrect,
-        group_owner_id: commit.group_owner_id,
-        user_id: user.id,
-        organization,
-      };
+  const handleFeedback = (isCorrect: boolean) => {
+    const analyticsData = {
+      choice_selected: isCorrect,
+      group_owner_id: groupOwnerId,
+      user_id: user.id,
+      organization,
+    };
 
-      trackAnalytics('suspect_commit.feedback_submitted', analyticsData);
+    trackAnalytics('suspect_commit.feedback_submitted', analyticsData);
 
-      setFeedbackSubmitted(true);
-    },
-    [commit, organization, user]
-  );
+    setFeedbackSubmitted(true);
+  };
 
   if (feedbackSubmitted) {
     return (
@@ -56,14 +48,14 @@ export function SuspectCommitFeedback({
       <FeedbackText>{t('Is this correct?')}</FeedbackText>
       <Flex gap="2xs">
         <Button
-          size="xs"
-          icon={<IconThumb direction="up" size="sm" />}
+          size="zero"
+          icon={<IconThumb direction="up" size="xs" />}
           onClick={() => handleFeedback(true)}
           aria-label={t('Yes, this suspect commit is correct')}
         />
         <Button
-          size="xs"
-          icon={<IconThumb direction="down" size="sm" />}
+          size="zero"
+          icon={<IconThumb direction="down" size="xs" />}
           onClick={() => handleFeedback(false)}
           aria-label={t('No, this suspect commit is incorrect')}
         />
@@ -73,9 +65,6 @@ export function SuspectCommitFeedback({
 }
 
 const FeedbackContainer = styled('div')`
-  position: absolute;
-  top: ${p => p.theme.space.md};
-  right: ${p => p.theme.space.md};
   display: flex;
   flex-direction: row;
   align-items: center;

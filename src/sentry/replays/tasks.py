@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import concurrent.futures as cf
 import logging
 from typing import Any
 
 from google.cloud.exceptions import NotFound
 from taskbroker_client.retry import Retry
 
-from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     filestore,
@@ -27,7 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import replays_tasks
 from sentry.utils import metrics
-from sentry.utils.pubsub import KafkaPublisher
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger()
 
@@ -48,8 +47,7 @@ def delete_replay(
 ) -> None:
     """Asynchronously delete a replay."""
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
-    publisher = initialize_replays_publisher(is_async=False)
-    archive_replay(publisher, project_id, replay_id)
+    archive_replay(project_id, replay_id)
     delete_replay_recording(project_id, replay_id)
 
     if has_seer_data and organization_id is not None:
@@ -86,7 +84,7 @@ def delete_replays_script_async(
     for segment in segments:
         rrweb_filenames.append(make_recording_filename(segment))
 
-    with cf.ThreadPoolExecutor(max_workers=100) as pool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
         pool.map(_delete_if_exists, rrweb_filenames)
 
     # Backwards compatibility. Should be deleted one day.
@@ -128,7 +126,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
             direct_storage_segments.append(segment)
 
     # Issue concurrent delete requests when interacting with a remote service provider.
-    with cf.ThreadPoolExecutor(max_workers=100) as pool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
         if direct_storage_segments:
             pool.map(storage.delete, direct_storage_segments)
 
@@ -141,13 +139,13 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         segment_model.delete()
 
 
-def archive_replay(publisher: KafkaPublisher, project_id: int, replay_id: str) -> None:
+def archive_replay(project_id: int, replay_id: str) -> None:
     """Archive a Replay instance. The Replay is not deleted."""
     message = archive_event(project_id, replay_id)
 
     # We publish manually here because we sometimes provide a managed Kafka
     # publisher interface which has its own setup and teardown behavior.
-    publisher.publish("ingest-replay-events", message)
+    publish_replay_event(message)
 
 
 def _delete_if_exists(filename: str) -> None:

@@ -39,12 +39,14 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 project_ids=[self.project.id],
                 stats_period="7d",
             )
-        assert result == {
+        assert result.dict() == {
             "fields": {
                 "string": [
                     "span.description",
-                    "project",
                     "transaction",
+                    "device.class",
+                    "span.module",
+                    "project",
                 ],
                 "number": ["span.duration"],
             },
@@ -155,7 +157,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 ],
             )
 
-        assert result == {
+        assert result.dict() == {
             "attributes_and_values": {
                 "test_tag": [
                     {"value": "foo", "count": 1.0},

@@ -1,14 +1,14 @@
 import * as Sentry from '@sentry/react';
 import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
+import {useMutation} from '@tanstack/react-query';
 import camelCase from 'lodash/camelCase';
 import moment from 'moment-timezone';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
@@ -16,7 +16,7 @@ import {useApi} from 'sentry/utils/useApi';
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {AddOnCategory, PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
+import {AddOnCategory, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
   BillingDetails,
   CheckoutAddOns,
@@ -28,7 +28,6 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {
-  getAmPlanTier,
   getReservedBudgetCategoryForAddOn,
   getSlot,
   hasPartnerMigrationFeature,
@@ -721,7 +720,7 @@ export function getContentForPlan(plan: Plan): PlanContent {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
         dashboard: t('Unlimited custom dashboards'),
-        ...(getAmPlanTier(plan.id) === PlanTier.AM3 && {
+        ...(plan.categories.includes(DataCategory.SPANS) && {
           application_insights: t('Application Insights'),
         }),
         advanced_filtering: t('Advanced server-side filtering'),

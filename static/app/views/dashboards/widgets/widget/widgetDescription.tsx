@@ -30,7 +30,7 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
     >
       <TooltipButton
         aria-label={t('Widget description')}
-        priority="transparent"
+        variant="transparent"
         size="xs"
         icon={<IconInfo size="sm" />}
       />

@@ -2,6 +2,7 @@ import groupBy from 'lodash/groupBy';
 
 import type {AvatarProps} from '@sentry/scraps/avatar';
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import type {DetailedTeam, Team} from 'sentry/types/organization';
@@ -40,11 +41,14 @@ export function useOwnerOptions({
   // frustratingly that is difficult likely because we're recreating this
   // object on every re-render.
   const memberOptions =
-    members?.map(member => ({
-      value: `user:${member.id}`,
-      label: member.name,
-      leadingItems: <UserAvatar user={member} {...avatarProps} />,
-    })) ?? [];
+    members?.map(
+      member =>
+        ({
+          value: `user:${member.id}`,
+          label: member.name,
+          leadingItems: <UserAvatar user={member} {...avatarProps} />,
+        }) satisfies SelectValue<string>
+    ) ?? [];
 
   const makeTeamOption = (team: Team) => ({
     value: `team:${team.id}`,
@@ -52,12 +56,13 @@ export function useOwnerOptions({
     leadingItems: <TeamAvatar team={team} {...avatarProps} />,
   });
 
-  const makeDisabledTeamOption = (team: Team) => ({
-    ...makeTeamOption(team),
-    disabled: true,
-    tooltip: t('%s is not a member of the selected projects', `#${team.slug}`),
-    tooltipOptions: {position: 'left'},
-  });
+  const makeDisabledTeamOption = (team: Team) =>
+    ({
+      ...makeTeamOption(team),
+      disabled: true,
+      tooltip: t('%s is not a member of the selected projects', `#${team.slug}`),
+      tooltipOptions: {position: 'left'},
+    }) satisfies SelectValue<string>;
 
   const {disabledTeams, memberTeams, otherTeams} = groupBy(
     teams as DetailedTeam[],

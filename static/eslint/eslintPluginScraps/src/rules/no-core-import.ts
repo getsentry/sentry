@@ -23,7 +23,9 @@ export const noCoreImport = ESLintUtils.RuleCreator.withoutDocs({
   create(context) {
     return {
       ImportDeclaration(node) {
-        if (node?.source.type !== 'Literal') return;
+        if (node?.source.type !== 'Literal') {
+          return;
+        }
 
         const importPath = node.source.value;
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {deriveTabKey} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
@@ -178,7 +178,7 @@ describe('reactNodeToText', () => {
 
     // Build element tree like tct() would: text + link component + text
     const element = React.createElement(
-      React.Fragment,
+      Fragment,
       null,
       'Visit the ',
       React.createElement(
@@ -203,7 +203,7 @@ describe('reactNodeToText', () => {
     }
 
     const element = React.createElement(
-      React.Fragment,
+      Fragment,
       null,
       'Refer to ',
       React.createElement(

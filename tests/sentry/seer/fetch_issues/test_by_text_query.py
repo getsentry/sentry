@@ -1,6 +1,7 @@
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.group import Group
 from sentry.models.repository import Repository
+from sentry.seer.fetch_issues import utils
 from sentry.seer.fetch_issues.by_text_query import _fetch_issues_from_repo_projects, fetch_issues
 from sentry.seer.fetch_issues.utils import get_repo_and_projects
 from sentry.testutils.cases import IntegrationTestCase, TestCase
@@ -61,7 +62,7 @@ class CreateEventTestCase(TestCase):
 class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.gh_repo: Repository = self.create_repo(
             name="getsentry/sentry",
@@ -76,7 +77,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             repo=self.gh_repo,
         )
 
-    def test_fetch_issues_message_substring_search(self):
+    def test_fetch_issues_message_substring_search(self) -> None:
         """Test that text queries do case-insensitive substring search in issue messages."""
         group = self._create_event(
             filenames=["auth.py", "utils.py"],
@@ -98,9 +99,9 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             name="sentry",
             query="hello",
         )
-        assert "error" not in seer_response
-        assert len(seer_response["issues"]) > 0, "Should find issue with 'hello' substring"
-        assert group.id in seer_response["issues"]
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert len(seer_response.issues) > 0, "Should find issue with 'hello' substring"
+        assert group.id in seer_response.issues
 
         # Test 2: Should find with substring from filename in message
         assert self.gh_repo.external_id is not None
@@ -112,12 +113,12 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             name="sentry",
             query="auth",
         )
-        assert "error" not in seer_response
-        assert len(seer_response["issues"]) > 0, "Should find issue with 'auth' substring"
-        assert group.id in seer_response["issues"]
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert len(seer_response.issues) > 0, "Should find issue with 'auth' substring"
+        assert group.id in seer_response.issues
 
         # Check metadata and message fields are present in end-to-end call
-        first_issue = seer_response["issues_full"][0]
+        first_issue = seer_response.issues_full[0]
         assert "metadata" in first_issue
         assert "message" in first_issue
 
@@ -133,7 +134,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         # Check that the group ID matches
         assert first_issue["id"] == str(group.id)
 
-    def test_fetch_issues_no_match(self):
+    def test_fetch_issues_no_match(self) -> None:
         """Test that non-matching queries return empty results."""
         self._create_event(
             filenames=["models/user.py"],
@@ -156,7 +157,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         # Should return empty results
         assert seer_response == {"issues": [], "issues_full": []}
 
-    def test_fetch_issues_culprit_search(self):
+    def test_fetch_issues_culprit_search(self) -> None:
         """Test that queries match content in the culprit field."""
         group = self._create_event(
             filenames=["test.py"],
@@ -176,11 +177,11 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             query="database conn",
         )
 
-        assert "error" not in seer_response
-        assert len(seer_response["issues"]) > 0
-        assert group.id in seer_response["issues"]
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert len(seer_response.issues) > 0
+        assert group.id in seer_response.issues
 
-    def test_fetch_issues_limit_parameter(self):
+    def test_fetch_issues_limit_parameter(self) -> None:
         """Test that the limit parameter is respected."""
         # Create multiple matching events
         for i in range(5):
@@ -203,10 +204,10 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             limit=limit,
         )
 
-        assert "error" not in seer_response
-        assert len(seer_response["issues"]) <= limit
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert len(seer_response.issues) <= limit
 
-    def test_fetch_issues_from_repo_projects_returns_groups(self):
+    def test_fetch_issues_from_repo_projects_returns_groups(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns a list of Group objects."""
         # Create a group that should match the search query
         event = self._create_event(
@@ -240,7 +241,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         result_ids = [result.id for result in results]
         assert expected_group.id in result_ids
 
-    def test_fetch_issues_from_repo_projects_empty_result(self):
+    def test_fetch_issues_from_repo_projects_empty_result(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns empty list when no matches."""
         # Get repo projects but don't create any matching events
         assert self.gh_repo.external_id is not None

@@ -7,7 +7,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
-from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
+from sentry.hybridcloud.rpc import CELL_NAME_LENGTH
 
 
 @control_silo_model
@@ -24,7 +24,7 @@ class ProjectKeyMapping(Model):
 
     project_key_id = BoundedBigIntegerField()
     public_key = models.CharField(max_length=32, unique=True, db_index=True)
-    cell_name = models.CharField(max_length=REGION_NAME_LENGTH)
+    cell_name = models.CharField(max_length=CELL_NAME_LENGTH)
     date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     class Meta:

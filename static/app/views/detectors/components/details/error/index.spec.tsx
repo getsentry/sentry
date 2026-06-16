@@ -1,6 +1,6 @@
 import {ErrorDetectorFixture} from 'sentry-fixture/detectors';
 import {GroupFixture} from 'sentry-fixture/group';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,14 +10,18 @@ import {ErrorDetectorDetails} from 'sentry/views/detectors/components/details/er
 describe('ErrorDetectorDetails', () => {
   const defaultProps = {
     detector: ErrorDetectorFixture(),
-    project: ProjectFixture(),
+    project: DetailedProjectFixture(),
   };
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
-      body: ProjectFixture(),
+      body: DetailedProjectFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -35,19 +39,19 @@ describe('ErrorDetectorDetails', () => {
       body: UserFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/`,
+      url: '/organizations/org-slug/issues/1/',
       body: GroupFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/`,
+      url: '/organizations/org-slug/issues/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/`,
+      url: '/organizations/org-slug/detectors/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/workflows/`,
+      url: '/organizations/org-slug/workflows/',
       body: [],
     });
   });
@@ -57,7 +61,7 @@ describe('ErrorDetectorDetails', () => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
-        body: ProjectFixture({
+        body: DetailedProjectFixture({
           resolveAge: 30 * 24,
         }),
       });
@@ -70,7 +74,7 @@ describe('ErrorDetectorDetails', () => {
     });
 
     it('displays correct text when auto-resolve is disabled', async () => {
-      const project = ProjectFixture({resolveAge: 0});
+      const project = DetailedProjectFixture({resolveAge: 0});
 
       render(<ErrorDetectorDetails {...defaultProps} project={project} />);
 

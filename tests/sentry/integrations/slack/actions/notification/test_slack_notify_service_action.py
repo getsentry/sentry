@@ -1,6 +1,5 @@
 from copy import deepcopy
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
 
 import orjson
 from slack_sdk.errors import SlackApiError
@@ -8,7 +7,6 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
@@ -46,7 +44,6 @@ class TestInit(RuleTestCase):
         self.rule = self.create_project_rule(
             project=self.project, action_data=[deepcopy(self.action_data)]
         )
-        self.notification_uuid = str(uuid4())
         self.event = self.store_event(
             data={
                 "message": "Hello world",
@@ -57,31 +54,8 @@ class TestInit(RuleTestCase):
             project_id=self.project.id,
         )
         assert self.event.group is not None
-        self.rule_fire_history = RuleFireHistory.objects.create(
-            project=self.project,
-            rule=self.rule,
-            group=self.event.group,
-            event_id=self.event.event_id,
-            notification_uuid=self.notification_uuid,
-        )
 
         self.action = self.create_action()
-
-    def test_when_rule_fire_history_is_passed_in(self) -> None:
-        instance = SlackNotifyServiceAction(
-            self.project, data={}, rule=self.rule, rule_fire_history=self.rule_fire_history
-        )
-        assert instance.rule_fire_history is not None
-
-    def test_when_rule_fire_history_is_not_passed_in(self) -> None:
-        instance = SlackNotifyServiceAction(self.project, data={}, rule=self.rule)
-        assert instance.rule_fire_history is None
-
-    def test_when_rule_fire_history_is_none(self) -> None:
-        instance = SlackNotifyServiceAction(
-            self.project, data={}, rule=self.rule, rule_fire_history=None
-        )
-        assert instance.rule_fire_history is None
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")

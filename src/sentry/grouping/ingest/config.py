@@ -146,13 +146,57 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
 def is_in_transition(project: Project) -> bool:
     """
     Determine if a project is currently in a grouping transition, i.e., that it has a valid
-    secondary grouping config defined and that it's secondary grouping expiry date hasn't passed.
+    secondary grouping config defined and that its secondary grouping expiry date hasn't passed.
+
+    If out-dated secondary config options are found, clean them up.
     """
+    primary_grouping_config = project.get_option("sentry:grouping_config")
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
 
-    return (
-        bool(secondary_grouping_config)
-        and secondary_grouping_config in GROUPING_CONFIG_CLASSES.keys()
-        and (secondary_grouping_expiry or 0) >= time.time()
+    if not secondary_grouping_config and not secondary_grouping_expiry:
+        return False
+
+    secondary_is_invalid_or_expired = (
+        secondary_grouping_config not in GROUPING_CONFIG_CLASSES.keys()
+        or secondary_grouping_config == primary_grouping_config
+        or (secondary_grouping_expiry or 0) < time.time()
     )
+
+    if secondary_is_invalid_or_expired:
+        _clean_up_expired_config_options(project.id)
+        return False
+
+    return True
+
+
+def _clean_up_expired_config_options(project_id: int) -> None:
+    """
+    Clean up out-dated secondary config and secondary config expiry project options. Uses caching
+    and a lock to prevent race conditions.
+
+    Note: This assumes we've already checked that the data exists and is out of date.
+    """
+    cache_key = f"grouping-config-cleanup:{project_id}"
+    lock_key = f"grouping-config-cleanup-lock:{project_id}"
+
+    if cache.get(cache_key) is not None:
+        return
+
+    try:
+        with locks.get(lock_key, duration=60, name="grouping-config-cleanup-lock").acquire():
+            # We wait to set the cache key until we've successfully acquired the lock so that if for
+            # some reason we can't, we don't have to wait 5 minutes before trying again
+            cache.set(cache_key, "1", 60 * 5)
+
+            ProjectOption.objects.filter(
+                key__in=["sentry:secondary_grouping_config", "sentry:secondary_grouping_expiry"],
+                project_id=project_id,
+            ).delete()
+
+            metrics.incr(
+                "grouping.old_config_options_cleared",
+                sample_rate=options.get("grouping.config_transition.metrics_sample_rate"),
+            )
+    except UnableToAcquireLock:
+        return

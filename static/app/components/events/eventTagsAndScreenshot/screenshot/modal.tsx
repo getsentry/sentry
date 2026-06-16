@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -15,9 +16,8 @@ import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScreenshotPagination} from './screenshotPagination';
@@ -58,8 +58,7 @@ export function ScreenshotModal({
 
   const screenshots = attachments.filter(({name}) => name.includes('screenshot'));
 
-  const [currentEventAttachment, setCurrentAttachment] =
-    useState<EventAttachment>(eventAttachment);
+  const [currentEventAttachment, setCurrentAttachment] = useState(eventAttachment);
 
   const currentAttachmentIndex = screenshots.findIndex(
     attachment => attachment.id === currentEventAttachment.id
@@ -162,7 +161,7 @@ export function ScreenshotModal({
               priority="danger"
               onConfirm={onDelete}
             >
-              <Button priority="danger">{t('Delete')}</Button>
+              <Button variant="danger">{t('Delete')}</Button>
             </Confirm>
           )}
           <LinkButton onClick={onDownload} href={downloadUrl}>

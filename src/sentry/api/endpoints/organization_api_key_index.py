@@ -18,7 +18,7 @@ DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member
 
 @control_silo_endpoint
 class OrganizationApiKeyIndexEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.FOUNDATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

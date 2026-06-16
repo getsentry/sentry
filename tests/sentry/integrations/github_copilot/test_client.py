@@ -121,7 +121,7 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response = Mock()
         mock_response.json = {
             "id": "task-123",
-            "status": "in_progress",
+            "state": "in_progress",
             "created_at": "2024-06-01T12:00:00Z",
         }
         mock_response.status_code = 200
@@ -143,7 +143,7 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response = Mock()
         mock_response.json = {
             "id": "task-456",
-            "status": "in_progress",
+            "state": "in_progress",
         }
         mock_response.status_code = 200
         mock_post.return_value = mock_response
@@ -158,28 +158,6 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.id == "getsentry:sentry:task-456"
         assert result.status == CodingAgentStatus.RUNNING
         assert before <= result.started_at <= after
-
-    @patch.object(GithubCopilotAgentClient, "post")
-    def test_launch_with_legacy_task_envelope(self, mock_post: Mock) -> None:
-        """Test launch handles the legacy {"task": {...}} response envelope"""
-        mock_response = Mock()
-        mock_response.json = {
-            "task": {
-                "id": "task-789",
-                "status": "in_progress",
-                "created_at": "2024-06-01T12:00:00Z",
-            }
-        }
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-
-        result = self.copilot_client.launch(
-            webhook_url="https://example.com/webhook",
-            request=self._make_launch_request(),
-        )
-
-        assert result.id == "getsentry:sentry:task-789"
-        assert result.status == CodingAgentStatus.RUNNING
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_get_pr_from_graphql_success(self, mock_post: Mock) -> None:

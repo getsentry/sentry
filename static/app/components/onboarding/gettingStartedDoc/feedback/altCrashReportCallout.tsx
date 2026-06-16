@@ -8,7 +8,7 @@ export function altCrashReportCallout() {
     <Alert.Container>
       <Alert variant="info">
         {tct(
-          `Want to add an embeddable, JavaScript-based, crash-report modal to your website instead? [link:Read the docs] to learn how.`,
+          'Want to add an embeddable, JavaScript-based, crash-report modal to your website instead? [link:Read the docs] to learn how.',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/dotnet/user-feedback/#crash-report-modal" />

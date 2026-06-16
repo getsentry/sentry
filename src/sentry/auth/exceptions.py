@@ -9,3 +9,7 @@ class ProviderNotRegistered(NotRegistered):
 
 class IdentityNotValid(Exception):
     pass
+
+
+class AuthIdentityUserMismatch(Exception):
+    pass

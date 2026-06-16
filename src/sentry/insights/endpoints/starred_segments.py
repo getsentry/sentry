@@ -15,7 +15,7 @@ from sentry.utils.db import atomic_transaction
 
 class StarSegmentSerializer(serializers.Serializer):
     segment_name = serializers.CharField(required=True)
-    project_id = serializers.IntegerField(required=True)
+    project_id = serializers.IntegerField(required=True, min_value=1)
 
 
 class MemberPermission(OrganizationPermission):
@@ -52,10 +52,16 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
 
         segment_name = serializer.validated_data["segment_name"]
         project_id = serializer.validated_data["project_id"]
+        projects = self.get_projects(
+            request=request,
+            organization=organization,
+            project_ids={project_id},
+        )
+        project = projects[0]
         with atomic_transaction(using=router.db_for_write(InsightsStarredSegment)):
             _, created = InsightsStarredSegment.objects.get_or_create(
                 organization=organization,
-                project_id=project_id,
+                project_id=project.id,
                 user_id=request.user.id,
                 segment_name=segment_name,
             )
@@ -81,11 +87,17 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
 
         segment_name = serializer.validated_data["segment_name"]
         project_id = serializer.validated_data["project_id"]
+        projects = self.get_projects(
+            request=request,
+            organization=organization,
+            project_ids={project_id},
+        )
+        project = projects[0]
 
         InsightsStarredSegment.objects.filter(
             organization=organization,
             user_id=request.user.id,
-            project_id=project_id,
+            project_id=project.id,
             segment_name=segment_name,
         ).delete()
 

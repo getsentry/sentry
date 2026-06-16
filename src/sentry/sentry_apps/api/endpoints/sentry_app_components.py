@@ -29,7 +29,7 @@ logger = logging.getLogger("sentry.sentry_apps.components")
 #  endpoint that can take project_id or sentry_app_id as a query parameter.
 @control_silo_endpoint
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -47,7 +47,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 
 @control_silo_endpoint
 class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

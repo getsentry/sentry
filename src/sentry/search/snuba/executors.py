@@ -4,8 +4,9 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from hashlib import md5
@@ -14,7 +15,6 @@ from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 
 from sentry import features, options
@@ -24,6 +24,7 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.progress import IssueProgressState, get_group_progress_states
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -32,18 +33,30 @@ from sentry.issues.search import (
     UnsupportedSearchQuery,
     get_search_strategies,
     group_categories_from,
+    group_types_from,
 )
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, run_eap_group_search
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
+from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+from sentry.utils.snuba import (
+    EmptyGroupIdIntersectionError,
+    SnubaQueryParams,
+    aliased_query_params,
+    bulk_raw_query,
+)
+
+logger = logging.getLogger(__name__)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -74,6 +87,22 @@ class Clauses(Enum):
     WHERE = auto()
 
 
+@dataclass(frozen=True)
+class PostgresSortStrategy:
+    """A sort strategy that uses Postgres Group model data, optionally combined with Snuba."""
+
+    postgres_fields: dict[str, str]
+    snuba_aggregations: list[str] = dataclass_field(default_factory=list)
+    # Computed signals that aren't a single Group column (e.g. assignment affinity).
+    # Each resolver is called once in bulk with (actor, organization, group_ids) and
+    # returns {group_id: value}; the value is merged into the score_fn dict under its key.
+    signal_resolvers: dict[str, Callable[[Any, Organization, list[int]], dict[int, Any]]] = (
+        dataclass_field(default_factory=dict)
+    )
+    score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
+    exclude_null_postgres: bool = True
+
+
 # we cannot use snuba for these fields because they require a join with tables that don't exist there
 # if we ever see these fields, we will use postgres to get the group_ids before sending back to ClickHouse
 # note that we could eventually migrate the releases table to ClickHouse and handle those with a join in ClickHouse
@@ -88,6 +117,19 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
 
 ENTITY_EVENTS = "events"
 ENTITY_SEARCH_ISSUES = "search_issues"
+
+
+def _reasonable_search_result_match(
+    control: tuple[list[tuple[int, Any]], int],
+    experimental: tuple[list[tuple[int, Any]], int],
+) -> bool:
+    control_group_ids = {gid for gid, _ in control[0]}
+    experimental_group_ids = {gid for gid, _ in experimental[0]}
+
+    if not experimental_group_ids:
+        return True
+
+    return experimental_group_ids.issubset(control_group_ids)
 
 
 @dataclass
@@ -137,19 +179,14 @@ def get_search_filter(
     return found_val
 
 
-def group_categories_from_search_filters(
-    search_filters: Sequence[SearchFilter], organization: Organization, actor: User | RpcUser
-) -> set[int]:
+def group_categories_from_search_filters(search_filters: Sequence[SearchFilter]) -> set[int]:
     group_categories = group_categories_from(search_filters)
 
     if not group_categories:
         group_categories = set(get_search_strategies().keys())
         # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
-        group_categories.discard(GroupCategory.INSTRUMENTATION.value)
-
-    if not features.has("organizations:performance-issues-search", organization):
-        group_categories.discard(GroupCategory.PERFORMANCE.value)
+        group_categories.discard(GroupCategory.CONFIGURATION.value)
 
     return group_categories
 
@@ -164,7 +201,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def aggregation_defs(self) -> Sequence[str] | Expression:
+    def aggregation_defs(self) -> Mapping[str, Sequence[str] | Callable]:
         """This method should return a dict of key:value
         where key is a field name for your aggregation
         and value is the aggregation function"""
@@ -269,7 +306,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         having: Sequence[Sequence[Any]],
         aggregate_kwargs: TrendsSortWeights | None = None,
-        replace_trends_aggregation: bool | None = False,
+        use_issue_platform: bool = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -280,14 +317,14 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            if replace_trends_aggregation and alias == "trends":
-                aggregation = self.aggregation_defs["trends_issue_platform"]
+            if use_issue_platform and alias in ("trends", "recommended"):
+                aggregation = self.aggregation_defs[f"{alias}_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
                     aggregation = aggregation(start, end, DEFAULT_TRENDS_WEIGHTS)
-            aggregations.append(aggregation + [alias])
+            aggregations.append(list(aggregation) + [alias])
 
         return aggregations
 
@@ -333,14 +370,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        if sort_field == "trends" and group_category is not GroupCategory.ERROR.value:
-            aggregations = self._prepare_aggregations(
-                sort_field, start, end, having, aggregate_kwargs, True
-            )
-        else:
-            aggregations = self._prepare_aggregations(
-                sort_field, start, end, having, aggregate_kwargs
-            )
+        use_issue_platform = group_category is not GroupCategory.ERROR.value
+        aggregations = self._prepare_aggregations(
+            sort_field, start, end, having, aggregate_kwargs, use_issue_platform
+        )
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -371,7 +404,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             selected_columns,
             aggregations,
             organization,
-            project_ids,
+            list(project_ids),
             environments,
             group_ids,
             filters,
@@ -444,7 +477,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        group_categories = group_categories_from_search_filters(search_filters, organization, actor)
+        group_categories = group_categories_from_search_filters(search_filters or ())
 
         query_params_for_categories = {}
 
@@ -469,54 +502,113 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
+            except EmptyGroupIdIntersectionError:
+                # Postgres candidates and the snuba group_id condition are
+                # disjoint for this category — it can't match anything. Skip it.
+                pass
             else:
                 if query_params is not None:
                     query_params_for_categories[gc] = query_params
 
-        try:
-            bulk_query_results = bulk_raw_query(
-                list(query_params_for_categories.values()), referrer=referrer
-            )
-        except Exception:
-            metrics.incr(
-                "snuba.search.group_category_bulk",
-                tags={
-                    GroupCategory(gc_val).name.lower(): True
-                    for gc_val, _ in query_params_for_categories.items()
-                },
-            )
-            # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
-            # we'll fallback to querying for errors only
-            if GroupCategory.ERROR.value in query_params_for_categories.keys():
+        callsite = "PostgresSnubaQueryExecutor.snuba_search"
+
+        def _run_snuba_query() -> tuple[list[tuple[int, Any]], int]:
+            try:
                 bulk_query_results = bulk_raw_query(
-                    [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
+                    list(query_params_for_categories.values()), referrer=referrer
                 )
-            else:
-                raise
+            except Exception:
+                metrics.incr(
+                    "snuba.search.group_category_bulk",
+                    tags={
+                        GroupCategory(gc_val).name.lower(): True
+                        for gc_val, _ in query_params_for_categories.items()
+                    },
+                )
+                # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
+                # we'll fallback to querying for errors only
+                if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                    bulk_query_results = bulk_raw_query(
+                        [query_params_for_categories[GroupCategory.ERROR.value]],
+                        referrer=referrer,
+                    )
+                else:
+                    raise
 
-        rows: list[MergeableRow] = []
-        total = 0
-        row_length = 0
-        for bulk_result in bulk_query_results:
-            if bulk_result:
-                if bulk_result["data"]:
-                    rows.extend(bulk_result["data"])
-                if bulk_result["totals"]["total"]:
-                    total += bulk_result["totals"]["total"]
-                row_length += len(bulk_result)
+            rows: list[MergeableRow] = []
+            total = 0
+            row_length = 0
+            for bulk_result in bulk_query_results:
+                if bulk_result:
+                    if bulk_result["data"]:
+                        rows.extend(bulk_result["data"])
+                    if bulk_result["totals"]["total"]:
+                        total += bulk_result["totals"]["total"]
+                    row_length += len(bulk_result)
 
-        rows.sort(key=lambda row: row["group_id"])
+            rows.sort(key=lambda row: row["group_id"])
 
-        if not get_sample:
-            metrics.distribution("snuba.search.num_result_groups", row_length)
+            if not get_sample:
+                metrics.distribution("snuba.search.num_result_groups", row_length)
 
-        if get_sample:
-            sort_field = "sample"
+            effective_sort_field = "sample" if get_sample else sort_field
+            return [(row["group_id"], row[effective_sort_field]) for row in rows], total  # type: ignore[literal-required]
 
-        return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore[literal-required]
+        def _run_eap_query() -> tuple[list[tuple[int, Any]], int]:
+            try:
+                return run_eap_group_search(
+                    start=start,
+                    end=end,
+                    project_ids=project_ids,
+                    environment_ids=environment_ids,
+                    sort_field=sort_field,
+                    organization=organization,
+                    cursor=cursor,
+                    group_ids=group_ids,
+                    limit=limit,
+                    offset=offset,
+                    search_filters=snuba_search_filters,
+                    referrer=referrer,
+                )
+            except Exception:
+                logger.exception(
+                    "eap.double_read.run_eap_group_search_failed",
+                    extra={"callsite": callsite, "sort_field": sort_field},
+                )
+                return ([], 0)
+
+        # Double-read from EAP for supported sort strategies
+        if (
+            not get_sample
+            and sort_field in EAP_SORT_STRATEGIES
+            and features.has("organizations:issue-feed.eap-search", organization)
+        ):
+            try:
+                return EAPOccurrencesComparator.check_and_choose_with_timings(
+                    control_data_func=_run_snuba_query,
+                    experimental_data_func=_run_eap_query,
+                    callsite=callsite,
+                    null_result_determiner=lambda r: len(r[0]) == 0,
+                    reasonable_match_comparator=_reasonable_search_result_match,
+                    debug_context={
+                        "sort_field": sort_field,
+                        "organization_id": organization.id,
+                        "num_group_ids": len(group_ids) if group_ids else 0,
+                        "num_filters": len(snuba_search_filters),
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "eap.double_read.snuba_search_failed",
+                    extra={"callsite": callsite, "sort_field": sort_field},
+                )
+
+        return _run_snuba_query()
 
     def has_sort_strategy(self, sort_by: str) -> bool:
-        return sort_by in self.sort_strategies.keys()
+        return sort_by in self.sort_strategies or sort_by in getattr(
+            self, "postgres_sort_strategies", {}
+        )
 
 
 def trends_aggregation(
@@ -700,11 +792,257 @@ def trends_aggregation_impl(
             ]
 
 
+def _recommended_aggregation(
+    timestamp_column: str, type_column: str | None = None
+) -> Sequence[str]:
+    hour = 3600
+
+    # Recency: exponential decay based on time since last event (24hr halflife)
+    recency_weight = options.get("snuba.search.recommended.recency-weight")
+    age_hours = f"divide(minus(now(), max({timestamp_column})), {hour})"
+    recency = f"divide(1, pow(2, divide({age_hours}, 24)))"
+
+    # Spike: ratio of recent 6hr events to total 3d events
+    spike_weight = options.get("snuba.search.recommended.spike-weight")
+    recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
+    total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
+    spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
+
+    # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
+    severity_weight = options.get("snuba.search.recommended.severity-weight")
+    severity = (
+        "max(multiIf("
+        "equals(level, 'fatal'), 1.0, "
+        "equals(level, 'error'), 0.75, "
+        "equals(level, 'warning'), 0.5, "
+        "equals(level, 'info'), 0.25, "
+        "0.0))"
+    )
+
+    # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
+    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
+    user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
+
+    # Event volume: ln(count() + 1)/ln(10001) - maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
+    event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
+    event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
+
+    # Group type boost: additive signal per issue type
+    group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
+
+    # Message penalty: downranks capture_message issues (no exception/stacktrace).
+    # Subtracted from the score below, and only on the events dataset -- issue-platform
+    # occurrences don't have exception_stacks.
+    message_penalty_weight = options.get("snuba.search.recommended.message-penalty-weight")
+
+    # Skip zero-weighted factors: their term is always 0, so computing them in
+    # ClickHouse is wasted work -- especially expensive aggregates like user
+    # impact's uniq(tags[sentry:user]).
+    terms = [
+        f"multiply({weight}, {factor})"
+        for weight, factor in (
+            (recency_weight, recency),
+            (spike_weight, spike),
+            (severity_weight, severity),
+            (user_impact_weight, user_impact),
+            (event_volume_weight, event_volume),
+        )
+        if weight
+    ]
+
+    if not terms:
+        # The score must be an aggregate expression. Every factor term above is an
+        # aggregate, but if all are dropped the only remaining term may be the boost
+        # below, which can be a bare constant. Seed a constant-0 aggregate so the
+        # expression Snuba receives always contains one.
+        terms.append("multiply(0, count())")
+
+    if group_type_boosts:
+        type_expr = f"any({type_column})" if type_column else "1"
+        conditions = []
+        for type_id, boost in group_type_boosts.items():
+            conditions.append(f"equals({type_expr}, {type_id}), {boost}")
+        terms.append(f"multiIf({', '.join(conditions)}, 0.0)")
+
+    score_expr = terms[0]
+    for term in terms[1:]:
+        score_expr = f"plus({score_expr}, {term})"
+
+    if type_column is None and message_penalty_weight:
+        has_exception_ratio = "divide(countIf(notEmpty(exception_stacks.type)), count())"
+        message_penalty = f"multiply({message_penalty_weight}, minus(1.0, {has_exception_ratio}))"
+        score_expr = f"minus({score_expr}, {message_penalty})"
+
+    return [score_expr, ""]
+
+
+def recommended_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: Any = None,
+) -> Sequence[str]:
+    return _recommended_aggregation(timestamp_column="timestamp")
+
+
+def recommended_issue_platform_aggregation(
+    start: datetime,
+    end: datetime,
+    aggregate_kwargs: Any = None,
+) -> Sequence[str]:
+    return _recommended_aggregation(
+        timestamp_column="client_timestamp", type_column="occurrence_type_id"
+    )
+
+
+# Seer agent progress stages, mirroring the `issue.agent` search filter
+# (ISSUE_AGENT_TO_ACTIVITY_TYPES in sentry.issues.issue_search). A group's signal is
+# the furthest stage reached, normalized to [0, 1].
+ISSUE_AGENT_STAGE_SIGNALS: dict[int, float] = {
+    ActivityType.SEER_RCA_COMPLETED.value: 0.25,
+    ActivityType.SEER_SOLUTION_COMPLETED.value: 0.5,
+    ActivityType.SEER_CODING_COMPLETED.value: 0.75,
+    ActivityType.SEER_PR_CREATED.value: 1.0,
+}
+
+
+def resolve_assignment_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, float]:
+    """Assignment affinity for the viewer: 1.0 for groups assigned directly to them,
+    0.5 for groups assigned to one of their teams, absent otherwise."""
+    if actor is None or not getattr(actor, "is_authenticated", False):
+        return {}
+    assignments = list(
+        GroupAssignee.objects.filter(group_id__in=group_ids).values_list(
+            "group_id", "user_id", "team_id"
+        )
+    )
+    team_ids: set[int] = set()
+    if any(team_id is not None for _, _, team_id in assignments):
+        team_ids = {team.id for team in Team.objects.get_for_user(organization, actor)}
+    signal: dict[int, float] = {}
+    for group_id, user_id, team_id in assignments:
+        if user_id is not None and user_id == actor.id:
+            signal[group_id] = 1.0
+        elif team_id is not None and team_id in team_ids:
+            signal[group_id] = 0.5
+    return signal
+
+
+def resolve_issue_agent_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, float]:
+    """Furthest Seer agent stage reached per group, normalized to [0, 1].
+
+    A regression resets progress: stages reached before the group's latest
+    SET_REGRESSION activity don't count, since that fix evidently didn't hold.
+    """
+    activities = Activity.objects.filter(
+        group_id__in=group_ids,
+        type__in=[*ISSUE_AGENT_STAGE_SIGNALS, ActivityType.SET_REGRESSION.value],
+    ).values_list("group_id", "type", "datetime")
+    last_regressed: dict[int, datetime] = {}
+    seer_activities: list[tuple[int, int, datetime]] = []
+    for group_id, activity_type, date in activities:
+        if activity_type == ActivityType.SET_REGRESSION.value:
+            if group_id not in last_regressed or date > last_regressed[group_id]:
+                last_regressed[group_id] = date
+        else:
+            seer_activities.append((group_id, activity_type, date))
+    signal: dict[int, float] = {}
+    for group_id, activity_type, date in seer_activities:
+        if group_id in last_regressed and date < last_regressed[group_id]:
+            continue
+        signal[group_id] = max(signal.get(group_id, 0.0), ISSUE_AGENT_STAGE_SIGNALS[activity_type])
+    return signal
+
+
+def recommended_v2_strategy() -> PostgresSortStrategy:
+    """Recommended sort v2: the Snuba recommended score (recency/spike/severity/user
+    impact/event volume) plus additive boosts for viewer assignment, Seer fixability,
+    and Seer agent progress."""
+    assignment_weight = options.get("snuba.search.recommended.assignment-weight")
+    fixability_weight = options.get("snuba.search.recommended.fixability-weight")
+    agent_weight = options.get("snuba.search.recommended.agent-weight")
+
+    def score_fn(data: dict[str, Any]) -> float:
+        return (
+            (data.get("recommended") or 0.0)
+            + assignment_weight * data.get("assignment", 0.0)
+            + fixability_weight * (data.get("fixability") or 0.0)
+            + agent_weight * data.get("agent", 0.0)
+        )
+
+    return PostgresSortStrategy(
+        postgres_fields={"fixability": "seer_fixability_score"},
+        snuba_aggregations=["recommended"],
+        signal_resolvers={
+            "assignment": resolve_assignment_signal,
+            "agent": resolve_issue_agent_signal,
+        },
+        score_fn=score_fn,
+        # seer_fixability_score is null for most groups; score those as 0 rather
+        # than excluding them.
+        exclude_null_postgres=False,
+    )
+
+
+# Numeric rank for the "progress" sort: higher means further along the fix cycle, so it
+# sorts towards the top. Every state has a rank so issues without seer activity (the
+# identified/triaged base states) still order correctly relative to progressed issues.
+PROGRESS_STATE_SORT_RANK: dict[IssueProgressState, int] = {
+    IssueProgressState.IDENTIFIED: 1,
+    IssueProgressState.TRIAGED: 2,
+    IssueProgressState.DIAGNOSED: 3,
+    IssueProgressState.FIX_PROPOSED: 4,
+    IssueProgressState.FIX_APPLIED: 5,
+}
+
+# last_seen comes back from Snuba as epoch milliseconds (< 1e13 until the year 2286), so
+# dividing by this collapses it into a [0, 1) recency fraction. The score is then
+# `rank + fraction`: rank stays the primary (integer) key and last_seen only breaks ties.
+LAST_SEEN_TIEBREAK_DIVISOR = 10**13
+
+
+def resolve_progress_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, int]:
+    """Progress-cycle rank per group (identified=1 .. fix_applied=5), derived from the same
+    Activity records as the ``issue.progress`` filter. Every group gets a rank."""
+    states = get_group_progress_states(group_ids)
+    return {
+        group_id: PROGRESS_STATE_SORT_RANK[IssueProgressState(state)]
+        for group_id, state in states.items()
+    }
+
+
+def progress_strategy() -> PostgresSortStrategy:
+    """Progress sort: primary by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
+    triaged > identified), secondary by last_seen. The secondary key stands in for
+    ``issue.last_progressed_at`` until that field exists; for now most-recently-active issues
+    rank highest within a tier."""
+
+    def score_fn(data: dict[str, Any]) -> float:
+        rank = data.get("progress_rank") or 0
+        last_seen = data.get("last_seen") or 0
+        return rank + last_seen / LAST_SEEN_TIEBREAK_DIVISOR
+
+    return PostgresSortStrategy(
+        postgres_fields={},
+        snuba_aggregations=["last_seen"],
+        signal_resolvers={"progress_rank": resolve_progress_signal},
+        score_fn=score_fn,
+    )
+
+
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
     logger = logging.getLogger("sentry.search.postgressnuba")
-    dependency_aggregations = {"trends": ["last_seen", "times_seen"]}
+    dependency_aggregations = {
+        "trends": ["last_seen", "times_seen"],
+        "recommended": ["last_seen", "times_seen", "user_count"],
+    }
     postgres_only_fields = {*SKIP_SNUBA_FIELDS, "regressed_in_release"}
     # add specific fields here on top of skip_snuba_fields from the serializer
     sort_strategies = {
@@ -712,7 +1050,15 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "freq": "times_seen",
         "new": "first_seen",
         "trends": "trends",
+        "recommended": "recommended",
+        # Postgres-data sort; mapped to the recommended aggregation so the chunked
+        # Snuba path can take over when there are too many candidates to score in memory.
+        "recommended_v2": "recommended",
         "user": "user_count",
+        # Postgres-data sort; mapped to last_seen so the chunked Snuba path can take over
+        # (degrading to a plain last_seen sort) when there are too many candidates to score
+        # the progress rank in memory.
+        "progress": "last_seen",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
@@ -723,15 +1069,166 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "first_seen": ["multiply(toUInt64(min(coalesce(group_first_seen, timestamp))), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
         "trends": trends_aggregation,
+        "recommended": recommended_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
         "trends_issue_platform": trends_issue_platform_aggregation,
+        "recommended_issue_platform": recommended_issue_platform_aggregation,
     }
 
     @property
     def dataset(self) -> Dataset:
         return Dataset.Events
+
+    @property
+    def postgres_sort_strategies(self) -> dict[str, PostgresSortStrategy]:
+        return {
+            "recommended_v2": recommended_v2_strategy(),
+            "progress": progress_strategy(),
+        }
+
+    def _apply_type_visibility_filter(
+        self,
+        group_queryset: BaseQuerySet,
+        search_filters: Sequence[SearchFilter] | None,
+    ) -> BaseQuerySet:
+        return group_queryset.filter(type__in=group_types_from(search_filters))
+
+    def _execute_postgres_sort(
+        self,
+        strategy: PostgresSortStrategy,
+        sort_by: str,
+        group_queryset: BaseQuerySet,
+        projects: Sequence[Project],
+        environments: Sequence[Environment] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        limit: int,
+        cursor: Cursor | None,
+        count_hits: bool,
+        paginator_options: Mapping[str, Any],
+        max_hits: int | None,
+        actor: Any | None,
+        start: datetime,
+        end: datetime,
+        aggregate_kwargs: TrendsSortWeights | None = None,
+        *,
+        referrer: str,
+    ) -> CursorResult[Group] | None:
+        """Execute a sort using Postgres data, with optional Snuba filtering/aggregation.
+
+        Returns None to signal the caller should fall back to the Snuba-only path (e.g.
+        when there are too many candidates to score in memory).
+        """
+        organization = projects[0].organization
+        postgres_fields = strategy.postgres_fields
+
+        group_queryset = self._apply_type_visibility_filter(group_queryset, search_filters)
+        if strategy.exclude_null_postgres:
+            for model_field in postgres_fields.values():
+                group_queryset = group_queryset.filter(**{f"{model_field}__isnull": False})
+
+        # Bound candidates by the lower edge of the search window using last_seen (the
+        # group's max event timestamp). When Snuba runs it enforces the full event window.
+        group_queryset = group_queryset.filter(last_seen__gte=start)
+
+        non_snuba_fields = self.postgres_only_fields.union({"date", "timestamp"})
+        has_snuba_filters = any(
+            sf.key.name not in non_snuba_fields for sf in (search_filters or ())
+        )
+
+        max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
+        candidate_ids = list(
+            group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
+        )
+
+        if not candidate_ids:
+            return self.empty_result
+
+        if len(candidate_ids) > max_candidates:
+            # Too many candidates to score in memory. Signal the caller to fall through
+            # to the Snuba chunked path, which can paginate without an in-memory bound.
+            return None
+
+        # Hit Snuba when the strategy needs an aggregation value or the query has
+        # event-level filters. The aggregation is passed as the Snuba sort field so its
+        # per-group value comes back as the score; with no aggregation we sort by last_seen
+        # (ignored by score_fn) and just use the result to narrow candidates to those
+        # matching the filters. One aggregation is supported.
+        snuba_data: dict[int, dict[str, Any]] = {}
+        if strategy.snuba_aggregations or has_snuba_filters:
+            sort_field = (
+                strategy.snuba_aggregations[0] if strategy.snuba_aggregations else "last_seen"
+            )
+            # sort_field is used directly as a key into aggregation_defs downstream; a
+            # misconfigured strategy should fail loudly here rather than with an opaque
+            # KeyError deep in query construction.
+            if sort_field not in self.aggregation_defs:
+                raise InvalidQueryForExecutor(
+                    f"Unknown snuba aggregation {sort_field!r} in Postgres sort strategy"
+                )
+            snuba_groups, _ = self.snuba_search(
+                start=start,
+                end=end,
+                project_ids=[p.id for p in projects],
+                environment_ids=[env.id for env in environments] if environments else None,
+                organization=organization,
+                sort_field=sort_field,
+                cursor=None,
+                group_ids=candidate_ids,
+                limit=len(candidate_ids),
+                offset=0,
+                search_filters=search_filters,
+                referrer=referrer,
+                actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
+            )
+            snuba_data = {gid: {sort_field: score} for gid, score in snuba_groups}
+            candidate_ids = list(snuba_data.keys())
+
+        if not candidate_ids:
+            return self.empty_result
+
+        logical_names = list(postgres_fields.keys())
+        pg_rows = (
+            group_queryset.filter(id__in=candidate_ids)
+            .using_replica()
+            .values_list("id", *postgres_fields.values())
+        )
+        pg_data = {row[0]: dict(zip(logical_names, row[1:])) for row in pg_rows}
+
+        # Each signal resolver runs once over all candidates, returning {group_id: value}.
+        signal_data: dict[str, dict[int, Any]] = {
+            name: resolver(actor, organization, candidate_ids)
+            for name, resolver in strategy.signal_resolvers.items()
+        }
+
+        scored_groups: list[tuple[Any, int]] = []
+        for gid in candidate_ids:
+            pg_values = pg_data.get(gid)
+            if pg_values is None:
+                continue
+            merged = {
+                **pg_values,
+                **snuba_data.get(gid, {}),
+                **{name: values[gid] for name, values in signal_data.items() if gid in values},
+            }
+            try:
+                score = strategy.score_fn(merged)
+            except (TypeError, KeyError):
+                continue
+            scored_groups.append((score, gid))
+
+        if not scored_groups:
+            return self.empty_result
+
+        paginator_results = SequencePaginator(
+            scored_groups, reverse=True, **paginator_options
+        ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
+        groups = Group.objects.in_bulk(paginator_results.results)
+        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+        return paginator_results
 
     def query(
         self,
@@ -801,6 +1298,46 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # is invalid.
             return self.empty_result
 
+        pg_overflow_fallback = False
+        pg_strategy = self.postgres_sort_strategies.get(sort_by)
+        if pg_strategy is not None:
+            pg_result = self._execute_postgres_sort(
+                strategy=pg_strategy,
+                sort_by=sort_by,
+                group_queryset=group_queryset,
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                limit=limit,
+                cursor=cursor,
+                count_hits=count_hits,
+                paginator_options=paginator_options,
+                max_hits=max_hits,
+                actor=actor,
+                start=start,
+                end=end,
+                aggregate_kwargs=aggregate_kwargs,
+                referrer=referrer,
+            )
+            if pg_result is not None:
+                metrics.timing(
+                    "snuba.search.query",
+                    (timezone.now() - now).total_seconds(),
+                    tags={"postgres_only": False, "sort": sort_by},
+                )
+                return pg_result
+            # Overflow: too many candidates to score in memory. Fall through to the Snuba
+            # chunked path (which applies issue-type visibility), never the postgres-only
+            # `date` shortcut below. If this sort has no Snuba-only equivalent, fall back
+            # to `date`.
+            pg_overflow_fallback = True
+            # Keep the original sort only if it maps to a real Snuba aggregation for the
+            # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
+            # sorts like "inbox"), have no aggregation and must fall back to `date` instead
+            # of flowing an empty sort_field into the aggregation lookup.
+            if not self.sort_strategies.get(sort_by):
+                sort_by = "date"
+
         # If the requested sort is `date` (`last_seen`) and there
         # are no other Snuba-based search predicates, we can simply
         # return the results from Postgres.
@@ -808,6 +1345,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # XXX: Don't enable this for now, it doesn't properly respect issue platform rules for hiding issue types.
             # We'll need to consolidate where we apply the type filters if we do want this.
             allow_postgres_only_search
+            and not pg_overflow_fallback
             and cursor is None
             and sort_by == "date"
             and
@@ -937,7 +1475,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
+                environment_ids=[environment.id for environment in environments]
+                if environments
+                else None,
                 organization=projects[0].organization,
                 sort_field=sort_field,
                 cursor=cursor,
@@ -1095,24 +1635,23 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            kwargs = {}
-            if not too_many_candidates:
-                kwargs["group_ids"] = group_ids
 
             snuba_groups, snuba_total = self.snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
+                environment_ids=[environment.id for environment in environments]
+                if environments
+                else None,
                 organization=projects[0].organization,
                 sort_field=sort_field,
+                group_ids=group_ids if not too_many_candidates else None,
                 limit=sample_size,
                 offset=0,
                 get_sample=True,
                 search_filters=search_filters,
                 actor=actor,
                 referrer=referrer,
-                **kwargs,
             )
             snuba_count = len(snuba_groups)
 

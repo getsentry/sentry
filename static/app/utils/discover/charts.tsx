@@ -2,9 +2,9 @@ import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {defined} from 'sentry/utils/defined';
 import type {
   AggregationOutputType,
   DataUnit,
@@ -169,7 +169,7 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
   };
 
   if (!series[0]?.data) {
-    return undefined;
+    return;
   }
 
   for (const {seriesName, data} of series) {
@@ -194,7 +194,7 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
     }
   }
   if (range.max === 0 && range.min === Infinity) {
-    return undefined;
+    return;
   }
   return range;
 }

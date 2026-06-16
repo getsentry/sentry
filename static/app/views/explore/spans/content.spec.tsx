@@ -1,15 +1,29 @@
+import type {ReactNode} from 'react';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MAX_PERIOD_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ExploreContent} from './content';
+
+function TopBarWrapper({children}: {children: ReactNode}) {
+  return (
+    <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="title">
+        {props => <div {...props} data-test-id="topbar-title-slot" />}
+      </TopBar.Slot.Outlet>
+      {children}
+    </TopBar.Slot.Provider>
+  );
+}
 
 describe('ExploreContent', () => {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['gen-ai-features', 'traces-page-cross-event-querying'],
+      features: ['gen-ai-features'],
     },
   });
 
@@ -75,7 +89,7 @@ describe('ExploreContent', () => {
       body: [project],
     });
     MockApiClient.addMockResponse({
-      url: `/assistant/`,
+      url: '/assistant/',
       method: 'GET',
       body: [],
     });
@@ -101,6 +115,7 @@ describe('ExploreContent', () => {
 
       render(<ExploreContent />, {
         organization,
+        additionalWrapper: TopBarWrapper,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
@@ -120,7 +135,7 @@ describe('ExploreContent', () => {
       ).toBeInTheDocument();
     });
 
-    it('resets period when max pickable days decreases', async () => {
+    it('resets period when maxDateRange is applied after cross events are added', async () => {
       PageFiltersStore.onInitializeUrlState({
         projects: [project].map(p => parseInt(p.id, 10)),
         environments: [],
@@ -129,6 +144,7 @@ describe('ExploreContent', () => {
 
       const {router} = render(<ExploreContent />, {
         organization,
+        additionalWrapper: TopBarWrapper,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',

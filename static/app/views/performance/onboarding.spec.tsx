@@ -34,18 +34,43 @@ describe('Performance Onboarding View > Unsupported Banner', () => {
   });
 });
 
+describe('Performance Onboarding View > Sample Transaction Button', () => {
+  // The default OrganizationFixture access does not include event scopes.
+  const organization = OrganizationFixture();
+
+  it('shows the sample transaction button when the user has event:write access', () => {
+    const project = ProjectFixture({
+      platform: 'java',
+      access: ['project:read', 'event:write'],
+    });
+    render(<LegacyOnboarding organization={organization} project={project} />);
+
+    expect(screen.getByTestId('create-sample-transaction-btn')).toBeInTheDocument();
+  });
+
+  it('hides the sample transaction button when the user lacks event:write access', () => {
+    const project = ProjectFixture({
+      platform: 'java',
+      access: ['project:read'],
+    });
+    render(<LegacyOnboarding organization={organization} project={project} />);
+
+    expect(screen.queryByTestId('create-sample-transaction-btn')).not.toBeInTheDocument();
+  });
+});
+
 describe('Testing new onboarding ui', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/keys/`,
+      url: '/projects/org-slug/project-slug/keys/',
       method: 'GET',
       body: [ProjectKeysFixture()[0]],
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/sdks/`,
+      url: '/organizations/org-slug/sdks/',
       method: 'GET',
     });
 
@@ -59,10 +84,11 @@ describe('Testing new onboarding ui', () => {
   it('Renders updated ui', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
+      access: ['project:read', 'event:write'],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: projectMock,
     });
@@ -115,7 +141,7 @@ describe('Testing new onboarding ui', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: projectMock,
     });
@@ -177,7 +203,7 @@ describe('Testing new onboarding ui', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/`,
+      url: '/projects/org-slug/project-slug/',
       method: 'GET',
       body: projectMock,
     });
@@ -235,7 +261,7 @@ describe('Testing new onboarding ui', () => {
     render(<Onboarding organization={organization} project={projectMock} />, {
       initialRouterConfig: {
         location: {
-          pathname: `/onboarding/`,
+          pathname: '/onboarding/',
           query: {
             guidedStep: '4',
           },

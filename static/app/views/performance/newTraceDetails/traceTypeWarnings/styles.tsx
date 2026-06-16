@@ -44,7 +44,7 @@ function Banner(props: BannerProps) {
         <Flex align="center" gap="xs">
           <Flex gap="md">
             <Button
-              priority="primary"
+              variant="primary"
               onClick={event => {
                 event.preventDefault();
                 props.onPrimaryButtonClick();
@@ -69,7 +69,7 @@ function Banner(props: BannerProps) {
         position="bottom-end"
         triggerProps={{
           showChevron: false,
-          priority: 'transparent',
+          variant: 'transparent',
           icon: <IconClose variant="muted" />,
         }}
         size="xs"

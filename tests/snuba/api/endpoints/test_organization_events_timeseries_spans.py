@@ -103,7 +103,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 ],
             )
         self.store_spans(spans)
-        self.user = self.create_user("superuser@example.com", is_superuser=True)
 
         response = self._do_request(
             data={
@@ -113,7 +112,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                "debug": "wmak",
             },
         )
         assert response.status_code == 200, response.content
@@ -140,6 +138,46 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "valueUnit": None,
             "interval": 3_600_000,
         }
+
+    def test_debug_param(self) -> None:
+        self.user = self.create_user("user@example.com", is_superuser=False)
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(user=self.user)
+
+        response = self._do_request(
+            {
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "debug": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        # Debug should be ignored without superuser
+        assert "debug_info" not in response.data["meta"]
+
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(user=self.user)
+
+        response = self._do_request(
+            {
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "debug": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "debug_info" in response.data["meta"]
+        # We should get the query back in the query key
+        assert "expressions" in response.data["meta"]["debug_info"]["query"]
 
     def test_handle_nans_from_snuba(self) -> None:
         self.store_spans(
@@ -1096,7 +1134,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert timeseries["groupBy"] == [
             {"key": "project", "value": projects[0].slug},
-            {"key": "project.id", "value": str(projects[0].id)},
+            {"key": "project.id", "value": projects[0].id},
         ]
         assert timeseries["meta"] == {
             "dataScanned": "full",
@@ -1115,7 +1153,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert timeseries["groupBy"] == [
             {"key": "project", "value": projects[1].slug},
-            {"key": "project.id", "value": str(projects[1].id)},
+            {"key": "project.id", "value": projects[1].id},
         ]
         assert timeseries["meta"] == {
             "dataScanned": "full",
@@ -2635,8 +2673,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             for ts in response.data["timeSeries"]
             if ts["groupBy"] is not None
         }
-        assert time_series_by_project_id[str(self.project.id)]["groupBy"] == [
-            {"key": "project.id", "value": str(self.project.id)},
+        assert time_series_by_project_id[self.project.id]["groupBy"] == [
+            {"key": "project.id", "value": self.project.id},
             {"key": "project.name", "value": self.project.slug},
         ]
 
@@ -2683,9 +2721,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             for ts in response.data["timeSeries"]
             if ts["groupBy"] is not None
         }
-        assert time_series_by_status["200"]["groupBy"] == [
-            {"key": "http.response_status_code", "value": "200"}
+        assert time_series_by_status[200]["groupBy"] == [
+            {"key": "http.response_status_code", "value": 200}
         ]
-        assert time_series_by_status["404"]["groupBy"] == [
-            {"key": "http.response_status_code", "value": "404"}
+        assert time_series_by_status[404]["groupBy"] == [
+            {"key": "http.response_status_code", "value": 404}
         ]

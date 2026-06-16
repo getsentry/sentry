@@ -1,10 +1,11 @@
+import {useDrawerContentContext} from '@sentry/scraps/drawer';
+
 import {
   BannerWrapper,
   FeatureFlagCTAContent,
 } from 'sentry/components/events/featureFlags/cta/featureFlagCTAContent';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
-import {useDrawerContentContext} from 'sentry/components/globalDrawer/components';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export function FlagDrawerCTA({projectPlatform}: {projectPlatform?: PlatformKey}) {
   const {activateSidebar} = useFeatureFlagOnboarding({projectPlatform});

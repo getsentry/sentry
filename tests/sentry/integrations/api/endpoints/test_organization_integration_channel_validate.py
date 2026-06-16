@@ -23,7 +23,7 @@ class BaseChannelValidateTest(APITestCase):
 
 @control_silo_test
 class SlackChannelValidateTest(BaseChannelValidateTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -47,7 +47,7 @@ class SlackChannelValidateTest(BaseChannelValidateTest):
 
 @control_silo_test
 class MsTeamsChannelValidateTest(BaseChannelValidateTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -70,7 +70,7 @@ class MsTeamsChannelValidateTest(BaseChannelValidateTest):
 
 @control_silo_test
 class DiscordChannelValidateTest(BaseChannelValidateTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -129,18 +129,18 @@ class DiscordChannelValidateTest(BaseChannelValidateTest):
 
 @control_silo_test
 class ChannelValidateErrorCasesTest(BaseChannelValidateTest):
-    def test_missing_channel_param(self):
+    def test_missing_channel_param(self) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="slack", name="Slack", external_id="slack:1"
         )
         resp = self.get_error_response(self.organization.slug, integration.id, status_code=400)
         assert "channel" in resp.data
 
-    def test_integration_not_found(self):
+    def test_integration_not_found(self) -> None:
         resp = self.get_error_response(self.organization.slug, 99999, status_code=404, channel="#x")
         assert resp.status_code == 404
 
-    def test_unsupported_provider(self):
+    def test_unsupported_provider(self) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="github", name="GitHub", external_id="github:1"
         )

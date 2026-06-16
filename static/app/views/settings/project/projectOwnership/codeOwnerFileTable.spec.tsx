@@ -32,7 +32,6 @@ describe('CodeOwnerFileTable', () => {
     const codeOwnerSyncData = {
       ...codeowner,
       raw: '# new codeowner rules',
-      date_updated: new Date('2023-10-03'),
     };
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -67,6 +66,8 @@ describe('CodeOwnerFileTable', () => {
     );
 
     expect(screen.getByText('example/repo-name')).toBeInTheDocument();
+    const datetime = screen.getByRole('time').getAttribute('datetime')!;
+    expect(new Date(datetime).getTime()).toBe(new Date(codeowner.dateSynced!).getTime());
 
     await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Sync'}));
@@ -81,5 +82,22 @@ describe('CodeOwnerFileTable', () => {
     await waitFor(() => {
       expect(onDelete).toHaveBeenCalledWith(codeowner);
     });
+  });
+
+  it('falls back to dateUpdated when dateSynced is null', () => {
+    const codeownerWithoutSync = {...codeowner, dateSynced: null};
+    render(
+      <CodeOwnerFileTable
+        project={project}
+        codeowners={[codeownerWithoutSync]}
+        onDelete={() => {}}
+        onUpdate={() => {}}
+        disabled={false}
+      />,
+      {organization}
+    );
+
+    const datetime = screen.getByRole('time').getAttribute('datetime')!;
+    expect(new Date(datetime).getTime()).toBe(new Date(codeowner.dateUpdated).getTime());
   });
 });

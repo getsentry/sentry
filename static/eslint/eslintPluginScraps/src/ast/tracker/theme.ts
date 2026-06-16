@@ -51,8 +51,7 @@ export function createThemeTracker(): ThemeTracker {
       },
 
       // Track const theme = useTheme()
-      /** @param {import('estree').VariableDeclarator} node */
-      VariableDeclarator(node) {
+      VariableDeclarator(node: TSESTree.VariableDeclarator) {
         if (!useThemeImported) {
           return;
         }

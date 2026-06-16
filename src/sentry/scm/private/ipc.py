@@ -14,29 +14,28 @@ from collections.abc import Callable
 from typing import assert_never, cast
 
 import msgspec
-import sentry_sdk
+from scm.types import CheckRunAction, CommentAction, CommentType, ProviderName, PullRequestAction
 
-from sentry.scm.errors import SCMProviderNotSupported
+from sentry.scm.errors import SCMProviderEventNotSupported, SCMProviderNotSupported
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream, scm_event_stream
+from sentry.scm.private.helpers import (
+    record_count_metric,
+    record_distribution_metric,
+    record_timer_metric,
+)
 from sentry.scm.private.webhooks.github import deserialize_github_event
 from sentry.scm.types import (
-    CheckRunAction,
     CheckRunEvent,
-    CommentAction,
     CommentEvent,
-    CommentType,
     EventType,
     EventTypeHint,
     HybridCloudSilo,
-    ProviderName,
-    PullRequestAction,
     PullRequestEvent,
     SubscriptionEvent,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import scm_tasks
-from sentry.utils import metrics
 
 
 class SubscriptionEventParser(msgspec.Struct, gc=False, frozen=True):
@@ -96,6 +95,8 @@ class PullRequestEventDataParser(msgspec.Struct, gc=False, frozen=True):
     base: PullRequestBranchParser
     is_private_repo: bool
     author: AuthorParser | None
+    draft: bool
+    repository_id: str
 
 
 class PullRequestEventParser(msgspec.Struct, gc=False, frozen=True):
@@ -202,6 +203,8 @@ def deserialize_pull_request_event(event_data: str) -> PullRequestEvent:
                 if parsed.pull_request.author
                 else None
             ),
+            "draft": parsed.pull_request.draft,
+            "repository_id": parsed.pull_request.repository_id,
         },
         subscription_event=_map_subscription_event(parsed.subscription_event),
     )
@@ -266,6 +269,8 @@ def serialize_pull_request_event(event: PullRequestEvent) -> str:
             if event.pull_request["author"]
             else None
         ),
+        draft=event.pull_request["draft"],
+        repository_id=event.pull_request["repository_id"],
     )
     structured_event = PullRequestEventParser(
         action=event.action,
@@ -356,10 +361,8 @@ def produce_to_listeners(
     """
     parsed_event = deserialize_raw_event(event)
 
-    # Most events are not supported. We drop them. They could be processed elsewhere but they're
-    # not processed by the unified SCM platform.
     if parsed_event is None:
-        return None
+        raise SCMProviderEventNotSupported(f"Unsupported event type `{event['event_type_hint']}`.")
 
     message = serialize_event(parsed_event)
 
@@ -433,26 +436,6 @@ def run_webhook_handler_region_task(
         record_distribution=record_distribution_metric,
         record_timer=record_timer_metric,
     )
-
-
-def report_error_to_sentry(e: Exception) -> None:
-    """Typing wrapper around sentry_sdk.capture_exception."""
-    sentry_sdk.capture_exception(e)
-
-
-def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
-    """Typing wrapper around metrics.incr."""
-    metrics.incr(key, amount, tags=tags)
-
-
-def record_distribution_metric(key: str, amount: int, tags: dict[str, str], unit: str) -> None:
-    """Typing wrapper around metrics.distribution."""
-    metrics.distribution(key, amount, tags=tags, unit=unit)
-
-
-def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
-    """Typing wrapper around metrics.distribution."""
-    metrics.distribution(key, amount, tags=tags)
 
 
 METRIC_PREFIX = "sentry.scm.run_listener"

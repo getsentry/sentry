@@ -13,7 +13,7 @@ from sentry.testutils.helpers.task_runner import TaskRunner
 
 
 class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 

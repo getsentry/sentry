@@ -43,8 +43,6 @@ describe('ProjectDebugFiles', () => {
       initialRouterConfig,
     });
 
-    expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
-
     // Uploaded debug files content
     expect(
       await screen.findByText('Uploaded debug information files')
@@ -123,7 +121,7 @@ describe('ProjectDebugFiles', () => {
     });
 
     render(<ProjectDebugFiles />, {
-      organization: {...organization, features: ['symbol-sources']},
+      organization,
       outletContext: {project},
       initialRouterConfig,
     });

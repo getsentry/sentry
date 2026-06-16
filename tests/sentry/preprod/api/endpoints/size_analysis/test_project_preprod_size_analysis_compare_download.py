@@ -1,7 +1,6 @@
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -13,7 +12,6 @@ from sentry.preprod.models import (
 from sentry.testutils.cases import TestCase
 
 
-@override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
 class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -195,6 +193,61 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpointTest(TestCase):
         response = self.client.get(url)
         assert response.status_code == 404
         assert response.json()["detail"] == "This build's size data has expired."
+
+    def test_download_size_analysis_comparison_different_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        limited_user = self.create_user()
+        accessible_team = self.create_team(organization=self.organization)
+        self.project.add_team(accessible_team)
+        self.create_member(
+            user=limited_user,
+            organization=self.organization,
+            teams=[accessible_team],
+            has_global_access=False,
+        )
+        restricted_project = self.create_project(organization=self.organization)
+        restricted_head_artifact = self.create_preprod_artifact(
+            project=restricted_project,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        restricted_base_artifact = self.create_preprod_artifact(
+            project=restricted_project,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        restricted_head_metric = self.create_preprod_artifact_size_metrics(
+            restricted_head_artifact,
+            analysis_file_id=self.head_file.id,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="main",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+        restricted_base_metric = self.create_preprod_artifact_size_metrics(
+            restricted_base_artifact,
+            analysis_file_id=self.base_file.id,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            identifier="main",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+        self.create_preprod_artifact_size_comparison(
+            organization=self.organization,
+            head_size_analysis=restricted_head_metric,
+            base_size_analysis=restricted_base_metric,
+            file_id=self.comparison_file.id,
+            state=PreprodArtifactSizeComparison.State.SUCCESS,
+        )
+
+        self.login_as(user=limited_user)
+        url = self._get_url(
+            head_size_metric_id=restricted_head_metric.id,
+            base_size_metric_id=restricted_base_metric.id,
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Comparison not found."
 
     def test_download_size_analysis_comparison_different_organization(self) -> None:
         other_user = self.create_user()

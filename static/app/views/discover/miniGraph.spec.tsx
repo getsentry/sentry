@@ -3,8 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import * as eventRequest from 'sentry/components/charts/eventsRequest';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
+import {EventView} from 'sentry/utils/discover/eventView';
 import MiniGraph from 'sentry/views/discover/miniGraph';
 
 jest.mock('sentry/components/charts/eventsRequest');
@@ -43,7 +43,7 @@ describe('Discover > MiniGraph', () => {
       />
     );
 
-    expect(eventRequest.default).toHaveBeenCalledWith(
+    expect(EventsRequest).toHaveBeenCalledWith(
       expect.objectContaining({yAxis}),
       expect.anything()
     );
@@ -62,7 +62,7 @@ describe('Discover > MiniGraph', () => {
       />
     );
 
-    expect(eventRequest.default).toHaveBeenCalledWith(
+    expect(EventsRequest).toHaveBeenCalledWith(
       expect.objectContaining({interval: '12h'}),
       expect.anything()
     );

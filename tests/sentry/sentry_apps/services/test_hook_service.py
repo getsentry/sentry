@@ -437,7 +437,7 @@ class TestHookService(TestCase):
 class TestHookServiceBulkCreate(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user, region="us")
+        self.org = self.create_organization(owner=self.user, cell="us")
         self.project = self.create_project(name="foo", organization=self.org)
         self.sentry_app = self.create_sentry_app(
             organization_id=self.org.id, events=["issue.created"]
@@ -448,7 +448,7 @@ class TestHookServiceBulkCreate(TestCase):
         installation1 = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
-        org2 = self.create_organization(name="Test Org 2", region="us")
+        org2 = self.create_organization(name="Test Org 2", cell="us")
         installation2 = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=org2, user=self.user
         )

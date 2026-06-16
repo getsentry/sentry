@@ -22,7 +22,7 @@ _sentinel = object()
 
 @cell_silo_test
 class CreatePreprodPrCommentTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(organization=self.organization)
@@ -529,7 +529,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         assert build_dist["success"] is True
         assert build_dist["comment_id"] == "55555"
 
-    def test_skips_xcarchive_without_valid_code_signature(self):
+    def test_skips_xcarchive_without_valid_code_signature(self) -> None:
         artifact = self._create_artifact(extras={"is_code_signature_valid": False})
 
         with self.feature("organizations:preprod-build-distribution-pr-comments"):

@@ -118,7 +118,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
     def __delivery_callback(
         self,
         future: Future[str],
-        error: KafkaError,
+        error: KafkaError | None,
         message: ConfluentMessage,
     ) -> None:
         if error is not None:
@@ -142,14 +142,12 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
 
         future: Future[str] = Future()
         future.set_running_or_notify_cancel()
-        (
-            producer.produce(
-                topic=topic.name,
-                value=output_message.payload.value,
-                key=output_message.payload.key,
-                headers=output_message.payload.headers,
-                on_delivery=partial(self.__delivery_callback, future),
-            ),
+        producer.produce(
+            topic=topic.name,
+            value=output_message.payload.value,
+            key=output_message.payload.key,
+            headers=output_message.payload.headers,  # type: ignore[arg-type]
+            on_delivery=partial(self.__delivery_callback, future),
         )
         self.__queue.append((output_message.committable, future))
 

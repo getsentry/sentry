@@ -69,7 +69,7 @@ export function ProjectsTable({
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
   // We store the expanded items at list level to allow calculating item height
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState(new Set());
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const handleToggleItemExpanded = useCallback((id: string) => {
@@ -358,7 +358,7 @@ const TableRow = memo(function TableRow({
               tooltipProps={{title: t('Open Project Settings')}}
               aria-label={t('Open Project Settings')}
               size="xs"
-              priority="link"
+              variant="link"
               icon={<IconSettings />}
               to={`/settings/${organization.slug}/projects/${project.slug}/performance/`}
             />
@@ -385,7 +385,7 @@ const TableRow = memo(function TableRow({
           )}
         </SubContent>
       </Cell>
-      <Flex direction="column" padding="xl xl md xl" style={{minWidth: 0}}>
+      <Flex direction="column" padding="xl xl md xl" gap="xs" style={{minWidth: 0}}>
         <FirstCellLine align="center" height="32px">
           <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
@@ -394,6 +394,7 @@ const TableRow = memo(function TableRow({
               onChange={handleChange}
               size="sm"
               value={sampleRate}
+              aria-label={t('Sample rate for %s', project.slug)}
             />
           </Tooltip>
         </FirstCellLine>

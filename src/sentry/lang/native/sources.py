@@ -4,7 +4,6 @@ import base64
 import logging
 import os
 from copy import deepcopy
-from datetime import datetime
 from typing import Any
 
 import google.auth
@@ -22,6 +21,7 @@ from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.models.project import Project
 from sentry.utils import redis, safe
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
@@ -271,7 +271,7 @@ def _last_upload_key(project_id: int) -> str:
 
 
 def record_last_upload(project: Project):
-    timestamp = int(datetime.utcnow().timestamp() * 1000)
+    timestamp = int(deprecated_utcnow().timestamp() * 1000)
     _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
 
 
@@ -542,12 +542,7 @@ def get_sources_for_project(project):
     project_source = get_internal_source(project)
     sources.append(project_source)
 
-    # Check that the organization still has access to symbol sources. This
-    # controls both builtin and external sources.
     organization = project.organization
-
-    if not features.has("organizations:symbol-sources", organization):
-        return sources
 
     # Custom sources have their own feature flag. Check them independently.
     if features.has("organizations:custom-symbol-sources", organization):

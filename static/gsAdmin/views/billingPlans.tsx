@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
@@ -185,7 +186,7 @@ export function BillingPlans() {
   }
 
   return (
-    <BillingPlansContainer>
+    <Container padding="xl">
       <h1>Billing Plans</h1>
       <Button icon={<IconDownload />} onClick={handleDownloadCsv}>
         Download CSV
@@ -199,7 +200,7 @@ export function BillingPlans() {
           notLive={billingPlansResponse.not_live}
         />
       ))}
-    </BillingPlansContainer>
+    </Container>
   );
 }
 
@@ -348,8 +349,8 @@ function PricingTable({pricing}: {pricing: Record<string, Price>}) {
           {Object.entries(pricing).map(([platform, price]) => (
             <tr key={platform}>
               <td>{platform}</td>
-              <td>{formatCurrency(price.monthly)}</td>
-              <td>{formatCurrency(price.annual)}</td>
+              <td data-label="Monthly">{formatCurrency(price.monthly)}</td>
+              <td data-label="Annual">{formatCurrency(price.annual)}</td>
             </tr>
           ))}
         </tbody>
@@ -408,17 +409,17 @@ function PriceTiersTable({
             {tiers.map((tier, index) => (
               <tr key={`${dataCategoryId}-${tier.tier}-${index}`}>
                 <td>{tier.tier}</td>
-                <td>{Number(tier.volume).toLocaleString('en-US')}</td>
-                <td>{formatCurrency(tier.monthly)}</td>
-                <td>{formatCurrency(tier.annual)}</td>
-                <td>
+                <td data-label="Volume">{Number(tier.volume).toLocaleString('en-US')}</td>
+                <td data-label="Monthly">{formatCurrency(tier.monthly)}</td>
+                <td data-label="Annual">{formatCurrency(tier.annual)}</td>
+                <td data-label="Reserved PPE">
                   {displayUnitPrice({
                     cents: tier.reserved_ppe,
                     minDigits: 2,
                     maxDigits: 10,
                   })}
                 </td>
-                <td>
+                <td data-label="PAYG PPE">
                   {displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10})}
                 </td>
               </tr>
@@ -429,10 +430,6 @@ function PriceTiersTable({
     </div>
   );
 }
-
-const BillingPlansContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
-`;
 
 const StyledResultTable = styled(ResultTable)`
   margin-bottom: ${p => p.theme.space.xl};

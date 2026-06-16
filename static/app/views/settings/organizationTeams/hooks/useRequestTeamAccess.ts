@@ -1,10 +1,10 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-
 interface UseRequestTeamAccessOptions {
   organization: Organization;
   team: Team;

@@ -66,13 +66,21 @@ export async function initializeLocale(config: Config) {
     queryStringLang || config.user?.options?.language || config.languageCode || 'en';
 
   try {
-    const translations = await getTranslations(languageCode);
-    setLocale(translations);
-
-    // No need to import english
-    if (languageCode !== 'en') {
-      await import(`moment/locale/${languageCode}`);
-      moment.locale(languageCode);
+    if (languageCode === 'en') {
+      const translations = await getTranslations(languageCode);
+      setLocale(translations);
+    } else {
+      const [translations, momentLocaleLoaded] = await Promise.all([
+        getTranslations(languageCode),
+        import(`moment/locale/${languageCode}`).then(
+          () => true,
+          () => false
+        ),
+      ]);
+      setLocale(translations);
+      if (momentLocaleLoaded) {
+        moment.locale(languageCode);
+      }
     }
   } catch (err) {
     Sentry.captureException(err);

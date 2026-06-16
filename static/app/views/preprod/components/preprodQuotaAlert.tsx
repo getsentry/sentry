@@ -1,6 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -14,7 +14,7 @@ export function PreprodQuotaAlert({system}: {system?: boolean}) {
     hasSizeQuota: boolean;
   }>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/preprod/quota/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/preprod/quota/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

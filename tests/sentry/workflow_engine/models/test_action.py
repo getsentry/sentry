@@ -18,6 +18,7 @@ class TestAction(TestCase):
 
         self.mock_event = WorkflowEventData(event=mock_group_event, group=self.group)
         self.action = Action(type=Action.Type.SLACK)
+        self.workflow = self.create_workflow()
         self.config_schema = {
             "$id": "https://example.com/user-profile.schema.json",
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -79,7 +80,9 @@ class TestAction(TestCase):
 
         notification_uuid = str(uuid.uuid4())
         with patch.object(self.action, "get_handler", return_value=mock_handler):
-            self.action.trigger(self.mock_event, notification_uuid=notification_uuid)
+            self.action.trigger(
+                self.mock_event, notification_uuid=notification_uuid, workflow_id=self.workflow.id
+            )
 
             assert mock_handler.execute.call_count == 1
             invocation = mock_handler.execute.call_args[0][0]
@@ -96,7 +99,11 @@ class TestAction(TestCase):
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             with pytest.raises(Exception, match="Handler failed"):
-                self.action.trigger(self.mock_event, notification_uuid=str(uuid.uuid4()))
+                self.action.trigger(
+                    self.mock_event,
+                    notification_uuid=str(uuid.uuid4()),
+                    workflow_id=self.workflow.id,
+                )
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
@@ -105,7 +112,9 @@ class TestAction(TestCase):
         mock_get_detector.return_value = Mock(spec=Detector, type="error")
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
-            self.action.trigger(self.mock_event, notification_uuid=str(uuid.uuid4()))
+            self.action.trigger(
+                self.mock_event, notification_uuid=str(uuid.uuid4()), workflow_id=self.workflow.id
+            )
 
             mock_handler.execute.assert_called_once()
             mock_incr.assert_called_once_with(

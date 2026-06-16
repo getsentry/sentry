@@ -11,12 +11,13 @@ import {IconCopy, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {SpanFields} from 'sentry/views/insights/types';
 
 function getNodeType(node: SpanChartNode | null) {
   if (!node) {
     return '';
   }
-  if (node.node.span.op === 'transaction') {
+  if (node.node.span[SpanFields.SPAN_OP] === 'transaction') {
     return t('Transaction');
   }
   return t('Span');
@@ -63,8 +64,8 @@ export function SpansContextMenu(props: SpansContextMenuProps) {
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               disabled={
-                !props.hoveredNode.node.span.event_id &&
-                !props.hoveredNode.node.span.span_id
+                !props.hoveredNode.node.span[SpanFields.TRANSACTION_EVENT_ID] &&
+                !props.hoveredNode.node.span[SpanFields.SPAN_ID]
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => {
@@ -78,7 +79,7 @@ export function SpansContextMenu(props: SpansContextMenuProps) {
               {tct('Copy Event ID', {type: title})}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
-              disabled={!props.hoveredNode.node.span.description}
+              disabled={!props.hoveredNode.node.span[SpanFields.SPAN_DESCRIPTION]}
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => {
                   props.onCopyDescription();
@@ -91,7 +92,7 @@ export function SpansContextMenu(props: SpansContextMenuProps) {
               {tct('Copy [type] Description', {type: title})}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
-              disabled={!props.hoveredNode.node.span.op}
+              disabled={!props.hoveredNode.node.span[SpanFields.SPAN_OP]}
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => {
                   props.onCopyOperation();

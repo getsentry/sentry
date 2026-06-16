@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from typing import ClassVar
 
 import sentry_sdk
 
@@ -52,15 +53,14 @@ class TrendBundle:
     regression_group: RegressionGroup | None = None
 
 
-@dataclass(frozen=True)
 class RegressionDetector(ABC):
-    source: str
-    kind: str
-    regression_type: RegressionType
-    min_change: int
-    buffer_period: timedelta
-    resolution_rel_threshold: float
-    escalation_rel_threshold: float
+    source: ClassVar[str]
+    kind: ClassVar[str]
+    regression_type: ClassVar[RegressionType]
+    min_change: ClassVar[int]
+    buffer_period: ClassVar[timedelta]
+    resolution_rel_threshold: ClassVar[float]
+    escalation_rel_threshold: ClassVar[float]
 
     @classmethod
     @abstractmethod

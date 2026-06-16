@@ -1,7 +1,7 @@
 import {createContext, useCallback, useContext} from 'react';
 import type {eventWithTime, ReplayPlugin} from '@sentry-internal/rrweb';
 
-import {CanvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
+import {canvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -29,5 +29,5 @@ export function useReplayPlayerPlugins() {
 }
 
 function getPlugins(_organization: Organization, events: eventWithTime[]) {
-  return [CanvasReplayerPlugin(events)];
+  return [canvasReplayerPlugin(events)];
 }

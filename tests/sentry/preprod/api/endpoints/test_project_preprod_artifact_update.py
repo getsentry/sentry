@@ -651,7 +651,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.installable_app_error_message == "Distribution quota exceeded"
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_sets_error_code_skipped_when_filtered(self) -> None:
+    def test_update_sets_error_code_distribution_filtered(self) -> None:
         self.preprod_artifact.app_id = "com.my.app"
         self.preprod_artifact.save()
 
@@ -664,16 +664,36 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         self.preprod_artifact.refresh_from_db()
         assert (
             self.preprod_artifact.installable_app_error_code
-            == PreprodArtifact.InstallableAppErrorCode.SKIPPED
+            == PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_FILTERED
         )
         assert (
             self.preprod_artifact.installable_app_error_message
-            == "Distribution filtered out by project settings"
+            == "Build filtered out by project settings"
+        )
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_sets_error_code_distribution_disabled(self) -> None:
+        from sentry.preprod.quotas import DISTRIBUTION_ENABLED_KEY
+
+        self.project.update_option(DISTRIBUTION_ENABLED_KEY, False)
+
+        data = {"artifact_type": 1}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        self.preprod_artifact.refresh_from_db()
+        assert (
+            self.preprod_artifact.installable_app_error_code
+            == PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_DISABLED
+        )
+        assert (
+            self.preprod_artifact.installable_app_error_message
+            == "Distribution disabled for this project"
         )
 
 
 class FindOrCreateReleaseTest(TestCase):
-    def test_exact_version_matching_prevents_incorrect_matches(self):
+    def test_exact_version_matching_prevents_incorrect_matches(self) -> None:
         package = "com.hackernews"
         version = "1.2.3"
 
@@ -686,7 +706,7 @@ class FindOrCreateReleaseTest(TestCase):
         assert result is not None
         assert result.version == f"{package}@{version}"
 
-    def test_finds_existing_release_regardless_of_build_number(self):
+    def test_finds_existing_release_regardless_of_build_number(self) -> None:
         package = "com.example.app"
         version = "2.1.0"
 

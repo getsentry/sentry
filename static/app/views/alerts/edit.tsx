@@ -1,15 +1,18 @@
-import {Fragment, useState} from 'react';
+import {useMemo, useState, Fragment} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouter} from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
@@ -30,9 +33,28 @@ export default function ProjectAlertsEditor() {
   const organization = useOrganization();
   const location = useLocation();
   const params = useParams<RouteParams>();
-  const router = useRouter();
+  const navigate = useNavigate();
   const routes = useRoutes();
   const {project, members} = useAlertBuilderOutlet();
+
+  // The legacy alert rule editors below still consume the react-router 3
+  // `InjectedRouter` interface. Build a minimal compatible shim until they're
+  // migrated to use the navigate / location hooks directly.
+  const router = useMemo<InjectedRouter>(
+    () =>
+      ({
+        go: delta => navigate(delta),
+        push: path => navigate(path),
+        replace: path => navigate(path, {replace: true}),
+        goBack: () => navigate(-1),
+        goForward: () => navigate(1),
+        location,
+        params,
+        routes,
+        isActive: () => false,
+      }) as InjectedRouter,
+    [location, navigate, params, routes]
+  );
 
   const [title, setTitle] = useState('');
 
@@ -61,7 +83,7 @@ export default function ProjectAlertsEditor() {
   const {teams, isLoading: teamsLoading} = useUserTeams();
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <SentryDocumentTitle
         title={title}
         orgSlug={organization.slug}
@@ -133,6 +155,6 @@ export default function ProjectAlertsEditor() {
           </Fragment>
         )}
       </Layout.Body>
-    </Fragment>
+    </Stack>
   );
 }

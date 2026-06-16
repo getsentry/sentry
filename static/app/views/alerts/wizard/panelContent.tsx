@@ -25,11 +25,7 @@ type PanelContent = {
   illustration?: string;
 };
 
-export function getAlertWizardPanelContent({
-  hasMetricIssues,
-}: {
-  hasMetricIssues: boolean;
-}): Record<AlertType, PanelContent> {
+export function getAlertWizardPanelContent(): Record<AlertType, PanelContent> {
   return {
     issues: {
       description: t(
@@ -45,14 +41,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramIssues,
     },
     num_errors: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues when the number of errors in a project crosses a threshold. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This is useful for monitoring the overall level of errors in your project, or errors occurring in specific parts of your app.',
-            {em: <em />}
-          )
-        : t(
-            'Alert when the number of errors in a project matching your filters crosses a threshold. This is useful for monitoring the overall level or errors in your project or errors occurring in specific parts of your app.'
-          ),
+      description: tct(
+        'This alert creates issues when the number of errors in a project crosses a threshold. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This is useful for monitoring the overall level of errors in your project, or errors occurring in specific parts of your app.',
+        {em: <em />}
+      ),
       examples: [
         t('When the signup page has more than 10k errors in 5 minutes.'),
         t('When there are more than 500k errors in 10 minutes from a specific file.'),
@@ -60,14 +52,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramErrors,
     },
     users_experiencing_errors: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues when the number of users affected by errors in your project crosses a threshold. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This is useful for monitoring the overall level of users impacted by errors in your app.',
-            {em: <em />}
-          )
-        : t(
-            'Alert when the number of users affected by errors in your project crosses a threshold.'
-          ),
+      description: tct(
+        'This alert creates issues when the number of users affected by errors in your project crosses a threshold. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This is useful for monitoring the overall level of users impacted by errors in your app.',
+        {em: <em />}
+      ),
       examples: [
         t('When 100k users experience an error in 1 hour.'),
         t('When 100 users experience a problem on the Checkout page.'),
@@ -75,14 +63,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramUsers,
     },
     throughput: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues when the total number of spans in a project crosses your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are anomalies with throughput for your app.',
-            {em: <em />}
-          )
-        : t(
-            'Throughput is the total number of transactions in a project and you can alert when it reaches a threshold within a period of time.'
-          ),
+      description: tct(
+        'This alert creates issues when the total number of spans in a project crosses your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are anomalies with throughput for your app.',
+        {em: <em />}
+      ),
       examples: [
         t('When number of transactions on a key page exceeds 100k per minute.'),
         t('When number of transactions drops below a threshold.'),
@@ -90,14 +74,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramThroughput,
     },
     trans_duration: {
-      description: hasMetricIssues
-        ? tct(
-            "This alert creates issues based on thresholds you've set for how long it takes for spans to complete. You can use flexible aggregates like percentiles, averages, and min/max. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are anomalies with latency in your app.",
-            {em: <em />}
-          )
-        : t(
-            'Monitor how long it takes for transactions to complete. Use flexible aggregates like percentiles, averages, and min/max.'
-          ),
+      description: tct(
+        "This alert creates issues based on thresholds you've set for how long it takes for spans to complete. You can use flexible aggregates like percentiles, averages, and min/max. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are anomalies with latency in your app.",
+        {em: <em />}
+      ),
       examples: [
         t('When any transaction is slower than 3 seconds.'),
         t('When the 75th percentile response time is higher than 250 milliseconds.'),
@@ -113,43 +93,29 @@ export function getAlertWizardPanelContent({
       illustration: diagramApdex,
     },
     failure_rate: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues based on thresholds you\'ve set for percentage of unsuccessful spans. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. Sentry treats spans with a status other than "ok," "canceled," and "unknown" as failures. [link:Learn more] You will also be alerted when your set thresholds are crossed. This lets you know if there are problems in different layers of your app.',
-            {
-              em: <em />,
-              link: (
-                <a href="https://docs.sentry.io/product/performance/metrics/#failure-rate" />
-              ),
-            }
-          )
-        : t(
-            'Failure rate is the percentage of unsuccessful transactions. Sentry treats transactions with a status other than "ok," "canceled," and "unknown" as failures.'
+      description: tct(
+        'This alert creates issues based on thresholds you\'ve set for percentage of unsuccessful spans. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. Sentry treats spans with a status other than "ok," "canceled," and "unknown" as failures. [link:Learn more] You will also be alerted when your set thresholds are crossed. This lets you know if there are problems in different layers of your app.',
+        {
+          em: <em />,
+          link: (
+            <a href="https://docs.sentry.io/product/performance/metrics/#failure-rate" />
           ),
+        }
+      ),
       examples: [t('When the failure rate for an important endpoint reaches 10%.')],
-      docsLink: hasMetricIssues
-        ? undefined
-        : 'https://docs.sentry.io/product/performance/metrics/#failure-rate',
       illustration: diagramFailureRate,
     },
     lcp: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues based on measuring load performance against your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. Largest Contentful Paint (LCP) marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and so we recommend an LCP of less than 2.5 seconds. [link:Learn more] You will also be alerted when your set thresholds are crossed. This lets you know if there are potential problems directly related to user experience in your app.',
-            {
-              em: <em />,
-              link: <a href="https://docs.sentry.io/product/performance/web-vitals" />,
-            }
-          )
-        : t(
-            'Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and so we recommend an LCP of less than 2.5 seconds.'
-          ),
+      description: tct(
+        'This alert creates issues based on measuring load performance against your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. Largest Contentful Paint (LCP) marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and so we recommend an LCP of less than 2.5 seconds. [link:Learn more] You will also be alerted when your set thresholds are crossed. This lets you know if there are potential problems directly related to user experience in your app.',
+        {
+          em: <em />,
+          link: <a href="https://docs.sentry.io/product/performance/web-vitals" />,
+        }
+      ),
       examples: [
         t('When the 75th percentile LCP of your homepage is longer than 2.5 seconds.'),
       ],
-      docsLink: hasMetricIssues
-        ? undefined
-        : 'https://docs.sentry.io/product/performance/web-vitals',
       illustration: diagramLCP,
     },
     fid: {
@@ -179,14 +145,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramCustomTransaction,
     },
     crash_free_sessions: {
-      description: hasMetricIssues
-        ? tct(
-            "This alert creates issues when the percentage of crash sessions crosses your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. A session begins when a user starts the application, and ends when it's closed or sent to the background. A crash is when a session ends due to an error. You will also be alerted when your set thresholds are crossed. This lets you get a better picture of the health of your app.",
-            {em: <em />}
-          )
-        : t(
-            "A session begins when a user starts the application and ends when it's closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app."
-          ),
+      description: tct(
+        "This alert creates issues when the percentage of crash sessions crosses your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. A session begins when a user starts the application, and ends when it's closed or sent to the background. A crash is when a session ends due to an error. You will also be alerted when your set thresholds are crossed. This lets you get a better picture of the health of your app.",
+        {em: <em />}
+      ),
       examples: [
         t(
           'When the Crash Free Rate is below 98%, send a Slack notification to the team.'
@@ -195,14 +157,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramCrashFreeSessions,
     },
     crash_free_users: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues when the percentage of crash free users crosses your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you get a better picture of the health of your app.',
-            {em: <em />}
-          )
-        : t(
-            'Crash Free Users is the percentage of distinct users that haven\u2019t experienced a crash and so this type of alert tells you when the overall user experience dips below a certain unacceptable threshold.'
-          ),
+      description: tct(
+        'This alert creates issues when the percentage of crash free users crosses your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you get a better picture of the health of your app.',
+        {em: <em />}
+      ),
       examples: [
         t(
           'When the Crash Free Rate is below 97%, send an email notification to yourself.'
@@ -233,12 +191,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramCrons,
     },
     eap_metrics: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues based on span attributes measured against your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are potential problems directly related to user experience in your app.',
-            {em: <em />}
-          )
-        : t('Alert on spans.'),
+      description: tct(
+        'This alert creates issues based on span attributes measured against your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are potential problems directly related to user experience in your app.',
+        {em: <em />}
+      ),
       examples: [
         t('When your average time in queue exceeds 100ms.'),
         t('When your app runs more than 1000 queries in a minute.'),
@@ -246,14 +202,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramThroughput,
     },
     trace_item_throughput: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues when the total number of spans in a project crosses your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are anomalies with throughput for your app.',
-            {em: <em />}
-          )
-        : t(
-            'Throughput is the total number of spans in a project and you can alert when it reaches a threshold within a period of time.'
-          ),
+      description: tct(
+        'This alert creates issues when the total number of spans in a project crosses your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are anomalies with throughput for your app.',
+        {em: <em />}
+      ),
       examples: [
         t('When number of spans on a key page exceeds 100k per minute.'),
         t('When number of spans drops below a threshold.'),
@@ -261,14 +213,10 @@ export function getAlertWizardPanelContent({
       illustration: diagramThroughput,
     },
     trace_item_duration: {
-      description: hasMetricIssues
-        ? tct(
-            "This alert creates issues based on thresholds you've set for how long it takes for spans to complete. You can use flexible aggregates like percentiles, averages, and min/max. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are anomalies with latency in your app.",
-            {em: <em />}
-          )
-        : t(
-            'Monitor how long it takes for spans to complete. Use flexible aggregates like percentiles, averages, and min/max.'
-          ),
+      description: tct(
+        "This alert creates issues based on thresholds you've set for how long it takes for spans to complete. You can use flexible aggregates like percentiles, averages, and min/max. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are anomalies with latency in your app.",
+        {em: <em />}
+      ),
       examples: [
         t('When any span is slower than 3 seconds.'),
         t('When the 75th percentile response time is higher than 250 milliseconds.'),
@@ -276,54 +224,36 @@ export function getAlertWizardPanelContent({
       illustration: diagramTransactionDuration,
     },
     trace_item_failure_rate: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues based on thresholds you\'ve set for percentage of unsuccessful spans. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. Sentry treats spans with a status other than "ok," "canceled," and "unknown" as failures. [link:Learn more] You will also be alerted when your set thresholds are crossed. This lets you know if there are problems in different layers of your app.',
-            {
-              em: <em />,
-              link: (
-                <a href="https://docs.sentry.io/product/performance/metrics/#failure-rate" />
-              ),
-            }
-          )
-        : t(
-            'Failure rate is the percentage of unsuccessful spans. Sentry treats spans with a status other than "ok," "canceled," and "unknown" as failures.'
+      description: tct(
+        'This alert creates issues based on thresholds you\'ve set for percentage of unsuccessful spans. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. Sentry treats spans with a status other than "ok," "canceled," and "unknown" as failures. [link:Learn more] You will also be alerted when your set thresholds are crossed. This lets you know if there are problems in different layers of your app.',
+        {
+          em: <em />,
+          link: (
+            <a href="https://docs.sentry.io/product/performance/metrics/#failure-rate" />
           ),
+        }
+      ),
       examples: [t('When the failure rate for an important endpoint reaches 10%.')],
-      docsLink: hasMetricIssues
-        ? undefined
-        : 'https://docs.sentry.io/product/performance/metrics/#failure-rate',
       illustration: diagramFailureRate,
     },
     trace_item_lcp: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues based on measuring load performance against your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. Largest Contentful Paint (LCP) marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and so we recommend an LCP of less than 2.5 seconds. [link:Learn more] You will also be alerted when your set thresholds are crossed. This lets you know if there are potential problems directly related to user experience in your app.',
-            {
-              em: <em />,
-              link: <a href="https://docs.sentry.io/product/performance/web-vitals" />,
-            }
-          )
-        : t(
-            'Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and so we recommend an LCP of less than 2.5 seconds.'
-          ),
+      description: tct(
+        'This alert creates issues based on measuring load performance against your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. Largest Contentful Paint (LCP) marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and so we recommend an LCP of less than 2.5 seconds. [link:Learn more] You will also be alerted when your set thresholds are crossed. This lets you know if there are potential problems directly related to user experience in your app.',
+        {
+          em: <em />,
+          link: <a href="https://docs.sentry.io/product/performance/web-vitals" />,
+        }
+      ),
       examples: [
         t('When the 75th percentile LCP of your homepage is longer than 2.5 seconds.'),
       ],
-      docsLink: hasMetricIssues
-        ? undefined
-        : 'https://docs.sentry.io/product/performance/web-vitals',
       illustration: diagramLCP,
     },
     trace_item_logs: {
-      description: hasMetricIssues
-        ? tct(
-            'This alert creates issues based on log counts and attributes measured against your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are potential problems in your app.',
-            {em: <em />}
-          )
-        : t(
-            'Alert on log counts and log attributes such as severity, message and log level.'
-          ),
+      description: tct(
+        'This alert creates issues based on log counts and attributes measured against your set thresholds. Setting thresholds will determine when an issue is [em:created], [em:resolved], and [em:re-opened], as well as the [em:issue priority]. You will also be alerted when your set thresholds are crossed. This lets you know if there are potential problems in your app.',
+        {em: <em />}
+      ),
       examples: [t('When the number of error level logs exceeds 10 in 5 minutes.')],
       illustration: diagramThroughput,
     },

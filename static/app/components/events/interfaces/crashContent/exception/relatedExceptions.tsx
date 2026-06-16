@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {t} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type ExceptionGroupContextProps = {
   allExceptions: ExceptionValue[];
@@ -55,7 +55,7 @@ function ExceptionLink({exception, link, onExceptionClick}: ExceptionLinkProps) 
 
   return (
     <Button
-      priority="link"
+      variant="link"
       onClick={() => {
         onExceptionClick(exceptionId);
 

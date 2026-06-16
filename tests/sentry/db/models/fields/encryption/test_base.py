@@ -11,7 +11,7 @@ from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 ENCRYPTION_METHODS = ("plaintext", "fernet")
 
 
-def test_plaintext_encryption():
+def test_plaintext_encryption() -> None:
     with override_options({"database.encryption.method": "plaintext"}):
         field = EncryptedField()
 
@@ -28,7 +28,7 @@ def test_plaintext_encryption():
         assert isinstance(decrypted, bytes)
 
 
-def test_fernet_encryption_without_key():
+def test_fernet_encryption_without_key() -> None:
     """Test that Fernet encryption raises an error without key."""
     # Reset the key store to simulate no keys loaded
     original_keys = FernetKeyStore._keys
@@ -193,7 +193,7 @@ def test_fernet_non_utf_8_chars(fernet_keys_store):
         assert decrypted_text == invalid_utf_8
 
 
-def test_keysets_not_implemented():
+def test_keysets_not_implemented() -> None:
     """Test that keysets method raises NotImplementedError."""
     with override_options({"database.encryption.method": "keysets"}):
         field = EncryptedField()
@@ -227,7 +227,7 @@ def test_fernet_marker_handling(fernet_keys_store):
         assert decrypted == test_value.encode("utf-8")
 
 
-def test_data_without_marker():
+def test_data_without_marker() -> None:
     """Test handling of unencrypted data without method marker."""
     with override_options({"database.encryption.method": "plaintext"}):
         field = EncryptedField()
@@ -238,7 +238,7 @@ def test_data_without_marker():
         assert decrypted == plain_value
 
 
-def test_to_python_conversion():
+def test_to_python_conversion() -> None:
     """Test the to_python method."""
     field = EncryptedField()
 

@@ -4,7 +4,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 export const Section = styled('div')``;
 
-export function SectionHeader(props: FlexProps<'div'>) {
+export function SectionHeader(props: FlexProps) {
   return <Flex justify="between" align="baseline" marginBottom="xs" {...props} />;
 }
 

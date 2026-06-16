@@ -47,6 +47,7 @@ class SentryAppSerializerResponse(TypedDict):
     verifyInstall: bool
 
     # Optional fields
+    isDisabled: NotRequired[bool]
     author: NotRequired[str | None]
     overview: NotRequired[str | None]
     popularity: NotRequired[int | None]
@@ -100,7 +101,7 @@ class SentryAppSerializer(Serializer):
         return {
             item: {
                 "features": app_feature_attrs.get(item.id, set()),
-                "avatars": app_avatar_attrs.get(item.id, set()),
+                "avatars": app_avatar_attrs.get(item.id, []),
                 "owner": organizations.get(item.owner_id, None),
                 "application": applications.get(item.application_id, None),
                 "user_org_ids": user_org_ids,
@@ -124,13 +125,14 @@ class SentryAppSerializer(Serializer):
             allowedOrigins=application.get_allowed_origins(),
             author=obj.author,
             avatars=serialize(
-                objects=attrs.get("avatars"),
+                objects=attrs["avatars"],
                 user=user,
                 serializer=ResponseSentryAppAvatarSerializer(),
             ),
             events=consolidate_events(obj.events),
             featureData=[],
             isAlertable=obj.is_alertable,
+            isDisabled=obj.is_disabled,
             metadata=obj.metadata,
             name=obj.name,
             overview=obj.overview,

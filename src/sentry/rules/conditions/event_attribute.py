@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 import sentry_sdk
 from django import forms
@@ -18,9 +17,8 @@ from sentry.types.condition_activity import ConditionActivity
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 
 
-@dataclass(frozen=True)
 class AttributeHandler(ABC):
-    minimum_path_length: int
+    minimum_path_length: ClassVar[int]
 
     @classmethod
     def handle(cls, path: list[str], event: GroupEvent) -> list[str]:

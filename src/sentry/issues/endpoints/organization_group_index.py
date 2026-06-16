@@ -7,12 +7,12 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import analytics, search
+from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -52,9 +52,10 @@ from sentry.apidocs.parameters import (
     IssueParams,
     OrganizationParams,
 )
+from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.constants import ALLOWED_FUTURE_DELTA, DEFAULT_SORT_OPTION
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -164,6 +165,99 @@ def inbox_search(
     return results
 
 
+def search_issues(
+    request: Request,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+    extra_query_kwargs: None | Mapping[str, Any] = None,
+) -> tuple[CursorResult[Group], Mapping[str, Any]]:
+    with start_span(op="_search"):
+        query_kwargs = build_query_params_from_request(
+            request, organization, projects, environments
+        )
+        if extra_query_kwargs is not None:
+            assert "environment" not in extra_query_kwargs
+            query_kwargs.update(extra_query_kwargs)
+
+        query_kwargs["environments"] = environments if environments else None
+
+        query_kwargs["actor"] = request.user
+        if query_kwargs["sort_by"] == "progress" and not features.has(
+            "organizations:issue-stream-progress-sort", organization, actor=request.user
+        ):
+            query_kwargs["sort_by"] = DEFAULT_SORT_OPTION
+        if query_kwargs["sort_by"] == "inbox":
+            query_kwargs.pop("sort_by")
+            query_kwargs.pop("referrer")
+            result = inbox_search(**query_kwargs)
+        else:
+            result = search.backend.query(**query_kwargs)
+        return result, query_kwargs
+
+
+def search_and_serialize_issues(
+    request: Request,
+    organization: Organization,
+    projects: Sequence[Project],
+    environments: Sequence[Environment],
+    *,
+    stats_period: str | None,
+    stats_period_start: datetime | None,
+    stats_period_end: datetime | None,
+    start: datetime | None,
+    end: datetime | None,
+    expand: Sequence[str],
+    collapse: Sequence[str],
+    limit: int | None = None,
+) -> tuple[list[StreamGroupSerializerSnubaResponse], CursorResult[Group], Mapping[str, Any]]:
+    serializer = functools.partial(
+        StreamGroupSerializerSnuba,
+        environment_ids=[env.id for env in environments],
+        stats_period=stats_period,
+        stats_period_start=stats_period_start,
+        stats_period_end=stats_period_end,
+        expand=expand,
+        collapse=collapse,
+        project_ids=[p.id for p in projects],
+        organization_id=organization.id,
+    )
+
+    extra_kwargs: dict[str, Any] = {"count_hits": True, "date_to": end, "date_from": start}
+    if limit is not None:
+        extra_kwargs["limit"] = limit
+
+    cursor_result, query_kwargs = search_issues(
+        request, organization, projects, environments, extra_kwargs
+    )
+
+    rows = serialize(
+        list(cursor_result),
+        request.user,
+        serializer(
+            start=start,
+            end=end,
+            search_filters=query_kwargs.get("search_filters"),
+            organization_id=organization.id,
+        ),
+        request=request,
+    )
+
+    # HACK: remove auto resolved entries
+    # TODO: We should try to integrate this into the search backend, since
+    # this can cause us to arbitrarily return fewer results than requested.
+    status = [
+        search_filter
+        for search_filter in query_kwargs.get("search_filters", [])
+        if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
+    ]
+    if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
+        status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
+        rows = [r for r in rows if "status" not in r or r["status"] in status_labels]
+
+    return rows, cursor_result, query_kwargs
+
+
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
@@ -184,24 +278,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         environments: Sequence[Environment],
         extra_query_kwargs: None | Mapping[str, Any] = None,
     ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-        with start_span(op="_search"):
-            query_kwargs = build_query_params_from_request(
-                request, organization, projects, environments
-            )
-            if extra_query_kwargs is not None:
-                assert "environment" not in extra_query_kwargs
-                query_kwargs.update(extra_query_kwargs)
-
-            query_kwargs["environments"] = environments if environments else None
-
-            query_kwargs["actor"] = request.user
-            if query_kwargs["sort_by"] == "inbox":
-                query_kwargs.pop("sort_by")
-                query_kwargs.pop("referrer")
-                result = inbox_search(**query_kwargs)
-            else:
-                result = search.backend.query(**query_kwargs)
-            return result, query_kwargs
+        return search_issues(request, organization, projects, environments, extra_query_kwargs)
 
     @extend_schema(
         operation_id="List an Organization's Issues",
@@ -240,12 +317,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         examples=IssueExamples.ORGANIZATION_GROUP_INDEX_GET,
     )
     @track_slo_response("workflow")
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[StreamGroupSerializerSnubaResponse]] | Response[DetailResponse]:
         stats_period = request.GET.get("groupStatsPeriod")
-        try:
-            start, end = get_date_range_from_stats_period(request.GET)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        start, end = get_date_range_from_stats_period(request.GET)
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
@@ -315,25 +391,33 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     )
                 )
                 if len(groups) == 1:
-                    serialized_groups = serialize(
+                    serialized_groups: list[StreamGroupSerializerSnubaResponse] = serialize(
                         groups, request.user, serializer(), request=request
                     )
-                    if event_id:
-                        serialized_groups[0]["matchingEventId"] = event_id
+                    serialized_groups[0]["matchingEventId"] = event_id
                     response = Response(serialized_groups)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
                 if groups:
-                    return Response(serialize(groups, request.user, serializer(), request=request))
+                    by_event: list[StreamGroupSerializerSnubaResponse] = serialize(
+                        groups, request.user, serializer(), request=request
+                    )
+                    return Response(by_event)
 
-            group = get_by_short_id(organization.id, request.GET.get("shortIdLookup") or "0", query)
+            group = get_by_short_id(
+                organization.id,
+                request.GET.get("shortIdLookup") or "0",
+                query,
+                project_ids=None,
+            )
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):
-                    response = Response(
-                        serialize([group], request.user, serializer(), request=request)
+                    by_short_id: list[StreamGroupSerializerSnubaResponse] = serialize(
+                        [group], request.user, serializer(), request=request
                     )
+                    response = Response(by_short_id)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
@@ -347,47 +431,28 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
-            return Response(serialize(groups, request.user, serializer(), request=request))
+            by_group_id: list[StreamGroupSerializerSnubaResponse] = serialize(
+                groups, request.user, serializer(), request=request
+            )
+            return Response(by_group_id)
 
         try:
             with handle_query_errors():
-                cursor_result, query_kwargs = self._search(
+                context, cursor_result, _ = search_and_serialize_issues(
                     request,
                     organization,
                     projects,
                     environments,
-                    {"count_hits": True, "date_to": end, "date_from": start},
+                    stats_period=stats_period,
+                    stats_period_start=stats_period_start,
+                    stats_period_end=stats_period_end,
+                    start=start,
+                    end=end,
+                    expand=expand,
+                    collapse=collapse,
                 )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
-
-        results = list(cursor_result)
-
-        context = serialize(
-            results,
-            request.user,
-            serializer(
-                start=start,
-                end=end,
-                search_filters=(
-                    query_kwargs["search_filters"] if "search_filters" in query_kwargs else None
-                ),
-                organization_id=organization.id,
-            ),
-            request=request,
-        )
-
-        # HACK: remove auto resolved entries
-        # TODO: We should try to integrate this into the search backend, since
-        # this can cause us to arbitrarily return fewer results than requested.
-        status = [
-            search_filter
-            for search_filter in query_kwargs.get("search_filters", [])
-            if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
-        ]
-        if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
-            status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
-            context = [r for r in context if "status" not in r or r["status"] in status_labels]
 
         # Sanity check: if we're on the first and last page with no more results,
         # the estimated hits from sampling may be too high due to Snuba/Postgres
@@ -441,7 +506,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         examples=IssueExamples.ORGANIZATION_GROUP_INDEX_PUT,
     )
     @track_slo_response("workflow")
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response[MutateIssueResponse]:
         projects = self.get_projects(request, organization)
 
         search_fn = functools.partial(
@@ -482,7 +547,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         },
     )
     @track_slo_response("workflow")
-    def delete(self, request: Request, organization: Organization) -> Response:
+    def delete(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         projects = self.get_projects(request, organization)
 
         search_fn = functools.partial(

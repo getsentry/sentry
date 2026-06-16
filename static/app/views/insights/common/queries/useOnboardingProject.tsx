@@ -21,7 +21,7 @@ export function useOnboardingProject({
     pageFilters.selection.projects.length === 0 ||
     pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS
   ) {
-    const filtered = projects.filter(p => p[projectOnboardingProperty] === false);
+    const filtered = projects.filter(p => !p[projectOnboardingProperty]);
     if (filtered.length === projects.length) {
       return filtered[0];
     }
@@ -31,7 +31,7 @@ export function useOnboardingProject({
   const filtered = projects.filter(
     p =>
       pageFilters.selection.projects.includes(parseInt(p.id, 10)) &&
-      p[projectOnboardingProperty] === false
+      !p[projectOnboardingProperty]
   );
   if (filtered.length === pageFilters.selection.projects.length) {
     return filtered[0];

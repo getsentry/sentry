@@ -66,7 +66,7 @@ describe('GroupOpenPeriods', () => {
       expect(screen.getByText(column)).toBeInTheDocument();
     }
 
-    const rows = screen.getAllByTestId('grid-body-row');
+    const rows = await screen.findAllByTestId('grid-body-row');
 
     // There should be 2 rows: the first is the status changeevent , the second is the period open event
     expect(rows).toHaveLength(2);

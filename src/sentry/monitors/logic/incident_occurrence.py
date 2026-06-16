@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from arroyo import Topic as ArroyoTopic
@@ -138,8 +138,6 @@ def send_incident_occurrence(
     """
     monitor_env = failed_checkin.monitor_environment
 
-    current_timestamp = datetime.now(timezone.utc)
-
     # Get last successful check-in to show in evidence display
     last_successful_checkin_timestamp = "Never"
     last_successful_checkin = monitor_env.get_last_successful_checkin()
@@ -217,7 +215,7 @@ def send_incident_occurrence(
             "monitor.slug": str(monitor_env.monitor.slug),
             "monitor.incident": str(incident.id),
         },
-        "timestamp": current_timestamp.isoformat(),
+        "timestamp": received.isoformat(),
     }
 
     if trace_id:

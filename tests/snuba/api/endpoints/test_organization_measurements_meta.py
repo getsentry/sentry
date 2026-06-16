@@ -24,7 +24,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
         self.url = reverse(
             self.endpoint, kwargs={"organization_id_or_slug": self.project.organization.slug}
         )
-        self.features = {"organizations:performance-use-metrics": True}
+        self.features = {}
 
     def test_simple(self) -> None:
         self.store_transaction_metric(

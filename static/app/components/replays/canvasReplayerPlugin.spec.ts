@@ -5,7 +5,7 @@ import {
   Replayer,
 } from '@sentry-internal/rrweb';
 
-import {CanvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
+import {canvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
 
 // Mock rrweb pieces used by the plugin
 jest.mock('@sentry-internal/rrweb', () => {
@@ -22,16 +22,22 @@ jest.mock('lodash/debounce', () =>
   jest.fn().mockImplementation((callback, timeout) => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const debounced = jest.fn((...args) => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       timeoutId = setTimeout(() => callback(...args), timeout);
     });
 
     const cancel = jest.fn(() => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     });
 
     const flush = jest.fn(() => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       callback();
     });
 
@@ -93,10 +99,10 @@ function createReplayer(getNodeImpl: (id: number) => Node | null) {
   } as Replayer;
 }
 
-describe('CanvasReplayerPlugin', () => {
+describe('canvasReplayerPlugin', () => {
   beforeEach(() => {
     jest.clearAllTimers();
-    (canvasMutation as jest.Mock).mockClear();
+    jest.mocked(canvasMutation).mockClear();
   });
 
   it('does not clear current canvas snapshot when flushing queued sync events before processing a canvas event', async () => {
@@ -109,7 +115,7 @@ describe('CanvasReplayerPlugin', () => {
     );
 
     // Create plugin instance; the initial events list can be empty for this test
-    const plugin = CanvasReplayerPlugin([]);
+    const plugin = canvasReplayerPlugin([]);
 
     // Build the node and ensure an <img> container is appended
     plugin.onBuild!(canvasNode, {id, replayer});
@@ -143,7 +149,7 @@ describe('CanvasReplayerPlugin', () => {
     await Promise.resolve();
 
     // We should have processed the queued latest sync event and the realtime event
-    expect((canvasMutation as jest.Mock).mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(jest.mocked(canvasMutation).mock.calls.length).toBeGreaterThanOrEqual(2);
 
     // Critically, the current canvas snapshot should not be cleared
     expect(img.src).toContain('data:image/png;base64');
@@ -169,7 +175,7 @@ describe('CanvasReplayerPlugin', () => {
     );
 
     // Create plugin instance; the initial events list can be empty for this test
-    const plugin = CanvasReplayerPlugin([]);
+    const plugin = canvasReplayerPlugin([]);
 
     // player first processes sync events
     const e0 = createCanvasEvent(1, 1000);
@@ -197,12 +203,16 @@ describe('CanvasReplayerPlugin', () => {
     const canvas2 = createCanvasNode();
 
     const replayer = createReplayer(requestedId => {
-      if (requestedId === id1) return canvas1;
-      if (requestedId === id2) return canvas2;
+      if (requestedId === id1) {
+        return canvas1;
+      }
+      if (requestedId === id2) {
+        return canvas2;
+      }
       return null;
     });
 
-    const plugin = CanvasReplayerPlugin([]);
+    const plugin = canvasReplayerPlugin([]);
 
     // Build both canvases and create snapshots for both
     plugin.onBuild!(canvas1, {id: id1, replayer});

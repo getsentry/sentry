@@ -12,25 +12,16 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
-import type {ParsedOwnershipRule} from './group';
-import type {PlatformKey} from './project';
+import type {ParsedOwnershipRule} from './ownership';
+import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
-export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
-
-export type Permissions = {
-  Event: PermissionValue;
-  Member: PermissionValue;
-  Organization: PermissionValue;
-  Project: PermissionValue;
-  Release: PermissionValue;
-  Team: PermissionValue;
-  Alerts?: PermissionValue;
-  Distribution?: PermissionValue;
-};
-
-export type PermissionResource = keyof Permissions;
+export type {
+  PermissionValue,
+  Permissions,
+  PermissionResource,
+} from 'sentry/types/permissions';
 
 export type ExternalActorMapping = {
   externalName: string;
@@ -99,15 +90,13 @@ export interface RepositoryWithSettings extends Repository {
   };
 }
 
-export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = [
-  'on_ready_for_review',
-  'on_new_commit',
-];
+export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = ['on_ready_for_review'];
 
 /**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
 export type IntegrationRepository = {
+  externalId: string;
   /**
    * ex - getsentry/sentry
    */
@@ -115,6 +104,7 @@ export type IntegrationRepository = {
   isInstalled: boolean;
   name: string;
   defaultBranch?: string | null;
+  url?: string | null;
 };
 
 export type Commit = {
@@ -131,6 +121,11 @@ export type Commit = {
 export type Committer = {
   author: User;
   commits: Commit[];
+  /**
+   * Primary key of the GroupOwner record that linked this committer to the issue.
+   * Used for suspect commit feedback analytics.
+   */
+  group_owner_id?: number;
 };
 
 export type CommitAuthor = {
@@ -149,10 +144,13 @@ export type CommitFile = {
 };
 
 export type PullRequest = {
+  dateCreated: string;
   externalUrl: string;
   id: string;
+  message: string | null;
   repository: Repository;
-  title: string;
+  title: string | null;
+  author?: CommitAuthor;
 };
 
 /**
@@ -201,27 +199,6 @@ type SentryAppSchemaAlertRuleActionSettings = {
   optional_fields?: any[];
 };
 
-export enum Coverage {
-  NOT_APPLICABLE = -1,
-  COVERED = 0,
-  NOT_COVERED = 1,
-  PARTIAL = 2,
-}
-export type LineCoverage = [lineNo: number, coverage: Coverage];
-
-export enum CodecovStatusCode {
-  COVERAGE_EXISTS = 200,
-  NO_INTEGRATION = 404,
-  NO_COVERAGE_DATA = 400,
-}
-
-export interface CodecovResponse {
-  status: CodecovStatusCode;
-  attemptedUrl?: string;
-  coverageUrl?: string;
-  lineCoverage?: LineCoverage[];
-}
-
 export interface StacktraceLinkResult {
   integrations: Integration[];
   attemptedUrl?: string;
@@ -259,6 +236,7 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
+  allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
   clientId?: string;
   clientSecret?: string;
@@ -376,6 +354,7 @@ type IntegrationAspects = {
   configure_integration?: {
     title: string;
   };
+  directEnable?: boolean;
   disable_dialog?: IntegrationDialog;
   externalInstall?: {
     buttonText: string;
@@ -404,7 +383,6 @@ export interface IntegrationProvider extends BaseIntegrationProvider {
     noun: string;
     source_url: string;
   };
-  setupDialog: {height: number; url: string; width: number};
 }
 
 interface OrganizationIntegrationProvider extends BaseIntegrationProvider {
@@ -568,19 +546,7 @@ export type AppOrProviderOrPlugin =
   | PluginWithProjectList
   | DocIntegration;
 
-/**
- * Webhooks and servicehooks
- */
-export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer';
-
-export type ServiceHook = {
-  dateCreated: string;
-  events: string[];
-  id: string;
-  secret: string;
-  status: string;
-  url: string;
-};
+export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 
 /**
  * Codeowners and repository path mappings.
@@ -593,6 +559,7 @@ export type CodeOwner = {
    */
   codeOwnersUrl: string | 'unknown';
   dateCreated: string;
+  dateSynced: string | null;
   dateUpdated: string;
   errors: {
     missing_external_teams: string[];

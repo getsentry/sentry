@@ -8,11 +8,14 @@ from datetime import datetime, timedelta
 from enum import IntEnum
 from threading import Lock
 
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import Topic as ArroyoTopic
+
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.utils import json, kafka_config, metrics
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.dates import to_datetime
-from sentry.utils.pubsub import KafkaPublisher
 
 # Aggregation key for grouping outcomes
 OutcomeKey = namedtuple(
@@ -156,8 +159,22 @@ class Outcome(IntEnum):
         return self in (Outcome.ACCEPTED, Outcome.RATE_LIMITED)
 
 
-outcomes_publisher: KafkaPublisher | None = None
-billing_publisher: KafkaPublisher | None = None
+def _get_outcomes_producer() -> KafkaProducer:
+    return get_arroyo_producer(
+        "sentry.utils.outcomes",
+        Topic.OUTCOMES,
+    )
+
+
+def _get_billing_producer() -> KafkaProducer:
+    return get_arroyo_producer(
+        "sentry.utils.outcomes.billing",
+        Topic.OUTCOMES_BILLING,
+    )
+
+
+outcomes_producer = SingletonProducer(_get_outcomes_producer)
+billing_producer = SingletonProducer(_get_billing_producer)
 
 LATE_OUTCOME_THRESHOLD = timedelta(days=1)
 
@@ -183,9 +200,6 @@ def track_outcome(
     data for SnubaTSDB and RedisSnubaTSDB, such as # of rate-limited/filtered
     events.
     """
-    global outcomes_publisher
-    global billing_publisher
-
     if quantity is None:
         quantity = 1
 
@@ -205,20 +219,9 @@ def track_outcome(
     # Create a second producer instance only if the cluster differs. Otherwise,
     # reuse the same producer and just send to the other topic.
     if use_billing and billing_config["cluster"] != outcomes_config["cluster"]:
-        if billing_publisher is None:
-            cluster_name = billing_config["cluster"]
-            billing_publisher = KafkaPublisher(
-                kafka_config.get_kafka_producer_cluster_options(cluster_name)
-            )
-        publisher = billing_publisher
-
+        producer = billing_producer
     else:
-        if outcomes_publisher is None:
-            cluster_name = outcomes_config["cluster"]
-            outcomes_publisher = KafkaPublisher(
-                kafka_config.get_kafka_producer_cluster_options(cluster_name)
-            )
-        publisher = outcomes_publisher
+        producer = outcomes_producer
 
     now = to_datetime(time.time())
     timestamp = timestamp or now
@@ -228,21 +231,24 @@ def track_outcome(
         billing_config["real_topic_name"] if use_billing else outcomes_config["real_topic_name"]
     )
 
-    # Send a snuba metrics payload.
-    publisher.publish(
-        topic_name,
-        json.dumps(
-            {
-                "timestamp": timestamp,
-                "org_id": org_id,
-                "project_id": project_id,
-                "key_id": key_id,
-                "outcome": outcome.value,
-                "reason": reason,
-                "event_id": event_id,
-                "category": category,
-                "quantity": quantity,
-            }
+    producer.produce(
+        ArroyoTopic(topic_name),
+        KafkaPayload(
+            None,
+            json.dumps(
+                {
+                    "timestamp": timestamp,
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "key_id": key_id,
+                    "outcome": outcome.value,
+                    "reason": reason,
+                    "event_id": event_id,
+                    "category": category,
+                    "quantity": quantity,
+                }
+            ).encode("utf-8"),
+            [],
         ),
     )
 

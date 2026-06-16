@@ -2,20 +2,13 @@ import type {Location, Query} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  isAggregateField,
-  SPAN_OP_BREAKDOWN_FIELDS,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-  type QueryFieldValue,
-} from 'sentry/utils/discover/fields';
-import {WebVital} from 'sentry/utils/fields';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {isAggregateField} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
-  decodeFilterFromLocation,
   filterToField,
   SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
@@ -32,7 +25,7 @@ export enum EventsDisplayFilterName {
   P100 = 'p100',
 }
 
-type PercentileValues = Record<EventsDisplayFilterName, number>;
+export type PercentileValues = Record<EventsDisplayFilterName, number>;
 
 type EventsDisplayFilter = {
   label: string;
@@ -142,23 +135,6 @@ export function decodeEventsDisplayFilterFromLocation(location: Location) {
   );
 }
 
-export function filterEventsDisplayToLocationQuery(
-  option: EventsDisplayFilterName,
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter
-) {
-  const eventsFilterOptions = getEventsFilterOptions(spanOperationBreakdownFilter);
-  const kind = eventsFilterOptions[option].sort?.kind;
-  const field = eventsFilterOptions[option].sort?.field;
-
-  const query: {showTransactions: string; sort?: string} = {
-    showTransactions: option,
-  };
-  if (kind && field) {
-    query.sort = `${kind === 'desc' ? '-' : ''}${field}`;
-  }
-  return query;
-}
-
 export function mapShowTransactionToPercentile(
   showTransaction: any
 ): EventsDisplayFilterName | undefined {
@@ -172,56 +148,17 @@ export function mapShowTransactionToPercentile(
   }
 }
 
-export function mapPercentileValues(percentileData?: TableDataRow | null) {
-  return {
-    p100: percentileData?.['p100()'],
-    p99: percentileData?.['p99()'],
-    p95: percentileData?.['p95()'],
-    p75: percentileData?.['p75()'],
-    p50: percentileData?.['p50()'],
-  } as PercentileValues;
-}
-
-export function getPercentilesEventView(eventView: EventView): EventView {
-  const percentileColumns: QueryFieldValue[] = [
-    {
-      kind: 'function',
-      function: ['p100', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p99', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p95', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p75', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p50', '', undefined, undefined],
-    },
-  ];
-
-  return eventView.withColumns(percentileColumns);
-}
-
 export function generateTransactionEventsEventView({
   location,
   transactionName,
 }: {
   location: Location;
-  organization: Organization;
-  shouldUseEAP: boolean;
   transactionName: string;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  conditions.setFilterValues('event.type', ['transaction']);
+  conditions.setFilterValues('is_transaction', ['true']);
   conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
@@ -230,47 +167,22 @@ export function generateTransactionEventsEventView({
     }
   });
 
-  const orderby = decodeScalar(location.query.sort, '-timestamp');
-
-  // Default fields for relative span view
-  const fields = [
-    'id',
-    'user.display',
-    ...(orderby.endsWith('http.method') ? ['http.method'] : []),
-    SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  const orderby = decodeScalar(location.query.sort, '-timestamp').replace(
     'transaction.duration',
-    'trace',
-    'timestamp',
-  ];
-  const breakdown = decodeFilterFromLocation(location);
-  if (breakdown === SpanOperationBreakdownFilter.NONE) {
-    fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
-  } else {
-    fields.splice(2, 1, `spans.${breakdown}`);
-  }
-  const webVital = getWebVital(location);
-  if (webVital) {
-    fields.splice(3, 0, webVital);
-  }
+    'span.duration'
+  );
 
   return EventView.fromNewQueryWithLocation(
     {
       id: undefined,
       version: 2,
       name: transactionName,
-      fields,
+      fields: [],
       query: conditions.formatString(),
       projects: [],
       orderby,
+      dataset: DiscoverDatasets.SPANS,
     },
     location
   );
-}
-
-export function getWebVital(location: Location): WebVital | undefined {
-  const webVital = decodeScalar(location.query.webVital, '') as WebVital;
-  if (Object.values(WebVital).includes(webVital)) {
-    return webVital;
-  }
-  return undefined;
 }

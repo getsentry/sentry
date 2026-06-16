@@ -11,7 +11,6 @@ from __future__ import annotations
 import enum
 import logging
 from collections.abc import Mapping
-from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
@@ -126,7 +125,6 @@ def handle_check_run_event(
         seer_path=SeerEndpoint.PR_REVIEW_RERUN.value,
         # A reduced payload is enough for the task to process.
         event_payload={"original_run_id": validated_event.check_run.external_id},
-        enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         tags=tags,
     )
     record_webhook_enqueued(github_event, action)

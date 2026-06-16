@@ -1,148 +1,165 @@
 import logging
 import random
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from sentry import options
-from sentry.utils import metrics
-from sentry.utils.safe import trim
-
-TData = TypeVar("TData")
-logger = logging.getLogger(__name__)
-
+from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
 )
+from sentry.utils import metrics
+from sentry.utils.safe import trim
 from sentry.utils.types import Bool, Float, Sequence
+
+logger = logging.getLogger(__name__)
+
+TData = TypeVar("TData")
+
+SourceOfTruth = Literal["control", "experimental", "neither", "both"]
 
 
 class SafeRolloutComparator:
     """
     SafeRolloutComparator is a tool designed to help you roll out a change to existing logic safely.
 
-    In particular, it can (at a callsite-by-callsite granularity) help to track both the
-    _exact_ and _reasonable_ rate at which the experimental branch matches the control branch.
-    Once a callsite looks correct enough, you can switch the code behavior to actually use the
-    data from the experimental branch.
+    In particular, it can (with callsite-by-callsite granularity) help to track rate at which the
+    experimental branch both exactly matches and "reasonably" matches the control branch. (What
+    counts as a "reasonable" (close enough) match is definable by providing a comparison function.)
+    Once a callsite looks correct enough, you can switch the code behavior to actually use the data
+    from the experimental branch by adding the callsite indentifier to the "use experimental data"
+    allowlist option provided by the class.
 
     The flow is generally:
-      1. Set up your SafeRolloutComparator class & options.
-      2. Add your first callsite. (Further callsites can be added at any time.)
-      3. Start rolling out the "evaluate experimental branch" option.
-      4. Monitor correctness through standard dashboard. (TODO @cpaul: build dashboard)
-      5. Start adding known-good callsites to the "use experimental branch" allowlist.
+      1. Set up your `SafeRolloutComparator` subclass (in Sentry) & options (in options automator).
+      2. Use the comparator in your first callsite (see example below). (More callsites can be added
+         at any time.)
+      3. Start rolling out the experiment by switching the "should run experiment" option to True
+         and, if you've set a sample rate option, increasing the sample rate. (If not set, the
+         sample rate defaults to 100%.)
+      4. Monitor correctness using the metrics and optional mismatch logs emitted when the
+         experimental branch is run.
+      5. Start adding known-good callsites to the "use experimental data" allowlist.
       6. Complete your migration, secure in your knowledge that it's safe to do so.
-      7. Clean up your control branch & SafeRolloutComparator when you're done. Success!
+      7. Clean up your control branch & `SafeRolloutComparator` when you're done. Success!
 
     Used like:
-    ```python
-    callsite = "BarClass::baz"
-    control_data = old_slow_trustworthy_method()
-    if FooComparator.should_check_experiment(callsite):
-        experimental_data = new_fast_risky_method()
-        data = FooComparator.check_and_choose(
-            control_data,
-            experimental_data,
-            callsite,
-            len(experimental_data) == 0,
-            lambda ctl, exp: exp.issubset(ctl)
-        )
-    else:
-        data = control_data
+    ```
+    # Setup
+    class FooComparator(SafeRolloutComparator):
+        ROLLOUT_NAME="some_new_feature"
+
+    # Example callsite:
+    def some_function():
+        # ...
+
+        # A unique identifier for the callsite, for option names and metrics/logs tagging
+        callsite = "some.module.path.some_function"
+
+        control_data = old_slow_trustworthy_method()
+        if FooComparator.should_check_experiment(callsite):
+            experimental_data = new_fast_risky_method()
+            data = FooComparator.check_and_choose(
+                control_data,
+                experimental_data,
+                callsite,
+                is_experimental_data_nullish=len(experimental_data) == 0,
+                reasonable_match_comparator=lambda ctl, exp: exp.issubset(ctl)
+            )
+        else:
+            data = control_data
     ```
     """
 
-    # This is your rollout, which determines your option names and which you can filter
-    # the DataDog dashboards to show.
-    # TODO @cpaul: construct DataDog dashboards once you have a rollout using this.
+    # This identifies your overall rollout, and is used in option names and metrics/log tagging
     ROLLOUT_NAME: str
 
     @classmethod
-    def _should_eval_option_name(cls) -> str:
+    def _should_run_experiment_option(cls) -> str:
         """
-        This is the high-level eval rollout option. If this option is disabled, the
-        should_check_experiment function will return False.
+        This is the high-level experiment rollout option. If this option is disabled (the default),
+        the `should_check_experiment` function will return False.
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.should_eval_experimental"
 
     @classmethod
-    def _callsite_blocklist_option_name(cls) -> str:
+    def _callsite_experiment_blocklist_option(cls) -> str:
         """
-        This is the callsite-level eval rollout option. If the option contains a callsite,
-        the should_check_experiment function will return False. (This is useful if you see
-        one callsite in particular start throwing.)
+        This is the callsite-level experimemt rollout option. If the option value contains a
+        callsite, the `should_check_experiment` function will return False. (This is useful if you
+        see one callsite in particular start throwing.) Defaults to an empty list.
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_callsite_blocklist"
 
     @classmethod
-    def _callsite_allowlist_option_name(cls) -> str:
+    def _callsite_use_experimental_data_allowlist_option(cls) -> str:
         """
-        This is the callsite-level use-experimental-path rollout option. If the option
-        contains a callsite, then that callsite will use the experimental-path data.
-        This should generally only be used once you've determined that there is a high
-        rate of partial- or exact- match at the callsite.
+        This is the callsite-level use-experimental-path rollout option. If the option value
+        contains a callsite, then that callsite will use the experimental-path data. This should
+        generally only be used once you've determined that there is a high rate of partial- or
+        exact- match at the callsite. Defaults to an empty list.
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.use_experimental_data_callsite_allowlist"
 
     @classmethod
-    def _sample_rate_option_name(cls) -> str:
+    def _experiment_sample_rate_option(cls) -> str:
         """
-        This is the sample rate for evaluating the experimental branch. When set to a value
-        less than 1.0, only that percentage of requests will actually perform the double-read.
-        This is useful for limiting latency impact on high-traffic callsites while still
-        collecting representative metrics. Default is 1.0 (100% of requests are evaluated).
+        This is the sample rate for evaluating the experimental branch. When set to a value less
+        than 1.0, only that percentage of requests will actually evaluate both branches. This is
+        useful for limiting latency impact on high-traffic callsites while still collecting
+        representative metrics. Default is 1.0 (100% of requests are evaluated).
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_experimental_sample_rate"
 
     @classmethod
-    def _mismatch_log_callsite_allowlist_option_name(cls) -> str:
+    def _callsite_mismatch_log_allowlist_option(cls) -> str:
         """
-        Controls which callsites emit structured mismatch logs. Add a callsite
-        string to enable logging for it, or ``"*"`` to enable for all callsites.
+        Controls which callsites emit structured mismatch logs. Add a callsite identifier to enable
+        logging for it, or set the option to `["*"]` to enable logging for all callsites. Defaults
+        to an empty list (no mismatch logging).
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.mismatch_log_callsite_allowlist"
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        from sentry.options import register
 
         register(
-            cls._should_eval_option_name(),
+            cls._should_run_experiment_option(),
             type=Bool,
             default=False,
             flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
-            cls._callsite_blocklist_option_name(),
+            cls._callsite_experiment_blocklist_option(),
             type=Sequence,
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
-            cls._callsite_allowlist_option_name(),
+            cls._callsite_use_experimental_data_allowlist_option(),
             type=Sequence,
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
-            cls._sample_rate_option_name(),
+            cls._experiment_sample_rate_option(),
             type=Float,
             default=1.0,
             flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
-            cls._mismatch_log_callsite_allowlist_option_name(),
+            cls._callsite_mismatch_log_allowlist_option(),
             type=Sequence,
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
 
     @classmethod
-    def should_log_mismatch(cls, callsite: str) -> bool:
-        allowlist = set(options.get(cls._mismatch_log_callsite_allowlist_option_name()))
+    def _should_log_mismatch(cls, callsite: str) -> bool:
+        allowlist = set(options.get(cls._callsite_mismatch_log_allowlist_option()))
         return "*" in allowlist or callsite in allowlist
 
     @classmethod
@@ -162,16 +179,16 @@ class SafeRolloutComparator:
         cls,
         *,
         callsite: str,
-        use_experimental: bool,
-        exact_match: bool,
-        reasonable_match: bool | None,
-        is_experimental_data_a_null_result: bool | None,
+        source_of_truth: SourceOfTruth,
+        is_exact_match: bool,
+        is_reasonable_match: bool | None,
+        is_experimental_data_nullish: bool | None,
         control_data: TData,
         experimental_data: TData,
         debug_context: dict[str, Any] | None,
         data_serializer: Callable[[TData], Any] | None,
     ) -> None:
-        if not cls.should_log_mismatch(callsite):
+        if not cls._should_log_mismatch(callsite):
             return
 
         serialize = data_serializer or cls._default_serialize_for_log
@@ -181,10 +198,10 @@ class SafeRolloutComparator:
             extra={
                 "rollout_name": cls.ROLLOUT_NAME,
                 "callsite": callsite,
-                "source_of_truth": ("experimental" if use_experimental else "control"),
-                "exact_match": exact_match,
-                "reasonable_match": reasonable_match,
-                "is_null_result": is_experimental_data_a_null_result,
+                "source_of_truth": source_of_truth,
+                "exact_match": is_exact_match,
+                "reasonable_match": is_reasonable_match,
+                "is_null_result": is_experimental_data_nullish,
                 "debug_context": trim(cls._default_serialize_for_log(debug_context)),
                 "control_data_raw": trim(serialize(control_data)),
                 "experimental_data_raw": trim(serialize(experimental_data)),
@@ -194,116 +211,121 @@ class SafeRolloutComparator:
     @classmethod
     def should_check_experiment(cls, callsite: str) -> bool:
         """
-        This function should control whether you evaluate your experimental branch at
-        all. Useful for rolling out by region or blocklisting callsites that throw.
+        This function controls whether you evaluate your experimental branch at all. Useful for
+        rolling out by region or blocklisting callsites that throw.
 
         The check includes:
         1. Global eval option must be enabled
         2. Callsite must not be in the blocklist
         3. Random sampling based on the sample_rate option (default 1.0 = 100%)
         """
-        if not options.get(cls._should_eval_option_name()):
+        if not options.get(cls._should_run_experiment_option()):
             return False
 
-        if callsite in options.get(cls._callsite_blocklist_option_name()):
+        if callsite in options.get(cls._callsite_experiment_blocklist_option()):
             return False
 
-        sample_rate = options.get(cls._sample_rate_option_name())
+        sample_rate = options.get(cls._experiment_sample_rate_option())
         return random.random() < sample_rate
 
     @classmethod
-    def should_use_experiment(cls, callsite: str) -> bool:
+    def should_use_experimental_data(cls, callsite: str) -> bool:
         """
-        This function should control whether you use the result of your experimental
-        data. Useful for allowlisting known-safe callsites.
-        If you are transitioning from an existing, intended-to-be equivalent dataset,
-        you should instead use check_and_choose (which standardizes the choice logic
-        and has better logging).
+        This function controls whether you use the result of your experimental data. Useful for
+        allowlisting known-safe callsites.
+
+        Note: If you are transitioning from an existing, intended-to-be-equivalent dataset, you
+        should instead use `check_and_choose` (which has this check built in and has better
+        logging).
         """
-        use_experimental = callsite in options.get(cls._callsite_allowlist_option_name())
+        use_experimental_data = callsite in options.get(
+            cls._callsite_use_experimental_data_allowlist_option()
+        )
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
-            "use_experimental": ("true" if use_experimental else "false"),
+            "use_experimental": ("true" if use_experimental_data else "false"),
         }
         metrics.incr(
             "SafeRolloutComparator.should_use_experiment",
             tags=tags,
         )
-        return use_experimental
+        return use_experimental_data
 
     @classmethod
-    def check_and_choose(
+    def compare(
         cls,
         control_data: TData,
         experimental_data: TData,
         callsite: str,
-        is_experimental_data_a_null_result: bool | None = None,
+        source_of_truth: SourceOfTruth = "neither",
+        is_experimental_data_nullish: bool | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
-    ) -> TData:
+    ) -> None:
         """
-        This function does two things.
-        First, it compares control & experimental data and logs info to DataDog.
-        Second, it determines which of the inputs should be returned & used downstream.
+        Compare control & experimental data, emit metrics, and log mismatches. Use this directly
+        (rather than `check_and_choose`) if you don't need help determining which data to use
+        downstream - e.g. if you won't be using either branch's data, or if you'll be using both.
 
         Inputs:
         * control_data: Some data from the control branch (e.g. dict[str, str])
         * experimental_data: Some data from the experimental branch (of same type as control)
-        * callsite: A unique string for each place that uses this class. Should be the
-            same as passed to should_check_experiment.
-        * is_null_result: Whether the result is a "null result" (e.g. empty array). This
-            helps to determine whether a "match" is significant.
-        * reasonable_match_comparator: Optional predicate for semantic correctness
-            (e.g. subset semantics with retention gaps), returning True if the read is
-            "reasonable" and False otherwise. An example might be checking whether the
-            experimental data is a subset of the control data (useful in case of migrating
-            something where you don't yet have full retention in the experimental branch).
+        * callsite: A unique string identifying place that uses this class. Should be the same as
+            what's passed to `should_check_experiment`.
+        * source_of_truth: Which branch's data the caller will actually use downstream. Defaults to
+            "neither" (the typical direct-call case). `check_and_choose` passes "control" or
+            "experimental" based on the use-experimental-data allowlist; callers using both branches
+            should pass "both".
+        * is_experimental_data_nullish: Whether the result is a "null result" (e.g. empty array).
+            This helps to determine whether a "match" is significant.
+        * reasonable_match_comparator: Optional predicate for semantic correctness, returning True
+            if the data is "reasonably the same" and False otherwise. An example might be checking
+            whether the experimental data is a subset of the control data (useful in case of
+            migrating something where you don't yet have full retention in the experimental branch).
         * debug_context: Optional structured metadata included on mismatch logs.
-        * data_serializer: Optional serializer for control/experimental payloads in
-            logs. Defaults to `_default_serialize_for_log`.
+        * data_serializer: Optional serializer for control/experimental payloads in logs. Defaults
+            to `_default_serialize_for_log`.
         """
-        use_experimental = cls.should_use_experiment(callsite)
-        exact_match = control_data == experimental_data
-        reasonable_match: bool | None = None
+        is_exact_match = control_data == experimental_data
+        is_reasonable_match: bool | None = None
 
-        # Part 1: Compare results, log debug info, and emit metrics
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,
             "callsite": callsite,
-            "exact_match": str(exact_match),
-            "source_of_truth": ("experimental" if use_experimental else "control"),
+            "exact_match": str(is_exact_match),
+            "source_of_truth": source_of_truth,
         }
 
-        if is_experimental_data_a_null_result is not None:
-            tags["is_null_result"] = str(is_experimental_data_a_null_result)
+        if is_experimental_data_nullish is not None:
+            tags["is_null_result"] = str(is_experimental_data_nullish)
 
         if reasonable_match_comparator is not None:
             try:
-                reasonable_match = reasonable_match_comparator(control_data, experimental_data)
+                is_reasonable_match = reasonable_match_comparator(control_data, experimental_data)
             except Exception:
                 logger.exception(
                     "saferollout.comparator_error",
                     extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
                 )
-                reasonable_match = None
+                is_reasonable_match = None
             else:
-                tags["reasonable_match"] = str(reasonable_match)
+                tags["reasonable_match"] = str(is_reasonable_match)
 
         # Log mismatch only for true mismatches: when a reasonable comparator
         # exists, only log if it returned False; otherwise log on exact mismatch.
-        has_mismatch = reasonable_match is False or (
-            reasonable_match is None and exact_match is False
+        has_mismatch = is_reasonable_match is False or (
+            is_reasonable_match is None and is_exact_match is False
         )
         if has_mismatch:
             try:
                 cls._maybe_log_mismatch(
                     callsite=callsite,
-                    use_experimental=use_experimental,
-                    exact_match=exact_match,
-                    reasonable_match=reasonable_match,
-                    is_experimental_data_a_null_result=is_experimental_data_a_null_result,
+                    source_of_truth=source_of_truth,
+                    is_exact_match=is_exact_match,
+                    is_reasonable_match=is_reasonable_match,
+                    is_experimental_data_nullish=is_experimental_data_nullish,
                     control_data=control_data,
                     experimental_data=experimental_data,
                     debug_context=debug_context,
@@ -315,19 +337,48 @@ class SafeRolloutComparator:
                     extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
                 )
 
-        metrics.incr(
-            "SafeRolloutComparator.check_and_choose",
-            tags=tags,
-        )
+        # TODO: This shim is only used in `EAPOccurrencesComparator`. Once that's deleted, this
+        # check can go away and we can standardize on emitting just the `compare` metric.
+        if getattr(cls, "use_legacy_comparison_metric_name", None):
+            metrics.incr("SafeRolloutComparator.check_and_choose", tags=tags)
+        else:
+            metrics.incr("SafeRolloutComparator.compare", tags=tags)
 
-        # Part 2: determine which data to return
-        return experimental_data if use_experimental else control_data
+    @classmethod
+    def check_and_choose(
+        cls,
+        control_data: TData,
+        experimental_data: TData,
+        callsite: str,
+        is_experimental_data_nullish: bool | None = None,
+        reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
+        debug_context: dict[str, Any] | None = None,
+        data_serializer: Callable[[TData], Any] | None = None,
+    ) -> TData:
+        """
+        Compare control & experimental data (via `compare`), then return whichever branch should be
+        used downstream based on the use-experimental-data allowlist.
+
+        See `compare` for parameter documentation.
+        """
+        use_experimental_data = cls.should_use_experimental_data(callsite)
+        cls.compare(
+            control_data=control_data,
+            experimental_data=experimental_data,
+            callsite=callsite,
+            source_of_truth="experimental" if use_experimental_data else "control",
+            is_experimental_data_nullish=is_experimental_data_nullish,
+            reasonable_match_comparator=reasonable_match_comparator,
+            debug_context=debug_context,
+            data_serializer=data_serializer,
+        )
+        return experimental_data if use_experimental_data else control_data
 
     @classmethod
     def check_and_choose_with_timings(
         cls,
-        control_thunk: Callable[[], TData],
-        experimental_thunk: Callable[[], TData],
+        control_data_func: Callable[[], TData],
+        experimental_data_func: Callable[[], TData],
         callsite: str,
         null_result_determiner: Callable[[TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
@@ -335,15 +386,16 @@ class SafeRolloutComparator:
         data_serializer: Callable[[TData], Any] | None = None,
     ) -> TData:
         """
-        This method is essentially the same as check_and_choose, but captures timing
-        information around the control/experimental branches.
-
-        This information is captured with Sentry spans, not in Datadog.
+        This method is a wrapper for `check_and_choose` which also captures timing information for
+        the control/experimental branches. To enable that, instead of taking the control and
+        experimental values, it instead takes callbacks which calculate them. It also takes a
+        callback for determining if the experimental result is nullish, rather than a boolean. All
+        other parameters match those of `check_and_choose`.
         """
+        # Insurance - this should already have been checked by the caller
         if not cls.should_check_experiment(callsite):
-            # Don't bother collecting data in the case where we're only evaluating the
-            # control branch.
-            return control_thunk()
+            # Don't bother collecting data if we're only evaluating the control branch
+            return control_data_func()
 
         with metrics.timer(
             "SafeRolloutComparator.check_and_choose_with_timings",
@@ -353,7 +405,7 @@ class SafeRolloutComparator:
                 "branch": "control",
             },
         ):
-            control_data = control_thunk()
+            control_data = control_data_func()
 
         with metrics.timer(
             "SafeRolloutComparator.check_and_choose_with_timings",
@@ -363,17 +415,17 @@ class SafeRolloutComparator:
                 "branch": "experimental",
             },
         ):
-            experimental_data = experimental_thunk()
+            experimental_data = experimental_data_func()
 
-        is_experimental_data_a_null_result = None
+        is_experimental_data_nullish = None
         if null_result_determiner is not None:
-            is_experimental_data_a_null_result = null_result_determiner(experimental_data)
+            is_experimental_data_nullish = null_result_determiner(experimental_data)
 
         return cls.check_and_choose(
             control_data=control_data,
             experimental_data=experimental_data,
             callsite=callsite,
-            is_experimental_data_a_null_result=is_experimental_data_a_null_result,
+            is_experimental_data_nullish=is_experimental_data_nullish,
             reasonable_match_comparator=reasonable_match_comparator,
             debug_context=debug_context,
             data_serializer=data_serializer,

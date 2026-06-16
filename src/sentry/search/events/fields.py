@@ -484,18 +484,23 @@ def parse_arguments(_function: str, columns: str) -> list[str]:
     quoted = False
     in_tag = False
     escaped = False
+    in_filter = False
 
     i, j = 0, 0
 
     while j < len(columns):
-        if not in_tag and i == j and columns[j] == '"':
+        if not in_filter and not in_tag and i == j and columns[j] == '"':
             # when we see a quote at the beginning of
             # an argument, then this is a quoted string
             quoted = True
-        elif not quoted and columns[j] == "[" and _lookback(columns, j, "tags"):
+        elif not in_filter and not quoted and columns[j] == "[" and _lookback(columns, j, "tags"):
             # when the argument begins with tags[,
             # then this is the beginning of the tag that may contain commas
             in_tag = True
+        elif not quoted and i == j and columns[j] == "`":
+            # When the argument starts with `
+            # then its a filter that may contain any number of characters
+            in_filter = True
         elif i == j and columns[j] == " ":
             # argument has leading spaces, skip over them
             i += 1
@@ -511,6 +516,9 @@ def parse_arguments(_function: str, columns: str) -> list[str]:
             # when we see a non-escaped quote while inside
             # of a quoted string, we should end it
             in_tag = False
+        elif in_filter and columns[j] == "`":
+            # When we see a ` while we're in a filter end it
+            in_filter = False
         elif quoted and escaped:
             # when we are inside a quoted string and have
             # begun an escape character, we should end it
@@ -520,7 +528,7 @@ def parse_arguments(_function: str, columns: str) -> list[str]:
             # a comma, it should not be considered an
             # argument separator
             pass
-        elif columns[j] == ",":
+        elif not in_filter and columns[j] == ",":
             # when we see a comma outside of a quoted string
             # it is an argument separator
             args.append(columns[i:j].strip())

@@ -84,11 +84,7 @@ class CodeReviewPreflightService:
         return None
 
     def _check_org_feature_enablement(self) -> PreflightDenialReason | None:
-        if (
-            self._is_seat_based_seer_plan_org
-            or self._is_code_review_beta_org
-            or self._is_legacy_usage_based_seer_plan_org
-        ):
+        if self._is_seat_based_seer_plan_org or self._is_code_review_beta_org:
             return None
 
         return PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
@@ -123,11 +119,9 @@ class CodeReviewPreflightService:
         ):
             return PreflightDenialReason.PR_AUTHOR_EXCLUDED
 
-        # Code review beta and legacy usage-based plan orgs are exempt from quota checks
-        # as long as they haven't purchased the new seat-based plan
-        if not self._is_seat_based_seer_plan_org and (
-            self._is_code_review_beta_org or self._is_legacy_usage_based_seer_plan_org
-        ):
+        # Code review beta orgs are exempt from quota checks as long as they haven't
+        # purchased the new seat-based plan.
+        if not self._is_seat_based_seer_plan_org and self._is_code_review_beta_org:
             return None
 
         has_quota = quotas.backend.check_seer_quota(
@@ -151,7 +145,3 @@ class CodeReviewPreflightService:
     @cached_property
     def _is_code_review_beta_org(self) -> bool:
         return features.has("organizations:code-review-beta", self.organization)
-
-    @cached_property
-    def _is_legacy_usage_based_seer_plan_org(self) -> bool:
-        return features.has("organizations:seer-added", self.organization)

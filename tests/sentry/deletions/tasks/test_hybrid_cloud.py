@@ -149,19 +149,19 @@ def setup_deletable_objects(
     for i in range(count):
         Factories.create_saved_search(f"s-{i}", owner_id=u_id)
 
-    for region_name in find_cells_for_user(u_id):
+    for cell_name in find_cells_for_user(u_id):
         shard = ControlOutbox(
-            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, cell_name=region_name
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, cell_name=cell_name
         )
         if send_tombstones:
             shard.drain_shard()
 
         return SavedSearch.objects.filter(owner_id=u_id), shard
-    assert False, "find_regions_for_user could not determine a region for production."
+    assert False, "find_cells_for_user could not determine a cell for production."
 
 
 @django_db_all
-def test_region_processing(task_runner: Callable[[], ContextManager[None]]) -> None:
+def test_cell_processing(task_runner: Callable[[], ContextManager[None]]) -> None:
     reset_watermarks()
 
     # Assume we have two groups of objects

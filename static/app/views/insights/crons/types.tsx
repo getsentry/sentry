@@ -167,7 +167,7 @@ export interface CheckIn {
    */
   environment: string;
   /**
-   * What was the monitors nextCheckIn value when this check-in occured, this
+   * What was the monitors nextCheckIn value when this check-in occurred, this
    * is when we expected the check-in to happen. May be null for the very first check-in.
    */
   expectedTime: string | null;

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import zstandard
+from objectstore_client import TimeToLive
 
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import default_attachment_retention, get_attachments_session
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
@@ -36,6 +38,7 @@ class CachedAttachment:
         cache=None,
         rate_limited=None,
         size=None,
+        retention_days=None,
         **kwargs,
     ):
         self.key = key
@@ -46,6 +49,7 @@ class CachedAttachment:
         self.type = type or "event.attachment"
         assert isinstance(self.type, str), self.type
         self.rate_limited = rate_limited
+        self.retention_days = retention_days or default_attachment_retention()
 
         if size is not None:
             self.size = size
@@ -111,6 +115,7 @@ class CachedAttachment:
                 "size": self.size or None,  # None for backwards compatibility
                 "chunks": self.chunks,
                 "stored_id": self.stored_id,
+                "retention_days": self.retention_days,
             }
         )
 
@@ -138,7 +143,11 @@ class BaseAttachmentCache:
             if attachment.stored_id is not None and attachment._data is not UNINITIALIZED_DATA:
                 assert project
                 session = get_attachments_session(project.organization_id, project.id)
-                session.put(attachment._data, key=attachment.stored_id)
+                session.put(
+                    contents=attachment._data,
+                    key=attachment.stored_id,
+                    expiration_policy=TimeToLive(timedelta(days=attachment.retention_days)),
+                )
 
             # the attachment is stored either in objectstore or in the attachment cache already
             if attachment.chunks is not None or attachment.stored_id is not None:

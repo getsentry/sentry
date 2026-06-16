@@ -20,7 +20,6 @@ from sentry.web.frontend.debug.debug_cron_muted_monitor_email import DebugCronMu
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_feedback_issue import DebugFeedbackIssueEmailView
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
-from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
 from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
@@ -68,13 +67,7 @@ from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
 from sentry.web.frontend.debug.debug_unable_to_delete_repository import (
     DebugUnableToDeleteRepository,
 )
-from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import (
-    DebugUnableToFetchCommitsEmailView,
-)
 from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmailView
-from sentry.web.frontend.debug.debug_uptime_auto_detected_monitor_email import (
-    DebugUptimeAutoDetectedMonitorEmailView,
-)
 from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
@@ -130,7 +123,6 @@ urlpatterns = [
         r"^debug/mail/relocation-succeeded/$", sentry.web.frontend.debug.mail.relocation_succeeded
     ),
     re_path(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
-    re_path(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
     re_path(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),
     re_path(r"^debug/mail/weekly-reports/$", DebugWeeklyReportView.as_view()),
     re_path(r"^debug/mail/org-delete-confirm/$", sentry.web.frontend.debug.mail.org_delete_confirm),
@@ -146,7 +138,6 @@ urlpatterns = [
     re_path(
         r"^debug/mail/sso-unlinked/no-password/$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
     ),
-    re_path(r"^debug/mail/incident-trigger/$", DebugIncidentTriggerEmailView.as_view()),
     re_path(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),
     re_path(r"^debug/embed/error-page/$", DebugErrorPageEmbedView.as_view()),
     re_path(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),
@@ -163,8 +154,4 @@ urlpatterns = [
     re_path(r"^debug/charts/metric-alert-charts/$", DebugMetricAlertChartRendererView.as_view()),
     re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),
     re_path(r"^debug/mail/cron-muted-monitor-email/$", DebugCronMutedMonitorEmailView.as_view()),
-    re_path(
-        r"^debug/mail/uptime-auto-detected-monitor-email/$",
-        DebugUptimeAutoDetectedMonitorEmailView.as_view(),
-    ),
 ]

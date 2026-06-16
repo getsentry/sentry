@@ -1,16 +1,18 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import {mockZoomRange} from 'sentry-test/charts';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import EventsChart from 'sentry/components/charts/eventsChart';
+import {EventsChart} from 'sentry/components/charts/eventsChart';
 
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn().mockImplementation(() => <div data-test-id="area-chart" />),
 }));
 
 describe('EventsChart with legend', () => {
-  const {router, organization} = initializeOrg();
+  const {organization} = initializeOrg();
 
   beforeEach(() => {
     mockZoomRange(1543449600000, 1543708800000);
@@ -47,7 +49,7 @@ describe('EventsChart with legend', () => {
         start={null}
         end={null}
         utc={false}
-        location={router.location}
+        location={LocationFixture()}
         showLegend
       />
     );

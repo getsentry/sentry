@@ -7,7 +7,8 @@ import {
   serverless,
 } from 'sentry/data/platformCategories';
 import {DataCategory} from 'sentry/types/core';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 
 type SupportedProfilingPlatformSDK =
   | 'android'
@@ -177,11 +178,11 @@ export function getProfilingDocsForPlatform(platform: string | undefined): strin
   }
 
   if (docsPlatform === 'react-native') {
-    return `https://docs.sentry.io/platforms/react-native/profiling/`;
+    return 'https://docs.sentry.io/platforms/react-native/profiling/';
   }
 
   if (docsPlatform === 'java-spring-boot') {
-    return `https://docs.sentry.io/platforms/java/guides/spring-boot/profiling/`;
+    return 'https://docs.sentry.io/platforms/java/guides/spring-boot/profiling/';
   }
 
   const [language, framework] = docsPlatform.split('-');

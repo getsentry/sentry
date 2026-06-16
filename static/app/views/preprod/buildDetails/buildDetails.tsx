@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -12,7 +13,7 @@ import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -52,8 +53,7 @@ export default function BuildDetails() {
       staleTime: 0,
       enabled: !!artifactId,
       refetchInterval: query => {
-        const data = query.state.data;
-        const sizeInfo = data?.[0]?.size_info;
+        const sizeInfo = query.state.data?.json?.size_info;
         return isSizeInfoPendingOrProcessing(sizeInfo) ? 10_000 : false;
       },
     }
@@ -151,7 +151,7 @@ export default function BuildDetails() {
   ) {
     return (
       <SentryDocumentTitle title={title}>
-        <Layout.Page>
+        <Stack flex={1}>
           <BuildError
             title="Build details unavailable"
             message={
@@ -176,14 +176,14 @@ export default function BuildDetails() {
               </Stack>
             )}
           </BuildError>
-        </Layout.Page>
+        </Stack>
       </SentryDocumentTitle>
     );
   }
 
   return (
     <SentryDocumentTitle title={title}>
-      <Layout.Page>
+      <Stack flex={1}>
         <PreprodQuotaAlert system />
         <Layout.Header>
           <BuildDetailsHeaderContent
@@ -217,7 +217,7 @@ export default function BuildDetails() {
             </BuildDetailsMain>
           </UrlParamBatchProvider>
         </BuildDetailsBody>
-      </Layout.Page>
+      </Stack>
     </SentryDocumentTitle>
   );
 }

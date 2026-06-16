@@ -171,7 +171,7 @@ describe('RadioField auto-save', () => {
     expect(
       await screen.findByRole('status', {name: 'Saving priority'})
     ).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({priority: 'high'});
+    expect(mutationFn).toHaveBeenCalledWith({priority: 'high'}, expect.anything());
   });
 
   it('shows checkmark when auto-save succeeds', async () => {
@@ -183,7 +183,7 @@ describe('RadioField auto-save', () => {
     await userEvent.click(radios[2]!); // click high
 
     expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({priority: 'high'});
+    expect(mutationFn).toHaveBeenCalledWith({priority: 'high'}, expect.anything());
   });
 
   it('disables radios while auto-save is pending', async () => {

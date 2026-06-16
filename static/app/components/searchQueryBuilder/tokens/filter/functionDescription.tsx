@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {AggregateParameter} from 'sentry/utils/fields';
@@ -24,7 +24,7 @@ function getParameterLabel(param: AggregateParameter) {
 }
 
 export function FunctionDescription({token, parameterIndex}: FunctionDescriptionProps) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
+  const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const fnName = getKeyName(token.key);
   const fieldDefinition = getFieldDefinition(fnName);
 

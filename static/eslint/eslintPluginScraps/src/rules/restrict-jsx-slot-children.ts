@@ -112,12 +112,12 @@ function isReactFragment(nameNode: TSESTree.JSXTagNameExpression) {
  */
 function getDisplayName(node: TSESTree.JSXTagNameExpression): string {
   switch (node.type) {
+    case AST_NODE_TYPES.JSXIdentifier:
+      return node.name;
     case AST_NODE_TYPES.JSXMemberExpression:
       return `${getDisplayName(node.object)}.${node.property.name}`;
     case AST_NODE_TYPES.JSXNamespacedName:
       return `${node.namespace.name}:${node.name.name}`;
-    default:
-      return node.name;
   }
 }
 
@@ -213,7 +213,7 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
         })),
         allowedNames: new Set(),
         hint: buildAllowedHint(allowed),
-        componentNames: new Set(slot.componentNames ?? []),
+        componentNames: new Set(slot.componentNames),
       };
       for (const propName of slot.propNames) {
         if (slotState.has(propName)) {
@@ -276,7 +276,9 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
       propName: string,
       state: State
     ) {
-      if (!expr) return;
+      if (!expr) {
+        return;
+      }
 
       if (expr.type === 'JSXElement') {
         checkSlotTree(expr, propName, state);
@@ -326,7 +328,9 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
      */
     let allowedNamesResolved = false;
     function resolveAllowedNames() {
-      if (allowedNamesResolved) return;
+      if (allowedNamesResolved) {
+        return;
+      }
       allowedNamesResolved = true;
 
       for (const [, state] of slotState) {
@@ -359,10 +363,14 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
         // any JSXAttribute nodes, so importTracker has all imports recorded.
         resolveAllowedNames();
         const propName = node.name.type === 'JSXIdentifier' ? node.name.name : null;
-        if (!propName) return;
+        if (!propName) {
+          return;
+        }
 
         const state = slotState.get(propName);
-        if (!state) return;
+        if (!state) {
+          return;
+        }
 
         if (state.componentNames.size > 0) {
           const nameNode = node.parent.name; // JSXAttribute → JSXOpeningElement

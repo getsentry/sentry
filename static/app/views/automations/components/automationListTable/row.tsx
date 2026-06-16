@@ -3,21 +3,16 @@ import styled from '@emotion/styled';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Placeholder} from 'sentry/components/placeholder';
-import {ProjectList} from 'sentry/components/projectList';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
-import {
-  getAutomationActions,
-  useAutomationProjectIds,
-} from 'sentry/views/automations/hooks/utils';
+import {ProjectsCell} from 'sentry/views/automations/components/automationListTable/projectsCell';
+import {useCanEditAutomation} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 
 type AutomationListRowProps = {
   automation: Automation;
@@ -30,15 +25,10 @@ export function AutomationListRow({
   selected,
   onSelect,
 }: AutomationListRowProps) {
-  const organization = useOrganization();
-  const canEditAutomations = hasEveryAccess(['alerts:write'], {organization});
+  const canEditAutomations = useCanEditAutomation();
 
   const actions = getAutomationActions(automation);
-  const {enabled, lastTriggered, detectorIds = []} = automation;
-  const projectIds = useAutomationProjectIds(automation);
-  const projectSlugs = projectIds.map(
-    projectId => ProjectsStore.getById(projectId)?.slug
-  ) as string[];
+  const {enabled, lastTriggered, detectorIds} = automation;
 
   return (
     <AutomationSimpleTableRow
@@ -66,7 +56,7 @@ export function AutomationListRow({
         <ActionCell actions={actions} disabled={!enabled} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="projects">
-        <ProjectList projectSlugs={projectSlugs} />
+        <ProjectsCell automation={automation} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="connected-monitors">
         <AutomationListConnectedDetectors detectorIds={detectorIds} />

@@ -82,26 +82,22 @@ export default function AccountSecurity() {
         ? 'sessionHistory'
         : 'settings';
 
-  const routePrefix = `/settings/account/security/`;
+  const routePrefix = '/settings/account/security/';
   return (
     <SentryDocumentTitle title={t('Security')}>
-      <SettingsPageHeader
-        title={t('Security')}
-        tabs={
-          <TabsContainer>
-            <Tabs value={activeTab}>
-              <TabList>
-                <TabList.Item key="settings" to={routePrefix}>
-                  {t('Settings')}
-                </TabList.Item>
-                <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
-                  {t('Session History')}
-                </TabList.Item>
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-        }
-      />
+      <SettingsPageHeader title={t('Security')} />
+      <TabsContainer>
+        <Tabs value={activeTab}>
+          <TabList>
+            <TabList.Item key="settings" to={routePrefix}>
+              {t('Settings')}
+            </TabList.Item>
+            <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
+              {t('Session History')}
+            </TabList.Item>
+          </TabList>
+        </Tabs>
+      </TabsContainer>
 
       {!isEmpty && countEnrolled === 0 && <TwoFactorRequired />}
 
@@ -175,13 +171,13 @@ export default function AccountSecurity() {
                       <LinkButton
                         to={`/settings/account/security/mfa/${id}/enroll/`}
                         size="sm"
-                        priority="primary"
+                        variant="primary"
                       >
                         {t('Add')}
                       </LinkButton>
                     )}
                     {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
-                      <Button onClick={handleAdd2FAClicked} size="sm" priority="primary">
+                      <Button onClick={handleAdd2FAClicked} size="sm" variant="primary">
                         {t('Add')}
                       </Button>
                     )}
@@ -207,7 +203,7 @@ export default function AccountSecurity() {
                           tooltipProps={{
                             title: deleteDisabled
                               ? t(
-                                  `Two-factor authentication is required for organization(s): %s.`,
+                                  'Two-factor authentication is required for organization(s): %s.',
                                   formatOrgSlugs()
                                 )
                               : undefined,

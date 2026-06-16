@@ -8,6 +8,7 @@ import sentry_sdk
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
+from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -64,9 +65,9 @@ def handle_webhook_event(
     if integration is None:
         return
 
-    # Skip GitHub Enterprise on-prem - code review is only supported for GitHub Cloud
     if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
-        return
+        if not features.has("organizations:seer-code-review-github-enterprise", organization):
+            return
 
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
     tags = {}

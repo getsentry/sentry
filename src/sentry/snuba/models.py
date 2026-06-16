@@ -72,7 +72,10 @@ class SnubaQuery(Model):
         size=100,
     )
     aggregate = models.TextField()
+    # The aggregation window for the query, in seconds.
     time_window = models.IntegerField()
+    # How often the subscription query is evaluated, in seconds. Scaled up for
+    # larger time windows and comparison alerts to reduce query load.
     resolution = models.IntegerField()
     extrapolation_mode = models.IntegerField(
         choices=ExtrapolationMode.as_choices(),

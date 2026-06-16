@@ -48,7 +48,7 @@ export function SampleDataAlert({query}: {query?: string}) {
             'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
           )}
           <DismissButton
-            priority="link"
+            variant="link"
             icon={<IconClose />}
             onClick={dismiss}
             aria-label={t('Dismiss Alert')}

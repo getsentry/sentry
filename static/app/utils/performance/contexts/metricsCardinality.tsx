@@ -1,10 +1,10 @@
-import type {ComponentProps, ReactNode} from 'react';
-import {Fragment, useEffect} from 'react';
+import type {ReactNode} from 'react';
+import {createContext, Fragment, useContext, useEffect} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -12,8 +12,6 @@ import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnh
 import {MetricsCompatibilityQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import type {MetricsCompatibilitySumData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
 import {MetricsCompatibilitySumsQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
-
-import {createDefinedContext} from './utils';
 
 const UNPARAM_THRESHOLD = 0.01;
 const NULL_THRESHOLD = 0.01;
@@ -31,11 +29,9 @@ export interface MetricsCardinalityContext {
 
 type MergedMetricsData = MetricsCompatibilityData & MetricsCompatibilitySumData;
 
-const [_Provider, _useContext, _Context] =
-  createDefinedContext<MetricsCardinalityContext>({
-    name: 'MetricsCardinalityContext',
-    strict: false,
-  });
+const MetricsCardinalityCtx = createContext<MetricsCardinalityContext | undefined>(
+  undefined
+);
 
 /**
  * This provider determines whether the metrics data is storing performance information correctly before we
@@ -51,7 +47,7 @@ export function MetricsCardinalityProvider(props: {
 
   if (!isUsingMetrics) {
     return (
-      <_Provider
+      <MetricsCardinalityCtx
         value={{
           isLoading: false,
           outcome: {
@@ -60,7 +56,7 @@ export function MetricsCardinalityProvider(props: {
         }}
       >
         {props.children}
-      </_Provider>
+      </MetricsCardinalityCtx>
     );
   }
 
@@ -73,27 +69,6 @@ export function MetricsCardinalityProvider(props: {
   eventView.fields = [{field: 'tpm()'}];
   eventView.dataset = DiscoverDatasets.TRANSACTIONS;
   const _eventView = adjustEventViewTime(eventView);
-
-  if (
-    props.organization.features.includes(
-      'performance-remove-metrics-compatibility-fallback'
-    )
-  ) {
-    return (
-      <Provider
-        sendOutcomeAnalytics={props.sendOutcomeAnalytics}
-        organization={props.organization}
-        value={{
-          isLoading: false,
-          outcome: {
-            forceTransactionsOnly: false,
-          },
-        }}
-      >
-        {props.children}
-      </Provider>
-    );
-  }
 
   return (
     <Fragment>
@@ -112,8 +87,7 @@ export function MetricsCardinalityProvider(props: {
                             ...sumsResult.tableData,
                           }
                         : null,
-                      !!compatabilityResult.error && !!sumsResult.error,
-                      props.organization
+                      !!compatabilityResult.error && !!sumsResult.error
                     );
 
               return (
@@ -136,12 +110,12 @@ export function MetricsCardinalityProvider(props: {
   );
 }
 
-function Provider(
-  props: ComponentProps<typeof _Provider> & {
-    organization: Organization;
-    sendOutcomeAnalytics?: boolean;
-  }
-) {
+function Provider(props: {
+  children: ReactNode;
+  organization: Organization;
+  value: MetricsCardinalityContext;
+  sendOutcomeAnalytics?: boolean;
+}) {
   const fallbackFromNull = props.value.outcome?.shouldWarnIncompatibleSDK ?? false;
   const fallbackFromUnparam =
     props.value.outcome?.shouldNotifyUnnamedTransactions ?? false;
@@ -163,18 +137,19 @@ function Provider(
     fallbackFromNull,
     props.sendOutcomeAnalytics,
   ]);
-  return <_Provider {...props}>{props.children}</_Provider>;
+  return <MetricsCardinalityCtx {...props}>{props.children}</MetricsCardinalityCtx>;
 }
 
-export const useMetricsCardinalityContext = _useContext;
+export function useMetricsCardinalityContext(): MetricsCardinalityContext | undefined {
+  return useContext(MetricsCardinalityCtx);
+}
 
 /**
  * Logic for picking sides of metrics vs. transactions along with the associated warnings.
  */
 function getMetricsOutcome(
   dataCounts: MergedMetricsData | null,
-  hasOtherFallbackCondition: boolean,
-  organization: Organization
+  hasOtherFallbackCondition: boolean
 ) {
   const fallbackOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: true,
@@ -182,9 +157,6 @@ function getMetricsOutcome(
   const successOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: false,
   };
-  const isOnFallbackThresolds = organization.features.includes(
-    'performance-mep-bannerless-ui'
-  );
 
   if (!dataCounts) {
     return fallbackOutcome;
@@ -195,15 +167,11 @@ function getMetricsOutcome(
     return fallbackOutcome;
   }
 
-  if (!dataCounts) {
-    return fallbackOutcome;
-  }
-
   if (checkNoDataFallback(dataCounts)) {
     return fallbackOutcome;
   }
 
-  if (checkIncompatibleData(dataCounts, isOnFallbackThresolds)) {
+  if (checkIncompatibleData(dataCounts)) {
     return {
       shouldWarnIncompatibleSDK: true,
       forceTransactionsOnly: true,
@@ -219,7 +187,7 @@ function getMetricsOutcome(
     };
   }
 
-  if (checkIfPartialOtherData(dataCounts, isOnFallbackThresolds)) {
+  if (checkIfPartialOtherData(dataCounts)) {
     return {
       shouldNotifyUnnamedTransactions: true,
       compatibleProjects,
@@ -241,16 +209,10 @@ function checkNoDataFallback(dataCounts: MergedMetricsData) {
 /**
  * Fallback and warn if incompatible data found (old specific SDKs).
  */
-function checkIncompatibleData(
-  dataCounts: MergedMetricsData,
-  isOnFallbackThresolds: boolean
-) {
+function checkIncompatibleData(dataCounts: MergedMetricsData) {
   const counts = normalizeCounts(dataCounts);
-  if (isOnFallbackThresolds) {
-    const ratio = counts.nullCount / counts.metricsCount;
-    return ratio > NULL_THRESHOLD;
-  }
-  return counts.nullCount > 0;
+  const ratio = counts.nullCount / counts.metricsCount;
+  return ratio > NULL_THRESHOLD;
 }
 
 /**
@@ -264,16 +226,10 @@ function checkIfAllOtherData(dataCounts: MergedMetricsData) {
 /**
  * Show metrics but warn about unnamed transactions.
  */
-function checkIfPartialOtherData(
-  dataCounts: MergedMetricsData,
-  isOnFallbackThresolds: boolean
-) {
+function checkIfPartialOtherData(dataCounts: MergedMetricsData) {
   const counts = normalizeCounts(dataCounts);
-  if (isOnFallbackThresolds) {
-    const ratio = counts.unparamCount / counts.metricsCount;
-    return ratio > UNPARAM_THRESHOLD;
-  }
-  return counts.unparamCount > 0;
+  const ratio = counts.unparamCount / counts.metricsCount;
+  return ratio > UNPARAM_THRESHOLD;
 }
 
 /**

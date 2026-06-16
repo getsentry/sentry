@@ -1,6 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -24,20 +25,20 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
+import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useQuery} from 'sentry/utils/queryClient';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -45,11 +46,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import {AutofixRepositories} from './autofixRepositories';
-import {SEER_THRESHOLD_OPTIONS} from './constants';
-
-const AiSetupDataConsent = HookOrDefault({
-  hookName: 'component:ai-setup-data-consent',
+const AiSetupDataConsent = OverrideOrDefault({
+  overrideName: 'component:ai-setup-data-consent',
   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
 
@@ -184,11 +182,12 @@ function CodingAgentSettings({
   );
 }
 
-function ProjectSeerGeneralForm({project}: {project: Project}) {
+function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
-  const {preference} = useProjectSeerPreferences(project);
+  const {data} = useProjectSeerPreferences(project);
+  const preference = data?.preference;
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)
@@ -212,25 +211,23 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const claudeIntegration = claudeIntegrations[0];
 
   const handleSubmitSuccess = useCallback(
-    (resp: Project) => {
-      const projectSettingsQueryKey: ApiQueryKey = [
-        getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        }),
-      ];
-      setApiQueryData(queryClient, projectSettingsQueryKey, resp);
+    (resp: DetailedProject) => {
+      const projectSettingsQueryKey = makeDetailedProjectQueryKey({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+      });
+      queryClient.setQueryData(projectSettingsQueryKey, prev => ({
+        headers: prev?.headers ?? {},
+        json: resp,
+      }));
       ProjectsStore.onUpdateSuccess(resp);
     },
     [project.slug, queryClient, organization.slug]
   );
 
-  const hasCursorIntegration = Boolean(
-    organization.features.includes('integrations-cursor') && cursorIntegration
-  );
+  const hasCursorIntegration = Boolean(cursorIntegration);
 
-  const hasClaudeIntegration = Boolean(
-    organization.features.includes('integrations-claude-code') && claudeIntegration
-  );
+  const hasClaudeIntegration = Boolean(claudeIntegration);
 
   const handleStoppingPointChange = useCallback(
     (
@@ -497,7 +494,7 @@ function ProjectSeer({
   project,
 }: {
   organization: Organization;
-  project: Project;
+  project: DetailedProject;
 }) {
   const {billing, isLoading} = useOrganizationSeerSetup();
 
@@ -551,11 +548,11 @@ function ProjectSeer({
       <CursorIntegrationCta project={project} />
       <ClaudeCodeIntegrationCta project={project} />
       <GithubCopilotIntegrationCta />
-      <AutofixRepositories project={project} />
+      <AutofixRepositoriesList canWrite includeInstructions project={project} />
       <Flex justify="center" marginTop="lg">
         <LinkButton
           to={`/settings/${organization.slug}/seer/onboarding/`}
-          priority="primary"
+          variant="primary"
         >
           {t('Set up my other projects')}
         </LinkButton>

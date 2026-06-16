@@ -1,3 +1,4 @@
+import functools
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
@@ -28,7 +29,7 @@ from sentry.snuba.discover import (
 from sentry.snuba.discover import get_facets as get_discover_facets
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
-from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries, get_snuba_column_name
 
 is_filter_translation = {}
 for status_key, status_value in STATUS_QUERY_CHOICES.items():
@@ -109,18 +110,21 @@ def timeseries_query(
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
-    allow_metric_aggregates=False,
-    has_metrics=False,
-    on_demand_metrics_enabled=False,
+    allow_metric_aggregates: bool = False,
+    has_metrics: bool = False,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
     *,
     referrer: str,
-):
+) -> SnubaTSResult:
     with sentry_sdk.start_span(op="errors", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
+
+        column_resolver = functools.partial(get_snuba_column_name, dataset=Dataset.Events)
+
         base_builder = ErrorsTimeseriesQueryBuilder(
             Dataset.Events,
             params={},
@@ -134,6 +138,7 @@ def timeseries_query(
                 has_metrics=has_metrics,
                 parser_config_overrides=PARSER_CONFIG_OVERRIDES,
                 transform_alias_to_input_format=transform_alias_to_input_format,
+                column_resolver=column_resolver,
             ),
         )
         query_list = [base_builder]
@@ -153,7 +158,10 @@ def timeseries_query(
                 query=query,
                 selected_columns=columns,
                 equations=equations,
-                config=QueryBuilderConfig(parser_config_overrides=PARSER_CONFIG_OVERRIDES),
+                config=QueryBuilderConfig(
+                    parser_config_overrides=PARSER_CONFIG_OVERRIDES,
+                    column_resolver=column_resolver,
+                ),
             )
             query_list.append(comparison_builder)
 

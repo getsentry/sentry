@@ -36,11 +36,11 @@ export function FeatureFlagCTAContent({
           )}
         </Container>
         <Flex gap="md">
-          <Button onClick={handleSetupButtonClick} priority="primary">
+          <Button onClick={handleSetupButtonClick} variant="primary">
             {t('Set Up Now')}
           </Button>
           <LinkButton
-            priority="default"
+            variant="secondary"
             href="https://docs.sentry.io/product/explore/feature-flags/"
             external
             onClick={() => {

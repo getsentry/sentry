@@ -11,6 +11,8 @@ export function looksLikeAJSONArray(value: string) {
   const trimmedValue = value.trim();
 
   // The string '[Filtered]' looks array-like, but it's actually a Relay special string
-  if (trimmedValue === '[Filtered]') return false;
+  if (trimmedValue === '[Filtered]') {
+    return false;
+  }
   return trimmedValue.startsWith('[') && trimmedValue.endsWith(']');
 }

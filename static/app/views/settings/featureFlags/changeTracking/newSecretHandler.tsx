@@ -70,7 +70,7 @@ export function NewSecretHandler({
 
       <StyledPanelItem>
         <ButtonWrapper>
-          <Button onClick={onGoBack} priority="primary">
+          <Button onClick={onGoBack} variant="primary">
             {t('Done')}
           </Button>
         </ButtonWrapper>

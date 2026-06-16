@@ -9,6 +9,9 @@ import pytest_rerunfailures
 import responses
 import sentry_sdk
 
+# Set async apigateway as soon as possible
+os.environ["SENTRY_APIGW_ASYNC"] = "true"
+
 # Disable crash recovery server in pytest-rerunfailures. Under xdist, Sentry's
 # global socket.setdefaulttimeout(5) causes the server's per-worker recv threads
 # to die during Django init (~10s), silently breaking crash recovery anyway.
@@ -154,6 +157,20 @@ def reset_sentry_isolation_scope() -> Generator[None]:
 def clear_caches() -> Generator[None]:
     yield
     cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_translation() -> Generator[None]:
+    # SentryLocaleMiddleware calls translation.activate() from the user's
+    # session language preference. In the test client, all requests share one
+    # thread, so an activated locale leaks into subsequent tests. Reset to the
+    # default language after each test to prevent snapshot failures and other
+    # locale-sensitive assertions. deactivate() is a single thread-local write
+    # so the autouse overhead is negligible.
+    from django.utils import translation
+
+    yield
+    translation.deactivate()
 
 
 @pytest.fixture(autouse=True)

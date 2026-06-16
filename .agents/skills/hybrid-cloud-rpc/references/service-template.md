@@ -7,7 +7,7 @@ from .model import *  # noqa
 from .service import *  # noqa
 ```
 
-## `model.py` (REGION silo example)
+## `model.py` (CELL silo example)
 
 ```python
 # Please do not use
@@ -125,7 +125,7 @@ def serialize_my_thing(obj: MyThing) -> RpcMyThing:
     )
 ```
 
-## `service.py` (REGION silo)
+## `service.py` (CELL silo)
 
 ```python
 # Please do not use
@@ -223,7 +223,7 @@ class MyMappingService(RpcService):
 my_mapping_service = MyMappingService.create_delegation()
 ```
 
-## `impl.py` (REGION silo example)
+## `impl.py` (CELL silo example)
 
 ```python
 from __future__ import annotations

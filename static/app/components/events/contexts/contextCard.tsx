@@ -3,7 +3,7 @@ import startCase from 'lodash/startCase';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -17,7 +17,7 @@ import {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import type {Event} from 'sentry/types/event';
-import type {Group, KeyValueListDataItem} from 'sentry/types/group';
+import type {KeyValueListDataItem} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,7 +27,6 @@ interface ContextCardProps {
   alias: string;
   event: Event;
   type: string;
-  group?: Group;
   project?: Project;
   value?: ContextValue;
 }

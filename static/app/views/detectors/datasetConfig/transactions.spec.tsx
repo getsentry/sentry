@@ -21,7 +21,7 @@ describe('DetectorTransactionsConfig', () => {
         eventTypes: [EventTypes.TRANSACTION],
         statsPeriod: '6h',
         comparisonDelta: undefined,
-      });
+      }).queryKey;
 
       const {url, options} = parseQueryKey(key);
       expect(url).toBe(`/organizations/${organization.slug}/events-stats/`);
@@ -49,10 +49,10 @@ describe('DetectorTransactionsConfig', () => {
         eventTypes: [EventTypes.TRANSACTION],
         statsPeriod: '6h',
         comparisonDelta: undefined,
-      });
+      }).queryKey;
 
       const {options} = parseQueryKey(key);
-      const params = options!.query!;
+      const params = options.query!;
       expect(params.dataset).toBe(DiscoverDatasets.METRICS_ENHANCED);
       expect(params.query).toBe('transaction.duration:>0');
       expect(params.interval).toBe('1m');

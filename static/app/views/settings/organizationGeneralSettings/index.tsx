@@ -17,7 +17,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -27,7 +26,6 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
-import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import {OrganizationSettingsForm} from './organizationSettingsForm';
 
@@ -36,7 +34,6 @@ export default function OrganizationGeneralSettings() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
-
   const removeConfirmMessage = (
     <Fragment>
       <TextBlock>
@@ -76,13 +73,6 @@ export default function OrganizationGeneralSettings() {
         navigate(`/settings/${updated.slug}/`, {replace: true});
       }
     } else {
-      if (prevData.codecovAccess !== updated.codecovAccess) {
-        trackAnalytics('organization_settings.codecov_access_updated', {
-          organization: updated,
-          has_access: updated.codecovAccess,
-        });
-      }
-
       // This will update OrganizationStore (as well as OrganizationsStore
       // which is slightly incorrect because it has summaries vs a detailed org)
       updateOrganization(updated);
@@ -103,18 +93,11 @@ export default function OrganizationGeneralSettings() {
     });
   };
 
-  const organizationRegionInfo = OrganizationRegionAction({
-    organization,
-  });
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
-        <SettingsPageHeader
-          title={t('Organization Settings')}
-          action={organizationRegionInfo}
-        />
+        <SettingsPageHeader title={t('Organization Settings')} />
         <OrganizationPermissionAlert />
 
         <OrganizationSettingsForm
@@ -141,7 +124,7 @@ export default function OrganizationGeneralSettings() {
                   message={removeConfirmMessage}
                   onConfirm={handleConfirmRemoveOrg}
                 >
-                  <Button priority="danger">{t('Remove Organization')}</Button>
+                  <Button variant="danger">{t('Remove Organization')}</Button>
                 </Confirm>
               </div>
             </FieldGroup>

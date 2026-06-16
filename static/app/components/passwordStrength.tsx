@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'zxcv... Remove this comment to see the full error message
 import zxcvbn from 'zxcvbn';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {tct} from 'sentry/locale';
 
 /**
@@ -72,7 +74,7 @@ export function PasswordStrength(props: Props) {
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <StrengthProgressBar css={styles} />
+        <Container height="100%" css={styles} />
       </StrengthProgress>
       <StrengthLabel>
         {tct('Strength: [textScore]', {
@@ -88,10 +90,6 @@ const StrengthProgress = styled('div')`
   height: 8px;
   border-radius: 2px;
   overflow: hidden;
-`;
-
-const StrengthProgressBar = styled('div')`
-  height: 100%;
 `;
 
 const StrengthLabel = styled('div')`

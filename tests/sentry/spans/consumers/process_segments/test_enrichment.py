@@ -1,5 +1,6 @@
 from typing import cast
 
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.enrichment import (
@@ -403,7 +404,44 @@ def test_emit_ops_breakdown() -> None:
     # assert updates["span_ops_2.total.time"]["value"] == 14400000.01
 
 
-def test_write_tags_for_performance_issue_detection():
+def test_ops_breakdown_excludes_segment_span() -> None:
+    """Regression test: segment span with an op matching the breakdown config
+    (e.g. http.server matching "http") must not be included in the breakdown.
+    The breakdown should only reflect child spans."""
+
+    segment_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        start_timestamp=1577836800.0,  # 2020-01-01 00:00:00
+        end_timestamp=1577858400.0,  # 2020-01-01 06:00:00 (6 hours)
+        span_id="ffffffffffffffff",
+        span_op="http.server",
+    )
+
+    child_http_span = build_mock_span(
+        project_id=1,
+        start_timestamp=1577836800.0,  # 2020-01-01 00:00:00
+        end_timestamp=1577840400.0,  # 2020-01-01 01:00:00 (1 hour)
+        span_id="aaaaaaaaaaaaaaaa",
+        parent_span_id=segment_span["span_id"],
+        span_op="http",
+    )
+
+    all_spans = [child_http_span, segment_span]
+    breakdowns_config = {
+        "span_ops": {"type": "spanOperations", "matches": ["http"]},
+    }
+
+    _, enriched_spans = TreeEnricher.enrich_spans(all_spans)
+
+    # The segment span has op "http.server" which matches "http", but it must
+    # be excluded from the breakdown to avoid inflating the result.
+    child_only = [s for s in enriched_spans if not s.get("is_segment")]
+    result = compute_breakdowns(child_only, breakdowns_config)
+    assert result["span_ops.ops.http"]["value"] == 3600000.0  # 1 hour (child only)
+
+
+def test_write_tags_for_performance_issue_detection() -> None:
     segment_span = _mock_performance_issue_span(
         is_segment=True,
         span_id="ffffffffffffffff",
@@ -475,6 +513,77 @@ def _mock_performance_issue_span(is_segment, attributes, **fields) -> SpanEvent:
             **fields,
         },
     )
+
+
+def test_conventional_user_attributes_propagated_to_child_spans() -> None:
+    """New conventional user attributes (user.email, user.id, etc.) are propagated
+    from the segment span to child spans that don't already have them."""
+    user_attrs = {
+        ATTRIBUTE_NAMES.USER_EMAIL: {"type": "string", "value": "user@example.com"},
+        ATTRIBUTE_NAMES.USER_ID: {"type": "string", "value": "12345"},
+        ATTRIBUTE_NAMES.USER_IP_ADDRESS: {"type": "string", "value": "203.0.113.1"},
+        ATTRIBUTE_NAMES.USER_NAME: {"type": "string", "value": "testuser"},
+        ATTRIBUTE_NAMES.USER_GEO_CITY: {"type": "string", "value": "San Francisco"},
+        ATTRIBUTE_NAMES.USER_GEO_COUNTRY_CODE: {"type": "string", "value": "US"},
+        ATTRIBUTE_NAMES.USER_GEO_REGION: {"type": "string", "value": "CA"},
+        ATTRIBUTE_NAMES.USER_GEO_SUBDIVISION: {"type": "string", "value": "San Francisco"},
+    }
+
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        attributes=user_attrs,
+    )
+    child = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+    )
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    enriched_child = enriched[1]
+    for attr_name, attr in user_attrs.items():
+        assert attribute_value(enriched_child, attr_name) == attr["value"], (
+            f"{attr_name} not propagated to child"
+        )
+
+
+def test_conventional_user_attributes_not_overwritten_on_child() -> None:
+    """If a child span already has a conventional user attribute, the segment
+    value must not overwrite it."""
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        attributes={
+            ATTRIBUTE_NAMES.USER_EMAIL: {"type": "string", "value": "segment@example.com"},
+            ATTRIBUTE_NAMES.USER_ID: {"type": "string", "value": "111"},
+        },
+    )
+    child = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+        attributes={
+            ATTRIBUTE_NAMES.USER_EMAIL: {"type": "string", "value": "child@example.com"},
+        },
+    )
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    enriched_child = enriched[1]
+    assert attribute_value(enriched_child, ATTRIBUTE_NAMES.USER_EMAIL) == "child@example.com"
+    assert attribute_value(enriched_child, ATTRIBUTE_NAMES.USER_ID) == "111"
 
 
 def test_enrich_gen_ai_agent_name_from_immediate_parent() -> None:

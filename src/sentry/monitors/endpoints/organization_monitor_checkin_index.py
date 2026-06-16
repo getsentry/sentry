@@ -40,7 +40,9 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint, MonitorCheckInMix
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization, project, monitor) -> Response:
+    def get(
+        self, request: Request, organization, project, monitor
+    ) -> Response[list[MonitorCheckInSerializerResponse]]:
         """
         Retrieve a list of check-ins for a monitor
         """

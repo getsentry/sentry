@@ -97,7 +97,7 @@ export function InsightDiffRow({
                   </Text>
                 </Flex>
                 <Button
-                  priority="transparent"
+                  variant="transparent"
                   size="sm"
                   onClick={() => setIsExpanded(!isExpanded)}
                   aria-label={isExpanded ? t('Collapse insight') : t('Expand insight')}

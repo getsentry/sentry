@@ -4,10 +4,9 @@ import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import TransitionChart from 'sentry/components/charts/transitionChart';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
@@ -41,7 +40,6 @@ import {
 
 type Props = ViewProps & {
   isLoading: boolean;
-  organization: OrganizationSummary;
   projects: Project[];
   statsData: TrendsStats;
   trendChangeType: TrendChangeType;
@@ -93,7 +91,6 @@ export function Chart({
   height,
   projects,
   project,
-  organization,
   additionalSeries,
   applyRegressionFormatToInterval = false,
 }: Props) {
@@ -119,9 +116,7 @@ export function Chart({
     navigate(to);
   };
 
-  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
-    ? transaction?.change
-    : trendChangeType;
+  const derivedTrendChangeType = transaction?.change ?? trendChangeType;
 
   const trendToColor = makeTrendToColorMapping(theme);
   const lineColor =

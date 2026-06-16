@@ -3,6 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import type {Group} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {
   transformIssuesResponseToSeries,
@@ -11,41 +12,49 @@ import {
 
 describe('transformIssuesResponseToTable', () => {
   it('transforms issues response', () => {
-    expect(
-      transformIssuesResponseToTable(
-        [
-          GroupFixture({
-            id: '1',
-            title: 'Error: Failed',
-            project: ProjectFixture({
-              id: '3',
-            }),
-            status: GroupStatus.UNRESOLVED,
-            owners: [
-              {
-                type: 'ownershipRule',
-                owner: 'user:2',
-                date_added: '2022-01-01T13:04:02Z',
-              },
-            ],
-            lifetime: {count: '10', firstSeen: '', lastSeen: '', stats: {}, userCount: 5},
-            count: '6',
-            userCount: 3,
-            firstSeen: '2022-01-01T13:04:02Z',
+    const assignedTo = {
+      email: 'test@sentry.io',
+      type: 'user',
+      id: '2',
+      name: 'Test User',
+    } satisfies Group['assignedTo'];
+    const owners = [
+      {
+        type: 'ownershipRule',
+        owner: 'user:2',
+        date_added: '2022-01-01T13:04:02Z',
+      },
+    ] satisfies Group['owners'];
+    const table = transformIssuesResponseToTable(
+      [
+        GroupFixture({
+          id: '1',
+          title: 'Error: Failed',
+          project: ProjectFixture({
+            id: '3',
           }),
-        ],
-        {
-          name: '',
-          fields: ['issue', 'assignee', 'title', 'culprit', 'status'],
-          columns: ['issue', 'assignee', 'title', 'culprit', 'status'],
-          aggregates: [],
-          conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
-          orderby: '',
-        },
-        OrganizationFixture(),
-        GlobalSelectionFixture()
-      )
-    ).toEqual(
+          status: GroupStatus.UNRESOLVED,
+          assignedTo,
+          owners,
+          lifetime: {count: '10', firstSeen: '', lastSeen: '', stats: {}, userCount: 5},
+          count: '6',
+          userCount: 3,
+          firstSeen: '2022-01-01T13:04:02Z',
+        }),
+      ],
+      {
+        name: '',
+        fields: ['issue', 'assignee', 'title', 'culprit', 'status'],
+        columns: ['issue', 'assignee', 'title', 'culprit', 'status'],
+        aggregates: [],
+        conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
+        orderby: '',
+      },
+      OrganizationFixture(),
+      GlobalSelectionFixture()
+    );
+
+    expect(table).toEqual(
       expect.objectContaining({
         data: [
           expect.objectContaining({
@@ -55,7 +64,6 @@ describe('transformIssuesResponseToTable', () => {
             id: '1',
             'issue.id': '1',
             lifetimeUsers: 5,
-            links: [],
             period: '',
             projectId: '3',
             status: 'unresolved',
@@ -65,7 +73,7 @@ describe('transformIssuesResponseToTable', () => {
             start: '2019-10-09T11:18:59',
           }),
         ],
-        meta: {
+        meta: expect.objectContaining({
           fields: expect.objectContaining({
             assignee: 'string',
             events: 'string',
@@ -85,9 +93,17 @@ describe('transformIssuesResponseToTable', () => {
             title: 'string',
             users: 'string',
           }),
-        },
+        }),
       })
     );
+    expect(table.data[0]).not.toHaveProperty('assignedTo');
+    expect(table.data[0]).not.toHaveProperty('owners');
+    expect(table.data[0]).not.toHaveProperty('links');
+    expect(table.meta?.issueRowMetadata?.['1']).toEqual({
+      assignedTo,
+      links: [],
+      owners,
+    });
   });
   it('transforms issues timeseries response to series', () => {
     expect(

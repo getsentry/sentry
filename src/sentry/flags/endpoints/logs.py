@@ -38,7 +38,7 @@ class FlagAuditLogModelSerializerResponse(TypedDict):
 
 
 @register(FlagAuditLogModel)
-class FlagAuditLogModelSerializer(Serializer):
+class FlagAuditLogModelSerializer(Serializer[FlagAuditLogModelSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> FlagAuditLogModelSerializerResponse:
         return {
             "id": obj.id,

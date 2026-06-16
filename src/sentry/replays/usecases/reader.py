@@ -3,7 +3,6 @@ from __future__ import annotations
 import uuid
 import zlib
 from collections.abc import Generator, Iterator
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -29,6 +28,7 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import raw_snql_query
 
 # METADATA QUERY BEHAVIOR.
@@ -255,7 +255,7 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
     yield b"["
 
     for i, segment in iter_segment_data(segments):
-        yield segment
+        yield segment.tobytes()
         if i < len(segments) - 1:
             yield b","
 
@@ -265,7 +265,7 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
 def iter_segment_data(
     segments: list[RecordingSegmentStorageMeta],
 ) -> Generator[tuple[int, memoryview]]:
-    with ThreadPoolExecutor(max_workers=10) as pool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=10) as pool:
         segment_data = pool.map(_download_segment, segments)
 
     for i, result in enumerate(segment_data):
@@ -277,14 +277,14 @@ def iter_segment_data(
 
 def download_segment(segment: RecordingSegmentStorageMeta, span: Any) -> bytes:
     results = _download_segment(segment)
-    return results[1] if results is not None else b"[]"
+    return results[1].tobytes() if results is not None else b"[]"
 
 
 def download_video(segment: RecordingSegmentStorageMeta) -> bytes | None:
     result = _download_segment(segment)
     if result is not None:
         video, _ = result
-        return video
+        return video.tobytes() if video is not None else None
     return None
 
 

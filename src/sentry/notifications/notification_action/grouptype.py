@@ -22,13 +22,12 @@ class SendTestNotification(GroupType):
     slug = "send-test-notification"
     description = "Send test notification"
     category = GroupCategory.TEST_NOTIFICATION.value
-    category_v2 = GroupCategory.TEST_NOTIFICATION.value
     released = False
     in_default_search = False
     enable_auto_resolve = True
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = True
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
+    creation_quota = Quota(3600, 60, 100)  # 100 per hour, sliding window of 60 seconds
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:

@@ -56,7 +56,7 @@ export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDura
 
 const PerformanceInteraction = (function () {
   let _INTERACTION_SPAN: Span | null = null;
-  let _INTERACTION_TIMEOUT_ID: number | undefined = undefined;
+  let _INTERACTION_TIMEOUT_ID: number | undefined;
   return {
     getSpan() {
       return _INTERACTION_SPAN;
@@ -357,7 +357,7 @@ const addCustomMeasurements = (transaction: TransactionEvent) => {
     ttfb: ttfbValue,
     browserTimeOrigin,
     transactionStart: transaction.start_timestamp,
-    transactionOp: (transaction.contexts?.trace?.op as string) ?? 'pageload',
+    transactionOp: transaction.contexts?.trace?.op! ?? 'pageload',
   };
 
   for (const [name, fn] of Object.entries(customMeasurements)) {
@@ -413,7 +413,7 @@ const customMeasurements: Record<
     const headMark = performance.getEntriesByName('head-start')[0];
 
     if (!headMark || !ttfb) {
-      return undefined;
+      return;
     }
 
     const entryStartSeconds = browserTimeOrigin / 1000 + headMark.startTime / 1000;
@@ -433,7 +433,7 @@ const customMeasurements: Record<
   bundle_load: ({transaction, ttfb}) => {
     const span = getBundleLoadSpan(transaction);
     if (!span?.timestamp || !span?.start_timestamp || !ttfb) {
-      return undefined;
+      return;
     }
     return {
       value: (span?.timestamp - span?.start_timestamp) * 1000,
@@ -452,7 +452,7 @@ const customMeasurements: Record<
   visually_complete_with_data: ({transaction, ttfb, transactionStart}) => {
     const vcdSpan = getVCDSpan(transaction);
     if (!vcdSpan?.timestamp || !ttfb) {
-      return undefined;
+      return;
     }
     const value = (vcdSpan?.timestamp - transactionStart) * 1000;
     return {
@@ -475,13 +475,13 @@ const customMeasurements: Record<
     const bundleSpan = getBundleLoadSpan(transaction);
     const vcdSpan = getVCDSpan(transaction);
     if (!vcdSpan?.timestamp || !['navigation', 'pageload'].includes(transactionOp)) {
-      return undefined;
+      return;
     }
 
     const startTimestamp =
       transactionOp === 'navigation' ? transactionStart : bundleSpan?.timestamp;
     if (!startTimestamp) {
-      return undefined;
+      return;
     }
     return {
       value: (vcdSpan.timestamp - startTimestamp) * 1000,
@@ -544,7 +544,7 @@ const addSlowAppInit = (transaction: TransactionEvent) => {
       s.start_timestamp < appInitSpan.start_timestamp
   );
   longTaskSpans.forEach(s => {
-    s.op = `ui.long-task.app-init`;
+    s.op = 'ui.long-task.app-init';
   });
   if (longTaskSpans.length) {
     const sum = longTaskSpans.reduce(

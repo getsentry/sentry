@@ -402,9 +402,11 @@ def get_bundles_indexing_state(
         "releaseartifactbundle__dist_name": dist_name,
     }
     if isinstance(org_or_project, Project):
+        filter["organization_id"] = org_or_project.organization_id
         filter["releaseartifactbundle__organization_id"] = org_or_project.organization.id
         filter["projectartifactbundle__project_id"] = org_or_project.id
     else:
+        filter["organization_id"] = org_or_project.id
         filter["releaseartifactbundle__organization_id"] = org_or_project.id
 
     query = (

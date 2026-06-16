@@ -1,5 +1,4 @@
-import {useMemo} from 'react';
-import * as React from 'react';
+import {Fragment, useMemo} from 'react';
 import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
@@ -44,7 +43,7 @@ export function FlamegraphChartTooltip({
     <BoundTooltip cursor={configSpaceCursor} canvas={chartCanvas} canvasView={chartView}>
       {series.map((p, i) => {
         return (
-          <React.Fragment key={i}>
+          <Fragment key={i}>
             <FlamegraphTooltipFrameMainInfo>
               <FlamegraphTooltipColorIndicator
                 backgroundColor={p.fillColor || p.lineColor}
@@ -54,7 +53,7 @@ export function FlamegraphChartTooltip({
                 {chart.tooltipFormatter(p.points[0]!.y)}
               </FlamegraphTooltipTimelineInfo>
             </FlamegraphTooltipFrameMainInfo>
-          </React.Fragment>
+          </Fragment>
         );
       })}
       <FlamegraphTooltipTimelineInfo>

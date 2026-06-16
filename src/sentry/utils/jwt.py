@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives.serialization import (
     PublicFormat,
 )
 from jwt import DecodeError
+from jwt.types import Options
 
 __all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
 
@@ -65,7 +66,7 @@ def decode(
     """
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
-    options = {}
+    options: Options = {}
     kwargs: dict[str, Any] = {}
     if audience is False:
         options["verify_aud"] = False

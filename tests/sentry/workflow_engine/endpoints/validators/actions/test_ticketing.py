@@ -32,6 +32,14 @@ class BaseTicketingActionValidatorTest(TestCase):
         assert result is True
 
 
+class TestGitHubActionValidator(BaseTicketingActionValidatorTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.valid_data["data"] = {
+            "additional_fields": {"repo": "owner/test-repo", "integration": "12345"}
+        }
+
+
 class TestJiraActionValidator(BaseTicketingActionValidatorTest):
     __test__ = True
     provider = Action.Type.JIRA
@@ -47,11 +55,27 @@ class TestAzureDevOpsActionValidator(BaseTicketingActionValidatorTest):
     provider = Action.Type.AZURE_DEVOPS
 
 
-class TestGithubActionValidator(BaseTicketingActionValidatorTest):
+class TestGithubActionValidator(TestGitHubActionValidator):
     __test__ = True
     provider = Action.Type.GITHUB
 
+    def test_validate_missing_repo(self) -> None:
+        data = {**self.valid_data, "data": {}}
+        validator = BaseActionValidator(
+            data=data,
+            context={"organization": self.organization},
+        )
+        assert validator.is_valid() is False
 
-class TestGithubEnterpriseActionValidator(BaseTicketingActionValidatorTest):
+
+class TestGithubEnterpriseActionValidator(TestGitHubActionValidator):
     __test__ = True
     provider = Action.Type.GITHUB_ENTERPRISE
+
+    def test_validate_missing_repo(self) -> None:
+        data = {**self.valid_data, "data": {}}
+        validator = BaseActionValidator(
+            data=data,
+            context={"organization": self.organization},
+        )
+        assert validator.is_valid() is False

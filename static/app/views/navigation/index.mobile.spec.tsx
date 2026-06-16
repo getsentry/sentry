@@ -62,27 +62,27 @@ function setupMocks() {
   ConfigStore.set('customerDomain', null);
 
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/broadcasts/`,
+    url: '/organizations/org-slug/broadcasts/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/assistant/`,
+    url: '/assistant/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/group-search-views/starred/`,
+    url: '/organizations/org-slug/group-search-views/starred/',
     body: [GroupSearchViewFixture({name: 'Starred View 1'})],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/issues-count/`,
+    url: '/organizations/org-slug/issues-count/',
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/explore/saved/`,
+    url: '/organizations/org-slug/explore/saved/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/dashboards/`,
+    url: '/organizations/org-slug/dashboards/',
     body: [],
   });
 
@@ -157,6 +157,36 @@ describe('mobile navigation', () => {
         expect(link).not.toHaveAttribute('aria-selected');
       });
     });
+  });
+
+  it('keeps page-frame nav open when interacting with org dropdown overlay', async () => {
+    const pageFrameContext = navigationContext({
+      organization: {features: [...ALL_AVAILABLE_FEATURES, 'page-frame']},
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      pageFrameContext
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    expect(
+      screen.getByRole('navigation', {name: 'Primary Navigation'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    // The org dropdown menu is portaled to document.body, so clicking it
+    // triggers click-outside on the nav panel. The nav should stay open.
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Organization Settings'})
+    );
+
+    expect(
+      screen.getByRole('navigation', {name: 'Primary Navigation'})
+    ).toBeInTheDocument();
   });
 
   describe('secondary nav route inference', () => {

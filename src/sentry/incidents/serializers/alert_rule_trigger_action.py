@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import sentry_sdk
 from django.forms import ValidationError
 from django.utils.encoding import force_str
@@ -21,11 +25,11 @@ from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.integrations.slack.utils.channel import validate_slack_entity_id
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
-from sentry.notifications.models.notificationaction import ActionService
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
-class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
+class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer[AlertRuleTriggerAction]):
     """
     Serializer for creating/updating a trigger action. Required context:
      - `trigger`: The trigger related to this action.
@@ -74,7 +78,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(f"Invalid type, valid values are {valid_slugs!r}")
         return factory.service_type
 
-    def validate_target_type(self, target_type):
+    def validate_target_type(self, target_type: str) -> ActionTarget:
         if target_type not in STRING_TO_ACTION_TARGET_TYPE:
             raise serializers.ValidationError(
                 "Invalid targetType, valid values are [%s]"
@@ -82,7 +86,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         return STRING_TO_ACTION_TARGET_TYPE[target_type]
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if ("type" in attrs) != ("target_type" in attrs) != ("target_identifier" in attrs):
             raise serializers.ValidationError(
                 "type, targetType and targetIdentifier must be passed together"
@@ -90,7 +94,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         type = attrs.get("type")
         target_type = attrs.get("target_type")
         access: Access = self.context["access"]
-        identifier = attrs.get("target_identifier")
+        identifier: str = attrs.get("target_identifier", "")
 
         # Validate that target_identifier is an integer for USER and TEAM target types
         if target_type in (
@@ -212,7 +216,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         return attrs
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> AlertRuleTriggerAction:
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
         try:
@@ -238,7 +242,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
         return action
 
-    def update(self, instance, validated_data):
+    def update(
+        self, instance: AlertRuleTriggerAction, validated_data: dict[str, Any]
+    ) -> AlertRuleTriggerAction:
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
 

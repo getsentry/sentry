@@ -62,6 +62,31 @@ class GroupActivityTestCase(TestCase):
         assert commit_data["repository"]["name"] == "organization-bar"
         assert commit_data["message"] == "gemuse"
 
+    def test_referenced_in_commit_activity(self) -> None:
+        self.org = self.create_organization(name="Rowdy Tiger")
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        repo = self.create_repo(self.project, name="organization-bar")
+
+        commit = Commit.objects.create(
+            organization_id=self.org.id, repository_id=repo.id, key="11111111", message="gemuse"
+        )
+
+        activity = Activity.objects.create(
+            project_id=group.project_id,
+            group=group,
+            type=ActivityType.REFERENCED_IN_COMMIT.value,
+            ident=commit.id,
+            user_id=user.id,
+            data={"commit": commit.id},
+        )
+
+        result = serialize([activity], user)[0]
+        assert result["type"] == "referenced_in_commit"
+        commit_data = result["data"]["commit"]
+        assert commit_data["repository"]["name"] == "organization-bar"
+        assert commit_data["message"] == "gemuse"
+
     def test_serialize_set_resolve_in_commit_activity_with_release(self) -> None:
         project = self.create_project(name="test_throwaway")
         group = self.create_group(project)

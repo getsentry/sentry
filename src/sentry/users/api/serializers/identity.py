@@ -18,7 +18,7 @@ class IdentitySerializerResponse(TypedDict):
 
 
 @register(Identity)
-class IdentitySerializer(Serializer):
+class IdentitySerializer(Serializer[IdentitySerializerResponse]):
     def serialize(
         self,
         obj: Identity,

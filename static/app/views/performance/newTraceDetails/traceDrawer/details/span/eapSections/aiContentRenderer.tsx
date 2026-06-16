@@ -9,12 +9,13 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {
   detectAIContentType,
   parseXmlTagSegments,
+  preprocessInlineXmlTags,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 interface AIContentRendererProps {
   text: string;
-  /** When true, renders content directly without a wrapper or raw/pretty toggle. */
+  autoCollapseLimit?: number;
   inline?: boolean;
   maxJsonDepth?: number;
 }
@@ -27,22 +28,23 @@ function XmlTagBlock({tagName, content}: {content: string; tagName: string}) {
       direction="column"
       padding="0 0 0 md"
       margin="sm 0"
-      style={{borderLeft: `3px solid ${theme.tokens.border.accent.moderate}`}}
+      style={{borderLeft: `2px solid ${theme.tokens.border.primary}`}}
     >
       <Container margin="0 0 xs 0">
         <Text size="xs" variant="muted">
           {tagName}
         </Text>
       </Container>
-      <Text italic>
-        <MarkedText as={TraceDrawerComponents.MarkdownContainer} text={content} />
-      </Text>
+      <MarkdownWithXmlRenderer text={content} />
     </Flex>
   );
 }
 
 function MarkdownWithXmlRenderer({text}: {text: string}) {
-  const segments = useMemo(() => parseXmlTagSegments(text), [text]);
+  const segments = useMemo(
+    () => parseXmlTagSegments(preprocessInlineXmlTags(text)),
+    [text]
+  );
 
   return (
     <Fragment>
@@ -61,14 +63,12 @@ function MarkdownWithXmlRenderer({text}: {text: string}) {
   );
 }
 
-/**
- * Unified AI content renderer that auto-detects content type and renders appropriately.
- * Handles JSON, Python dicts, partial JSON, markdown with XML tags, markdown, and plain text.
- */
+/** Auto-detects AI content type and renders appropriately. */
 export function AIContentRenderer({
   text,
   inline = false,
   maxJsonDepth = 2,
+  autoCollapseLimit,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
 
@@ -79,6 +79,7 @@ export function AIContentRenderer({
         <TraceDrawerComponents.MultilineJSON
           value={detection.parsedData}
           maxDefaultDepth={maxJsonDepth}
+          autoCollapseLimit={autoCollapseLimit}
         />
       );
 
@@ -88,6 +89,7 @@ export function AIContentRenderer({
           <TraceDrawerComponents.MultilineJSON
             value={detection.parsedData}
             maxDefaultDepth={maxJsonDepth}
+            autoCollapseLimit={autoCollapseLimit}
           />
           <Text size="xs" variant="muted">
             {t('Truncated')}

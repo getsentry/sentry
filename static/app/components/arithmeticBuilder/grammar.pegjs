@@ -5,8 +5,13 @@
 tokens = token*
 
 token
-  = spaces token:(paren / literal / op / func / free_text) spaces {
+  = spaces token:(paren / literal / op / reference / func / free_text) spaces {
     return token;
+  }
+
+reference
+  = val:[A-Z] &{ return tc.isReference(val); } {
+    return tc.tokenReference(val, location());
   }
 
 func
@@ -29,7 +34,12 @@ yes_arg
 
 arg = attr
 
-attr = typed_attr / untyped_attr
+attr = typed_attr / backtick_attr / untyped_attr
+
+backtick_attr
+  = "`" [^`]* "`" {
+    return tc.tokenAttribute(text(), undefined, location());
+  }
 
 typed_attr
   = "tags[" name:name "," spaces type:type_name "]" {

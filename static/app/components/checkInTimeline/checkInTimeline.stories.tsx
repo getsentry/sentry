@@ -54,7 +54,7 @@ function generateMockTickData(
   const buckets = timeWindowConfig.timelineWidth;
   const secondsPerBucket = (timeWindowConfig.elapsedMinutes * 60) / buckets;
 
-  return new Array(timeWindowConfig.timelineWidth)
+  return Array.from({length: timeWindowConfig.timelineWidth})
     .fill(null)
     .map<CheckInBucket<ExampleStatus>>((_, bucketIndex) => {
       const second = Math.floor(bucketIndex * secondsPerBucket);
@@ -82,7 +82,7 @@ function generateMockTickData(
 export default Storybook.story('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
-    const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+    const {width: timelineWidth} = useDimensions({elementRef});
     const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
     const [secondsGap, setSecondsGap] = useState(60);

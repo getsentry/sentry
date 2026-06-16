@@ -8,9 +8,8 @@ import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widg
 import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
-import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 
-const getDefaultWidgets = (organization: Organization) => {
+export const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const transactionsWidgets: WidgetTemplate[] = [
     {
@@ -44,9 +43,10 @@ const getDefaultWidgets = (organization: Organization) => {
       id: 'high-throughput-transactions',
       title: t('High Throughput Transactions'),
       description: t('Top 5 transactions with the largest volume.'),
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.AREA,
       widgetType: WidgetType.TRANSACTIONS,
       interval: '5m',
+      limit: TOP_N,
       isCustomizable: true,
       queries: [
         {
@@ -188,9 +188,10 @@ const getDefaultWidgets = (organization: Organization) => {
       id: 'high-throughput-transactions',
       title: t('High Throughput Transactions'),
       description: t('Top 5 transactions with the largest volume.'),
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '5m',
+      limit: TOP_N,
       isCustomizable: true,
       queries: [
         {
@@ -293,10 +294,7 @@ const getDefaultWidgets = (organization: Organization) => {
     SCORE_BREAKDOWN_WHEEL_WIDGET,
   ];
 
-  if (hasPlatformizedInsights(organization)) {
-    spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE);
-    spanWidgets.push(RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);
-  }
+  spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE, RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);
 
   const errorsWidgets: WidgetTemplate[] = [
     {
@@ -322,9 +320,10 @@ const getDefaultWidgets = (organization: Organization) => {
       id: 'top-unhandled',
       title: t('Top Unhandled Error Types'),
       description: t('Most frequently encountered unhandled errors.'),
-      displayType: DisplayType.TOP_N,
+      displayType: DisplayType.AREA,
       widgetType: WidgetType.ERRORS,
       interval: '5m',
+      limit: TOP_N,
       isCustomizable: true,
       queries: [
         {
@@ -384,18 +383,3 @@ const getDefaultWidgets = (organization: Organization) => {
       ? [...spanWidgets, ...errorsWidgets]
       : [...transactionsWidgets, ...errorsWidgets];
 };
-
-export function getTopNConvertedDefaultWidgets(
-  organization: Organization
-): readonly WidgetTemplate[] {
-  return getDefaultWidgets(organization).map(widget => {
-    if (widget.displayType === DisplayType.TOP_N) {
-      return {
-        ...widget,
-        displayType: DisplayType.AREA,
-        limit: TOP_N,
-      };
-    }
-    return widget;
-  });
-}

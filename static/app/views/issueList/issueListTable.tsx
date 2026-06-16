@@ -1,20 +1,24 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
-import type {CursorHandler} from 'sentry/components/pagination';
-import {Pagination} from 'sentry/components/pagination';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
+
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
+import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
-import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
+import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
+import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 interface IssueListTableProps {
@@ -24,7 +28,7 @@ interface IssueListTableProps {
   groupIds: string[];
   issuesLoading: boolean;
   issuesSuccessfullyLoaded: boolean;
-  memberList: IndexedMembersByProject;
+  memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   onCursor: CursorHandler;
   onDelete: () => void;
@@ -40,6 +44,8 @@ interface IssueListTableProps {
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
+  supergroupLookup?: SupergroupLookup;
+  withColumns?: GroupListColumn[];
 }
 
 export function IssueListTable({
@@ -64,6 +70,8 @@ export function IssueListTable({
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
   pageSize,
+  supergroupLookup,
+  withColumns,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -90,8 +98,15 @@ export function IssueListTable({
         {tourProps => (
           <div {...tourProps}>
             <ContainerPanel>
-              <IssueSelectionProvider visibleGroupIds={groupIds}>
-                {(groupIds.length > 0 || issuesLoading) && (
+              <IssueListBulkCommandPaletteActions
+                query={query}
+                queryCount={queryCount}
+                selection={selection}
+                groupIds={groupIds}
+                onActionTaken={onActionTaken}
+              />
+              {(groupIds.length > 0 || issuesLoading) && (
+                <HoverOverlayGroupProvider>
                   <IssueListActions
                     selection={selection}
                     query={query}
@@ -103,8 +118,11 @@ export function IssueListTable({
                     groupIds={groupIds}
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
+                    withColumns={withColumns}
                   />
-                )}
+                </HoverOverlayGroupProvider>
+              )}
+              <HoverOverlayGroupProvider>
                 <PanelBody>
                   <VisuallyCompleteWithData
                     hasData={groupIds.length > 0}
@@ -124,10 +142,12 @@ export function IssueListTable({
                       pageSize={pageSize}
                       refetchGroups={refetchGroups}
                       onActionTaken={onActionTaken}
+                      supergroupLookup={supergroupLookup}
+                      withColumns={withColumns}
                     />
                   </VisuallyCompleteWithData>
                 </PanelBody>
-              </IssueSelectionProvider>
+              </HoverOverlayGroupProvider>
             </ContainerPanel>
           </div>
         )}

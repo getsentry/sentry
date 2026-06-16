@@ -3,13 +3,13 @@ from __future__ import annotations
 import abc
 import logging
 from collections import defaultdict, deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections.abc import Mapping, Sequence
+from concurrent.futures import as_completed
 from datetime import datetime, timedelta
-from typing import Any, Optional, TypedDict, TypeVar, cast
+from typing import Any, Optional, TypedDict, cast
 
 import sentry_sdk
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,6 +38,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
@@ -47,7 +48,6 @@ logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
 
 
-_T = TypeVar("_T")
 NodeSpans = list[dict[str, Any]]
 SnubaSpan = TypedDict(
     "SnubaSpan",
@@ -249,9 +249,12 @@ class TraceEvent:
             offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
             for group_id in self.event["occurrence_to_issue_id"][problem.id]:
                 if group_id not in memoized_groups:
-                    memoized_groups[group_id] = Group.objects.get(
-                        id=group_id, project=self.event["project.id"]
-                    )
+                    try:
+                        memoized_groups[group_id] = Group.objects.get(
+                            id=group_id, project=self.event["project.id"]
+                        )
+                    except Group.DoesNotExist:
+                        continue
                 group = memoized_groups[group_id]
                 if event_span.get("span_id") in offender_span_ids:
                     start_timestamp = float(event_span["precise.start_ts"])
@@ -359,7 +362,7 @@ class TraceEvent:
                             control_data=occurrence_ids,
                             experimental_data=eap_occurrence_ids,
                             callsite=callsite,
-                            is_experimental_data_a_null_result=len(eap_occurrence_ids) == 0,
+                            is_experimental_data_nullish=len(eap_occurrence_ids) == 0,
                             reasonable_match_comparator=lambda snuba, eap: {
                                 row["occurrence_id"] for row in eap
                             }.issubset({row["occurrence_id"] for row in snuba}),
@@ -526,14 +529,6 @@ def find_timestamp_params(transactions: Sequence[SnubaTransaction]) -> dict[str,
     }
 
 
-def find_event(
-    items: Iterable[_T | None],
-    function: Callable[[_T | None], Any],
-    default: _T | None = None,
-) -> _T | None:
-    return next(filter(function, items), default)
-
-
 def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
@@ -612,6 +607,7 @@ def create_transaction_params(
     """Can't use the transaction params for errors since traces can be errors only"""
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
+    sentry_sdk.set_attribute("trace_view.queried_timestamp_projects", str(query_metadata))
     if not query_metadata:
         return snuba_params
 
@@ -826,7 +822,7 @@ def query_trace_data(
             control_data=transformed_results[1],
             experimental_data=eap_errors,
             callsite=errors_callsite,
-            is_experimental_data_a_null_result=len(eap_errors) == 0,
+            is_experimental_data_nullish=len(eap_errors) == 0,
             reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
                 {e["id"] for e in snuba}
             ),
@@ -891,7 +887,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
 
     def get_projects(
         self,
-        request: HttpRequest,
+        request: Request,
         organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
@@ -972,8 +968,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             len_transactions = len(transactions)
 
             sentry_sdk.set_tag("trace_view.trace", trace_id)
+            sentry_sdk.set_attribute("trace_view.trace", trace_id)
             sentry_sdk.set_tag("trace_view.transactions", len_transactions)
+            sentry_sdk.set_attribute("trace_view.transactions", len_transactions)
             sentry_sdk.set_tag(
+                "trace_view.transactions.grouped", format_grouped_length(len_transactions)
+            )
+            sentry_sdk.set_attribute(
                 "trace_view.transactions.grouped", format_grouped_length(len_transactions)
             )
             set_span_attribute("trace_view.transactions", len_transactions)
@@ -984,7 +985,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
 
             len_projects = len(projects)
             sentry_sdk.set_tag("trace_view.projects", len_projects)
+            sentry_sdk.set_attribute("trace_view.projects", len_projects)
             sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
+            sentry_sdk.set_attribute(
+                "trace_view.projects.grouped", format_grouped_length(len_projects)
+            )
             set_span_attribute("trace_view.projects", len_projects)
 
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
@@ -1075,193 +1080,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
 
 
 @cell_silo_endpoint
-class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-
-    @staticmethod
-    def get_current_transaction(
-        transactions: Sequence[SnubaTransaction],
-        errors: Sequence[SnubaError],
-        event_id: str,
-    ) -> tuple[SnubaTransaction | None, Event | GroupEvent | None]:
-        """Given an event_id return the related transaction event
-
-        The event_id could be for an error, since we show the quick-trace
-        for both event types
-        We occasionally have to get the nodestore data, so this function returns
-        the nodestore event as well so that we're doing that in one location.
-        """
-        transaction_event = find_event(
-            transactions, lambda item: item is not None and item["id"] == event_id
-        )
-        if transaction_event is not None:
-            return transaction_event, eventstore.backend.get_event_by_id(
-                transaction_event["project.id"], transaction_event["id"]
-            )
-
-        # The event couldn't be found, it might be an error
-        error_event = find_event(errors, lambda item: item is not None and item["id"] == event_id)
-        # Alright so we're looking at an error, time to see if we can find its transaction
-        if error_event is not None:
-            # Unfortunately the only association from an event back to its transaction is name & span_id
-            # First maybe we got lucky and the error happened on the transaction's "span"
-            error_span = error_event["trace.span"]
-            transaction_event = find_event(
-                transactions, lambda item: item is not None and item["trace.span"] == error_span
-            )
-            if transaction_event is not None:
-                return transaction_event, eventstore.backend.get_event_by_id(
-                    transaction_event["project.id"], transaction_event["id"]
-                )
-            # We didn't get lucky, time to talk to nodestore...
-            for transaction_event in transactions:
-                if transaction_event["transaction"] != error_event["transaction"]:
-                    continue
-
-                nodestore_event = eventstore.backend.get_event_by_id(
-                    transaction_event["project.id"], transaction_event["id"]
-                )
-                if nodestore_event is None:
-                    return None, None
-                transaction_spans: NodeSpans = nodestore_event.data.get("spans", [])
-                for span in transaction_spans:
-                    if span["span_id"] == error_event["trace.span"]:
-                        return transaction_event, nodestore_event
-
-        return None, None
-
-    def serialize(
-        self,
-        limit: int,
-        transactions: Sequence[SnubaTransaction],
-        errors: Sequence[SnubaError],
-        roots: Sequence[SnubaTransaction],
-        warning_extra: dict[str, str],
-        event_id: str | None,
-        detailed: bool = False,
-        query_source: QuerySource | None = None,
-    ) -> dict[str, list[LightResponse | TraceError]]:
-        """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
-        if event_id is None:
-            raise ParseError(detail="An event_id is required for the light trace")
-        snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)
-        parent_map = self.construct_parent_map(transactions)
-        error_map = self.construct_error_map(errors)
-        trace_results: list[TraceEvent] = []
-        current_generation: int | None = None
-        root_id: str | None = None
-
-        with sentry_sdk.start_span(op="building.trace", name="light trace"):
-            # Check if the event is an orphan_error
-            if not snuba_event or not nodestore_event:
-                orphan_error = find_event(
-                    errors, lambda item: item is not None and item["id"] == event_id
-                )
-                if orphan_error:
-                    return {
-                        "transactions": [],
-                        "orphan_errors": [self.serialize_error(orphan_error)],
-                    }
-                else:
-                    # The current event couldn't be found in errors or transactions
-                    raise Http404()
-
-            # Going to nodestore is more expensive than looping twice so check if we're on the root first
-            for root in roots:
-                if root["id"] == snuba_event["id"]:
-                    current_generation = 0
-                    break
-
-            snuba_params = self.get_snuba_params(self.request, self.request.organization)
-            if current_generation is None:
-                for root in roots:
-                    # We might not be necessarily connected to the root if we're on an orphan event
-                    if root["id"] != snuba_event["id"]:
-                        # Get the root event and see if the current event's span is in the root event
-                        root_event = eventstore.backend.get_event_by_id(
-                            root["project.id"], root["id"]
-                        )
-                        if root_event is None:
-                            root_spans: NodeSpans = []
-                        else:
-                            root_spans = root_event.data.get("spans", [])
-                        root_span = find_event(
-                            root_spans,
-                            lambda item: item is not None
-                            and item["span_id"] == snuba_event["trace.parent_span"],
-                        )
-
-                        # We only know to add the root if its the direct parent
-                        if root_span is not None:
-                            # For the light response, the parent will be unknown unless it is a direct descendent of the root
-                            root_id = root["id"]
-                            trace_results.append(
-                                TraceEvent(
-                                    root,
-                                    None,
-                                    0,
-                                    True,
-                                    snuba_params=snuba_params,
-                                    query_source=query_source,
-                                )
-                            )
-                            current_generation = 1
-                            break
-
-            current_event = TraceEvent(
-                snuba_event,
-                root_id,
-                current_generation,
-                True,
-                snuba_params=snuba_params,
-                query_source=query_source,
-            )
-            trace_results.append(current_event)
-
-            spans: NodeSpans = nodestore_event.data.get("spans", [])
-            # Need to include the transaction as a span as well
-            #
-            # Important that we left pad the span id with 0s because
-            # the span id is stored as an UInt64 and converted into
-            # a hex string when quering. However, the conversion does
-            # not ensure that the final span id is 16 chars long since
-            # it's a naive base 10 to base 16 conversion.
-            spans.append({"span_id": snuba_event["trace.span"].rjust(16, "0")})
-
-            for span in spans:
-                if span["span_id"] in error_map:
-                    current_event.errors.extend(
-                        [self.serialize_error(error) for error in error_map.pop(span["span_id"])]
-                    )
-                if span["span_id"] in parent_map:
-                    child_events = parent_map.pop(span["span_id"])
-                    trace_results.extend(
-                        [
-                            TraceEvent(
-                                child_event,
-                                snuba_event["id"],
-                                (
-                                    current_event.generation + 1
-                                    if current_event.generation is not None
-                                    else None
-                                ),
-                                True,
-                                snuba_params=snuba_params,
-                                query_source=query_source,
-                            )
-                            for child_event in child_events
-                        ]
-                    )
-
-        return {
-            "transactions": [result.to_dict() for result in trace_results],
-            "orphan_errors": [],
-        }
-
-
-@cell_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def update_children(event: TraceEvent, limit: int) -> None:
@@ -1286,7 +1104,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Event | GroupEvent]:
         event_map = {}
-        with ThreadPoolExecutor(max_workers=20) as executor:
+        with ContextPropagatingThreadPoolExecutor(max_workers=20) as executor:
             future_to_event = {
                 executor.submit(
                     eventstore.backend.get_event_by_id, event["project.id"], event["id"]
@@ -1605,7 +1423,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
 
     def get_projects(
         self,
-        request: HttpRequest,
+        request: Request,
         organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,

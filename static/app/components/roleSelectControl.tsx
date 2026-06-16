@@ -1,6 +1,6 @@
-import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
+import {Container} from '@sentry/scraps/layout';
 import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
@@ -29,25 +29,19 @@ export function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
     <Select
       options={roles
         ?.filter(r => !r.isRetired)
-        .map(
-          (r: BaseRole) =>
-            ({
-              value: r.id,
-              label: r.name,
-              disabled:
-                disableUnallowed &&
-                !r.isAllowed &&
-                !(isMemberInvite && r.id === 'member'),
-              details: <Details>{r.desc}</Details>,
-            }) as OptionType
-        )}
+        .map((r: BaseRole) => ({
+          value: r.id,
+          label: r.name,
+          disabled:
+            disableUnallowed && !r.isAllowed && !(isMemberInvite && r.id === 'member'),
+          details: (
+            <Container as="span" display="inline-block" width="20rem">
+              {r.desc}
+            </Container>
+          ),
+        }))}
       showDividers
       {...props}
     />
   );
 }
-
-const Details = styled('span')`
-  display: inline-block;
-  width: 20rem;
-`;

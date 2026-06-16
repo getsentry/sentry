@@ -26,7 +26,7 @@ from sentry.web.decorators import set_referrer_policy
 
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:write"],
+        "GET": ["org:read"],
         "POST": ["org:write"],
     }
 
@@ -34,7 +34,7 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
 @cell_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class DataForwardingIndexEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -53,7 +53,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization) -> Response[list[DataForwarderResponse]]:
         """
         Returns a list of data forwarders for an organization.
         """
@@ -62,7 +62,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, access=request.access),
             paginator_cls=OffsetPaginator,
         )
 
@@ -79,7 +79,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization) -> Response[DataForwarderResponse]:
         """
         Creates a new data forwarder for an organization.
         Only one data forwarder can be created per provider for a given organization.
@@ -97,5 +97,6 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
             return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         return self.respond(
-            serialize(serializer.save(), request.user), status=status.HTTP_201_CREATED
+            serialize(serializer.save(), request.user, access=request.access),
+            status=status.HTTP_201_CREATED,
         )

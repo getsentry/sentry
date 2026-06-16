@@ -11,6 +11,8 @@ from sentry import analytics
 from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
+from sentry.issues.action_log import ActionSource, publish_action
+from sentry.issues.action_log.types import ResolveAction
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -77,7 +79,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     if not age:
         return
 
-    project.update_option("sentry:_last_auto_resolve", int(time()), reload_cache=False)
+    project.update_option("sentry:_last_auto_resolve", int(time()))
 
     if cutoff:
         cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
@@ -115,6 +117,12 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
         if happened:
+            publish_action(
+                ResolveAction(),
+                source=ActionSource.SYSTEM,
+                group_id=group.id,
+                project=project,
+            )
             activity = Activity.objects.create(
                 group=group,
                 project=project,
@@ -153,6 +161,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                 group=group,
                 project=project,
                 resolution_type="autoresolve",
+                commit_id=None,
                 sender="auto_resolve_issues",
             )
 

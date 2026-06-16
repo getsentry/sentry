@@ -82,6 +82,14 @@ class TestErrorDetectorValidator(TestCase):
             )
         ]
 
+    def test_valid_condition_group(self) -> None:
+        data = {
+            **self.valid_data,
+            "condition_group": {},
+        }
+        validator = ErrorDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid()
+
     def test_update_existing_with_valid_data(self) -> None:
         user = self.create_user()
         self.create_member(organization=self.project.organization, user=user)

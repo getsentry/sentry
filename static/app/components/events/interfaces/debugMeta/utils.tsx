@@ -32,7 +32,7 @@ export function combineStatus(
 
 export function getFileName(path?: string | null) {
   if (!path) {
-    return undefined;
+    return;
   }
   const directorySeparator = /^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/';
   return path.split(directorySeparator).pop();
@@ -55,5 +55,5 @@ export function getImageAddress(image: Image) {
     );
   }
 
-  return undefined;
+  return;
 }

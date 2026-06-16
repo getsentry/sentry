@@ -1,4 +1,4 @@
-import {createContext, useCallback, useMemo} from 'react';
+import {createContext, Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -149,53 +149,35 @@ export function SplitPanel(props: SplitPanelProps) {
     [isMaximized, isMinimized, setSize, max, min, initialSize]
   );
 
-  if (isLeftRight) {
-    const {left: a, right: b} = props;
+  const [a, b, direction, orientation] = isLeftRight
+    ? ([props.left, props.right, 'leftright', 'columns'] as const)
+    : ([props.top, props.bottom, 'updown', 'rows'] as const);
 
-    return (
-      <SplitPanelContext value={contextValue}>
-        <SplitPanelContainer
-          className={isHeld ? 'disable-iframe-pointer' : undefined}
-          orientation="columns"
-          size={sizePct}
-        >
-          <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
-            {a.content}
-          </Stack>
-          <SplitDivider
-            data-is-held={isHeld}
-            data-slide-direction="leftright"
-            onDoubleClick={onDoubleClick}
-            onMouseDown={handleMouseDown}
-          />
-          <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
-            {b}
-          </Stack>
-        </SplitPanelContainer>
-      </SplitPanelContext>
-    );
-  }
+  const isCollapsed = b === null || b === undefined;
 
-  const {top: a, bottom: b} = props;
   return (
     <SplitPanelContext value={contextValue}>
       <SplitPanelContainer
-        orientation="rows"
-        size={sizePct}
         className={isHeld ? 'disable-iframe-pointer' : undefined}
+        orientation={orientation}
+        size={isCollapsed ? '100%' : sizePct}
       >
         <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
           {a.content}
         </Stack>
-        <SplitDivider
-          data-is-held={isHeld}
-          data-slide-direction="updown"
-          onDoubleClick={onDoubleClick}
-          onMouseDown={handleMouseDown}
-        />
-        <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
-          {b}
-        </Stack>
+        {isCollapsed ? null : (
+          <Fragment>
+            <SplitDivider
+              data-is-held={isHeld}
+              data-slide-direction={direction}
+              onDoubleClick={onDoubleClick}
+              onMouseDown={handleMouseDown}
+            />
+            <Stack wrap="nowrap" flexGrow={1} minWidth="0" minHeight="0">
+              {b}
+            </Stack>
+          </Fragment>
+        )}
       </SplitPanelContainer>
     </SplitPanelContext>
   );

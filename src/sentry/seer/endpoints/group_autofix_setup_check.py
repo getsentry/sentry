@@ -13,7 +13,6 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -23,10 +22,9 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     get_autofix_repos_from_project_code_mappings,
     has_project_connected_repos,
-    is_seer_seat_based_tier_enabled,
 )
-from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import SeerApiError
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
@@ -38,17 +36,15 @@ def get_autofix_integration_setup_problems(
     organization: Organization, project: Project
 ) -> str | None:
     """
-    Runs through the checks to see if we can use the GitHub integration for Autofix.
+    Runs through the checks to see if we can use the SCM integration for Autofix.
+    Supports GitHub, GitHub Enterprise, and GitLab (when the seer-gitlab-support flag is enabled).
 
     If there are no issues, returns None.
     If there is an issue, returns the reason.
     """
     organization_integrations = integration_service.get_organization_integrations(
         organization_id=organization.id,
-        providers=[
-            IntegrationProviderSlug.GITHUB.value,
-            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-        ],
+        providers=get_supported_scm_providers(organization),
     )
 
     # Iterate through all organization integrations to find one with an active integration
@@ -75,9 +71,8 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
     repos_and_access: list[dict] = []
     path = "/v1/automation/codebase/repo/check-access"
     for repo in repos:
-        # We only support github and github enterprise for now.
         provider = repo.get("provider")
-        if provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+        if provider not in get_supported_scm_providers(project.organization):
             continue
 
         body = orjson.dumps(
@@ -104,7 +99,7 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
 @cell_silo_endpoint
 class GroupAutofixSetupCheck(GroupAiEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
@@ -151,29 +146,21 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
-        seer_seat_based_tier_enabled = is_seer_seat_based_tier_enabled(org)
-
         seer_repos_linked = False
         # Check if org has github integration and is on seat-based tier.
-        if integration_check is None and seer_seat_based_tier_enabled:
+        if integration_check is None:
             try:
-                # Check if project has repos linked in Seer.
-                # Skip cache to ensure latest data from Seer API.
-                seer_repos_linked = has_project_connected_repos(
-                    org.id, group.project.id, skip_cache=True
-                )
+                seer_repos_linked = has_project_connected_repos(org, group.project)
             except Exception as e:
-                # Default to False if we can't check if the project has repos linked in Seer.
                 sentry_sdk.capture_exception(e)
 
         autofix_enabled = False
         autofix_automation_tuning = group.project.get_option("sentry:autofix_automation_tuning")
-        if seer_seat_based_tier_enabled:
-            if (
-                autofix_automation_tuning
-                and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
-            ):
-                autofix_enabled = True
+        if (
+            autofix_automation_tuning
+            and autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
+        ):
+            autofix_enabled = True
 
         return Response(
             {

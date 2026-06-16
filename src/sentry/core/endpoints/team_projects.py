@@ -23,6 +23,11 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.issue_detection.detectors.disable_detectors import set_default_disabled_detectors
@@ -31,8 +36,8 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import (
     project_is_seer_eligible,
-    set_default_project_auto_open_prs,
     set_default_project_autofix_automation_tuning,
+    set_default_project_seer_preferences,
     set_default_project_seer_scanner_automation,
 )
 from sentry.signals import project_created
@@ -40,6 +45,12 @@ from sentry.utils.platform_categories import CONSOLES
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
+
+
+class _StatsPeriodErrorResponse(TypedDict):
+    # Legacy nested error envelope used only by this endpoint's stats_period
+    # validation; kept as-is for wire compatibility.
+    error: dict[str, dict[str, dict[str, str]]]
 
 
 def apply_default_project_settings(organization: Organization, project: Project) -> None:
@@ -56,7 +67,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
 
     set_default_project_autofix_automation_tuning(organization, project)
     set_default_project_seer_scanner_automation(organization, project)
-    set_default_project_auto_open_prs(organization, project)
+    set_default_project_seer_preferences(organization, project)
 
 
 class ProjectPostSerializer(serializers.Serializer):
@@ -138,7 +149,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (TeamProjectPermission,)
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
         operation_id="List a Team's Projects",
@@ -157,14 +168,20 @@ class TeamProjectsEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.LIST_TEAM_PROJECTS,
     )
-    def get(self, request: Request, team) -> Response:
+    def get(
+        self, request: Request, team
+    ) -> Response[list[OrganizationProjectResponse]] | Response[_StatsPeriodErrorResponse]:
         """
         Return a list of projects bound to a team.
         """
         if request.auth and hasattr(request.auth, "project"):
-            queryset = Project.objects.filter(id=request.auth.project.id)
+            queryset = Project.objects.filter(id=request.auth.project.id).select_related(
+                "organization"
+            )
         else:
-            queryset = Project.objects.filter(teams=team, status=ObjectStatus.ACTIVE)
+            queryset = Project.objects.filter(
+                teams=team, status=ObjectStatus.ACTIVE
+            ).select_related("organization")
 
         stats_period = request.GET.get("statsPeriod")
         if stats_period not in (None, "", "24h", "14d", "30d"):
@@ -213,8 +230,14 @@ class TeamProjectsEndpoint(TeamEndpoint):
         Note: If your organization has disabled member project creation, the `org:write` or `team:admin` scope is required.
         """,
     )
-    def post(self, request: Request, team: Team) -> Response:
-        from sentry.core.endpoints.organization_projects_experiment import (
+    def post(
+        self, request: Request, team: Team
+    ) -> (
+        Response[OrganizationProjectResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
+        from sentry.core.endpoints.organization_projects import (
             DISABLED_FEATURE_ERROR_STRING,
         )
 
@@ -223,7 +246,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         if team.organization.flags.disable_member_project_creation and not (
             request.access.has_scope("org:write")
@@ -280,7 +303,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
                 sender=self,
             )
 
-        return Response(
-            serialize(project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])),
-            status=201,
+        body: OrganizationProjectResponse = serialize(
+            project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])
         )
+        return Response(body, status=201)

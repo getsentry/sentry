@@ -129,7 +129,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'text',
           text: t(
-            `Install the SDK via %s:`,
+            'Install the SDK via %s:',
             packageManagerName[params.platformOptions.packageManager]
           ),
         },
@@ -145,7 +145,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           language: 'bash',
-          code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
+          code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
         },
         {
           type: 'conditional',

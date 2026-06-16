@@ -38,6 +38,10 @@ class ApiTokenGetTest(APITestCase):
         self.login_as(self.user)
         self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND)
 
+    def test_non_integer_token_id(self) -> None:
+        self.login_as(self.user)
+        self.get_error_response("abc", status_code=status.HTTP_404_NOT_FOUND)
+
     def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
@@ -123,6 +127,12 @@ class ApiTokenPutTest(APITestCase):
         self.login_as(self.user)
         self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND, **payload)
 
+    def test_non_integer_token_id(self) -> None:
+        payload = {"name": "new token"}
+
+        self.login_as(self.user)
+        self.get_error_response("abc", status_code=status.HTTP_404_NOT_FOUND, **payload)
+
     def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
@@ -163,6 +173,10 @@ class ApiTokenDeleteTest(APITestCase):
     def test_invalid_token_id(self) -> None:
         self.login_as(self.user)
         self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND)
+
+    def test_non_integer_token_id(self) -> None:
+        self.login_as(self.user)
+        self.get_error_response("abc", status_code=status.HTTP_404_NOT_FOUND)
 
     def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")

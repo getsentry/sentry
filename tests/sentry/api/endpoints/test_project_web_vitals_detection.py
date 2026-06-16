@@ -7,7 +7,7 @@ class ProjectWebVitalsDetectionTest(APITestCase):
     endpoint = "sentry-api-0-project-web-vitals-detection"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -23,7 +23,7 @@ class ProjectWebVitalsDetectionTest(APITestCase):
         assert response.data == {"status": "dispatched"}
         mock_dispatch.assert_called_once_with([self.project.id])
 
-    def test_get_requires_project_access(self):
+    def test_get_requires_project_access(self) -> None:
         other_user = self.create_user()
         self.login_as(user=other_user)
 

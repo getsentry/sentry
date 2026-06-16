@@ -16,14 +16,14 @@ from sentry.utils import json
 
 
 class TestProcessUptimeBacklog(UptimeTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.subscription = self.create_uptime_subscription(
             subscription_id=uuid4().hex, interval_seconds=300
         )
         self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
-    def test_empty_queue(self):
+    def test_empty_queue(self) -> None:
         """Task should exit gracefully when queue is empty."""
         cluster = get_cluster()
         task_scheduled_key = f"uptime:backlog_task_scheduled:{self.subscription.id}"
@@ -38,7 +38,7 @@ class TestProcessUptimeBacklog(UptimeTestCase):
 
         assert cluster.exists(task_scheduled_key) == 0
 
-    def test_subscription_not_found(self):
+    def test_subscription_not_found(self) -> None:
         """Task should handle missing subscription gracefully."""
         fake_id = "999999"
         cluster = get_cluster()
@@ -71,7 +71,7 @@ class TestProcessUptimeBacklog(UptimeTestCase):
         assert cluster.exists(backlog_key) == 0
         assert cluster.exists(task_scheduled_key) == 0
 
-    def test_processes_consecutive_results(self):
+    def test_processes_consecutive_results(self) -> None:
         """Task should process consecutive results from queue."""
         cluster = get_cluster()
         base_time = 1000000000000
@@ -122,7 +122,7 @@ class TestProcessUptimeBacklog(UptimeTestCase):
         assert int(cluster.get(last_update_key) or 0) == base_time + 600000
         assert cluster.exists(task_scheduled_key) == 0
 
-    def test_stops_at_gap(self):
+    def test_stops_at_gap(self) -> None:
         """Task should stop at gaps and reschedule."""
         cluster = get_cluster()
         base_time = 1000000000000

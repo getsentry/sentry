@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {EventData} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 
 import {ActionDropDown, ContextValueType} from './actionDropdown';
 

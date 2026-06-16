@@ -35,6 +35,14 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         with pytest.raises(ExportError):
             DiscoverProcessor.get_projects(organization_id=self.org.id, query={"project": [-1]})
 
+    def test_get_projects_rejects_cross_org_project(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        with pytest.raises(ExportError):
+            DiscoverProcessor.get_projects(
+                organization_id=self.org.id, query={"project": [other_project.id]}
+            )
+
     def test_handle_issue_id_fields(self) -> None:
         processor = DiscoverProcessor(organization=self.org, discover_query=self.discover_query)
         assert processor.header_fields == ["count_id", "fake_field", "issue"]

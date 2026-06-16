@@ -1,9 +1,9 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {UpdatedTask} from 'sentry/types/onboarding';
-import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
 /**
  * Custom hook to update multiple onboarding tasks in parallel.
  */

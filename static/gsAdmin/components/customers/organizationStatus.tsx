@@ -15,7 +15,7 @@ export function OrganizationStatus({orgStatus}: Props) {
     return null;
   }
 
-  let message: string | undefined = undefined;
+  let message: string | undefined;
 
   switch (orgStatus.id) {
     case 'pending_deletion':
@@ -23,8 +23,6 @@ export function OrganizationStatus({orgStatus}: Props) {
       break;
     case 'deletion_in_progress':
       message = 'This organization in the process of being deleted.';
-      break;
-    default:
       break;
   }
 

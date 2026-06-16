@@ -206,6 +206,44 @@ class ReleaseFilesListTest(APITestCase):
 
 
 class ReleaseFileCreateTest(APITestCase):
+    def test_no_access_to_all_projects(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="1")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-files",
+            kwargs={
+                "organization_id_or_slug": org.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client.post(
+            url,
+            {
+                "name": "http://example.com/application.js",
+                "file": SimpleUploadedFile(
+                    "application.js", b"function() { }", content_type="application/javascript"
+                ),
+            },
+            format="multipart",
+        )
+
+        assert response.status_code == 404
+
     def test_simple(self) -> None:
         project = self.create_project(name="foo")
 

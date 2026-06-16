@@ -56,7 +56,7 @@ export function DetailedError({
             <Grid flow="column" align="center" gap="lg">
               {lastEventId && (
                 <Button
-                  priority="link"
+                  variant="link"
                   onClick={e => {
                     e.preventDefault();
                     Sentry.showReportDialog({eventId: lastEventId});
@@ -65,10 +65,10 @@ export function DetailedError({
                   {t('Fill out a report')}
                 </Button>
               )}
-              <LinkButton priority="link" external href="https://status.sentry.io/">
+              <LinkButton variant="link" external href="https://status.sentry.io/">
                 {t('Service status')}
               </LinkButton>
-              <LinkButton priority="link" external href="https://sentry.io/support/">
+              <LinkButton variant="link" external href="https://sentry.io/support/">
                 {t('Contact support')}
               </LinkButton>
             </Grid>

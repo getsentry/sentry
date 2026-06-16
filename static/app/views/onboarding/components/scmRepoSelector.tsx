@@ -1,75 +1,112 @@
-import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
+import {useMemo} from 'react';
 
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {IconClose} from 'sentry/icons';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
+import type {Integration, Repository} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {useScmRepoSearch} from './useScmRepoSearch';
+import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {ScmSearchControl} from './scmSearchControl';
+import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
+import {useScmRepos} from './useScmRepos';
 import {useScmRepoSelection} from './useScmRepoSelection';
 
+const REPO_SELECTED_EVENT = {
+  onboarding: 'onboarding.scm_connect_repo_selected',
+  'project-creation': 'project_creation.scm_connect_repo_selected',
+} as const;
+
 interface ScmRepoSelectorProps {
+  // Which flow this component is rendered in. Drives analytics event names.
+  analyticsFlow: ScmAnalyticsFlow;
   integration: Integration;
+  // Fired once per user-driven change (select or clear) so callers can
+  // invalidate state derived from the repo (platform, features, created
+  // project). Distinct from onRepositoryChange because the underlying repo
+  // selection hook can fire that callback multiple times for one user action
+  // (optimistic + resolved + error paths).
+  onClearDerivedState: () => void;
+  onRepositoryChange: (repo: Repository | undefined) => void;
+  selectedRepository: Repository | undefined;
 }
 
-export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
-  const {selectedRepository, setSelectedRepository} = useOnboardingContext();
-  const {reposByIdentifier, dropdownItems, isFetching, debouncedSearch, setSearch} =
-    useScmRepoSearch(integration.id, selectedRepository);
+export function ScmRepoSelector({
+  analyticsFlow,
+  integration,
+  onClearDerivedState,
+  onRepositoryChange,
+  selectedRepository,
+}: ScmRepoSelectorProps) {
+  const organization = useOrganization();
+  const {reposByIdentifier, dropdownItems, isFetching, isError} = useScmRepos(
+    integration.id,
+    selectedRepository
+  );
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     integration,
-    onSelect: setSelectedRepository,
+    onSelect: onRepositoryChange,
     reposByIdentifier,
   });
 
+  // Prepend the selected repo so the Select can always resolve and display
+  // it, even when the fetched list does not include it.
+  const options = useMemo(() => {
+    const selectedSlug = selectedRepository?.externalSlug;
+    if (!selectedSlug || dropdownItems.some(item => item.value === selectedSlug)) {
+      return dropdownItems;
+    }
+    return [
+      {
+        value: selectedSlug,
+        label: selectedRepository.name,
+        disabled: true,
+      },
+      ...dropdownItems,
+    ];
+  }, [dropdownItems, selectedRepository]);
+
+  function handleChange(option: {value: string} | null) {
+    onClearDerivedState();
+
+    if (option === null) {
+      handleRemove();
+    } else {
+      const repo = reposByIdentifier.get(option.value);
+      if (repo) {
+        trackAnalytics(REPO_SELECTED_EVENT[analyticsFlow], {
+          organization,
+          provider: integration.provider.key,
+          repo: repo.name,
+        });
+      }
+      handleSelect(option);
+    }
+  }
+
+  function noOptionsMessage() {
+    if (isError) {
+      return t('Failed to load repositories. Please try again.');
+    }
+    return t(
+      'No repositories found. Check your installation permissions to ensure your integration has access.'
+    );
+  }
+
   return (
-    <Stack gap="md">
-      <CompactSelect
-        menuWidth="100%"
-        disabled={busy}
-        options={dropdownItems}
-        onChange={handleSelect}
-        value={undefined}
-        menuTitle={t('Repositories')}
-        emptyMessage={
-          isFetching
-            ? t('Searching\u2026')
-            : debouncedSearch
-              ? t('No repositories found.')
-              : t('Type to search repositories')
-        }
-        search={{
-          placeholder: t('Search repositories'),
-          filter: false,
-          onChange: setSearch,
-        }}
-        loading={isFetching}
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} busy={busy}>
-            {selectedRepository ? selectedRepository.name : t('Search repositories')}
-          </OverlayTrigger.Button>
-        )}
-      />
-      {selectedRepository && (
-        <Flex align="center" gap="sm">
-          <Flex flexGrow={1}>
-            <Text size="sm">{selectedRepository.name}</Text>
-          </Flex>
-          <Button
-            size="zero"
-            priority="link"
-            icon={<IconClose size="xs" />}
-            aria-label={t('Remove %s', selectedRepository.name)}
-            onClick={handleRemove}
-            disabled={busy}
-          />
-        </Flex>
-      )}
-    </Stack>
+    <Select
+      placeholder={t('Search repositories')}
+      options={options}
+      value={selectedRepository?.externalSlug ?? null}
+      onChange={handleChange}
+      noOptionsMessage={noOptionsMessage}
+      isLoading={isFetching}
+      isDisabled={busy}
+      clearable
+      searchable
+      components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+    />
   );
 }

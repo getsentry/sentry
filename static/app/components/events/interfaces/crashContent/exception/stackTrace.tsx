@@ -7,11 +7,10 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   chainedException: boolean;
@@ -44,7 +43,6 @@ export function StackTrace({
   frameSourceMapDebuggerData,
   stackType,
 }: Props) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   if (!defined(stacktrace)) {
     return null;
   }
@@ -90,7 +88,6 @@ export function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
-        hideIcon={hasStreamlinedUI}
       />
     );
   }
@@ -107,7 +104,6 @@ export function StackTrace({
       threadId={threadId}
       frameSourceMapDebuggerData={frameSourceMapDebuggerData}
       hideSourceMapDebugger={stackType === StackType.MINIFIED}
-      hideIcon={hasStreamlinedUI}
     />
   );
 }

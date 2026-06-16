@@ -31,7 +31,7 @@ describe('usePrevious', () => {
 
   it('skips updates when needed', () => {
     const {result, rerender} = renderHook(
-      ([value, shouldUpdate]) => usePrevious<number>(value, shouldUpdate),
+      ([value, shouldUpdate]) => usePrevious(value, shouldUpdate),
       {initialProps: [0] as [number] | [number, boolean]}
     );
 

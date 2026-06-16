@@ -14,6 +14,7 @@ type Props = {
   disabled: boolean;
   relayActivities: RelayActivity[];
   relays: Relay[];
+  registerKeyAction?: React.ReactNode;
 } & Pick<CardHeaderProps, 'onDelete' | 'onEdit'> &
   Pick<WaitingActivityProps, 'onRefresh'>;
 
@@ -24,6 +25,7 @@ export function List({
   onDelete,
   onEdit,
   disabled,
+  registerKeyAction,
 }: Props) {
   const orderedRelays = orderBy(relays, relay => relay.created, ['desc']);
 
@@ -52,6 +54,11 @@ export function List({
               onEdit={onEdit}
               onDelete={onDelete}
               disabled={disabled}
+              extraAction={
+                relayByPublicKey === orderedRelays[0]?.publicKey
+                  ? registerKeyAction
+                  : undefined
+              }
             />
             {renderCardContent(activities)}
           </div>

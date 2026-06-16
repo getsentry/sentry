@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import seerConfigMainBg from 'sentry-images/spot/seer-config-main-bg.svg';
 
@@ -8,16 +9,20 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GithubButton} from 'getsentry/views/seerAutomation/onboarding/githubButton';
 import {SeerOnboardingProvider} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 
 export function SeerConnectGitHubBanner() {
+  const organization = useOrganization();
   const theme = useInvertedTheme();
 
-  const {data, isFetched, isError} = useSeerOnboardingCheck();
+  const {data, isFetched, isError} = useQuery(
+    getSeerOnboardingCheckQueryOptions({organization})
+  );
 
   const handleAddIntegration = useCallback(() => {
     window.location.reload();

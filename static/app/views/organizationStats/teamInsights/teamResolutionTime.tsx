@@ -39,7 +39,7 @@ export function TeamResolutionTime({
     refetch,
   } = useApiQuery<TimeToResolution>(
     [
-      getApiUrl(`/teams/$organizationIdOrSlug/$teamIdOrSlug/time-to-resolution/`, {
+      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/time-to-resolution/', {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
       }),
       {

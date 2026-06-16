@@ -88,6 +88,7 @@ class SnubaRateLimitedEndpoint(Endpoint):
             policy="ConcurrentRateLimitAllocationPolicy",
             quota_used=41,
             rejection_threshold=40,
+            throttle_threshold=30,
             quota_unit="no_units",
             storage_key="test_storage_key",
         )
@@ -202,6 +203,7 @@ optional_access_log_fields = (
     "snuba_storage_key",
     "snuba_quota_used",
     "snuba_rejection_threshold",
+    "snuba_throttle_threshold",
     "token_last_characters",
     "gateway_proxy",
 )
@@ -265,6 +267,7 @@ class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
         assert self.captured_logs[0].snuba_storage_key == "test_storage_key"
         assert self.captured_logs[0].snuba_quota_used == "41"
         assert self.captured_logs[0].snuba_rejection_threshold == "40"
+        assert self.captured_logs[0].snuba_throttle_threshold == "30"
 
 
 @all_silo_test

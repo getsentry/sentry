@@ -86,6 +86,29 @@ class ProjectTransferTest(APITestCase):
                 assert not mail.outbox
 
     @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_rate_limit_with_override(self) -> None:
+        project = self.create_project()
+        new_user = self.create_user("b@example.com")
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-transfer",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        with freeze_time("2024-07-01"):
+            with self.options({"api.project-transfer.rate-limit-overrides": 5}):
+                for _ in range(5 + 1):
+                    response = self.client.post(url, {"email": new_user.email})
+        assert response.status_code == 429
+        assert orjson.loads(response.content) == {
+            "detail": "You are attempting to use this endpoint too frequently. Limit is 5 requests in 3600 seconds"
+        }
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limit(self) -> None:
         project = self.create_project()
         # new user is not an owner of anything

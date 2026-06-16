@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {cloneElement, Component, isValidElement} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -6,27 +6,43 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {Client} from 'sentry/api';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
-import {ConfigStore} from 'sentry/stores/configStore';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Region} from 'sentry/types/system';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import {withApi} from 'sentry/utils/withApi';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
+import type {Cell} from 'sentry/types/system';
+import {getCells} from 'sentry/utils/cells';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {ResultTable} from 'admin/components/resultTable';
 
 type Option = [key: string, label: string];
+
+function extractColumnLabel(col: React.ReactNode): string {
+  if (!isValidElement(col)) {
+    return '';
+  }
+  const {children} = col.props as {children?: React.ReactNode};
+  if (typeof children === 'string') {
+    return children.trim();
+  }
+  if (Array.isArray(children)) {
+    return children
+      .filter((c: unknown): c is string => typeof c === 'string')
+      .join(' ')
+      .trim();
+  }
+  return '';
+}
 
 type FilterProps = {
   name: string;
@@ -38,6 +54,7 @@ type FilterProps = {
 };
 
 function Filter({name, queryKey, options, path, location, value}: FilterProps) {
+  const navigate = useNavigate();
   const {query, pathname} = location ?? {};
   const resolvedPath = path ?? pathname ?? '';
 
@@ -52,7 +69,7 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
       [queryKey]: filter,
       cursor: '', // reset cursor for pagination
     };
-    browserHistory.push({pathname: resolvedPath, query: newQuery});
+    navigate({pathname: resolvedPath, query: newQuery});
   };
 
   return (
@@ -67,26 +84,15 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
   );
 }
 
-type SortFn = (value: string, path: string, query: Location['query']) => void;
-
 type SortByProps = {
   options: Option[];
   path: string;
   value: string;
   location?: Location;
-  onSort?: SortFn;
 };
 
-const defaultOnSort: SortFn = (value, path, query) => {
-  const newQuery = {
-    ...query,
-    sortBy: value,
-    cursor: '', // reset cursor for pagination
-  };
-  browserHistory.push({pathname: path, query: newQuery});
-};
-
-function SortBy({options, path, location, value, onSort = defaultOnSort}: SortByProps) {
+function SortBy({options, path, location, value}: SortByProps) {
+  const navigate = useNavigate();
   const {query, pathname} = location ?? {};
   const resolvedPath = path ?? pathname;
 
@@ -100,7 +106,12 @@ function SortBy({options, path, location, value, onSort = defaultOnSort}: SortBy
         />
       )}
       value={value}
-      onChange={opt => onSort(opt.value, resolvedPath, query ?? {})}
+      onChange={opt =>
+        navigate({
+          pathname: resolvedPath,
+          query: {...query, sortBy: opt.value, cursor: ''},
+        })
+      }
       options={options.map(item => ({value: item[0], label: item[1]}))}
     />
   );
@@ -111,7 +122,7 @@ type FilterDescriptor = {
   options: Option[];
 };
 
-interface ResultGridProps extends WithRouterProps {
+interface ResultGridProps {
   api: Client;
   /**
    * A list of table header column labels
@@ -121,6 +132,8 @@ interface ResultGridProps extends WithRouterProps {
    * The API path to get the grid data from
    */
   endpoint: string;
+  location: Location;
+  navigate: ReactRouter3Navigate;
   /**
    * The relative path to map result URLs to
    */
@@ -202,7 +215,7 @@ interface ResultGridProps extends WithRouterProps {
   /**
    * Translates the data object from the request into rows
    */
-  rowsFromData?: (data: any, region: Region | undefined) => any[];
+  rowsFromData?: (data: any, cell: Cell | undefined) => any[];
   /**
    * Allowed sorting options
    */
@@ -214,13 +227,13 @@ interface ResultGridProps extends WithRouterProps {
 }
 
 export type State = {
+  cell: Cell | undefined;
   cursor: string;
   error: boolean;
   filters: Location['query'];
   loading: boolean;
   pageLinks: string | null;
   query: string;
-  region: Region | undefined;
   rows: any[];
   sortBy: string;
 };
@@ -228,7 +241,7 @@ export type State = {
 const extractQuery = (query: Location['query'][string], defaultVal = '') =>
   (Array.isArray(query) ? query[0] : query) ?? defaultVal;
 
-class ResultGrid extends Component<ResultGridProps, State> {
+class ResultGridImpl extends Component<ResultGridProps, State> {
   static defaultProps: Partial<ResultGridProps> = {
     method: 'GET',
     endpoint: '',
@@ -254,9 +267,11 @@ class ResultGrid extends Component<ResultGridProps, State> {
   constructor(props: any) {
     super(props);
     const queryParams = this.props.location?.query ?? {};
+    // In this context regionUrl == cell.locality_url
     const {cursor, query, sortBy, regionUrl} = queryParams;
 
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
+    const cells = getCells();
 
     this.state = {
       rows: [],
@@ -265,10 +280,10 @@ class ResultGrid extends Component<ResultGridProps, State> {
       pageLinks: null,
       cursor: extractQuery(cursor),
       query: extractQuery(query),
-      region: needsRegion
+      cell: needsRegion
         ? regionUrl
-          ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
-          : ConfigStore.get('regions')[0]
+          ? cells.find(c => c.locality_url === extractQuery(regionUrl))
+          : cells[0]
         : undefined,
       sortBy: extractQuery(sortBy, this.props.defaultSort),
       filters: Object.assign({}, queryParams),
@@ -281,10 +296,13 @@ class ResultGrid extends Component<ResultGridProps, State> {
     // Remove regionalUrl after setting state
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
     if (needsRegion && this.props.location?.query?.regionUrl) {
-      browserHistory.replace({
-        pathname: this.props.location.pathname,
-        query: {...this.props.location.query, regionUrl: undefined},
-      });
+      this.props.navigate(
+        {
+          pathname: this.props.location.pathname,
+          query: {...this.props.location.query, regionUrl: undefined},
+        },
+        {replace: true}
+      );
     }
   }
 
@@ -330,19 +348,19 @@ class ResultGrid extends Component<ResultGridProps, State> {
     // Currently using region.name (e.g., "us", "de") as the cell_id.
     // In the future when there's a cell selector, we would use the actual cell ID instead.
     const endpoint =
-      this.props.isCellScoped && this.state.region
-        ? `/_admin/cells/${this.state.region.name}${this.props.endpoint}`
+      this.props.isCellScoped && this.state.cell
+        ? `/_admin/cells/${this.state.cell.name}${this.props.endpoint}`
         : this.props.endpoint;
 
     this.props.api.request(endpoint, {
       method: this.props.method,
-      host: this.state.region ? this.state.region.url : undefined,
+      host: this.state.cell ? this.state.cell.locality_url : undefined,
       data: queryParams,
       success: (data, _, resp) => {
         this.setState({
           loading: false,
           error: false,
-          rows: this.props.rowsFromData?.(data, this.state.region) ?? data,
+          rows: this.props.rowsFromData?.(data, this.state.cell) ?? data,
           pageLinks: resp?.getResponseHeader('Link') ?? '',
         });
         if (this.props.onLoad) {
@@ -373,7 +391,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
     e.preventDefault();
 
     if (this.props.useQueryString) {
-      browserHistory.push({
+      this.props.navigate({
         pathname: this.props.path,
         query: {...queryParams, ...query},
       });
@@ -424,11 +442,40 @@ class ResultGrid extends Component<ResultGridProps, State> {
   }
 
   renderResults() {
-    return this.state.rows.map((row, i) => (
-      <tr key={this.props.keyForRow?.(row) ?? i}>
-        {this.props.columnsForRow?.(row, this.state.rows, this.state)}
-      </tr>
-    ));
+    const columnLabels = this.props.columns.map(extractColumnLabel);
+    const firstPrimaryIndex = columnLabels.findIndex(label => (label ?? '') !== '');
+
+    // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
+    // via inheritance, which works even when cells are rendered inside wrapper components
+    // (where cloneElement can't reach the inner <td> elements).
+    const labelVars = Object.fromEntries(
+      columnLabels.map((label, j) => [
+        `--cl-${j + 1}`,
+        `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
+      ])
+    );
+
+    return this.state.rows.map((row, i) => {
+      const cells = this.props.columnsForRow?.(row, this.state.rows, this.state) ?? [];
+      const labeledCells = cells.map((cell, j) => {
+        if (!isValidElement(cell)) {
+          return cell;
+        }
+        const extraProps: Record<string, unknown> = {'data-label': columnLabels[j] ?? ''};
+        if (j === firstPrimaryIndex) {
+          extraProps['data-mobile-primary'] = 'true';
+        }
+        return cloneElement(
+          cell as React.ReactElement<Record<string, unknown>>,
+          extraProps
+        );
+      });
+      return (
+        <tr key={this.props.keyForRow?.(row) ?? i} style={labelVars}>
+          {labeledCells}
+        </tr>
+      );
+    });
   }
 
   render() {
@@ -448,20 +495,22 @@ class ResultGrid extends Component<ResultGridProps, State> {
     const ensuredFilters = filters ?? {};
 
     const resultTable = (
-      <ResultTable>
-        <thead>
-          <tr>{columns}</tr>
-        </thead>
-        <tbody>
-          {this.state.loading
-            ? this.renderLoading()
-            : this.state.error
-              ? this.renderError()
-              : this.state.rows.length === 0
-                ? this.renderNoResults()
-                : this.renderResults()}
-        </tbody>
-      </ResultTable>
+      <TableScrollWrapper>
+        <ResultTable>
+          <thead>
+            <tr>{columns}</tr>
+          </thead>
+          <tbody>
+            {this.state.loading
+              ? this.renderLoading()
+              : this.state.error
+                ? this.renderError()
+                : this.state.rows.length === 0
+                  ? this.renderNoResults()
+                  : this.renderResults()}
+          </tbody>
+        </ResultTable>
+      </TableScrollWrapper>
     );
 
     const CustomPanel = inPanel;
@@ -484,31 +533,30 @@ class ResultGrid extends Component<ResultGridProps, State> {
       resultTable
     );
 
+    const cells = getCells();
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
     return (
-      <ResultGridContainer data-test-id="result-grid">
+      <Container data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
           {needsRegion && (
             <CompactSelect
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} prefix="Region" />
               )}
-              value={this.state.region ? this.state.region.url : undefined}
-              options={ConfigStore.get('regions').map((r: any) => ({
-                label: r.name,
-                value: r.url,
+              value={this.state.cell ? this.state.cell.locality_url : undefined}
+              options={cells.map(c => ({
+                label: c.name,
+                value: c.locality_url,
               }))}
               onChange={opt => {
-                const region = ConfigStore.get('regions').find(
-                  (r: any) => r.url === opt.value
-                );
-                if (region === undefined) {
+                const cellOption = cells.find(c => c.locality_url === opt.value);
+                if (cellOption === undefined) {
                   return;
                 }
                 this.setState(
                   {
-                    region,
+                    cell: cellOption,
                   },
                   this.fetchData
                 );
@@ -536,7 +584,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
               <Button
                 type="submit"
                 icon={<IconSearch />}
-                priority="primary"
+                variant="primary"
                 size="sm"
                 aria-label="Search"
               />
@@ -564,15 +612,22 @@ class ResultGrid extends Component<ResultGridProps, State> {
             onCursor={useQueryString ? undefined : this.onCursor}
           />
         )}
-      </ResultGridContainer>
+      </Container>
     );
   }
 }
 
-const ResultGridContainer = styled('div')``;
+const TableScrollWrapper = styled(Container)`
+  overflow-x: auto;
+
+  @media (max-width: 768px) {
+    overflow-x: visible;
+  }
+`;
 
 const SortSearchForm = styled('form')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${p => p.theme.space.lg};
 
   &:not(:empty) {
@@ -581,7 +636,7 @@ const SortSearchForm = styled('form')`
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
   > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+    z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 
@@ -595,7 +650,7 @@ const FilterList = styled('div')`
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
   > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+    z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 
@@ -618,4 +673,20 @@ const ErrorAlert = styled(Alert)`
   margin-bottom: ${p => p.theme.space.lg};
 `;
 
-export default withApi(withSentryRouter(ResultGrid));
+type ResultGridWrapperProps = Omit<ResultGridProps, 'api' | 'location' | 'navigate'> & {
+  api?: Client;
+};
+
+export function ResultGrid({api, ...props}: ResultGridWrapperProps) {
+  const defaultApi = useApi();
+  const location = useLocation();
+  const navigate = useNavigate();
+  return (
+    <ResultGridImpl
+      {...props}
+      api={api ?? defaultApi}
+      location={location}
+      navigate={navigate}
+    />
+  );
+}

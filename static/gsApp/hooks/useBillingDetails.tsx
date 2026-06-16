@@ -1,5 +1,7 @@
+import {keepPreviousData} from '@tanstack/react-query';
+
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {BillingDetails} from 'getsentry/types';
@@ -9,7 +11,7 @@ export function useBillingDetails() {
 
   return useApiQuery<BillingDetails>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/billing-details/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

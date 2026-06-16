@@ -5,6 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -17,6 +18,14 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+function LogsTabContentHarness({
+  datePageFilterProps,
+}: {
+  datePageFilterProps: DatePageFilterProps;
+}) {
+  return <LogsTabContent datePageFilterProps={datePageFilterProps} />;
+}
+
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
@@ -27,6 +36,8 @@ const datePageFilterProps: DatePageFilterProps = {
     '7d': 'Last 7 days',
   }),
 };
+
+beforeEach(mockGetBoundingClientRect);
 
 describe('LogsTabContent', () => {
   const {organization, project, setupPageFilters} = initializeLogsTest();
@@ -159,6 +170,11 @@ describe('LogsTabContent', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
@@ -168,12 +184,11 @@ describe('LogsTabContent', () => {
   });
 
   it('should call APIs as expected', async () => {
-    render(
-      <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
-    );
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     expect(eventTableMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
@@ -193,7 +208,6 @@ describe('LogsTabContent', () => {
       `/organizations/${organization.slug}/events-timeseries/`,
       expect.objectContaining({
         query: expect.objectContaining({
-          caseInsensitive: undefined,
           dataset: 'ourlogs',
           disableAggregateExtrapolation: '0',
           environment: [],
@@ -207,7 +221,6 @@ describe('LogsTabContent', () => {
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
-          topEvents: undefined,
           yAxis: ['count(message)'],
         }),
       })
@@ -220,12 +233,11 @@ describe('LogsTabContent', () => {
   });
 
   it('should switch between modes', async () => {
-    render(
-      <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
-    );
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
       'aria-selected',
@@ -264,12 +276,11 @@ describe('LogsTabContent', () => {
   });
 
   it('should pass caseInsensitive to the query', async () => {
-    render(
-      <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
-    );
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     expect(eventTableMock).toHaveBeenCalled();
 
@@ -311,7 +322,6 @@ describe('LogsTabContent', () => {
           sampling: 'NORMAL',
           sort: '-count_message',
           statsPeriod: '14d',
-          topEvents: undefined,
           yAxis: ['count(message)'],
         }),
       })
@@ -321,15 +331,11 @@ describe('LogsTabContent', () => {
   it('should add a timestamp_precise filter when autorefresh is enabled', async () => {
     const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
     autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
-    render(
-      <ProviderWrapper>
-        <LogsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig: autorefreshEnabledRouterConfig,
-        organization,
-      }
-    );
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     await waitFor(() => {
       expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
@@ -341,5 +347,17 @@ describe('LogsTabContent', () => {
         })
       );
     });
+  });
+
+  it('should disable manual refresh button when autorefresh is enabled', async () => {
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
+    expect(refreshButton).toBeDisabled();
   });
 });

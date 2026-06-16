@@ -11,14 +11,14 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {unreachable} from 'sentry/utils/unreachable';
 
 export interface EventRegressionTableRow {
-  group: string;
+  group: string | null;
   operation: string;
   percentageChange: number;
   description?: string;
@@ -99,8 +99,8 @@ export function EventRegressionTable({
       ) : data.length === 0 ? (
         <SimpleTable.Empty>{t('No results found for your query')}</SimpleTable.Empty>
       ) : (
-        data.map(row => (
-          <SimpleTable.Row key={row.group}>
+        data.map((row, index) => (
+          <SimpleTable.Row key={`${row.group ?? index}-${row.operation}`}>
             {columns.map(column => (
               <SimpleTable.RowCell
                 key={column.key}

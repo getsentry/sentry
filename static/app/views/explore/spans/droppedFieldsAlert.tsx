@@ -32,7 +32,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   const changedReason = savedQuery.changedReason;
   if (changedReason.columns.length > 0) {
     columnsWarning.push(
-      tct(`[columns] is no longer supported`, {
+      tct('[columns] is no longer supported', {
         columns: changedReason.columns.join(', '),
       })
     );
@@ -40,7 +40,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   if (changedReason.equations) {
     equationsWarning.push(
       ...changedReason.equations.map(equation =>
-        tct(`[equation] is no longer supported because [reason] is unsupported`, {
+        tct('[equation] is no longer supported because [reason] is unsupported', {
           equation: stripEquationPrefix(equation.equation),
           reason:
             typeof equation.reason === 'string'
@@ -61,10 +61,10 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
 
         // make sure that the reason and the orderby aren't the same and word it correctly
         return typeof orderby.reason === 'string' || orderbyWithoutPrefix === reasonText
-          ? tct(`sorting by [orderby] is no longer supported`, {
+          ? tct('sorting by [orderby] is no longer supported', {
               orderby: orderbyWithoutPrefix,
             })
-          : tct(`sorting by [orderby] is not supported because [reason] is unsupported`, {
+          : tct('sorting by [orderby] is not supported because [reason] is unsupported', {
               orderby: orderby.orderby,
               reason: reasonText,
             });

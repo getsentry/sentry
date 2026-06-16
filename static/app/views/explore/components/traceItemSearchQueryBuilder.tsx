@@ -1,11 +1,13 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -27,12 +29,15 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  allowedAttributeKeys?: string[];
+  attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  hiddenAttributeKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -44,14 +49,14 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
     return {};
   }
 
-  return supportedAggregates.reduce((acc, item) => {
+  return supportedAggregates.reduce<TagCollection>((acc, item) => {
     acc[item] = {
       key: item,
       name: item,
       kind: FieldKind.FUNCTION,
     };
     return acc;
-  }, {} as TagCollection);
+  }, {});
 };
 
 const typeMap: Partial<
@@ -71,9 +76,9 @@ const typeMap: Partial<
 function getTraceItemFieldDefinitionFunction(
   itemType: TraceItemDataset,
   tags: TagCollection
-) {
-  return (key: string) => {
-    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
+): FieldDefinitionGetter {
+  return (key, options) => {
+    return getFieldDefinition(key, typeMap[itemType], options?.kind ?? tags[key]?.kind);
   };
 }
 
@@ -93,6 +98,7 @@ export function useTraceItemSearchQueryBuilderProps({
   onSearch,
   portalTarget,
   projects,
+  datetime,
   supportedAggregates = [],
   namespace,
   replaceRawSearchKeys,
@@ -103,8 +109,16 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  disabled,
+  attributeQuery,
+  hiddenAttributeKeys,
+  allowedAttributeKeys,
+  placeholder,
 }: TraceItemSearchQueryBuilderProps) {
-  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
+  const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
+  const {selection} = usePageFilters();
+  const effectiveProjects = projects ?? selection.projects;
+
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
   const filterTags = useFilterTags({
@@ -119,6 +133,8 @@ export function useTraceItemSearchQueryBuilderProps({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    datetime,
+    query: attributeQuery,
   });
 
   const getSuggestedAttribute = useExploreSuggestedAttribute({
@@ -127,15 +143,43 @@ export function useTraceItemSearchQueryBuilderProps({
     booleanAttributes,
   });
 
-  const getTagKeys = useGetTraceItemAttributeTagKeys({
+  const dynamicTagKeys = useGetTraceItemAttributeTagKeys({
     itemType,
     projects,
     extraTags: functionTags,
+    query: attributeQuery,
+    hiddenKeys: hiddenAttributeKeys,
   });
+  // When an allowlist is in effect, the static filterKeys are already curated to
+  // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
+  // the allowlist (and unrecognized keys are auto-rejected).
+  const getTagKeys = allowedAttributeKeys ? undefined : dynamicTagKeys;
+  const asyncFilterKeyRegistryQueryKey = useMemo(
+    () => [
+      'trace-item-search-query-builder-filter-key-registry',
+      itemType,
+      effectiveProjects,
+      selection.environments,
+      selection.datetime,
+      attributeQuery,
+      hiddenAttributeKeys,
+      allowedAttributeKeys,
+    ],
+    [
+      allowedAttributeKeys,
+      attributeQuery,
+      effectiveProjects,
+      hiddenAttributeKeys,
+      itemType,
+      selection.datetime,
+      selection.environments,
+    ]
+  );
 
   return useMemo(
     () => ({
       placeholder: placeholderText,
+      asyncFilterKeyRegistryQueryKey,
       filterKeys: filterTags,
       initialQuery,
       fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
@@ -165,11 +209,14 @@ export function useTraceItemSearchQueryBuilderProps({
         ...booleanSecondaryAliases,
       },
       caseInsensitive,
+      disabled,
       onCaseInsensitiveClick,
     }),
     [
+      asyncFilterKeyRegistryQueryKey,
       booleanSecondaryAliases,
       caseInsensitive,
+      disabled,
       disallowFreeText,
       disallowLogicalOperators,
       disableRecentSearches,
@@ -208,7 +255,7 @@ export function TraceItemSearchQueryBuilder({
   searchSource,
   stringAttributes,
   itemType,
-  datetime: _datetime,
+  datetime,
   getFilterTokenWarning,
   onBlur,
   onChange,
@@ -226,6 +273,10 @@ export function TraceItemSearchQueryBuilder({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  attributeQuery,
+  hiddenAttributeKeys,
+  allowedAttributeKeys,
+  placeholder,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -253,15 +304,15 @@ export function TraceItemSearchQueryBuilder({
     disallowFreeText,
     disallowLogicalOperators,
     disableRecentSearches,
+    disabled,
+    attributeQuery,
+    hiddenAttributeKeys,
+    allowedAttributeKeys,
+    placeholder,
+    datetime,
   });
 
-  return (
-    <SearchQueryBuilder
-      autoFocus={autoFocus}
-      disabled={disabled}
-      {...searchQueryBuilderProps}
-    />
-  );
+  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
 }
 
 function useFunctionTags(
@@ -363,7 +414,7 @@ function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
     return t('Search for spans, users, tags, and more');
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
-    return t('Search for metrics, users, tags, and more');
+    return t('Search for application metrics, users, tags, and more');
   }
   if (itemType === TraceItemDataset.PREPROD) {
     return t('Search for builds, versions, and more');

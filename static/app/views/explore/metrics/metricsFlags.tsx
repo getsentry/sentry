@@ -8,7 +8,10 @@ export const canUseMetricsUI = (organization: Organization) => {
 };
 
 export const canUseMetricsStatsUI = (organization: Organization) => {
-  return canUseMetricsUI(organization);
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('explore-dev-features')
+  );
 };
 
 export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
@@ -16,21 +19,47 @@ export const canUseMetricsSavedQueriesUI = (organization: Organization) => {
 };
 
 export const canUseMetricsAlertsUI = (organization: Organization) => {
+  return canUseMetricsUI(organization);
+};
+
+export const canUseMetricsStatsBytesUI = (organization: Organization) => {
   return (
-    canUseMetricsUI(organization) && organization.features.includes('tracemetrics-alerts')
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-stats-bytes-ui')
   );
 };
 
-export const canUseMetricsSidePanelUI = (organization: Organization) => {
+export const canUseMetricsEquations = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-attributes-dropdown-side-panel')
+    organization.features.includes('tracemetrics-equations-in-explore')
   );
 };
 
-export const canUseMetricsUIRefresh = (organization: Organization) => {
+export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
+  return (
+    canUseMetricsAlertsUI(organization) &&
+    organization.features.includes('tracemetrics-equations-in-alerts')
+  );
+};
+
+export const canUseMetricsEquationsInDashboards = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-ui-refresh')
+    organization.features.includes('tracemetrics-equations-in-dashboards')
+  );
+};
+
+export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-pii-scrubbing-ui')
+  );
+};
+
+export const canUseMetricsHeatMap = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('data-browsing-heat-map-widget')
   );
 };

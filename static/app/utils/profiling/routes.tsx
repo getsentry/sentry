@@ -9,7 +9,7 @@ import {
   isTransactionProfileReference,
 } from 'sentry/utils/profiling/guards/profile';
 
-const PROFILING_BASE_PATHNAME = 'explore/profiling';
+const PROFILING_BASE_PATHNAME = 'explore/profiles';
 
 function generateProfilingRoute({organization}: {organization: Organization}): Path {
   return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;
@@ -35,46 +35,6 @@ function generateContinuousProfileFlamechartRoute({
   projectSlug: Project['slug'];
 }): string {
   return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/flamegraph/`;
-}
-
-function generateProfileDifferentialFlamegraphRoute({
-  organization,
-  projectSlug,
-}: {
-  organization: Organization;
-  projectSlug: Project['slug'];
-}): string {
-  return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/differential-flamegraph/`;
-}
-
-export function generateProfileDifferentialFlamegraphRouteWithQuery({
-  organization,
-  projectSlug,
-  query,
-  fingerprint,
-  transaction,
-  breakpoint,
-}: {
-  breakpoint: number;
-  fingerprint: number;
-  organization: Organization;
-  projectSlug: Project['slug'];
-  transaction: string;
-  query?: Location['query'];
-}): LocationDescriptor {
-  const pathname = generateProfileDifferentialFlamegraphRoute({
-    organization,
-    projectSlug,
-  });
-  return {
-    pathname,
-    query: {
-      ...query,
-      transaction,
-      fingerprint,
-      breakpoint,
-    },
-  };
 }
 
 export function generateProfilingRouteWithQuery({

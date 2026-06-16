@@ -20,9 +20,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
-// ──────────────────────────────────────────────
 // form.mdx demos
-// ──────────────────────────────────────────────
 
 const quickStartSchema = z.object({
   email: z.email('Please enter a valid email'),
@@ -199,9 +197,7 @@ export function ConditionalDemo() {
   );
 }
 
-// ──────────────────────────────────────────────
 // fields.mdx demos
-// ──────────────────────────────────────────────
 
 export function BaseFieldDemo() {
   const form = useScrapsForm({
@@ -248,9 +244,7 @@ export function BaseFieldDemo() {
   );
 }
 
-// ──────────────────────────────────────────────
 // autoSaveForm.mdx demos
-// ──────────────────────────────────────────────
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

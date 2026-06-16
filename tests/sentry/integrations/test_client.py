@@ -353,6 +353,26 @@ class ApiClientTest(TestCase):
             assert extra["github_request_id"] == "abc-123"
 
     @responses.activate
+    def test_track_response_data_logs_organization_id_from_logging_context(self) -> None:
+        responses.add(responses.GET, "http://example.com", json={})
+
+        client = ApiClient(logging_context={"organization_id": 123})
+        with mock.patch.object(client, "logger") as mock_logger:
+            client.get("http://example.com")
+            extra = mock_logger.info.call_args.kwargs["extra"]
+            assert extra["organization_id"] == "123"
+
+    @responses.activate
+    def test_track_response_data_logs_organization_id_from_org_id_logging_context(self) -> None:
+        responses.add(responses.GET, "http://example.com", json={})
+
+        client = ApiClient(logging_context={"org_id": 456})
+        with mock.patch.object(client, "logger") as mock_logger:
+            client.get("http://example.com")
+            extra = mock_logger.info.call_args.kwargs["extra"]
+            assert extra["organization_id"] == "456"
+
+    @responses.activate
     def test_track_response_data_logs_rate_limit_remaining(self) -> None:
         responses.add(
             responses.GET,
@@ -381,7 +401,7 @@ class ApiClientTest(TestCase):
         with mock.patch.object(client, "logger") as mock_logger:
             with pytest.raises(ApiError):
                 client.get("http://example.com")
-            extra = mock_logger.info.call_args.kwargs["extra"]
+            extra = mock_logger.warning.call_args.kwargs["extra"]
             assert extra["retry_after"] == "60"
 
     @responses.activate
@@ -431,7 +451,7 @@ class ApiClientTest(TestCase):
         with mock.patch.object(client, "logger") as mock_logger:
             with pytest.raises(ApiError):
                 client.get("http://example.com")
-            extra = mock_logger.info.call_args.kwargs["extra"]
+            extra = mock_logger.warning.call_args.kwargs["extra"]
             assert extra["github_request_id"] == "err-789"
 
     @responses.activate

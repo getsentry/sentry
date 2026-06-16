@@ -26,8 +26,9 @@ describe('useProfileEvents', () => {
       body,
       match: [
         MockApiClient.matchQuery({
-          dataset: 'discover',
-          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
+          dataset: 'spans',
+          query:
+            'is_transaction:true (has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });
@@ -42,7 +43,7 @@ describe('useProfileEvents', () => {
       },
     });
 
-    await waitFor(() => result.current.isSuccess);
+    await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual(body);
   });
 
@@ -54,7 +55,7 @@ describe('useProfileEvents', () => {
       url: `/organizations/${organization.slug}/events/`,
       status: 400,
       statusCode: 400,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'spans'})],
     });
 
     const {result} = renderHookWithProviders(useProfileEvents, {

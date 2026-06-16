@@ -37,7 +37,7 @@ export function EventAttachmentActions({
         <Button
           size="xs"
           disabled={!hasAttachmentRole || !hasPreview}
-          priority={previewIsOpen ? 'primary' : 'default'}
+          variant={previewIsOpen ? 'primary' : 'secondary'}
           icon={<IconShow />}
           onClick={onPreviewClick}
           tooltipProps={{

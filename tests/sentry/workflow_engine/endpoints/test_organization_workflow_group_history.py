@@ -146,6 +146,99 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         )
         assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
 
+    def test_sort_by_last_triggered(self) -> None:
+        """Default sort is lastTriggered DESC. Explicit sort=-count orders by count DESC."""
+        workflow = self.create_workflow(organization=self.organization)
+
+        group_old = self.create_group()
+        group_new = self.create_group()
+
+        # group_old: 3 triggers, last triggered 3 days ago
+        for i in range(3):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow, group=group_old, event_id=uuid4().hex
+            )
+            wfh.update(date_added=before_now(days=3 + i))
+
+        # group_new: 1 trigger, last triggered 1 day ago
+        wfh = WorkflowFireHistory.objects.create(
+            workflow=workflow, group=group_new, event_id=uuid4().hex
+        )
+        wfh.update(date_added=before_now(days=1))
+
+        # Default sort (lastTriggered DESC): group_new first (more recent)
+        resp = self.get_success_response(
+            self.organization.slug,
+            workflow.id,
+            start=before_now(days=10),
+            end=before_now(days=0),
+        )
+        assert resp.data[0]["count"] == 1
+        assert resp.data[1]["count"] == 3
+
+        # Explicit sort by count DESC: group_old first (more triggers)
+        resp = self.get_success_response(
+            self.organization.slug,
+            workflow.id,
+            start=before_now(days=10),
+            end=before_now(days=0),
+            sort="-count",
+        )
+        assert resp.data[0]["count"] == 3
+        assert resp.data[1]["count"] == 1
+
+    def test_multiple_sorts(self) -> None:
+        """Multiple sort params are applied in order."""
+        workflow = self.create_workflow(organization=self.organization)
+
+        group_a = self.create_group()
+        group_b = self.create_group()
+
+        # Both groups have 2 triggers, but group_a was triggered more recently
+        for i in range(2):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow, group=group_a, event_id=uuid4().hex
+            )
+            wfh.update(date_added=before_now(days=1 + i))
+
+        for i in range(2):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow, group=group_b, event_id=uuid4().hex
+            )
+            wfh.update(date_added=before_now(days=3 + i))
+
+        # sort=-count&sort=-lastTriggered: tied on count, group_a first (more recent)
+        resp = self.get_success_response(
+            self.organization.slug,
+            workflow.id,
+            start=before_now(days=10),
+            end=before_now(days=0),
+            sort=["-count", "-lastTriggered"],
+        )
+        assert resp.data[0]["group"]["id"] == str(group_a.id)
+        assert resp.data[1]["group"]["id"] == str(group_b.id)
+
+        # sort=-count&sort=lastTriggered: tied on count, group_b first (oldest)
+        resp = self.get_success_response(
+            self.organization.slug,
+            workflow.id,
+            start=before_now(days=10),
+            end=before_now(days=0),
+            sort=["-count", "lastTriggered"],
+        )
+        assert resp.data[0]["group"]["id"] == str(group_b.id)
+        assert resp.data[1]["group"]["id"] == str(group_a.id)
+
+    def test_invalid_sort_field(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            start=before_now(days=6),
+            end=before_now(days=0),
+            sort="invalid",
+            status_code=400,
+        )
+
     def test_invalid_dates_error(self) -> None:
         self.get_error_response(
             self.organization.slug,

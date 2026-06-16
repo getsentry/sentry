@@ -12,7 +12,6 @@ from sentry import options
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     NULL_GROUPING_CONFIG,
-    BackgroundGroupingConfigLoader,
     GroupingConfig,
     SecondaryGroupingConfigLoader,
     apply_server_side_fingerprinting,
@@ -32,7 +31,6 @@ from sentry.grouping.ingest.grouphash_metadata import (
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -78,35 +76,6 @@ def _calculate_event_grouping(
             hashes, variants = event.get_hashes_and_variants(loaded_grouping_config)
 
         return (hashes, variants)
-
-
-def maybe_run_background_grouping(project: Project, job: Job) -> None:
-    """
-    Optionally run a fraction of events with an experimental grouping config.
-
-    This does not affect actual grouping, but can be helpful to measure the new config's performance
-    impact.
-    """
-    try:
-        if in_random_rollout("store.background-grouping-sample-rate"):
-            config = BackgroundGroupingConfigLoader().get_config_dict(project)
-            if config["id"]:
-                copied_event = copy.deepcopy(job["event"])
-                _calculate_background_grouping(project, copied_event, config)
-    except Exception as err:
-        sentry_sdk.capture_exception(err)
-
-
-def _calculate_background_grouping(
-    project: Project, event: Event, config: GroupingConfig
-) -> list[str]:
-    metric_tags: MutableTags = {
-        "grouping_config": config["id"],
-        "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event.data),
-    }
-    with metrics.timer("event_manager.background_grouping", tags=metric_tags):
-        return _calculate_event_grouping(project, event, config)[0]
 
 
 def maybe_run_secondary_grouping(

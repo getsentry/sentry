@@ -169,7 +169,7 @@ export function StructuredEventData({
       {showCopyButton && (
         <StyledCopyButton
           aria-label={t('Copy to clipboard')}
-          priority="transparent"
+          variant="transparent"
           onCopy={onCopy}
           size="xs"
           text={JSON.stringify(data, null, '\t')}

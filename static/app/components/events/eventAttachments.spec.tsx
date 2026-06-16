@@ -50,9 +50,7 @@ describe('EventAttachments', () => {
 
     expect(await screen.findByText('Attachments (0)')).toBeInTheDocument();
 
-    await tick();
-
-    expect(screen.getByRole('link', {name: 'View crashes'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'View crashes'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/1/attachments/?attachmentFilter=onlyCrash'
     );

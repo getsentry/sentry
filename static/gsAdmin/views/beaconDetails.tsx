@@ -14,7 +14,7 @@ export function BeaconDetails() {
   const params = useParams<{beaconId: string}>();
   const {data, isPending, isError} = useApiQuery<BeaconData>(
     [
-      getApiUrl(`/beacons/$beaconId/`, {
+      getApiUrl('/beacons/$beaconId/', {
         path: {beaconId: params.beaconId},
       }),
     ],

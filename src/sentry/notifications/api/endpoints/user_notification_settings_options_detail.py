@@ -16,7 +16,7 @@ class UserNotificationSettingsOptionsDetailEndpoint(UserEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    owner = ApiOwner.NOTIFICATIONS
 
     def convert_args(
         self,

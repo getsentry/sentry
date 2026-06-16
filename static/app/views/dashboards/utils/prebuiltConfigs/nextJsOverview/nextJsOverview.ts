@@ -1,10 +1,16 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/rageAndDeadClicksWidget';
 import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
@@ -135,10 +141,10 @@ const CLIENT_TRANSACTIONS_TABLE_FIELDS = [
   'failure_rate()',
   `avg(${SpanFields.SPAN_DURATION})`,
   `p95(${SpanFields.SPAN_DURATION})`,
-  `equation|performance_score(${SpanFields.TOTAL_SCORE})`,
+  `performance_score(${SpanFields.TOTAL_SCORE})`,
 ];
 
-const CLIENT_TRANSACTIONS_TABLE: Widget = {
+const CLIENT_TRANSACTIONS_TABLE: PrebuiltWidget = {
   id: 'client-transactions-table',
   title: t('Client Transactions'),
   displayType: DisplayType.TABLE,
@@ -154,7 +160,7 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
         'failure_rate()',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
-        `equation|performance_score(${SpanFields.TOTAL_SCORE})`,
+        `performance_score(${SpanFields.TOTAL_SCORE})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP, SpanFields.PROJECT],
       fields: CLIENT_TRANSACTIONS_TABLE_FIELDS,
@@ -164,8 +170,8 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
         t('Operation'),
         t('Views'),
         t('Error Rate'),
-        t('Avg Duration'),
-        t('P95 Duration'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
         t('Perf Score'),
       ],
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
@@ -190,7 +196,7 @@ const SERVER_TRANSACTIONS_TABLE_FIELDS = [
   `sum(${SpanFields.SPAN_DURATION})`,
 ];
 
-const SERVER_TRANSACTIONS_TABLE: Widget = {
+const SERVER_TRANSACTIONS_TABLE: PrebuiltWidget = {
   id: 'server-transactions-table',
   title: t('Server Transactions'),
   displayType: DisplayType.TABLE,
@@ -215,9 +221,9 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
         '',
         t('Views'),
         t('Error Rate'),
-        t('Avg Duration'),
-        t('P95 Duration'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
     },
@@ -231,7 +237,7 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
   },
 };
 
-const SERVER_TREE_WIDGET: Widget = {
+const SERVER_TREE_WIDGET: PrebuiltWidget = {
   ...SERVER_TREE_WIDGET_TEMPLATE,
   layout: {
     x: 0,

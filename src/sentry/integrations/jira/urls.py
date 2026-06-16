@@ -2,7 +2,7 @@ from django.urls import re_path
 
 from .endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from .views import (
-    JiraExtensionConfigurationView,
+    JiraConfigureRedirectView,
     JiraSentryInstallationView,
     JiraSentryIssueDetailsControlView,
     JiraSentryIssueDetailsView,
@@ -44,11 +44,18 @@ urlpatterns = [
         JiraSearchEndpoint.as_view(),
         name="sentry-extensions-jira-search",
     ),
+    # The Jira UI hook links here with `signed_params`. We forward those to the
+    # link view, which opens the install pipeline modal to finish the install.
     re_path(
         r"^configure/$",
-        JiraExtensionConfigurationView.as_view(),
+        JiraConfigureRedirectView.as_view(),
         name="sentry-extensions-jira-configuration",
     ),
+    # TODO(cells): Legacy URL, remove once Atlassian marketplace version updated.
+    # Our descriptor now correctly points at `/issue-details/{key}/`, but
+    # Atlassian only re-snapshots it when a new Marketplace version of `sentry.io.jira` is
+    # published — existing tenants keep hitting this path until that happens. Routed to the
+    # control view by `JiraRequestParser.immediate_response_cell_classes`.
     re_path(
         r"^issue/(?P<issue_key>[^/]+)/$",
         JiraSentryIssueDetailsView.as_view(),

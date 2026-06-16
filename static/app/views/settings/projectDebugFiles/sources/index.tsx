@@ -31,7 +31,6 @@ export function Sources({
   return (
     <Fragment>
       <BuiltInRepositories
-        api={api}
         organization={organization}
         builtinSymbolSources={builtinSymbolSources}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}

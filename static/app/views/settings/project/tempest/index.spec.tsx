@@ -56,7 +56,7 @@ describe('TempestSettings', () => {
       expect(
         screen.queryByText("You don't have access to this feature")
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'DevKit'})).toBeInTheDocument();
     });
 
     it('renders settings when user has playstation platform', () => {
@@ -73,7 +73,7 @@ describe('TempestSettings', () => {
       expect(
         screen.queryByText("You don't have access to this feature")
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'DevKit'})).toBeInTheDocument();
     });
 
     it('does not grant access with other console platforms', () => {

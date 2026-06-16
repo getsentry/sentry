@@ -53,7 +53,7 @@ export function EnableSpendAllocations({
         {hasScope && (
           <Button
             aria-label={t('Get started')}
-            priority="primary"
+            variant="primary"
             size="sm"
             disabled={!hasScope}
             onClick={enableAction}

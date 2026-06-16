@@ -109,6 +109,7 @@ class FilterQueryDatabaseImpl(
         as_user: RpcUser | None = None,
         auth_context: AuthenticationContext | None = None,
         serializer: SERIALIZER_ENUM | None = None,
+        select_related: bool = True,
     ) -> list[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
         from sentry.users.services.user import RpcUser
@@ -121,7 +122,7 @@ class FilterQueryDatabaseImpl(
         if as_user is None and auth_context:
             as_user = auth_context.user
 
-        result = self.query_many(filter=filter)
+        result = self.query_many(filter=filter, select_related=select_related)
         return serialize(
             list(result),
             user=as_user,

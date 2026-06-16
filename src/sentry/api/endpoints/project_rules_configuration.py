@@ -11,7 +11,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import (
+    ALERTS_API_DEPRECATION_DATE,
+    ALERTS_API_DEPRECATION_KEY,
+    MIGRATED_CONDITIONS,
+    TICKET_ACTIONS,
+)
 from sentry.models.project import Project
 from sentry.rules import rules
 from sentry.rules.actions.integrations.create_ticket.base import TicketEventAction
@@ -26,6 +32,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve the list of configuration options for a given project.
@@ -36,20 +43,15 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
         available_ticket_actions = set()
 
-        project_has_filters = features.has("projects:alert-filters", project)
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
-        )
-        has_user_frequency_condition_with_conditions_alert = features.has(
-            "organizations:event-unique-user-frequency-condition-with-conditions",
-            project.organization,
         )
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
             node = rule_cls(project=project)
-            # skip over conditions if they are not in the migrated set for a project with alert-filters
-            if project_has_filters and node.id in MIGRATED_CONDITIONS:
+            # skip over conditions if they are not in the migrated set
+            if node.id in MIGRATED_CONDITIONS:
                 continue
 
             if not can_create_tickets and node.id in TICKET_ACTIONS:
@@ -81,11 +83,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
-                if (
-                    node.id
-                    == "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
-                ) and not has_user_frequency_condition_with_conditions_alert:
-                    continue
                 condition_list.append(context)
             elif rule_type.startswith("filter/"):
                 filter_list.append(context)

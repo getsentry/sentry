@@ -1,6 +1,6 @@
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -35,9 +35,9 @@ export function ReportUri({keyList, orgId, projectId}: Props) {
             }
           )}
         </PanelAlert>
-        <FieldGroup inline={false} flexibleControlStateSize>
+        <Container padding="xl">
           <TextCopyInput>{getSecurityDsn(keyList)}</TextCopyInput>
-        </FieldGroup>
+        </Container>
       </PanelBody>
     </Panel>
   );

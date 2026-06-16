@@ -16,7 +16,7 @@ import {
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
+import {ExampleIntegrationButton} from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 const analyticsView = 'new_integration_modal';
 
@@ -104,7 +104,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
           {t('Cancel')}
         </Button>
         <LinkButton
-          priority="primary"
+          variant="primary"
           size="sm"
           to={`/settings/${organization.slug}/developer-settings/${
             option === 'public' ? 'new-public' : 'new-internal'

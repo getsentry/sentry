@@ -17,7 +17,7 @@ beforeEach(() => {
 describe('StackTracePreview', () => {
   it('renders error message', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/123/events/recommended/`,
+      url: '/organizations/org-slug/issues/123/events/recommended/',
       statusCode: 400,
     });
 
@@ -30,7 +30,7 @@ describe('StackTracePreview', () => {
 
   it('warns about no stacktrace', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/123/events/recommended/`,
+      url: '/organizations/org-slug/issues/123/events/recommended/',
       body: EventFixture({id: '456', entries: []}),
     });
 
@@ -43,7 +43,7 @@ describe('StackTracePreview', () => {
     ).toBeInTheDocument();
   });
 
-  it.each([['stack-trace-content', []]])('renders %s', async (component, features) => {
+  it('renders stack trace frames', async () => {
     const frame: Frame = {
       colNo: 0,
       filename: 'file.js',
@@ -94,18 +94,16 @@ describe('StackTracePreview', () => {
     } as EventError;
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/123/events/recommended/`,
+      url: '/organizations/org-slug/issues/123/events/recommended/',
       body: EventFixture(errorEvent),
     });
 
-    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>, {
-      organization: {features},
-    });
+    render(<StackTracePreview groupId="123">Preview Trigger</StackTracePreview>);
 
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
-    expect(await screen.findByTestId(component)).toBeInTheDocument();
+    expect(await screen.findByTestId('core-stacktrace-frame-row')).toBeInTheDocument();
     // Hide the platform icon for stack trace previews
-    expect(screen.queryAllByRole('img')).toHaveLength(1);
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 });

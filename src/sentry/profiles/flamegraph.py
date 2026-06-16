@@ -450,75 +450,48 @@ class FlamegraphExecutor:
             raise ValueError("`organization` is required and cannot be `None`")
 
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
-        initial_chunk_delta_hours = options.get(
-            "profiling.flamegraph.query.initial_chunk_delta.hours"
+
+        transaction_constraint = "is_transaction:true"
+        query = (
+            f"({transaction_constraint}) and ({self.query})"
+            if self.query
+            else transaction_constraint
         )
-        max_chunk_delta_hours = options.get("profiling.flamegraph.query.max_delta.hours")
-        multiplier = options.get("profiling.flamegraph.query.multiplier")
+        results = self.get_spans_based_candidates(query=query, limit=max_profiles)
 
-        initial_chunk_delta = timedelta(hours=initial_chunk_delta_hours)
-        max_chunk_delta = timedelta(hours=max_chunk_delta_hours)
-
-        referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES.value
-        transaction_profile_candidates: list[TransactionProfileCandidate] = []
-        profiler_metas: list[ProfilerMeta] = []
-
-        assert self.snuba_params.start is not None and self.snuba_params.end is not None
-        snuba_params = self.snuba_params.copy()
-
-        for chunk_start, chunk_end in split_datetime_range_exponential(
-            self.snuba_params.start,
-            self.snuba_params.end,
-            initial_chunk_delta,
-            max_chunk_delta,
-            multiplier,
-            reverse=True,
-        ):
-            snuba_params.start = chunk_start
-            snuba_params.end = chunk_end
-
-            builder = self.get_transactions_based_candidate_query(
-                query=self.query, limit=max_profiles, snuba_params=snuba_params
-            )
-            results = builder.run_query(referrer)
-            results = builder.process_results(results)
-
-            for row in results["data"]:
-                if row["profile.id"] is not None:
-                    transaction_profile_candidates.append(
-                        {
-                            "project_id": row["project.id"],
-                            "profile_id": row["profile.id"],
-                        }
-                    )
-                elif row["profiler.id"] is not None and row["thread.id"]:
-                    profiler_metas.append(
-                        ProfilerMeta(
-                            project_id=row["project.id"],
-                            profiler_id=row["profiler.id"],
-                            thread_id=row["thread.id"],
-                            start=row["precise.start_ts"],
-                            end=row["precise.finish_ts"],
-                            transaction_id=row["id"],
-                        )
-                    )
-
-            if len(transaction_profile_candidates) + len(profiler_metas) >= max_profiles:
-                break
+        transaction_profile_candidates: list[TransactionProfileCandidate] = [
+            {
+                "project_id": row["project.id"],
+                "profile_id": row["profile.id"],
+            }
+            for row in results["data"]
+            if row["profile.id"]
+        ]
 
         max_continuous_profile_candidates = max(
             max_profiles - len(transaction_profile_candidates), 0
         )
 
-        continuous_profile_candidates: list[ContinuousProfileCandidate] = []
-        continuous_duration = 0.0
+        profiler_metas = [
+            ProfilerMeta(
+                project_id=row["project.id"],
+                profiler_id=row["profiler.id"],
+                thread_id=row["thread.id"],
+                start=row["precise.start_ts"],
+                end=row["precise.finish_ts"],
+                transaction_id=row["transaction.event_id"] or None,
+            )
+            for row in results["data"]
+            if row["profiler.id"] and row["thread.id"]
+        ]
 
-        # If there are continuous profiles attached to transactions, we prefer those as
+        continuous_profile_candidates: list[ContinuousProfileCandidate] = []
+
+        # If there are continuous profiles attached to spans, we prefer those as
         # the active thread id gives us more user friendly flamegraphs than without.
         if profiler_metas and max_continuous_profile_candidates > 0:
-            snuba_params.end = self.snuba_params.end
-            continuous_profile_candidates, continuous_duration = self.get_chunks_for_profilers(
-                profiler_metas, max_continuous_profile_candidates, snuba_params
+            continuous_profile_candidates, _ = self.get_chunks_for_profilers(
+                profiler_metas, max_continuous_profile_candidates
             )
 
         seen_chunks = {
@@ -559,6 +532,7 @@ class FlamegraphExecutor:
                 limit=Limit(max_profiles),
             )
 
+            referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES.value
             all_results = bulk_snuba_queries(
                 [
                     Request(
@@ -646,7 +620,7 @@ class FlamegraphExecutor:
         # add constraints in order to fetch only spans with profiles
         profiling_constraint = "(has:profile.id) or (has:profiler.id has:thread.id)"
         if query is not None and len(query) > 0:
-            query = f"{query} and {profiling_constraint}"
+            query = f"({query}) and ({profiling_constraint})"
         else:
             query = profiling_constraint
         return Spans.run_table_query(
@@ -661,6 +635,7 @@ class FlamegraphExecutor:
                 "profiler.id",
                 "thread.id",
                 "timestamp",
+                "transaction.event_id",  # holds the transaction ID, if this span was originally a transaction
             ],
             orderby=["-timestamp"],
             offset=0,

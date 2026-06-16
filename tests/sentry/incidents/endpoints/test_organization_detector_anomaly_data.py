@@ -13,7 +13,7 @@ pytestmark = [requires_snuba]
 class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase):
     endpoint = "sentry-api-0-organization-detector-anomaly-data"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -38,7 +38,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             data_source=self.data_source, detector=self.detector
         )
 
-    def test_missing_parameters(self):
+    def test_missing_parameters(self) -> None:
         response = self.get_error_response(
             self.organization.slug, self.detector.id, end="1729179000.0", status_code=400
         )
@@ -49,7 +49,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         )
         assert response.data["detail"] == "start and end parameters are required"
 
-    def test_invalid_parameters(self):
+    def test_invalid_parameters(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
             self.detector.id,
@@ -59,7 +59,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         )
         assert response.data["detail"] == "start and end must be valid timestamps"
 
-    def test_no_subscription_found(self):
+    def test_no_subscription_found(self) -> None:
         # Delete the data source to simulate missing subscription
         DataSourceDetector.objects.filter(detector=self.detector).delete()
         response = self.get_error_response(
@@ -112,7 +112,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
         assert mock_get_data.call_args.kwargs["start"] == 1729178100.0
         assert mock_get_data.call_args.kwargs["end"] == 1729179000.0
 
-    def test_permission_denied(self):
+    def test_permission_denied(self) -> None:
         self.login_as(self.create_user())
 
         self.get_error_response(
@@ -123,7 +123,45 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
             status_code=403,
         )
 
-    def test_invalid_detector_id(self):
+    def test_no_project_access(self) -> None:
+        """Test that a user in the org but without access to the detector's project gets 403."""
+        other_project = self.create_project(organization=self.organization)
+        other_snuba_query = self.create_snuba_query()
+        with self.tasks():
+            other_subscription = create_snuba_subscription(
+                project=other_project,
+                subscription_type="metrics_alerts",
+                snuba_query=other_snuba_query,
+            )
+        other_data_source = self.create_data_source(
+            organization=self.organization, source_id=other_subscription.id
+        )
+        other_detector = self.create_detector(
+            project_id=other_project.id,
+            name="Other Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=self.create_data_condition_group(),
+        )
+        self.create_data_source_detector(data_source=other_data_source, detector=other_detector)
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            other_detector.id,
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=403,
+        )
+
+    def test_invalid_detector_id(self) -> None:
         """Test that non-numeric detector IDs return 404"""
         self.get_error_response(
             self.organization.slug,
@@ -139,7 +177,7 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
 
     endpoint = "sentry-api-0-organization-detector-anomaly-data"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -189,7 +227,7 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
         # Verify the subscription passed to seer is the one linked to the alert rule
         assert mock_get_data.call_args.kwargs["subscription"] == self.subscription
 
-    def test_legacy_alert_not_found(self):
+    def test_legacy_alert_not_found(self) -> None:
         """Test that non-existent alert rule ID returns 404."""
         self.get_error_response(
             self.organization.slug,
@@ -200,7 +238,7 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
             status_code=404,
         )
 
-    def test_legacy_alert_missing_subscription(self):
+    def test_legacy_alert_missing_subscription(self) -> None:
         """Test error when alert rule has no query subscription."""
         # Delete the subscription to simulate missing subscription
         self.subscription.delete()
@@ -232,13 +270,48 @@ class OrganizationDetectorAnomalyDataLegacyAlertTest(BaseWorkflowTest, APITestCa
         )
         assert response.data["detail"] == "Unable to fetch anomaly detection threshold data"
 
-    def test_legacy_alert_permission_denied(self):
+    def test_legacy_alert_permission_denied(self) -> None:
         """Test that users without access get 403."""
         self.login_as(self.create_user())
 
         self.get_error_response(
             self.organization.slug,
             self.alert_rule.id,
+            legacy_alert="true",
+            start="1729178100.0",
+            end="1729179000.0",
+            status_code=403,
+        )
+
+    def test_legacy_alert_no_project_access(self) -> None:
+        """Test that a user in the org but without access to the alert rule's project gets 403."""
+        other_project = self.create_project(organization=self.organization)
+        with self.feature("organizations:incidents"), self.tasks():
+            other_snuba_query = self.create_snuba_query()
+            create_snuba_subscription(
+                project=other_project,
+                subscription_type="metrics_alerts",
+                snuba_query=other_snuba_query,
+            )
+            other_alert_rule = self.create_alert_rule(
+                organization=self.organization,
+                projects=[other_project],
+            )
+            other_alert_rule.snuba_query = other_snuba_query
+            other_alert_rule.save()
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            other_alert_rule.id,
             legacy_alert="true",
             start="1729178100.0",
             end="1729179000.0",

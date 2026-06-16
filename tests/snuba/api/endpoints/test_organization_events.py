@@ -6021,7 +6021,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         )
         assert response.status_code == 200, response.content
         # Debug should be ignored without superuser
-        assert "query" not in response.data["meta"]
+        assert "debug_info" not in response.data["meta"]
 
         self.user = self.create_user("superuser@example.com", is_superuser=True)
         self.create_team(organization=self.organization, members=[self.user])

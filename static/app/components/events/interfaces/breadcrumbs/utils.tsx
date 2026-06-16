@@ -2,7 +2,7 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 /**
  * RawCrumb.type is used for filtering, icons and color. This function converts crumbs
@@ -52,7 +52,7 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
 
 function moduleToCategory(module: string | null | undefined) {
   if (!module) {
-    return undefined;
+    return;
   }
   const match = module.match(/^.*\/(.*?)(:\d+)/);
   if (!match) {

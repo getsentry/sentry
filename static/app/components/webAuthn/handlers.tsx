@@ -40,6 +40,10 @@ function isAssertion(r: AuthenticatorResponse): r is AuthenticatorAssertionRespo
  * Register a new credential using WebAuthn (FIDO2) and return its attestation data.
  */
 export async function handleEnroll(challengeData: ChallengeData) {
+  if (!challengeData.webAuthnRegisterData) {
+    return null;
+  }
+
   const binaryChallenge = base64urlToUint8(challengeData.webAuthnRegisterData);
   const {publicKey}: CredentialCreationOptions = decode(binaryChallenge);
   const credential = await navigator.credentials.create({publicKey});
@@ -69,6 +73,9 @@ export async function handleEnroll(challengeData: ChallengeData) {
  * Perform a WebAuthn assertion (login) using an existing credential.
  */
 export async function handleSign(challengeData: ChallengeData) {
+  if (!challengeData.webAuthnAuthenticationData) {
+    return null;
+  }
   const binaryChallenge = base64urlToUint8(challengeData.webAuthnAuthenticationData);
   const options = decode<PublicKeyCredentialRequestOptions>(binaryChallenge);
   const credential = await navigator.credentials.get({publicKey: options});

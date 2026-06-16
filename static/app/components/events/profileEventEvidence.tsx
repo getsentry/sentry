@@ -8,8 +8,8 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 type ProfileEvidenceProps = {event: Event; projectSlug: string};
 
@@ -79,8 +79,8 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
   ];
 
   return (
-    <InterimSection title={t('Function Evidence')} type={SectionKey.EVIDENCE}>
+    <FoldSection title={t('Function Evidence')} sectionKey={SectionKey.EVIDENCE}>
       <KeyValueList data={keyValueListData} shouldSort={false} />
-    </InterimSection>
+    </FoldSection>
   );
 }

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {DrawerBody} from 'sentry/components/globalDrawer/components';
+import {DrawerBody} from '@sentry/scraps/drawer';
 
 export const SampleDrawerBody = styled(DrawerBody)`
   flex-grow: 1;

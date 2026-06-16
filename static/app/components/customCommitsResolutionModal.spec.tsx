@@ -4,8 +4,9 @@ import {CommitFixture} from 'sentry-fixture/commit';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {makeCloseButton} from '@sentry/scraps/modal';
+
 import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
-import {makeCloseButton} from 'sentry/components/globalModal/components';
 
 describe('CustomCommitsResolutionModal', () => {
   let commitsMock: any;

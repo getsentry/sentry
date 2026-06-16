@@ -89,7 +89,7 @@ describe('ProjectTeams', () => {
       organization: org,
     });
 
-    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
+    expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
     expect(mock1).not.toHaveBeenCalled();
 
@@ -148,7 +148,7 @@ describe('ProjectTeams', () => {
       organization: org,
     });
 
-    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
+    expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
@@ -199,7 +199,7 @@ describe('ProjectTeams', () => {
       organization: org,
     });
 
-    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
+    expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
     expect(mock1).not.toHaveBeenCalled();
 
@@ -249,7 +249,7 @@ describe('ProjectTeams', () => {
       organization: org,
     });
 
-    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
+    expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -291,7 +291,7 @@ describe('ProjectTeams', () => {
       organization: org,
     });
 
-    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
+    expect(await screen.findByText('#team-slug')).toBeInTheDocument();
 
     // Add new team
     await userEvent.click(screen.getByRole('button', {name: 'Add Team'}));

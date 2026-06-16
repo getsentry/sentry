@@ -17,7 +17,7 @@ export function replaceRouterParams(
   // replace with current params
   matches.forEach(param => {
     const paramName = param.slice(1);
-    if (typeof params[paramName] === 'undefined') {
+    if (params[paramName] === undefined) {
       return;
     }
 

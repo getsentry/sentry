@@ -5,7 +5,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
 type Props = {

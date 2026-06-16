@@ -22,6 +22,8 @@ class IntegrationRepository(TypedDict):
     identifier: str
     isInstalled: bool
     defaultBranch: str | None
+    externalId: str
+    url: str | None
 
 
 @cell_silo_endpoint
@@ -49,6 +51,10 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
         :qparam string search: Name fragment to search repositories by.
         :qparam bool installableOnly: If true, return only repositories that can be installed.
                                       If false or not provided, return all repositories.
+        :qparam bool accessibleOnly: If true, only return repositories that the integration
+                                     installation has access to, filtering locally instead of
+                                     using the provider's search API which may return results
+                                     beyond the installation's scope.
         """
         integration = self.get_integration(organization.id, integration_id)
 
@@ -58,13 +64,20 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
         installed_repos = Repository.objects.filter(
             integration_id=integration.id, organization_id=organization.id
         ).exclude(status=ObjectStatus.HIDDEN)
-        installed_repo_names = {installed_repo.name for installed_repo in installed_repos}
+        installed_external_ids = {repo.external_id for repo in installed_repos}
 
         install = integration.get_installation(organization_id=organization.id)
 
         if isinstance(install, RepositoryIntegration):
+            search = request.GET.get("search")
+            accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
+
             try:
-                repositories = install.get_repositories(request.GET.get("search"))
+                repositories = install.get_repositories(
+                    search,
+                    accessible_only=accessible_only,
+                    use_cache=accessible_only and bool(search),
+                )
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
@@ -77,10 +90,12 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
                     name=repo["name"],
                     identifier=repo["identifier"],
                     defaultBranch=repo.get("default_branch"),
-                    isInstalled=repo["identifier"] in installed_repo_names,
+                    isInstalled=repo["external_id"] in installed_external_ids,
+                    externalId=repo["external_id"],
+                    url=repo.get("url"),
                 )
                 for repo in repositories
-                if not installable_only or repo["identifier"] not in installed_repo_names
+                if not installable_only or repo["external_id"] not in installed_external_ids
             ]
             return self.respond(
                 {"repos": serialized_repositories, "searchable": install.repo_search}

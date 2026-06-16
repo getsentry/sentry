@@ -231,7 +231,7 @@ def require_rhs_condition_resolution(op: MetricOperationType) -> bool:
     return op in REQUIRES_RHS_CONDITION_RESOLUTION
 
 
-def generate_operation_regex():
+def generate_operation_regex() -> str:
     """
     Generates a regex of all supported operations defined in OP_TO_SNUBA_FUNCTION
     """
@@ -383,11 +383,15 @@ DATASET_COLUMNS = {"project_id", "metric_id"}
 CUSTOM_MEASUREMENT_DATASETS: frozenset[MetricType] = frozenset(("generic_distribution",))
 
 
-def combine_dictionary_of_list_values(main_dict, other_dict):
+def combine_dictionary_of_list_values[K, V](
+    main_dict: dict[K, list[V]], other_dict: dict[K, list[V]]
+) -> dict[K, list[V]]:
     """
     Function that combines dictionary of lists. For instance, let's say we have
     Dict A -> {"a": [1,2], "b": [3]} and Dict B -> {"a": [6], "c": [4]}
     Calling this function would result in {"a": [1, 2, 6], "b": [3], "c": [4]}
+
+    Note: This mutates and returns ``main_dict``.
     """
     if not isinstance(main_dict, dict) or not isinstance(other_dict, dict):
         raise TypeError()

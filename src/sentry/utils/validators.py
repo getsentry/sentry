@@ -33,6 +33,12 @@ def is_event_id_or_list(value):
         return is_event_id(value)
 
 
+def normalize_event_id_strict(value):
+    """Normalize a UUID by stripping dashes. Returns the original value if normalization fails."""
+    result = normalize_event_id(value)
+    return result if result is not None else value
+
+
 def is_span_id(value: object) -> TypeGuard[str]:
     return bool(HEXADECIMAL_16_DIGITS.search(force_str(value)))
 

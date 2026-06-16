@@ -32,7 +32,7 @@ function getWebVitalScore(data: PerformanceScores, webVital: WebVitals): number 
 }
 
 function getTotalScore(data: TotalPerformanceScore): number {
-  return data[`performance_score(measurements.score.total)`] * 100;
+  return data['performance_score(measurements.score.total)'] * 100;
 }
 
 function getWebVitalScoreCount(data: CountScores, webVital: WebVitals | 'total'): number {
@@ -40,7 +40,7 @@ function getWebVitalScoreCount(data: CountScores, webVital: WebVitals | 'total')
 }
 
 function hasWebVitalScore(data: CountScores, webVital: WebVitals): boolean {
-  if (data.hasOwnProperty(`count_scores(measurements.score.${webVital})`)) {
+  if (Object.hasOwn(data, `count_scores(measurements.score.${webVital})`)) {
     return getWebVitalScoreCount(data, webVital) > 0;
   }
   return false;

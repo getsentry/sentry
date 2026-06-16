@@ -3,7 +3,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
-import FeatureTourModal from 'sentry/components/modals/featureTourModal';
+import {FeatureTourModal} from 'sentry/components/modals/featureTourModal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -50,14 +50,14 @@ export function MissingPerformanceButtons({organization}: Props) {
 
   return (
     <Feature
-      hookName="feature-disabled:project-performance-score-card"
+      overrideName="feature-disabled:project-performance-score-card"
       features="performance-view"
       organization={organization}
     >
       <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"
-          priority="primary"
+          variant="primary"
           analyticsEventKey="project_detail.performance_setup_clicked"
           analyticsEventName="Project Detail: Performance Start Setup Clicked"
           onClick={event => {

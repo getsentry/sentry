@@ -37,7 +37,7 @@ export function XAxis({
     const showDate = firstItem ? true : !computeShortInterval({start, end, period});
 
     if (isGroupedByDate) {
-      const dateFormat = useShortDate ? 'MMM Do' : `MMM D`;
+      const dateFormat = useShortDate ? 'MMM Do' : 'MMM D';
       const dateString = getFormattedDate(value, dateFormat, {local: !utc});
 
       const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});

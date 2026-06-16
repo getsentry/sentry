@@ -1,97 +1,63 @@
-import {execFileSync} from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-import type {TransformOptions} from '@babel/core';
 import type {Config} from '@jest/types';
+import type {Options as SwcOptions} from '@swc/core';
 
-const babelConfig: TransformOptions = {
-  presets: [
-    [
-      '@babel/preset-react',
-      {
+const swcConfig: SwcOptions = {
+  isModule: true,
+  module: {
+    type: 'commonjs',
+  },
+  sourceMaps: 'inline',
+  jsc: {
+    target: 'esnext',
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+      dynamicImport: true,
+    },
+    transform: {
+      react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
-    ],
-    [
-      '@babel/preset-env',
-      {
-        useBuiltIns: 'usage',
-        corejs: '3.41',
-        targets: {
-          node: 'current',
-        },
-      },
-    ],
-    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
-    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
-  ],
-  plugins: [
-    [
-      '@emotion/babel-plugin',
-      {
-        sourceMap: false,
-      },
-    ],
-  ],
+    },
+    experimental: {
+      plugins: [['@swc-contrib/mut-cjs-exports', {}]],
+    },
+  },
 };
 
 const {
   CI,
-  JEST_TEST_BALANCER,
   CI_NODE_TOTAL,
   CI_NODE_INDEX,
   GITHUB_PR_SHA,
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  SENTRY_DSN,
 } = process.env;
 
+const JEST_TEST_FILES_PATH = path.resolve(import.meta.dirname, 'jest-test-files.json');
+const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
+  ? (JSON.parse(fs.readFileSync(JEST_TEST_FILES_PATH, 'utf-8')) as string[])
+  : undefined;
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const optionalTags: {
-  balancer?: boolean;
+  total_tests?: number | 'all';
+  node_index?: number;
+  node_total?: number;
   balancer_strategy?: string;
 } = {
-  balancer: false,
+  total_tests: undefined,
+  node_index: undefined,
+  node_total: undefined,
+  balancer_strategy: undefined,
 };
-
-if (!!JEST_TEST_BALANCER && !CI) {
-  throw new Error(
-    '[Operation only allowed in CI]: Jest test balancer should never be ran manually as you risk skewing the numbers - please trigger the automated github workflow at https://github.com/getsentry/sentry/actions/workflows/jest-balance.yml'
-  );
-}
-
-let JEST_TESTS: string[] | undefined;
-
-// prevents forkbomb as we don't want jest --listTests --json
-// to reexec itself here
-if (CI && !process.env.JEST_LIST_TESTS_INNER) {
-  try {
-    const stdout = execFileSync('pnpm', ['exec', 'jest', '--listTests', '--json'], {
-      stdio: 'pipe',
-      encoding: 'utf-8',
-      env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
-    });
-    JEST_TESTS = JSON.parse(stdout);
-  } catch (err: any) {
-    if (err.code) {
-      throw new Error(`err code ${err.code} when spawning process`);
-    } else {
-      const {stdout, stderr} = err;
-      throw new Error(`
-error listing jest tests
-
-stdout:
-${stdout}
-
-stderr:
-${stderr}
-`);
-    }
-  }
-}
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -99,8 +65,18 @@ ${stderr}
  * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests --json`
  * Then we split up the tests based on the total number of CI instances that will
  * be running the tests.
+ *
+ * By default we'll run everything we were given.
  */
-let testMatch: string[] | undefined;
+if (CI && CI_NODE_TOTAL && !JEST_TESTS) {
+  throw new Error(
+    'CI is configured for sharding (CI_NODE_TOTAL is set) but jest-test-files.json is missing. ' +
+      'This would cause each shard to run the entire test suite. ' +
+      'Check that the jest-test-files artifact was uploaded and downloaded successfully.'
+  );
+}
+
+let testMatch = JEST_TESTS;
 
 function getTestsForGroup(
   nodeIndex: number,
@@ -108,6 +84,10 @@ function getTestsForGroup(
   allTests: ReadonlyArray<string>,
   testStats: Record<string, number>
 ): string[] {
+  if (allTests.length === 0) {
+    return [];
+  }
+
   const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
   const targetDuration = speculatedSuiteDuration / nodeTotal;
 
@@ -122,8 +102,13 @@ function getTestsForGroup(
   const tests = new Map<string, number>();
   const SUITE_P50_DURATION_MS = 1500;
 
+  const allTestsSet = new Set(allTests);
+
   // First, iterate over all of the tests we have stats for.
   Object.entries(testStats).forEach(([test, duration]) => {
+    if (!allTestsSet.has(test)) {
+      return;
+    }
     if (duration <= 0) {
       throw new Error(`Test duration is <= 0 for ${test}`);
     }
@@ -183,7 +168,7 @@ function getTestsForGroup(
     if (!nextTest) {
       throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
     }
-    groups[i % 4]!.push(nextTest[0]);
+    groups[i % nodeTotal]!.push(nextTest[0]);
     i++;
   }
 
@@ -199,8 +184,8 @@ function getTestsForGroup(
     }
   }
 
-  if (!groups[nodeIndex]) {
-    throw new Error(`No tests found for node ${nodeIndex}`);
+  if (!groups[nodeIndex]?.length) {
+    return ['<rootDir>/__no_tests_for_this_shard__'];
   }
   return groups[nodeIndex].map(test => `<rootDir>/${test}`);
 }
@@ -230,11 +215,13 @@ if (
   );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
+  optionalTags.total_tests = JEST_TESTS.length;
+  optionalTags.node_total = nodeTotal;
+  optionalTags.node_index = nodeIndex;
 
   if (balance) {
-    optionalTags.balancer = true;
-    optionalTags.balancer_strategy = 'by_path';
     testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
+    optionalTags.balancer_strategy = 'by_duration';
   } else {
     const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
@@ -245,6 +232,7 @@ if (
     const chunk = size + (nodeIndex < remainder ? 1 : 0);
 
     testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
+    optionalTags.balancer_strategy = 'by_name';
   }
 }
 
@@ -253,10 +241,18 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color', 'marked'];
+const ESM_NODE_MODULES = [
+  'screenfull',
+  'cbor2',
+  'nuqs',
+  'color',
+  'marked',
+  '@sentry\\+sqlish',
+];
 
 const config: Config.InitialOptions = {
   verbose: false,
+  cacheDirectory: '.cache/jest',
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
@@ -281,10 +277,16 @@ const config: Config.InitialOptions = {
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
 
+    // @sentry/sqlish is ESM-only with `exports` that only define `import`
+    // conditions. Jest's CJS resolver can't follow them without explicit mapping.
+    '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
+    '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
+
     // Disabled @sentry/toolbar in tests. It depends on iframes and global
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
+  passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     'jest-canvas-mock',
@@ -293,7 +295,9 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
   ],
-  testMatch: testMatch || ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
+  testMatch: testMatch?.length
+    ? testMatch
+    : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 
   unmockedModulePathPatterns: [
@@ -301,8 +305,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
@@ -314,36 +317,20 @@ const config: Config.InitialOptions = {
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
   globals: {},
 
-  testResultsProcessor: JEST_TEST_BALANCER
-    ? '<rootDir>/tests/js/test-balancer/index.js'
-    : undefined,
-  reporters: [
-    'default',
-    [
-      'jest-junit',
-      {
-        outputDirectory: '.artifacts',
-        outputName: 'jest.junit.xml',
-      },
-    ],
-  ],
+  reporters: ['default'],
   /**
    * jest.clearAllMocks() automatically called before each test
    * @link - https://jestjs.io/docs/configuration#clearmocks-boolean
    */
   clearMocks: true,
 
-  // To disable the sentry jest integration, set this to 'jsdom'
-  testEnvironment: '@sentry/jest-environment/jsdom',
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.js',
   testEnvironmentOptions: {
     globalsCleanup: 'on',
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn:
-          CI && Boolean(GITHUB_PR_REF)
-            ? 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.us.sentry.io/4857230'
-            : false,
+        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
         tracesSampleRate: CI ? 0.75 : 0,

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackActions';
 import {FeedbackShortId} from 'sentry/components/feedback/feedbackItem/feedbackShortId';
 import {FeedbackViewers} from 'sentry/components/feedback/feedbackItem/feedbackViewers';
@@ -43,7 +43,7 @@ export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Prop
         <Flex gap="md" align="center">
           {onBackToList && (
             <Button
-              priority="primary"
+              variant="primary"
               icon={<IconArrow direction="left" size="xs" />}
               onClick={onBackToList}
               size="zero"

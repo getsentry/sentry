@@ -5,7 +5,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {HookStore} from 'sentry/stores/hookStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -15,7 +14,7 @@ import {StacktraceBanners} from './stacktraceBanners';
 
 describe('StacktraceBanners', () => {
   const org = OrganizationFixture({
-    features: ['codecov-integration'],
+    features: ['dashboards-basic'],
   });
   const project = ProjectFixture();
 
@@ -46,7 +45,6 @@ describe('StacktraceBanners', () => {
       method: 'PUT',
     });
     ProjectsStore.loadInitialData([project]);
-    HookStore.init?.();
   });
 
   it('renders nothing with no in app frames', () => {

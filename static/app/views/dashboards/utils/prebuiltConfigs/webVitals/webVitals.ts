@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -20,7 +21,7 @@ export const ISSUE_TYPES = [
 export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'Web Vitals',
+  title: DASHBOARD_TITLE,
   filters: {
     globalFilter: [
       {
@@ -68,18 +69,18 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
           fields: [
-            'equation|performance_score(measurements.score.lcp)',
-            'equation|performance_score(measurements.score.fcp)',
-            'equation|performance_score(measurements.score.inp)',
-            'equation|performance_score(measurements.score.cls)',
-            'equation|performance_score(measurements.score.ttfb)',
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.ttfb)',
           ],
           aggregates: [
-            'equation|performance_score(measurements.score.lcp)',
-            'equation|performance_score(measurements.score.fcp)',
-            'equation|performance_score(measurements.score.inp)',
-            'equation|performance_score(measurements.score.cls)',
-            'equation|performance_score(measurements.score.ttfb)',
+            'performance_score(measurements.score.lcp)',
+            'performance_score(measurements.score.fcp)',
+            'performance_score(measurements.score.inp)',
+            'performance_score(measurements.score.cls)',
+            'performance_score(measurements.score.ttfb)',
           ],
           columns: [],
           orderby: '',
@@ -106,8 +107,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.lcp)'],
-          aggregates: ['p75(measurements.lcp)'],
+          fields: [`p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`],
+          aggregates: [`p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`],
           columns: [],
           orderby: '',
           slideOutId: SlideoutId.LCP,
@@ -141,8 +142,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.inp)'],
-          aggregates: ['p75(measurements.inp)'],
+          fields: [`p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`],
+          aggregates: [`p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`],
           columns: [],
           orderby: '',
           slideOutId: SlideoutId.INP,
@@ -176,8 +177,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.cls)'],
-          aggregates: ['p75(measurements.cls)'],
+          fields: [`p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`],
+          aggregates: [`p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`],
           columns: [],
           orderby: '',
           slideOutId: SlideoutId.CLS,
@@ -200,7 +201,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
     },
     {
       id: 'ttfb-p75-meter',
-      title: t('P75 Time To First Byte'),
+      title: t('P75 Time to First Byte'),
       description: t(
         'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
       ),
@@ -211,8 +212,8 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         {
           name: '',
           conditions: DEFAULT_QUERY_FILTER,
-          fields: ['p75(measurements.ttfb)'],
-          aggregates: ['p75(measurements.ttfb)'],
+          fields: [`p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`],
+          aggregates: [`p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`],
           columns: [],
           orderby: '',
           slideOutId: SlideoutId.TTFB,
@@ -273,28 +274,28 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
             SpanFields.TRANSACTION,
             SpanFields.PROJECT,
             'count()',
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.inp)',
-            'equation|performance_score(measurements.score.total)',
-            'equation|opportunity_score(measurements.score.total)',
+            `p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`,
+            `p75(${SpanFields.BROWSER_WEB_VITAL_FCP_VALUE})`,
+            `p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`,
+            `p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`,
+            `p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`,
+            'performance_score(measurements.score.total)',
+            'opportunity_score(measurements.score.total)',
           ],
           aggregates: [],
           columns: [
             SpanFields.TRANSACTION,
             SpanFields.PROJECT,
             'count()',
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.inp)',
-            'equation|performance_score(measurements.score.total)',
-            'equation|opportunity_score(measurements.score.total)',
+            `p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`,
+            `p75(${SpanFields.BROWSER_WEB_VITAL_FCP_VALUE})`,
+            `p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`,
+            `p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`,
+            `p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`,
+            'performance_score(measurements.score.total)',
+            'opportunity_score(measurements.score.total)',
           ],
-          orderby: `-equation|opportunity_score(measurements.score.total)`,
+          orderby: '-opportunity_score(measurements.score.total)',
           fieldAliases: [
             t('Pages'),
             t('Project'),

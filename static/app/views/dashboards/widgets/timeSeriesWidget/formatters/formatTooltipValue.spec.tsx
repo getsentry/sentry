@@ -16,8 +16,8 @@ describe('formatTooltipValue', () => {
 
   describe('number', () => {
     it.each([
-      [0.000033452, '0'],
-      [0.00003, '0'],
+      [0.000033452, '0.00003345'],
+      [0.00003, '0.00003'],
       [0.001234, '0.0012'],
       [17.1238, '17.1238'],
       [170, '170'],
@@ -41,7 +41,7 @@ describe('formatTooltipValue', () => {
 
   describe('duration', () => {
     it.each([
-      [0, 'millisecond', '0.00ms'],
+      [0, 'millisecond', '0.00μs'],
       [0.712, 'second', '712.00ms'],
       [1231, 'second', '20.52min'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {

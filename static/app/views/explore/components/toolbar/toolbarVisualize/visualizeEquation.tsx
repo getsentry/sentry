@@ -8,8 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
@@ -18,8 +18,8 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeEquationProps {
@@ -98,13 +98,7 @@ export function VisualizeEquation({
       {...attributes}
     >
       {dragColumnId === undefined ? null : (
-        <Button
-          aria-label={t('Drag to reorder')}
-          priority="transparent"
-          size="zero"
-          icon={<IconGrabbable size="sm" />}
-          {...listeners}
-        />
+        <DragReorderButton iconSize="sm" {...listeners} />
       )}
       {label}
       <Flex flex={1}>
@@ -119,7 +113,7 @@ export function VisualizeEquation({
       </Flex>
       {onDelete && (
         <Button
-          priority="transparent"
+          variant="transparent"
           icon={<IconDelete />}
           size="zero"
           onClick={onDelete}

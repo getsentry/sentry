@@ -7,14 +7,14 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {EventsRequest as _EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Count} from 'sentry/components/count';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {Truncate} from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
@@ -25,6 +25,7 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
@@ -47,7 +48,6 @@ import {
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
   ListClose,
   RightAlignedCell,
-  SelectableList,
   Subtitle,
   TimeConsumingDomainsWidgetEmptyStateWarning,
   TimeSpentInDatabaseWidgetEmptyStateWarning,
@@ -106,9 +106,10 @@ const integrationEmptyStateWidgets = [
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle} = props;
+  const [selectedListIndex, setSelectListIndex] = useState(0);
+  const {organization, InteractiveTitle} = props;
   const {setPageDanger} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
@@ -619,6 +620,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -643,6 +645,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -674,6 +677,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -718,6 +722,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -746,6 +751,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -770,6 +776,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       excludeTransaction(listItem.transaction!, {
                         eventView: props.eventView,
                         location,
+                        navigate,
                       })
                     }
                   />
@@ -790,6 +797,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -799,52 +807,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       }
     });
 
-  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
-    organization.features.includes('performance-new-widget-designs')
-      ? [
-          {
-            component: provided => (
-              <Accordion
-                expandedIndex={selectedListIndex}
-                setExpandedIndex={setSelectListIndex}
-                items={assembleAccordionItems(provided)}
-              />
-            ),
-            // accordion items height + chart height
-            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-            noPadding: true,
-          },
-        ]
-      : [
-          {
-            component: provided => (
-              <DurationChart
-                {...provided.widgetData.chart}
-                {...provided}
-                disableMultiAxis
-                disableXAxis
-                chartColors={props.chartColor ? [props.chartColor] : undefined}
-                isLineChart
-              />
-            ),
-            height: props.chartHeight,
-          },
-          {
-            component: provided => (
-              <SelectableList
-                selectedIndex={selectedListIndex}
-                setSelectedIndex={setSelectListIndex}
-                items={getItems(provided)}
-              />
-            ),
-            height: 124,
-            noPadding: true,
-          },
-        ];
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] = [
+    {
+      component: provided => (
+        <Accordion
+          expandedIndex={selectedListIndex}
+          setExpandedIndex={setSelectListIndex}
+          items={assembleAccordionItems(provided)}
+        />
+      ),
+      // accordion items height + chart height
+      height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+      noPadding: true,
+    },
+  ];
 
   const moduleURLBuilder = useModuleURLBuilder();
 
-  const getContainerActions = (provided: ComponentData) => {
+  const getContainerActions = () => {
     const route: string =
       (
         {
@@ -871,11 +851,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           </LinkButton>
         </div>
       </Fragment>
-    ) : (
-      ContainerActions && (
-        <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-      )
-    );
+    ) : null;
   };
 
   return (
@@ -885,7 +861,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       Subtitle={() => (
         <Subtitle>{props.subTitle ?? t('Found in the following transactions')}</Subtitle>
       )}
-      HeaderActions={provided => getContainerActions(provided)}
+      HeaderActions={() => getContainerActions()}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />

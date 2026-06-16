@@ -16,7 +16,7 @@ import {
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import {FileSize} from 'sentry/components/fileSize';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {
   TraceDrawerComponents,
@@ -46,19 +46,16 @@ function partitionSizes(data: RawSpanType['data']): {
       nonSizeKeys: {},
     };
   }
-  const sizeKeys = SIZE_DATA_KEYS.reduce(
-    (keys, key) => {
-      if (data.hasOwnProperty(key) && defined(data[key])) {
-        try {
-          keys[key] = parseFloat(data[key]);
-        } catch (e) {
-          keys[key] = data[key];
-        }
+  const sizeKeys = SIZE_DATA_KEYS.reduce<Record<string, number>>((keys, key) => {
+    if (Object.hasOwn(data, key) && defined(data[key])) {
+      try {
+        keys[key] = parseFloat(data[key]);
+      } catch (e) {
+        keys[key] = data[key];
       }
-      return keys;
-    },
-    {} as Record<string, number>
-  );
+    }
+    return keys;
+  }, {});
 
   const nonSizeKeys = {...data};
   SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);

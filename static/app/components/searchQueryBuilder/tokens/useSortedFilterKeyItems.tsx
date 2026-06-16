@@ -1,7 +1,11 @@
 import {useMemo, type ReactNode} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import type Fuse from 'fuse.js';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderConfig,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {
   KeySectionItem,
   SearchKeyItem,
@@ -18,10 +22,9 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 type FilterKeySearchItem = {
@@ -168,19 +171,28 @@ export function useSortedFilterKeyItems({
     getFieldDefinition,
     filterKeySections,
     disallowFreeText,
+    disallowLogicalOperators,
     replaceRawSearchKeys,
     matchKeySuggestions,
-    enableAISearch,
     getTagKeys,
-  } = useSearchQueryBuilder();
+    filterKeyRegistryQueryKey,
+  } = useSearchQueryBuilderConfig();
+  const {enableAISearch} = useSearchQueryBuilderAI();
 
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
   const debouncedFilterValue = useDebouncedValue(filterValue);
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    queryKey: ['search-query-builder-tag-keys', debouncedFilterValue],
-    queryFn: ctx => getTagKeys!(ctx.queryKey[1] ?? ''),
+    queryKey: [
+      'search-query-builder-tag-keys',
+      filterKeyRegistryQueryKey,
+      debouncedFilterValue,
+    ],
+    queryFn: ctx => {
+      const searchQuery = ctx.queryKey[2];
+      return getTagKeys!(typeof searchQuery === 'string' ? searchQuery : '');
+    },
     enabled: shouldFetchAsync,
   });
 
@@ -194,7 +206,9 @@ export function useSortedFilterKeyItems({
 
   const flatKeys = useMemo(() => {
     const keys = Object.values(filterKeys);
-    if (!asyncKeys?.length) return keys;
+    if (!asyncKeys?.length) {
+      return keys;
+    }
 
     return [...keys, ...asyncKeys.filter(k => !staticKeyValues.has(k.key))];
   }, [filterKeys, asyncKeys, staticKeyValues]);
@@ -211,7 +225,9 @@ export function useSortedFilterKeyItems({
   // Merged lookup of static + async keys, used for validating search results.
   // Without this, async-only keys would be filtered out by the `filterKeys` check.
   const allKeysLookup = useMemo(() => {
-    if (!asyncKeys?.length) return filterKeys;
+    if (!asyncKeys?.length) {
+      return filterKeys;
+    }
 
     const merged = {...filterKeys};
     for (const tag of asyncKeys) {
@@ -235,16 +251,18 @@ export function useSortedFilterKeyItems({
       };
     });
 
+    const logicFilterItems = disallowLogicalOperators ? [] : LOGIC_FILTER_ITEMS;
+
     if (includeSuggestions) {
       return [
         ...searchKeyItems,
         ...getFilterSearchValues(flatKeys, {getFieldDefinition}),
-        ...LOGIC_FILTER_ITEMS,
+        ...logicFilterItems,
       ];
     }
 
-    return [...searchKeyItems, ...LOGIC_FILTER_ITEMS];
-  }, [flatKeys, getFieldDefinition, includeSuggestions]);
+    return [...searchKeyItems, ...logicFilterItems];
+  }, [disallowLogicalOperators, flatKeys, getFieldDefinition, includeSuggestions]);
 
   const search = useFuzzySearch(searchableItems, FUZZY_SEARCH_OPTIONS);
 
@@ -295,7 +313,12 @@ export function useSortedFilterKeyItems({
         }
 
         const {key} = filterSearchKeyItem.item;
-        return createItem(allKeysLookup[key]!, getFieldDefinition(key));
+        return createItem(
+          allKeysLookup[key]!,
+          getFieldDefinition(key),
+          undefined,
+          filterValue
+        );
       });
 
     // Partition so async-only keys always appear below static keys,

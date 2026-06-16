@@ -8,6 +8,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {SpanFields} from 'sentry/views/insights/types';
 import {generateTransactionSummaryRoute} from 'sentry/views/performance/transactionSummary/utils';
 
 interface Props {
@@ -26,7 +27,7 @@ export function TransactionCell({project, transaction, transactionMethod}: Props
 
   const searchQuery = new MutableSearch('');
   if (transactionMethod) {
-    searchQuery.addFilterValue('transaction.op', transactionMethod);
+    searchQuery.addFilterValue(SpanFields.SPAN_OP, transactionMethod);
   }
 
   if (!transaction || !projectId) {

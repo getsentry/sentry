@@ -132,7 +132,7 @@ class NotifyEmailFormTest(TestCase):
 class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
     rule_cls = NotifyEmailAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.one_min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={
@@ -302,7 +302,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
 
 
 class NotifyLegacyEmailTest(NotifyEmailTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.condition_data = {
             "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"

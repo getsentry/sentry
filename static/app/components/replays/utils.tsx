@@ -39,7 +39,7 @@ export function countColumns(durationMs: number, width: number, minWidth = 50) {
     1 * SECOND,
   ];
 
-  const timeBasedCols = timeOptions.reduce<Map<number, number>>((map, time) => {
+  const timeBasedCols = timeOptions.reduce((map, time) => {
     map.set(time, Math.floor(durationMs / time));
     return map;
   }, new Map());
@@ -78,17 +78,14 @@ export function getFramesByColumn(
     return [column, frame] as [number, ReplayFrame];
   });
 
-  const framesByColumn = columnFramePairs.reduce<Map<number, ReplayFrame[]>>(
-    (map, [column, frame]) => {
-      if (map.has(column)) {
-        map.get(column)?.push(frame);
-      } else {
-        map.set(column, [frame]);
-      }
-      return map;
-    },
-    new Map()
-  );
+  const framesByColumn = columnFramePairs.reduce((map, [column, frame]) => {
+    if (map.has(column)) {
+      map.get(column)?.push(frame);
+    } else {
+      map.set(column, [frame]);
+    }
+    return map;
+  }, new Map());
 
   return framesByColumn;
 }

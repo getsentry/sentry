@@ -6,7 +6,7 @@ import type {LocationDescriptor} from 'history';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {ReleaseDropdownFilter} from 'sentry/components/replays/releaseDropdownFilter';
@@ -45,7 +45,7 @@ function renderValueList(values: ReactNode[]) {
   const valueItems = values[0] as string[];
 
   if (!valueItems.length) {
-    return undefined;
+    return;
   }
 
   return valueItems.map((value, index) => (

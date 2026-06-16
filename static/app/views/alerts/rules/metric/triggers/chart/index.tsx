@@ -1,4 +1,4 @@
-import React, {Fragment, PureComponent, type ComponentProps} from 'react';
+import {Fragment, PureComponent, type ComponentProps} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -12,12 +12,13 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
-import EventsRequest, {
+import {
+  EventsRequest,
   type EventsRequestProps,
 } from 'sentry/components/charts/eventsRequest';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {OnDemandMetricRequest} from 'sentry/components/charts/onDemandMetricRequest';
-import SessionsRequest from 'sentry/components/charts/sessionsRequest';
+import {SessionsRequest} from 'sentry/components/charts/sessionsRequest';
 import {
   ChartControls,
   InlineContainer,
@@ -314,7 +315,7 @@ class TriggersChart extends PureComponent<Props, State> {
   renderChart({
     isLoading,
     isReloading,
-    timeseriesData = [],
+    timeseriesData,
     comparisonData,
     comparisonMarkLines,
     errorMessage,
@@ -422,12 +423,12 @@ class TriggersChart extends PureComponent<Props, State> {
                   dataScanned={seriesSamplingInfo?.dataScanned}
                 />
               ) : (
-                <React.Fragment>
+                <Fragment>
                   <SectionHeading>{totalCountLabel}</SectionHeading>
                   <SectionValue>
                     {totalCount === null ? '\u2014' : totalCount.toLocaleString()}
                   </SectionValue>
-                </React.Fragment>
+                </Fragment>
               )}
             </InlineContainer>
           ) : (
@@ -446,7 +447,7 @@ class TriggersChart extends PureComponent<Props, State> {
               trigger={triggerProps => (
                 <OverlayTrigger.Button
                   {...triggerProps}
-                  priority="transparent"
+                  variant="transparent"
                   prefix={t('Display')}
                 />
               )}
@@ -578,7 +579,7 @@ class TriggersChart extends PureComponent<Props, State> {
               }
 
               return this.renderChart({
-                timeseriesData: timeseriesData as Series[],
+                timeseriesData: timeseriesData!,
                 isLoading: loading,
                 isReloading: reloading,
                 comparisonData: comparisonTimeseriesData,
@@ -722,7 +723,7 @@ class TriggersChart extends PureComponent<Props, State> {
             }
 
             return this.renderChart({
-              timeseriesData: timeseriesData as Series[],
+              timeseriesData: timeseriesData!,
               isLoading: loading,
               isReloading: reloading,
               comparisonData: comparisonTimeseriesData,

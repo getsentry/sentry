@@ -1,0 +1,169 @@
+import {Fragment} from 'react';
+import {css} from '@emotion/react';
+
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {IconThumb} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+import type {Block} from 'sentry/views/seerExplorer/types';
+import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
+
+import type {AssistantBlockProps} from './shared';
+import {
+  BLOCK_WRAPPER_SELECTOR,
+  SeerMarkdown,
+  MessagePlaceholder,
+  hasValidContent,
+} from './shared';
+
+export function AssistantBlock({
+  block,
+  blockIndex,
+  runId,
+  interactionPending,
+  readOnly,
+}: AssistantBlockProps) {
+  const content = block.message.content ?? '';
+
+  if (block.loading) {
+    return <MessagePlaceholder content={content} />;
+  }
+
+  return (
+    <Fragment>
+      {hasValidContent(content) && (
+        <Container padding="xl" minWidth={0} overflow="hidden">
+          <SeerMarkdown raw={content} />
+        </Container>
+      )}
+      <BlockActionBar
+        block={block}
+        blockIndex={blockIndex}
+        runId={runId}
+        interactionPending={interactionPending}
+        readOnly={readOnly}
+      />
+    </Fragment>
+  );
+}
+
+function useBlockFeedback(block: Block, blockIndex: number, runId: number | undefined) {
+  const organization = useOrganization();
+  const [feedbackSubmitted, setFeedbackSubmitted] = useSessionStorage(
+    `seer-explorer-feedback:run-${runId ?? 'null'}:block-${block.id}`,
+    false
+  );
+
+  const trackFeedback = (type: 'positive' | 'negative') => {
+    if (!feedbackSubmitted && runId !== undefined) {
+      trackAnalytics('seer.explorer.feedback_submitted', {
+        organization,
+        type,
+        run_id: runId,
+        block_index: blockIndex,
+        block_message: block.message.content?.slice(0, 100) ?? '',
+        langfuse_url: getLangfuseUrl(runId),
+        explorer_url: getExplorerUrl(runId),
+        conversations_url: getConversationsUrlForExternalUse('sentry', runId),
+      });
+      setFeedbackSubmitted(true);
+    }
+  };
+
+  return {feedbackSubmitted, trackFeedback};
+}
+
+function BlockActionBar({
+  block,
+  blockIndex,
+  runId,
+  interactionPending,
+  readOnly,
+}: AssistantBlockProps) {
+  const organization = useOrganization();
+  const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
+  const showCopy = !!block.message.content?.trim();
+
+  if (readOnly || interactionPending) {
+    return null;
+  }
+
+  return (
+    <ButtonBar
+      size="xs"
+      position="absolute"
+      bottom="2px"
+      right="8px"
+      visibility="hidden"
+      css={css`
+        ${BLOCK_WRAPPER_SELECTOR}:hover &,
+        ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
+          visibility: visible;
+        }
+      `}
+    >
+      <FeedbackButton
+        type="positive"
+        disabled={feedbackSubmitted}
+        onClick={trackFeedback}
+      />
+      <FeedbackButton
+        type="negative"
+        disabled={feedbackSubmitted}
+        onClick={trackFeedback}
+      />
+      {showCopy && (
+        <CopyToClipboardButton
+          aria-label={t('Copy block content')}
+          text={block.message.content ?? ''}
+          tooltipProps={{title: t('Copy to clipboard')}}
+          onCopy={() => {
+            trackAnalytics('seer.explorer.block_copied', {organization});
+          }}
+          onClick={e => {
+            e.stopPropagation();
+          }}
+        />
+      )}
+    </ButtonBar>
+  );
+}
+
+function FeedbackButton({
+  type,
+  disabled,
+  onClick,
+}: {
+  disabled: boolean;
+  onClick: (type: 'positive' | 'negative') => void;
+  type: 'positive' | 'negative';
+}) {
+  return (
+    <Button
+      aria-label={
+        type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')
+      }
+      icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+      disabled={disabled}
+      tooltipProps={{
+        title: disabled
+          ? t('Feedback submitted')
+          : type === 'positive'
+            ? t('I like this response')
+            : t("I don't like this response"),
+      }}
+      onClick={e => {
+        e.stopPropagation();
+        onClick(type);
+      }}
+    >
+      {undefined}
+    </Button>
+  );
+}

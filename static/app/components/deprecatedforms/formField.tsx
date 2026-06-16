@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import type {Meta} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type Value = string | number | boolean;
 
@@ -73,7 +73,7 @@ export abstract class FormField<
     if (defined(props.value)) {
       return props.value;
     }
-    if (form?.data.hasOwnProperty(props.name)) {
+    if (form && Object.hasOwn(form.data, props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
     return defined(props.defaultValue) ? props.defaultValue : '';

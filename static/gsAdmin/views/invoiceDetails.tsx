@@ -1,3 +1,4 @@
+import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -7,14 +8,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ConfigStore} from 'sentry/stores/configStore';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {getCells} from 'sentry/utils/cells';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -36,17 +33,15 @@ export function InvoiceDetails() {
     orgId: string;
     region: string;
   }>();
-  const regionInfo = ConfigStore.get('regions').find(
-    (r: any) => r.name.toLowerCase() === region.toLowerCase()
-  );
+  const cellInfo = getCells().find(c => c.name.toLowerCase() === region.toLowerCase());
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const QUERY_KEY: ApiQueryKey = [
-    getApiUrl(`/_admin/cells/$region/admin-invoices/$invoiceId/`, {
+    getApiUrl('/_admin/cells/$region/admin-invoices/$invoiceId/', {
       path: {region, invoiceId},
     }),
     {
-      host: regionInfo ? regionInfo.url : '',
+      host: cellInfo ? cellInfo.locality_url : '',
     },
   ];
 
@@ -71,6 +66,8 @@ export function InvoiceDetails() {
   const isDeleted = customer.isDeleted;
 
   const updateCache = (updatedInvoice: Invoice) => {
+    // Will be fixed soon when we get rid of setApiQueryData.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
     setApiQueryData<Invoice>(queryClient, QUERY_KEY, updatedInvoice);
   };
 
@@ -80,7 +77,7 @@ export function InvoiceDetails() {
         `/_admin/cells/${region}/invoices/${invoiceId}/close/`,
         {
           method: 'PUT',
-          host: regionInfo ? regionInfo.url : '',
+          host: cellInfo ? cellInfo.locality_url : '',
         }
       );
       updateCache(updatedInvoice);
@@ -222,7 +219,9 @@ export function InvoiceDetails() {
                 ).format('ll')}`}</small>
               )}
             </td>
-            <td style={{textAlign: 'right'}}>${(item.amount / 100).toLocaleString()}</td>
+            <td data-label="Amount" style={{textAlign: 'right'}}>
+              ${(item.amount / 100).toLocaleString()}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -246,7 +245,7 @@ export function InvoiceDetails() {
             <td>
               <DateTime date={row.dateCreated} />
             </td>
-            <td style={{textAlign: 'center'}}>
+            <td data-label="Stripe ID" style={{textAlign: 'center'}}>
               {row.stripeID ? (
                 <a href={`https://dashboard.stripe.com/charges/${row.stripeID}`}>
                   {row.stripeID}
@@ -255,17 +254,17 @@ export function InvoiceDetails() {
                 'n/a'
               )}
             </td>
-            <td style={{textAlign: 'center'}}>
+            <td data-label="Status" style={{textAlign: 'center'}}>
               {row.isPaid ? (
                 <Tag variant="success">Paid</Tag>
               ) : (
                 <Tag variant="danger">{row.failureCode}</Tag>
               )}
             </td>
-            <td style={{textAlign: 'center'}}>
+            <td data-label="Card" style={{textAlign: 'center'}}>
               {row.cardLast4 ? `··· ${row.cardLast4}` : 'n/a'}
             </td>
-            <td style={{textAlign: 'right'}}>
+            <td data-label="Amount" style={{textAlign: 'right'}}>
               ${(row.amount / 100).toLocaleString()}
               <br />
               {row.isRefunded && (

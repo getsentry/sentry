@@ -18,14 +18,16 @@ from sentry.testutils.cases import (
     PerformanceIssueTestCase,
     ReplaysSnubaTestCase,
     SnubaTestCase,
+    SpanTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationReplayCountEndpointTest(
-    APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
+    APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase, SpanTestCase
 ):
     def setUp(self) -> None:
         super().setUp()
@@ -293,6 +295,82 @@ class OrganizationReplayCountEndpointTest(
         }
         assert response.status_code == 200, response.content
         assert response.data == expected
+
+    def test_simple_events(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay2_id,
+            )
+        )
+        event_a = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay2_id}},
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+
+        query = {
+            "query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]",
+            "data_source": Dataset.Events.value,
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        expected = {
+            event_a.group.id: 1,
+            event_b.group.id: 1,
+        }
+        assert response.status_code == 200, response.content
+        assert response.data == expected
+
+    def test_simple_transactions(self) -> None:
+        replay1_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        transaction_data = load_data("transaction", timestamp=self.min_ago)
+        transaction_data["transaction"] = "t-1"
+        transaction_data["contexts"]["replay"] = {"replay_id": replay1_id}
+        self.store_event(transaction_data, project_id=self.project.id)
+
+        query = {
+            "query": "transaction:[t-1]",
+            "data_source": Dataset.Transactions.value,
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {"t-1": 1}
 
     def test_invalid_data_source(self) -> None:
         query = {
@@ -603,3 +681,127 @@ class OrganizationReplayCountEndpointTest(
         # is not returned.
         assert response.status_code == 200, response.content
         assert response.data == {event_a.group.id: 1}
+
+    def test_cross_project_access_denied(self) -> None:
+        # Disable allow_joinleave so team membership strictly gates project access.
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team_a = self.create_team(organization=self.organization)
+        team_b = self.create_team(organization=self.organization)
+
+        self.project.add_team(team_a)
+        project_b = self.create_project(organization=self.organization, teams=[team_b])
+        project_b.update(flags=F("flags").bitor(Project.flags.has_replays))
+
+        # User who only belongs to team_a (project A only).
+        restricted_user = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=restricted_user,
+            role="member",
+            teams=[team_a],
+        )
+
+        # A replay stored in project_a (accessible to restricted_user).
+        replay_id = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay_id,
+            )
+        )
+
+        event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay_id}},
+                "fingerprint": ["group-b"],
+            },
+            project_id=project_b.id,
+        )
+
+        self.login_as(user=restricted_user)
+        query = {"query": f"issue.id:[{event_b.group.id}]"}
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        # The restricted user must not receive data for project_b's group.
+        assert response.status_code == 200, response.content
+        assert response.data == {}
+
+    def test_eap_spans_transaction(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        nonexistent_replay_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay2_id,
+            )
+        )
+
+        ten_mins_ago = before_now(minutes=10)
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": replay1_id,
+                            "transaction": "/api/foo/",
+                        },
+                    },
+                    start_ts=ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": replay2_id,
+                            "transaction": "/api/foo/",
+                        },
+                    },
+                    start_ts=ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": nonexistent_replay_id,
+                            "transaction": "/api/foo/",
+                        },
+                    },
+                    start_ts=ten_mins_ago,
+                ),
+            ],
+        )
+
+        query = {
+            "query": 'transaction:["/api/foo/"]',
+            "data_source": "spans",
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {"/api/foo/": 2}
+
+    def test_eap_spans_multiple_values_rejected(self) -> None:
+        query = {
+            "query": 'transaction:["/api/foo/","/api/bar/"]',
+            "data_source": "spans",
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "The spans data source only supports a single value"

@@ -19,8 +19,8 @@ from sentry.models.project import Project
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.similarity.config import (
     get_grouping_model_version,
-    get_new_model_version,
     should_send_to_seer_for_training,
+    should_skip_seer_fallback,
 )
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
@@ -36,7 +36,7 @@ from sentry.seer.similarity.utils import (
 )
 from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
@@ -246,7 +246,11 @@ def _ratelimiting_enabled(event: Event, project: Project, training_mode: bool = 
 
 def _circuit_breaker_broken(event: Event, project: Project, training_mode: bool = False) -> bool:
     breaker_config = options.get("seer.similarity.circuit-breaker-config")
-    circuit_breaker = CircuitBreaker(settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY, breaker_config)
+    circuit_breaker = CircuitBreaker(
+        settings.SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
+        breaker_config,
+        CountBasedTripStrategy.from_config(breaker_config),
+    )
     circuit_broken = not circuit_breaker.should_allow_request()
 
     if circuit_broken:
@@ -304,6 +308,8 @@ def _build_seer_request(
 
     model_version = get_grouping_model_version(event.project)
 
+    skip_fallback = should_skip_seer_fallback(event.project)
+
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
         "hash": event.get_primary_hash(),
@@ -312,10 +318,10 @@ def _build_seer_request(
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": options.get("seer.similarity.ingest.num_matches_to_request"),
         "referrer": "ingest",
-        "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
         "model": model_version,
         "training_mode": training_mode,
         "platform": event.platform or "unknown",
+        "skip_fallback": skip_fallback,
     }
     event.data.pop("stacktrace_string", None)
 
@@ -409,8 +415,6 @@ def get_seer_similar_issues(
             # By asking Seer to find zero matches, we can trick it into thinking there aren't
             # any, thereby forcing it to create the record
             "k": 0,
-            # Turn off re-ranking to speed up the process of finding nothing
-            "use_reranking": False,
         }
 
         # TODO: Temporary log to prove things are working as they should. This should come in a pair
@@ -623,10 +627,10 @@ def maybe_send_seer_for_new_model_training(
     variants: dict[str, BaseVariant],
 ) -> None:
     """
-    Send a training_mode=true request to Seer for the new model version if the existing
-    grouphash hasn't been sent to the new version yet.
+    Send a training_mode=true request to Seer for the project's current non-stable model
+    version if the existing grouphash hasn't been sent to that version yet.
 
-    This only happens for projects that have the new model rolled out. It helps
+    This only happens for projects on a non-stable model (via feature flags). It helps
     build data for existing groups without affecting production grouping decisions.
 
     Args:
@@ -687,10 +691,10 @@ def maybe_send_seer_for_new_model_training(
         },
     )
 
-    # Mark the grouphash as sent to the new model so we don't send duplicate requests.
+    # Mark the grouphash as sent to this (non-stable) model so we don't send duplicate requests.
     # We update seer_latest_training_model (not seer_model) to preserve the original
     # grouping decision metadata.
     if gh_metadata:
-        new_version = get_new_model_version()
-        if new_version is not None:
-            gh_metadata.update(seer_latest_training_model=new_version.value)
+        gh_metadata.update(
+            seer_latest_training_model=get_grouping_model_version(event.project).value
+        )

@@ -71,7 +71,7 @@ class VstsRequestParserTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"vsts:{self.integration.id}",
-            region_names=["us"],
+            cell_names=["us"],
         )
 
     @responses.activate
@@ -101,9 +101,9 @@ class VstsRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     def test_get_integration_from_request(self) -> None:
-        region_silo_payloads = [WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS]
+        cell_silo_payloads = [WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS]
 
-        for payload in region_silo_payloads:
+        for payload in cell_silo_payloads:
             request = self.factory.post(
                 self.path,
                 HTTP_SHARED_SECRET=self.shared_secret,
@@ -139,5 +139,5 @@ class VstsRequestParserTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"vsts:{self.integration.id}",
-            region_names=["us"],
+            cell_names=["us"],
         )

@@ -32,6 +32,32 @@ describe('TagExportDropdown', () => {
     ).toBeInTheDocument();
   });
 
+  it('uses org-prefixed URL for page export', async () => {
+    const organization = OrganizationFixture({features: ['discover-query']});
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <TagExportDropdown
+        tagKey="user"
+        group={group}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export options'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Export Page to CSV'})
+    );
+
+    expect(openSpy).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/projects/${project.slug}/issues/${group.id}/tags/user/export/`,
+      '_blank'
+    );
+
+    openSpy.mockRestore();
+  });
+
   it('disables Export All option when organization does not have discover-query feature', async () => {
     const organization = OrganizationFixture({features: []});
 

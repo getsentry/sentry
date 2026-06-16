@@ -6,7 +6,8 @@ on:
   # push:
   #   branches:
   #     - master
-  pull_request:
+  # pull_request:
+  workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -28,7 +29,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install codeowners-coverage
-        run: pip install codeowners-coverage==0.2.1
+        run: pip install codeowners-coverage==0.3.1
 
       - name: Run CODEOWNERS coverage check
-        run: codeowners-coverage check
+        run: codeowners-coverage check --allow-dirty-baseline

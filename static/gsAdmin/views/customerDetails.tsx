@@ -1,4 +1,6 @@
 import {useEffect} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 import scrollToElement from 'scroll-to-element';
@@ -10,48 +12,43 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {getLocalities} from 'sentry/utils/cells';
+import {defined} from 'sentry/utils/defined';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {addBillingMetricUsage} from 'admin/components/addBillingMetricUsage';
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
+import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
 import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
+import {openChangeDashboardsParallelLimitModal} from 'admin/components/changeDashboardsParallelLimitModal';
 import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
 import {triggerGoogleDomainModal} from 'admin/components/changeGoogleDomainAction';
 import {triggerChangePlanAction} from 'admin/components/changePlanAction';
 import {CloseAccountInfo} from 'admin/components/closeAccountInfo';
+import {CustomerAuditLog} from 'admin/components/customers/customerAuditLog';
 import {CustomerCharges} from 'admin/components/customers/customerCharges';
 import {CustomerHistory} from 'admin/components/customers/customerHistory';
 import {CustomerIntegrationDebugDetails} from 'admin/components/customers/customerIntegrationDebugDetails';
-import {CustomerIntegrations} from 'admin/components/customers/customerIntegrations';
 import {CustomerInvoices} from 'admin/components/customers/customerInvoices';
 import {CustomerMembers} from 'admin/components/customers/customerMembers';
-import {CustomerOnboardingTasks} from 'admin/components/customers/customerOnboardingTasks';
 import {CustomerOverview} from 'admin/components/customers/customerOverview';
-import {CustomerPlatforms} from 'admin/components/customers/customerPlatforms';
 import {CustomerPolicies} from 'admin/components/customers/customerPolicies';
 import {CustomerProjects} from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
@@ -62,21 +59,23 @@ import {openUpdateRetentionSettingsModal} from 'admin/components/customers/updat
 import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
-import ForkCustomerAction from 'admin/components/forkCustomer';
+import {ForkCustomerAction} from 'admin/components/forkCustomer';
+import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
 import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
 import {SelectableContainer} from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
-import SponsorshipAction from 'admin/components/sponsorshipAction';
-import SuspendAccountAction from 'admin/components/suspendAccountAction';
+import {SponsorshipAction} from 'admin/components/sponsorshipAction';
+import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
 import {toggleSpendAllocationModal} from 'admin/components/toggleSpendAllocationModal';
-import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
+import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
+  hasPerformance,
   isBizPlanFamily,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
@@ -89,24 +88,23 @@ const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
 function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
   return [
-    getApiUrl(`/customers/$organizationIdOrSlug/`, {
+    getApiUrl('/customers/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: orgId},
     }),
   ];
 }
 
-function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
-  return [
-    getApiUrl(`/organizations/$organizationIdOrSlug/`, {
-      path: {organizationIdOrSlug: orgId},
-    }),
-    {query: {detailed: 0, include_feature_flags: 1}},
-  ];
+function organizationApiOptions(orgId: string) {
+  return apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: orgId},
+    query: {detailed: 0, include_feature_flags: 1},
+    staleTime: Infinity,
+  });
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
   return [
-    getApiUrl(`/customers/$organizationIdOrSlug/billing-config/`, {
+    getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
       path: {organizationIdOrSlug: orgId},
     }),
     {query: {tier: 'all'}},
@@ -121,7 +119,6 @@ export function CustomerDetails() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const SUBSCRIPTION_QUERY_KEY = makeSubscriptionQueryKey(orgId);
-  const ORGANIZATION_QUERY_KEY = makeOrganizationQueryKey(orgId);
   const BILLING_CONFIG_QUERY_KEY = makeBillingConfigQueryKey(orgId);
   const {
     data: subscription,
@@ -134,7 +131,7 @@ export function CustomerDetails() {
     refetch: refetchOrganization,
     isError: isErrorOrganization,
     isPending: isPendingOrganization,
-  } = useApiQuery<Organization>(ORGANIZATION_QUERY_KEY, {staleTime: Infinity});
+  } = useQuery(organizationApiOptions(orgId));
   const {
     data: billingConfig,
     refetch: refetchBillingConfig,
@@ -323,14 +320,15 @@ export function CustomerDetails() {
     }
   };
 
-  const regionMap = ConfigStore.get('regions').reduce(
-    (acc: any, region: any) => {
-      acc[region.url] = region.name;
+  const localityMap = getLocalities().reduce<Record<string, string>>(
+    (acc: any, locality) => {
+      acc[locality.url] = locality.name;
       return acc;
     },
-    {} as Record<string, string>
+    {}
   );
-  const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
+  const localityName =
+    localityMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
     {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
@@ -358,14 +356,14 @@ export function CustomerDetails() {
       key: 'invoices',
       name: 'Invoices',
       content: ({Panel}: any) => (
-        <CustomerInvoices inPanel={Panel} orgId={orgId} region={region} />
+        <CustomerInvoices inPanel={Panel} orgId={orgId} region={localityName} />
       ),
     },
     {
       key: 'charges',
       name: 'Charges',
       content: ({Panel}: any) => (
-        <CustomerCharges inPanel={Panel} orgId={orgId} region={region} />
+        <CustomerCharges inPanel={Panel} orgId={orgId} region={localityName} />
       ),
     },
   ];
@@ -375,34 +373,6 @@ export function CustomerDetails() {
       panelTitle="Billing Details"
       dropdownPrefix="Billing"
       sections={billingSections}
-    />
-  );
-
-  const productUsageSections = [
-    {
-      key: 'onboardingTasks',
-      name: 'Onboarding Tasks',
-      content: ({Panel}: any) => (
-        <CustomerOnboardingTasks inPanel={Panel} orgId={orgId} />
-      ),
-    },
-    {
-      key: 'integrations',
-      name: 'Plugins',
-      content: ({Panel}: any) => <CustomerIntegrations inPanel={Panel} orgId={orgId} />,
-    },
-    {
-      key: 'platforms',
-      name: 'Platforms',
-      content: ({Panel}: any) => <CustomerPlatforms inPanel={Panel} orgId={orgId} />,
-    },
-  ];
-
-  const productUsage = (
-    <SelectableContainer
-      panelTitle="Product Usage"
-      dropdownPrefix="Product"
-      sections={productUsageSections}
     />
   );
 
@@ -486,6 +456,19 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
+            key: 'addToStartupProgram',
+            name: 'Add to Startup Program',
+            help: 'Add credit for the Sentry for Startups program.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerAddToStartupProgramModal({
+                orgId,
+                subscription,
+                onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'changeOverageNotification',
             name: subscription.hasOverageNotificationsDisabled
               ? 'Enable Overage Notification'
@@ -499,6 +482,21 @@ export function CustomerDetails() {
                 ...params,
                 overageNotificationsDisabled:
                   !subscription.hasOverageNotificationsDisabled,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'toggleBillingPlatformMigration',
+            name: subscription.hasMigratedToBillingPlatform
+              ? '[Do Not Use] Unmigrate to Billing Platform'
+              : '[Do Not Use] Migrate to Billing Platform',
+            help: subscription.hasMigratedToBillingPlatform
+              ? 'Mark this org as not migrated to the billing platform.'
+              : 'Mark this org as migrated to the billing platform.',
+            onAction: params =>
+              onUpdateMutation.mutate({
+                ...params,
+                migratedToBillingPlatform: !subscription.hasMigratedToBillingPlatform,
               }),
             ...actionRequiresBillingAdmin,
           },
@@ -801,18 +799,6 @@ export function CustomerDetails() {
             },
           },
           {
-            key: 'addBillingMetricUsage',
-            name: 'Add Billing Metric Usage',
-            help: 'Create and add Billing Metric Usage.',
-            skipConfirmModal: true,
-            visible: hasAdminTestFeatures,
-            onAction: () =>
-              addBillingMetricUsage({
-                onSuccess: reloadData,
-                organization,
-              }),
-          },
-          {
             key: 'deleteBillingMetricHistory',
             name: 'Delete Billing Metric History',
             help: 'Delete billing metric history for a specific data category.',
@@ -857,6 +843,42 @@ export function CustomerDetails() {
                 onSuccess: reloadData,
               });
             },
+          },
+          {
+            key: 'changeDashboardsParallelLimit',
+            name: 'Change Dashboard Parallel Query Limit',
+            help: 'Adjust how many dashboard widget queries can run in parallel for this organization.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openChangeDashboardsParallelLimitModal({
+                organization,
+                onSuccess: reloadData,
+              });
+            },
+          },
+          {
+            key: 'migrateLegacySeer',
+            name: 'Migrate From Legacy Seer',
+            help: 'Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan, effective immediately or at the next billing period. Applies a prorated credit for eligible annual plans. Optionally adds a 14-day Seer seat trial.',
+            disabled:
+              !hasPerformance(subscription.planDetails) ||
+              !subscription.addOns?.legacySeer?.enabled,
+            disabledReason: hasPerformance(subscription.planDetails)
+              ? 'Only available for organizations with active legacy Seer that have not yet been migrated.'
+              : 'Only available for AM1, AM2, and AM3 plans.',
+            confirmModalOpts: {
+              priority: 'danger',
+              confirmText: 'Migrate',
+              showAuditFields: false,
+              renderModalSpecificContent: deps => (
+                <MigrateLegacySeerAction
+                  orgId={orgId}
+                  subscription={subscription}
+                  {...deps}
+                />
+              ),
+            },
+            onAction: params => onUpdateMutation.mutate({...params}),
           },
         ]}
         sections={[
@@ -922,10 +944,6 @@ export function CustomerDetails() {
           },
           {
             noPanel: true,
-            content: productUsage,
-          },
-          {
-            noPanel: true,
             content: <CustomerPolicies orgId={orgId} />,
           },
           {
@@ -935,6 +953,10 @@ export function CustomerDetails() {
                 View Contract Details
               </Link>
             ),
+          },
+          {
+            name: 'Admin Audit Log',
+            content: <CustomerAuditLog targetId={organization.id} orgSlug={orgId} />,
           },
         ]}
       />

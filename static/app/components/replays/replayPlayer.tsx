@@ -16,8 +16,6 @@ import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayRea
 
 import {UnmaskAlert} from './unmaskAlert';
 
-type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
-
 interface Props {
   className?: string;
   /**
@@ -69,7 +67,7 @@ function BasePlayerRoot({
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
-  const [windowDimensions, setWindowDimensions] = useState<Dimensions>({
+  const [windowDimensions, setWindowDimensions] = useState({
     width: 0,
     height: 0,
   });
@@ -108,7 +106,7 @@ function BasePlayerRoot({
   useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
   // If your browser doesn't have ResizeObserver then set the size once.
   useEffect(() => {
-    if (typeof window.ResizeObserver !== 'undefined') {
+    if (window.ResizeObserver !== undefined) {
       return;
     }
     updateWindowDimensions();

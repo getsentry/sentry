@@ -4,7 +4,8 @@ import type {Client} from 'sentry/api';
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project, ProjectKey} from 'sentry/types/project';
 
 export type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 
@@ -73,7 +74,7 @@ export interface PlatformOption<Value extends string = string> {
   defaultValue?: string;
 }
 
-export type BasePlatformOptions = Record<string, PlatformOption<string>>;
+export type BasePlatformOptions = Record<string, PlatformOption>;
 
 export type SelectedPlatformOptions<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
@@ -125,6 +126,7 @@ export interface DocsParams<
     name?: boolean;
     screenshot?: boolean;
   };
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
   profilingOptions?: {
     defaultProfilingMode?: 'transaction' | 'continuous';

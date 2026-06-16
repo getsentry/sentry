@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
-import responses
 from django.core import mail
 from django.db import router
 from django.utils import timezone
@@ -21,6 +20,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import (
     RESERVED_ORGANIZATION_SLUGS,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
     ObjectStatus,
 )
@@ -87,10 +87,10 @@ class MockAccess:
         return False
 
 
-regions = create_test_cells("us", "de")
+cells = create_test_cells("us", "de")
 
 
-@cell_silo_test(cells=regions, include_monolith_run=True)
+@cell_silo_test(cells=cells, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -632,7 +632,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert resp.data["avatar"]["avatarUuid"] == "abc123"
         assert (
             resp.data["avatar"]["avatarUrl"]
-            == generate_locality_url() + "/organization-avatar/abc123/"
+            == generate_locality_url() + f"/organization-avatar/{organization.slug}/abc123/"
         )
 
     def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:
@@ -676,8 +676,16 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
             assert "onboarding" not in response.data["features"]
 
+    def test_invalid_stored_stopping_point_falls_back_to_default(self) -> None:
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "foo-bar")
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
 
-@cell_silo_test(cells=regions)
+
+@cell_silo_test(cells=cells)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -737,36 +745,19 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
 
-    @responses.activate
-    @patch(
-        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
-        return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
-    )
-    @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
-    def test_various_options(self, mock_get_repositories: MagicMock) -> None:
+    @with_feature("organizations:dynamic-sampling-custom")
+    def test_various_options(self) -> None:
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
-        self.create_integration(
-            organization=self.organization, provider="github", external_id="extid"
-        )
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/github/testgit",
-            status=200,
-        )
 
         data = {
             "openMembership": False,
             "isEarlyAdopter": True,
-            "codecovAccess": True,
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "hideAiFeatures": True,
-            "githubNudgeInvite": True,
-            "githubPRBot": True,
-            "gitlabPRBot": True,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -802,7 +793,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
-        assert org.flags.codecov_access
         assert org.flags.prevent_superuser_access
         assert org.flags.disable_member_invite
         assert not org.flags.allow_joinleave
@@ -836,7 +826,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
         assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
-        assert "to {}".format(data["codecovAccess"]) in log.data["codecov_access"]
         assert (
             "to {}".format(not data["allowSuperuserAccess"]) in log.data["prevent_superuser_access"]
         )
@@ -856,33 +845,30 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["hideAiFeatures"]) in log.data["hideAiFeatures"]
-        assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
-        assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
-        assert "to {}".format(data["gitlabPRBot"]) in log.data["gitlabPRBot"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert "to Default Mode" in log.data["samplingMode"]
 
-    @responses.activate
-    @patch(
-        "sentry.integrations.github.client.GitHubBaseClient.get_repos",
-        return_value=[{"name": "abc", "full_name": "testgit/abc"}],
-    )
-    @with_feature("organizations:codecov-integration")
-    def test_setting_codecov_without_integration_forbidden(
-        self, mock_get_repositories: MagicMock
-    ) -> None:
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/github/testgit",
-            status=404,
+    def test_scm_option_writes_are_silently_ignored(self) -> None:
+        """PUT with githubPRBot et al. must not raise; the fields are dropped."""
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_pr_bot", value=False
         )
-        data = {"codecovAccess": True}
-        self.get_error_response(self.organization.slug, status_code=400, **data)
 
-    def test_setting_codecov_without_paid_plan_forbidden(self) -> None:
-        data = {"codecovAccess": True}
-        self.get_error_response(self.organization.slug, status_code=403, **data)
+        self.get_success_response(
+            self.organization.slug,
+            githubPRBot=True,
+            githubNudgeInvite=True,
+            gitlabPRBot=True,
+        )
+
+        options = {
+            o.key: o.value
+            for o in OrganizationOption.objects.filter(organization=self.organization)
+        }
+        assert options.get("sentry:github_pr_bot") is False
+        assert "sentry:github_nudge_invite" not in options
+        assert "sentry:gitlab_pr_bot" not in options
 
     def test_setting_duplicate_trusted_keys(self) -> None:
         """
@@ -1227,13 +1213,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
         assert res.json()["slug"] == ['The slug "taken" is already in use.']
 
-    def test_org_mapping_already_taken_org_in_other_region(self) -> None:
-        de_region = regions[1]
-        assert de_region.name == "de"
+    def test_org_mapping_already_taken_org_in_other_cell(self) -> None:
+        de_cell = cells[1]
+        assert de_cell.name == "de"
 
         # Create an org, mapping, and slug reservation. For us to reach the RPC conflict,
         # we need to not have the org record in our database.
-        conflict = self.create_organization(slug="taken", region=de_region)
+        conflict = self.create_organization(slug="taken", cell=de_cell)
         Organization.objects.filter(id=conflict.id).delete()
 
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
@@ -1441,24 +1427,61 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
             )
 
-    def test_enable_seer_enhanced_alerts_default_true(self) -> None:
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["enableSeerEnhancedAlerts"] is True
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revocation_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking console platforms dispatches the cleanup task with remaining platforms"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
 
-    def test_enable_seer_enhanced_alerts_can_be_disabled(self) -> None:
-        data = {"enableSeerEnhancedAlerts": False}
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data = {"enabledConsolePlatforms": ["playstation"]}
         self.get_success_response(self.organization.slug, **data)
 
-        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is False
+        mock_cleanup_task.assert_called_once_with(self.organization.id, ["playstation"])
 
-    def test_enable_seer_enhanced_alerts_can_be_enabled(self) -> None:
-        # First disable it
-        self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_addition_does_not_dispatch_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Adding console platforms without revoking any does not dispatch the cleanup task"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
 
-        data = {"enableSeerEnhancedAlerts": True}
+        data = {"enabledConsolePlatforms": ["playstation", "xbox"]}
         self.get_success_response(self.organization.slug, **data)
 
-        assert self.organization.get_option("sentry:enable_seer_enhanced_alerts") is True
+        mock_cleanup_task.assert_not_called()
+
+    @patch(
+        "sentry.tasks.console_platform_cleanup.remove_inaccessible_console_platform_sources.delay"
+    )
+    def test_console_platform_revoke_all_dispatches_cleanup_task(
+        self, mock_cleanup_task: MagicMock
+    ) -> None:
+        """Revoking all console platforms dispatches the cleanup task with empty list"""
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=self.organization, user=staff_user, role="owner")
+        self.login_as(user=staff_user, staff=True)
+
+        self.organization.update_option(
+            "sentry:enabled_console_platforms", ["playstation", "nintendo-switch"]
+        )
+
+        data: dict[str, list[str]] = {"enabledConsolePlatforms": []}
+        self.get_success_response(self.organization.slug, **data)
+
+        mock_cleanup_task.assert_called_once_with(self.organization.id, [])
 
     def test_enable_seer_coding_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
@@ -1499,19 +1522,50 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["defaultCodingAgent"] == SEER_DEFAULT_CODING_AGENT_DEFAULT
 
-    def test_default_coding_agent_can_be_set(self) -> None:
+    def test_default_coding_agent_can_be_set_to_seer(self) -> None:
         data = {"defaultCodingAgent": "seer"}
         response = self.get_success_response(self.organization.slug, **data)
         assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
         assert response.data["defaultCodingAgent"] == "seer"
 
-    def test_default_coding_agent_null_on_first_write_create_path(self) -> None:
-        # Tests the create path (no OrganizationOption row exists yet): sending null
-        # must store null rather than the string "None" via str(None).
+    def test_default_coding_agent_can_be_set_to_cursor(self) -> None:
+        for value in ("cursor", "cursor_background_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "cursor_background_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "cursor_background_agent"
+
+    def test_default_coding_agent_can_be_set_to_claude(self) -> None:
+        for value in ("claude_code", "claude_code_agent"):
+            data = {"defaultCodingAgent": value}
+            response = self.get_success_response(self.organization.slug, **data)
+            assert (
+                self.organization.get_option("sentry:seer_default_coding_agent")
+                == "claude_code_agent"
+            )
+            assert response.data["defaultCodingAgent"] == "claude_code_agent"
+
+    def test_default_coding_agent_none_casts_to_seer(self) -> None:
         data = {"defaultCodingAgent": None}
         response = self.get_success_response(self.organization.slug, **data)
-        assert self.organization.get_option("sentry:seer_default_coding_agent") is None
-        assert response.data["defaultCodingAgent"] is None
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_none_resets_to_seer(self) -> None:
+        self.organization.update_option(
+            "sentry:seer_default_coding_agent", "cursor_background_agent"
+        )
+        data = {"defaultCodingAgent": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_rejects_invalid_choice(self) -> None:
+        data = {"defaultCodingAgent": "invalid_agent"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_default_coding_agent_writing_default_value_stores_but_skips_audit_log(
         self,
@@ -1545,7 +1599,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
 
     def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
         other_org = self.create_organization()
@@ -1569,7 +1623,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
 
     def test_default_coding_agent_integration_id_null_on_first_write_create_path(self) -> None:
         # Tests the create path (no OrganizationOption row exists yet): sending null
@@ -1581,12 +1635,26 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
         assert response.data["defaultCodingAgentIntegrationId"] is None
 
-    def test_default_coding_agent_can_be_cleared(self) -> None:
-        self.organization.update_option("sentry:seer_default_coding_agent", "seer")
-        data = {"defaultCodingAgent": None}
-        response = self.get_success_response(self.organization.slug, **data)
-        assert self.organization.get_option("sentry:seer_default_coding_agent") is None
-        assert response.data["defaultCodingAgent"] is None
+    def test_default_automated_run_stopping_point_default(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert (
+            response.data["defaultAutomatedRunStoppingPoint"]
+            == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        )
+
+    def test_default_automated_run_stopping_point_can_be_set(self) -> None:
+        for choice in ("code_changes", "open_pr", "root_cause"):
+            with self.subTest(choice=choice):
+                data = {"defaultAutomatedRunStoppingPoint": choice}
+                response = self.get_success_response(self.organization.slug, **data)
+                assert response.data["defaultAutomatedRunStoppingPoint"] == choice
+
+    @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    def test_default_automated_run_stopping_point_rejects_invalid(self, mock_seat_based) -> None:
+        for invalid in ("solution", "invalid_point"):
+            with self.subTest(value=invalid):
+                data = {"defaultAutomatedRunStoppingPoint": invalid}
+                self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)
@@ -2119,7 +2187,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
             assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
-        invite_url_regex = re.compile(r"http://.*/accept/[0-9]+/[a-f0-9]+/")
+        invite_url_regex = re.compile(r"http://.*/accept/[^/]+/[0-9]+/[a-f0-9]+/")
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
         for email in outbox:

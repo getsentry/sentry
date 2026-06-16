@@ -20,7 +20,7 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   private _autogroupedSegments: Array<[number, number]> | undefined;
 
   constructor(
-    parent: BaseNode<TraceTree.NodeValue> | null,
+    parent: BaseNode | null,
     node: TraceTree.SiblingAutogroup,
     extra: TraceTreeNodeExtra
   ) {

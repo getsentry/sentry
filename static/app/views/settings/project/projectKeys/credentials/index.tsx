@@ -276,7 +276,7 @@ export function ProjectKeyCredentials({
           />
         );
       default:
-        return undefined;
+        return;
     }
   };
 

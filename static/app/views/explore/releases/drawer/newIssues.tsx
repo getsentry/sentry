@@ -1,0 +1,54 @@
+import {GroupList} from 'sentry/components/issues/groupList';
+import {t} from 'sentry/locale';
+import {escapeDoubleQuotes} from 'sentry/utils';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
+import {getReleaseBounds, getReleaseParams} from 'sentry/views/explore/releases/utils';
+import {useReleaseDetails} from 'sentry/views/explore/releases/utils/useReleaseDetails';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+interface Props {
+  projectId: string | undefined;
+  release: string;
+  withChart?: boolean;
+}
+
+export function NewIssues({release, projectId, withChart = false}: Props) {
+  const location = useLocation();
+  const {data: releaseDetails} = useReleaseDetails({release});
+  const queryParams = {
+    ...getReleaseParams({
+      location,
+      releaseBounds: getReleaseBounds(releaseDetails),
+    }),
+    project: projectId,
+    limit: 10,
+    sort: IssueSortOptions.FREQ,
+    groupStatsPeriod: 'auto',
+    query: new MutableSearch([
+      `first-release:"${escapeDoubleQuotes(release)}"`,
+    ]).formatString(),
+  };
+
+  const renderEmptyMessage = () => {
+    return <EmptyState>{t('No new issues in this release.')}</EmptyState>;
+  };
+
+  return (
+    <GroupList
+      queryParams={queryParams}
+      query={
+        releaseDetails
+          ? `release:"${escapeDoubleQuotes(releaseDetails?.versionInfo.version.raw)}"`
+          : ''
+      }
+      canSelectGroups={false}
+      withChart={withChart}
+      renderEmptyMessage={renderEmptyMessage}
+      withPagination
+      source="release-drawer"
+      numPlaceholderRows={3}
+    />
+  );
+}

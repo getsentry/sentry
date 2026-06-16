@@ -1,5 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+import type {UseQueryResult} from '@tanstack/react-query';
+
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
-import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 import {replayerStepper} from 'sentry/utils/replays/replayerStepper';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {
@@ -62,7 +64,7 @@ async function extractDiffMutations({
     },
     onVisitFrame: (frame, collection, replayer) => {
       const mirror = replayer.getMirror();
-      if (lastFrame && lastFrame.type === EventType.FullSnapshot) {
+      if (lastFrame?.type === EventType.FullSnapshot) {
         const node = mirror.getNode(lastFrame.data.node.id) as Document | null;
         const item = collection.get(lastFrame);
         if (node && item) {
@@ -79,8 +81,7 @@ async function extractDiffMutations({
           };
         }
       } else if (
-        lastFrame &&
-        lastFrame.type === EventType.IncrementalSnapshot &&
+        lastFrame?.type === EventType.IncrementalSnapshot &&
         'source' in lastFrame.data &&
         lastFrame.data.source === IncrementalSource.Mutation
       ) {
@@ -249,7 +250,7 @@ export function useExtractDiffMutations({
   leftOffsetMs,
   replay,
   rightOffsetMs,
-}: Props): UseQueryResult<Map<RecordingFrame, DiffMutation>, Error> {
+}: Props): UseQueryResult<Map<RecordingFrame, DiffMutation>> {
   const startTimestampMs = replay.getReplay().started_at.getTime();
   const rangeStartTimestampMs = startTimestampMs + leftOffsetMs;
   const rangeEndTimestampMs = startTimestampMs + rightOffsetMs;

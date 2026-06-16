@@ -133,7 +133,11 @@ class Command(BaseCommand):
                 continue
 
             silo_limit = view_func.silo_limit
-            if len(silo_limit.modes) == 1 and SiloMode.CONTROL in silo_limit.modes:
+            if (
+                len(silo_limit.modes) == 1
+                and SiloMode.CONTROL in silo_limit.modes
+                and not silo_limit.internal
+            ):
                 simple_pattern = simplify_regex(info.pattern)
                 url_patterns.append(simple_pattern)
 

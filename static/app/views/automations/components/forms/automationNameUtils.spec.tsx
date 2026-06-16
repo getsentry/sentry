@@ -132,7 +132,7 @@ describe('automationNameUtils', () => {
     });
 
     it('should include count suffix when there are more than MAX_ACTIONS_IN_NAME actions', () => {
-      const actions = new Array(5).fill(
+      const actions = Array.from({length: 5}).fill(
         ActionFixture({
           type: ActionType.EMAIL,
           config: {
@@ -160,7 +160,7 @@ describe('automationNameUtils', () => {
           targetIdentifier: 'user-456',
         },
       });
-      const actions = new Array(5).fill(action);
+      const actions = Array.from({length: 5}).fill(action);
       const builderState = createBuilderState(actions);
 
       const result = getAutomationName(builderState);
@@ -196,16 +196,18 @@ describe('automationNameUtils', () => {
     });
 
     it('should respect MAX_ACTIONS_IN_NAME limit', () => {
-      const actions = new Array(10).fill(null).map(() =>
-        ActionFixture({
-          type: ActionType.EMAIL,
-          config: {
-            targetType: ActionTarget.TEAM,
-            targetDisplay: 'team',
-            targetIdentifier: 'team-123',
-          },
-        })
-      );
+      const actions = Array.from({length: 10})
+        .fill(null)
+        .map(() =>
+          ActionFixture({
+            type: ActionType.EMAIL,
+            config: {
+              targetType: ActionTarget.TEAM,
+              targetDisplay: 'team',
+              targetIdentifier: 'team-123',
+            },
+          })
+        );
       const builderState = createBuilderState(actions);
 
       const result = getAutomationName(builderState);

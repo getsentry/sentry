@@ -1,12 +1,16 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {HookStore} from 'sentry/stores/hookStore';
-import type {Hooks} from 'sentry/types/hooks';
+import {getOverride} from 'sentry/overrideRegistry';
+import type {Overrides} from 'sentry/types/overrides';
 import {
   alertsEventMap,
   type AlertsEventParameters,
 } from 'sentry/utils/analytics/alertsAnalyticsEvents';
+import {
+  commandPaletteEventMap,
+  type CommandPaletteEventParameters,
+} from 'sentry/utils/analytics/commandPaletteAnalyticsEvents';
 import {
   exploreAnalyticsEventMap,
   type ExploreAnalyticsEventParameters,
@@ -104,6 +108,7 @@ import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends
+    CommandPaletteEventParameters,
     GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
@@ -146,6 +151,7 @@ interface EventParameters
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
+  ...commandPaletteEventMap,
   ...agentMonitoringEventMap,
   ...alertsEventMap,
   ...conversationsEventMap,
@@ -193,7 +199,7 @@ const allEventMap: Record<string, string | null> = {
 /**
  * Analytics and metric tracking functionality.
  *
- * These are primarily driven through hooks provided through the hookstore. For
+ * These are primarily driven through hooks provided through the hook registry. For
  * sentry.io these are currently mapped to our in-house analytics backend
  * 'Reload' and the Amplitude service.
  *
@@ -218,16 +224,7 @@ const allEventMap: Record<string, string | null> = {
  */
 export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
-/**
- * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
- * an analytics function.
- */
-export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
-  data,
-  options
-) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
-
-type RecordMetric = Hooks['metrics:event'] & {
+type RecordMetric = Overrides['metrics:event'] & {
   endSpan: (opts: {
     /**
      * Name of the transaction to end
@@ -292,7 +289,7 @@ const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
  * Record metrics.
  */
 export const metric: RecordMetric = (name, value, tags) =>
-  HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
+  getOverride('metrics:event')?.(name, value, tags);
 
 // JSDOM implements window.performance but not window.performance.mark
 export const CAN_MARK =
@@ -320,7 +317,7 @@ metric.mark = function metricMark({name, data = {}}) {
  * Performs a measurement between `start` and `end` (or now if `end` is not
  * specified) Calls `metric` with `name` and the measured time difference.
  */
-metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup} = {}) {
+metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}) {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;

@@ -9,18 +9,18 @@ import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   getSessionTermDescription,
   SessionTerm,
-} from 'sentry/views/releases/utils/sessionTerm';
+} from 'sentry/views/explore/releases/utils/sessionTerm';
+import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 
 import {ActionWrapper} from './actionWrapper';
 
@@ -61,7 +61,7 @@ const useCrashFreeRate = (props: Props) => {
 
   const currentQuery = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -82,7 +82,7 @@ const useCrashFreeRate = (props: Props) => {
 
   const previousQuery = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

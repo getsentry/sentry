@@ -1,18 +1,22 @@
-import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Separator} from '@sentry/scraps/separator';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {RadioField} from 'sentry/components/forms/fields/radioField';
-import {Form} from 'sentry/components/forms/form';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 export type ReprocessEventModalOptions = {
@@ -20,22 +24,55 @@ export type ReprocessEventModalOptions = {
   organization: Organization;
 };
 
+const schema = z.object({
+  maxEvents: z.number().positive(t('Must be a positive integer')).nullable(),
+  remainingEvents: z.enum(['keep', 'delete']),
+});
+
+type FormValues = z.infer<typeof schema>;
+
 export function ReprocessingEventModal({
   Header,
   Body,
+  Footer,
   organization,
   closeModal,
   groupId,
 }: ModalRenderProps & ReprocessEventModalOptions) {
-  const [maxEvents, setMaxEvents] = useState<number | undefined>(undefined);
+  const mutation = useMutation({
+    mutationFn: (data: FormValues) => {
+      return fetchMutation({
+        url: `/organizations/${organization.slug}/issues/${groupId}/reprocessing/`,
+        method: 'POST',
+        data,
+      });
+    },
+  });
 
-  function handleSuccess() {
-    closeModal();
-    testableWindowLocation.reload();
-  }
+  const defaultValues: FormValues = {maxEvents: null, remainingEvents: 'keep'};
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value, formApi}) =>
+      mutation
+        .mutateAsync(value)
+        .then(() => {
+          closeModal();
+          testableWindowLocation.reload();
+        })
+        .catch((error: unknown) => {
+          const handled =
+            error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+          if (!handled) {
+            addErrorMessage(t('Failed to reprocess. Please check your input.'));
+          }
+        }),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         <h4>{t('Reprocess Events')}</h4>
       </Header>
@@ -76,44 +113,64 @@ export function ReprocessingEventModal({
             ),
           })}
         </Introduction>
-        <Form
-          submitLabel={t('Reprocess Events')}
-          apiEndpoint={`/organizations/${organization.slug}/issues/${groupId}/reprocessing/`}
-          apiMethod="POST"
-          initialData={{maxEvents: undefined, remainingEvents: 'keep'}}
-          onSubmitSuccess={handleSuccess}
-          onSubmitError={() =>
-            addErrorMessage(t('Failed to reprocess. Please check your input.'))
-          }
-          onCancel={closeModal}
-          footerClass="modal-footer"
-        >
-          <NumberField
-            name="maxEvents"
-            label={t('Number of events to be reprocessed')}
-            help={t('If you set a limit, we will reprocess your most recent events.')}
-            placeholder={t('Reprocess all events')}
-            onChange={(value: any) => {
-              const num = Number(value);
-              setMaxEvents(value === '' || isNaN(num) ? undefined : num);
-            }}
-            min={1}
-          />
 
-          <RadioField
-            orientInline
-            label={t('Remaining events')}
-            help={t('What to do with the events that are not reprocessed.')}
-            name="remainingEvents"
-            choices={[
-              ['keep', t('Keep')],
-              ['delete', t('Delete')],
-            ]}
-            disabled={maxEvents === undefined}
-          />
-        </Form>
+        <Stack gap="xl">
+          <form.AppField name="maxEvents">
+            {field => (
+              <field.Layout.Row
+                label={t('Number of events to be reprocessed')}
+                hintText={t(
+                  'If you set a limit, we will reprocess your most recent events.'
+                )}
+              >
+                <field.Number
+                  min={1}
+                  placeholder={t('Reprocess all events')}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+
+          <Separator orientation="horizontal" border="secondary" />
+
+          <form.Subscribe selector={state => state.values.maxEvents === null}>
+            {isDisabled => (
+              <form.AppField name="remainingEvents">
+                {field => (
+                  <field.Radio.Group
+                    value={field.state.value}
+                    onChange={value => {
+                      if (value === 'keep' || value === 'delete') {
+                        field.handleChange(value);
+                      }
+                    }}
+                    disabled={isDisabled}
+                  >
+                    <field.Layout.Row
+                      label={t('Remaining events')}
+                      hintText={t('What to do with the events that are not reprocessed.')}
+                    >
+                      <Flex gap="2xl">
+                        <field.Radio.Item value="keep">{t('Keep')}</field.Radio.Item>
+                        <field.Radio.Item value="delete">{t('Delete')}</field.Radio.Item>
+                      </Flex>
+                    </field.Layout.Row>
+                  </field.Radio.Group>
+                )}
+              </form.AppField>
+            )}
+          </form.Subscribe>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Reprocess Events')}</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 

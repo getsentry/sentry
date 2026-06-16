@@ -75,7 +75,7 @@ export function getMEPParamsIfApplicable(
   widget: PerformanceWidgetSetting
 ) {
   if (WIDGET_MAP_DENY_LIST.includes(widget)) {
-    return undefined;
+    return;
   }
   return getMEPQueryParams(mepContext);
 }
@@ -144,7 +144,6 @@ export function filterAllowedChartsMetrics(
 ) {
   if (
     !canUseMetricsData(organization) ||
-    organization.features.includes('performance-mep-reintroduce-histograms') ||
     mepSetting.metricSettingState === MEPState.TRANSACTIONS_ONLY
   ) {
     return allowedCharts;

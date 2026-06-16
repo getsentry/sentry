@@ -13,15 +13,13 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
 )
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
-from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
-from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
+from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app, send_metric_alert_webhook
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, metrics
 from sentry.utils.forms import set_field_choices
@@ -64,15 +62,15 @@ def send_incident_alert_notification(
     metric_issue_context: MetricIssueContext,
     incident_serialized_response: IncidentSerializerResponse,
     organization: Organization,
+    project_id: int,
     notification_uuid: str | None = None,
-) -> bool:
+) -> None:
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
     :param action: The triggered `AlertRuleTriggerAction`.
     :param incident: The `Incident` for which to build a payload.
-    :param metric_value: The value of the metric that triggered this alert to
-    fire.
-    :return:
+    :param metric_value: The value of the metric that triggered this alert to fire.
+    :param project_id: project id will be used for analytics after sending the webhook.
     """
     incident_attachment = build_incident_attachment(
         alert_context,
@@ -85,39 +83,15 @@ def send_incident_alert_notification(
     if notification_context.sentry_app_id is None:
         raise ValueError("Sentry app ID is required")
 
-    success = integration_service.send_incident_alert_notification(
-        sentry_app_id=notification_context.sentry_app_id,
+    send_metric_alert_webhook.delay(
+        sentry_app_id=int(notification_context.sentry_app_id),
         new_status=metric_issue_context.new_status.value,
         incident_attachment_json=json.dumps(incident_attachment),
         organization_id=organization.id,
-        # TODO(iamrajjoshi): The rest of the params are unused
-        action_id=-1,
-        incident_id=-1,
-        metric_value=-1,
+        project_id=project_id,
+        alert_id=alert_context.action_identifier_id,
+        notification_uuid=notification_uuid,
     )
-    return success
-
-
-def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) -> bool:
-    """
-    Loop through the triggers for the alert rule event. For each trigger, check
-    if an action is an alert rule UI Component
-    """
-    triggers = (
-        getattr(app_platform_event, "data", {})
-        .get("metric_alert", {})
-        .get("alert_rule", {})
-        .get("triggers", [])
-    )
-
-    actions = [
-        action
-        for trigger in triggers
-        for action in trigger.get("actions", {})
-        if (action.get("type") == "sentry_app" and action.get("settings") is not None)
-    ]
-
-    return bool(len(actions))
 
 
 class NotifyEventServiceForm(forms.Form):

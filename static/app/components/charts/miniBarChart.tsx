@@ -304,7 +304,7 @@ export function MiniBarChart({
 
       if (i === 0) {
         updated.barMinHeight = 1;
-        if (stacked === false) {
+        if (!stacked) {
           updated.barGap = '-100%';
         }
       }

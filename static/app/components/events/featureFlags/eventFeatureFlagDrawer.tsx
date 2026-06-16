@@ -55,7 +55,7 @@ export function EventFeatureFlagDrawer({
   focusControl: initialFocusControl,
 }: FlagDrawerProps) {
   const organization = useOrganization();
-  const [orderBy, setOrderBy] = useState<OrderBy>(initialOrderBy);
+  const [orderBy, setOrderBy] = useState(initialOrderBy);
   const [search, setSearch] = useState('');
   const {getFocusProps} = useFocusControl(initialFocusControl);
 

@@ -35,7 +35,7 @@ export function NextBillCard({
     isError,
   } = useApiQuery<PreviewData>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/subscription/next-bill/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/subscription/next-bill/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

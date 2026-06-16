@@ -1,61 +1,38 @@
+import type {CSSProperties} from 'react';
 import type {Theme} from '@emotion/react';
 
 type Options = {
   theme: Theme;
+  inputStyle?: CSSProperties;
   minHeight?: number;
-  streamlined?: boolean;
 };
 
 /**
- * Note this is an object for `react-mentions` component and
- * not a styled component/emotion style
+ * Returns the `style` object for react-mentions `MentionsInput`.
  */
-export function mentionStyle({theme, minHeight, streamlined}: Options) {
-  const inputProps = {
+export function mentionStyle({theme, minHeight, inputStyle}: Options) {
+  const inputProps: CSSProperties = {
     fontSize: theme.font.size.md,
-    padding: `${theme.space.lg} ${theme.space.xl}`,
+    padding: `${theme.space.lg} ${theme.space.lg}`,
     outline: 0,
     border: 0,
     minHeight,
     overflow: 'auto',
-  };
-
-  const streamlinedInputProps = {
-    fontSize: theme.font.size.md,
-    padding: `${theme.space.md} ${theme.space.lg}`,
-    outline: 0,
-    border: `1px solid ${theme.tokens.border.primary}`,
-    borderRadius: theme.radius.md,
-    minHeight,
-    overflow: 'auto',
+    overflowWrap: 'break-word',
+    ...inputStyle,
   };
 
   return {
+    width: '100%',
+
     control: {
-      backgroundColor: theme.tokens.background.primary,
-      fontSize: 15,
-      fontWeight: 'normal',
+      backgroundColor: 'transparent',
+      fontSize: theme.font.size.md,
+      fontWeight: 'normal' as const,
     },
 
     input: {
       margin: 0,
-    },
-
-    '&singleLine': {
-      control: {
-        display: 'inline-block',
-        width: 130,
-      },
-
-      highlighter: {
-        padding: 1,
-        border: '2px inset transparent',
-      },
-
-      input: {
-        padding: 1,
-        border: '2px inset',
-      },
     },
 
     '&multiLine': {
@@ -64,9 +41,8 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
         minHeight,
       },
 
-      // Use the same props for the highliter to keep the phantom text aligned
-      highlighter: streamlined ? streamlinedInputProps : inputProps,
-      input: streamlined ? streamlinedInputProps : inputProps,
+      highlighter: inputProps,
+      input: inputProps,
     },
 
     suggestions: {

@@ -90,8 +90,6 @@ class BetterSignal(Signal):
 buffer_incr_complete = BetterSignal()  # ["model", "columns", "extra", "result"]
 pending_delete = BetterSignal()  # ["instance", "actor"]
 event_processed = BetterSignal()  # ["project", "event"]
-# When the organization and initial member have been created
-org_setup_complete = BetterSignal()  # ["organization", "user"]
 
 # This signal should eventually be removed as we should not send
 # transactions through post processing
@@ -148,7 +146,7 @@ ownership_rule_created = BetterSignal()  # ["project"]
 issue_assigned = BetterSignal()  # ["project", "group", "user"]
 issue_unassigned = BetterSignal()  # ["project", "group", "user"]
 issue_deleted = BetterSignal()  # ["group", "user", "delete_type"]
-# ["organization_id", "project", "group", "user", "resolution_type"]
+# ["organization_id", "project", "group", "user", "resolution_type", "provider", "commit_id"]
 issue_resolved = BetterSignal()
 issue_unresolved = BetterSignal()  # ["project", "user", "group", "transition_type"]
 issue_ignored = BetterSignal()  # ["project", "user", "group_list", "activity_data"]

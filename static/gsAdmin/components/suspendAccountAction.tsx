@@ -12,6 +12,11 @@ const suspendReasons = [
   ['fraud', 'Fraudulent', 'This account was reported as fraudulent'],
   ['dispute', 'Dispute', 'This account has recently had a charge disputed'],
   ['past_due', 'Past Due', 'This account has a past balance which needs to be paid.'],
+  [
+    'security_abuse',
+    'Security/Abuse',
+    'This account has been suspended for security or abuse reasons',
+  ],
 ] as const;
 
 type State = {
@@ -21,7 +26,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class SuspendAccountAction extends Component<AdminConfirmRenderProps, State> {
+export class SuspendAccountAction extends Component<AdminConfirmRenderProps, State> {
   state: State = {
     suspensionReason: null,
   };
@@ -62,5 +67,3 @@ class SuspendAccountAction extends Component<AdminConfirmRenderProps, State> {
     ));
   }
 }
-
-export default SuspendAccountAction;

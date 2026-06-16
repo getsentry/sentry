@@ -122,15 +122,19 @@ divide               = ~r"[/÷]"
 
 function_value         = function_name open_paren spaces function_args? spaces closed_paren
 function_args          = aggregate_param (spaces comma spaces aggregate_param)*
-aggregate_param        = quoted_aggregate_param / raw_aggregate_param
+aggregate_param        = backtick_search_param / quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
+backtick_search_param  = backtick search_value backtick
 # Different from a field value, since a function arg may not be a valid field
 function_name          = ~r"[a-zA-Z_0-9]+"
 numeric_value          = ~r"[+-]?[0-9]+\.?[0-9]*"
 field_value            = ~r"[a-zA-Z_\.]+"
+# Search value is any text except a backtick which will exit back to normal parsing
+search_value           = ~r"[^`]*"
 
 comma                = ","
+backtick             = "`"
 open_paren           = "("
 closed_paren         = ")"
 spaces               = " "*

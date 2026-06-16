@@ -1,7 +1,7 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {SavedSearchType} from 'sentry/types/group';
@@ -18,7 +18,7 @@ type IssueSearchProps = {
 
 function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   const organization = useOrganization();
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <IssueListSeerComboBox />;
@@ -37,16 +37,14 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
 }
 
 export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
-  const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
   const {getFilterKeys, getFilterKeySections, getTagValues} =
     useIssueListSearchBarDataProvider({pageFilters});
 
-  // Gate behind gen-ai-search-agent-translate (internal only) plus standard AI consent checks
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
 
   return (
     <SearchQueryBuilderProvider
@@ -55,8 +53,8 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
       filterKeySections={getFilterKeySections()}
       getTagValues={getTagValues}
       searchSource="main_search"
-      enableAISearch={areAiFeaturesAllowed}
-      aiSearchBadgeType="alpha"
+      enableAISearch={hasTranslateEndpoint}
+      aiSearchBadgeType="beta"
       onSearch={onSearch}
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators

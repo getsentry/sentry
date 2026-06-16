@@ -1,8 +1,9 @@
-import {Fragment, useCallback, useState} from 'react';
+import {useCallback, useState, Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -15,7 +16,7 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -63,8 +64,7 @@ export default function MonitorDetails() {
       if (!query.state.data) {
         return false;
       }
-      const [monitorData] = query.state.data;
-      return getMonitorRefetchInterval(monitorData, new Date());
+      return getMonitorRefetchInterval(query.state.data.json, new Date());
     },
   });
 
@@ -111,14 +111,14 @@ export default function MonitorDetails() {
 
   if (!monitor) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <LoadingIndicator />
-      </Layout.Page>
+      </Stack>
     );
   }
 
   return (
-    <Layout.Page>
+    <Stack flex={1}>
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
       <MonitorHeader monitor={monitor} orgSlug={organization.slug} onUpdate={onUpdate} />
       <Layout.Body>
@@ -189,7 +189,7 @@ export default function MonitorDetails() {
           </Layout.Side>
         </TimezoneProvider>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }
 

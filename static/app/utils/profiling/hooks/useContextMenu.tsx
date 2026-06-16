@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
-import {clamp} from 'sentry/utils/profiling/colors/utils';
+import {clamp} from 'sentry/utils/profiling/colors/clamp';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {useKeyboardNavigation} from './useKeyboardNavigation';
@@ -26,7 +26,7 @@ interface UseContextMenuOptions {
 }
 
 export function useContextMenu({container}: UseContextMenuOptions) {
-  const [open, setOpen] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
   const [menuCoordinates, setMenuCoordinates] = useState<Rect | null>(null);
   const [contextMenuCoordinates, setContextMenuCoordinates] = useState<Rect | null>(null);
   const [containerCoordinates, setContainerCoordinates] = useState<Rect | null>(null);
@@ -138,7 +138,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   // Observe the menu
   useEffect(() => {
     if (!itemProps.menuRef) {
-      return undefined;
+      return;
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {
@@ -156,7 +156,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   // Observe the container
   useEffect(() => {
     if (!container) {
-      return undefined;
+      return;
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {

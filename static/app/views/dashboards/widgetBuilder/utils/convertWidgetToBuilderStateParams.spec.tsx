@@ -177,7 +177,7 @@ describe('convertWidgetToBuilderState', () => {
       description: 'My text content',
     };
     const params = convertWidgetToBuilderState(widget);
-    expect(params.textContent as string).toBe('My text content');
+    expect(params.textContent!).toBe('My text content');
     expect(params.description).toBeUndefined();
   });
 
@@ -190,5 +190,25 @@ describe('convertWidgetToBuilderState', () => {
     const params = convertWidgetToBuilderState(widget);
     expect(params.textContent).toBeUndefined();
     expect(params.description).toBe('Widget description');
+  });
+
+  describe('tracemetrics widget', () => {
+    it('converts raw equation sort to equation[0] alias format', () => {
+      const widget = {
+        ...getDefaultWidget(WidgetType.TRACEMETRICS),
+        displayType: DisplayType.LINE,
+        queries: [
+          {
+            aggregates: ['equation|count(span.duration) / 2'],
+            columns: [],
+            conditions: '',
+            name: '',
+            orderby: '-equation|count(span.duration) / 2',
+          },
+        ],
+      };
+      const params = convertWidgetToBuilderState(widget);
+      expect(params.sort).toEqual(['-equation[0]']);
+    });
   });
 });

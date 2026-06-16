@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {AlertBadge} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -15,6 +17,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,7 +42,7 @@ function AlertRow({alert}: AlertRowProps) {
 
   const Icon = isResolved ? IconCheckmark : isWarning ? IconExclamation : IconFire;
 
-  const statusProps = {isResolved, isWarning};
+  const variant = isResolved ? 'success' : isWarning ? 'warning' : 'danger';
 
   return (
     <AlertRowLink
@@ -54,21 +57,16 @@ function AlertRow({alert}: AlertRowProps) {
       </AlertBadgeWrapper>
       <AlertDetails>
         <AlertTitle>{title}</AlertTitle>
-        <AlertDate {...statusProps}>
+        <Text variant={variant}>
           {isResolved ? t('Resolved') : t('Triggered')}{' '}
           {isResolved ? (
             dateClosed ? (
-              <TimeSince date={dateClosed} />
+              <TimeSince date={dateClosed} variant={variant} />
             ) : null
           ) : (
-            <TimeSince
-              date={dateStarted}
-              tooltipUnderlineColor={
-                isResolved ? 'success' : isWarning ? 'warning' : 'danger'
-              }
-            />
+            <TimeSince date={dateStarted} variant={variant} />
           )}
-        </AlertDate>
+        </Text>
       </AlertDetails>
     </AlertRowLink>
   );
@@ -97,7 +95,7 @@ export function ProjectLatestAlerts({
     isError: unresolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/incidents/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {...query, status: 'open'}},
@@ -110,7 +108,7 @@ export function ProjectLatestAlerts({
     isError: resolvedAlertsIsError,
   } = useApiQuery<Incident[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/incidents/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/incidents/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: {...query, status: 'closed'}},
@@ -124,25 +122,20 @@ export function ProjectLatestAlerts({
     !unresolvedAlertsIsLoading &&
     !resolvedAlertsIsLoading;
   // This is only used to determine if we should show the "Create Alert" button
-  const {data: alertRules = [], isPending: alertRulesLoading} = useApiQuery<any[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/alert-rules/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...pick(location.query, Object.values(URL_PARAM)),
-          // Sort by name
-          asc: 1,
-          per_page: 1,
-        },
-      },
-    ],
-    {
+  const {data: hasAlertRules, isPending: alertRulesLoading} = useQuery({
+    ...apiOptions.as<unknown[]>()('/organizations/$organizationIdOrSlug/alert-rules/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: 0,
-      enabled: shouldLoadAlertRules,
-    }
-  );
+      query: {
+        ...pick(location.query, Object.values(URL_PARAM)),
+        // Sort by name
+        asc: 1,
+        per_page: 1,
+      },
+    }),
+    enabled: shouldLoadAlertRules,
+    select: data => data.json.length > 0,
+  });
 
   function renderAlertRules() {
     if (unresolvedAlertsIsError || resolvedAlertsIsError) {
@@ -154,7 +147,7 @@ export function ProjectLatestAlerts({
       return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
     }
 
-    const hasAlertRule = alertsUnresolvedAndResolved.length > 0 || alertRules?.length > 0;
+    const hasAlertRule = alertsUnresolvedAndResolved.length > 0 || hasAlertRules;
     if (!hasAlertRule) {
       return (
         <MissingAlertsButtons organization={organization} projectSlug={projectSlug} />
@@ -180,7 +173,7 @@ export function ProjectLatestAlerts({
         <StyledIconLink
           to={{
             pathname: makeAlertsPathname({
-              path: `/`,
+              path: '/',
               organization,
             }),
             query: {
@@ -221,11 +214,6 @@ const AlertRowLink = styled(Link)`
   }
 `;
 
-type StatusColorProps = {
-  isResolved: boolean;
-  isWarning: boolean;
-};
-
 const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
   display: flex;
   align-items: center;
@@ -250,15 +238,6 @@ const AlertTitle = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-const AlertDate = styled('span')<StatusColorProps>`
-  color: ${p =>
-    p.isResolved
-      ? p.theme.tokens.content.success
-      : p.isWarning
-        ? p.theme.tokens.content.warning
-        : p.theme.tokens.content.danger};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

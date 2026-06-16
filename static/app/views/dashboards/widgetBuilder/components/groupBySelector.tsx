@@ -7,7 +7,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {WidgetType, type ValidateWidgetResponse} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -16,7 +15,7 @@ import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 interface WidgetBuilderGroupBySelectorProps {
@@ -28,7 +27,6 @@ export function WidgetBuilderGroupBySelector({
 }: WidgetBuilderGroupBySelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const disableTransactionWidget = useDisableTransactionWidget();
-  const hasDrillDownFlows = useHasDrillDownFlows();
 
   const organization = useOrganization();
 
@@ -111,7 +109,6 @@ export function WidgetBuilderGroupBySelector({
         style={{paddingRight: 0}}
         widgetType={state.dataset}
         disable={disableTransactionWidget}
-        showDashboardLinkButton={hasDrillDownFlows && state.legendType === 'breakdown'}
       />
     </Fragment>
   );

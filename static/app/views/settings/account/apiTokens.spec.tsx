@@ -46,7 +46,7 @@ describe('ApiTokens', () => {
   });
 
   it('renders empty in demo mode even if there are tokens', async () => {
-    (isDemoModeActive as jest.Mock).mockReturnValue(true);
+    jest.mocked(isDemoModeActive).mockReturnValue(true);
 
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
@@ -59,7 +59,7 @@ describe('ApiTokens', () => {
       await screen.findByText("You haven't created any authentication tokens yet.")
     ).toBeInTheDocument();
 
-    (isDemoModeActive as jest.Mock).mockReset();
+    jest.mocked(isDemoModeActive).mockReset();
   });
 
   it('can delete token', async () => {

@@ -52,7 +52,7 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
 
 @cell_silo_endpoint
 class JiraServerIssueUpdatedWebhook(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

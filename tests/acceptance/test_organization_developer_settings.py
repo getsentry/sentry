@@ -1,4 +1,5 @@
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -83,7 +84,10 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         self.load_page(self.org_developer_settings_path)
 
         textarea = self.browser.element('textarea[name="schema"]')
-        textarea.clear()
+        # WebElement.clear() doesn't fire input events, so React-controlled
+        # textareas keep their old form state. Backspace each character so
+        # React's onChange runs.
+        textarea.send_keys(Keys.BACKSPACE * len(textarea.get_attribute("value")))
         textarea.send_keys("{}")
 
         self.browser.click('[aria-label="Save Changes"]')

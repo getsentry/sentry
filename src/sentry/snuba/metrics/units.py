@@ -63,7 +63,7 @@ def format_value_using_unit(value: int | float, unit: str) -> str:
         return str(value)
 
 
-def round_with_fixed(value, fixed_digits):
+def round_with_fixed(value: int | float, fixed_digits: int) -> str:
     return str(round(value, fixed_digits)).rstrip("0").rstrip(".")
 
 
@@ -78,7 +78,7 @@ time_units_ms = {
 }
 
 
-def get_duration(seconds, fixed_digits=2):
+def get_duration(seconds: int | float, fixed_digits: int = 2) -> str:
     abs_value = abs(seconds * 1000)
     ms_value = seconds * 1000
 

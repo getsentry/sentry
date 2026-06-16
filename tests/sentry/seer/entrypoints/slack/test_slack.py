@@ -6,14 +6,19 @@ from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.templates.seer import SeerAutofixUpdate, SeerExplorerError
+from sentry.notifications.platform.templates.seer import (
+    SeerAgentError,
+    SeerAgentResponse,
+    SeerAutofixUpdate,
+)
 from sentry.notifications.utils.actions import BlockKitMessageAction
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.slack.entrypoint import (
+    EntrypointSetupError,
+    SlackAgentCachePayload,
+    SlackAgentEntrypoint,
     SlackAutofixCachePayload,
     SlackAutofixEntrypoint,
-    SlackExplorerCachePayload,
-    SlackExplorerEntrypoint,
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
@@ -23,11 +28,12 @@ from sentry.seer.entrypoints.slack.messaging import (
     send_thread_update,
     update_existing_message,
 )
+from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.testutils.cases import TestCase
 
 
 class SlackAutofixEntrypointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.slack_user_id = "UXXXXXXXXX1"
         self.channel_id = "CXXXXXXXXX1"
         self.thread_ts = "1712345678.987654"
@@ -70,15 +76,8 @@ class SlackAutofixEntrypointTest(TestCase):
             action=self.action,
         )
 
-    def test_has_access(self):
-        with self.feature({"organizations:seer-slack-workflows": False}):
-            assert not SlackAutofixEntrypoint.has_access(self.organization)
-        with self.feature("organizations:seer-slack-workflows"):
-            assert SlackAutofixEntrypoint.has_access(self.organization)
-            self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
-            assert not SlackAutofixEntrypoint.has_access(self.organization)
-            self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
-            assert SlackAutofixEntrypoint.has_access(self.organization)
+    def test_has_access(self) -> None:
+        assert SlackAutofixEntrypoint.has_access(self.organization)
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     def test_on_trigger_autofix_error(self, mock_send_threaded_ephemeral_message):
@@ -104,7 +103,37 @@ class SlackAutofixEntrypointTest(TestCase):
         ep.on_trigger_autofix_success(run_id=MOCK_RUN_ID)
         mock_update_message.assert_called_once()
 
-    def test_create_autofix_cache_payload(self):
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    def test_on_trigger_handoff_error(self, mock_send_threaded_ephemeral_message):
+        ep = self._get_entrypoint()
+        ep.on_trigger_handoff_error(error="boom")
+        mock_send_threaded_ephemeral_message.assert_called_once()
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_on_trigger_handoff_success(self, mock_update_message):
+        self.slack_request.data = {
+            "message": {"ts": self.thread_ts, "text": "Issue notification", "blocks": []}
+        }
+        ep = self._get_entrypoint()
+        ep.on_trigger_handoff_success(
+            run_id=MOCK_RUN_ID,
+            target=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+        )
+        mock_update_message.assert_called_once()
+        renderable = mock_update_message.call_args.kwargs["renderable"]
+        # Footer working text should mention the target.
+        assert any(
+            "Handing off to Cursor" in (block.text.text if getattr(block, "text", None) else "")
+            for block in renderable["blocks"]
+        )
+
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    def test_create_autofix_cache_payload(self, mock_read_pref) -> None:
+        mock_read_pref.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.group.project.id,
+            repositories=[],
+        )
         ep = self._get_entrypoint()
         cache_payload = ep.create_autofix_cache_payload()
         SlackAutofixCachePayload(**cache_payload)
@@ -114,6 +143,23 @@ class SlackAutofixEntrypointTest(TestCase):
         assert cache_payload["project_id"] == self.group.project.id
         assert cache_payload["group_id"] == self.group.id
         assert cache_payload["threads"] == [self.thread]
+        assert cache_payload["handoff_target"] is None
+
+    @patch("sentry.seer.autofix.utils.read_preference_from_sentry_db")
+    def test_create_autofix_cache_payload_captures_handoff_target(self, mock_read_pref) -> None:
+        mock_read_pref.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.group.project.id,
+            repositories=[],
+            automation_handoff=SeerAutomationHandoffConfiguration(
+                handoff_point="root_cause",
+                target=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+                integration_id=789,
+            ),
+        )
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_autofix_cache_payload()
+        assert cache_payload["handoff_target"] == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     def test_on_autofix_update(self, mock_schedule_all_thread_updates):
@@ -131,7 +177,10 @@ class SlackAutofixEntrypointTest(TestCase):
             )
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
     def test_send_thread_update(
         self, mock_send_threaded_message, mock_send_threaded_ephemeral_message
     ):
@@ -240,7 +289,7 @@ class SlackAutofixEntrypointTest(TestCase):
 
         mock_update_message.assert_called_once()
 
-    def test_get_autofix_lock_key(self):
+    def test_get_autofix_lock_key(self) -> None:
         lock_key = SlackAutofixEntrypoint.get_autofix_lock_key(
             group_id=self.group.id,
             stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
@@ -267,7 +316,10 @@ class SlackAutofixEntrypointTest(TestCase):
 
         assert mock_process_thread_update.apply_async.call_count == len(threads)
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
     def test_process_thread_update(self, mock_send_threaded_message):
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
         serialized_data = serialize_notification_data(data)
@@ -452,7 +504,7 @@ class SlackAutofixEntrypointTest(TestCase):
         )
         assert result == expected
 
-    def test_get_autofix_stopping_point_from_action(self):
+    def test_get_autofix_stopping_point_from_action(self) -> None:
         # Empty, None, and invalid values default to ROOT_CAUSE
         self._assert_stopping_point_from_action("", AutofixStoppingPoint.ROOT_CAUSE)
         self._assert_stopping_point_from_action(None, AutofixStoppingPoint.ROOT_CAUSE)
@@ -462,7 +514,7 @@ class SlackAutofixEntrypointTest(TestCase):
             AutofixStoppingPoint.SOLUTION.value, AutofixStoppingPoint.SOLUTION
         )
 
-    def test_get_group_link_includes_seer_drawer(self):
+    def test_get_group_link_includes_seer_drawer(self) -> None:
         link = SlackAutofixEntrypoint.get_group_link(self.group)
         assert "seerDrawer=true" in link
 
@@ -485,11 +537,10 @@ class SlackAutofixEntrypointTest(TestCase):
         mock_update_message.assert_not_called()
 
 
-class SlackExplorerEntrypointTest(TestCase):
-    def setUp(self):
+class SlackAgentEntrypointTest(TestCase):
+    def setUp(self) -> None:
         self.slack_user_id = "UXXXXXXXXX2"
         self.channel_id = "CXXXXXXXXX2"
-        self.message_ts = "1712345678.111111"
         self.thread_ts = "1712345678.222222"
         self.integration = self.create_integration(
             organization=self.organization,
@@ -497,45 +548,30 @@ class SlackExplorerEntrypointTest(TestCase):
             provider="slack",
         )
 
-    def _get_entrypoint(self, thread_ts: str | None = None) -> SlackExplorerEntrypoint:
-        return SlackExplorerEntrypoint(
+    def _get_entrypoint(self, thread_ts: str | None = None) -> SlackAgentEntrypoint:
+        return SlackAgentEntrypoint(
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             channel_id=self.channel_id,
-            message_ts=self.message_ts,
             thread_ts=thread_ts if thread_ts is not None else self.thread_ts,
             slack_user_id=self.slack_user_id,
         )
 
-    def test_init_success(self):
+    def test_init_success(self) -> None:
         ep = self._get_entrypoint()
         assert ep.channel_id == self.channel_id
-        assert ep.message_ts == self.message_ts
         assert ep.thread_ts == self.thread_ts
         assert ep.organization_id == self.organization.id
         assert ep.slack_user_id == self.slack_user_id
         assert ep.install.model.id == self.integration.id
         assert ep.thread == SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
 
-    def test_init_defaults_thread_ts_to_message_ts_when_none(self):
-        ep = SlackExplorerEntrypoint(
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-            channel_id=self.channel_id,
-            message_ts=self.message_ts,
-            thread_ts=None,
-            slack_user_id=self.slack_user_id,
-        )
-        assert ep.thread_ts == self.message_ts
-        assert ep.thread["thread_ts"] == self.message_ts
-
-    def test_init_raises_if_integration_not_found(self):
-        with pytest.raises(ValueError):
-            SlackExplorerEntrypoint(
+    def test_init_raises_if_integration_not_found(self) -> None:
+        with pytest.raises(EntrypointSetupError):
+            SlackAgentEntrypoint(
                 integration_id=99999,
                 organization_id=self.organization.id,
                 channel_id=self.channel_id,
-                message_ts=self.message_ts,
                 thread_ts=self.thread_ts,
                 slack_user_id=self.slack_user_id,
             )
@@ -545,34 +581,22 @@ class SlackExplorerEntrypointTest(TestCase):
         return_value=[],
     )
     def test_init_raises_if_no_org_integration(self, mock_get_ois):
-        with pytest.raises(ValueError):
-            SlackExplorerEntrypoint(
+        with pytest.raises(EntrypointSetupError):
+            SlackAgentEntrypoint(
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
                 channel_id=self.channel_id,
-                message_ts=self.message_ts,
                 thread_ts=self.thread_ts,
                 slack_user_id=self.slack_user_id,
             )
 
-    def test_has_access(self):
-        explorer_flags = {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-explorer": True,
-        }
-        with self.feature({"organizations:seer-slack-workflows": False, **explorer_flags}):
-            assert not SlackExplorerEntrypoint.has_access(self.organization)
-        with self.feature({"organizations:seer-slack-workflows": True, **explorer_flags}):
-            assert SlackExplorerEntrypoint.has_access(self.organization)
-            self.organization.update_option("sentry:hide_ai_features", True)
-            assert not SlackExplorerEntrypoint.has_access(self.organization)
-            self.organization.update_option("sentry:hide_ai_features", False)
-            assert SlackExplorerEntrypoint.has_access(self.organization)
+    def test_has_access(self) -> None:
+        assert SlackAgentEntrypoint.has_access(self.organization)
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_explorer_error(self, mock_send_ephemeral):
+    def test_on_trigger_agent_error(self, mock_send_ephemeral):
         ep = self._get_entrypoint()
-        ep.on_trigger_explorer_error(error="Test error")
+        ep.on_trigger_agent_error(error="Test error")
 
         mock_send_ephemeral.assert_called_once_with(
             channel_id=self.channel_id,
@@ -581,27 +605,30 @@ class SlackExplorerEntrypointTest(TestCase):
             slack_user_id=self.slack_user_id,
         )
 
-    def test_on_trigger_explorer_success_is_noop(self):
+    def test_on_trigger_agent_success_is_noop(self) -> None:
         ep = self._get_entrypoint()
-        ep.on_trigger_explorer_success(run_id=12345)
+        ep.on_trigger_agent_success(run_id=12345)
 
-    def test_create_explorer_cache_payload(self):
+    def test_create_agent_cache_payload(self) -> None:
         ep = self._get_entrypoint()
-        payload = ep.create_explorer_cache_payload()
-        SlackExplorerCachePayload(**payload)  # validates TypedDict structure
+        payload = ep.create_agent_cache_payload()
+        SlackAgentCachePayload(**payload)  # validates TypedDict structure
         assert payload["organization_id"] == self.organization.id
         assert payload["integration_id"] == self.integration.id
-        assert payload["message_ts"] == self.message_ts
         assert payload["thread"]["thread_ts"] == self.thread_ts
         assert payload["thread"]["channel_id"] == self.channel_id
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_explorer_update(self, mock_schedule_all_thread_updates):
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    def test_on_agent_update(self, mock_has_history_scope, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
         run_id = 12345
 
-        SlackExplorerEntrypoint.on_explorer_update(
+        SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             summary="Test summary",
             run_id=run_id,
@@ -619,11 +646,11 @@ class SlackExplorerEntrypointTest(TestCase):
         assert call_data.summary == "Test summary"
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_explorer_update_with_no_summary(self, mock_schedule_all_thread_updates):
+    def test_on_agent_update_with_no_summary(self, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
 
-        SlackExplorerEntrypoint.on_explorer_update(
+        SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             summary=None,
             run_id=12345,
@@ -631,12 +658,12 @@ class SlackExplorerEntrypointTest(TestCase):
 
         mock_schedule_all_thread_updates.assert_called_once()
         call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
-        assert isinstance(call_data, SeerExplorerError)
+        assert isinstance(call_data, SeerAgentError)
         assert call_data.error_message == "Seer was unable to generate a response."
 
-    def test_on_explorer_update_skips_clear_when_integration_not_found(self):
+    def test_on_agent_update_skips_clear_when_integration_not_found(self) -> None:
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
 
         with (
             patch(
@@ -647,7 +674,7 @@ class SlackExplorerEntrypointTest(TestCase):
                 return_value=None,
             ),
         ):
-            SlackExplorerEntrypoint.on_explorer_update(
+            SlackAgentEntrypoint.on_agent_update(
                 cache_payload=cache_payload,
                 summary=None,
                 run_id=12345,
@@ -655,3 +682,76 @@ class SlackExplorerEntrypointTest(TestCase):
 
         # Still schedules the thread update even without a fresh integration
         mock_schedule.assert_called_once()
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    def test_on_agent_update_sets_missing_scope_url(self, mock_has_history_scope, mock_schedule):
+        """When history scope is missing, on_agent_update sets missing_scope_settings_url."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_agent_cache_payload()
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=cache_payload,
+            summary="Test summary",
+            run_id=12345,
+        )
+
+        call_data = mock_schedule.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentResponse)
+        assert call_data.missing_scope_settings_url is not None
+        assert "/integrations/slack/" in call_data.missing_scope_settings_url
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    def test_on_agent_update_no_missing_scope_url_when_has_scope(
+        self, mock_has_history_scope, mock_schedule
+    ):
+        """When history scope is present, missing_scope_settings_url should be None."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_agent_cache_payload()
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=cache_payload,
+            summary="Test summary",
+            run_id=12345,
+        )
+
+        call_data = mock_schedule.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentResponse)
+        assert call_data.missing_scope_settings_url is None
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    def test_on_agent_update_missing_scope_url_cached_per_thread(
+        self, mock_has_history_scope, mock_schedule
+    ):
+        """Second call for the same thread should not set the URL (cached)."""
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_agent_cache_payload()
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=cache_payload,
+            summary="First response",
+            run_id=12345,
+        )
+        first_data = mock_schedule.call_args.kwargs["data"]
+        assert first_data.missing_scope_settings_url is not None
+
+        mock_schedule.reset_mock()
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=cache_payload,
+            summary="Second response",
+            run_id=12346,
+        )
+        second_data = mock_schedule.call_args.kwargs["data"]
+        assert second_data.missing_scope_settings_url is None

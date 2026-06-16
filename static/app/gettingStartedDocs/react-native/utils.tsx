@@ -10,17 +10,17 @@ export const installCodeBlock: ContentBlock = {
     {
       label: 'npm',
       language: 'bash',
-      code: `npm install @sentry/react-native@latest`,
+      code: 'npm install @sentry/react-native@latest',
     },
     {
       label: 'yarn',
       language: 'bash',
-      code: `yarn add @sentry/react-native@latest`,
+      code: 'yarn add @sentry/react-native@latest',
     },
     {
       label: 'pnpm',
       language: 'bash',
-      code: `pnpm add @sentry/react-native@latest`,
+      code: 'pnpm add @sentry/react-native@latest',
     },
   ],
 };
@@ -30,9 +30,12 @@ import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,${
+  dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/react-native/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: [],
+  },${
     params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.

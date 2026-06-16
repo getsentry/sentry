@@ -1,13 +1,14 @@
 from django.urls import re_path
 
-from sentry.integrations.web.vercel_extension_configuration import VercelExtensionConfigurationView
-
+from .views import VercelConfigureRedirectView
 from .webhook import VercelWebhookEndpoint
 
 urlpatterns = [
+    # Vercel marketplace installs link here with the OAuth `code`. We forward it
+    # to the link view, which opens the install pipeline modal to finish up.
     re_path(
         r"^configure/$",
-        VercelExtensionConfigurationView.as_view(),
+        VercelConfigureRedirectView.as_view(),
         name="sentry-extensions-vercel-configure",
     ),
     # Since we've been endorsing using `/delete` as the endpoint for Self-Hosted, we need to

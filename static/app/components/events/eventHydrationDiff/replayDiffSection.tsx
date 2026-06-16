@@ -3,7 +3,7 @@ import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -11,9 +11,9 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 interface Props {
   event: Event;
@@ -36,14 +36,14 @@ export function ReplayDiffSection({event, group, replayId}: Props) {
           replaySlug={replayId}
           LazyComponent={ReplayDiffContent}
           loadingFallback={
-            <InterimSection
-              type={SectionKey.HYDRATION_DIFF}
+            <FoldSection
+              sectionKey={SectionKey.HYDRATION_DIFF}
               title={t('Hydration Error Diff')}
             >
               <StyledNegativeSpaceContainer data-test-id="replay-diff-loading-placeholder">
                 <LoadingIndicator />
               </StyledNegativeSpaceContainer>
-            </InterimSection>
+            </FoldSection>
           }
         />
       </ReactLazyLoad>

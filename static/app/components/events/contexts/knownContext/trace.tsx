@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 enum TraceContextKeys {
@@ -58,7 +58,7 @@ export function getTraceContextData({
         case TraceContextKeys.TRACE_ID: {
           const traceId = data.trace_id || '';
           if (!traceId) {
-            return undefined;
+            return;
           }
 
           // We want to default to true for backwards compatibility, but we want to show
@@ -156,7 +156,7 @@ export function getTraceContextData({
           });
 
           if (!eventTag || typeof eventTag.value !== 'string') {
-            return undefined;
+            return;
           }
           const transactionName = eventTag.value;
 

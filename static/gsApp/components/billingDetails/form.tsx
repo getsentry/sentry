@@ -16,7 +16,7 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -166,7 +166,7 @@ function BillingDetailsFormFields({
                   },
               allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
                 defined(code)
-              ).map(([code]) => code as string),
+              ).map(([code]) => code!),
               fields: {phone: 'never'}, // don't show phone number field
               defaultValues: {
                 name: initialData?.companyName,
@@ -270,12 +270,8 @@ export function BillingDetailsForm({
       data.taxNumber = null;
     }
 
-    // Clear the region if not applicable to country code.
-    if (
-      countryHasRegionChoices(data.countryCode) &&
-      !getRegionChoiceCode(data.countryCode, data.region)
-    ) {
-      data.region = undefined;
+    if (!getRegionChoiceCode(data.countryCode, data.region)) {
+      data.region = null;
     }
 
     return data;

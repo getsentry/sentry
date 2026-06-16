@@ -1,4 +1,7 @@
+from unittest.mock import patch
 from uuid import uuid4
+
+from django.db import connection
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
@@ -15,6 +18,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -37,6 +41,12 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWorkflowTest):
+    def setUp(self) -> None:
+        super().setUp()
+        patcher = patch("sentry.deletions.defaults.repository.notify_seer_repository_deleted")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_simple(self) -> None:
         org_owner = self.create_user()
         org = self.create_organization(name="test", owner=org_owner)
@@ -367,6 +377,83 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             .exclude(environment=None)
             .exists()
         )
+
+    def test_orphan_group_environment_cleanup(self) -> None:
+        # Regression test: GroupEnvironment rows orphaned after group deletion (e.g. groups
+        # deleted via a path that didn't cascade to GroupEnvironment) must not block
+        # Environment deletion. Without the explicit GroupEnvironment child relation in
+        # OrganizationDeletionTask, Django's ORM cascade from environment.delete() fires a
+        # post_delete signal per GroupEnvironment row, which causes timeouts at scale.
+        # Uses multiple environments to exercise the environment_id__in query.
+
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        env_prod = Environment.objects.create(organization_id=org.id, name="production")
+        env_staging = Environment.objects.create(organization_id=org.id, name="staging")
+        env_dev = Environment.objects.create(organization_id=org.id, name="development")
+        group1 = Group.objects.create(project=project)
+        group2 = Group.objects.create(project=project)
+        group_env1 = GroupEnvironment.objects.create(group=group1, environment=env_prod)
+        group_env2 = GroupEnvironment.objects.create(group=group1, environment=env_staging)
+        group_env3 = GroupEnvironment.objects.create(group=group2, environment=env_prod)
+        group_env4 = GroupEnvironment.objects.create(group=group2, environment=env_dev)
+
+        # Delete the groups via raw SQL to bypass Django's ORM cascade, leaving the
+        # GroupEnvironment rows orphaned (no parent group) — this is the production scenario.
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM sentry_groupedmessage WHERE id IN (%s, %s)",
+                [group1.id, group2.id],
+            )
+        assert (
+            GroupEnvironment.objects.filter(
+                id__in=[group_env1.id, group_env2.id, group_env3.id, group_env4.id]
+            ).count()
+            == 4
+        )
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Environment.objects.filter(organization_id=org.id).exists()
+        assert not GroupEnvironment.objects.filter(
+            id__in=[group_env1.id, group_env2.id, group_env3.id, group_env4.id]
+        ).exists()
+
+    def test_orphan_group_environment_batched_cleanup(self) -> None:
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        envs = [
+            Environment.objects.create(organization_id=org.id, name=f"env-{i}") for i in range(5)
+        ]
+        group = Group.objects.create(project=project)
+        group_envs = [GroupEnvironment.objects.create(group=group, environment=env) for env in envs]
+
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM sentry_groupedmessage WHERE id = %s", [group.id])
+
+        group_env_ids = [ge.id for ge in group_envs]
+        assert GroupEnvironment.objects.filter(id__in=group_env_ids).count() == 5
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with (
+            patch(
+                "sentry.deletions.defaults.organization.GroupEnvironmentBulkDeletionTask.ENV_ID_BATCH_SIZE",
+                2,
+            ),
+            self.tasks(),
+        ):
+            run_scheduled_deletions()
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Environment.objects.filter(organization_id=org.id).exists()
+        assert not GroupEnvironment.objects.filter(id__in=group_env_ids).exists()
 
     def test_workflow_engine_cleanup(self) -> None:
         org = self.create_organization(name="test")

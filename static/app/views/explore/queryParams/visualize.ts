@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   isEquation,
   parseFunction,

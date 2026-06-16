@@ -9,11 +9,6 @@ export function GitHubIntegrationProviderFixture(
     name: 'GitHub',
     canAdd: true,
     features: [],
-    setupDialog: {
-      url: '/github-integration-setup-uri/',
-      width: 100,
-      height: 100,
-    },
     canDisable: true,
     metadata: {
       description: '*markdown* formatted _description_',

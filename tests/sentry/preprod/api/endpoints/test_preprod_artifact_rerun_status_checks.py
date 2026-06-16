@@ -7,13 +7,13 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
     endpoint = "sentry-api-0-organization-preprod-artifact-rerun-status-checks"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
         self.login_as(user=self.user)
 
-    def test_success(self):
+    def test_success(self) -> None:
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             provider="github",
@@ -44,7 +44,7 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
                 preprod_artifact_id=artifact.id, caller="rerun_endpoint"
             )
 
-    def test_invalid_check_types(self):
+    def test_invalid_check_types(self) -> None:
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             provider="github",
@@ -69,7 +69,7 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
         assert "No supported check types" in response.data["error"]
 
-    def test_non_string_check_types(self):
+    def test_non_string_check_types(self) -> None:
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             provider="github",
@@ -94,7 +94,7 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
         assert "All check_types must be strings" in response.data["error"]
 
-    def test_no_commit_comparison(self):
+    def test_no_commit_comparison(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
@@ -111,7 +111,7 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
 
         assert "no commit comparison" in response.data["error"]
 
-    def test_task_failure(self):
+    def test_task_failure(self) -> None:
         commit_comparison = self.create_commit_comparison(
             organization=self.organization,
             provider="github",
@@ -141,7 +141,7 @@ class PreprodArtifactRerunStatusChecksTest(APITestCase):
             assert "Failed to queue status checks" in response.data["error"]
             assert response.data["failed_check_types"] == ["size"]
 
-    def test_permission_denied(self):
+    def test_permission_denied(self) -> None:
         other_user = self.create_user()
         self.login_as(user=other_user)
 

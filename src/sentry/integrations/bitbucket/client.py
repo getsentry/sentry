@@ -56,6 +56,10 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
     integration_name = IntegrationProviderSlug.BITBUCKET.value
 
+    # Bitbucket Cloud defaults to pagelen=10 and caps at 100.
+    page_size = 100
+    page_number_limit = 50
+
     def __init__(self, integration: RpcIntegration | Integration):
         self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
@@ -109,8 +113,44 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     def get_repo(self, repo):
         return self.get(BitbucketAPIPath.repository.format(repo=repo))
 
-    def get_repos(self, username):
-        return self.get(BitbucketAPIPath.repositories.format(username=username))
+    def _get_all_from_paginated(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        page_number_limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Aggregate all pages from a Bitbucket Cloud paginated endpoint.
+
+        Bitbucket uses a ``next`` URL in the response body (not headers)
+        to link to the next page.
+        """
+        if page_number_limit is None or page_number_limit > self.page_number_limit:
+            page_number_limit = self.page_number_limit
+
+        if params is None:
+            params = {}
+        params.setdefault("pagelen", self.page_size)
+
+        output: list[dict[str, Any]] = []
+        resp = self.get(path, params=params)
+        output.extend(resp.get("values", []))
+
+        page_number = 1
+        while "next" in resp and page_number < page_number_limit:
+            resp = self.get(resp["next"])
+            output.extend(resp.get("values", []))
+            page_number += 1
+
+        return output
+
+    def get_repos(
+        self, username: str, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
+        return self._get_all_from_paginated(
+            BitbucketAPIPath.repositories.format(username=username),
+            page_number_limit=page_number_limit,
+        )
 
     def search_repositories(self, username, query):
         return self.get(

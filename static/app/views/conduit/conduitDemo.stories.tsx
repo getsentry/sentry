@@ -49,7 +49,7 @@ export default Storybook.story('Conduit Demo', story => {
     return (
       <Flex direction="column" gap="lg" padding="lg" align="start">
         <Heading as="h1">Conduit Demo</Heading>
-        <Button priority="primary" size="md" onClick={() => setIsEnabled(prev => !prev)}>
+        <Button variant="primary" size="md" onClick={() => setIsEnabled(prev => !prev)}>
           {isEnabled ? 'Disable' : 'Enable'}
         </Button>
         <Text variant={isConnected ? 'success' : 'muted'}>

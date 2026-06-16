@@ -22,8 +22,8 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 )
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     APPROVE_SNAPSHOT_ACTION_IDENTIFIER,
-    create_preprod_snapshot_status_check_task,
 )
+from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ def handle_preprod_check_run_event(
     except PreprodArtifact.DoesNotExist:
         logger.warning(
             Log.ARTIFACT_NOT_FOUND,
-            extra={**extra, "artifact_id": artifact_id},
+            extra={**extra, "preprod_artifact_id": artifact_id},
         )
         metrics.incr(Log.ARTIFACT_NOT_FOUND)
         return
@@ -183,11 +183,18 @@ def handle_preprod_check_run_event(
         )
         approvals_created += 1
 
+    if approvals_created > 0:
+        PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=sibling_ids,
+            preprod_feature_type=feature_type,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+        ).delete()
+
     logger.info(
         Log.APPROVALS_CREATED,
         extra={
             **extra,
-            "artifact_id": artifact_id,
+            "preprod_artifact_id": artifact_id,
             "sibling_count": len(sibling_artifacts),
             "approvals_created": approvals_created,
         },
@@ -208,18 +215,14 @@ def handle_preprod_check_run_event(
         )
 
     if identifier == APPROVE_SIZE_ACTION_IDENTIFIER:
-        create_preprod_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "github_approve_webhook",
-            }
+        create_preprod_status_check_task(
+            preprod_artifact_id=artifact.id,
+            caller="github_approve_webhook",
         )
     elif identifier == APPROVE_SNAPSHOT_ACTION_IDENTIFIER:
-        create_preprod_snapshot_status_check_task.apply_async(
-            kwargs={
-                "preprod_artifact_id": artifact.id,
-                "caller": "github_approve_webhook",
-            }
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=artifact.id,
+            caller="github_approve_webhook",
         )
     else:
         raise ValueError(f"Unknown identifier: {identifier}")

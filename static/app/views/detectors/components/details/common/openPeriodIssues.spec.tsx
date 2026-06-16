@@ -10,6 +10,13 @@ import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 
 describe('DetectorDetailsOpenPeriodIssues', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+  });
+
   it('renders latest issue with one open period', async () => {
     const detector = MetricDetectorFixture({
       latestGroup: SimpleGroupFixture({
@@ -35,12 +42,12 @@ describe('DetectorDetailsOpenPeriodIssues', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1234/`,
+      url: '/organizations/org-slug/issues/1234/',
       body: detector.latestGroup,
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/open-periods/`,
+      url: '/organizations/org-slug/open-periods/',
       body: [
         {
           start: '2025-06-01T10:00:00Z',

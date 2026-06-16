@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
-export const Wrap = styled('div')`
-  margin-bottom: ${p => p.theme.space['3xl']};
-`;
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
+export function Wrap(props: ContainerProps) {
+  return <Container marginBottom="3xl" {...props} />;
+}
 
 export const Title = styled('h6')`
   color: ${p => p.theme.tokens.content.secondary};
@@ -18,6 +20,6 @@ export const IconWrapper = styled('div')`
   margin-left: ${p => p.theme.space.xs};
 `;
 
-export const Content = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-`;
+export function Content(props: ContainerProps) {
+  return <Container marginTop="md" {...props} />;
+}

@@ -20,7 +20,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
         # Deprecated APIs remain private until removed
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     def get(self, request: Request, organization) -> Response:
         """

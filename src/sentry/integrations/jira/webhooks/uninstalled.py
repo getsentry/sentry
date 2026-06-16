@@ -15,7 +15,7 @@ from .base import JiraWebhookBase
 
 @control_silo_endpoint
 class JiraSentryUninstalledWebhook(JiraWebhookBase):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.PROJECT_MANAGEMENT_INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

@@ -13,7 +13,7 @@ from sentry.notifications.models.notificationaction import NotificationAction
 
 @cell_silo_endpoint
 class NotificationActionsAvailableEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.NOTIFICATIONS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

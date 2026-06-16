@@ -1,9 +1,9 @@
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import DefaultIssueActions from 'sentry/plugins/components/issueActions';
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {IssueActions as DefaultIssueActions} from 'sentry/plugins/components/issueActions';
 import type {Writable} from 'sentry/types/core';
 
-class IssueActions extends DefaultIssueActions {
+export class IssueActions extends DefaultIssueActions {
   changeField = (
     action: DefaultIssueActions['props']['actionType'],
     name: string,
@@ -22,40 +22,43 @@ class IssueActions extends DefaultIssueActions {
       state.state = FormState.LOADING;
       this.setState(
         state,
-        this.onLoad.bind(this, () => {
-          this.api.request(
-            this.getPluginCreateEndpoint() + '?issuetype=' + encodeURIComponent(value),
-            {
-              success: (data: DefaultIssueActions['state']['unlinkFieldList']) => {
-                // Try not to change things the user might have edited
-                // unless they're no longer valid
-                const oldData = this.state.createFormData;
-                const createFormData: Record<string, any> = {};
-                data?.forEach(field => {
-                  let val: any;
-                  if (
-                    field.choices &&
-                    !field.choices.some(c => c[0] === oldData[field.name])
-                  ) {
-                    val = field.default;
-                  } else {
-                    val = oldData[field.name] || field.default;
-                  }
-                  createFormData[field.name] = val;
-                });
-                this.setState(
-                  {
-                    createFieldList: data,
-                    error: undefined,
-                    loading: false,
-                    createFormData,
-                  },
-                  this.onLoadSuccess
-                );
+        this.onLoad.bind(this, async () => {
+          try {
+            const [data] = await this.api.requestPromise(
+              this.getPluginCreateEndpoint() + '?issuetype=' + encodeURIComponent(value),
+              {
+                includeAllArgs: true,
+              }
+            );
+
+            // Try not to change things the user might have edited
+            // unless they're no longer valid
+            const oldData = this.state.createFormData;
+            const createFormData: Record<string, any> = {};
+            (data as DefaultIssueActions['state']['unlinkFieldList'])?.forEach(field => {
+              let val: any;
+              if (
+                field.choices &&
+                !field.choices.some(c => c[0] === oldData[field.name])
+              ) {
+                val = field.default;
+              } else {
+                val = oldData[field.name] || field.default;
+              }
+              createFormData[field.name] = val;
+            });
+            this.setState(
+              {
+                createFieldList: data,
+                error: undefined,
+                loading: false,
+                createFormData,
               },
-              error: this.errorHandler,
-            }
-          );
+              this.onLoadSuccess
+            );
+          } catch (error) {
+            this.errorHandler(error);
+          }
         })
       );
       return;
@@ -73,12 +76,7 @@ class IssueActions extends DefaultIssueActions {
           if (field.has_autocomplete) {
             field = Object.assign(
               {
-                url:
-                  '/api/0/issues/' +
-                  this.getGroup().id +
-                  '/plugins/' +
-                  this.props.plugin.slug +
-                  '/autocomplete',
+                url: `/api/0/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/autocomplete`,
               },
               field
             );
@@ -116,5 +114,3 @@ class IssueActions extends DefaultIssueActions {
     return form;
   }
 }
-
-export default IssueActions;

@@ -28,7 +28,6 @@ class ErrorGroupType(GroupType):
     slug = "error"
     description = "Error"
     category = GroupCategory.ERROR.value
-    category_v2 = GroupCategory.ERROR.value
     default_priority = PriorityLevel.MEDIUM
     released = True
     detector_settings = DetectorSettings(

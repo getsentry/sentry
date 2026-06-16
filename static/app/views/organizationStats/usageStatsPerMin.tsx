@@ -39,7 +39,7 @@ export function UsageStatsPerMin({
     isError,
   } = useApiQuery<UsageSeries>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {

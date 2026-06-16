@@ -6,9 +6,10 @@
  */
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -18,7 +19,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -156,7 +157,7 @@ export default function AccountSecurityDetails() {
           />
         }
         action={
-          <Grid flow="column" align="center" gap="md">
+          <Flex gap="md">
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (
               <LinkButton
                 to={`/settings/account/security/mfa/${authenticator.id}/enroll/`}
@@ -174,13 +175,13 @@ export default function AccountSecurityDetails() {
                         )
                       : undefined,
                   }}
-                  priority="danger"
+                  variant="danger"
                 >
                   {authenticator.removeButton}
                 </Button>
               </RemoveConfirm>
             )}
-          </Grid>
+          </Flex>
         }
       />
 

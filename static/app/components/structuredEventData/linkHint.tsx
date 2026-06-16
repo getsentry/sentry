@@ -5,8 +5,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {defined} from 'sentry/utils/defined';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 interface Props {
   value: string;
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function LinkHint({meta, value}: Props) {
-  if (!isUrl(value) || defined(meta)) {
+  if (!isValidUrl(value) || defined(meta)) {
     return null;
   }
 

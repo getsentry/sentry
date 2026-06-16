@@ -93,14 +93,14 @@ class OpsgenieClientTest(APITestCase):
         payload = orjson.loads(request.body)
         group_id = str(group.id)
         assert payload == {
-            "tags": ["level:warning"],
+            "tags": ["interface_type:logentry", "level:warning"],
             "entity": "foo.bar",
             "alias": "sentry: %s" % group_id,
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": "my rule",
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.id}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/issues/alerts/rules/{self.project.slug}/{rule.id}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -160,14 +160,14 @@ class OpsgenieClientTest(APITestCase):
         payload = orjson.loads(request.body)
         group_id = str(group.id)
         assert payload == {
-            "tags": ["level:warning"],
+            "tags": ["interface_type:logentry", "level:warning"],
             "entity": "foo.bar",
             "alias": "sentry: %s" % group_id,
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": rule.label,
-                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.data['actions'][0]['legacy_rule_id']}/details/",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/issues/alerts/rules/{self.project.slug}/{rule.data['actions'][0]['legacy_rule_id']}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -226,7 +226,7 @@ class OpsgenieClientTest(APITestCase):
         payload = orjson.loads(request.body)
         group_id = str(group.id)
         assert payload == {
-            "tags": ["level:warning"],
+            "tags": ["interface_type:logentry", "level:warning"],
             "entity": "foo.bar",
             "alias": "sentry: %s" % group_id,
             "priority": "P2",

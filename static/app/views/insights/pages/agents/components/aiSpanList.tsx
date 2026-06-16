@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
+  getFirstToolInputValue,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
@@ -47,14 +48,17 @@ function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
     startTime = totalStartAndEndTime.startTime;
     endTime = totalStartAndEndTime.endTime;
   } else {
-    if (!node.startTimestamp || !node.endTimestamp)
+    if (!node.startTimestamp || !node.endTimestamp) {
       return {startTime: 0, endTime: 0, duration: 0};
+    }
 
     startTime = node.startTimestamp;
     endTime = node.endTimestamp;
   }
 
-  if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
+  if (endTime === 0) {
+    return {startTime: 0, endTime: 0, duration: 0};
+  }
 
   return {
     startTime,
@@ -141,7 +145,7 @@ function TransactionWrapper({
     for (const node of nodes) {
       const parent = getIsAiAgentNode(node)
         ? node
-        : (node as AITraceSpanNode).findParent<AITraceSpanNode>(p => getIsAiAgentNode(p));
+        : (node as AITraceSpanNode).findParent(p => getIsAiAgentNode(p));
       if (parent) {
         parents[node.id] = parent;
       }
@@ -167,7 +171,7 @@ function TransactionWrapper({
           {canCollapse ? (
             <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
           ) : null}
-          <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
             <span>{title}</span>
           </Tooltip>
         </TransactionButton>
@@ -256,20 +260,14 @@ const TraceListItem = memo(function TraceListItem({
       <Stack gap="xs" flex="1" minWidth="0">
         <Flex align="center" gap="xs">
           <Container maxWidth="40%" flexShrink={0}>
-            <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+            <Tooltip title={title} showOnlyOnOverflow skipWrapper>
               <Text bold size="sm" ellipsis>
                 {title}
               </Text>
             </Tooltip>
           </Container>
           {subtitle && (
-            <Tooltip
-              title={subtitle}
-              showOnlyOnOverflow
-              skipWrapper
-              delay={500}
-              maxWidth={500}
-            >
+            <Tooltip title={subtitle} showOnlyOnOverflow skipWrapper maxWidth={500}>
               <Text size="sm" variant="muted" ellipsis>
                 - {subtitle}
               </Text>
@@ -384,7 +382,9 @@ function calculateRelativeTiming(
   traceBounds: TraceBounds,
   compressedStartByNodeId?: Map<string, number>
 ): {leftPercent: number; widthPercent: number} {
-  if (!node.value) return {leftPercent: 0, widthPercent: 0};
+  if (!node.value) {
+    return {leftPercent: 0, widthPercent: 0};
+  }
 
   let startTime: number, endTime: number;
 
@@ -395,7 +395,9 @@ function calculateRelativeTiming(
     return {leftPercent: 0, widthPercent: 0};
   }
 
-  if (traceBounds.duration === 0) return {leftPercent: 0, widthPercent: 0};
+  if (traceBounds.duration === 0) {
+    return {leftPercent: 0, widthPercent: 0};
+  }
 
   // Look up the pre-computed compressed start time for this node.
   // The span duration stays the same - only gaps between spans are compressed.
@@ -475,6 +477,7 @@ function getSpanPresentation(
     case GenAiOperationType.AI_CLIENT: {
       const tokens = getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
       const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS);
+      const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const tokenLabel = tokens ? (
         <Fragment>
           <Count value={tokens} />
@@ -484,7 +487,7 @@ function getSpanPresentation(
       return {
         icon: <IconChat size="md" />,
         color,
-        title: description || op,
+        title: responseModel || description || op,
         subtitle:
           tokenLabel && cost ? (
             <Fragment>
@@ -497,11 +500,12 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+      const firstInputValue = getFirstToolInputValue(node);
       return {
         icon: <IconFix size="md" />,
         color,
         title: toolName || op,
-        subtitle: toolName ? op : '',
+        subtitle: firstInputValue || (toolName ? op : ''),
       };
     }
     case GenAiOperationType.HANDOFF:

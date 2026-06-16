@@ -153,7 +153,7 @@ class VercelSignatureAuthentication(BaseAuthentication):
 
 @control_silo_endpoint
 class VercelWebhookEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

@@ -32,7 +32,7 @@ ERR_FEATURE_REQUIRED = "Feature '%s' is not enabled for the organization."
 
 @cell_silo_endpoint
 class ProjectPluginDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

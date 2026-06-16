@@ -27,7 +27,7 @@ export function DisabledAlertWizard({organization}: Props) {
         >
           {t('Learn More')}
         </Button>
-        <Button priority="primary" disabled>
+        <Button variant="primary" disabled>
           {t('Set Conditions')}
         </Button>
       </Grid>

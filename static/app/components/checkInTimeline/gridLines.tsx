@@ -4,9 +4,12 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {useTimelineCursor, type CursorOffsets} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
@@ -227,7 +230,8 @@ export function GridLineOverlay({
   labelPosition = 'left-top',
   resetPaginationOnZoom,
 }: GridLineOverlayProps) {
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const {periodStart, timelineWidth, dateLabelFormat, rollupConfig, timezone} =
     timeWindowConfig;
   const {timelineUnderscanWidth} = rollupConfig;
@@ -257,10 +261,11 @@ export function GridLineOverlay({
           start: dateFromPosition(startX).startOf('minute').toDate(),
           end: dateFromPosition(endX).add(1, 'minute').startOf('minute').toDate(),
         },
-        router,
+        location,
+        navigate,
         {keepCursor: !resetPaginationOnZoom}
       ),
-    [dateFromPosition, resetPaginationOnZoom, router]
+    [dateFromPosition, resetPaginationOnZoom, location, navigate]
   );
 
   const {
@@ -281,20 +286,21 @@ export function GridLineOverlay({
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
 
   return (
-    <Overlay aria-hidden ref={overlayRef} className={className}>
+    <Container
+      width="100%"
+      height="100%"
+      position="absolute"
+      aria-hidden
+      ref={overlayRef}
+      className={className}
+    >
       {timelineCursor}
       {timelineSelector}
       {additionalUi}
       <GridLines timeWindowConfig={timeWindowConfig} labelPosition={labelPosition} />
-    </Overlay>
+    </Container>
   );
 }
-
-const Overlay = styled('div')`
-  height: 100%;
-  width: 100%;
-  position: absolute;
-`;
 
 const GridLineContainer = styled('div')`
   position: relative;

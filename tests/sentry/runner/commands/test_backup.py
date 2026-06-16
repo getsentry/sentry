@@ -33,7 +33,7 @@ from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import clear_database, generate_rsa_key_pair
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.email import Email
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 
 GOOD_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -761,7 +761,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
     def test_confirm_yes(self) -> None:
         output = self.cli_import_with_confirmation_input("y\n")
         assert "Import cancelled" not in output
-        assert Email.objects.count() > 0
+        assert UserEmail.objects.count() > 0
 
     @pytest.mark.skipif(
         os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "0",
@@ -770,12 +770,12 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
     def test_confirm_no(self) -> None:
         output = self.cli_import_with_confirmation_input("n\n")
         assert "Import cancelled" in output
-        assert Email.objects.count() == 0
+        assert UserEmail.objects.count() == 0
 
         # Should ignore the `--silent` flag, and only trigger on `--no-prompt`.
         output = self.cli_import_with_confirmation_input("n\n", import_args=["--silent"])
         assert "Import cancelled" not in output
-        assert Email.objects.count() == 0
+        assert UserEmail.objects.count() == 0
 
 
 @patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
@@ -783,7 +783,7 @@ class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self, get_importer_for_model: MagicMock) -> None:
         get_importer_for_model.return_value.return_value = RpcImportError(
             kind=RpcImportErrorKind.IntegrityError,
-            on=InstanceID(model=str(get_model_name(Email)), ordinal=1),
+            on=InstanceID(model=str(get_model_name(UserEmail)), ordinal=1),
             reason="Test integrity error",
         )
         # Global imports assume an empty DB, so this should fail with an `IntegrityError`.

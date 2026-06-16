@@ -17,7 +17,7 @@ export function useRecurringCredits(): RecurringCreditsContext {
   const enabled = hasBilling(organization);
   const {data: recurringCredits = [], isPending} = useApiQuery<RecurringCredit[]>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/recurring-credits/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/recurring-credits/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

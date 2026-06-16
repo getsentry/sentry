@@ -24,6 +24,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
@@ -532,6 +533,7 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         state=last_event,
         referrer="unmerge",
         tenant_ids={"organization_id": source.project.organization_id},
+        eap_conditions=build_group_id_in_filter([source.id]),
     )
     # Convert Event objects to GroupEvent objects
     events: list[GroupEvent] = [event.for_group(source) for event in raw_events]

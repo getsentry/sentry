@@ -36,7 +36,7 @@ function BillingInformation({subscription}: Props) {
   }
 
   return (
-    <SubscriptionPageContainer background="primary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Billing Information')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Billing Information')} />
       {hasBillingPerms ? (

@@ -32,7 +32,7 @@ export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {
           <Access access={['org:write']}>
             {({hasAccess}) => (
               <LinkButton
-                priority="primary"
+                variant="primary"
                 to={`/settings/${organization.slug}/data-forwarding/setup/`}
                 onClick={() => {
                   trackAnalytics('data_forwarding.onboarding_cta_clicked', {

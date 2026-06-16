@@ -15,7 +15,7 @@ export function useCurrentBillingHistory() {
     isError,
   } = useApiQuery<BillingHistory>(
     [
-      getApiUrl(`/customers/$organizationIdOrSlug/history/current/`, {
+      getApiUrl('/customers/$organizationIdOrSlug/history/current/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
     ],

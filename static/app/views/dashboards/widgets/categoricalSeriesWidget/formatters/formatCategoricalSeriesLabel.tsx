@@ -19,7 +19,7 @@ export function formatCategoricalSeriesLabel(series: CategoricalSeries): string 
           return t('(no value)');
         }
 
-        return groupBy.value;
+        return String(groupBy.value);
       })
       .join(',');
   }

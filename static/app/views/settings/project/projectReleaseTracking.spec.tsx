@@ -17,9 +17,9 @@ describe('ProjectReleaseTracking', () => {
 
   const initialRouterConfig = {
     location: {
-      pathname: `/settings/${org.slug}/projects/${project.slug}/settings/release-tracking/`,
+      pathname: `/settings/${org.slug}/projects/${project.slug}/release-tracking/`,
     },
-    route: '/settings/:orgId/projects/:projectId/settings/release-tracking/',
+    route: '/settings/:orgId/projects/:projectId/release-tracking/',
   };
 
   beforeEach(() => {
@@ -51,7 +51,9 @@ describe('ProjectReleaseTracking', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toHaveValue('token token token');
+      expect(screen.getByRole('textbox', {name: 'Token'})).toHaveValue(
+        'token token token'
+      );
     });
   });
 
@@ -82,7 +84,9 @@ describe('ProjectReleaseTracking', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toHaveValue('token2 token2 token2');
+      expect(screen.getByRole('textbox', {name: 'Token'})).toHaveValue(
+        'token2 token2 token2'
+      );
     });
     expect(mock).toHaveBeenCalledWith(
       url,
@@ -110,7 +114,7 @@ describe('ProjectReleaseTracking', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toHaveValue('YOUR_TOKEN');
+      expect(screen.getByRole('textbox', {name: 'Token'})).toHaveValue('YOUR_TOKEN');
     });
   });
 });

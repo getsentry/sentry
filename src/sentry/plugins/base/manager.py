@@ -61,7 +61,7 @@ class PluginManager(InstanceManager):
                 continue
             yield plugin
 
-    def get(self, slug):
+    def get(self, slug: str) -> Plugin | Plugin2:
         for plugin in self.all(version=None):
             if plugin.slug == slug:
                 return plugin

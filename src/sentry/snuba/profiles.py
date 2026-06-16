@@ -32,7 +32,7 @@ def query(
     functions_acl: list[str] | None = None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions=False,
+    fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
 ) -> Any:
     if not selected_columns:

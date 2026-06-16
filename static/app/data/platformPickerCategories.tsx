@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 const popularPlatformCategories = new Set<PlatformKey>([
   'javascript-nextjs',
@@ -103,6 +103,7 @@ const server = new Set<PlatformKey>([
   'python-falcon',
   'python-fastapi',
   'python-flask',
+  'python-litestar',
   'python-pyramid',
   'python-quart',
   'python-rq',

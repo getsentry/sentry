@@ -12,7 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 export function formatSearchStringForQueryParam(
   query: MutableSearch | string | undefined
 ): string | undefined {
-  if (typeof query === 'undefined') {
+  if (query === undefined) {
     return undefined;
   }
 

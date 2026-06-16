@@ -28,6 +28,7 @@ def format_choices_text(choices: Sequence[tuple[int, str]]):
 INTEGRATION_SERVICES = {
     ActionService.PAGERDUTY.value,
     ActionService.SLACK.value,
+    ActionService.SLACK_STAGING.value,
     ActionService.MSTEAMS.value,
     ActionService.OPSGENIE.value,
 }
@@ -86,8 +87,8 @@ Required if **service_type** is `slack` or `opsgenie`.
         required=False,
     )
     projects = serializers.ListField(
-        help_text="""List of projects slugs that the Notification Action is created for.""",
-        child=ProjectField(scope="project:write"),
+        help_text="""List of project IDs or slugs that the Notification Action is created for.""",
+        child=ProjectField(scope="project:write", id_allowed=True),
         required=False,
     )
     # Optional and not needed for spike protection so not documenting
@@ -208,7 +209,8 @@ Required if **service_type** is `slack` or `opsgenie`.
         NOTE: Reaches out to via slack integration to verify channel
         """
         if (
-            data["service_type"] != ActionService.SLACK.value
+            data["service_type"]
+            not in (ActionService.SLACK.value, ActionService.SLACK_STAGING.value)
             or data["target_type"] != ActionTarget.SPECIFIC.value
         ):
             return data

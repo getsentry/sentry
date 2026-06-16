@@ -17,18 +17,8 @@ from sentry.spans.consumers.process_segments.types import (
 # is taken from `extract_shared_tags` in Relay.
 SHARED_SENTRY_ATTRIBUTES = (
     ATTRIBUTE_NAMES.SENTRY_RELEASE,
-    "sentry.user",
-    "sentry.user.id",
-    "sentry.user.ip",
-    "sentry.user.username",
-    "sentry.user.email",
-    "sentry.user.geo.city",
-    "sentry.user.geo.country_code",
-    "sentry.user.geo.region",
-    "sentry.user.geo.subdivision",
-    "sentry.user.geo.subregion",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT,
-    ATTRIBUTE_NAMES.SENTRY_TRANSACTION,
+    ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
     "sentry.transaction.method",
     "sentry.transaction.op",
     "sentry.trace.status",
@@ -42,6 +32,28 @@ SHARED_SENTRY_ATTRIBUTES = (
     ATTRIBUTE_NAMES.SENTRY_PLATFORM,
     "sentry.thread.id",
     "sentry.thread.name",
+    # Current user attributes
+    ATTRIBUTE_NAMES.USER_EMAIL,
+    ATTRIBUTE_NAMES.USER_GEO_CITY,
+    ATTRIBUTE_NAMES.USER_GEO_COUNTRY_CODE,
+    ATTRIBUTE_NAMES.USER_GEO_REGION,
+    ATTRIBUTE_NAMES.USER_GEO_SUBDIVISION,
+    ATTRIBUTE_NAMES.USER_ID,
+    ATTRIBUTE_NAMES.USER_IP_ADDRESS,
+    ATTRIBUTE_NAMES.USER_NAME,
+    # Legacy user attributes, taken from sentry_tags.
+    # TODO(mjq): Remove these once everything is switched over to the new
+    # conventional attribute names. See BROWSE-535.
+    "sentry.user",
+    "sentry.user.id",
+    "sentry.user.ip",
+    "sentry.user.username",
+    "sentry.user.email",
+    "sentry.user.geo.city",
+    "sentry.user.geo.country_code",
+    "sentry.user.geo.region",
+    "sentry.user.geo.subdivision",
+    "sentry.user.geo.subregion",
 )
 
 # The name of the main thread used to infer the `main_thread` flag in spans from
@@ -261,15 +273,18 @@ def _us(timestamp: float) -> int:
 
 
 def compute_breakdowns(
-    spans: Sequence[SpanEvent],
+    child_spans: Sequence[SpanEvent],
     breakdowns_config: dict[str, dict[str, Any]],
 ) -> dict[str, Attribute]:
     """
-    Computes breakdowns from all spans and writes them to the segment span.
+    Computes breakdowns from child spans, returned as an attributes dict ready
+    to merge into a segment span.
 
     Breakdowns are measurements that are derived from the spans in the segment.
-    By convention, their unit is in milliseconds. In the end, these measurements
-    are converted into attributes on the span trace item.
+    By convention, their unit is in milliseconds.
+
+    The segment span itself must be excluded from ``child_spans`` to avoid
+    inflating breakdowns with the segment's own duration.
     """
 
     ret: dict[str, Attribute] = {}
@@ -277,7 +292,7 @@ def compute_breakdowns(
         ty = breakdown_config.get("type")
 
         if ty == "spanOperations":
-            breakdowns = _compute_span_ops(spans, breakdown_config)
+            breakdowns = _compute_span_ops(child_spans, breakdown_config)
         else:
             continue
 

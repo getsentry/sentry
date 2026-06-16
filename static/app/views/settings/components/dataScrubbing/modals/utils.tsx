@@ -1,20 +1,12 @@
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import type {
-  EventId,
-  SourceSuggestion,
-} from 'sentry/views/settings/components/dataScrubbing/types';
+import type {EventId} from 'sentry/views/settings/components/dataScrubbing/types';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 const ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY = 'advanced-data-scrubbing';
 
-type StorageValue = {
-  eventId: string;
-  sourceSuggestions: SourceSuggestion[];
-};
-
 export function useSourceGroupData() {
-  const [sourceGroupData, setSourceGroupData] = useLocalStorageState<StorageValue>(
+  const [sourceGroupData, setSourceGroupData] = useLocalStorageState(
     ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY,
     {
       eventId: '',

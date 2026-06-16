@@ -28,10 +28,17 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.event_examples import EventExamples
-from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams, IssueParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    EventParams,
+    GlobalParams,
+    IssueParams,
+    VisibilityParams,
+)
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_query
@@ -72,6 +79,7 @@ class GroupEventsEndpoint(GroupEndpoint):
             EventParams.FULL_PAYLOAD,
             EventParams.SAMPLE,
             EventParams.QUERY,
+            VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
         responses={
@@ -86,7 +94,9 @@ class GroupEventsEndpoint(GroupEndpoint):
         examples=EventExamples.GROUP_EVENTS_SIMPLE,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-events"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(
+        self, request: Request, group: Group
+    ) -> Response[list[SimpleEventSerializerResponse]] | Response[DetailResponse]:
         """
         Return a list of error events bound to an issue
         """
@@ -99,10 +109,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         except (NoResults, ResourceDoesNotExist):
             return Response([])
 
-        try:
-            start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        start, end = get_date_range_from_params(request.GET, optional=True)
 
         try:
             with handle_query_errors():

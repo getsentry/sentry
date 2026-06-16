@@ -28,7 +28,7 @@ export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const theme = useTheme();
   const formattedUnit =
     unit && (type === 'duration' ? `${unit}s` : `/${unit.split('/')[1]}`);
-  const title = unit ? t(`Thresholds in %s`, formattedUnit) : t('Thresholds');
+  const title = unit ? t('Thresholds in %s', formattedUnit) : t('Thresholds');
 
   const notSetMsg = t('Not set');
   const maxOneValue = max1 ?? notSetMsg;

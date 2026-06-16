@@ -41,6 +41,50 @@ describe('VirtualizedViewManger', () => {
     expect(manager.view.trace_physical_space.serialize()).toEqual([0, 0, 500, 1]);
   });
 
+  it('re-dispatches the container content box when scrollbar width changes', () => {
+    const scheduler = new TraceScheduler();
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      scheduler,
+      new TraceView(),
+      ThemeFixture()
+    );
+
+    manager.view.setTracePhysicalSpace([0, 0, 500, 200], [0, 0, 250, 200]);
+
+    const container = document.createElement('div');
+    container.style.paddingTop = '38px';
+    container.style.paddingLeft = '10px';
+    container.style.paddingRight = '10px';
+    manager.container = container;
+
+    jest.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 238,
+      right: 520,
+      width: 520,
+      height: 238,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    let dispatchedContainerPhysicalSpace: [number, number, number, number] | null = null;
+    scheduler.on('set container physical space', containerPhysicalSpace => {
+      dispatchedContainerPhysicalSpace = containerPhysicalSpace;
+    });
+
+    manager.onScrollbarWidthChange(14);
+
+    // 520 - 10 (paddingLeft) - 10 (paddingRight) = 500
+    // 238 - 38 (paddingTop) = 200
+    expect(dispatchedContainerPhysicalSpace).toEqual([0, 0, 500, 200]);
+  });
+
   describe('computeSpanCSSMatrixTransform', () => {
     it('enforces min scaling', () => {
       const manager = new VirtualizedViewManager(
@@ -207,7 +251,72 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
       manager.view.setTraceView({width: 500, x: 500});
 
-      expect(Math.round(manager.transformXFromTimestamp(100))).toBe(-500);
+      expect(Math.round(manager.transformXFromTimestamp(100))).toBe(-1000);
+    });
+  });
+
+  describe('trace issue icon placement', () => {
+    it('does not treat icons away from the physical right edge as end-clamped in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+
+      expect(manager.computeTraceIconPlacement(109.5, 18, [100, 100]).edge).toBeNull();
+    });
+
+    it('uses current view geometry before the span matrix has been recomputed', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+
+      const placement = manager.computeTraceIconPlacement(199.5, 18, [100, 100]);
+
+      expect(placement.edge).toBe('end');
+      expect(placement.anchorTimestamp).toBe(200);
+      expect(placement.bounds).toEqual([196.4, 200]);
+    });
+
+    it('anchors end-clamped icons to the visible trace end in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+
+      const placement = manager.computeTraceIconPlacement(199.5, 18, [100, 100]);
+
+      expect(placement.edge).toBe('end');
+      expect(placement.anchorTimestamp).toBe(200);
     });
   });
 
@@ -485,7 +594,7 @@ describe('VirtualizedViewManger', () => {
       expect(textTransform).toBe(153);
     });
 
-    it('uses ceil(text_width) when placing text inside on the right', () => {
+    it('keeps grouped issue pill bounds centered when it does not cross the view edge', () => {
       const manager = new VirtualizedViewManager(
         {
           list: {width: 0},
@@ -498,6 +607,223 @@ describe('VirtualizedViewManger', () => {
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+
+      jest.spyOn(manager.text_measurer, 'measure').mockImplementation(text => {
+        if (text === '2') {
+          return 6.5;
+        }
+        return 38;
+      });
+
+      const childErrorA = {
+        event_id: 'child-error-a',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.1005,
+      };
+      const childErrorB = {
+        event_id: 'child-error-b',
+        issue_id: 2,
+        level: 'warning',
+        start_timestamp: 0.1005,
+      };
+      const childErrorC = {
+        event_id: 'child-error-c',
+        issue_id: 3,
+        level: 'warning',
+        start_timestamp: 0.1005,
+      };
+      const node = {
+        value: {errors: [], occurrences: []},
+        errors: new Set([childErrorA, childErrorB, childErrorC]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [100, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(119.5);
+    });
+
+    it('keeps direct issue icon bounds centered when it does not cross the view edge', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(38);
+
+      const directError = {
+        event_id: 'direct-error',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.1005,
+      };
+      const node = {
+        value: {errors: [directError], occurrences: []},
+        errors: new Set([directError]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [100, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(112.5);
+    });
+
+    it('uses the physical viewport edge for issue icon bounds in a zoomed view', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+      manager.recomputeSpanToPXMatrix();
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(38);
+
+      const directError = {
+        event_id: 'direct-error',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.1095,
+      };
+      const node = {
+        value: {errors: [directError], occurrences: []},
+        errors: new Set([directError]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [109, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBeCloseTo(107);
+    });
+
+    it('places right-outside text after a view-edge anchored direct issue icon', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(38);
+
+      const directError = {
+        event_id: 'direct-error',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.0005,
+      };
+      const node = {
+        value: {errors: [directError], occurrences: []},
+        errors: new Set([directError]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [0, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(21);
+    });
+
+    it('places right-outside text after a view-edge anchored grouped issue pill', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+
+      jest.spyOn(manager.text_measurer, 'measure').mockImplementation(text => {
+        if (text === '1') {
+          return 6.5;
+        }
+        return 38;
+      });
+
+      const childErrorA = {
+        event_id: 'child-error-a',
+        issue_id: 1,
+        level: 'warning',
+        start_timestamp: 0.0005,
+      };
+      const childErrorB = {
+        event_id: 'child-error-b',
+        issue_id: 2,
+        level: 'warning',
+        start_timestamp: 0.0005,
+      };
+      const node = {
+        value: {errors: [], occurrences: []},
+        errors: new Set([childErrorA, childErrorB]),
+        occurrences: new Set(),
+      } as any;
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [0, 1],
+        '1.00ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(35);
+    });
+
+    it('uses ceil(text_width) when placing text inside on the right', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 200, 1], [0, 0, 200, 1]);
       manager.view.setTraceView({width: 100, x: 950});
 
       const measuredWidth = 200.2;

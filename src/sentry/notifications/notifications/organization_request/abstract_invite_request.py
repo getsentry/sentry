@@ -16,6 +16,7 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
 from sentry.users.services.user.service import user_service
+from sentry.utils.email.sanitize import sanitize_outbound_name
 
 if TYPE_CHECKING:
     from sentry.users.models.user import User
@@ -40,7 +41,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return f"Access request to {self.organization.name}"
+        return f"Access request to {sanitize_outbound_name(self.organization.name)}"
 
     def get_recipient_context(
         self, recipient: Actor, extra_context: Mapping[str, Any]

@@ -6,7 +6,7 @@ import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
 import {IconGithub, IconLink} from 'sentry/icons';
-import * as Storybook from 'sentry/stories';
+import {ThemeSwitcher} from 'sentry/stories/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -57,7 +57,7 @@ export function StoryHeader() {
           sentry.io
         </LinkButton>
         <span />
-        <Storybook.ThemeSwitcher />
+        <ThemeSwitcher />
       </Flex>
     </HeaderGrid>
   );

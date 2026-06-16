@@ -5,7 +5,7 @@ import type {vec2} from 'gl-matrix';
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -97,7 +97,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
       : `${relative > 0 ? '+' : ''}${formatPercentage(relative)}`
     : props.flamegraph.negated
       ? t('removed function')
-      : t(`new function`);
+      : t('new function');
 
   return (
     <BoundTooltip

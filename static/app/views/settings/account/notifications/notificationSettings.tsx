@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -15,19 +15,16 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import {withOrganizations} from 'sentry/utils/withOrganizations';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
 import {
-  NOTIFICATION_FEATURE_MAP,
   NOTIFICATION_SETTINGS_PATHNAMES,
   NOTIFICATION_SETTINGS_TYPES,
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const NOTIFICATIONS_ENDPOINT = getApiUrl('/users/$userId/notifications/', {
   path: {userId: 'me'},
@@ -40,36 +37,21 @@ const notificationSchema = z.object({
 
 type NotificationFields = z.infer<typeof notificationSchema>;
 
-interface NotificationSettingsProps {
-  organizations: Organization[];
-}
+export function NotificationSettings() {
+  const queryClient = useQueryClient();
 
-function NotificationSettings({organizations}: NotificationSettingsProps) {
-  const checkFeatureFlag = (flag: string) => {
-    return organizations.some(org => org.features?.includes(flag));
-  };
-  const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(type => {
-    const notificationFlag = NOTIFICATION_FEATURE_MAP[type];
-    if (Array.isArray(notificationFlag)) {
-      return notificationFlag.some(flag => checkFeatureFlag(flag));
-    }
-    if (notificationFlag) {
-      return checkFeatureFlag(notificationFlag);
-    }
-    return true;
-  });
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(
+    type => !(type === 'quota' && isSelfHosted)
+  );
 
   const renderOneSetting = (type: NotificationSettingsType) => {
     const field = NOTIFICATION_SETTING_FIELDS[type];
-    if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
-      field.label = t('Spend');
-      field.help = t('Notifications that help avoid surprise invoices.');
-    }
     return (
       <FieldWrapper key={type}>
         <div>
-          <FieldLabel>{field.label as React.ReactNode}</FieldLabel>
-          <FieldHelp>{field.help as React.ReactNode}</FieldHelp>
+          <FieldLabel>{field.label}</FieldLabel>
+          <FieldHelp>{field.help}</FieldHelp>
         </div>
         <IconWrapper>
           <LinkButton
@@ -102,24 +84,29 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         data,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       addSuccessMessage(t('Notification preferences saved'));
+      setApiQueryData<NotificationFields>(
+        queryClient,
+        [NOTIFICATIONS_ENDPOINT],
+        existing => (existing ? {...existing, ...variables} : undefined)
+      );
     },
   });
 
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Notifications')} />
-      <SettingsPageHeader title={t('Notifications')} />
+      <SettingsPageHeader
+        title={t('Notifications')}
+        subtitle={tct(
+          'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
+          {
+            link: <Link to="/settings/account/emails" />,
+          }
+        )}
+      />
       <FormSearch route="/settings/account/notifications/">
-        <TextBlock>
-          {tct(
-            'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
-            {
-              link: <Link to="/settings/account/emails" />,
-            }
-          )}
-        </TextBlock>
         {isError && <LoadingError onRetry={refetch} />}
         <Panel>
           <PanelHeader>{t('Notification')}</PanelHeader>
@@ -172,7 +159,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     </Fragment>
   );
 }
-export default withOrganizations(NotificationSettings);
 
 const FieldLabel = styled('div')`
   font-size: ${p => p.theme.font.size.md};

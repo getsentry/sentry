@@ -1,24 +1,22 @@
 import {useState} from 'react';
 import {ClassNames} from '@emotion/react';
+import {useInfiniteQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {ReplayList} from 'sentry/components/replays/list/__stories__/replayList';
 import {EnvironmentPicker} from 'sentry/components/replays/player/__stories__/environmentPicker';
-import {ProjectPicker} from 'sentry/components/replays/player/__stories__/projectPicker';
 import * as Storybook from 'sentry/stories';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import {useReplayListQueryKey} from 'sentry/utils/replays/hooks/useReplayListQueryKey';
+import {replayListInfiniteApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export default Storybook.story('ReplayList', story => {
   story('Rendered', () => {
     const organization = useOrganization();
-    const [project, setProject] = useState<string | undefined>();
-    const [environment, setEnvironment] = useState<string | undefined>();
+    const [project, setProject] = useQueryState('project', parseAsString);
+    const [environment, setEnvironment] = useQueryState('environment', parseAsString);
     const [replayId, setReplayId] = useState<string | undefined>();
 
     const query = {
@@ -28,22 +26,20 @@ export default Storybook.story('ReplayList', story => {
       statsPeriod: '90d',
     };
 
-    const listQueryKey = useReplayListQueryKey({
-      options: {query},
-      organization,
-      queryReferrer: 'replayList',
-    });
-    const {url, options} = parseQueryKey(listQueryKey);
-    const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-      queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
-      enabled: Boolean(listQueryKey),
-    });
+    const queryResult = useInfiniteQuery(
+      replayListInfiniteApiOptions({
+        options: {query},
+        organization,
+        queryReferrer: 'replayList',
+      })
+    );
 
     return (
       <Flex direction="column" gap="md">
         Selected Replay: {replayId}
         <Flex gap="sm">
-          <ProjectPicker project={project} onChange={setProject} />
+          <Storybook.SelectProject projectSlug={project} setProjectSlug={setProject} />
+
           <EnvironmentPicker
             project={project}
             environment={environment}
@@ -61,10 +57,8 @@ export default Storybook.story('ReplayList', story => {
 
   story('Hovercard', () => {
     const organization = useOrganization();
-
-    const [project, setProject] = useState<string | undefined>();
-    const [environment, setEnvironment] = useState<string | undefined>();
-
+    const [project, setProject] = useQueryState('project', parseAsString);
+    const [environment, setEnvironment] = useQueryState('environment', parseAsString);
     const [replayId, setReplayId] = useState<string | undefined>();
 
     const query = {
@@ -74,16 +68,13 @@ export default Storybook.story('ReplayList', story => {
       statsPeriod: '90d',
     };
 
-    const listQueryKey = useReplayListQueryKey({
-      options: {query},
-      organization,
-      queryReferrer: 'replayList',
-    });
-    const {url, options} = parseQueryKey(listQueryKey);
-    const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-      queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
-      enabled: Boolean(listQueryKey),
-    });
+    const queryResult = useInfiniteQuery(
+      replayListInfiniteApiOptions({
+        options: {query},
+        organization,
+        queryReferrer: 'replayList',
+      })
+    );
 
     return (
       <ClassNames>
@@ -92,7 +83,10 @@ export default Storybook.story('ReplayList', story => {
             body={
               <Flex direction="column" gap="md">
                 <Flex gap="sm">
-                  <ProjectPicker project={project} onChange={setProject} />
+                  <Storybook.SelectProject
+                    projectSlug={project}
+                    setProjectSlug={setProject}
+                  />
                   <EnvironmentPicker
                     project={project}
                     environment={environment}

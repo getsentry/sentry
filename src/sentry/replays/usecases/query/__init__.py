@@ -233,6 +233,7 @@ def query_using_optimized_search(
     period_stop: datetime,
     request_user_id: int | None = None,
     preferred_source: PREFERRED_SOURCE = "scalar",
+    referrer: str | None = None,
 ):
     tenant_id = _make_tenant_id(organization)
 
@@ -255,7 +256,7 @@ def query_using_optimized_search(
         search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
     if preferred_source == "aggregated":
-        query, referrer, source = _query_using_aggregated_strategy(
+        query, strategy_referrer, source = _query_using_aggregated_strategy(
             search_filters,
             sort,
             project_ids,
@@ -263,7 +264,7 @@ def query_using_optimized_search(
             period_stop,
         )
     else:
-        query, referrer, source = _query_using_scalar_strategy(
+        query, strategy_referrer, source = _query_using_scalar_strategy(
             search_filters,
             sort,
             project_ids,
@@ -271,10 +272,12 @@ def query_using_optimized_search(
             period_stop,
         )
 
+    used_referrer = referrer or strategy_referrer
+
     query = query.set_limit(pagination.limit)
     query = query.set_offset(pagination.offset)
 
-    subquery_response = execute_query(query, tenant_id, referrer)
+    subquery_response = execute_query(query, tenant_id, used_referrer)
 
     # The query "has more rows" if the number of rows found matches the limit (which is
     # the requested limit + 1).
@@ -306,7 +309,7 @@ def query_using_optimized_search(
             request_user_id=request_user_id,
         ),
         tenant_id,
-        referrer="replays.query.browse_query",
+        referrer or "replays.query.browse_query",
     )["data"]
 
     return QueryResponse(

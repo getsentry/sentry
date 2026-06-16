@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
@@ -119,7 +119,6 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
               title={t('Context')}
             >
               <FeedbackItemContexts
-                feedbackItem={feedbackItem}
                 eventData={eventData}
                 project={feedbackItem.project}
               />
@@ -154,11 +153,9 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
 
 function FeedbackItemContexts({
   eventData,
-  feedbackItem,
   project,
 }: {
   eventData: Event;
-  feedbackItem: FeedbackIssue;
   project: undefined | Project;
 }) {
   const evidenceObject = Object.fromEntries(
@@ -182,7 +179,6 @@ function FeedbackItemContexts({
         alias={alias}
         value={contextValue}
         event={eventData}
-        group={feedbackItem as unknown as Group}
         project={project}
       />
     )
@@ -199,12 +195,11 @@ function FeedbackItemContexts({
   );
 }
 
-// 0 padding-bottom because <ActivitySection> has space(2) built-in.
 const OverflowPanelItem = styled(PanelItem)`
   overflow: auto;
 
   flex-direction: column;
   flex-grow: 1;
   gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
 `;

@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
 
+from django.db import router
+
 from sentry.models.projectkey import ProjectKey
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -15,7 +18,8 @@ class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
-        ProjectKey.objects.filter(project=self.project).delete()
+        with unguarded_write(using=router.db_for_write(ProjectKey)):
+            ProjectKey.objects.filter(project=self.project).delete()
         ProjectKey.objects.create(
             project=self.project,
             label="Default",

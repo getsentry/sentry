@@ -94,7 +94,7 @@ export function FlamegraphUIFrames({
 
   useEffect(() => {
     if (!uiFramesCanvas || !uiFramesView || !uiFramesRenderer) {
-      return undefined;
+      return;
     }
 
     const drawUIFrames = () => {

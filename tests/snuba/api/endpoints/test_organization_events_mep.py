@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.discover.models import DatasetSourcesTypes, TeamKeyTransaction
-from sentry.models.dashboard_widget import DashboardWidgetTypes
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
@@ -16,17 +16,14 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events import constants
 from sentry.search.utils import map_device_class_level
 from sentry.snuba.metrics.extraction import (
-    SPEC_VERSION_TWO_FLAG,
     MetricSpecType,
     OnDemandMetricSpec,
-    OnDemandMetricSpecVersioning,
 )
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
-from sentry.snuba.utils import DATASET_OPTIONS
+from sentry.snuba.utils import PUBLIC_DATASET_LABELS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.utils.samples import load_data
 
@@ -58,9 +55,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def setUp(self) -> None:
         super().setUp()
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features: dict[str, bool] = {}
 
     def do_request(self, query, features=None):
         if features is None:
@@ -93,8 +88,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert response.status_code == 400, response.content
         assert (
-            response.data["detail"]
-            == f"dataset must be one of: {', '.join([key for key in DATASET_OPTIONS.keys()])}"
+            response.data["detail"] == f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}"
         )
 
     def test_out_of_retention(self) -> None:
@@ -3340,18 +3334,17 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         transaction_data["tags"].append(("faketag", "foo"))
         self.store_event(transaction_data, self.project.id)
 
-        with self.feature({"organizations:mep-use-default-tags": True}):
-            response = self.do_request(
-                {
-                    "field": [
-                        "faketag",
-                        "count()",
-                    ],
-                    "query": "event.type:transaction",
-                    "dataset": "metricsEnhanced",
-                    "per_page": 50,
-                }
-            )
+        response = self.do_request(
+            {
+                "field": [
+                    "faketag",
+                    "count()",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+            }
+        )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
@@ -3738,146 +3731,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         response = self._make_on_demand_request(params)
         self._assert_on_demand_response(response)
 
-    def test_on_demand_user_misery(self) -> None:
-        user_misery_field = "user_misery(300)"
-        query = "transaction.duration:>=100"
-
-        # We store data for both specs, however, when the query builders try to query
-        # for the data it will not query on-demand data
-        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
-            spec = OnDemandMetricSpec(
-                field=user_misery_field,
-                query=query,
-                spec_type=MetricSpecType.DYNAMIC_QUERY,
-                # We only allow querying the function in the latest spec version,
-                # otherwise, the data returned by the endpoint would be 0.05
-                spec_version=spec_version,
-            )
-            tags = {"satisfaction": "miserable"}
-            self.store_on_demand_metric(1, spec=spec, additional_tags=tags, timestamp=self.min_ago)
-            self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
-
-        params = {"field": [user_misery_field], "project": self.project.id, "query": query}
-        self._create_specs(params)
-
-        # We expect it to be False because we're not using the extra feature flag
-        response = self._make_on_demand_request(params)
-        self._assert_on_demand_response(response, expected_on_demand_query=False)
-
-        # Since we're using the extra feature flag we expect user_misery to be an on-demand metric
-        response = self._make_on_demand_request(params, {SPEC_VERSION_TWO_FLAG: True})
-        self._assert_on_demand_response(response, expected_on_demand_query=True)
-        assert response.data["data"] == [{user_misery_field: user_misery_formula(1, 2)}]
-
-    def test_on_demand_user_misery_discover_split_with_widget_id_unsaved(self) -> None:
-        user_misery_field = "user_misery(300)"
-        query = "transaction.duration:>=100"
-
-        _, widget, __ = create_widget(["count()"], "", self.project, discover_widget_split=None)
-
-        # We store data for both specs, however, when the query builders try to query
-        # for the data it will not query on-demand data
-        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
-            spec = OnDemandMetricSpec(
-                field=user_misery_field,
-                query=query,
-                spec_type=MetricSpecType.DYNAMIC_QUERY,
-                # We only allow querying the function in the latest spec version,
-                # otherwise, the data returned by the endpoint would be 0.05
-                spec_version=spec_version,
-            )
-            tags = {"satisfaction": "miserable"}
-            self.store_on_demand_metric(1, spec=spec, additional_tags=tags, timestamp=self.min_ago)
-            self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
-
-        params = {"field": [user_misery_field], "project": self.project.id, "query": query}
-        self._create_specs(params)
-
-        params["dashboardWidgetId"] = widget.id
-
-        # Since we're using the extra feature flag we expect user_misery to be an on-demand metric
-        with mock.patch.object(widget, "save") as mock_widget_save:
-            response = self._make_on_demand_request(params, {SPEC_VERSION_TWO_FLAG: True})
-            assert bool(mock_widget_save.assert_called_once)
-
-        self._assert_on_demand_response(response, expected_on_demand_query=True)
-        assert response.data["data"] == [{user_misery_field: user_misery_formula(1, 2)}]
-
-    def test_on_demand_user_misery_discover_split_with_widget_id_saved(self) -> None:
-        user_misery_field = "user_misery(300)"
-        query = "transaction.duration:>=100"
-
-        _, widget, __ = create_widget(
-            ["count()"],
-            "",
-            self.project,
-            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,  # Transactions like uses on-demand
-        )
-
-        # We store data for both specs, however, when the query builders try to query
-        # for the data it will not query on-demand data
-        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
-            spec = OnDemandMetricSpec(
-                field=user_misery_field,
-                query=query,
-                spec_type=MetricSpecType.DYNAMIC_QUERY,
-                # We only allow querying the function in the latest spec version,
-                # otherwise, the data returned by the endpoint would be 0.05
-                spec_version=spec_version,
-            )
-            tags = {"satisfaction": "miserable"}
-            self.store_on_demand_metric(1, spec=spec, additional_tags=tags, timestamp=self.min_ago)
-            self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
-
-        params = {"field": [user_misery_field], "project": self.project.id, "query": query}
-        self._create_specs(params)
-
-        params["dashboardWidgetId"] = widget.id
-
-        # Since we're using the extra feature flag we expect user_misery to be an on-demand metric
-        with mock.patch.object(widget, "save") as mock_widget_save:
-            response = self._make_on_demand_request(params, {SPEC_VERSION_TWO_FLAG: True})
-            assert bool(mock_widget_save.assert_not_called)
-
-        self._assert_on_demand_response(response, expected_on_demand_query=True)
-        assert response.data["data"] == [{user_misery_field: user_misery_formula(1, 2)}]
-
-    def test_on_demand_count_unique(self) -> None:
-        field = "count_unique(user)"
-        query = "transaction.duration:>0"
-        params = {"field": [field], "query": query}
-        # We do not really have to create the metrics for both specs since
-        # the first API call will not query any on-demand metric
-        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
-            spec = OnDemandMetricSpec(
-                field=field,
-                query=query,
-                spec_type=MetricSpecType.DYNAMIC_QUERY,
-                spec_version=spec_version,
-            )
-            self.store_on_demand_metric(1, spec=spec, timestamp=self.min_ago)
-            self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
-
-        # The first call will not be on-demand
-        response = self._make_on_demand_request(params)
-        self._assert_on_demand_response(response, expected_on_demand_query=False)
-
-        # This second call will be on-demand
-        response = self._make_on_demand_request(
-            params, extra_features={SPEC_VERSION_TWO_FLAG: True}
-        )
-        self._assert_on_demand_response(response, expected_on_demand_query=True)
-        assert response.data["data"] == [{"count_unique(user)": 2}]
-
-    def test_on_demand_for_metrics_deprecation(self) -> None:
-        params = {"field": ["count()"], "query": "", "yAxis": "count()"}
-        specs = self._create_specs(params)
-        for spec in specs:
-            self.store_on_demand_metric(1, spec=spec)
-        with self.feature("organizations:on-demand-gen-metrics-deprecation-query-prefill"):
-            response = self._make_on_demand_request(params)
-        self._assert_on_demand_response(response)
-
     def test_split_decision_for_errors_widget(self) -> None:
         error_data = load_data("python", timestamp=before_now(minutes=1))
         self.store_event(
@@ -3939,7 +3792,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             "discoverSplitDecision"
         ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
 
-        widget.refresh_from_db()
+        widget = DashboardWidget.objects.get(id=widget.id)
         assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
         assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
 
@@ -3967,7 +3820,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             "discoverSplitDecision"
         ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
-        widget.refresh_from_db()
+        widget = DashboardWidget.objects.get(id=widget.id)
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
         assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 
@@ -4014,7 +3867,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             "discoverSplitDecision"
         ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
-        widget.refresh_from_db()
+        widget = DashboardWidget.objects.get(id=widget.id)
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
         assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
 

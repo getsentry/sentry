@@ -49,15 +49,6 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             build_number=42,
         )
 
-        # Enable the feature flag for all tests by default
-        self.feature_context = self.feature({"organizations:preprod-frontend-routes": True})
-        self.feature_context.__enter__()
-
-    def tearDown(self) -> None:
-        # Exit the feature flag context manager
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
     def _get_url(self, artifact_id=None):
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
@@ -126,15 +117,6 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         )
         assert response.status_code == 404
         assert "The requested head preprod artifact does not exist" in response.json()["detail"]
-
-    def test_get_build_details_feature_flag_disabled(self) -> None:
-        with self.feature({"organizations:preprod-frontend-routes": False}):
-            url = self._get_url()
-            response = self.client.get(
-                url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
-            )
-            assert response.status_code == 403
-            assert response.json()["error"] == "Feature not enabled"
 
     def test_get_build_details_dates_and_types(self) -> None:
         url = self._get_url()

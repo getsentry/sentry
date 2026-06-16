@@ -14,7 +14,7 @@ from sentry.utils.outcomes import Outcome
 
 
 class ResetNumActionsForOrganizationContributorsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -63,7 +63,7 @@ class ResetNumActionsForOrganizationContributorsTest(TestCase):
         assert contributor2.num_actions == 0
         assert contributor3.num_actions == 0
 
-    def test_skips_contributors_already_at_zero(self):
+    def test_skips_contributors_already_at_zero(self) -> None:
         contributor_zero = OrganizationContributors.objects.create(
             organization=self.organization,
             integration_id=self.integration.id,
@@ -92,7 +92,7 @@ class ResetNumActionsForOrganizationContributorsTest(TestCase):
         assert contributor_nonzero.num_actions == 0
         assert contributor_nonzero.date_updated > original_date_updated
 
-    def test_only_updates_specified_organization(self):
+    def test_only_updates_specified_organization(self) -> None:
         other_organization = self.create_organization()
 
         contributor_in_org = OrganizationContributors.objects.create(
@@ -121,7 +121,7 @@ class ResetNumActionsForOrganizationContributorsTest(TestCase):
 
 
 class AssignSeatToOrganizationContributorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):

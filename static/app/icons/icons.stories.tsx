@@ -246,13 +246,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'codecov',
-        groups: ['logo'],
-        keywords: ['coverage', 'testing', 'code'],
-        name: 'Codecov',
-        defaultProps: {},
-      },
-      {
         id: 'bitbucket',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'atlassian'],
@@ -684,7 +677,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'circle',
         groups: ['status'],
-        keywords: ['shape', 'round', 'dot', 'indicator'],
+        keywords: ['shape', 'round', 'dot', 'indicator', 'progress'],
         name: 'Circle',
         defaultProps: {},
       },
@@ -693,6 +686,27 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['shape', 'round', 'dot', 'indicator', 'filled'],
         name: 'CircleFill',
+        defaultProps: {},
+      },
+      {
+        id: 'inProgress',
+        groups: ['status'],
+        keywords: ['circle', 'progress'],
+        name: 'InProgress',
+        defaultProps: {},
+      },
+      {
+        id: 'inReview',
+        groups: ['status'],
+        keywords: ['circle', 'progress'],
+        name: 'InReview',
+        defaultProps: {},
+      },
+      {
+        id: 'resolved',
+        groups: ['status'],
+        keywords: ['check', 'done', 'complete', 'success', 'fixed', 'circle', 'progress'],
+        name: 'Resolved',
         defaultProps: {},
       },
       {
@@ -1304,6 +1318,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'graph-type-heatmap',
+        name: 'Graph',
+        defaultProps: {
+          type: 'heatmap',
+        },
+      },
+      {
         id: 'stack',
         groups: ['chart'],
         keywords: ['group', 'combine', 'view', 'layers', 'pile'],
@@ -1829,7 +1850,9 @@ function Section(props: CategorySectionProps) {
     const iconFilter = createIconFilter(props.searchTerm);
     filteredIcons = filteredIcons.filter(iconFilter);
   }
-  if (filteredIcons.length === 0) return null;
+  if (filteredIcons.length === 0) {
+    return null;
+  }
 
   return (
     <Flex as="section" direction="column" gap="xl">
@@ -1866,7 +1889,7 @@ function IconCard(props: IconCardProps) {
   };
   snippets.all = `${snippets.import}\n\n${snippets.element}`;
   const labels = {
-    import: `import statement`,
+    import: 'import statement',
     element: props.icon.id,
   };
   const action: keyof typeof snippets = shift ? 'import' : 'element';

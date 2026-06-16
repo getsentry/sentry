@@ -1,83 +1,146 @@
-import React from 'react';
+import {Global, css} from '@emotion/react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {IconBranch, IconCommit} from 'sentry/icons';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
-import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
+
+const TITLE_MARKER_ATTR = 'data-snapshot-header-title';
+
+const topBarShrinkOverride = css`
+  *:has(> [${TITLE_MARKER_ATTR}]) {
+    flex: 1;
+    min-width: 0;
+  }
+  *:has(> [${TITLE_MARKER_ATTR}]) + * {
+    flex-shrink: 0;
+  }
+`;
 
 interface SnapshotHeaderContentProps {
   data: SnapshotDetailsApiResponse;
-  projectId: string;
 }
 
-export function SnapshotHeaderContent({projectId, data}: SnapshotHeaderContentProps) {
+export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
   const organization = useOrganization();
-  const {vcs_info} = data;
+  const {vcs_info, app_id: appId} = data;
+  const shortSha = vcs_info.head_sha?.slice(0, 7);
+  const project = ProjectsStore.getById(data.project_id);
   const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
   const prUrl = getPrUrl(vcs_info);
   const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
-  const shortSha = vcs_info.head_sha?.slice(0, 7);
 
-  const breadcrumbs: Crumb[] = [
-    {
-      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
-      label: t('Releases'),
-    },
-  ];
+  function renderVcsRef() {
+    if (vcs_info.pr_number && prUrl) {
+      return (
+        <Flex align="center" gap="xs" flexShrink={0}>
+          <IconPullRequest size="xs" />
+          <ExternalLink href={prUrl}>
+            <Text size="sm" variant="accent" wrap="nowrap">
+              #{vcs_info.pr_number}
+              {vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}
+            </Text>
+          </ExternalLink>
+        </Flex>
+      );
+    }
+
+    if (vcs_info.head_ref) {
+      const branchLabel = branchUrl ? (
+        <ExternalLink href={branchUrl}>
+          <Text size="sm" variant="accent" wrap="nowrap">
+            {vcs_info.head_ref}
+          </Text>
+        </ExternalLink>
+      ) : (
+        <Text size="sm" wrap="nowrap">
+          {vcs_info.head_ref}
+        </Text>
+      );
+
+      return (
+        <Flex align="center" gap="xs" flexShrink={0}>
+          <IconStack size="xs" />
+          {branchLabel}
+        </Flex>
+      );
+    }
+
+    return null;
+  }
 
   return (
-    <React.Fragment>
-      <Layout.HeaderContent>
-        <Flex align="center" gap="sm">
-          <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="new" />
-        </Flex>
-        <Layout.Title>
-          {/* TODO: Replace with app-id/version when available */}
+    <Layout.HeaderContent unified>
+      <Layout.Title>
+        <Global styles={topBarShrinkOverride} />
+        <Flex
+          align="center"
+          gap="md"
+          minWidth={0}
+          overflow="hidden"
+          {...{[TITLE_MARKER_ATTR]: ''}}
+        >
           {t('Snapshots')}
-          <Flex align="center" gap="md" wrap="wrap">
-            {prUrl && vcs_info.pr_number && (
-              <ExternalLink href={prUrl}>
-                <Flex align="center" gap="xs">
-                  <IconBranch size="xs" />
-                  <Text size="sm">#{vcs_info.pr_number}</Text>
-                </Flex>
-              </ExternalLink>
-            )}
-            {shaUrl && shortSha && (
-              <ExternalLink href={shaUrl}>
-                <Flex align="center" gap="xs">
-                  <IconCommit size="xs" />
-                  <Text size="sm" monospace>
+          <Container display={{'2xs': 'none', xs: 'flex'}}>
+            <PageHeadingQuestionTooltip
+              docsUrl="https://docs.sentry.io/product/snapshots/"
+              title={t('Catch visual regressions before they reach users.')}
+            />
+          </Container>
+
+          {project && (
+            <Container display={{'2xs': 'none', lg: 'block'}}>
+              <Text as="div" size="sm">
+                <IdBadge project={project} avatarSize={16} />
+              </Text>
+            </Container>
+          )}
+
+          <Flex
+            align="center"
+            gap="md"
+            flexShrink={1}
+            minWidth={0}
+            overflow="hidden"
+            display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+          >
+            {shortSha && shaUrl && (
+              <Flex align="center" gap="xs" flexShrink={0}>
+                <IconCommit size="xs" />
+                <ExternalLink href={shaUrl}>
+                  <Text size="sm" variant="accent" monospace wrap="nowrap">
                     {shortSha}
                   </Text>
-                </Flex>
-              </ExternalLink>
+                </ExternalLink>
+              </Flex>
             )}
-            {vcs_info.head_ref && (
-              <Flex align="center" gap="xs">
-                <IconBranch size="xs" />
-                {branchUrl ? (
-                  <ExternalLink href={branchUrl}>
-                    <Text size="sm">{vcs_info.head_ref}</Text>
-                  </ExternalLink>
-                ) : (
-                  <Text size="sm">{vcs_info.head_ref}</Text>
-                )}
+
+            {renderVcsRef()}
+
+            {appId && (
+              <Flex align="center" gap="xs" minWidth={0}>
+                <IconCode size="xs" style={{flexShrink: 0}} />
+                <Link
+                  to={`/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`}
+                >
+                  <Text size="sm" variant="accent" monospace ellipsis>
+                    {appId}
+                  </Text>
+                </Link>
               </Flex>
             )}
           </Flex>
-        </Layout.Title>
-      </Layout.HeaderContent>
-    </React.Fragment>
+        </Flex>
+      </Layout.Title>
+    </Layout.HeaderContent>
   );
 }

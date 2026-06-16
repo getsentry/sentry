@@ -13,7 +13,7 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
+from sentry.integrations.github.client import GitHubApiClient, GitHubApiRequestType, GitHubReaction
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.source_code_management.commit_context import (
@@ -24,6 +24,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.scm.private.rate_limit import DynamicRateLimiter
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
@@ -105,6 +106,59 @@ class GitHubApiClientTest(TestCase):
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
 
+    @responses.activate
+    def test_internal_rate_limiter_ignores_get_rate_limit(self) -> None:
+        """
+        The /rate_limit resource does not count against GitHub's primary rate limit, so the
+        internal rate limiter must neither consult its quota nor record capacity from the
+        (unrelated) headers on its response.
+        """
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            json={
+                "resources": {
+                    "core": {"limit": 5000, "remaining": 4999, "reset": 1372700873, "used": 1},
+                },
+            },
+            headers={"x-ratelimit-limit": "5000"},
+        )
+
+        with (
+            mock.patch.object(DynamicRateLimiter, "is_rate_limited") as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_rate_limit()
+
+        mock_is_rate_limited.assert_not_called()
+        mock_set_capacity.assert_not_called()
+
+    @responses.activate
+    def test_internal_rate_limiter_applies_to_other_endpoints(self) -> None:
+        """
+        Requests to resources other than /rate_limit must still flow through the internal rate
+        limiter so quota is tracked and capacity is recorded.
+        """
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+            headers={"x-ratelimit-limit": "5000"},
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter, "is_rate_limited", return_value=False
+            ) as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        mock_is_rate_limited.assert_called_once()
+        mock_set_capacity.assert_called_once_with(capacity=5000)
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_check_file(self, get_jwt) -> None:
@@ -121,6 +175,18 @@ class GitHubApiClientTest(TestCase):
         resp = self.github_client.check_file(self.repo, path, version)
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_check_file_tracks_check_file_endpoint(self, get_jwt) -> None:
+        with mock.patch.object(self.github_client, "head_cached") as mock_head_cached:
+            self.github_client.check_file(self.repo, "README.md", "master")
+
+        mock_head_cached.assert_called_once_with(
+            path=f"/repos/{self.repo.name}/contents/README.md",
+            params={"ref": "master"},
+            api_request_type=GitHubApiRequestType.CHECK_FILE,
+        )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -164,6 +230,43 @@ class GitHubApiClientTest(TestCase):
         assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
         assert halt1.args[0] == EventLifecycleOutcome.SUCCESS  # check_file
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_compare_commits_tracks_compare_endpoint(self, get_jwt) -> None:
+        with mock.patch.object(
+            self.github_client, "_get_with_pagination"
+        ) as mock_get_with_pagination:
+            self.github_client.compare_commits(self.repo.name, "abc", "xyz")
+
+        mock_get_with_pagination.assert_called_once_with(
+            f"/repos/{self.repo.name}/compare/abc...xyz",
+            response_key="commits",
+            api_request_type="compare_commits",
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_last_commits_tracks_get_commits_endpoint(self, get_jwt) -> None:
+        with mock.patch.object(self.github_client, "get_cached") as mock_get_cached:
+            self.github_client.get_last_commits(self.repo.name, "abc")
+
+        mock_get_cached.assert_called_once_with(
+            f"/repos/{self.repo.name}/commits",
+            params={"sha": "abc", "per_page": 20},
+            api_request_type=GitHubApiRequestType.GET_COMMITS,
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_commit_tracks_get_commit_endpoint(self, get_jwt) -> None:
+        with mock.patch.object(self.github_client, "get_cached") as mock_get_cached:
+            self.github_client.get_commit(self.repo.name, "abc")
+
+        mock_get_cached.assert_called_once_with(
+            f"/repos/{self.repo.name}/commits/abc",
+            api_request_type="get_commit",
+        )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -231,7 +334,7 @@ class GitHubApiClientTest(TestCase):
             body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert (
             responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
@@ -284,7 +387,7 @@ class GitHubApiClientTest(TestCase):
                 status=404,
             )
         result = self.install.get_codeowner_file(
-            self.config.repository, ref=self.config.default_branch
+            self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert result is None
 
@@ -329,6 +432,81 @@ class GitHubApiClientTest(TestCase):
         with mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"):
             files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
             assert files == ["src/foo.py"]
+
+    @responses.activate
+    def test_get_cached_repo_files_caches_not_found(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=404,
+            json={"message": "Not Found"},
+        )
+        repo_key = f"github:repo:{self.repo.name}:source-code"
+        assert cache.get(repo_key) is None
+
+        files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
+        assert files == []
+        assert cache.get(repo_key) == []
+
+        # Negative-cache hit should avoid an additional API request.
+        files = self.install.get_cached_repo_files(self.repo.name, "master", 0)
+        assert files == []
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_get_cached_repo_files_not_found_cache_ttl_is_staggered(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=404,
+            json={"message": "Not Found"},
+        )
+
+        shifted_seconds = 3600
+        repo_key = f"github:repo:{self.repo.name}:source-code"
+        with mock.patch(
+            "sentry.integrations.source_code_management.repo_trees.cache.set"
+        ) as cache_set:
+            self.install.get_cached_repo_files(self.repo.name, "master", shifted_seconds)
+
+        matching_calls = [
+            call for call in cache_set.call_args_list if call.args and call.args[0] == repo_key
+        ]
+        assert matching_calls == [
+            mock.call(
+                repo_key,
+                [],
+                self.install.CACHE_SECONDS + shifted_seconds,
+            )
+        ]
+
+    @responses.activate
+    def test_get_cached_repo_files_raises_non_not_found_api_error(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=500,
+            json={"message": "Server Error"},
+        )
+
+        with pytest.raises(ApiError):
+            self.install.get_cached_repo_files(self.repo.name, "master", 0)
+
+    @responses.activate
+    def test_get_cached_repo_files_raises_403_with_not_found_body(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/master?recursive=1",
+            status=403,
+            json={"message": "Not Found."},
+        )
+        repo_key = f"github:repo:{self.repo.name}:source-code"
+
+        with pytest.raises(ApiError):
+            self.install.get_cached_repo_files(self.repo.name, "master", 0)
+
+        # Do not cache permission failures as missing resources.
+        assert cache.get(repo_key) is None
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

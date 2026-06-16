@@ -1,11 +1,10 @@
+import {parse} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/grammar.pegjs';
 import {
   TokenConverter,
   type SearchConfig,
   type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-
-import {parse} from './grammar.pegjs';
 
 /**
  * Parses the user input value of a multi select filter.
@@ -19,7 +18,7 @@ export function parseMultiSelectFilterValue(
   config?: Partial<SearchConfig>
 ): TokenResult<Token.VALUE_TEXT_LIST> | null {
   try {
-    return parse(value, {TokenConverter, config});
+    return parse(value, {TokenConverter, config, startRule: 'text_in_list'});
   } catch (e) {
     return null;
   }

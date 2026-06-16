@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import type {SentryApp} from 'sentry/types/integrations';
@@ -25,6 +25,8 @@ export function SentryApplicationRow({
   onPublishSubmission,
   onRemoveApp,
 }: Props) {
+  const {openModal} = useModal();
+
   const isInternal = app.status === 'internal';
 
   // no publishing for internal apps so hide the status on the developer

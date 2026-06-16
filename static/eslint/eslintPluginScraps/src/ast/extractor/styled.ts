@@ -48,7 +48,7 @@ export function createStyledExtractor({
       current = current.parent;
       if (
         current.type === 'MemberExpression' &&
-        current.computed === true &&
+        current.computed &&
         current.object?.type === 'ObjectExpression'
       ) {
         return true;

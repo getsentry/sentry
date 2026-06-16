@@ -1,8 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -22,7 +20,6 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();
   const hasReadAccess = useHasDynamicSamplingReadAccess();
-
   if (
     hasDynamicSamplingFeature(organization) &&
     !hasDynamicSamplingCustomFeature(organization)
@@ -68,12 +65,7 @@ export default function DynamicSamplingSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <SettingsPageHeader
-        title={
-          <Fragment>
-            {t('Dynamic Sampling')}
-            <FeatureBadge type="alpha" />
-          </Fragment>
-        }
+        title={t('Dynamic Sampling')}
         action={
           <LinkButton
             external
@@ -82,21 +74,17 @@ export default function DynamicSamplingSettings() {
             {t('Read the docs')}
           </LinkButton>
         }
+        subtitle={t(
+          'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
+        )}
       />
       <OrganizationPermissionAlert />
       {hasReadAccess ? (
-        <Fragment>
-          <Paragraph>
-            {t(
-              'Dynamic Sampling lets you manage span storage in Sentry. This prioritizes important events and increases visibility into lower-volume projects, keeping the most relevant data while minimizing redundancy. You can customize sample rates and priorities in the settings to control which data is retained.'
-            )}
-          </Paragraph>
-          {organization.samplingMode === 'organization' ? (
-            <OrganizationSampling />
-          ) : (
-            <ProjectSampling />
-          )}
-        </Fragment>
+        organization.samplingMode === 'organization' ? (
+          <OrganizationSampling />
+        ) : (
+          <ProjectSampling />
+        )
       ) : (
         <Alert.Container>
           <Alert variant="warning" showIcon={false}>
@@ -107,7 +95,3 @@ export default function DynamicSamplingSettings() {
     </Fragment>
   );
 }
-
-const Paragraph = styled('p')`
-  margin-bottom: ${p => p.theme.space.lg};
-`;

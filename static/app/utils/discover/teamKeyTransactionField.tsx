@@ -8,7 +8,7 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useProjects} from 'sentry/utils/useProjects';
 
 type BaseProps = {
@@ -59,7 +59,7 @@ function TeamKeyTransactionField({
           <OverlayTrigger.IconButton
             {...triggerProps}
             disabled={disabled}
-            priority="transparent"
+            variant="transparent"
             size="zero"
             icon={
               <IconStar
@@ -99,7 +99,7 @@ export function TeamKeyTransactionFieldWrapper({
     return (
       <Button
         disabled
-        priority="transparent"
+        variant="transparent"
         size="zero"
         icon={<IconStar variant="muted" />}
         aria-label={t('Toggle star for team')}

@@ -1,5 +1,5 @@
-import BasePlugin from 'sentry/plugins/basePlugin';
-import IssueActions from 'sentry/plugins/components/issueActions';
+import {BasePlugin} from 'sentry/plugins/basePlugin';
+import {IssueActions} from 'sentry/plugins/components/issueActions';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';

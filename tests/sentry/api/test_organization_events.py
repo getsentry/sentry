@@ -37,6 +37,24 @@ class OrganizationEventsEndpointTest(APITestCase):
         with self.feature(features):
             return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
+    def test_missing_discover_feature_returns_forbidden(self) -> None:
+        query = {
+            "field": ["user"],
+            "project": [self.project.id],
+        }
+        features = {
+            "organizations:discover-basic": False,
+            "organizations:performance-view": False,
+            "organizations:visibility-explore-view": False,
+        }
+
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 403
+        assert response.data == {
+            "detail": "Discover, Performance, or Explore is required to access this endpoint."
+        }
+
     def test_api_key_request(self) -> None:
         self.store_event(
             data={

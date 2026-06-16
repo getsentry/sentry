@@ -164,14 +164,14 @@ def test_generate_rules_return_uniform_rules_and_env_rule(
     # no need to create real project in DB
     assert generate_rules(default_old_project) == [
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.02},
-            "type": "transaction",
+            "samplingValue": {"type": "sampleRate", "value": 0.03333333333333333},
+            "type": "trace",
             "condition": {
                 "op": "or",
                 "inner": [
                     {
                         "op": "glob",
-                        "name": "event.transaction",
+                        "name": "trace.transaction",
                         "value": HEALTH_CHECK_GLOBS,
                     }
                 ],
@@ -839,7 +839,7 @@ def test_generate_rules_minimum_sample_rate_correct_order(
 
         # Health checks rule should be first (lowest sample rate)
         assert rules[0]["id"] == 1002
-        assert rules[0]["samplingValue"]["value"] == 0.4 / 5  # IGNORE_HEALTH_CHECKS_FACTOR = 5
+        assert rules[0]["samplingValue"]["value"] == 0.4 / 3  # IGNORE_HEALTH_CHECKS_FACTOR = 5
 
         # Replay ID rule should be second
         assert rules[1]["id"] == 1005
@@ -904,25 +904,14 @@ def test_generate_rules_trace_health_checks_feature_enabled(
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
-
     rules = generate_rules(default_old_project)
     assert len(rules) == 2
     assert rules[0]["id"] == 1002
-    assert rules[0]["type"] == "transaction"
+    assert rules[0]["type"] == "trace"
     assert rules[0]["condition"]["op"] == "or"
     assert rules[0]["condition"]["inner"][0]["op"] == "glob"
-    assert rules[0]["condition"]["inner"][0]["name"] == "event.transaction"
+    assert rules[0]["condition"]["inner"][0]["name"] == "trace.transaction"
     assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
-
-    with Feature({"organizations:ds-health-checks-trace-based": True}):
-        rules = generate_rules(default_old_project)
-        assert len(rules) == 2
-        assert rules[0]["id"] == 1002
-        assert rules[0]["type"] == "trace"
-        assert rules[0]["condition"]["op"] == "or"
-        assert rules[0]["condition"]["inner"][0]["op"] == "glob"
-        assert rules[0]["condition"]["inner"][0]["name"] == "trace.transaction"
-        assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
 
     _validate_rules(default_old_project)
 

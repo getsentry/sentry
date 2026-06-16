@@ -75,7 +75,7 @@ export function getReleasesRequestData(
   let showIncompleteDataAlert = false;
 
   if (start) {
-    let startDate: Date | undefined = undefined;
+    let startDate: Date | undefined;
     if (typeof start === 'string') {
       startDate = new Date(start);
     } else {

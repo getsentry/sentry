@@ -32,6 +32,17 @@ class ActivityType(Enum):
 
     SET_PRIORITY = 26
     DELETED_ATTACHMENT = 27
+    REFERENCED_IN_COMMIT = 28
+
+    SEER_RCA_STARTED = 29
+    SEER_RCA_COMPLETED = 30
+    SEER_SOLUTION_STARTED = 31
+    SEER_SOLUTION_COMPLETED = 32
+    SEER_CODING_STARTED = 33
+    SEER_CODING_COMPLETED = 34
+    SEER_PR_CREATED = 35
+    SEER_ITERATION_STARTED = 36
+    SEER_ITERATION_COMPLETED = 37
 
 
 # Warning: This must remain in this EXACT order.
@@ -65,6 +76,16 @@ CHOICES = tuple(
         ActivityType.SET_ESCALATING,  # 25
         ActivityType.SET_PRIORITY,  # 26
         ActivityType.DELETED_ATTACHMENT,  # 27
+        ActivityType.REFERENCED_IN_COMMIT,  # 28
+        ActivityType.SEER_RCA_STARTED,  # 29
+        ActivityType.SEER_RCA_COMPLETED,  # 30
+        ActivityType.SEER_SOLUTION_STARTED,  # 31
+        ActivityType.SEER_SOLUTION_COMPLETED,  # 32
+        ActivityType.SEER_CODING_STARTED,  # 33
+        ActivityType.SEER_CODING_COMPLETED,  # 34
+        ActivityType.SEER_PR_CREATED,  # 35
+        ActivityType.SEER_ITERATION_STARTED,  # 36
+        ActivityType.SEER_ITERATION_COMPLETED,  # 37
     ]
 )
 

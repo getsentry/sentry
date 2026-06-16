@@ -14,7 +14,6 @@ from sentry.api.utils import generate_locality_url
 from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.silo.base import SiloMode
 from sentry.types.cell import (
     find_all_multitenant_locality_names,
     subdomain_is_locality,
@@ -190,18 +189,6 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
-        if SiloMode.get_current_mode() == SiloMode.CELL:
-            # This shouldn't happen as all requests in production for HTML pages
-            # should be in control.
-            logger.info(
-                "react_page.region_silo",
-                extra={
-                    "url": request.get_full_path(),
-                    "method": request.method,
-                    "user-agent": request.headers.get("User-Agent"),
-                },
-            )
-
         return self.handle_react(request, organization=organization)
 
 

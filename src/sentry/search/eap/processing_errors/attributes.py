@@ -55,5 +55,15 @@ PROCESSING_ERROR_ATTRIBUTE_DEFINITIONS = {
             internal_name="sdk_version",
             search_type="string",
         ),
+        ResolvedAttribute(
+            public_alias="title",
+            internal_name="title",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="group_id",
+            internal_name="group_id",
+            search_type="integer",
+        ),
     ]
 }

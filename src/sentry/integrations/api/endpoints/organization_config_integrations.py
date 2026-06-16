@@ -4,7 +4,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -13,11 +12,13 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IntegrationParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.api.serializers.models.integration import (
     IntegrationProviderResponse,
     IntegrationProviderSerializer,
 )
+from sentry.integrations.base import is_provider_enabled
 from sentry.integrations.manager import default_manager as integrations
 from sentry.models.organization import Organization
 
@@ -29,7 +30,7 @@ class OrganizationConfigIntegrationsEndpointResponse(TypedDict):
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -49,24 +50,21 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
         },
         examples=IntegrationExamples.ORGANIZATION_CONFIG_INTEGRATIONS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[OrganizationConfigIntegrationsEndpointResponse] | Response[DetailResponse]:
         """
         Get integration provider information about all available integrations for an organization.
         """
-
-        def is_provider_enabled(provider):
-            if not provider.requires_feature_flag:
-                return True
-            provider_key = provider.key.replace("_", "-")
-            feature_flag_name = "organizations:integrations-%s" % provider_key
-            return features.has(feature_flag_name, organization, actor=request.user)
 
         providers = list(integrations.all())
         provider_key = request.GET.get("provider_key") or request.GET.get("providerKey")
         if provider_key:
             providers = [p for p in providers if p.key == provider_key]
 
-        providers = list(filter(is_provider_enabled, providers))
+        providers = list(
+            filter(lambda p: is_provider_enabled(p, organization, actor=request.user), providers)
+        )
 
         providers.sort(key=lambda i: i.key)
 

@@ -261,10 +261,10 @@ def test_auto_assign_email_obfuscating_comparator() -> None:
     email_left = orjson.loads(
         """
             {
-                "model": "sentry.email",
+                "model": "sentry.sentryapp",
                 "pk": 1,
                 "fields": {
-                    "email": "testing@example.com",
+                    "creator_label": "testing@example.com",
                     "date_added": "2023-06-22T00:00:00.000Z"
                 }
             }
@@ -273,10 +273,10 @@ def test_auto_assign_email_obfuscating_comparator() -> None:
     email_right = orjson.loads(
         """
             {
-                "model": "sentry.email",
+                "model": "sentry.sentryapp",
                 "pk": 1,
                 "fields": {
-                    "email": "foo@example.fake",
+                    "creator_label": "foo@example.fake",
                     "date_added": "2023-06-22T00:00:00.000Z"
                 }
             }
@@ -290,10 +290,10 @@ def test_auto_assign_email_obfuscating_comparator() -> None:
     assert len(findings) == 1
 
     assert findings[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert findings[0].on == InstanceID("sentry.email", 1)
+    assert findings[0].on == InstanceID("sentry.sentryapp", 1)
     assert findings[0].left_pk == 1
     assert findings[0].right_pk == 1
-    assert """`email`""" in findings[0].reason
+    assert """`creator_label`""" in findings[0].reason
     assert """left value ("t...@...le.com")""" in findings[0].reason
     assert """right value ("f...@...e.fake")""" in findings[0].reason
 
@@ -476,64 +476,6 @@ def test_auto_assign_ignored_comparator() -> None:
     assert not findings
 
 
-def test_bad_missing_custom_ordinal() -> None:
-    left = orjson.loads(
-        """
-            [
-                {
-                    "model": "sentry.email",
-                    "pk": 1,
-                    "fields": {
-                        "email": "a@example.com",
-                        "date_added": "2023-06-22T00:00:00.000Z"
-                    }
-                },
-                {
-                    "model": "sentry.email",
-                    "pk": 2,
-                    "fields": {
-                        "email": "b@example.com",
-                        "date_added": "2023-06-22T00:00:00.000Z"
-                    }
-                }
-            ]
-        """
-    )
-    right = orjson.loads(
-        """
-            [
-                {
-                    "model": "sentry.email",
-                    "pk": 1,
-                    "fields": {
-                        "email": "c@example.com",
-                        "date_added": "2023-06-22T00:00:00.000Z"
-                    }
-                },
-                {
-                    "model": "sentry.email",
-                    "pk": 2,
-                    "fields": {
-                        "email": "a@example.com",
-                        "date_added": "2023-06-22T00:00:00.000Z"
-                    }
-                }
-            ]
-        """
-    )
-    out = validate(left, right)
-    findings = out.findings
-
-    assert len(findings) == 1
-
-    assert findings[0].kind == ComparatorFindingKind.EmailObfuscatingComparator
-    assert findings[0].on == InstanceID("sentry.email", 2)
-    assert findings[0].left_pk == 2
-    assert findings[0].right_pk == 1
-    assert "b...@...le.com" in findings[0].reason
-    assert "c...@...le.com" in findings[0].reason
-
-
 def test_bad_unequal_custom_ordinal() -> None:
     left = orjson.loads(
         """
@@ -682,22 +624,6 @@ def test_good_user_custom_ordinal() -> None:
                     }
                 },
                 {
-                    "model": "sentry.email",
-                    "pk": 1,
-                    "fields": {
-                        "email": "a@example.com",
-                        "date_added": "2023-06-22T00:00:00.000Z"
-                    }
-                },
-                {
-                    "model": "sentry.email",
-                    "pk": 2,
-                    "fields": {
-                        "email": "b@example.com",
-                        "date_added": "2023-06-22T00:00:00.000Z"
-                    }
-                },
-                {
                 "model": "sentry.useremail",
                     "pk": 56,
                     "fields": {
@@ -747,22 +673,6 @@ def test_good_user_custom_ordinal() -> None:
                         "username": "someuser",
                         "name": "",
                         "email": "a@example.com"
-                    }
-                },
-                {
-                    "model": "sentry.email",
-                    "pk": 1,
-                    "fields": {
-                        "email": "b@example.com",
-                        "date_added": "2023-06-22T00:00:00.000Z"
-                    }
-                },
-                {
-                    "model": "sentry.email",
-                    "pk": 2,
-                    "fields": {
-                        "email": "a@example.com",
-                        "date_added": "2023-06-22T00:00:00.000Z"
                     }
                 },
                 {

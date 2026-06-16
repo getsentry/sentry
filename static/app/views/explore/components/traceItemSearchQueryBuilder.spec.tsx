@@ -22,7 +22,7 @@ const defaultInitialProps: TraceItemSearchQueryBuilderProps = {
   searchSource: 'test',
 };
 const organization = OrganizationFixture({
-  features: [],
+  features: ['search-query-attribute-validation'],
 });
 
 describe('useTraceItemSearchQueryBuilderProps', () => {
@@ -194,39 +194,35 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.recentSearches).toBeDefined();
   });
 
+  it('passes disabled through to search query builder provider props', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        disabled: true,
+      },
+      organization,
+    });
+
+    expect(result.current.disabled).toBe(true);
+  });
+
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
-    const stringMock = MockApiClient.addMockResponse({
+    const traceItemAttributesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.message', name: 'log.message'}],
-      match: [
-        (_url, options) => {
-          const query = options?.query || {};
-          return (
-            query.attributeType === 'string' && query.itemType === TraceItemDataset.SPANS
-          );
-        },
+      body: [
+        {attributeType: 'string', key: 'log.message', name: 'log.message'},
+        {attributeType: 'number', key: 'log.duration', name: 'log.duration'},
+        {attributeType: 'boolean', key: 'log.flag', name: 'log.flag'},
       ],
-    });
-    const numberMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.duration', name: 'log.duration'}],
       match: [
         (_url, options) => {
           const query = options?.query || {};
           return (
-            query.attributeType === 'number' && query.itemType === TraceItemDataset.SPANS
-          );
-        },
-      ],
-    });
-    const booleanMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.flag', name: 'log.flag'}],
-      match: [
-        (_url, options) => {
-          const query = options?.query || {};
-          return (
-            query.attributeType === 'boolean' && query.itemType === TraceItemDataset.SPANS
+            query.itemType === TraceItemDataset.SPANS &&
+            Array.isArray(query.attributeType) &&
+            query.attributeType.includes('string') &&
+            query.attributeType.includes('number') &&
+            query.attributeType.includes('boolean')
           );
         },
       ],
@@ -238,13 +234,35 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
     const tags = await result.current.getTagKeys?.('search-query');
 
-    expect(stringMock).toHaveBeenCalled();
-    expect(numberMock).toHaveBeenCalled();
-    expect(booleanMock).toHaveBeenCalled();
+    expect(traceItemAttributesMock).toHaveBeenCalled();
     expect(tags?.map(tag => tag.key)).toEqual([
       'log.message',
       'log.duration',
       'log.flag',
     ]);
+  });
+
+  it('uses a custom placeholder when provided', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        placeholder: 'Custom placeholder text',
+      },
+      organization,
+    });
+
+    expect(result.current.placeholder).toBe('Custom placeholder text');
+  });
+
+  it('falls back to the default placeholder for logs when no placeholder is provided', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.LOGS,
+      },
+      organization,
+    });
+
+    expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
   });
 });

@@ -40,9 +40,8 @@ describe('InstallWizard', () => {
       }),
     });
     render(<InstallWizard onConfigured={jest.fn()} />);
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('radio', {
+      await screen.findByRole('radio', {
         name: 'Please keep my usage information anonymous',
       })
     ).not.toBeChecked();
@@ -72,9 +71,8 @@ describe('InstallWizard', () => {
       }),
     });
     render(<InstallWizard onConfigured={jest.fn()} />);
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('radio', {
+      await screen.findByRole('radio', {
         name: 'Please keep my usage information anonymous',
       })
     ).not.toBeChecked();

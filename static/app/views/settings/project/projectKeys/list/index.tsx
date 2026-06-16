@@ -1,7 +1,9 @@
 import {Fragment, useState} from 'react';
+import {useQuery, useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {
   addErrorMessage,
@@ -12,14 +14,13 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,7 +28,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -44,27 +44,21 @@ export default function ProjectKeys() {
   const [keyListState, setKeyListState] = useState<ProjectKey[] | undefined>(undefined);
 
   const {
-    data: fetchedKeyList,
+    data: keyListResponse,
     isPending,
     isError,
     refetch,
-    getResponseHeader,
-  } = useApiQuery<ProjectKey[]>(
-    [
-      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/`, {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
-      {
-        query: {
-          cursor: decodeScalar(location.query.cursor),
-          per_page: 5,
-        },
+  } = useQuery({
+    ...projectKeysApiOptions({
+      orgSlug: organization.slug,
+      projSlug: project.slug,
+      query: {
+        cursor: decodeScalar(location.query.cursor),
+        per_page: 5,
       },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
   /**
    * Optimistically remove key
@@ -101,7 +95,7 @@ export default function ProjectKeys() {
         }
       );
     },
-    onMutate: ({data}: {data: ProjectKey}) => {
+    onMutate: ({data}) => {
       addLoadingMessage(t('Saving changes\u2026'));
       setKeyListState(
         keyList.map(key => {
@@ -148,7 +142,7 @@ export default function ProjectKeys() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const keyList = keyListState ? keyListState : fetchedKeyList;
+  const keyList = keyListState ? keyListState : keyListResponse.json;
 
   const renderEmpty = () => {
     return (
@@ -171,7 +165,6 @@ export default function ProjectKeys() {
             key={key.id}
             projectId={project.slug}
             project={project}
-            organization={organization}
             data={key}
             onToggle={(isActive, data) =>
               handleToggleKeyMutation.mutate({isActive, data})
@@ -182,7 +175,7 @@ export default function ProjectKeys() {
             params={params}
           />
         ))}
-        <Pagination pageLinks={getResponseHeader?.('Link')} />
+        <Pagination pageLinks={keyListResponse.headers.Link} />
       </Fragment>
     );
   };
@@ -198,18 +191,15 @@ export default function ProjectKeys() {
         action={
           <Button
             onClick={() => handleCreateKeyMutation.mutate()}
-            size="sm"
-            priority="primary"
+            size="md"
+            variant="primary"
             icon={<IconAdd />}
             disabled={!hasAccess}
           >
             {t('Generate New Key')}
           </Button>
         }
-      />
-
-      <TextBlock>
-        {tct(
+        subtitle={tct(
           `To send data to Sentry you will need to configure an SDK with a client key
           (usually referred to as the [code:SENTRY_DSN] value). For more
           information on integrating Sentry with your application take a look at our
@@ -221,7 +211,7 @@ export default function ProjectKeys() {
             code: <code />,
           }
         )}
-      </TextBlock>
+      />
 
       <ProjectPermissionAlert project={project} />
 

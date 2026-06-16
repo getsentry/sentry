@@ -121,7 +121,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
                 onRemove();
               }}
               size="zero"
-              priority="transparent"
+              variant="transparent"
               aria-label={t('Clear base build')}
               icon={<IconClose size="xs" variant="accent" />}
             />
@@ -237,7 +237,7 @@ export function SizeCompareSelectedBuilds({
             }
           }}
           disabled={!baseBuildDetails || isComparing}
-          priority="primary"
+          variant="primary"
           icon={<IconTelescope size="sm" />}
         >
           {isComparing ? t('Comparing...') : t('Compare builds')}

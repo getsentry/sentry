@@ -114,11 +114,21 @@ class Symbolicator:
         self.project = project
         self.event_id = event_id
 
-    def _process(self, task_name: str, path: str, **kwargs):
+    def _process(
+        self,
+        task_name: str,
+        path: str,
+        kwargs_cb: Callable[[], dict[str, Any]] | None = None,
+        **kwargs: Any,
+    ) -> Any:
         """
         This function will submit a symbolication task to a Symbolicator and handle
         polling it using the `SymbolicatorSession`.
         It will also correctly handle `TaskIdNotFound` and `ServiceUnavailable` errors.
+
+        `kwargs_cb`, if provided, is called on every new task submission and its result
+        is merged over `kwargs`. Use this for values that must be fresh on each
+        (re)submission, such as expiring tokens.
         """
         session = SymbolicatorSession(
             url=self.base_url,
@@ -137,7 +147,8 @@ class Symbolicator:
                 try:
                     if not task_id:
                         # We are submitting a new task to Symbolicator
-                        json_response = session.create_task(path, **kwargs)
+                        create_kwargs = {**kwargs, **(kwargs_cb() if kwargs_cb else {})}
+                        json_response = session.create_task(path, **create_kwargs)
                     else:
                         # The task has already been submitted to Symbolicator and we are polling
                         json_response = session.query_task(task_id)
@@ -201,7 +212,12 @@ class Symbolicator:
                     "rewrite_first_module": rewrite_first_module,
                 },
             }
-            res = self._process("process_minidump", "symbolicate-any", json=json)
+
+            def cb() -> dict[str, Any]:
+                json["symbolicate"]["storage_token"] = session.mint_token()
+                return {"json": json}
+
+            res = self._process("process_minidump", "symbolicate-any", kwargs_cb=cb)
             return process_response(res)
 
         data = {
@@ -233,7 +249,12 @@ class Symbolicator:
                     "storage_url": storage_url,
                 },
             }
-            res = self._process("process_applecrashreport", "symbolicate-any", json=json)
+
+            def cb() -> dict[str, Any]:
+                json["symbolicate"]["storage_token"] = session.mint_token()
+                return {"json": json}
+
+            res = self._process("process_applecrashreport", "symbolicate-any", kwargs_cb=cb)
             return process_response(res)
 
         data = {

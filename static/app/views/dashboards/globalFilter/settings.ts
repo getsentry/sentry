@@ -1,0 +1,1 @@
+export const FILTER_SELECTOR_TRIGGER_MAX_WIDTH = '300px';

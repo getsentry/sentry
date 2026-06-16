@@ -3,7 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
-from django.db.models import Count
+from django.db.models import OuterRef, Subquery
 from drf_spectacular.utils import extend_schema_serializer
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -11,7 +11,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import (
@@ -46,11 +46,10 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     conditionGroup: dict[str, Any] | None
     config: dict[str, Any]
     enabled: bool
-    openIssues: int
 
 
 @register(Detector)
-class DetectorSerializer(Serializer):
+class DetectorSerializer(Serializer[DetectorSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Detector, dict[str, Any]]:
@@ -100,31 +99,48 @@ class DetectorSerializer(Serializer):
             for mapping in alert_rule_mappings
         }
 
-        latest_detector_groups = (
-            DetectorGroup.objects.filter(detector__in=item_list)
-            .select_related("group", "group__project")
-            .order_by("detector_id", "-date_added")
-            .distinct("detector_id")
+        # LIMIT 1 subquery, not DISTINCT ON: Postgres lacks skip scan, so
+        # DISTINCT ON reads all rows per detector before deduplicating.
+        # LIMIT 1 stops after one index probe per detector.
+        # Impact is _dramatic_ for high cardinality DetectorGroups like error Detectors.
+        latest_group_subquery = (
+            DetectorGroup.objects.filter(detector_id=OuterRef("pk"))
+            .order_by("-date_added")
+            .values("group_id")[:1]
         )
-        latest_groups_map = {
-            dg.detector_id: (
-                None
-                if dg.group is None
-                else serialize(
-                    dg.group,
-                    user=user,
-                    serializer=SimpleGroupSerializer(),
-                )
+        latest_group_ids_by_detector_id = {
+            d.id: d.latest_group_id
+            for d in Detector.objects.filter(id__in=[item.id for item in item_list]).annotate(
+                latest_group_id=Subquery(latest_group_subquery)
             )
-            for dg in latest_detector_groups
+            if d.latest_group_id is not None
+        }
+        project_ids = {item.project_id for item in item_list}
+        latest_groups = list(
+            Group.objects.filter(
+                id__in=latest_group_ids_by_detector_id.values(),
+                project_id__in=project_ids,
+            ).select_related("project")
+        )
+        serialized_latest_groups = {
+            group.id: serialized
+            for group, serialized in zip(
+                latest_groups,
+                serialize(latest_groups, user=user, serializer=SimpleGroupSerializer()),
+            )
+        }
+        latest_groups_map = {
+            detector_id: serialized_latest_groups.get(group_id)
+            for detector_id, group_id in latest_group_ids_by_detector_id.items()
         }
 
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
-        project_ids = [item.project_id for item in filtered_item_list]
+        error_detector_project_ids = [item.project_id for item in filtered_item_list]
 
         project_options_list = list(
             ProjectOption.objects.filter(
-                key__in=Detector.error_detector_project_options.values(), project__in=project_ids
+                key__in=Detector.error_detector_project_options.values(),
+                project__in=error_detector_project_ids,
             )
         )
 
@@ -133,14 +149,6 @@ class DetectorSerializer(Serializer):
         )  # make the config for Error Detectors
         for option in project_options_list:
             configs[option.project_id][option.key] = option.value
-
-        open_issues_counts = dict(
-            DetectorGroup.objects.filter(detector__in=item_list)
-            .filter(group__status=GroupStatus.UNRESOLVED)
-            .values("detector_id")
-            .annotate(open_issues_count=Count("group"))
-            .values_list("detector_id", "open_issues_count")
-        )
 
         # Serialize owners
         owners = [item.owner for item in item_list if item.owner]
@@ -163,7 +171,6 @@ class DetectorSerializer(Serializer):
                 },
             )
             attrs[item]["latest_group"] = latest_groups_map.get(item.id)
-            attrs[item]["open_issues_count"] = open_issues_counts.get(item.id, 0)
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
@@ -206,5 +213,4 @@ class DetectorSerializer(Serializer):
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
             "ruleId": alert_rule_mapping.get("rule_id"),
             "latestGroup": attrs.get("latest_group"),
-            "openIssues": attrs.get("open_issues_count", 0),
         }

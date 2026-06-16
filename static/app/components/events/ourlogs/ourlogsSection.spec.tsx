@@ -13,6 +13,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
+
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -43,6 +47,7 @@ jest.mock('@tanstack/react-virtual', () => {
         {key: '3', index: 2, start: 100, end: 150, lane: 0},
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
+      measure: jest.fn(),
       scrollToIndex: jest.fn(),
       options: {
         scrollMargin: 0,
@@ -131,7 +136,7 @@ describe('OurlogsSection', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/`,
+      url: '/projects/',
       body: [project],
     });
 
@@ -182,7 +187,7 @@ describe('OurlogsSection', () => {
     });
   });
 
-  it('renders empty', () => {
+  it('renders empty', async () => {
     const mockRequestEmpty = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
       body: {
@@ -193,8 +198,12 @@ describe('OurlogsSection', () => {
     render(<OurlogsSection event={event} project={project} group={group} />, {
       organization,
     });
-    expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText(/Logs/)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/Logs/)).not.toBeInTheDocument();
+    });
   });
 
   it('renders logs', async () => {

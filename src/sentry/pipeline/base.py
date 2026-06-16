@@ -19,8 +19,8 @@ from sentry.web.helpers import render_to_response
 from ..models import Organization
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
-from .types import PipelineRequestState
-from .views.base import PipelineView
+from .types import PipelineRequestState, PipelineStepAction, PipelineStepResult
+from .views.base import ApiPipelineEndpoint, ApiPipelineStep, ApiPipelineSteps, PipelineView
 from .views.nested import NestedPipelineView
 
 ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
@@ -81,7 +81,10 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         provider_model = None
         if state.provider_model_id:
             assert cls.provider_model_cls is not None
-            provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
+            try:
+                provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
+            except cls.provider_model_cls.DoesNotExist:
+                return None
 
         organization: RpcOrganization | None = None
         if state.org_id:
@@ -242,6 +245,14 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         return data if key is None else data.get(key)
 
     def fetch_state(self, key: str | None = None) -> Any | None:
+        # In API mode the pipeline drives its own steps and never runs the
+        # legacy nested views, so state always lives at the top level. Providers
+        # mid-migration may still expose a NestedPipelineView via
+        # get_pipeline_views() for the legacy flow; don't surface nested state
+        # for them here.
+        if self.is_api_mode:
+            return self._fetch_state(key)
+
         step_index = self.step_index
         if step_index >= len(self.pipeline_views):
             return self._fetch_state(key)
@@ -256,6 +267,78 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
             )
             return nested_pipeline.fetch_state(key)
         return self._fetch_state(key)
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[Self] | None:
+        """
+        Return API step objects for this pipeline, or None if API mode is not
+        supported. Steps may be callables for late binding (resolved when the
+        step is reached). Subclasses override this to enable API mode.
+        """
+        return None
+
+    def _resolve_api_step(self, step: ApiPipelineStep[Self]) -> ApiPipelineEndpoint[Self]:
+        return step() if callable(step) else step
+
+    def is_api_ready(self) -> bool:
+        """Returns True if this pipeline supports API mode."""
+        return self.get_pipeline_api_steps() is not None
+
+    @property
+    def is_api_mode(self) -> bool:
+        """Returns True if this pipeline session was initiated via the API."""
+        return bool(self._fetch_state("api_mode"))
+
+    def set_api_mode(self, enabled: bool = True) -> None:
+        self.bind_state("api_mode", enabled)
+
+    def _assert_user_authorization(self) -> None:
+        assert not (self.state.uid is not None and self.state.uid != self.request.user.id), (
+            ERR_MISMATCHED_USER
+        )
+
+    def get_current_step_info(self) -> dict[str, Any]:
+        """Returns structured data describing the current pipeline step for API consumers."""
+        self._assert_user_authorization()
+        api_steps = self.get_pipeline_api_steps()
+        assert api_steps is not None
+        step_index = self.step_index
+        api_step = self._resolve_api_step(api_steps[step_index])
+        return {
+            "step": api_step.step_name,
+            "stepIndex": step_index,
+            "totalSteps": len(api_steps),
+            "provider": self.provider.key,
+            "data": api_step.get_step_data(self, self.request),
+        }
+
+    def api_advance(self, request: HttpRequest, data: Mapping[str, Any]) -> PipelineStepResult:
+        """Validates and processes the current step in API mode, advancing the pipeline."""
+        self._assert_user_authorization()
+        api_steps = self.get_pipeline_api_steps()
+        assert api_steps is not None
+        step_index = self.step_index
+        api_step = self._resolve_api_step(api_steps[step_index])
+
+        serializer_cls = api_step.get_serializer_cls()
+        if serializer_cls is not None:
+            serializer = serializer_cls(data=data)
+            serializer.is_valid(raise_exception=True)
+            validated_data = serializer.validated_data
+        else:
+            validated_data = data
+
+        result = api_step.handle_post(validated_data, self, request)
+
+        if result.action == PipelineStepAction.ADVANCE:
+            self.state.step_index = step_index + 1
+            if self.step_index >= len(api_steps):
+                return self.api_finish_pipeline()
+
+        return result
+
+    def api_finish_pipeline(self) -> PipelineStepResult:
+        """Called when all pipeline steps complete in API mode. Subclasses must override."""
+        raise NotImplementedError
 
     def get_logger(self) -> logging.Logger:
         return logging.getLogger(f"sentry.integration.{self.provider.key}")

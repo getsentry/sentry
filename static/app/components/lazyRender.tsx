@@ -44,7 +44,7 @@ export interface LazyRenderProps {
  */
 export function LazyRender(props: LazyRenderProps) {
   // If disabled or the browser doesn't support IntersectionObserver, render the children immediately.
-  const [visible, setVisible] = useState<boolean>(
+  const [visible, setVisible] = useState(
     !!props.disabled || !supportsIntersectionObserver()
   );
   const observerRef = useRef<IntersectionObserver | null>(null);

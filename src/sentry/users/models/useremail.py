@@ -55,7 +55,6 @@ class UserEmailManager(BaseManager["UserEmail"]):
 @control_silo_model
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
-    __relocation_dependencies__ = {"sentry.Email"}
     __relocation_custom_ordinal__ = ["user", "email"]
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
@@ -78,11 +77,11 @@ class UserEmail(ControlOutboxProducingModel):
     __repr__ = sane_repr("user_id", "email")
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        regions = find_cells_for_user(self.user_id)
+        cells = find_cells_for_user(self.user_id)
         return [
             outbox
             for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
-                cell_names=regions,
+                cell_names=cells,
                 shard_identifier=self.user_id,
                 object_identifier=self.user_id,
             )

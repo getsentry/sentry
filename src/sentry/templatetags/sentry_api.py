@@ -3,7 +3,7 @@ from django.http import HttpRequest
 
 from sentry.api.serializers.base import serialize as serialize_func
 from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializerWithProjectsAndTeams,
+    OrganizationWithProjectsAndTeamsSerializer,
 )
 from sentry.auth.access import NoAccess, from_user
 from sentry.utils import json
@@ -35,9 +35,7 @@ def serialize_detailed_org(context, obj):
         user = None
         access = NoAccess()
 
-    context = serialize_func(
-        obj, user, DetailedOrganizationSerializerWithProjectsAndTeams(), access=access
-    )
+    context = serialize_func(obj, user, OrganizationWithProjectsAndTeamsSerializer(), access=access)
 
     return convert_to_json(context)
 

@@ -8,13 +8,13 @@ import * as ts from 'typescript';
 
 // Terminal color codes
 const colors = {
-  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
-  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
-  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
-  cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
-  magenta: (text: string) => `\x1b[35m${text}\x1b[0m`,
-  bold: (text: string) => `\x1b[1m${text}\x1b[0m`,
-  dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
+  red: (text: string) => `\x1B[31m${text}\x1B[0m`,
+  green: (text: string) => `\x1B[32m${text}\x1B[0m`,
+  yellow: (text: string) => `\x1B[33m${text}\x1B[0m`,
+  cyan: (text: string) => `\x1B[36m${text}\x1B[0m`,
+  magenta: (text: string) => `\x1B[35m${text}\x1B[0m`,
+  bold: (text: string) => `\x1B[1m${text}\x1B[0m`,
+  dim: (text: string) => `\x1B[2m${text}\x1B[0m`,
 };
 
 type Options = {
@@ -33,15 +33,24 @@ function parseArgs(): Options {
   const opts: Options = {tsconfigPath: 'tsconfig.json'};
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
-    if (a === '--fail-below') opts.failBelow = Number(args[++i]);
-    else if (a === '--json') opts.json = true;
-    else if (a === '--project' || a === '-p') opts.tsconfigPath = args[++i]!;
-    else if (a === '--list-any') opts.listAny = true;
-    else if (a === '--list-nonnull') opts.listNonNull = true;
-    else if (a === '--list-type-assertions') opts.listTypeAssertions = true;
-    else if (a === '--detail') opts.detail = true;
-    else if (a === '--ignore-files') {
-      if (!opts.ignoreFiles) opts.ignoreFiles = [];
+    if (a === '--fail-below') {
+      opts.failBelow = Number(args[++i]);
+    } else if (a === '--json') {
+      opts.json = true;
+    } else if (a === '--project' || a === '-p') {
+      opts.tsconfigPath = args[++i]!;
+    } else if (a === '--list-any') {
+      opts.listAny = true;
+    } else if (a === '--list-nonnull') {
+      opts.listNonNull = true;
+    } else if (a === '--list-type-assertions') {
+      opts.listTypeAssertions = true;
+    } else if (a === '--detail') {
+      opts.detail = true;
+    } else if (a === '--ignore-files') {
+      if (!opts.ignoreFiles) {
+        opts.ignoreFiles = [];
+      }
       opts.ignoreFiles.push(args[++i]!);
     }
   }
@@ -49,9 +58,13 @@ function parseArgs(): Options {
 }
 
 const isAny = (type: ts.Type, typeChecker: ts.TypeChecker) => {
-  if (type.flags & ts.TypeFlags.Any) return true;
+  if (type.flags & ts.TypeFlags.Any) {
+    return true;
+  }
   const typeText = typeChecker.typeToString(type);
-  if (typeText === 'any') return true;
+  if (typeText === 'any') {
+    return true;
+  }
   // Check for 'any' within generic types like Record<string, any>, Array<any>, etc.
   return /\bany\b/.test(typeText);
 };
@@ -67,7 +80,9 @@ function isContextuallyTypedCallbackParam(
   typeChecker: ts.TypeChecker
 ): boolean {
   const parent = param.parent;
-  if (!ts.isFunctionExpression(parent) && !ts.isArrowFunction(parent)) return false;
+  if (!ts.isFunctionExpression(parent) && !ts.isArrowFunction(parent)) {
+    return false;
+  }
 
   // Check for styled-components pattern: styled('div')`...${p => ...}...`
   let current: ts.Node | undefined = parent.parent;
@@ -99,17 +114,23 @@ function isContextuallyTypedCallbackParam(
 
   // Original contextual type checking
   const contextualType = typeChecker.getContextualType(parent);
-  if (!contextualType) return false;
+  if (!contextualType) {
+    return false;
+  }
 
   const signatures = typeChecker.getSignaturesOfType(
     contextualType,
     ts.SignatureKind.Call
   );
-  if (signatures.length === 0) return false;
+  if (signatures.length === 0) {
+    return false;
+  }
 
   const sig = signatures[0]!;
   const paramIndex = parent.parameters.indexOf(param);
-  if (paramIndex < 0 || paramIndex >= sig.parameters.length) return false;
+  if (paramIndex < 0 || paramIndex >= sig.parameters.length) {
+    return false;
+  }
 
   const paramType = typeChecker.getTypeOfSymbolAtLocation(
     sig.parameters[paramIndex]!,
@@ -219,7 +240,9 @@ function countBindingPatternElements(
   let count = 0;
 
   for (const element of pattern.elements) {
-    if (ts.isOmittedExpression(element)) continue;
+    if (ts.isOmittedExpression(element)) {
+      continue;
+    }
 
     count++;
     let typed = false;
@@ -475,7 +498,7 @@ function main() {
     try {
       return fs.readFileSync(filename, 'utf8');
     } catch {
-      return undefined;
+      return;
     }
   });
 
@@ -498,7 +521,7 @@ function main() {
       try {
         return fs.readFileSync(filename, 'utf8');
       } catch {
-        return undefined;
+        return;
       }
     },
     useCaseSensitiveFileNames: true,
@@ -565,14 +588,20 @@ function main() {
   function bump(file: string, typed: boolean) {
     const rec = (perFile[file] ||= {total: 0, typed: 0});
     rec.total++;
-    if (typed) rec.typed++;
+    if (typed) {
+      rec.typed++;
+    }
     totals.total++;
-    if (typed) totals.typed++;
+    if (typed) {
+      totals.typed++;
+    }
   }
 
   // Analyze each source file
   for (const sourceFile of program.getSourceFiles()) {
-    if (!files.includes(sourceFile.fileName)) continue;
+    if (!files.includes(sourceFile.fileName)) {
+      continue;
+    }
 
     const relPath = path.relative(process.cwd(), sourceFile.fileName);
     const fileBump = (typed: boolean) => bump(relPath, typed);
@@ -608,9 +637,15 @@ function main() {
         coverage: Number(((c.typed / c.total) * 100).toFixed(2)),
       })),
     };
-    if (opts.listAny) data.anySymbols = anyHits;
-    if (opts.listNonNull) data.nonNullAssertions = nonNullHits;
-    if (opts.listTypeAssertions) data.typeAssertions = typeAssertionHits;
+    if (opts.listAny) {
+      data.anySymbols = anyHits;
+    }
+    if (opts.listNonNull) {
+      data.nonNullAssertions = nonNullHits;
+    }
+    if (opts.listTypeAssertions) {
+      data.typeAssertions = typeAssertionHits;
+    }
     console.log(JSON.stringify(data, null, 2));
   } else if (opts.listAny || opts.listNonNull || opts.listTypeAssertions) {
     if (opts.listAny) {
@@ -622,7 +657,9 @@ function main() {
           console.log();
           // Sort hits by file path first, then by line number
           const sortedHits = anyHits.sort((a, b) => {
-            if (a.file !== b.file) return a.file.localeCompare(b.file);
+            if (a.file !== b.file) {
+              return a.file.localeCompare(b.file);
+            }
             return a.line - b.line;
           });
           for (const hit of sortedHits) {
@@ -644,7 +681,9 @@ function main() {
           console.log();
           // Sort hits by file path first, then by line number
           const sortedHits = nonNullHits.sort((a, b) => {
-            if (a.file !== b.file) return a.file.localeCompare(b.file);
+            if (a.file !== b.file) {
+              return a.file.localeCompare(b.file);
+            }
             return a.line - b.line;
           });
           for (const hit of sortedHits) {
@@ -666,7 +705,9 @@ function main() {
           console.log();
           // Sort hits by file path first, then by line number
           const sortedHits = typeAssertionHits.sort((a, b) => {
-            if (a.file !== b.file) return a.file.localeCompare(b.file);
+            if (a.file !== b.file) {
+              return a.file.localeCompare(b.file);
+            }
             return a.line - b.line;
           });
           for (const hit of sortedHits) {
@@ -703,7 +744,9 @@ function main() {
 
     if (worst.length) {
       console.log(colors.bold('Lowest coverage files:'));
-      for (const w of worst) console.log(`  ${colors.dim(w.file)}  ${w.pct.toFixed(2)}%`);
+      for (const w of worst) {
+        console.log(`  ${colors.dim(w.file)}  ${w.pct.toFixed(2)}%`);
+      }
       console.log();
     }
   }

@@ -28,6 +28,7 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
       avatarType: 'letter_avatar',
     },
     hasPasswordAuth: true,
+    isSuspended: false,
     email: 'example@sentry.io',
     authenticators: [],
     options: {

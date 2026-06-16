@@ -2,7 +2,7 @@ import {Fragment, useEffect, useRef} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   HighlightedText,
   Thresholds,

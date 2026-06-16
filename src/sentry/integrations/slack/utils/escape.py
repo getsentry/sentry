@@ -29,13 +29,3 @@ def escape_slack_markdown_text(txt: str | None) -> str:
     backtick_pattern = re.compile(r"`+")
 
     return backtick_pattern.sub("`", txt)
-
-
-def escape_slack_markdown_asterisks(txt: str | None) -> str:
-    """
-    Removes pairs of double asterisks.
-    """
-    if not txt:
-        return ""
-
-    return re.sub(r"\*\*(.*?)\*\*", r"\1", txt)

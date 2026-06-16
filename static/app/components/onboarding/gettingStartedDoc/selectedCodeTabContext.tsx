@@ -25,7 +25,7 @@ const StepIndexContext = createContext<number | undefined>(undefined);
  * conditional block 2). Used to disambiguate tabbed code blocks that
  * share identical labels within the same step.
  */
-const BlockPathContext = createContext<string>('');
+const BlockPathContext = createContext('');
 
 /**
  * Provides the current step index to descendant TabbedCodeSnippets.

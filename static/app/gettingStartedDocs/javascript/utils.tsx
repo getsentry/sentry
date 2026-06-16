@@ -50,11 +50,11 @@ export const isAutoInstall = (params: Params) =>
 const getIntegrations = (params: Params): string[] => {
   const integrations = [];
   if (params.isPerformanceSelected) {
-    integrations.push(`Sentry.browserTracingIntegration()`);
+    integrations.push('Sentry.browserTracingIntegration()');
   }
 
   if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
+    integrations.push('Sentry.browserProfilingIntegration()');
   }
 
   if (params.isReplaySelected) {
@@ -107,9 +107,12 @@ export const getSdkSetupSnippet = (params: Params) => {
     params,
     staticParts: [
       `dsn: "${params.dsn.public}"`,
-      `// Setting this option to true will send default PII data to Sentry.
-      // For example, automatic IP address collection on events
-      sendDefaultPii: true`,
+      `dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: []
+  }`,
     ],
     getIntegrations,
     getDynamicParts,
@@ -328,7 +331,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     if (params.isMetricsSelected) {
       steps.push({
         id: 'metrics',
-        name: t('Metrics'),
+        name: t('Application Metrics'),
         description: t(
           'Learn how to track custom metrics to monitor your application performance and business KPIs.'
         ),
@@ -340,20 +343,30 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPageLoad: params => {
     return () => {
-      trackAnalytics('onboarding.setup_loader_docs_rendered', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_setup_loader_docs_rendered'
+          : 'onboarding.setup_loader_docs_rendered',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onPlatformOptionsChange: params => {
     return () => {
-      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_js_loader_npm_docs_shown'
+          : 'onboarding.js_loader_npm_docs_shown',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onProductSelectionChange: params => {
@@ -438,7 +451,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     if (params.isMetricsSelected) {
       steps.push({
         id: 'metrics',
-        name: t('Metrics'),
+        name: t('Application Metrics'),
         description: t(
           'Learn how to track custom metrics to monitor your application performance and business KPIs.'
         ),
@@ -450,11 +463,16 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPageLoad: params => {
     return () => {
-      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_js_loader_npm_docs_shown'
+          : 'onboarding.js_loader_npm_docs_shown',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onProductSelectionChange: params => {
@@ -481,11 +499,16 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPlatformOptionsChange: params => {
     return () => {
-      trackAnalytics('onboarding.setup_loader_docs_rendered', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_setup_loader_docs_rendered'
+          : 'onboarding.setup_loader_docs_rendered',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
 };

@@ -75,3 +75,14 @@ def or_trace_item_filters(
         return filters[0]
 
     return TraceItemFilter(or_filter=OrFilter(filters=filters))
+
+
+def anyvalue_to_python(av: AttributeValue | AnyValue) -> Any:
+    which = av.WhichOneof("value")
+    if which is None:
+        return None
+    val = getattr(av, which)
+    if which == "val_array" or which == "array_value":
+        return [anyvalue_to_python(x) for x in val.values]
+    else:
+        return val

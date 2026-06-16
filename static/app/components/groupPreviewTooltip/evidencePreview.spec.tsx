@@ -37,7 +37,7 @@ describe('EvidencePreview', () => {
     });
 
     const mockApi = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
+      url: '/organizations/org-slug/issues/group-id/events/recommended/',
       body: event,
     });
 

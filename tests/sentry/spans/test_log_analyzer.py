@@ -47,7 +47,7 @@ def _make_flusher_log_entry(
 
 
 class TestParseTopTraces:
-    def test_parses_valid_entries(self):
+    def test_parses_valid_entries(self) -> None:
         results = parse_top_traces(["123:aabb0011:100:5000", "456:ccdd0022:50:2000"])
 
         assert len(results) == 2
@@ -55,14 +55,14 @@ class TestParseTopTraces:
             project_id="123", trace_id="aabb0011", count=100, cumulative_latency_ms=5000
         )
 
-    def test_skips_malformed_entries(self):
+    def test_skips_malformed_entries(self) -> None:
         results = parse_top_traces(["bad_entry", "too:few", "123:aabb0011:100:5000"])
 
         assert len(results) == 1
 
 
 class TestParseTopFlushOperations:
-    def test_parses_valid_entries(self):
+    def test_parses_valid_entries(self) -> None:
         results = parse_top_flush_operations(
             ["123:aabb0011:5:200:50000", "456:ccdd0022:2:100:20000"]
         )
@@ -76,7 +76,7 @@ class TestParseTopFlushOperations:
             bytes_flushed=50000,
         )
 
-    def test_skips_malformed_entries(self):
+    def test_skips_malformed_entries(self) -> None:
         results = parse_top_flush_operations(
             ["bad_entry", "too:few:parts", "123:aabb0011:5:200:50000"]
         )
@@ -85,7 +85,7 @@ class TestParseTopFlushOperations:
 
 
 class TestLogAnalyzer:
-    def test_aggregates_across_entries(self):
+    def test_aggregates_across_entries(self) -> None:
         entries = [
             _make_buffer_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -105,7 +105,7 @@ class TestLogAnalyzer:
         assert traces[0].log_entries == 2
         assert traces[0].duration == "0:01:00"
 
-    def test_filter_by_project(self):
+    def test_filter_by_project(self) -> None:
         entries = [
             _make_buffer_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -118,7 +118,7 @@ class TestLogAnalyzer:
         assert len(traces) == 1
         assert traces[0].project_id == "123"
 
-    def test_filter_by_trace(self):
+    def test_filter_by_trace(self) -> None:
         entries = [
             _make_buffer_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -131,7 +131,7 @@ class TestLogAnalyzer:
         assert len(traces) == 1
         assert traces[0].trace_id == "ccdd0022"
 
-    def test_summary_stats(self):
+    def test_summary_stats(self) -> None:
         entries = [
             _make_buffer_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -154,7 +154,7 @@ class TestLogAnalyzer:
         assert stats["time_range_end"] == datetime(2026, 2, 3, 18, 55, 36, tzinfo=timezone.utc)
         assert stats["consumer_counts"] == {"process-spans-6": 1, "process-spans-7": 1}
 
-    def test_respects_limit(self):
+    def test_respects_limit(self) -> None:
         entries = [
             _make_buffer_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -168,7 +168,7 @@ class TestLogAnalyzer:
 
 
 class TestFlusherLogAnalyzer:
-    def test_aggregates_across_entries(self):
+    def test_aggregates_across_entries(self) -> None:
         entries = [
             _make_flusher_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -187,7 +187,7 @@ class TestFlusherLogAnalyzer:
         assert traces[0].total_span_count == 350
         assert traces[0].total_segment_count == 8
 
-    def test_sorts_by_bytes_flushed(self):
+    def test_sorts_by_bytes_flushed(self) -> None:
         entries = [
             _make_flusher_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -201,7 +201,7 @@ class TestFlusherLogAnalyzer:
         assert traces[0].total_bytes_flushed == 50000
         assert traces[1].total_bytes_flushed == 20000
 
-    def test_filter_by_project(self):
+    def test_filter_by_project(self) -> None:
         entries = [
             _make_flusher_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -214,7 +214,7 @@ class TestFlusherLogAnalyzer:
         assert len(traces) == 1
         assert traces[0].project_id == "456"
 
-    def test_filter_by_trace(self):
+    def test_filter_by_trace(self) -> None:
         entries = [
             _make_flusher_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),
@@ -227,7 +227,7 @@ class TestFlusherLogAnalyzer:
         assert len(traces) == 1
         assert traces[0].trace_id == "aabb0011"
 
-    def test_summary_stats_with_latencies(self):
+    def test_summary_stats_with_latencies(self) -> None:
         entries = [
             _make_flusher_log_entry(
                 datetime(2026, 2, 3, 18, 54, 36, tzinfo=timezone.utc),

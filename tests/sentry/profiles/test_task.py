@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import zipfile
-from base64 import b64encode
 from io import BytesIO
 from os.path import join
 from typing import Any
@@ -1056,7 +1055,7 @@ def test_track_latest_sdk_with_payload(
         "payload": json.dumps(profile),
     }
 
-    payload = b64encode(msgpack.packb(kafka_payload)).decode("utf-8")
+    payload = msgpack.packb(kafka_payload)
 
     process_profile_task(payload=payload)
 

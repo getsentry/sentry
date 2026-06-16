@@ -1,5 +1,4 @@
 import 'echarts/lib/chart/heatmap';
-import 'echarts/lib/component/visualMap';
 
 import type {HeatmapSeriesOption} from 'echarts';
 

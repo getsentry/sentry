@@ -36,7 +36,10 @@ class OrganizationSupergroupDetailsEndpoint(OrganizationEndpoint):
             return Response({"detail": "Feature not available"}, status=403)
 
         response = make_supergroups_get_request(
-            {"organization_id": organization.id, "supergroup_id": supergroup_id},
+            {
+                "organization_id": organization.id,
+                "supergroup_id": supergroup_id,
+            },
             SeerViewerContext(organization_id=organization.id, user_id=request.user.id),
             timeout=10,
         )

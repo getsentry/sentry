@@ -4,8 +4,7 @@ import {z} from 'zod';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-
-import type {SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select';
 
 const OPTIONS = [
   {value: 'apple', label: 'Apple'},
@@ -439,7 +438,7 @@ describe('SelectField auto-save', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Banana'}));
 
     expect(await screen.findByRole('status', {name: 'Saving fruit'})).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'});
+    expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'}, expect.anything());
   });
 
   it('shows checkmark when auto-save succeeds', async () => {
@@ -451,7 +450,7 @@ describe('SelectField auto-save', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Banana'}));
 
     expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
-    expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'});
+    expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'}, expect.anything());
   });
 
   it('disables select while auto-save is pending', async () => {
@@ -790,7 +789,7 @@ describe('SelectField multiple auto-save', () => {
     await userEvent.click(removeButtons[0]!);
 
     await waitFor(() => {
-      expect(mutationFn).toHaveBeenCalledWith({tags: ['tag2']});
+      expect(mutationFn).toHaveBeenCalledWith({tags: ['tag2']}, expect.anything());
     });
   });
 
@@ -805,7 +804,7 @@ describe('SelectField multiple auto-save', () => {
     await userEvent.click(screen.getByLabelText('Clear choices'));
 
     await waitFor(() => {
-      expect(mutationFn).toHaveBeenCalledWith({tags: []});
+      expect(mutationFn).toHaveBeenCalledWith({tags: []}, expect.anything());
     });
   });
 
@@ -842,7 +841,10 @@ describe('SelectField multiple auto-save', () => {
     await userEvent.keyboard('{Escape}');
 
     await waitFor(() => {
-      expect(mutationFn).toHaveBeenCalledWith({tags: ['tag1', 'tag2']});
+      expect(mutationFn).toHaveBeenCalledWith(
+        {tags: ['tag1', 'tag2']},
+        expect.anything()
+      );
     });
   });
 
@@ -864,7 +866,7 @@ describe('SelectField multiple auto-save', () => {
       expect(mutationFn).toHaveBeenCalledTimes(1);
     });
 
-    expect(mutationFn).toHaveBeenCalledWith({tags: ['tag2', 'tag3']});
+    expect(mutationFn).toHaveBeenCalledWith({tags: ['tag2', 'tag3']}, expect.anything());
   });
 
   it('shows spinner when auto-save is pending for multi-select', async () => {

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import contextlib
+import contextvars
 import functools
 import inspect
 import os
 import re
 import sys
-import threading
 import typing
 from collections.abc import Callable, Collection, Generator, Iterable, Mapping, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
@@ -23,7 +23,7 @@ from django.test import override_settings
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
 from sentry.testutils.cell import get_test_env_directory, override_cells
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell, Locality
 from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
@@ -35,46 +35,43 @@ SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
 def monkey_patch_single_process_silo_mode_state():
-    class LocalSiloModeState(threading.local):
-        mode: SiloMode | None = None
-        cell: Cell | None = None
-
-    state = LocalSiloModeState()
+    _silo_mode_var: contextvars.ContextVar[SiloMode | None] = contextvars.ContextVar(
+        "silo_mode", default=None
+    )
+    _silo_cell_var: contextvars.ContextVar[Cell | None] = contextvars.ContextVar(
+        "silo_cell", default=None
+    )
 
     @contextlib.contextmanager
     def enter(mode: SiloMode, cell: Cell | None = None) -> Generator[None]:
-        assert state.mode is None, (
+        assert _silo_mode_var.get() is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
         )
 
-        old_mode = state.mode
-        old_cell = state.cell
-        state.mode = mode
-        state.cell = cell
+        mode_token = _silo_mode_var.set(mode)
+        cell_token = _silo_cell_var.set(cell)
         try:
             yield
         finally:
-            state.mode = old_mode
-            state.cell = old_cell
+            _silo_mode_var.reset(mode_token)
+            _silo_cell_var.reset(cell_token)
 
     @contextlib.contextmanager
     def exit() -> Generator[None]:
-        old_mode = state.mode
-        old_cell = state.cell
-        state.mode = None
-        state.cell = None
+        mode_token = _silo_mode_var.set(None)
+        cell_token = _silo_cell_var.set(None)
         try:
             yield
         finally:
-            state.mode = old_mode
-            state.cell = old_cell
+            _silo_mode_var.reset(mode_token)
+            _silo_cell_var.reset(cell_token)
 
     def get_mode() -> SiloMode | None:
-        return state.mode
+        return _silo_mode_var.get()
 
     def get_cell() -> Cell | None:
-        return state.cell
+        return _silo_cell_var.get()
 
     SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
     SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
@@ -82,27 +79,17 @@ def monkey_patch_single_process_silo_mode_state():
     SingleProcessSiloModeState.get_cell = staticmethod(get_cell)  # type: ignore[method-assign]
 
 
-def create_test_cells(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
+def create_test_cells(*names: str) -> tuple[Cell, ...]:
     from sentry.api.utils import generate_locality_url
 
-    single_tenants = frozenset(single_tenants)
     return tuple(
         Cell(
             name=name,
             snowflake_id=index + 1,
             address=generate_locality_url(name),
-            category=(
-                RegionCategory.SINGLE_TENANT
-                if name in single_tenants
-                else RegionCategory.MULTI_TENANT
-            ),
         )
         for (index, name) in enumerate(names)
     )
-
-
-# TODO(cells): Remove alias once no longer used in getsentry
-create_test_regions = create_test_cells
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
@@ -173,8 +160,7 @@ class SiloModeTestDecorator:
         self,
         *,
         cells: Sequence[Cell] = (),
-        # TODO(cells): Remove alias once no longer used in getsentry
-        regions: Sequence[Cell] | None = None,
+        localities: Sequence[Locality] = (),
         include_monolith_run: bool = False,
     ) -> Callable[[T], T]: ...
 
@@ -183,16 +169,16 @@ class SiloModeTestDecorator:
         decorated_obj: Any = None,
         *,
         cells: Sequence[Cell] = (),
-        # TODO(cells): Remove alias once no longer used in getsentry
-        regions: Sequence[Cell] | None = None,
+        localities: Sequence[Locality] = (),
         include_monolith_run: bool = False,
     ) -> Any:
         silo_modes = self.silo_modes
         if include_monolith_run:
             silo_modes |= frozenset([SiloMode.MONOLITH])
 
-        resolved_cells = tuple(cells or regions or ())
-        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=resolved_cells)
+        mod = _SiloModeTestModification(
+            silo_modes=silo_modes, cells=tuple(cells), localities=tuple(localities)
+        )
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
@@ -202,15 +188,22 @@ class _SiloModeTestModification:
 
     silo_modes: frozenset[SiloMode]
     cells: tuple[Cell, ...]
+    localities: tuple[Locality, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.silo_modes:
             raise ValueError("silo_modes must not be empty")
+        if self.localities and not self.cells:
+            raise ValueError("localities can only be passed along with cells")
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
         with (
-            override_cells(self.cells) if self.cells else nullcontext(),
+            (
+                override_cells(self.cells, localities=self.localities or None)
+                if self.cells
+                else nullcontext()
+            ),
             assume_test_silo_mode(silo_mode, can_be_monolith=False),
         ):
             yield
@@ -390,7 +383,7 @@ def assume_test_silo_mode(
                 with cell_dir.swap_to_cell_by_name(cell_name):
                     yield
         else:
-            with override_settings(SENTRY_REGION=None):
+            with override_settings(SENTRY_LOCAL_CELL=None):
                 yield
 
 

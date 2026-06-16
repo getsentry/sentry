@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
@@ -13,8 +12,6 @@ import {
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
-const {error} = Sentry.logger;
-
 interface BarsConfig extends ContinuousTimeSeriesConfig {
   /**
    * Stack name. If provided, bar plottables with the same stack will be stacked visually.
@@ -22,15 +19,14 @@ interface BarsConfig extends ContinuousTimeSeriesConfig {
   stack?: string;
 }
 
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
   onHighlight(dataIndex: number): void {
     const {config = {}} = this;
     const datum = this.timeSeries.values.at(dataIndex);
 
     if (!datum) {
-      error('`Bars` plottable `onHighlight` out-of-range error', {
-        seriesDataIndex: dataIndex,
-      });
       return;
     }
 
@@ -67,7 +63,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
 
             return datum.incomplete ? colorObject.alpha(0.5).string() : colorValue;
           },
-          opacity: 1.0,
+          opacity: 1,
         },
         data: scaledTimeSeries.values.map(timeSeriesItemToEChartsDataPoint),
       }),

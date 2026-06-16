@@ -14,10 +14,13 @@ import {
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {
+  SearchQueryBuilder,
+  type GetTagValues,
+} from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {
   CallbackSearchState,
@@ -25,8 +28,8 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {defined} from 'sentry/utils/defined';
 import type {Field} from 'sentry/utils/discover/fields';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -69,6 +72,7 @@ type DataProviderProps = {
 
 type Props = {
   disabled?: boolean;
+  enableAISearch?: boolean;
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
   placeholder?: string;
@@ -82,7 +86,7 @@ type Props = {
 interface ErrorsSearchBarProps {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
-  getTagValues: (tag: any, query: any) => Promise<string[]>;
+  getTagValues: GetTagValues;
   initialQuery: string;
   placeholderText: string;
   recentSearches: SavedSearchType;
@@ -106,7 +110,7 @@ function ErrorsSearchBar({
   recentSearches,
   searchSource,
 }: ErrorsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer && onSearch) {
     return <IssueListSeerComboBox onSearch={onSearch} />;
@@ -141,9 +145,8 @@ export function ResultsSearchQueryBuilder(props: Props) {
     customMeasurements,
     dataset,
     includeTransactions = true,
+    enableAISearch: enableAISearchProp = false,
   } = props;
-
-  const organization = useOrganization();
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for events, users, tags, and more');
@@ -160,13 +163,13 @@ export function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
-  // AI search is only enabled for Errors dataset
+  // AI search is only enabled for Errors dataset if translate endpoint is enabled.
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
-  const areAiFeaturesAllowed =
-    isErrorsDataset &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+  const enableAISearch = hasTranslateEndpoint && enableAISearchProp;
 
   const searchBarProps = {
     placeholderText,
@@ -187,8 +190,8 @@ export function ResultsSearchQueryBuilder(props: Props) {
     return (
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
-        enableAISearch={areAiFeaturesAllowed}
-        aiSearchBadgeType="alpha"
+        enableAISearch={enableAISearch}
+        aiSearchBadgeType="beta"
         disabled={disabled}
         fieldDefinitionGetter={undefined}
         filterKeys={getFilterKeys()}
@@ -358,8 +361,8 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
 
   // Returns array of tag values that substring match `query`; invokes `callback`
   // with data when ready
-  const getEventFieldValues = useCallback(
-    async (tag: any, query: any): Promise<string[]> => {
+  const getEventFieldValues = useCallback<GetTagValues>(
+    async ({tag, searchQuery}) => {
       if (getTagList[tag.key]?.kind === FieldKind.FEATURE_FLAG) {
         if (dataset && dataset !== DiscoverDatasets.ERRORS) {
           return Promise.resolve([]);
@@ -368,7 +371,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
         const results = await fetchFeatureFlagValues({
           api,
           tagKey: tag.key,
-          search: query,
+          search: searchQuery,
           projectIds: projectIdStrings,
           endpointParams: dateTimeParams,
           sort: '-count' as const,
@@ -393,7 +396,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
         endpointParams: dateTimeParams,
         orgSlug: organization.slug,
         tagKey: tag.key,
-        search: query,
+        search: searchQuery,
         projectIds: projectIdStrings,
         // allows searching for tags on transactions as well
         includeTransactions,

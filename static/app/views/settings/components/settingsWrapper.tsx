@@ -5,11 +5,10 @@ import type {Location} from 'history';
 import {Flex} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
+import {SettingsCommandPaletteActions} from 'sentry/views/settings/settingsCommandPaletteActions';
 
 function scrollDisable(newLocation: Location, prevLocation: Location) {
   return newLocation.pathname === prevLocation.pathname;
@@ -19,17 +18,14 @@ export function SettingsWrapper() {
   const location = useLocation();
   useScrollToTop({location, disable: scrollDisable});
 
-  const hasPageFrame = useHasPageFrameFeature();
-
   return (
     <AnalyticsArea name="settings">
-      <Layout.Page>
-        <StyledFlex flex="1" background={hasPageFrame ? 'primary' : undefined}>
-          <BreadcrumbProvider>
-            <Outlet />
-          </BreadcrumbProvider>
-        </StyledFlex>
-      </Layout.Page>
+      <StyledFlex flex="1" background="primary">
+        <BreadcrumbProvider>
+          <SettingsCommandPaletteActions />
+          <Outlet />
+        </BreadcrumbProvider>
+      </StyledFlex>
     </AnalyticsArea>
   );
 }

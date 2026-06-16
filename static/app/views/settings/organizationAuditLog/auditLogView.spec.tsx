@@ -29,9 +29,8 @@ describe('OrganizationAuditLog', () => {
   it('renders', async () => {
     render(<OrganizationAuditLog />);
 
-    expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
     // Check that both date selector search and event selector are present
-    expect(screen.getByText('All time')).toBeInTheDocument();
+    expect(await screen.findByText('All time')).toBeInTheDocument();
     expect(screen.getByText('Select Action:')).toBeInTheDocument();
     expect(screen.getByText('Member')).toBeInTheDocument();
     expect(screen.getByText('Action')).toBeInTheDocument();
@@ -82,7 +81,7 @@ describe('OrganizationAuditLog', () => {
   it('replaces text in rule and alertrule entries', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/audit-logs/`,
+      url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
       body: {
         rows: [

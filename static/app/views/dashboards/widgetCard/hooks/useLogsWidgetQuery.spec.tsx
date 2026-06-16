@@ -2,10 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {useLogsSeriesQuery, useLogsTableQuery} from './useLogsWidgetQuery';
@@ -13,20 +12,6 @@ import {useLogsSeriesQuery, useLogsTableQuery} from './useLogsWidgetQuery';
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
   useWidgetQueryQueue: () => ({queue: null}),
 }));
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return function Wrapper({children}: {children: React.ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe('useLogsSeriesQuery', () => {
   const organization = OrganizationFixture();
@@ -60,15 +45,13 @@ describe('useLogsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useLogsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useLogsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -106,18 +89,16 @@ describe('useLogsSeriesQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useLogsSeriesQuery({
-          widget,
-          organization,
-          pageFilters,
-          dashboardFilters: {
-            release: ['1.0.0'],
-          },
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useLogsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        dashboardFilters: {
+          release: ['1.0.0'],
+        },
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -165,15 +146,13 @@ describe('useLogsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useLogsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useLogsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
     );
 
     await waitFor(() => {
@@ -210,17 +189,15 @@ describe('useLogsTableQuery', () => {
       },
     });
 
-    renderHook(
-      () =>
-        useLogsTableQuery({
-          widget,
-          organization,
-          pageFilters,
-          limit: 50,
-          cursor: 'test-cursor',
-          enabled: true,
-        }),
-      {wrapper: createWrapper()}
+    renderHookWithProviders(() =>
+      useLogsTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        limit: 50,
+        cursor: 'test-cursor',
+        enabled: true,
+      })
     );
 
     await waitFor(() => {

@@ -8,7 +8,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
@@ -52,7 +52,10 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
         <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="connected-automations">
-        <DetectorListConnectedAutomations automationIds={detector.workflowIds} />
+        <DetectorListConnectedAutomations
+          automationIds={detector.workflowIds}
+          projectId={detector.projectId}
+        />
       </SimpleTable.RowCell>
       {additionalColumns.map(col => (
         <Fragment key={col.id}>{col.renderCell(detector)}</Fragment>

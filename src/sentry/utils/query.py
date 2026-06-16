@@ -13,6 +13,7 @@ from django.db.models.query_utils import Q
 from django.db.models.sql.constants import ROW_COUNT
 from django.db.models.sql.subqueries import DeleteQuery
 from django.db.utils import OperationalError
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.db.models.base import Model
 from sentry.services import eventstore
@@ -40,6 +41,7 @@ def task_run_batch_query(
     state: TaskBulkQueryState | None = None,
     fetch_events: bool = True,
     tenant_ids: dict[str, int | str] | None = None,
+    eap_conditions: TraceItemFilter | None = None,
 ) -> tuple[TaskBulkQueryState | None, list[Event]]:
     """
     A tool for batched queries similar in purpose to RangeQuerySetWrapper that
@@ -69,6 +71,17 @@ def task_run_batch_query(
         filter.conditions.append(
             [["timestamp", "<", state["timestamp"]], ["event_id", "<", state["event_id"]]]
         )
+        if eap_conditions is not None:
+            from sentry.search.eap.occurrences.query_utils import build_keyset_pagination_filter
+            from sentry.search.eap.rpc_utils import and_trace_item_filters
+
+            eap_conditions = and_trace_item_filters(
+                eap_conditions,
+                build_keyset_pagination_filter(
+                    timestamp_value=state["timestamp"],
+                    event_id=state["event_id"],
+                ),
+            )
 
     method = (
         eventstore.backend.get_events if fetch_events else eventstore.backend.get_unfetched_events
@@ -77,6 +90,7 @@ def task_run_batch_query(
     events = list(
         method(
             filter=filter,
+            eap_conditions=eap_conditions,
             limit=batch_size,
             referrer=referrer,
             orderby=["-timestamp", "-event_id"],

@@ -31,9 +31,15 @@ export function useFilteredRankedAttributes({
     return [...filtered].sort((a, b) => {
       const aOrder = a.order.rrr;
       const bOrder = b.order.rrr;
-      if (aOrder === null && bOrder === null) return 0;
-      if (aOrder === null) return 1;
-      if (bOrder === null) return -1;
+      if (aOrder === null && bOrder === null) {
+        return 0;
+      }
+      if (aOrder === null) {
+        return 1;
+      }
+      if (bOrder === null) {
+        return -1;
+      }
       return aOrder - bOrder;
     });
   }, [rankedAttributes, searchQuery]);

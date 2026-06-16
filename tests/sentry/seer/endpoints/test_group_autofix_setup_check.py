@@ -119,16 +119,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         """Set the cache for is_seer_seat_based_tier_enabled to return the given value."""
         cache.set(f"seer:seat-based-tier:{self.organization.id}", value)
 
-    def _set_project_repos_cache(self, value: bool) -> None:
-        """Set the cache for has_project_connected_repos to return the given value.
-
-        Note: The setup check endpoint now uses skip_cache=True, so this only
-        affects the cache that gets set after the API call, not the lookup.
-        For tests that need to control the return value, use the
-        @patch decorator on has_project_connected_repos instead.
-        """
-        cache.set(f"seer-project-has-repos:{self.organization.id}:{self.project.id}", value)
-
     @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
         return_value=True,
@@ -274,14 +264,18 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
     def test_autofix_automation_tuning_non_seat_based(self) -> None:
         self.login_as(user=self.user)
 
-        for setting in [None] + list(AutofixAutomationTuningSettings):
+        for setting in [None, *list(AutofixAutomationTuningSettings)]:
             self.project.update_option("sentry:autofix_automation_tuning", setting)
             group = self.create_group()
             url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
             response = self.client.get(url, format="json")
 
             assert response.status_code == 200
-            assert response.data["autofixEnabled"] is False
+            if setting is None or setting == AutofixAutomationTuningSettings.OFF:
+                expected = False
+            else:
+                expected = True
+            assert response.data["autofixEnabled"] is expected
 
     def test_autofix_automation_tuning_off(self) -> None:
         self._set_seat_based_tier_cache(True)

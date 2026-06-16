@@ -1,4 +1,5 @@
 from django.core.exceptions import SuspiciousOperation
+from rest_framework.exceptions import ParseError
 
 
 class InvalidData(Exception):
@@ -89,5 +90,8 @@ class HashDiscarded(Exception):
         self.tombstone_id = tombstone_id
 
 
-class InvalidParams(Exception):
+class InvalidParams(ParseError):
+    """Inherits from ParseError so DRF automatically returns a 400 response
+    when this exception is unhandled in a view."""
+
     pass

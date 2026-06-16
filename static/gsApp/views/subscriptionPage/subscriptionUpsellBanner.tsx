@@ -11,7 +11,6 @@ import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
 import type {Subscription} from 'getsentry/types';
 import {
   hasPartnerMigrationFeature,
@@ -37,7 +36,7 @@ const getSubscriptionBannerText = (
           ? t('Try Sentry Business for Free')
           : t('Try Performance for Free'),
         tct(
-          `Activate your trial to take advantage of Sentry's [featuresName] features.`,
+          "Activate your trial to take advantage of Sentry's [featuresName] features.",
           {featuresName}
         ),
       ];
@@ -78,16 +77,9 @@ function useIsSubscriptionUpsellHidden(
   subscription: Subscription,
   organization: Organization
 ): boolean {
-  const {planMigrations, isLoading} = usePlanMigrations();
-  // Hide while loading
-  if (isLoading) {
-    return true;
-  }
-
-  // hide upsell for mmx plans and forced plan migrations
+  // hide upsell for mmx plans
   const isLegacyUpsell =
-    (!hasPerformance(subscription.planDetails) || planMigrations.length > 0) &&
-    !subscription.canTrial;
+    !hasPerformance(subscription.planDetails) && !subscription.canTrial;
 
   // hide upsell for customers on partner plans with flag
   const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
@@ -145,7 +137,7 @@ export function SubscriptionUpsellBanner({
           {description}{' '}
           <Button
             size="zero"
-            priority="link"
+            variant="link"
             onClick={() =>
               openUpsellModal({organization, source: 'subscription_overview'})
             }
@@ -170,7 +162,7 @@ export function SubscriptionUpsellBanner({
       </div>
       <BannerImage src={subscription.canTrial ? businessTrial : businessUpgrade} />
       <CloseBannerButton
-        priority="link"
+        variant="link"
         aria-label={t('Dismiss')}
         icon={<IconClose variant="muted" />}
         size="xs"

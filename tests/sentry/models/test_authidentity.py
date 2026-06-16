@@ -10,7 +10,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class AuthIdentityUpdateLoggingTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.auth_provider = self.create_auth_provider(
             organization_id=self.organization.id, provider="dummy"

@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -14,8 +14,8 @@ import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -26,10 +26,11 @@ interface CodingAgentIntegrationCtaProps {
 interface AgentConfig {
   displayName: string;
   docsUrl: string;
-  featureFlag: string;
   pluginId: string;
   provider: string;
   target: SeerAutomationHandoffConfiguration['target'];
+  // If unset, the CTA renders without a feature flag gate.
+  featureFlag?: string;
   headingName?: string;
 }
 
@@ -40,8 +41,17 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const organization = useOrganization();
     const user = useUser();
 
-    const {preference, isFetching: isLoadingPreferences} =
-      useProjectSeerPreferences(project);
+    const hasFeatureFlag =
+      !config.featureFlag || organization.features.includes(config.featureFlag);
+    const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject(
+      {
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+      },
+      {enabled: hasFeatureFlag}
+    );
+    const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
+    const preference = data?.preference;
     const {mutate: updateProjectSeerPreferences, isPending: isUpdatingPreferences} =
       useUpdateProjectSeerPreferences(project);
     const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
@@ -53,15 +63,14 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       i => i.provider === config.provider
     );
 
-    const hasFeatureFlag = organization.features.includes(config.featureFlag);
     const hasIntegration = Boolean(integration);
     const isAutomationEnabled =
-      project.seerScannerAutomation !== false &&
-      project.autofixAutomationTuning !== 'off';
+      projectDetails?.seerScannerAutomation !== false &&
+      projectDetails?.autofixAutomationTuning !== 'off';
     const isConfigured =
       preference?.automation_handoff?.target === config.target && isAutomationEnabled;
 
-    const handleInstallClick = useCallback(() => {
+    const handleInstallClick = () => {
       trackAnalytics('coding_integration.install_clicked', {
         organization,
         project_slug: project.slug,
@@ -69,9 +78,9 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
         source: 'cta',
         user_id: user.id,
       });
-    }, [organization, project.slug, user.id]);
+    };
 
-    const handleSetupClick = useCallback(async () => {
+    const handleSetupClick = async () => {
       if (!integration?.id) {
         throw new Error(`${config.displayName} integration not found`);
       }
@@ -85,8 +94,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
       });
 
       const isAutomationDisabled =
-        project.seerScannerAutomation === false ||
-        project.autofixAutomationTuning === 'off';
+        projectDetails?.seerScannerAutomation === false ||
+        projectDetails?.autofixAutomationTuning === 'off';
 
       if (isAutomationDisabled) {
         await updateProjectAutomation({
@@ -104,23 +113,18 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
           integration_id: parseInt(integration.id, 10),
         },
       });
-    }, [
-      organization,
-      project.slug,
-      project.seerScannerAutomation,
-      project.autofixAutomationTuning,
-      updateProjectSeerPreferences,
-      updateProjectAutomation,
-      preference?.repositories,
-      integration,
-      user.id,
-    ]);
+    };
 
     if (!hasFeatureFlag) {
       return null;
     }
 
-    if (isLoadingPreferences || isLoadingIntegrations || isUpdatingPreferences) {
+    if (
+      isLoadingProject ||
+      isLoadingPreferences ||
+      isLoadingIntegrations ||
+      isUpdatingPreferences
+    ) {
       return (
         <Container
           padding="xl"
@@ -162,7 +166,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
             <div>
               <LinkButton
                 href={`/settings/${organization.slug}/integrations/${config.pluginId}/`}
-                priority="default"
+                variant="secondary"
                 size="sm"
                 onClick={handleInstallClick}
               >
@@ -205,7 +209,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
               )}
             </Text>
             <div>
-              <Button onClick={handleSetupClick} priority="default" size="sm">
+              <Button onClick={handleSetupClick} variant="secondary" size="sm">
                 {t('Set Seer to hand off to %s', config.displayName)}
               </Button>
             </div>

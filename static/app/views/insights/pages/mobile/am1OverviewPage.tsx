@@ -21,7 +21,7 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -103,7 +103,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   const eventView = generateMobilePerformanceEventView(
     location,
     projects,
-    generateGenericPerformanceEventView(location, withStaticFilters, organization),
+    generateGenericPerformanceEventView(location, withStaticFilters),
     withStaticFilters
   );
   const searchBarEventView = eventView.clone();
@@ -156,12 +156,10 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
   }
-  if (organization.features.includes('starfish-mobile-appstart')) {
-    doubleChartRowCharts.push(
-      PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
-      PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
-    );
-  }
+  doubleChartRowCharts.push(
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
+    PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
+  );
 
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
@@ -235,7 +233,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
                   organization={organization}
                 />
               ) : (
-                <PerformanceDisplayProvider
+                <PerformanceDisplayContext
                   value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
                   <TeamKeyTransactionManager.Provider
@@ -261,7 +259,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>
-                </PerformanceDisplayProvider>
+                </PerformanceDisplayContext>
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>

@@ -163,6 +163,29 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         # hash2 should be matched by seer (it points to hash1)
         assert hash2_data["mergedBySeer"] is True
 
+    def test_full_param(self) -> None:
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group_id}/hashes/"
+
+        response = self.client.get(f"{url}?full=true", format="json")
+        assert response.status_code == 200, response.content
+        assert "entries" in response.data[0]["latestEvent"]
+
+        response = self.client.get(f"{url}?full=false", format="json")
+        assert response.status_code == 200, response.content
+        assert "entries" not in response.data[0]["latestEvent"]
+
     def test_unmerge(self) -> None:
         self.login_as(user=self.user)
 

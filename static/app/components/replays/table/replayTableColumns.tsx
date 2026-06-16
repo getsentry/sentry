@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -7,6 +8,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -28,25 +30,28 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {
+  useListItemCheckboxContext,
+  type ListItemCheckboxState,
+} from 'sentry/utils/list/useListItemCheckboxState';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
-} from 'sentry/views/replays/types';
+} from 'sentry/views/explore/replays/types';
+import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
 interface HeaderProps {
   columnIndex: number;
-  listItemCheckboxState: ReturnType<typeof useListItemCheckboxContext>;
+  listItemCheckboxState: ListItemCheckboxState;
   replays: ReplayListRecord[];
 }
 
@@ -93,13 +98,14 @@ export interface ReplayTableColumn {
 
 export const ReplayActivityColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip
+    <InfoText
+      variant="inherit"
       title={t(
         'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
       )}
     >
       {t('Activity')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: false,
   sortKey: 'activity',
@@ -110,12 +116,13 @@ export const ReplayActivityColumn: ReplayTableColumn = {
       return null;
     }
     const colors = theme.chart.getColorPalette(0);
-    const scoreBarPalette = new Array(10).fill([colors[0]]);
+    const scoreBarPalette = Array.from<string[]>({length: 10}).fill([colors[0]]);
     return (
       <DropdownContainer key="activity">
         <ScoreBar
           size={20}
           score={replay?.activity ?? 1}
+          // @ts-expect-error -- TODO: Resolve this mismatch
           palette={scoreBarPalette}
           radius={0}
         />
@@ -174,8 +181,8 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
 
 export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip
-      isHoverable
+    <InfoText
+      variant="inherit"
       title={tct(
         'A dead click is a user click that does not result in any page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -185,7 +192,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
       )}
     >
       {t('Dead clicks')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: false,
   sortKey: 'count_dead_clicks',
@@ -218,8 +225,8 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
 
 export const ReplayCountErrorsColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip
-      isHoverable
+    <InfoText
+      variant="inherit"
       title={tct(
         'The error count only reflects errors generated within the Replay SDK. [inboundFilters:Inbound Filters] may have prevented those errors from being saved. [perfIssue:Performance] and other [replayIssue:error] types may have been added afterwards.',
         {
@@ -236,7 +243,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
       )}
     >
       {t('Errors')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: false,
   sortKey: 'count_errors',
@@ -269,8 +276,8 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
 
 export const ReplayCountRageClicksColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip
-      isHoverable
+    <InfoText
+      variant="inherit"
       title={tct(
         'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -280,7 +287,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
       )}
     >
       {t('Rage clicks')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: false,
   sortKey: 'count_rage_clicks',
@@ -401,7 +408,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
     if (rowIndex === selectedReplayIndex) {
       return (
         <PlayPauseButtonContainer>
-          <ReplayPlayPauseButton key="playPause-play" priority="transparent" size="sm" />
+          <ReplayPlayPauseButton key="playPause-play" variant="transparent" size="sm" />
         </PlayPauseButtonContainer>
       );
     }
@@ -416,7 +423,7 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
             pathname: location.pathname,
             query: {...location.query, selected_replay_index: rowIndex},
           }}
-          priority="default"
+          variant="secondary"
           size="sm"
           tooltipProps={{title: t('Play')}}
         />
@@ -492,16 +499,16 @@ export const ReplaySelectColumn: ReplayTableColumn = {
 
 export const ReplaySessionColumn: ReplayTableColumn = {
   Header: () => (
-    <Tooltip title={t('By default, replays are sorted by time sent.')}>
+    <InfoText variant="inherit" title={t('By default, replays are sorted by time sent.')}>
       {t('Replay')}
-    </Tooltip>
+    </InfoText>
   ),
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
   Component: ({replay, to, className}) => {
-    const routes = useRoutes();
-    const referrer = getRouteStringFromRoutes(routes);
+    const matches = useMatches();
+    const referrer = getRouteStringFromRoutes({matches});
 
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
@@ -538,6 +545,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   sortKey: undefined,
   Component: ({replay}) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const organization = useOrganization();
     const theme = useTheme();
 
@@ -554,7 +562,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
           replay.txEvent,
-          {organization, location, theme},
+          {navigate, organization, location, theme},
           {enableOnClick: false}
         )}
       </SpanOperationBreakdown>

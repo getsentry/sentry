@@ -7,12 +7,14 @@ from datetime import datetime
 from typing import Any, Literal, Self, overload
 
 import sentry_sdk
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from snuba_sdk import Condition
 
 from sentry import nodestore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.referrer import Referrer
 from sentry.utils.services import Service
 
 
@@ -166,10 +168,11 @@ class EventStorage(Service):
     def get_events(
         self,
         filter: Filter,
+        eap_conditions: TraceItemFilter | None = None,
         orderby: Sequence[str] | None = None,
         limit: int = 100,
         offset: int = 0,
-        referrer: str = "eventstore.get_events",
+        referrer: str = Referrer.EVENTSTORE_GET_EVENTS.value,
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
@@ -180,11 +183,12 @@ class EventStorage(Service):
         transaction events. Returns an empty list if no events match the filter.
 
         Arguments:
-        snuba_filter (Filter): Filter
+        filter (Filter): Snuba query filter
+        eap_conditions (TraceItemFilter | None): EAP query conditions
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
-        referrer (string): Referrer - default "eventstore.get_events"
+        referrer (string): Referrer
         """
         raise NotImplementedError
 
@@ -208,28 +212,30 @@ class EventStorage(Service):
     def get_unfetched_events(
         self,
         filter: Filter,
+        eap_conditions: TraceItemFilter | None = None,
         orderby: Sequence[str] | None = None,
         limit: int = 100,
         offset: int = 0,
-        referrer: str = "eventstore.get_unfetched_events",
+        referrer: str = Referrer.EVENTSTORE_GET_UNFETCHED_EVENTS.value,
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
         """
-        Same as get_events but returns events without their node datas loaded.
-        Only the event ID, projectID, groupID and timestamp field will be present without
-        an additional fetch to nodestore.
+        Same as get_events but returns events without their node data loaded.
+        Only the event ID, project ID, group ID, and timestamp fields will be present
+        without an additional fetch to nodestore.
 
         Used for fetching large volumes of events that do not need data loaded
         from nodestore. Currently this is just used for event data deletions where
         we just need the event IDs in order to process the deletions.
 
         Arguments:
-        snuba_filter (Filter): Filter
+        filter (Filter): Snuba query filter
+        eap_conditions (TraceItemFilter | None): EAP query conditions
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
-        referrer (string): Referrer - default "eventstore.get_unfetched_events"
+        referrer (string): Referrer
         """
         raise NotImplementedError
 

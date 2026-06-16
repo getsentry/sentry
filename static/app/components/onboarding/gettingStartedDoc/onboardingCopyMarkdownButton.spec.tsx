@@ -50,7 +50,7 @@ describe('OnboardingCopyMarkdownButton', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy instructions'}));
 
-    const copiedText = (navigator.clipboard.writeText as jest.Mock).mock.calls[0][0];
+    const copiedText = jest.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
     expect(copiedText).toContain('## Install');
     expect(copiedText).toContain(`\n\n---\n\n${postamble}`);
   });

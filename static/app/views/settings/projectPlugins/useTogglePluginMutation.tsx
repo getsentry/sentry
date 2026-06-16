@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -7,12 +9,7 @@ import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type UseTogglePluginMutationOptions = {

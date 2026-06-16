@@ -1,16 +1,22 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
   BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const PATHS_TABLE: Widget = {
+const PATHS_TABLE: PrebuiltWidget = {
   id: 'paths-table',
   title: t('Paths'),
   displayType: DisplayType.TABLE,
@@ -44,9 +50,9 @@ const PATHS_TABLE: Widget = {
         t('Path'),
         t('Requests'),
         t('Error Rate'),
-        t('Avg'),
-        t('P95'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+        WIDGET_COLUMN_LABELS.timeSpent,
         t('Users'),
       ],
       orderby: '-count()',
@@ -61,7 +67,7 @@ const PATHS_TABLE: Widget = {
   },
 };
 
-const COMMANDS_TABLE: Widget = {
+const COMMANDS_TABLE: PrebuiltWidget = {
   id: 'commands-table',
   title: t('Commands'),
   displayType: DisplayType.TABLE,
@@ -91,9 +97,9 @@ const COMMANDS_TABLE: Widget = {
         t('Command'),
         t('Invocations'),
         t('Error Rate'),
-        t('Avg'),
-        t('P95'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: '-count()',
     },
@@ -107,7 +113,7 @@ const COMMANDS_TABLE: Widget = {
   },
 };
 
-const JOBS_TABLE: Widget = {
+const JOBS_TABLE: PrebuiltWidget = {
   id: 'jobs-table',
   title: t('Jobs'),
   displayType: DisplayType.TABLE,
@@ -141,7 +147,7 @@ const JOBS_TABLE: Widget = {
         t('Error Rate'),
         t('Avg Time in Queue'),
         t('Avg Processing Time'),
-        t('Time Spent'),
+        WIDGET_COLUMN_LABELS.timeSpent,
       ],
       orderby: '-count()',
     },

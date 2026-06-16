@@ -41,34 +41,31 @@ export function useUploader({onSelect, minImageSize}: UseUploaderOptions) {
     [minImageSize]
   );
 
-  const onSelectFile = useCallback(
-    async (ev: React.ChangeEvent<HTMLInputElement>) => {
-      const file = ev.target.files?.[0];
+  const onSelectFile = async (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const file = ev.target.files?.[0];
 
-      // No file selected (e.g. user clicked "cancel")
-      if (!file) {
-        return;
-      }
+    // No file selected (e.g. user clicked "cancel")
+    if (!file) {
+      return;
+    }
 
-      if (!/^image\//.test(file.type)) {
-        addErrorMessage(t('That is not a supported file type.'));
-        return;
-      }
-      const url = window.URL.createObjectURL(file);
-      const {height, width} = await getImageHeightAndWidth(url);
-      const sizeValidation = validateSize(height, width);
+    if (!/^image\//.test(file.type)) {
+      addErrorMessage(t('That is not a supported file type.'));
+      return;
+    }
+    const url = window.URL.createObjectURL(file);
+    const {height, width} = await getImageHeightAndWidth(url);
+    const sizeValidation = validateSize(height, width);
 
-      if (sizeValidation !== true) {
-        addErrorMessage(sizeValidation);
-        return;
-      }
+    if (sizeValidation !== true) {
+      addErrorMessage(sizeValidation);
+      return;
+    }
 
-      setObjectUrl(url);
-      onSelect(url);
-      ev.target.value = '';
-    },
-    [onSelect, validateSize]
-  );
+    setObjectUrl(url);
+    onSelect(url);
+    ev.target.value = '';
+  };
 
   const fileInput = (
     <input

@@ -5,7 +5,10 @@ import {duration} from 'moment-timezone';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {getMinMax} from 'sentry/utils/getMinMax';
-import type {HydratedReplayRecord, ReplayRecord} from 'sentry/views/replays/types';
+import type {
+  HydratedReplayRecord,
+  ReplayRecord,
+} from 'sentry/views/explore/replays/types';
 
 const defaultValues = {
   has_viewed: false,

@@ -628,3 +628,129 @@ class SnubaQueryRateLimitTest(TestCase):
         assert (
             str(exc_info.value) == "Query on could not be run due to allocation policies, info: ..."
         )
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_rate_limit_error_handling_throttle_only(self, mock_snuba_query) -> None:
+        """
+        Test that policy metadata propagates when the 429 came from a throttle:
+        rejected_by is empty and throttled_by carries throttle_threshold, with no rejection_threshold
+        """
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 429
+        mock_response.data = json.dumps(
+            {
+                "error": {
+                    "message": "Query scanned more than the allocated amount of bytes",
+                },
+                "quota_allowance": {
+                    "summary": {
+                        "rejected_by": {},
+                        "throttled_by": {
+                            "policy": "BytesScannedRejectingPolicy",
+                            "quota_used": 1500000000000,
+                            "throttle_threshold": 1000000000000,
+                            "quota_unit": "bytes",
+                            "storage_key": "errors_ro",
+                        },
+                    }
+                },
+            }
+        ).encode()
+
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        with pytest.raises(RateLimitExceeded) as exc_info:
+            _bulk_snuba_query([self.snuba_request])
+
+        assert exc_info.value.policy == "BytesScannedRejectingPolicy"
+        assert exc_info.value.storage_key == "errors_ro"
+        assert exc_info.value.quota_used == 1500000000000
+        assert exc_info.value.quota_unit == "bytes"
+        assert exc_info.value.throttle_threshold == 1000000000000
+        assert exc_info.value.rejection_threshold is None
+
+    @mock.patch("sentry_sdk.set_tag")
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_allocation_policy_tags_set_on_rejection(self, mock_snuba_query, mock_set_tag) -> None:
+        """A rejected query stamps its allocation_policy.* quota state onto the scope."""
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 429
+        mock_response.data = json.dumps(
+            {
+                "error": {"message": "rejected"},
+                "quota_allowance": {
+                    "summary": {
+                        "is_rejected": True,
+                        "rejected_by": {"policy": "ConcurrentRateLimitAllocationPolicy"},
+                        "throttled_by": {},
+                    }
+                },
+            }
+        ).encode()
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        with pytest.raises(RateLimitExceeded):
+            _bulk_snuba_query([self.snuba_request])
+
+        mock_set_tag.assert_any_call("allocation_policy.is_rejected", True)
+        mock_set_tag.assert_any_call(
+            "allocation_policy.rejected_by.policy", "ConcurrentRateLimitAllocationPolicy"
+        )
+
+    @mock.patch("sentry_sdk.set_tag")
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_allocation_policy_tags_not_set_when_not_rejected(
+        self, mock_snuba_query, mock_set_tag
+    ) -> None:
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = 200
+        mock_response.data = json.dumps(
+            {
+                "data": [],
+                "quota_allowance": {"summary": {"rejected_by": {}}},
+            }
+        ).encode()
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+
+        _bulk_snuba_query([self.snuba_request])
+
+        allocation_policy_tags = [
+            call
+            for call in mock_set_tag.call_args_list
+            if call.args[0].startswith("allocation_policy")
+        ]
+        assert allocation_policy_tags == []
+
+    @mock.patch("sentry_sdk.set_tag")
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_successful_query_does_not_leak_tags_onto_rate_limited_sibling(
+        self, mock_snuba_query, mock_set_tag
+    ) -> None:
+        ok_response = mock.Mock(spec=HTTPResponse)
+        ok_response.status = 200
+        ok_response.data = json.dumps(
+            {"data": [], "quota_allowance": {"summary": {"is_successful": True, "rejected_by": {}}}}
+        ).encode()
+        rate_limited_response = mock.Mock(spec=HTTPResponse)
+        rate_limited_response.status = 429
+        rate_limited_response.data = json.dumps({"error": {"message": "rate limited"}}).encode()
+
+        def snuba_query(params):
+            snuba_request = params[2]
+            response = ok_response if snuba_request.referrer == "ok" else rate_limited_response
+            return (snuba_request.referrer, response, lambda x: x, lambda x: x)
+
+        mock_snuba_query.side_effect = snuba_query
+
+        def make_request(referrer):
+            return SnubaRequest(
+                request=self.snuba_request.request,
+                referrer=referrer,
+                forward=lambda x: x,
+                reverse=lambda x: x,
+            )
+
+        with pytest.raises(RateLimitExceeded):
+            _bulk_snuba_query([make_request("ok"), make_request("rate_limited")])
+
+        assert mock.call("allocation_policy.is_successful", True) not in mock_set_tag.call_args_list

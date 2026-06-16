@@ -2,6 +2,7 @@ import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
@@ -19,11 +20,13 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {UnsupportedAlert} from 'sentry/components/alerts/unsupportedAlert';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
-import FeatureTourModal, {
+import {
+  FeatureTourModal,
   TourImage,
   TourText,
 } from 'sentry/components/modals/featureTourModal';
@@ -74,7 +77,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
-import {useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 
 import {traceAnalytics} from './newTraceDetails/traceAnalytics';
 
@@ -156,6 +159,18 @@ function SampleButton({
 }: SampleButtonProps) {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Creating a sample transaction POSTs to an endpoint that requires the
+  // event:write (or event:admin) scope. Members without that scope get a 403,
+  // so hide the button entirely rather than letting them click into a failure.
+  const hasEventWriteAccess =
+    hasEveryAccess(['event:write'], {organization, project}) ||
+    hasEveryAccess(['event:admin'], {organization, project});
+
+  if (!hasEventWriteAccess) {
+    return null;
+  }
+
   return (
     <Button
       data-test-id="create-sample-transaction-btn"
@@ -245,7 +260,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
 
   let setupButton = (
     <LinkButton
-      priority="primary"
+      variant="primary"
       href="https://docs.sentry.io/performance-monitoring/getting-started/"
       external
     >
@@ -256,7 +271,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   if (hasPerformanceOnboarding) {
     setupButton = (
       <Button
-        priority="primary"
+        variant="primary"
         onClick={event => {
           event.preventDefault();
           window.location.hash = 'performance-sidequest';
@@ -300,7 +315,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
         >
           {({showModal}) => (
             <Button
-              priority="link"
+              variant="link"
               onClick={() => {
                 trackAnalytics('performance_views.tour.start', {organization});
                 showModal();
@@ -435,12 +450,14 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const received = !!firstIssue;
 
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
-  const tracesQuery = useTraces({
+  const tracesQuery = useQuery({
+    ...useTracesApiOptions({
+      limit: 1,
+      sort: 'timestamp',
+    }),
     enabled: received,
-    limit: 1,
-    sort: 'timestamp',
     refetchInterval: query => {
-      const trace = query.state.data?.[0]?.data?.[0]?.trace;
+      const trace = query.state.data?.json?.data?.[0]?.trace;
       return trace ? false : 5000; // 5s
     },
   });
@@ -625,7 +642,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
                     <GuidedSteps.BackButton size="md" />
                     {received ? (
                       <Button
-                        priority="primary"
+                        variant="primary"
                         busy={!traceId}
                         tooltipProps={{
                           title: traceId ? undefined : t('Processing trace\u2026'),

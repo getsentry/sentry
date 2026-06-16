@@ -27,8 +27,16 @@ export default function MobileBuildDetectorsList() {
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
         >
-          <DetectorListHeader showTypeFilter={false} />
-          <DetectorListContent {...detectorListQuery} />
+          <DetectorListHeader
+            detectorType="preprod_size_analysis"
+            showTypeFilter={false}
+          />
+          <DetectorListContent
+            isError={detectorListQuery.isError}
+            isLoading={detectorListQuery.isLoading}
+            isSuccess={detectorListQuery.isSuccess}
+            data={detectorListQuery.data}
+          />
         </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </Feature>

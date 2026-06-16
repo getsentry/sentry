@@ -41,7 +41,7 @@ export function FrameRegisterValue({meta, value}: Props) {
       <div>
         <ToggleButton
           size="zero"
-          priority="transparent"
+          variant="transparent"
           icon={<IconSliders size="xs" />}
           onClick={toggleFormat}
           tooltipProps={{title: formatLabel}}

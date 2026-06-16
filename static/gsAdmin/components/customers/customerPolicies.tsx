@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
   <td key="name">

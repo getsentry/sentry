@@ -14,7 +14,7 @@ from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
 @control_silo_endpoint
 class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

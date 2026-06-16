@@ -1,0 +1,180 @@
+---
+title: Number Formatting
+layout: document
+description: Guidance on representing numbers within Sentry.
+status: in-progress
+---
+
+Much of Sentry's UI shows numeric data to users. Dashboards, Explore, Issues, and many other features make heavy use of charts, tables, and individual numbers. More often than not, the numeric data within Sentry is data that the user sent to us, and they're trying to understand what they've collected. Since numeric data is not necessarily intuitive, the UI must be deliberate about representation of numbers to help users make sense of what they're seeing.
+
+Good numeric representation is accurate, familiar, consistent, and unambiguous. This page provides information about types of numeric data in Sentry, and guidelines on numeric display.
+
+## The Concerns of Number Formatting
+
+There are three main factors that affect how numeric data is formatted:
+
+1. **Type and Unit**. Sentry supports several known data types and their units. The data type heavily influences the formatting. e.g., if the numeric value `1543` is a duration in seconds, we can format it as `"25min"`. If it's a size in bytes we can format it as `"1.5MiB"`.
+2. **UI Context**. We strive for consistent rendering, but there is some flexibility. In some contexts, we may choose to show more significant digits, or use full unit names as appropriate. This depends on how much space is available, and what the users expect.
+3. **Value**. The specific value of the number affects the rendering. Some values are excessively large, or small. Some values have very high precision. This affects how much space they might take up and what formatting is required.
+
+## The Aspects of Number Formatting
+
+There are many tools available for formatting of numbers. When formatting is done well, the formatted value takes up an appropriate amount of visual space, preserves a useful amount of precision, and displays important details related to the type and unit. This section contains prescriptive information about formatting.
+
+- **Rounding**. We often round numbers before rendering them. This saves on UI space, creates better scannability, and more accurately represents reality (not all fractional digits are significant). **Sentry rounds numbers to 3 significant digits**. If you need more precision, consider how many digits are significant to the user. Be warned, avoid rounding if it creates ambiguity with `0`. If a value is very small but not 0, it is _always incorrect_ to round it to 0, since this is misleading.
+- **Trailing Zeroes**. **Sentry renders numbers with a floating decimal point**. e.g., we render `"1.2"` rather than `"1.20"`.
+- **Multipliers**. Some data types benefit from multipliers, whether by prefix or by unit. e.g., for `integer` values, a multiplier saves a lot of space (`"12,341,000"` vs. `"12.3M"`). The same goes for types with known units like data size (`"431312 bytes"` vs. `"0.411 MiB"`). **Sentry formats numbers using the nearest appropriate multiplier** whenever possible. If the value exceeds the maximum or minimum multiplier (e.g., a duration of &gt;1000 years, or a size of &lt;0.001 bytes) **Sentry uses scientific notation**. The exact minimum and maximum depend on the type, see the documentation for every type for details.
+- **Units**. If data has a known unit, **Sentry _always_ shows the unit alongside the value**. Sentry shows the full unit (e.g., `"milliseconds"`) in expanded contexts like detail panels, and the abbreviated unit in other contexts.
+- **Minimum Obfuscation**. Small numbers may or may not be meaningful to the user, but we don't make that decision for them. e.g., a `"rate"` of `0.000012` per minute seems too small to display, but there's a huge difference between "0" and "almost 0". Sentry does not obfuscate small numbers with short labels like `"~0"` or `"<0.001"`, instead **Sentry formats very small numbers with Scientific Notation**.
+- **Localization**. Different locales format numbers differently. The delimiters of numbers vary by locale, and **Sentry will format numbers in the user's locale** whenever possible.
+- **Zeros**. `0` is a special value! **Sentry always renders `0` without decimal points**. We always show a unit next to `0` if the unit is known. If the unit is not known, but the type is known, we show the smallest unit of that type (e.g., `"0 ns"`).
+- **Negation**. **Sentry formats negative numbers using the same rules as positive numbers**.
+- **Missing Values**. Display of missing values depends on the context. Textual display like a table uses a greyed-out em-dash. Visual display like a chart omits the value from display, rather than using a placeholder value.
+
+### Contentious Points
+
+TODO: Get more eyes on this and get some consensus.
+
+- [ ] "Multipliers" do not apply to `"number"` type, which might be incorrect. Maybe multipliers should always apply
+- [ ] "Trailing Zeroes" often creates visual misalignment in tables and Y-axes, and is worth reconsidering. Do we want to keep doing this?
+- [ ] "Units" is interesting, is it valuable to fully say "milliseconds"? Maybe we should never do that
+
+### Tradeoff and Considerations
+
+When making decisions about number formatting, it's instructive to think of the outcomes caused by good number formatting, and especially by bad number formatting. This section outlines how the different aspects of
+
+- vertical alignment is better when the number of digits sort of matches
+- units changing in a column is weird but fine
+- enough accuracy to see the value
+- not "Making up" accuracy that isn't there
+
+## Data Types and Units
+
+Sentry supports several types of data, and they have slightly different concerns. This section explains each data type in detail, and explains its specific quirks if any. All of the data types use a combination of the aspects described above to decide the formatting.
+
+### Number
+
+A `number` is the most basic type of numeric data that Sentry can display. A `number` is any numeric value with unknown meaning. The `number` type is used as a fallback when we can't determine the meaning of a value, or if a value has no semantic meaning. Sentry does not apply multipliers to numbers unless they are observably integers. Numbers above one trillion and below 0.0001 use scientific notation.
+
+e.g., `"5.4E-35"`, `"0.0321"`, `"1.32"`, `"1,223,123.23"`, `"1.32E23"`.
+
+### Integer
+
+An `integer` is any whole number or 0. Integers are often used for counts. Integer values are usually positive, usually large, and always whole. Unlike regular numbers, they are formatted with an SI multiplier suffix. The value is always rounded to the nearest integer. There should never be a space between the value and the suffix. Integers >1,000 billion use scientific notation.
+
+e.g., `"0"`, `"3"`, `"342"`, `"32.1B"`, `"1.2E15"`
+
+> [!WARNING]
+> The "B" abbreviation of the "billions" multiplier creates a slight ambiguity with the multiplier prefixes of sizes. e.g., "11B" means "eleven billion", but "11.2 B" means "11.2 bytes".
+
+TODO: See if we want to support higher integer multipliers
+
+### Percentage
+
+A percentage is a unitless positive value, similar to the `number` type, but it represents a proportion of something. For example, CPU capacity may be a percentage, but it can exceed 100%. Percentages are treated identically to the `number` type, with a trailing "%" sign.
+
+e.g., `"0%"`, `"12.1%"`, `"12,323.5%"`, `"1.23E17%"`
+
+### Percent Change
+
+A `percent change` is a percentage with added context that it represents a change from a previous value. Percent change has two components: a polarity and a preferred polarity. Both of them can be either positive, or negative. The polarity is the sign of the value (e.g., -0.8 has a negative polarity, and 0.8 has a positive polarity). The preferred polarity depends on the context. A change in duration of an endpoint has a negative preferred polarity (i.e., decreases are good) while a change in the number of visitors probably has a positive preferred polarity (i.e., increases are good).
+
+Percent change follows the same formatting rules as percentages, but always includes the sign (either "+" or "-") and is usually colorized. When the polarity matches the preferred polarity, the text is green. When the polarity does not match the preferred polarity, the text is red. If the value is exactly 0, no color is applied.
+
+### Duration
+
+A `duration` represents elapsed time. Many parts of Sentry's UI measure the durations of various operations. A duration is always specified with the corresponding unit. The unit is always chosen based on which multiplier is the most appropriate.
+
+#### Units
+
+| Full Unit   | Abbreviation |
+| ----------- | ------------ |
+| Nanosecond  | ns           |
+| Microsecond | μs           |
+| Millisecond | ms           |
+| Second      | s            |
+| Minute      | min          |
+| Hour        | hr           |
+| Day         | d            |
+| Week        | w            |
+| Month       | mo           |
+| Year        | y            |
+
+When the full unit is shown, it must be pluralized. When an abbreviated unit is shown, it should never be pluralized. Durations >1,000 years use scientific notation.
+
+e.g., `"0ns"`, `"2.3E-2ns"`, `"14.2ms"`, `"12.3 milliseconds"`, `"2 y"`, `"1.23E3 y"`
+
+> [!WARNING]
+> Do not use the abbrevation `"m"` for minute or month, since it will create an ambiguity with the "million" multiplier.
+
+### Size
+
+Size represents the volume of data in bytes. Size is always specified with a corresponding unit. The unit is _always_ chosen based on the quantity of the value. e.g., 1.2MiB is correct, we never format it as "0.00117GiB". Units above petabyte and pebibyte exist, but we do not use them. The smallest unit in use is "bytes", never "bits".
+
+#### IEC Units
+
+IEC units use binary prefixes for the units. This is a popular way to represent sizes of information. In this format, each subsequent unit is 1,024 times the previous (as opposed to SI units, where each 1,000 as the multiplier). Sentry generally prefers IEC units with binary prefixes.
+
+| Unit     | Abbreviation |
+| -------- | ------------ |
+| Byte     | B            |
+| Kibibyte | KiB          |
+| Mebibyte | MiB          |
+| Gibibyte | GiB          |
+| Tebibyte | TiB          |
+| Pebibyte | PiB          |
+
+> [!WARNING]
+> The "B" abbreviation of "bytes" creates a slight ambiguity with the multiplier prefixes of integers. e.g., "11B" means "eleven billion", but "11.2 B" means "11.2 bytes".
+
+#### SI Units
+
+> [!WARNING]
+> We'd like to provide guidance on when (if ever) it's appropriate to use SI vs. IEC units, but this needs more investigation.
+
+SI units were often used historically, and we use them in some contexts.
+
+| Unit     | Abbreviation |
+| -------- | ------------ |
+| Byte     | B            |
+| Kilobyte | KB           |
+| Megabyte | MB           |
+| Gigabyte | GB           |
+| Terabyte | TB           |
+| Petabyte | PB           |
+
+When the full unit is shown, it must be pluralized. When an abbreviated unit is shown, it should never be pluralized. Sizes >1,000 Pebibytes or Petabytes use scientific notation.
+
+e.g., `"12.3 MiB"`, `"16.7 pebibytes"`, `"1.4E4 PiB"`
+
+### Timestamp
+
+A timestamp is a point in time. For example, "June 8th, 1990" is a timestamp, but "12 hours" is not. Timestamps are usually represented in the data as Unix time, typically the number of milliseconds since the Unix epoch. There are a few common ways to format timestamps:
+
+1. Relative format. e.g., "5min ago". This is often used when the _recency_ of the date matters more than the exact date (e.g., creation dates, last seen dates, the date of a trace)
+2. Expanded format. e.g., "Jun 8". This is often used when the specific date is important (X-axis labels)
+
+### Score
+
+A `score` is a positive integer value from 0 to 100. Scores are a synthetic measure, like Sentry's "Performance Score". This is very similar to an integer, except many parts of the UI give it special handling.
+
+- score values are _always_ formatted as integers
+- when a `score` is plotted, the Y axis _must_ range from 0 to 100 regardless of the contents
+- scores are usually shown next to a qualitative label like "good" or "meh"
+
+e.g., `"0"`, `"17"`, `"100"`
+
+### Rate
+
+A `rate` is a measurement of a number over time. Throughput measurements like "spans per minute" are a `rate`. Rates use one of three multiplier units (per second, per minute, per hour), but they are not chosen automatically based on the quantity. Rate units must be chosen based on what is semantically valid. For example, the metric `epm()` is "events per minute", therefore it must _always_ be represented using the "per minute" unit. The numeric value of a rate does not use multipliers.
+
+e.g., `"0 per minute"`, `"0/sec"`, `"1.5E-3/min"`, `"1,200,121.23/min"`
+
+TODO: Confirm whether this formatting makes sense.
+
+### Currency
+
+> [!WARNING]
+> This section is under construction.
+
+Sentry displays currency information in a few UIs: AI model usage costs, and user billing information. The only supported currency right now is US Dollars. Sentry generally renders costs with a much higher level of precision than just two decimal points. Both Sentry and many AI providers price their spans by fractional cents (e.g., `"0.000125 cents per run"`), which makes normal rounding rules inappropriate.

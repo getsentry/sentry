@@ -11,7 +11,12 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {
+  getTraceMetaLogsCount,
+  getTraceMetaMetricsCount,
+  getTraceMetaSpanCount,
+  type TraceMetaQueryResults,
+} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -50,8 +55,10 @@ const SectionBody = styled('div')<{alignment?: boolean}>`
 
 interface MetaProps {
   logs: OurLogsResponseItem[] | undefined;
+  logsEnabled: boolean;
   meta: TraceMetaQueryResults['data'];
   metrics: {count: number} | undefined;
+  metricsEnabled: boolean;
   organization: Organization;
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;
@@ -79,18 +86,15 @@ export function Meta(props: MetaProps) {
   let spansCount = 0;
   let loadedSpansCount = 0;
   let totalSpansCount = 0;
-  if (
-    traceNode &&
-    props.meta?.span_count &&
-    props.tree.eap_spans_count !== props.meta.span_count
-  ) {
+  const metaSpansCount = getTraceMetaSpanCount(props.meta);
+  if (traceNode && metaSpansCount && props.tree.eap_spans_count !== metaSpansCount) {
     loadedSpansCount = props.tree.eap_spans_count;
-    totalSpansCount = props.meta.span_count;
+    totalSpansCount = metaSpansCount;
     spansCount = totalSpansCount;
   } else if (traceNode) {
     spansCount = props.tree.eap_spans_count;
-  } else if (props.meta?.span_count) {
-    spansCount = props.meta.span_count;
+  } else if (metaSpansCount) {
+    spansCount = metaSpansCount;
   }
 
   const uniqueIssuesCount = traceNode ? traceNode.uniqueIssues.length : 0;
@@ -102,7 +106,10 @@ export function Meta(props: MetaProps) {
 
   const hasDifferentSpansCount = loadedSpansCount !== 0 && totalSpansCount !== 0;
   const hasSpans = spansCount > 0 || loadedSpansCount > 0 || totalSpansCount > 0;
-  const hasLogs = (props.logs?.length ?? 0) > 0;
+  const logsCount = getTraceMetaLogsCount(props.meta) ?? props.logs?.length ?? 0;
+  const hasLogs = props.logsEnabled && logsCount > 0;
+  const metricsCount = getTraceMetaMetricsCount(props.meta) ?? props.metrics?.count ?? 0;
+  const hasMetrics = props.metricsEnabled && metricsCount > 0;
 
   const repEvent = props.representativeEvent?.event;
 
@@ -146,11 +153,15 @@ export function Meta(props: MetaProps) {
               : getRootDuration(repEvent)
             : '\u2014'}
         </MetaSection>
-      ) : hasLogs ? (
+      ) : null}
+      {hasLogs ? (
         <MetaSection rightAlignBody headingText={t('Logs')}>
-          {props.meta && 'logs' in props.meta
-            ? props.meta.logs
-            : (props.logs?.length ?? 0)}
+          {logsCount}
+        </MetaSection>
+      ) : null}
+      {hasMetrics ? (
+        <MetaSection rightAlignBody headingText={t('Metrics')}>
+          {metricsCount}
         </MetaSection>
       ) : null}
     </MetaWrapper>

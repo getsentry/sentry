@@ -23,7 +23,7 @@ export function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
         userAction({type: 'play'});
       }}
       aria-label={t('Restart Replay')}
-      priority="primary"
+      variant="primary"
       {...props}
     />
   ) : (
@@ -32,7 +32,7 @@ export function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
       icon={isPlaying ? <IconPause /> : <IconPlay />}
       onClick={() => userAction(isPlaying ? {type: 'pause'} : {type: 'play'})}
       aria-label={isPlaying ? t('Pause') : t('Play')}
-      priority="primary"
+      variant="primary"
       {...props}
     />
   );

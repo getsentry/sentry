@@ -35,7 +35,7 @@ const CLOUD_PROVIDERS = {
 };
 
 export function getCloudResourceContextData({
-  data = {},
+  data,
   meta,
 }: {
   data: CloudResourceContext;

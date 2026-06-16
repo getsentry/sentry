@@ -53,7 +53,7 @@ class ReleaseProjectManagerTestCase(TestCase):
         ):
             project = self.create_project(name="foo")
             release = Release.objects.create(organization_id=project.organization_id, version="42")
-            project_boosted_releases = ProjectBoostedReleases(project.id)
+            project_boosted_releases = ProjectBoostedReleases(project)
             # We store a boosted release for this project.
             project_boosted_releases.add_boosted_release(release.id, None)
             assert project_boosted_releases.has_boosted_releases

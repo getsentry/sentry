@@ -17,6 +17,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodSnapshotComparison,
 )
 from sentry.preprod.tasks import (
     assemble_preprod_artifact,
@@ -391,13 +392,8 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
     # Note: Tests currently expect ERROR state because the task tries to access
     # assemble_result.build_configuration which doesn't exist
 
-    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
-    def test_assemble_preprod_artifact_includes_all_features_when_no_query(
-        self, mock_produce_to_kafka
-    ) -> None:
-        """Test that assemble_preprod_artifact includes all features when no query is set"""
-        from sentry.preprod.producer import PreprodFeature
-
+    @patch("sentry.preprod.tasks.dispatch_taskbroker")
+    def test_assemble_preprod_artifact_dispatches_to_taskbroker(self, mock_dispatch) -> None:
         content = b"test preprod artifact content no query"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -412,8 +408,6 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
         )
         assert artifact is not None
 
-        # Don't set any query filters - should include all features
-
         assemble_preprod_artifact(
             org_id=self.organization.id,
             project_id=self.project.id,
@@ -422,50 +416,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             artifact_id=artifact.id,
         )
 
-        # Verify produce_preprod_artifact_to_kafka was called with both features
-        mock_produce_to_kafka.assert_called_once()
-        call_kwargs = mock_produce_to_kafka.call_args[1]
-        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
-        assert PreprodFeature.BUILD_DISTRIBUTION in call_kwargs["requested_features"]
-
-    @patch("sentry.preprod.tasks.produce_preprod_artifact_to_kafka")
-    def test_assemble_preprod_artifact_includes_feature_on_invalid_query(
-        self, mock_produce_to_kafka
-    ) -> None:
-        """Test that assemble_preprod_artifact includes features when query is invalid"""
-        from sentry.preprod.producer import PreprodFeature
-        from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
-
-        content = b"test preprod artifact content invalid query"
-        fileobj = ContentFile(content)
-        total_checksum = sha1(content).hexdigest()
-
-        blob = FileBlob.from_file_with_organization(fileobj, self.organization)
-
-        artifact = create_preprod_artifact(
-            org_id=self.organization.id,
-            project_id=self.project.id,
-            checksum=total_checksum,
-            build_configuration_name="release",
-        )
-        assert artifact is not None
-
-        # Set up an invalid query filter
-        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "invalid_field:value")
-
-        assemble_preprod_artifact(
-            org_id=self.organization.id,
-            project_id=self.project.id,
-            checksum=total_checksum,
-            chunks=[blob.checksum],
-            artifact_id=artifact.id,
-        )
-
-        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
-        # (invalid query should be skipped, allowing the feature)
-        mock_produce_to_kafka.assert_called_once()
-        call_kwargs = mock_produce_to_kafka.call_args[1]
-        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+        mock_dispatch.assert_called_once_with(self.project.id, self.organization.id, artifact.id)
 
 
 class CreatePreprodArtifactTest(TestCase):
@@ -632,7 +583,8 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         )
         return status, details
 
-    def test_assemble_preprod_artifact_installable_app_success(self) -> None:
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
+    def test_assemble_preprod_artifact_installable_app_success(self, mock_send_webhook) -> None:
         status, details = self._run_task_and_verify_status(b"test installable app content")
 
         assert status == ChunkFileState.OK
@@ -647,7 +599,13 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id == installable_files[0].id
 
-    def test_assemble_preprod_artifact_installable_app_error_cases(self) -> None:
+        # Verify webhook was sent
+        mock_send_webhook.assert_called_once()
+        call_kwargs = mock_send_webhook.call_args
+        assert call_kwargs.kwargs["organization_id"] == self.organization.id
+
+    @patch("sentry.preprod.tasks.send_build_distribution_webhook")
+    def test_assemble_preprod_artifact_installable_app_error_cases(self, mock_send_webhook) -> None:
         # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999
@@ -677,6 +635,9 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         # Verify PreprodArtifact was not updated for error cases
         self.preprod_artifact.refresh_from_db()
         assert self.preprod_artifact.installable_app_file_id is None
+
+        # Verify webhook was NOT sent for any error case
+        mock_send_webhook.assert_not_called()
 
 
 class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
@@ -1041,7 +1002,7 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
 
 
 class DetectExpiredPreprodArtifactsTest(TestCase):
-    def test_detect_expired_preprod_artifacts_no_expired(self):
+    def test_detect_expired_preprod_artifacts_no_expired(self) -> None:
         """Test that no artifacts are marked as expired when none are expired"""
         recent_artifact = self.create_preprod_artifact(
             project=self.project,
@@ -1082,7 +1043,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         assert recent_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
         assert recent_size_comparison.state == PreprodArtifactSizeComparison.State.PROCESSING
 
-    def test_detect_expired_preprod_artifacts_with_expired(self):
+    def test_detect_expired_preprod_artifacts_with_expired(self) -> None:
         """Test that expired artifacts are marked as failed"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
@@ -1173,7 +1134,99 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             and "30 minutes" in expired_size_comparison.error_message
         )
 
-    def test_detect_expired_preprod_artifacts_captures_sentry_message(self):
+    def _create_snapshot_comparison(self, state: int) -> PreprodSnapshotComparison:
+        head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+        )
+        head_metrics = self.create_preprod_snapshot_metrics(head_artifact)
+        base_metrics = self.create_preprod_snapshot_metrics(base_artifact)
+        return self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=state,
+        )
+
+    def test_detect_expired_preprod_artifacts_expires_stuck_snapshot_comparison(self) -> None:
+        """A snapshot comparison stuck in PROCESSING for >30 minutes is marked FAILED"""
+        old_time = timezone.now() - timedelta(minutes=35)
+
+        comparison = self._create_snapshot_comparison(
+            state=PreprodSnapshotComparison.State.PROCESSING
+        )
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.TIMEOUT
+        assert comparison.error_message and "30 minutes" in comparison.error_message
+
+    def test_detect_expired_preprod_artifacts_ignores_recent_snapshot_comparison(self) -> None:
+        """A snapshot comparison that started PROCESSING recently is left alone"""
+        comparison = self._create_snapshot_comparison(
+            state=PreprodSnapshotComparison.State.PROCESSING
+        )
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+
+    def test_detect_expired_preprod_artifacts_ignores_stale_non_processing_snapshot_comparison(
+        self,
+    ) -> None:
+        """An old snapshot comparison that is not PROCESSING is left alone"""
+        old_time = timezone.now() - timedelta(minutes=35)
+
+        comparison = self._create_snapshot_comparison(state=PreprodSnapshotComparison.State.SUCCESS)
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.error_code is None
+
+    def test_detect_expired_preprod_artifacts_expires_stuck_pending_snapshot_comparison(
+        self,
+    ) -> None:
+        """A snapshot comparison stuck in PENDING for >30 minutes is marked FAILED.
+
+        Selective-base reconstruction parks a comparison in PENDING between deferral
+        retries; if the rescheduled task is ever lost, the row would otherwise orphan
+        forever. A healthy or actively-deferring row keeps date_updated fresh, so the
+        stale threshold only catches a genuinely orphaned one.
+        """
+        old_time = timezone.now() - timedelta(minutes=35)
+
+        comparison = self._create_snapshot_comparison(state=PreprodSnapshotComparison.State.PENDING)
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.TIMEOUT
+
+    def test_detect_expired_preprod_artifacts_ignores_recent_pending_snapshot_comparison(
+        self,
+    ) -> None:
+        """A freshly-created PENDING comparison (about to be picked up) is left alone."""
+        comparison = self._create_snapshot_comparison(state=PreprodSnapshotComparison.State.PENDING)
+
+        detect_expired_preprod_artifacts()
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.PENDING
+        assert comparison.error_code is None
+
+    def test_detect_expired_preprod_artifacts_captures_sentry_message(self) -> None:
         """Test that Sentry messages are captured for each expired artifact"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)
@@ -1198,7 +1251,9 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
 
             # Verify the message text and parameters
             call_args_list = mock_capture_message.call_args_list
-            captured_artifact_ids = [call[1]["extras"]["artifact_id"] for call in call_args_list]
+            captured_artifact_ids = [
+                call[1]["extras"]["preprod_artifact_id"] for call in call_args_list
+            ]
 
             assert expired_artifact_1.id in captured_artifact_ids
             assert expired_artifact_2.id in captured_artifact_ids
@@ -1207,9 +1262,9 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             for call in call_args_list:
                 assert call[0][0] == "PreprodArtifact expired"
                 assert call[1]["level"] == "error"
-                assert "artifact_id" in call[1]["extras"]
+                assert "preprod_artifact_id" in call[1]["extras"]
 
-    def test_detect_expired_preprod_artifacts_mixed_states(self):
+    def test_detect_expired_preprod_artifacts_mixed_states(self) -> None:
         """Test that only artifacts in the right states are considered for expiration"""
         current_time = timezone.now()
         old_time = current_time - timedelta(minutes=35)  # 35 minutes ago (expired)
@@ -1275,7 +1330,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         assert processing_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
         assert completed_size_metric.state == PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
 
-    def test_detect_expired_preprod_artifacts_boundary_time(self):
+    def test_detect_expired_preprod_artifacts_boundary_time(self) -> None:
         """Test the 30-minute boundary for expiration"""
         current_time = timezone.now()
         exactly_30_min_ago = current_time - timedelta(minutes=30)
@@ -1319,7 +1374,7 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
         )  # Still processing
         assert just_over_30_artifact.state == PreprodArtifact.ArtifactState.FAILED
 
-    def test_detect_expired_preprod_artifacts_skips_snapshot_artifacts(self):
+    def test_detect_expired_preprod_artifacts_skips_snapshot_artifacts(self) -> None:
         from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 
         current_time = timezone.now()

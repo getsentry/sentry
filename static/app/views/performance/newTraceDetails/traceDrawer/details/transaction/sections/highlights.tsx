@@ -45,7 +45,7 @@ export function TransactionHighlights(props: HighlightProps) {
     <HeaderContentWrapper>
       <span>{props.node.value.transaction}</span>
       <CopyToClipboardButton
-        priority="transparent"
+        variant="transparent"
         size="zero"
         aria-label={t('Copy transaction name to clipboard')}
         text={props.node.value.transaction}

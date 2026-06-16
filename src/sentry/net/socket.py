@@ -22,16 +22,24 @@ DISALLOWED_IPS = frozenset(
     ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
 )
 
+ALLOWED_IPS = frozenset(
+    ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_ALLOWED_IPS
+)
+
 
 @functools.lru_cache(maxsize=100)
 def is_ipaddress_allowed(ip: str) -> bool:
     """
     Test if a given IP address is allowed or not
-    based on the DISALLOWED_IPS rules.
+    based on the DISALLOWED_IPS AND ALLOWED_IPS rules.
     """
     if not DISALLOWED_IPS:
         return True
     ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
+    for ip_network in ALLOWED_IPS:
+        if ip_address in ip_network:
+            return True
+
     for ip_network in DISALLOWED_IPS:
         if ip_address in ip_network:
             return False

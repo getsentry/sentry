@@ -16,11 +16,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import BadRequest
+from sentry.api.utils import to_valid_int_id
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
@@ -150,7 +152,7 @@ class PushEventWebhook(BitbucketServerWebhook):
 class BitbucketServerWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -167,14 +169,18 @@ class BitbucketServerWebhookEndpoint(Endpoint):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: HttpRequest, organization_id, integration_id) -> HttpResponseBase:
+    def post(
+        self, request: HttpRequest, organization_id: str, integration_id: str
+    ) -> HttpResponseBase:
+        org_id = to_valid_int_id("organization_id", organization_id, raise_404=True)
+        integ_id = to_valid_int_id("integration_id", integration_id, raise_404=True)
         try:
-            organization: Organization = Organization.objects.get_from_cache(id=organization_id)
+            organization: Organization = Organization.objects.get_from_cache(id=org_id)
         except Organization.DoesNotExist:
             logger.warning(
                 "%s.webhook.invalid-organization",
                 PROVIDER_NAME,
-                extra={"organization_id": organization_id, "integration_id": integration_id},
+                extra={"organization_id": org_id, "integration_id": integ_id},
             )
             return HttpResponse(status=400)
 
@@ -191,7 +197,7 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             logger.warning(
                 "%s.webhook.missing-event",
                 PROVIDER_NAME,
-                extra={"organization_id": organization.id, "integration_id": integration_id},
+                extra={"organization_id": organization.id, "integration_id": integ_id},
             )
             return HttpResponse(status=400)
 
@@ -204,12 +210,13 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             logger.warning(
                 "%s.webhook.invalid-json",
                 PROVIDER_NAME,
-                extra={"organization_id": organization.id, "integration_id": integration_id},
+                extra={"organization_id": organization.id, "integration_id": integ_id},
             )
             return HttpResponse(status=400)
 
         event_handler = handler()
 
-        event_handler(event, organization=organization, integration_id=integration_id)
+        with webhook_viewer_context(organization.id):
+            event_handler(event, organization=organization, integration_id=integ_id)
 
         return HttpResponse(status=204)

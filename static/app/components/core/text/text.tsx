@@ -184,11 +184,11 @@ export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
 
 export const Text = styled(
   <T extends TextPrimitive = 'span'>(
-    props: TextProps<T> | TextPropsWithRenderFunction<T>
+    props: (TextProps<T> | TextPropsWithRenderFunction<T>) & {className?: string}
   ) => {
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
-      return props.children({className: (props as any).className});
+      return props.children({className: props.className ?? ''});
     }
     const {children, ...rest} = props as TextProps<T>;
     const Component = props.as || 'span';

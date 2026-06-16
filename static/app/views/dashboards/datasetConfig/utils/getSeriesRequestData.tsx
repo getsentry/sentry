@@ -95,7 +95,13 @@ export function getSeriesRequestData(
       requestData.excludeOther =
         widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
 
-      if ([DiscoverDatasets.OURLOGS, DiscoverDatasets.SPANS].includes(dataset)) {
+      if (
+        [
+          DiscoverDatasets.OURLOGS,
+          DiscoverDatasets.SPANS,
+          DiscoverDatasets.TRACEMETRICS,
+        ].includes(dataset)
+      ) {
         if (
           isEquation(trimStart(widgetQuery.orderby, '-')) &&
           !requestData.field?.includes(trimStart(widgetQuery.orderby, '-'))

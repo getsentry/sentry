@@ -59,7 +59,7 @@ export function StartTrialButton({
                 startTrial();
                 onClick?.(e);
               }}
-              {...(restButtonProps as LinkButtonProps)}
+              {...restButtonProps}
             >
               {children || t('Start trial')}
             </LinkButton>
@@ -77,7 +77,7 @@ export function StartTrialButton({
               startTrial();
               onClick?.(e);
             }}
-            {...(restButtonProps as ButtonProps)}
+            {...restButtonProps}
           >
             {children || t('Start trial')}
           </Button>

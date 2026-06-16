@@ -24,6 +24,12 @@ describe('MetricSelectRow', () => {
     mockedUseNavigate.mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
         data: [
@@ -37,6 +43,21 @@ describe('MetricSelectRow', () => {
             ['metric.type']: 'counter',
             ['count(metric.name)']: 1,
           },
+          {
+            ['metric.name']: 'counter_metric',
+            ['metric.type']: 'counter',
+            ['count(metric.name)']: 1,
+          },
+          {
+            ['metric.name']: 'distribution_metric',
+            ['metric.type']: 'distribution',
+            ['count(metric.name)']: 1,
+          },
+          {
+            ['metric.name']: 'gauge_metric',
+            ['metric.type']: 'gauge',
+            ['count(metric.name)']: 1,
+          },
         ],
       },
     });
@@ -44,6 +65,7 @@ describe('MetricSelectRow', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders the same metric for all rows', async () => {
@@ -65,7 +87,7 @@ describe('MetricSelectRow', () => {
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['sum' as AggregationKeyWithAlias, 'value', undefined, undefined],
+            function: ['sum', 'value', undefined, undefined],
           }}
           index={0}
           disabled={false}
@@ -77,8 +99,8 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,alpha_metric,counter,-)',
-                'sum(value,alpha_metric,counter,-)',
+                'per_second(value,alpha_metric,counter,none)',
+                'sum(value,alpha_metric,counter,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -116,13 +138,7 @@ describe('MetricSelectRow', () => {
       },
       {
         kind: 'function',
-        function: [
-          'sum' as AggregationKeyWithAlias,
-          'value',
-          'alpha_metric',
-          'counter',
-          '-',
-        ],
+        function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
       },
     ];
     render(
@@ -137,8 +153,8 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'per_second(value,alpha_metric,counter,-)',
-                'sum(value,alpha_metric,counter,-)',
+                'per_second(value,alpha_metric,counter,none)',
+                'sum(value,alpha_metric,counter,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -165,37 +181,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('replaces invalid aggregates when changing to an incompatible metric type', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'p50' as AggregationKeyWithAlias,
-              'value',
-              'distribution_metric',
-              'distribution',
-              '-',
-            ],
+            function: ['p50', 'value', 'distribution_metric', 'distribution', 'none'],
           }}
           index={0}
           disabled={false}
@@ -206,7 +197,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['p50(value,distribution_metric,distribution,-)'],
+              yAxis: ['p50(value,distribution_metric,distribution,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },
@@ -223,7 +214,7 @@ describe('MetricSelectRow', () => {
     await userEvent.click(metricSelector);
     await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
 
-    // p50 is invalid for counter, so it should be replaced with per_second
+    // p50 is invalid for counter, so it should be replaced with sum
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -231,13 +222,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'per_second' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  '-',
-                ],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -248,37 +233,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('preserves valid aggregates when changing metric type', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'sum' as AggregationKeyWithAlias,
-              'value',
-              'counter_metric',
-              'counter',
-              '-',
-            ],
+            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
           }}
           index={0}
           disabled={false}
@@ -289,7 +249,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              yAxis: ['sum(value,counter_metric,counter,-)'],
+              yAxis: ['sum(value,counter_metric,counter,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
             },
@@ -314,13 +274,7 @@ describe('MetricSelectRow', () => {
             yAxis: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'sum' as AggregationKeyWithAlias,
-                  'value',
-                  'distribution_metric',
-                  'distribution',
-                  '-',
-                ],
+                function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
               },
             ]),
           }),
@@ -331,37 +285,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('handles mixed valid and invalid aggregates on metric change', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'distribution_metric',
-            ['metric.type']: 'distribution',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'sum' as AggregationKeyWithAlias,
-              'value',
-              'distribution_metric',
-              'distribution',
-              '-',
-            ],
+            function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
           }}
           index={0}
           disabled={false}
@@ -373,9 +302,9 @@ describe('MetricSelectRow', () => {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
               yAxis: [
-                'sum(value,distribution_metric,distribution,-)',
-                'p99(value,distribution_metric,distribution,-)',
-                'count(value,distribution_metric,distribution,-)',
+                'per_second(value,distribution_metric,distribution,none)',
+                'p99(value,distribution_metric,distribution,none)',
+                'count(value,distribution_metric,distribution,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -389,11 +318,11 @@ describe('MetricSelectRow', () => {
       name: 'distribution_metric',
     });
 
-    // Change to counter (sum and count valid, p99 is not)
+    // Change to counter (p99 and count are not valid)
     await userEvent.click(metricSelector);
     await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
 
-    // sum stays, p99 replaced with per_second, count replaced with per_second
+    // per_second stays, p99 replaced with sum, count replaced with sum
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -402,32 +331,20 @@ describe('MetricSelectRow', () => {
               {
                 kind: FieldValueKind.FUNCTION,
                 function: [
-                  'sum' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  '-',
-                ],
-              },
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: [
                   'per_second' as AggregationKeyWithAlias,
                   'value',
                   'counter_metric',
                   'counter',
-                  '-',
+                  'none',
                 ],
               },
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'per_second' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  '-',
-                ],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+              },
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -438,37 +355,12 @@ describe('MetricSelectRow', () => {
   });
 
   it('replaces invalid aggregates for big number display', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            ['metric.name']: 'gauge_metric',
-            ['metric.type']: 'gauge',
-            ['count(metric.name)']: 1,
-          },
-          {
-            ['metric.name']: 'counter_metric',
-            ['metric.type']: 'counter',
-            ['count(metric.name)']: 1,
-          },
-        ],
-      },
-    });
-
     render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: [
-              'avg' as AggregationKeyWithAlias,
-              'value',
-              'gauge_metric',
-              'gauge',
-              '-',
-            ],
+            function: ['avg', 'value', 'gauge_metric', 'gauge', 'none'],
           }}
           index={0}
           disabled={false}
@@ -479,7 +371,7 @@ describe('MetricSelectRow', () => {
           location: {
             pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
             query: {
-              field: ['avg(value,gauge_metric,gauge,-)'],
+              field: ['avg(value,gauge_metric,gauge,none)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.BIG_NUMBER,
             },
@@ -494,7 +386,7 @@ describe('MetricSelectRow', () => {
     await userEvent.click(metricSelector);
     await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
 
-    // avg is invalid for counter, replaced with per_second
+    // avg is invalid for counter, replaced with sum
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -502,13 +394,7 @@ describe('MetricSelectRow', () => {
             field: serializeFields([
               {
                 kind: FieldValueKind.FUNCTION,
-                function: [
-                  'per_second' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  '-',
-                ],
+                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
               },
             ]),
           }),
@@ -516,5 +402,102 @@ describe('MetricSelectRow', () => {
         expect.anything()
       );
     });
+  });
+
+  it('uses avg for gauge metrics', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRow
+          field={{
+            kind: 'function',
+            function: ['p50', 'value', 'distribution_metric', 'distribution', 'none'],
+          }}
+          index={0}
+          disabled={false}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: ['p50(value,distribution_metric,distribution,none)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    const metricSelector = await screen.findByRole('button', {
+      name: 'distribution_metric',
+    });
+
+    // Change to gauge which doesn't support p50
+    await userEvent.click(metricSelector);
+    await userEvent.click(await screen.findByRole('option', {name: 'gauge_metric'}));
+
+    // p50 is invalid for counter, replaced with avg
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: serializeFields([
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['avg', 'value', 'gauge_metric', 'gauge', 'none'],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
+  it('converts - to none for unit', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <MetricSelectRow
+          field={{
+            kind: 'function',
+            function: ['sum', 'value', 'counter_metric', 'counter', '-'],
+          }}
+          index={0}
+          disabled={false}
+        />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: ['sum(value,counter_metric,counter,-)'],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    const metricSelector = await screen.findByRole('button', {name: 'counter_metric'});
+    await userEvent.click(metricSelector);
+    await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: serializeFields([
+            {
+              kind: FieldValueKind.FUNCTION,
+              function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+            },
+          ]),
+        }),
+      }),
+      expect.anything()
+    );
   });
 });

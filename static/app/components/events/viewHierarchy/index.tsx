@@ -6,8 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
@@ -102,9 +102,7 @@ function ViewHierarchy({
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
-  const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
-    viewHierarchy.windows[0]
-  );
+  const [selectedNode, setSelectedNode] = useState(viewHierarchy.windows[0]);
   const [userHasSelected, setUserHasSelected] = useState(false);
   const hierarchy = useMemo(() => {
     return viewHierarchy.windows;

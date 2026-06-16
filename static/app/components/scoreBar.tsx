@@ -41,10 +41,10 @@ function BaseScoreBar({
 
   return (
     <div className={className} {...props}>
-      {[...new Array(scoreInBounds)].map((_j, i) => (
+      {[...Array.from({length: scoreInBounds})].map((_j, i) => (
         <Bar {...barProps} key={i} color={palette[paletteIndex]} />
       ))}
-      {[...new Array(maxScore - scoreInBounds)].map((_j, i) => (
+      {[...Array.from({length: maxScore - scoreInBounds})].map((_j, i) => (
         <Bar key={`empty-${i}`} {...barProps} empty />
       ))}
     </div>
@@ -62,7 +62,7 @@ export const ScoreBar = styled(BaseScoreBar)`
         `
       : css`
           min-width: 80px;
-        `};
+        `}
 `;
 
 type BarProps = {

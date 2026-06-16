@@ -92,6 +92,20 @@ describe('useTimeout', () => {
     expect(result.current.end).toBe(firstRender.end);
   });
 
+  it('should use overrideTimeMs from start() when provided', () => {
+    const {result} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    result.current.start(2000);
+
+    jest.advanceTimersByTime(timeMs + 10);
+    expect(onTimeout).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(2000);
+    expect(onTimeout).toHaveBeenCalled();
+  });
+
   it('should not exec the callback after unmount', () => {
     const {result, unmount} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},

@@ -5,7 +5,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -311,21 +317,31 @@ describe('AlertRuleDetails', () => {
     expect(deleteRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('mutes alert if query parameter is set', async () => {
+  it('shows confirmation modal when mute query parameter is set', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/snooze/`,
       method: 'POST',
     });
 
     createWrapper({query: {mute: '1'}});
+    renderGlobalModal();
 
-    expect(await screen.findByText('Unmute')).toBeInTheDocument();
-    expect(request).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {target: 'everyone'},
-      })
-    );
+    expect(
+      await screen.findByText('Are you sure you want to mute this alert for everyone?')
+    ).toBeInTheDocument();
+
+    expect(request).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Mute'}));
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {target: 'everyone'},
+        })
+      );
+    });
   });
 
   it('mute button is disabled if no alerts:write permission', async () => {

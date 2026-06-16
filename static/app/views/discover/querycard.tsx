@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {Card} from 'sentry/components/card';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 
@@ -21,7 +21,7 @@ type Props = {
   title?: string;
 };
 
-class QueryCard extends PureComponent<Props> {
+export class QueryCard extends PureComponent<Props> {
   handleClick = () => {
     const {onEventClick} = this.props;
     onEventClick?.();
@@ -160,5 +160,3 @@ const DateStatus = styled('span')`
 const StyledErrorBoundary = styled(ErrorBoundary)`
   margin-bottom: 100px;
 `;
-
-export default QueryCard;

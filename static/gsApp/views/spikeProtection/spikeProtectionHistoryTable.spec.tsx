@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +19,7 @@ describe('SpikeProtectionHistoryTable', () => {
   });
   const subscription = SubscriptionFixture({organization});
 
-  const project = ProjectFixture();
+  const project = DetailedProjectFixture();
 
   const dataCategoryInfo = DATA_CATEGORY_INFO[DataCategoryExact.ERROR];
   let mockPost: jest.Mock;

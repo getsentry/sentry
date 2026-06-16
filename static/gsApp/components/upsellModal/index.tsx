@@ -11,7 +11,7 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, getTrialLength, hasPerformance} from 'getsentry/utils/billing';
 
-import Details from './details';
+import {Details} from './details';
 
 type Props = ModalRenderProps & {
   organization: Organization;

@@ -1,10 +1,12 @@
 import isEqual from 'lodash/isEqual';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {
   AGGREGATION_FIELDS,
   AggregationKey,
@@ -24,12 +26,15 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
+export type SortKind = 'asc' | 'desc';
+
 export type Sort = {
   field: string;
-  kind: 'asc' | 'desc';
+  kind: SortKind;
 };
 
 // Contains the URL field value & the related table column width.
@@ -621,6 +626,23 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  [AggregationKey.OPPORTUNITY_SCORE]: {
+    ...getDocsAndOutputType(AggregationKey.OPPORTUNITY_SCORE),
+    parameters: [
+      {
+        kind: 'dropdown',
+        options: ['cls', 'fcp', 'inp', 'lcp', 'total', 'ttfb'].map(vital => ({
+          label: `measurements.score.${vital}`,
+          value: `measurements.score.${vital}`,
+        })),
+        dataType: 'number',
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
@@ -629,7 +651,7 @@ const ALIASES = {
   tps: AggregationKey.EPS,
 };
 
-assert(AGGREGATIONS as Readonly<Record<AggregationKey, Aggregation>>);
+assert(AGGREGATIONS);
 
 export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
@@ -715,6 +737,12 @@ export function formatTagKey(key: string): string {
   if (key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(key)) {
     return `tags[${key}]`;
   }
+
+  // Reserved keywords that conflict with discover search query
+  if (['project_id', 'project.name'].includes(key)) {
+    return `tags[${key}]`;
+  }
+
   return key;
 }
 
@@ -902,20 +930,12 @@ export function isMeasurement(field: string): boolean {
 }
 
 export function measurementType(field: string): MeasurementType {
-  if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+  if (Object.hasOwn(MEASUREMENT_FIELDS, field)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
 
   return FieldValueType.NUMBER;
-}
-
-export function getMeasurementSlug(field: string): string | null {
-  const results = field.match(MEASUREMENT_PATTERN);
-  if (results && results.length >= 2) {
-    return results[1]!;
-  }
-  return null;
 }
 
 const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;
@@ -1074,7 +1094,7 @@ export function generateAggregateFields(
     const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
-      if (typeof overrides === 'undefined') {
+      if (overrides === undefined) {
         return param;
       }
       return {
@@ -1083,7 +1103,7 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => param.defaultValue !== undefined)) {
       const newField = `${func}(${parameters
         .map((param: any) => param.defaultValue)
         .join(',')})`;
@@ -1092,7 +1112,7 @@ export function generateAggregateFields(
       }
     }
   });
-  return fields.map(field => ({field})) as Field[];
+  return fields.map(field => ({field}));
 }
 
 function isDerivedMetric(field: string): boolean {
@@ -1115,18 +1135,45 @@ export function explodeFieldString(field: string, alias?: string): Column {
   const results = parseFunction(field);
 
   if (results) {
+    const args = results.arguments.map(normalizeFunctionArgument);
     return {
       kind: 'function',
-      function: [
-        results.name as AggregationKey,
-        results.arguments[0] ?? '',
-        ...results.arguments.slice(1),
-      ],
+      function: [results.name as AggregationKey, args[0] ?? '', ...args.slice(1)],
       alias,
     };
   }
 
   return {kind: 'field', field, alias};
+}
+
+const UNSAFE_FUNCTION_ARGUMENT = /[\s"(),]/;
+const EXPLICIT_TAG_FUNCTION_ARGUMENT = /^(?:sentry_tags|tags)\[.*\]$/;
+const MIN_SEPARATE_WORDS = 2;
+
+function isQuotedFunctionArgument(value: string): boolean {
+  return (
+    value.length >= MIN_SEPARATE_WORDS && value.startsWith('"') && value.endsWith('"')
+  );
+}
+
+function normalizeFunctionArgument(value: string): string {
+  if (!isQuotedFunctionArgument(value)) {
+    return value;
+  }
+
+  return value.slice(1, -1).replace(/\\"/g, '"');
+}
+
+function generateFunctionArgument(value: string): string {
+  if (
+    isQuotedFunctionArgument(value) ||
+    EXPLICIT_TAG_FUNCTION_ARGUMENT.test(value) ||
+    !UNSAFE_FUNCTION_ARGUMENT.test(value)
+  ) {
+    return value;
+  }
+
+  return `"${escapeDoubleQuotes(value)}"`;
 }
 
 export function generateFieldAsString(value: QueryFieldValue): string {
@@ -1143,8 +1190,18 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   const aggregation = value.function[0];
-  const parameters = value.function.slice(1).filter(i => i);
+  const slicedFunction = value.function.slice(1);
+  const parameters: string[] = [];
+  for (const parameter of slicedFunction) {
+    if (parameter) {
+      parameters.push(generateFunctionArgument(parameter));
+    }
+  }
   return `${aggregation}(${parameters.join(',')})`;
+}
+
+export function generateEquationFieldAsString(value: QueryFieldValue): string {
+  return generateFieldAsString(value);
 }
 
 export function explodeField(field: Field): Column {
@@ -1261,7 +1318,7 @@ export function aggregateFunctionOutputType(
     }
   }
 
-  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+  if (firstArg && Object.hasOwn(SESSIONS_FIELDS, firstArg)) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
@@ -1346,7 +1403,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!result) {
     return 'area';
   }
-  if (!AGGREGATIONS.hasOwnProperty(result.name)) {
+  if (!Object.hasOwn(AGGREGATIONS, result.name)) {
     return 'area';
   }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -1404,6 +1461,10 @@ export function fieldAlignment(
   columnType?: ColumnValueType,
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
+  if (columnName === SpanFields.IS_STARRED_TRANSACTION) {
+    return 'right';
+  }
+
   let align: Alignments = 'left';
 
   if (columnType) {
@@ -1424,7 +1485,7 @@ export function fieldAlignment(
  * Match on types that are legal to show on a timeseries chart.
  */
 export function isLegalYAxisType(match: ColumnType) {
-  return ['number', 'integer', 'duration', 'percentage'].includes(match);
+  return ['number', 'integer', 'duration', 'percentage', 'score'].includes(match);
 }
 
 export function getSpanOperationName(field: string): string | null {

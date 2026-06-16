@@ -1,7 +1,6 @@
 from .rules.base import generate_rules
 from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsBias
 from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
-from .rules.biases.ignore_health_checks_bias import IgnoreHealthChecksTransactionBias
 from .rules.helpers.latest_releases import (
     ExtendedBoostedRelease,
     ProjectBoostedReleases,
@@ -14,7 +13,6 @@ from .rules.utils import (
     RuleType,
     get_enabled_user_biases,
     get_redis_client_for_ds,
-    get_rule_hash,
     get_supported_biases_ids,
     get_user_biases,
 )
@@ -25,13 +23,11 @@ __all__ = [
     "get_user_biases",
     "get_enabled_user_biases",
     "get_redis_client_for_ds",
-    "get_rule_hash",
     "record_latest_release",
     "RuleType",
     "ExtendedBoostedRelease",
     "ProjectBoostedReleases",
     "Platform",
-    "IgnoreHealthChecksTransactionBias",
     "BoostEnvironmentsBias",
     "BoostLatestReleasesBias",
     "LATEST_RELEASE_TTAS",

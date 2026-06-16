@@ -1,42 +1,75 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Form} from 'sentry/components/forms/form';
-import {FormModel} from 'sentry/components/forms/model';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
+const noop = () => {};
+
 describe('PermissionsObserver', () => {
-  let model: FormModel;
-
-  function renderForm() {
-    model = new FormModel();
-
+  it('defaults to no-access for resources not in scopes', () => {
+    const onScopesChange = jest.fn();
     render(
-      <Form model={model}>
-        <PermissionsObserver
-          scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
-          events={['issue']}
-          newApp={false}
-        />
-      </Form>
+      <PermissionsObserver
+        scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
+        events={['issue']}
+        newApp={false}
+        onScopesChange={onScopesChange}
+        onEventsChange={noop}
+      />
     );
-  }
-
-  it('defaults to no-access for all resources not passed', () => {
-    renderForm();
-    expect(model.getValue('Team--permission')).toBe('no-access');
-    expect(model.getValue('Event--permission')).toBe('no-access');
-    expect(model.getValue('Member--permission')).toBe('no-access');
+    expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Member'})).toBeInTheDocument();
   });
 
-  it('converts a raw list of scopes into permissions', () => {
-    renderForm();
-    expect(model.getValue('Project--permission')).toBe('write');
-    expect(model.getValue('Release--permission')).toBe('admin');
-    expect(model.getValue('Organization--permission')).toBe('admin');
+  it('converts scopes into permissions and passes them through on change', () => {
+    const onScopesChange = jest.fn();
+    render(
+      <PermissionsObserver
+        scopes={[
+          'project:read',
+          'project:write',
+          'project:releases',
+          'org:admin',
+          'org:ci',
+        ]}
+        events={['issue']}
+        newApp={false}
+        onScopesChange={onScopesChange}
+        onEventsChange={noop}
+      />
+    );
+    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Release'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Organization'})).toBeInTheDocument();
   });
 
-  it('selects the highest ranking scope to convert to permission', () => {
-    renderForm();
-    expect(model.getValue('Project--permission')).toBe('write');
+  it('checks the CI checkbox when org:ci is in scopes', () => {
+    render(
+      <PermissionsObserver
+        scopes={['org:ci']}
+        events={[]}
+        newApp={false}
+        onScopesChange={noop}
+        onEventsChange={noop}
+      />
+    );
+    expect(
+      screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
+    ).toBeChecked();
+  });
+
+  it('does not check the CI checkbox when org:ci is not in scopes', () => {
+    render(
+      <PermissionsObserver
+        scopes={['project:read']}
+        events={[]}
+        newApp={false}
+        onScopesChange={noop}
+        onEventsChange={noop}
+      />
+    );
+    expect(
+      screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
+    ).not.toBeChecked();
   });
 });

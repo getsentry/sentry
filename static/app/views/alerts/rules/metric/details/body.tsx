@@ -22,6 +22,7 @@ import {
 import {IconClose} from 'sentry/icons';
 import {t, tct, tctCode} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -138,7 +139,7 @@ export function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
-  const formattedAggregate = aggregate;
+  const formattedAggregate = stripEquationPrefix(aggregate);
 
   const ruleType =
     rule &&
@@ -175,12 +176,14 @@ export function MetricDetailsBody({
             <Alert.Container>
               {rule.snoozeForEveryone ? (
                 <Alert variant="info">
-                  {tct(
-                    "[creator] muted this alert for everyone so you won't get these notifications in the future.",
-                    {
-                      creator: rule.snoozeCreatedBy,
-                    }
-                  )}
+                  {rule.snoozeCreatedBy
+                    ? tct(
+                        "[creator] muted this alert for everyone so you won't get these notifications in the future.",
+                        {creator: rule.snoozeCreatedBy}
+                      )
+                    : t(
+                        "This alert has been muted for everyone so you won't get these notifications in the future."
+                      )}
                 </Alert>
               ) : (
                 <UserSnoozeDeprecationBanner projectId={project.id} />
@@ -254,9 +257,7 @@ export function MetricDetailsBody({
           />
           <DetailWrapper>
             <Stack flex="1" width="100%">
-              {organization.features.includes('workflow-engine-metric-issue-ui') && (
-                <MetricAlertOngoingIssues project={project} rule={rule} />
-              )}
+              <MetricAlertOngoingIssues project={project} rule={rule} />
               <SectionHeading>{t('Alert History')}</SectionHeading>
               <MetricHistory incidents={incidents} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
@@ -319,7 +320,7 @@ function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
                 setShowTransactionsDeprecationAlert(false);
               }}
               size="zero"
-              priority="transparent"
+              variant="transparent"
             />
           }
         >
@@ -327,7 +328,7 @@ function TransactionsDeprecationAlert({isEnabled}: {isEnabled: boolean}) {
             'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
             {
               FAQLink: (
-                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
               ),
             }
           )}

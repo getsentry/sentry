@@ -235,7 +235,6 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
                 "name": full_repo_name,
                 "project": project,
                 "repo": repo,
-                "webhook_id": webhook_id,
             },
         }
 

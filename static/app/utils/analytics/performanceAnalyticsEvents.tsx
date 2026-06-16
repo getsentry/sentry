@@ -3,7 +3,7 @@
 // analytics/insightAnalyticsEvents.tsx
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 type SampleTransactionParam = {
@@ -60,7 +60,6 @@ export type PerformanceEventParameters = {
     widget_type?: string;
   };
   'performance_views.landingv3.widget.switch': {
-    is_new_menu: boolean;
     from_default?: boolean;
     from_widget?: string;
     to_widget?: string;

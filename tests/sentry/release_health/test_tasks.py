@@ -16,6 +16,7 @@ from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
 from sentry.release_health.tasks import (
     adopt_releases,
+    get_process_projects_with_sessions_countdown,
     has_been_adopted,
     monitor_release_adoption,
     process_projects_with_sessions,
@@ -475,6 +476,40 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             adopted__gte=now,
             unadopted=None,
         ).exists()
+
+    def test_monitor_release_adoption_jitters_project_processing(self) -> None:
+        org2 = self.create_organization()
+        project_ids = [self.project1.id, self.project2.id]
+        org_projects = {
+            self.organization.id: project_ids,
+            org2.id: [self.create_project(organization=org2).id],
+        }
+
+        with (
+            mock.patch(
+                "sentry.release_health.tasks.release_monitor.fetch_projects_with_recent_sessions",
+                return_value=org_projects,
+            ),
+            mock.patch(
+                "sentry.release_health.tasks.process_projects_with_sessions.apply_async"
+            ) as mock_apply_async,
+        ):
+            monitor_release_adoption()
+
+        assert mock_apply_async.call_args_list == [
+            mock.call(
+                args=[org_id, project_ids],
+                countdown=get_process_projects_with_sessions_countdown(org_id),
+            )
+            for org_id, project_ids in org_projects.items()
+        ]
+
+    def test_process_projects_with_sessions_countdown_uses_jitter_option(self) -> None:
+        with self.options({"release-health.monitor-release-adoption-jitter-seconds": 1}):
+            assert get_process_projects_with_sessions_countdown(1) == 0
+
+        with self.options({"release-health.monitor-release-adoption-jitter-seconds": 0}):
+            assert get_process_projects_with_sessions_countdown(self.organization.id) == 0
 
     def test_missing_rpe_is_created(self) -> None:
         self.bulk_store_sessions(

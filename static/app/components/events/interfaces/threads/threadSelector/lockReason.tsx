@@ -1,6 +1,6 @@
 import type {Lock} from 'sentry/types/event';
 import {LockType} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export function getLockReason(
   heldLocks?: Record<string, Lock> | null
@@ -14,7 +14,7 @@ export function getLockReason(
     return undefined;
   }
 
-  const firstLock = values[0] as Lock;
+  const firstLock = values[0]!;
   if (!defined(firstLock)) {
     return undefined;
   }

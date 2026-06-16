@@ -1,6 +1,13 @@
+from unittest import mock
+
 from django.urls import reverse
 
-from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.cases import (
+    APITransactionTestCase,
+    OccurrenceTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -10,6 +17,7 @@ class OrganizationTraceItemsStatsEndpointTest(
     APITransactionTestCase,
     SnubaTestCase,
     SpanTestCase,
+    OccurrenceTestCase,
 ):
     view = "sentry-api-0-organization-trace-item-stats"
 
@@ -47,6 +55,18 @@ class OrganizationTraceItemsStatsEndpointTest(
             ),
         )
 
+    def _store_occurrence(self, level="error", title="test error", attributes=None):
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            group_id=group.id,
+            level=level,
+            title=title,
+            timestamp=self.ten_mins_ago,
+            attributes=attributes,
+        )
+        self.store_eap_items([occ])
+        return occ
+
     def test_no_project(self) -> None:
         response = self.do_request()
         assert response.status_code == 200, response.data
@@ -61,6 +81,16 @@ class OrganizationTraceItemsStatsEndpointTest(
     def test_invalid_stats_type(self) -> None:
         self._store_span()
         response = self.do_request(query={"statsType": ["invalid_type"]})
+        assert response.status_code == 400, response.data
+
+    def test_invalid_item_type(self) -> None:
+        self._store_span()
+        response = self.do_request(
+            query={
+                "statsType": ["attributeDistributions"],
+                "itemType": "invalid",
+            }
+        )
         assert response.status_code == 400, response.data
 
     def test_distribution_values(self) -> None:
@@ -78,7 +108,11 @@ class OrganizationTraceItemsStatsEndpointTest(
             self._store_span(tags=tag, duration=duration)
 
         response = self.do_request(
-            query={"query": "span.duration:<=100", "statsType": ["attributeDistributions"]}
+            query={
+                "query": "span.duration:<=100",
+                "statsType": ["attributeDistributions"],
+                "itemType": "spans",
+            }
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
@@ -110,6 +144,35 @@ class OrganizationTraceItemsStatsEndpointTest(
 
         assert "browser.name" in attribute_distribution
         assert "device" not in attribute_distribution
+
+    def test_hidden_api_attributes_filtered(self) -> None:
+        for tag in [
+            {"browser": "chrome", "device": "desktop"},
+            {"browser": "firefox", "device": "mobile"},
+        ]:
+            self._store_span(tags=tag)
+
+        def can_expose_attribute_to_api(attribute, item_type, include_internal=False):
+            return attribute not in {"device", "sentry.device"}
+
+        with mock.patch(
+            "sentry.api.endpoints.organization_trace_item_stats.can_expose_attribute_to_api",
+            can_expose_attribute_to_api,
+        ):
+            response = self.do_request(
+                query={
+                    "statsType": ["attributeDistributions"],
+                    "itemType": "spans",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+
+        assert "browser" in attribute_distribution
+        assert "device" not in attribute_distribution
+        assert "sentry.device" not in attribute_distribution
 
     def test_substring_match_returns_known_public_aliases(self) -> None:
         # Store spans with known sentry attributes (op, description)
@@ -237,3 +300,50 @@ class OrganizationTraceItemsStatsEndpointTest(
                 links[attrs["rel"]] = attrs
 
             assert links["previous"]["results"] == "false"
+
+    def test_occurrence_distribution_values(self) -> None:
+        for level in ["error", "error", "warning"]:
+            self._store_occurrence(level=level)
+
+        response = self.do_request(
+            query={"statsType": ["attributeDistributions"], "itemType": "occurrences"}
+        )
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        assert "level" in attribute_distribution
+        level_buckets = attribute_distribution["level"]
+        labels = {bucket["label"] for bucket in level_buckets}
+        assert "error" in labels
+        assert "warning" in labels
+
+    def test_occurrence_excluded_attributes(self) -> None:
+        self._store_occurrence()
+
+        response = self.do_request(
+            query={"statsType": ["attributeDistributions"], "itemType": "occurrences"}
+        )
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        for excluded in ["id", "trace", "group_id", "issue_occurrence_id", "primary_hash"]:
+            assert excluded not in attribute_distribution
+
+    def test_occurrence_query_filter(self) -> None:
+        self._store_occurrence(level="error")
+        self._store_occurrence(level="warning")
+
+        response = self.do_request(
+            query={
+                "query": "level:error",
+                "statsType": ["attributeDistributions"],
+                "itemType": "occurrences",
+            }
+        )
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        assert "level" in attribute_distribution
+        labels = {bucket["label"] for bucket in attribute_distribution["level"]}
+        assert "error" in labels
+        assert "warning" not in labels

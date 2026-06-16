@@ -19,7 +19,7 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'npm registry',
               language: 'javascript',
-              code: `import * as Sentry from "npm:@sentry/deno";`,
+              code: 'import * as Sentry from "npm:@sentry/deno";',
             },
           ],
         },

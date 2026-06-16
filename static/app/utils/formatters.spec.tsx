@@ -171,13 +171,13 @@ describe('userDisplayName', () => {
   it('should show unknown author, if author or email is just whitespace', () => {
     expect(
       userDisplayName({
-        name: `\t\n `,
+        name: '\t\n ',
       })
     ).toBe('Unknown author');
 
     expect(
       userDisplayName({
-        email: `\t\n `,
+        email: '\t\n ',
       })
     ).toBe('Unknown author');
   });

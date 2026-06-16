@@ -1,10 +1,11 @@
 import {useEffect, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -301,15 +302,15 @@ export function WebVitalsDetailPanel({
 const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
   switch (webVital) {
     case 'lcp':
-      return 'p75(measurements.lcp)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`;
     case 'fcp':
-      return 'p75(measurements.fcp)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_FCP_VALUE})`;
     case 'cls':
-      return 'p75(measurements.cls)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`;
     case 'ttfb':
-      return 'p75(measurements.ttfb)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`;
     case 'inp':
-      return 'p75(measurements.inp)';
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`;
     default:
       return 'count()';
   }
@@ -323,7 +324,12 @@ const NoOverflow = styled('span')`
 const AlignRight = styled('span')<{color?: string}>`
   text-align: right;
   width: 100%;
-  ${p => (p.color ? `color: ${p.color};` : '')}
+  ${p =>
+    p.color
+      ? css`
+          color: ${p.color};
+        `
+      : ''}
 `;
 
 const ChartContainer = styled('div')`

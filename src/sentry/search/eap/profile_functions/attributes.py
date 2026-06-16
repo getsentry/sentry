@@ -1,14 +1,9 @@
 from typing import Literal
 
 from sentry.search.eap import constants
-from sentry.search.eap.columns import (
-    ResolvedAttribute,
-    VirtualColumnDefinition,
-    project_context_constructor,
-    project_term_resolver,
-)
-from sentry.search.eap.common_columns import COMMON_COLUMNS
-from sentry.utils.validators import is_event_id_or_list
+from sentry.search.eap.columns import ResolvedAttribute
+from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
+from sentry.utils.validators import is_event_id_or_list, normalize_event_id_strict
 
 PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -19,12 +14,14 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.item_id",
             search_type="string",
             validator=is_event_id_or_list,
+            normalizer=normalize_event_id_strict,
         ),
         ResolvedAttribute(
             public_alias=constants.TRACE_ALIAS,
             internal_name="sentry.trace_id",
             search_type="string",
             validator=is_event_id_or_list,
+            normalizer=normalize_event_id_strict,
         ),
         ResolvedAttribute(
             public_alias="environment",
@@ -130,14 +127,7 @@ for field in {constants.TIMESTAMP_ALIAS, constants.TRACE_ALIAS}:
         f"{field} must be defined for profile functions"
     )
 
-PROFILE_FUNCTIONS_VIRTUAL_CONTEXTS = {
-    key: VirtualColumnDefinition(
-        constructor=project_context_constructor(key),
-        term_resolver=project_term_resolver,
-        filter_column="project.id",
-    )
-    for key in constants.PROJECT_FIELDS
-}
+PROFILE_FUNCTIONS_VIRTUAL_CONTEXTS = project_virtual_contexts()
 
 PROFILE_FUNCTIONS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     Literal["string", "number", "boolean"], dict[str, str]

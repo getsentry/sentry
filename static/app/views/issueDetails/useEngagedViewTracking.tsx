@@ -35,7 +35,7 @@ export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingP
   useEffect(() => {
     // Only track once per group
     if (trackedGroupId.current === group.id) {
-      return undefined;
+      return;
     }
 
     const timeoutId = window.setTimeout(() => {

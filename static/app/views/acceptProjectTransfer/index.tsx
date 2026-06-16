@@ -1,7 +1,10 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {Form} from 'sentry/components/forms/form';
 import type {Data} from 'sentry/components/forms/types';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -10,11 +13,10 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 type TransferDetails = {
   organizations: Organization[];
@@ -107,7 +109,7 @@ function AcceptProjectTransfer() {
   return (
     <NarrowLayout>
       <SentryDocumentTitle title={t('Accept Project Transfer')} />
-      <SettingsPageHeader title={t('Approve Transfer Project Request')} />
+      <Layout.Title>{t('Approve Transfer Project Request')}</Layout.Title>
       <p>
         {tct(
           'Projects must be transferred to a specific [organization]. You can grant specific teams access to the project later under the [projectSettings]. (Note that granting access to at least one team is necessary for the project to appear in all parts of the UI.)',
@@ -128,7 +130,7 @@ function AcceptProjectTransfer() {
       <Form
         onSubmit={data => handleSubmitMutation.mutate(data)}
         submitLabel={t('Transfer Project')}
-        submitPriority="danger"
+        submitVariant="danger"
         initialData={organization ? {organization} : undefined}
       >
         <SelectField

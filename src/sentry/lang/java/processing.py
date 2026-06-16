@@ -183,8 +183,13 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     stacktraces = [
         {
             **(
-                {"exception": {"type": sinfo.exception_type, "module": sinfo.exception_module}}
-                if sinfo.exception_type and sinfo.exception_module
+                {
+                    "exception": {
+                        "type": sinfo.exception_type,
+                        "module": sinfo.exception_module or "",
+                    }
+                }
+                if sinfo.exception_type
                 else {}
             ),
             "frames": [
@@ -219,7 +224,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     response = symbolicator.process_jvm(
         platform=data.get("platform"),
         exceptions=[
-            {"module": exc["module"], "type": exc["type"]} for exc in processable_exceptions
+            {"module": exc.get("module") or "", "type": exc["type"]}
+            for exc in processable_exceptions
         ],
         stacktraces=stacktraces,
         modules=modules,

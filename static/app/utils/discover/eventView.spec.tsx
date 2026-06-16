@@ -8,7 +8,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView, {
+import {
+  EventView,
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';

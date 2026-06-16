@@ -28,15 +28,52 @@ describe('apiOptions', () => {
     expect(url).toBe('/organizations/my-org/releases/v%201.0.0/');
   });
 
-  it('should not include empty options in queryKey', () => {
+  it('produces an empty options slot when there are no options', () => {
     const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
       staleTime: 0,
       path: {tokenId: '123'},
     });
 
+    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+  });
+
+  it('strips undefined top-level values from options in queryKey', () => {
+    const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
+      staleTime: 0,
+      path: {tokenId: '123'},
+      query: undefined,
+      method: undefined,
+    });
+
+    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+  });
+
+  it('strips undefined deep values from options in queryKey', () => {
+    const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
+      staleTime: 0,
+      path: {tokenId: '123'},
+      query: {
+        foo: undefined,
+        bar: undefined,
+      },
+      method: undefined,
+    });
+
+    expect(options.queryKey).toEqual(['/api-tokens/123/', {}, {infinite: false}]);
+  });
+
+  it('keeps defined values when stripping undefined ones', () => {
+    const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
+      staleTime: 0,
+      path: {tokenId: '123'},
+      query: {cursor: 'abc'},
+      method: undefined,
+    });
+
     expect(options.queryKey).toEqual([
-      {infinite: false, version: 'v2'},
       '/api-tokens/123/',
+      {query: {cursor: 'abc'}},
+      {infinite: false},
     ]);
   });
 
@@ -57,10 +94,7 @@ describe('apiOptions', () => {
       path: {id: '123', id1: '456'},
     });
 
-    expect(options.queryKey).toEqual([
-      {infinite: false, version: 'v2'},
-      '/projects/456/123',
-    ]);
+    expect(options.queryKey).toEqual(['/projects/456/123', {}, {infinite: false}]);
   });
 
   it('should allow skipToken as path', () => {
@@ -73,13 +107,15 @@ describe('apiOptions', () => {
 
     expect(getOptions('123').queryFn).toEqual(expect.any(Function));
     expect(getOptions('123').queryKey).toEqual([
-      {infinite: false, version: 'v2'},
       '/api-tokens/123/',
+      {},
+      {infinite: false},
     ]);
     expect(getOptions(null).queryFn).toEqual(skipToken);
     expect(getOptions(null).queryKey).toEqual([
-      {infinite: false, version: 'v2'},
       '/api-tokens/$tokenId/',
+      {},
+      {infinite: false},
     ]);
   });
 
@@ -125,9 +161,9 @@ describe('apiOptions', () => {
     });
 
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
-      Link: string | undefined;
-      'X-Hits': number | undefined;
-      'X-Max-Hits': number | undefined;
+      Link?: string;
+      'X-Hits'?: number;
+      'X-Max-Hits'?: number;
     }>();
   });
 

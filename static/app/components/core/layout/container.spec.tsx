@@ -1,4 +1,4 @@
-import React, {createRef} from 'react';
+import {createRef, Fragment} from 'react';
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -96,14 +96,14 @@ describe('Container', () => {
 
   it('reuses class names for the same props', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         <Container radius="sm" padding="md">
           Padding First
         </Container>
         <Container radius="sm" padding="md">
           PaddingBottom First
         </Container>
-      </React.Fragment>
+      </Fragment>
     );
 
     const paddingFirst = screen.getByText('Padding First').className;
@@ -119,7 +119,7 @@ describe('Container', () => {
 
     it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
       const props: ContainerPropsWithRenderFunction<any> = {
-        children: () => undefined,
+        children: () => {},
       };
       expectTypeOf(props.children).toEqualTypeOf<
         (props: {className: string}) => React.ReactNode | undefined

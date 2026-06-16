@@ -53,11 +53,6 @@ describe('Subscription > BillingInformation', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/`,
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
@@ -100,8 +95,6 @@ describe('Subscription > BillingInformation', () => {
     });
 
     render(<BillingInformation subscription={subscription} />, {organization});
-
-    await screen.findByText('Billing Information');
 
     // panels are collapsed with pre-existing information
     const cardPanel = await screen.findByTestId('credit-card-panel');
@@ -161,8 +154,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
-
     // panels are expanded with no pre-existing information
     const cardPanel = await screen.findByTestId('credit-card-panel');
     expect(cardPanel).toBeInTheDocument();
@@ -217,8 +208,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
-    expect(screen.getByText('Account balance: $100')).toBeInTheDocument();
+    expect(await screen.findByText('Account balance: $100')).toBeInTheDocument();
   });
 
   it('renders with credit if account balance < 0', async () => {
@@ -232,8 +222,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
-    expect(screen.getByText('Account balance: $100 credit')).toBeInTheDocument();
+    expect(await screen.findByText('Account balance: $100 credit')).toBeInTheDocument();
   });
 
   it('hides account balance when it is 0', async () => {
@@ -242,7 +231,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     expect(screen.queryByText(/account balance/i)).not.toBeInTheDocument();
   });
 
@@ -283,7 +272,7 @@ describe('Subscription > BillingInformation', () => {
       organization,
     });
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
@@ -333,7 +322,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={testSubscription} />, {organization});
 
-    await screen.findByText('Billing Information');
+    await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
@@ -359,7 +348,6 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    await screen.findByText('Billing Information');
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
 

@@ -8,21 +8,22 @@ import type {
 import type {ViewNode} from 'sentry/components/events/viewHierarchy/wireframe';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {PlatformKey, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils/defined';
 import {watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function useResizeCanvasObserver(canvases: Array<HTMLCanvasElement | null>): Rect {
-  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
+  const [bounds, setCanvasBounds] = useState(Rect.Empty());
 
   useLayoutEffect(() => {
     if (!canvases.length) {
-      return undefined;
+      return;
     }
 
     if (canvases.includes(null)) {
-      return undefined;
+      return;
     }
 
     const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {

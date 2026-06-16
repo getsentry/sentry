@@ -28,7 +28,6 @@ from sentry.testutils.cases import (
     SnubaTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -832,7 +831,6 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
             )
 
 
-@with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
 class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTestBase):
     __test__ = Abstract(__module__, __qualname__)
 

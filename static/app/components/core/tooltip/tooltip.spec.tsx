@@ -27,8 +27,8 @@ describe('Tooltip', () => {
 
   it('renders', async () => {
     render(
-      <Tooltip delay={0} title="test">
-        <span>My Button</span>
+      <Tooltip title="test">
+        <button>My Button</button>
       </Tooltip>
     );
 
@@ -46,15 +46,15 @@ describe('Tooltip', () => {
 
   it('updates title', async () => {
     const {rerender} = render(
-      <Tooltip delay={0} title="test">
-        <span>My Button</span>
+      <Tooltip title="test">
+        <button>My Button</button>
       </Tooltip>
     );
 
     // Change title
     rerender(
-      <Tooltip delay={0} title="bar">
-        <span>My Button</span>
+      <Tooltip title="bar">
+        <button>My Button</button>
       </Tooltip>
     );
 
@@ -69,8 +69,8 @@ describe('Tooltip', () => {
 
   it('disables and does not render', async () => {
     render(
-      <Tooltip delay={0} title="test" disabled>
-        <span>My Button</span>
+      <Tooltip title="test" disabled>
+        <button>My Button</button>
       </Tooltip>
     );
 
@@ -83,8 +83,8 @@ describe('Tooltip', () => {
 
   it('resets visibility when becoming disabled', async () => {
     const {rerender} = render(
-      <Tooltip delay={0} title="test" disabled={false}>
-        <span>My Button</span>
+      <Tooltip title="test" disabled={false}>
+        <button>My Button</button>
       </Tooltip>
     );
 
@@ -92,16 +92,16 @@ describe('Tooltip', () => {
     expect(screen.getByText('test')).toBeInTheDocument();
 
     rerender(
-      <Tooltip delay={0} title="test" disabled>
-        <span>My Button</span>
+      <Tooltip title="test" disabled>
+        <button>My Button</button>
       </Tooltip>
     );
     expect(screen.queryByText('test')).not.toBeInTheDocument();
 
     // Becomes enabled again
     rerender(
-      <Tooltip delay={0} title="test" disabled={false}>
-        <span>My Button</span>
+      <Tooltip title="test" disabled={false}>
+        <button>My Button</button>
       </Tooltip>
     );
     expect(screen.queryByText('test')).not.toBeInTheDocument();
@@ -109,8 +109,8 @@ describe('Tooltip', () => {
 
   it('does not render an empty tooltip', async () => {
     render(
-      <Tooltip delay={0} title="">
-        <span>My Button</span>
+      <Tooltip title="">
+        <button>My Button</button>
       </Tooltip>
     );
     await userEvent.hover(screen.getByText('My Button'));
@@ -125,7 +125,7 @@ describe('Tooltip', () => {
     mockOverflow(100, 50);
 
     render(
-      <Tooltip delay={0} title="test" showOnlyOnOverflow>
+      <Tooltip title="test" showOnlyOnOverflow>
         <div>This text overflows</div>
       </Tooltip>
     );
@@ -141,7 +141,7 @@ describe('Tooltip', () => {
     mockOverflow(50, 100);
 
     render(
-      <Tooltip delay={0} title="test" showOnlyOnOverflow>
+      <Tooltip title="test" showOnlyOnOverflow>
         <div>This text does not overflow</div>
       </Tooltip>
     );

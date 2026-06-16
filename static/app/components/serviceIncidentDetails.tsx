@@ -1,17 +1,14 @@
 import styled from '@emotion/styled';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {List} from 'sentry/components/list';
-import {ListItem} from 'sentry/components/list/listItem';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCheckmark,
@@ -28,8 +25,6 @@ import type {
   StatusPageServiceStatus,
 } from 'sentry/types/system';
 import {sanitizedMarked} from 'sentry/utils/marked/marked';
-import type {Theme} from 'sentry/utils/theme';
-import {unreachable} from 'sentry/utils/unreachable';
 
 interface Props {
   incident: StatuspageIncident;
@@ -113,23 +108,39 @@ export function ServiceIncidentDetails({incident}: Props) {
         <Stack gap="md">
           <Text size="md">{affectedText}</Text>
           {incident.components.length > 0 && (
-            <ComponentList>
+            <Grid columns="1fr 1fr" gap="xs md">
               {sortBy(incident.components, i =>
                 COMPONENT_STATUS_SORT.indexOf(i.status)
               ).map(({name, status}, key) => (
-                <ComponentStatus key={key} symbol={getStatusSymbol(status)}>
-                  {name}
-                </ComponentStatus>
+                <Flex key={key} align="center" gap="sm">
+                  {getStatusSymbol(status)}
+                  <Text size="sm">{name}</Text>
+                </Flex>
               ))}
-            </ComponentList>
+            </Grid>
           )}
         </Stack>
       </Container>
 
-      <UpdatesList>
+      <UpdatesList
+        as="ul"
+        columns="auto 1fr"
+        rows={`repeat(${incident.incident_updates.length}, auto)`}
+        gap="lg md"
+      >
         {incident.incident_updates.map(({status, body, display_at, created_at}, key) => (
-          <ListItem key={key}>
-            <UpdateHeading status={status}>
+          <Grid
+            as="li"
+            key={key}
+            column="1 / -1"
+            row={`${key + 1}`}
+            columns="subgrid"
+            rows="auto auto"
+            align="center"
+            gap="xs md"
+          >
+            <StatusIndicator variant={STATUS_VARIANT[status]} />
+            <Flex column="2" row="1" align="center" gap="md">
               <Text bold>{startCase(status)}</Text>
               <Text variant="muted">
                 {tct('([time])', {
@@ -140,9 +151,11 @@ export function ServiceIncidentDetails({incident}: Props) {
                   ),
                 })}
               </Text>
-            </UpdateHeading>
-            <Prose dangerouslySetInnerHTML={{__html: sanitizedMarked(body)}} />
-          </ListItem>
+            </Flex>
+            <Container column="2" row="2">
+              <Prose dangerouslySetInnerHTML={{__html: sanitizedMarked(body)}} />
+            </Container>
+          </Grid>
         ))}
       </UpdatesList>
     </Stack>
@@ -167,108 +180,33 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
   );
 }
 
-const UpdatesList = styled(List)`
-  gap: ${p => p.theme.space['2xl']};
-  margin-left: ${p => p.theme.space.lg};
-  position: relative;
+const STATUS_VARIANT: Record<
+  StatusPageIncidentUpdate['status'],
+  React.ComponentProps<typeof StatusIndicator>['variant']
+> = {
+  investigating: 'danger',
+  identified: 'accent',
+  monitoring: 'warning',
+  resolved: 'success',
+};
 
-  &::before {
-    content: '';
-    display: block;
-    position: absolute;
-    height: 100%;
-    width: 2px;
-    margin: ${p => p.theme.space.md} 0 ${p => p.theme.space.md} -${p => p.theme.space.lg};
-    background: ${p => p.theme.colors.gray100};
-  }
+const UpdatesList = styled(Grid)`
+  list-style: none;
+  padding: 0;
+  margin: 0;
 
   &::after {
     content: '';
-    display: block;
-    position: absolute;
-    bottom: -${p => p.theme.space.md};
-    margin-left: -${p => p.theme.space.lg};
-    height: 30px;
+    grid-column: 1;
+    grid-row: 1 / -1;
+    justify-self: center;
     width: 2px;
+    margin-top: 0.5lh;
     background: linear-gradient(
-      0deg,
-      ${p => p.theme.tokens.background.primary},
-      ${p => color(p.theme.tokens.background.primary).alpha(0).string()}
+      to bottom,
+      ${p => p.theme.tokens.background.tertiary} 0,
+      ${p => p.theme.tokens.background.tertiary} calc(100% - 30px),
+      transparent 100%
     );
   }
-`;
-
-function getIndicatorBackground({
-  theme,
-  status,
-}: {
-  status: StatusPageIncidentUpdate['status'];
-  theme: Theme;
-}): string {
-  switch (status) {
-    case 'investigating':
-      return theme.tokens.graphics.danger.vibrant;
-    case 'identified':
-      return theme.tokens.graphics.accent.vibrant;
-    case 'monitoring':
-      return theme.tokens.graphics.warning.vibrant;
-    case 'resolved':
-      return theme.tokens.graphics.success.vibrant;
-    default:
-      unreachable(status);
-      throw new TypeError(`Invalid status, got ${status}`);
-  }
-}
-
-function getIndicatorBorder({
-  theme,
-  status,
-}: {
-  status: StatusPageIncidentUpdate['status'];
-  theme: Theme;
-}): string {
-  switch (status) {
-    case 'investigating':
-      return theme.tokens.border.danger.muted;
-    case 'identified':
-      return theme.tokens.border.accent.muted;
-    case 'monitoring':
-      return theme.tokens.border.warning.muted;
-    case 'resolved':
-      return theme.tokens.border.success.muted;
-    default:
-      unreachable(status);
-      throw new TypeError(`Invalid status, got ${status}`);
-  }
-}
-
-const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}>`
-  margin-bottom: ${p => p.theme.space.xs};
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  position: relative;
-
-  &::before {
-    content: '';
-    display: block;
-    position: absolute;
-    height: 10px;
-    width: 10px;
-    margin-left: -16px;
-    border-radius: 50%;
-    background: ${getIndicatorBackground};
-    border: 2px solid ${getIndicatorBorder};
-  }
-`;
-
-const ComponentList = styled(List)`
-  margin-top: ${p => p.theme.space.md};
-  display: block;
-  column-count: 2;
-`;
-
-const ComponentStatus = styled(ListItem)`
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: 2;
 `;

@@ -25,7 +25,7 @@ def _valid_check_run_message() -> str:
 
 
 class TestProduceToListenerIntegration(TestCase):
-    def test_produce_to_listener_control_silo(self):
+    def test_produce_to_listener_control_silo(self) -> None:
         """Test that produce_to_listener calls control silo task delay correctly."""
         with patch(
             "sentry.scm.private.ipc.run_webhook_handler_control_task.delay"
@@ -33,7 +33,7 @@ class TestProduceToListenerIntegration(TestCase):
             produce_to_listener("", "check_run", "test_listener", "control")
             mock_control_delay.assert_called_once_with("test_listener", "", "check_run")
 
-    def test_produce_to_listener_region_silo(self):
+    def test_produce_to_listener_region_silo(self) -> None:
         """Test that produce_to_listener calls region silo task delay correctly."""
         with patch(
             "sentry.scm.private.ipc.run_webhook_handler_region_task.delay"
@@ -44,7 +44,7 @@ class TestProduceToListenerIntegration(TestCase):
 
 @control_silo_test
 class TestWebhookHandlerControlTaskIntegration(TestCase):
-    def test_run_webhook_handler_control_task_success(self):
+    def test_run_webhook_handler_control_task_success(self) -> None:
         """Test the task can be delayed without error."""
         with TaskRunner():
             run_webhook_handler_control_task.delay(
@@ -54,7 +54,7 @@ class TestWebhookHandlerControlTaskIntegration(TestCase):
 
 @cell_silo_test
 class TestWebhookHandlerRegionTaskIntegration(TestCase):
-    def test_run_webhook_handler_region_task_success(self):
+    def test_run_webhook_handler_region_task_success(self) -> None:
         """Test the task can be delayed without error."""
         with TaskRunner():
             run_webhook_handler_region_task.delay(

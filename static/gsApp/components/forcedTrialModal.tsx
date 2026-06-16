@@ -36,7 +36,7 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
     isError,
   } = useApiQuery<Integration[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -79,7 +79,7 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
 
   const firstParagraph = disallowedIntegration
     ? t(
-        `Your %s organization is on the Developer plan and does not support the %s integration.`,
+        'Your %s organization is on the Developer plan and does not support the %s integration.',
         organization.slug,
         disallowedIntegration.provider.name
       )
@@ -135,7 +135,7 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
           >
             {hasBillingScope ? t('Upgrade') : t('Request Upgrade')}
           </UpgradeOrTrialButton>
-          <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
+          <Button data-test-id="maybe-later" variant="secondary" onClick={closeModal}>
             {t('Continue with Trial')}
           </Button>
         </StyledButtonBar>

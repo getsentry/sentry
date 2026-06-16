@@ -5,6 +5,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
@@ -39,6 +40,7 @@ from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.strings import truncatechars
 
@@ -520,6 +522,120 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        repo = Repository.objects.create(
+            organization_id=org.id, name="test/repo", provider="integrations:github"
+        )
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message="fixes %s" % (group.qualified_short_id),
+            key="alksdflskdfjsldkfajsflkslk",
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider="github",
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_without_repository_records_no_provider(
+        self, mock_record: MagicMock
+    ) -> None:
+        """A commit with no repository configured (as uploaded manually via the API)
+        still resolves the referenced issue; the auto-created repo has no provider,
+        so the IssueResolvedEvent records provider=None."""
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": "a" * 40, "message": "fixes %s" % (group.qualified_short_id)}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        commit = Commit.objects.get(organization_id=org.id, key="a" * 40)
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider=None,
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_via_pull_request_records_merge_commit(self, mock_record: MagicMock) -> None:
+        """A group resolved by a pull request records the PR's merge commit id on
+        the IssueResolvedEvent, resolved through the release's matching commit."""
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        repo = Repository.objects.create(
+            organization_id=org.id, name="test/repo", provider="integrations:github"
+        )
+        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="b" * 40)
+        pull_request = self.create_pull_request(repository_id=repo.id, organization_id=org.id)
+        pull_request.update(merge_commit_sha=commit.key)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pull_request.id,
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider="github",
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @receivers_raise_on_send()
@@ -1557,12 +1673,12 @@ class ClearCommitsTestCase(TestCase):
 class ReleaseGetUnusedFilterTestCase(TestCase):
     """Test the Release.get_unused_filter() method logic"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.cutoff_date = timezone.now() - timedelta(days=30)
 
-    def test_get_unused_filter_includes_old_releases_without_dependencies(self):
+    def test_get_unused_filter_includes_old_releases_without_dependencies(self) -> None:
         """Old releases with no dependencies should be included in unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1575,7 +1691,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_recently_added_releases(self):
+    def test_get_unused_filter_excludes_recently_added_releases(self) -> None:
         """Recently added releases should be excluded from unused filter"""
         recent_release = self.create_release(
             project=self.project,
@@ -1588,7 +1704,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert recent_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_groups(self):
+    def test_get_unused_filter_excludes_releases_with_groups(self) -> None:
         """Releases referenced by groups should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1602,7 +1718,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_group_environments(self):
+    def test_get_unused_filter_excludes_releases_with_group_environments(self) -> None:
         """Releases referenced by GroupEnvironment should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1622,7 +1738,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_group_history(self):
+    def test_get_unused_filter_excludes_releases_with_group_history(self) -> None:
         """Releases referenced by GroupHistory should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1642,7 +1758,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_group_resolutions(self):
+    def test_get_unused_filter_excludes_releases_with_group_resolutions(self) -> None:
         """Releases referenced by GroupResolution should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1660,7 +1776,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_distributions(self):
+    def test_get_unused_filter_excludes_releases_with_distributions(self) -> None:
         """Releases with distributions should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1678,7 +1794,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_deploys(self):
+    def test_get_unused_filter_excludes_releases_with_deploys(self) -> None:
         """Releases with deploys should be excluded from unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1697,7 +1813,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_ignores_safe_child_relations(self):
+    def test_get_unused_filter_ignores_safe_child_relations(self) -> None:
         """Safe child relations should not prevent inclusion in unused filter"""
         old_release = self.create_release(
             project=self.project,
@@ -1730,7 +1846,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         # These relations should not prevent the release from being considered unused
         assert old_release in unused_releases
 
-    def test_get_unused_filter_multiple_releases_mixed_dependencies(self):
+    def test_get_unused_filter_multiple_releases_mixed_dependencies(self) -> None:
         """Test filter correctly handles multiple releases with different dependency patterns"""
         # Create various releases with different dependency patterns
         unused_old_release = self.create_release(
@@ -1773,7 +1889,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         assert release_with_group not in unused_releases
         assert release_with_deploy not in unused_releases
 
-    def test_get_unused_filter_with_latest_repo_release_environment(self):
+    def test_get_unused_filter_with_latest_repo_release_environment(self) -> None:
         """Test that LatestRepoReleaseEnvironment subquery works correctly"""
         old_release = self.create_release(
             project=self.project,
@@ -1799,7 +1915,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_with_recent_activity(self):
+    def test_get_unused_filter_with_recent_activity(self) -> None:
         """Test that ReleaseProjectEnvironment last_seen subquery works correctly"""
         old_release = self.create_release(
             project=self.project,
@@ -1825,7 +1941,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_excludes_release_that_is_first_release_of_group(self):
+    def test_get_unused_filter_excludes_release_that_is_first_release_of_group(self) -> None:
         """Test that a release is not considered unused if it is the first_release of any group"""
         old_release = self.create_release(
             project=self.project,
@@ -1851,7 +1967,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
         assert Group.objects.filter(first_release=old_release).exists() is True
 
-    def test_get_unused_filter_excludes_releases_with_recent_deploys(self):
+    def test_get_unused_filter_excludes_releases_with_recent_deploys(self) -> None:
         """Test that releases with recent deploys are not considered unused"""
         old_release = self.create_release(
             project=self.project,
@@ -1879,7 +1995,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_allows_cleanup_with_old_deploys(self):
+    def test_get_unused_filter_allows_cleanup_with_old_deploys(self) -> None:
         """Test that releases with old deploys can be cleaned up"""
         old_release = self.create_release(
             project=self.project,
@@ -1902,7 +2018,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_recent_distributions(self):
+    def test_get_unused_filter_excludes_releases_with_recent_distributions(self) -> None:
         """Test that releases with recent distributions are not considered unused"""
         old_release = self.create_release(
             project=self.project,
@@ -1929,7 +2045,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_allows_cleanup_with_old_distributions(self):
+    def test_get_unused_filter_allows_cleanup_with_old_distributions(self) -> None:
         """Test that releases with old distributions can be cleaned up"""
         old_release = self.create_release(
             project=self.project,
@@ -1951,7 +2067,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_recent_group_releases(self):
+    def test_get_unused_filter_excludes_releases_with_recent_group_releases(self) -> None:
         """Test that releases with recent group releases are not considered unused"""
         old_release = self.create_release(
             project=self.project,
@@ -1981,7 +2097,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
 
-    def test_get_unused_filter_allows_cleanup_with_old_group_releases(self):
+    def test_get_unused_filter_allows_cleanup_with_old_group_releases(self) -> None:
         """Test that releases with old group releases can be cleaned up"""
         old_release = self.create_release(
             project=self.project,
@@ -2007,7 +2123,7 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release in unused_releases
 
-    def test_get_unused_filter_excludes_releases_with_old_group_resolutions(self):
+    def test_get_unused_filter_excludes_releases_with_old_group_resolutions(self) -> None:
         """Test that releases with old GroupResolutions are still protected"""
         old_release = self.create_release(
             project=self.project,

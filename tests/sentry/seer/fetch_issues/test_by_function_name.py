@@ -4,6 +4,7 @@ from unittest.mock import patch
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.group import Group
 from sentry.models.repository import Repository
+from sentry.seer.fetch_issues import utils
 from sentry.seer.fetch_issues.by_function_name import (
     NUM_DAYS_AGO,
     STACKFRAME_COUNT,
@@ -20,22 +21,22 @@ from tests.sentry.seer.fetch_issues.test_by_text_query import CreateEventTestCas
 
 
 class TestLeftTruncatedPaths(CreateEventTestCase):
-    def test_simple_filename(self):
+    def test_simple_filename(self) -> None:
         assert _left_truncated_paths("foo.py") == []
 
-    def test_single_directory(self):
+    def test_single_directory(self) -> None:
         assert _left_truncated_paths("path/foo.py") == ["foo.py"]
 
-    def test_multiple_directories(self):
+    def test_multiple_directories(self) -> None:
         assert _left_truncated_paths("path/to/foo.py") == ["to/foo.py", "foo.py"]
 
-    def test_max_num_paths_limit(self):
+    def test_max_num_paths_limit(self) -> None:
         assert _left_truncated_paths("path/to/foo/bar.py", max_num_paths=2) == [
             "to/foo/bar.py",
             "foo/bar.py",
         ]
 
-    def test_max_num_paths_larger_than_available(self):
+    def test_max_num_paths_larger_than_available(self) -> None:
         assert _left_truncated_paths("path/to/foo/bar.py", max_num_paths=5) == [
             "to/foo/bar.py",
             "foo/bar.py",
@@ -46,7 +47,7 @@ class TestLeftTruncatedPaths(CreateEventTestCase):
 class TestGetProjectsAndFilenamesFromSourceFile(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.gh_repo: Repository = self.create_repo(
             name="getsentry/sentry",
@@ -63,7 +64,7 @@ class TestGetProjectsAndFilenamesFromSourceFile(IntegrationTestCase, CreateEvent
             stack_root="sentry/",
         )
 
-    def test_file_with_matching_code_mapping(self):
+    def test_file_with_matching_code_mapping(self) -> None:
         projects, filenames = _get_projects_and_filenames_from_source_file(
             self.organization.id, self.gh_repo.id, "src/sentry/models/user.py"
         )
@@ -72,7 +73,7 @@ class TestGetProjectsAndFilenamesFromSourceFile(IntegrationTestCase, CreateEvent
         assert "src/sentry/models/user.py" in filenames
         assert "models/user.py" in filenames
 
-    def test_file_without_matching_code_mapping(self):
+    def test_file_without_matching_code_mapping(self) -> None:
         _, filenames = _get_projects_and_filenames_from_source_file(
             self.organization.id, self.gh_repo.id, "other/path/file.py"
         )
@@ -83,12 +84,12 @@ class TestGetProjectsAndFilenamesFromSourceFile(IntegrationTestCase, CreateEvent
 
 
 class TestGetIssuesForFile(CreateEventTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event_timestamp_start = datetime.now(UTC) - timedelta(days=NUM_DAYS_AGO)
         self.event_timestamp_end = datetime.now(UTC)
 
-    def test_empty_projects_list(self):
+    def test_empty_projects_list(self) -> None:
         result = _get_issues_for_file(
             projects=[],
             sentry_filenames=["foo.py"],
@@ -111,7 +112,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         )
         assert result == []
 
-    def test_basic_matching(self):
+    def test_basic_matching(self) -> None:
         # Create events that should match our search criteria
         group = self._create_event(
             function_names=["target_func", "other_func"],
@@ -132,7 +133,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         group_ids = [issue["group_id"] for issue in result]
         assert group.id in group_ids
 
-    def test_filename_mismatch(self):
+    def test_filename_mismatch(self) -> None:
         # Create event with different filename
         group = self._create_event(
             function_names=["target_func"],
@@ -152,7 +153,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         group_ids = [issue["group_id"] for issue in result]
         assert group.id not in group_ids
 
-    def test_function_name_mismatch(self):
+    def test_function_name_mismatch(self) -> None:
         # Create event with different function name
         group = self._create_event(
             function_names=["other_func"],
@@ -172,7 +173,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         group_ids = [issue["group_id"] for issue in result]
         assert group.id not in group_ids
 
-    def test_event_too_old(self):
+    def test_event_too_old(self) -> None:
         # Create old event - use a smaller offset to avoid timestamp validation errors
         group = self._create_event(
             function_names=["target_func"],
@@ -193,7 +194,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         group_ids = [issue["group_id"] for issue in result]
         assert group.id not in group_ids
 
-    def test_javascript_simple(self):
+    def test_javascript_simple(self) -> None:
         # Test with JavaScript files to ensure language-agnostic functionality
         group = self._create_event(
             function_names=["component.blue", "world"],
@@ -214,7 +215,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         group_ids = [issue["group_id"] for issue in result]
         assert group.id in group_ids
 
-    def test_stackframe_limit_edge_case(self):
+    def test_stackframe_limit_edge_case(self) -> None:
         # Create event with function name within the searchable stackframe range
         # The query searches the last STACKFRAME_COUNT frames (negative indices)
         # So put our target function in the last frame (which will be index -1)
@@ -239,7 +240,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         group_ids = [issue["group_id"] for issue in result]
         assert group.id in group_ids
 
-    def test_multiple_matching_issues(self):
+    def test_multiple_matching_issues(self) -> None:
         # Create multiple events that should match
         group1 = self._create_event(
             function_names=["target_func"], filenames=["test.py"], user_id="1", culprit="issue1"
@@ -266,7 +267,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
 class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.gh_repo: Repository = self.create_repo(
             name="getsentry/sentry",
@@ -281,7 +282,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
             repo=self.gh_repo,
         )
 
-    def test_successful_fetch(self):
+    def test_successful_fetch(self) -> None:
         # Create some test events
         group = self._create_event(
             filenames=["test.py", "other.py"],
@@ -318,7 +319,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                 mock_fetch.assert_called_once()
                 mock_serialize.assert_called_once_with([group])
 
-    def test_custom_max_num_issues(self):
+    def test_custom_max_num_issues(self) -> None:
         group = self._create_event(
             filenames=["test.py"],
             function_names=["target_function"],
@@ -352,7 +353,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                 call_args = mock_fetch.call_args
                 assert call_args[1]["max_num_issues_per_file"] == 10
 
-    def test_with_run_id(self):
+    def test_with_run_id(self) -> None:
         group = self._create_event().group
 
         with patch(
@@ -382,7 +383,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
                 call_args = mock_fetch.call_args
                 assert call_args[1]["run_id"] == 12345
 
-    def test_fetch_issues_end_to_end_with_metadata_and_message(self):
+    def test_fetch_issues_end_to_end_with_metadata_and_message(self) -> None:
         """Test end-to-end fetch_issues call to verify metadata and message fields are present."""
         # Create an event with specific data that will show up in metadata
         event = self._create_event(
@@ -406,14 +407,12 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
         )
 
         # Basic structure checks
-        assert "error" not in seer_response
-        assert "issues" in seer_response
-        assert "issues_full" in seer_response
-        assert len(seer_response["issues"]) > 0
-        assert len(seer_response["issues_full"]) > 0
+        assert isinstance(seer_response, utils.SeerResponse)
+        assert len(seer_response.issues) > 0
+        assert len(seer_response.issues_full) > 0
 
         # Check the first issue's metadata and message
-        first_issue = seer_response["issues_full"][0]
+        first_issue = seer_response.issues_full[0]
         assert "metadata" in first_issue
         assert "message" in first_issue
         # Message should be present (don't check exact content since it's auto-generated)
@@ -434,7 +433,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
 class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.gh_repo: Repository = self.create_repo(
             name="getsentry/sentry",
@@ -505,7 +504,7 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
         call_args = mock_get_issues.call_args[0]
         assert call_args[0] == [self.project]
 
-    def test_fetch_issues_from_repo_projects_returns_groups(self):
+    def test_fetch_issues_from_repo_projects_returns_groups(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns a list of Group objects."""
         # Create a group that should match
         event = self._create_event(
@@ -539,7 +538,7 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
 
         assert expected_group.id in [result.id for result in results]
 
-    def test_fetch_issues_from_repo_projects_empty_result(self):
+    def test_fetch_issues_from_repo_projects_empty_result(self) -> None:
         """Test that _fetch_issues_from_repo_projects returns empty list when no matches."""
         # Get repo projects but don't create any matching events
         assert self.gh_repo.external_id is not None

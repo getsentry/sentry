@@ -23,7 +23,7 @@ describe('InsightsUpsellPage', () => {
       body: BillingConfigFixture(PlanTier.AM3),
     });
     MockApiClient.addMockResponse({
-      url: `/customers/org-slug/`,
+      url: '/customers/org-slug/',
       body: {},
     });
 
@@ -33,12 +33,9 @@ describe('InsightsUpsellPage', () => {
   it('renders if plan includes feature', async () => {
     subscription.planDetails.features = ['insights-query-date-range-limit'];
 
-    render(
-      <InsightsDateRangeQueryLimitFooter
-        organization={organization}
-        subscription={subscription}
-      />
-    );
+    render(<InsightsDateRangeQueryLimitFooter subscription={subscription} />, {
+      organization,
+    });
 
     expect(
       await screen.findByText(
@@ -48,12 +45,9 @@ describe('InsightsUpsellPage', () => {
   });
 
   it('does not render if feature is not included', () => {
-    render(
-      <InsightsDateRangeQueryLimitFooter
-        organization={organization}
-        subscription={subscription}
-      />
-    );
+    render(<InsightsDateRangeQueryLimitFooter subscription={subscription} />, {
+      organization,
+    });
 
     expect(
       screen.queryByText(

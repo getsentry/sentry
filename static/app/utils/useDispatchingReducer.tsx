@@ -99,9 +99,7 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
   initializer?: (arg: ReducerState<R>) => ReducerState<R>
 ): [ReducerState<R>, React.Dispatch<ReducerAction<R>>, DispatchingReducerEmitter<R>] {
   const emitter = useMemo(() => new DispatchingReducerEmitter<R>(), []);
-  const [state, setState] = useState(
-    initialState ?? (initializer?.(initialState) as ReducerState<R>)
-  );
+  const [state, setState] = useState(initialState ?? initializer?.(initialState)!);
 
   const stateRef = useRef(state);
   stateRef.current = state;

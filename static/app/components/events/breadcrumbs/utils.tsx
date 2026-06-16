@@ -102,13 +102,12 @@ function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[], theme: Theme) {
 }
 
 function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
-  const crumbLevels = crumbs.reduce(
-    (crumbMap, ec) => {
-      crumbMap[ec.breadcrumb.level] = ec.levelComponent;
-      return crumbMap;
-    },
-    {} as Record<BreadcrumbLevelType, EnhancedCrumb['levelComponent']>
-  );
+  const crumbLevels = crumbs.reduce<
+    Partial<Record<BreadcrumbLevelType, EnhancedCrumb['levelComponent']>>
+  >((crumbMap, ec) => {
+    crumbMap[ec.breadcrumb.level] = ec.levelComponent;
+    return crumbMap;
+  }, {});
 
   const levelOptions = Object.entries(crumbLevels).map<SelectOption<string>>(
     ([crumbLevel, levelComponent]) => {

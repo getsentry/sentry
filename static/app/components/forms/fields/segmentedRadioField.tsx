@@ -51,7 +51,7 @@ function RadioControlGroup<C extends string>({
   value,
   disabled: groupDisabled,
   disabledChoices = [],
-  choices = [],
+  choices,
   label,
   onChange,
   tooltipPosition,

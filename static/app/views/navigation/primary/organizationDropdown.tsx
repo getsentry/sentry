@@ -6,6 +6,7 @@ import partition from 'lodash/partition';
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -17,14 +18,13 @@ import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface OrganizationDropdownProps {
@@ -54,15 +54,14 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
-  const {layout} = usePrimaryNavigation();
-  const hasPageFrame = organization.features.includes('page-frame');
-
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
   const letterAvatarProps = {
     identifier: organization.slug,
     name: organization.name || organization.slug,
   };
+
+  const size = useSizeContext();
 
   return (
     <DropdownMenu
@@ -90,11 +89,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     ...letterAvatarProps,
                   }
           }
-          {...(layout === 'mobile'
-            ? {size: 'xs' as const}
-            : hasPageFrame
-              ? {}
-              : {size: 'md' as const})}
+          size={size}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {
@@ -108,6 +103,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       items={[
         {
           key: 'organization',
+          textValue: organization.name,
           label: (
             <Flex align="center" gap="md">
               <OrganizationAvatar organization={organization} size={32} />
@@ -188,7 +184,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 }
 
-function makeOrganizationMenuItem(org: Organization): MenuItemProps {
+function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     key: org.id,
     label: <OrganizationBadge organization={org} />,
@@ -197,7 +193,7 @@ function makeOrganizationMenuItem(org: Organization): MenuItemProps {
   };
 }
 
-function makeInactiveOrganizationMenuItem(org: Organization): MenuItemProps {
+function makeInactiveOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     ...makeOrganizationMenuItem(org),
     trailingItems: <QuestionTooltip size="sm" title={org.status.name} />,

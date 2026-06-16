@@ -26,7 +26,7 @@ from sentry.utils import json
 ## Template: Standard API Gateway Test
 
 ```python
-@control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
+@control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
 class Test{Feature}ApiGateway(ApiGatewayTestCase):
 
     @responses.activate
@@ -36,7 +36,7 @@ class Test{Feature}ApiGateway(ApiGatewayTestCase):
         headers = dict(example="this")
         responses.add_callback(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/{endpoint_path}/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/{endpoint_path}/",
             verify_request_params(query_params, headers),
         )
 
@@ -58,7 +58,7 @@ class Test{Feature}ApiGateway(ApiGatewayTestCase):
         headers = {"content-type": "application/json"}
         responses.add_callback(
             responses.POST,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/{endpoint_path}/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/{endpoint_path}/",
             verify_request_body(request_body, headers),
         )
 
@@ -80,7 +80,7 @@ class Test{Feature}ApiGateway(ApiGatewayTestCase):
         """Verify upstream errors are forwarded to the client."""
         responses.add(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/{endpoint_path}/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/{endpoint_path}/",
             status=400,
             json={"detail": "Bad request"},
         )
@@ -104,7 +104,7 @@ In CONTROL mode, proxied responses are streamed. Use `close_streaming_response()
         """Verify proxied response content is correct."""
         responses.add_callback(
             responses.GET,
-            f"{self.REGION.address}/organizations/{self.organization.slug}/{endpoint_path}/",
+            f"{self.CELL.address}/organizations/{self.organization.slug}/{endpoint_path}/",
             verify_request_params({}, {}),
         )
 
@@ -128,7 +128,7 @@ In CONTROL mode, proxied responses are streamed. Use `close_streaming_response()
 ## Template: SiloLimit Availability Check
 
 ```python
-    def test_control_only_endpoint_unavailable_in_region(self):
+    def test_control_only_endpoint_unavailable_in_cell(self):
         """Verify control-only endpoints raise AvailabilityError outside their silo."""
         with pytest.raises(SiloLimit.AvailabilityError):
             self.client.get("/api/0/{control-only-path}/")
@@ -136,12 +136,12 @@ In CONTROL mode, proxied responses are streamed. Use `close_streaming_response()
 
 ## Key Patterns
 
-- **`ApiGatewayTestCase`** sets up a test region, mock HTTP callbacks, and the API gateway middleware. It extends `APITestCase`.
-- **`@control_silo_test(regions=[...], include_monolith_run=True)`** runs the test in both CONTROL and MONOLITH modes.
-- **Every test method MUST use `@responses.activate`** because gateway tests mock HTTP calls to the region address.
+- **`ApiGatewayTestCase`** sets up a test cell, mock HTTP callbacks, and the API gateway middleware. It extends `APITestCase`.
+- **`@control_silo_test(cells=[...], include_monolith_run=True)`** runs the test in both CONTROL and MONOLITH modes.
+- **Every test method MUST use `@responses.activate`** because gateway tests mock HTTP calls to the cell address.
 - **`verify_request_params(params, headers)`** is a callback that asserts query params and headers match.
 - **`verify_request_body(body, headers)`** asserts POST body matches.
 - **`close_streaming_response(resp)`** reads a streaming response to bytes — required for proxied responses in CONTROL mode.
 - **`override_settings(MIDDLEWARE=tuple(self.middleware))`** ensures the API gateway middleware is active.
-- **`self.REGION`** is a pre-configured `Region` object with address `http://us.internal.sentry.io`.
-- **`self.organization`** is pre-created in `setUp` and bound to `self.REGION`.
+- **`self.CELL`** is a pre-configured `Cell` object with address `http://us.internal.sentry.io`.
+- **`self.organization`** is pre-created in `setUp` and bound to `self.CELL`.

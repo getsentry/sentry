@@ -25,7 +25,7 @@ import {
   getSpanID,
   getSpanOperation,
   groupShouldBeHidden,
-  isEventFromBrowserJavaScriptSDK,
+  isBrowserJavaScriptSDKName,
   isOrphanSpan,
   parseTrace,
   SpanSubTimingMark,
@@ -34,7 +34,7 @@ import {
 
 const MIN_SIBLING_GROUP_SIZE = 5;
 
-class SpanTreeModel {
+export class SpanTreeModel {
   api: Client;
 
   // readonly state
@@ -155,7 +155,7 @@ class SpanTreeModel {
   ): EnhancedProcessedSpanType | undefined {
     // hide gap spans (i.e. "missing instrumentation" spans) for browser js transactions,
     // since they're not useful to indicate
-    const shouldIncludeGap = !isEventFromBrowserJavaScriptSDK(event);
+    const shouldIncludeGap = !isBrowserJavaScriptSDKName(event.sdk?.name);
 
     const isValidGap =
       shouldIncludeGap &&
@@ -847,5 +847,3 @@ class SpanTreeModel {
     };
   };
 }
-
-export default SpanTreeModel;

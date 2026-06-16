@@ -81,9 +81,9 @@ describe('useMetricAggregatesTable', () => {
   });
 
   it('includes multiple yAxis fields when multiple visualizes are configured', async () => {
-    const visualize1 = new VisualizeFunction('avg(value,test-metric,-)');
-    const visualize2 = new VisualizeFunction('sum(value,test-metric,-)');
-    const visualize3 = new VisualizeFunction('count(value,test-metric,-)');
+    const visualize1 = new VisualizeFunction('avg(value,test-metric,none)');
+    const visualize2 = new VisualizeFunction('sum(value,test-metric,none)');
+    const visualize3 = new VisualizeFunction('count(value,test-metric,none)');
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -132,11 +132,11 @@ describe('useMetricAggregatesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           field: expect.arrayContaining([
-            'avg(value,test-metric,-)',
-            'sum(value,test-metric,-)',
-            'count(value,test-metric,-)',
-            // The count aggregate includes metric details: count(metric.name,<name>,<type>,-)
-            expect.stringMatching(/^count\(metric\.name,test-metric,counter,-\)$/),
+            'avg(value,test-metric,none)',
+            'sum(value,test-metric,none)',
+            'count(value,test-metric,none)',
+            // The count aggregate includes metric details: count(metric.name,<name>,<type>,none)
+            expect.stringMatching(/^count\(metric\.name,test-metric,counter,none\)$/),
           ]),
         }),
       })
@@ -146,8 +146,8 @@ describe('useMetricAggregatesTable', () => {
   it('includes groupBys and all visualize yAxes in fields', async () => {
     const groupBy1: GroupBy = {groupBy: 'environment'};
     const groupBy2: GroupBy = {groupBy: 'service'};
-    const visualize1 = new VisualizeFunction('avg(value,test-metric,-)');
-    const visualize2 = new VisualizeFunction('p95(value,test-metric,-)');
+    const visualize1 = new VisualizeFunction('avg(value,test-metric,none)');
+    const visualize2 = new VisualizeFunction('p95(value,test-metric,none)');
 
     const queryParams = new ReadableQueryParams({
       extrapolate: true,
@@ -158,7 +158,7 @@ describe('useMetricAggregatesTable', () => {
       sortBys: [{field: 'timestamp', kind: 'desc'}],
       aggregateCursor: '',
       aggregateFields: [groupBy1, groupBy2, visualize1, visualize2],
-      aggregateSortBys: [{field: 'avg(value,test-metric,-)', kind: 'desc'}],
+      aggregateSortBys: [{field: 'avg(value,test-metric,none)', kind: 'desc'}],
     });
 
     const mockRequest = MockApiClient.addMockResponse({
@@ -198,10 +198,12 @@ describe('useMetricAggregatesTable', () => {
           field: expect.arrayContaining([
             'environment',
             'service',
-            'avg(value,test-metric,-)',
-            'p95(value,test-metric,-)',
-            // The count aggregate includes metric details: count(metric.name,<name>,<type>,-)
-            expect.stringMatching(/^count\(metric\.name,test-metric,distribution,-\)$/),
+            'avg(value,test-metric,none)',
+            'p95(value,test-metric,none)',
+            // The count aggregate includes metric details: count(metric.name,<name>,<type>,none)
+            expect.stringMatching(
+              /^count\(metric\.name,test-metric,distribution,none\)$/
+            ),
           ]),
         }),
       })

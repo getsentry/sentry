@@ -1436,7 +1436,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "id": "value",
                     "name": null,
                     "values": [
-                      "Failed to start component [Connector[HTTP/<float><int>]]"
+                      "Failed to start component [Connector[HTTP/<float>-<int>]]"
                     ]
                   },
                   {
@@ -1963,7 +1963,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
             "id": "message",
             "name": "message",
             "values": [
-              "Failed to start connector [Connector[HTTP/<float><int>]]"
+              "Failed to start connector [Connector[HTTP/<float>-<int>]]"
             ]
           }
         ]
@@ -3407,7 +3407,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "id": "value",
                     "name": null,
                     "values": [
-                      "Failed to start component [Connector[HTTP/<float><int>]]"
+                      "Failed to start component [Connector[HTTP/<float>-<int>]]"
                     ]
                   },
                   {

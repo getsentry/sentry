@@ -79,7 +79,7 @@ export function RepositoryProjectPathConfigRow({
   );
 }
 
-const RepoName = styled(`span`)`
+const RepoName = styled('span')`
   padding-bottom: ${p => p.theme.space.md};
 `;
 

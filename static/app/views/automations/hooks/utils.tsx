@@ -8,7 +8,6 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
 import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 export function getAutomationActions(automation: Automation): ActionType[] {
   return [
@@ -17,7 +16,7 @@ export function getAutomationActions(automation: Automation): ActionType[] {
         .flatMap(dataConditionGroup =>
           dataConditionGroup.actions?.map(action => action.type)
         )
-        .filter(x => x)
+        .filter(Boolean)
     ),
   ] as ActionType[];
 }
@@ -50,13 +49,6 @@ export function getAutomationActionsWarning(
     };
   }
   return null;
-}
-
-export function useAutomationProjectIds(automation: Automation): string[] {
-  const {data: detectors} = useDetectorsQuery({ids: automation.detectorIds});
-  return [
-    ...new Set(detectors?.map(detector => detector.projectId).filter(x => x) ?? []),
-  ] as string[];
 }
 
 export function findConflictingConditions(

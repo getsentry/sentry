@@ -10,10 +10,8 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.validators.project_codeowners import build_codeowners_associations
-from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 
 
@@ -30,10 +28,7 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
         Returns all ProjectCodeOwners associations for an organization as a dict with projects as keys
         e.g. {"projectSlug": {associations: {...}, errors: {...}}, ...]
         """
-        projects = Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-        )
+        projects = self.get_projects(request, organization)
         project_code_owners = ProjectCodeOwners.objects.filter(project__in=projects)
         provider = request.GET.get("provider")
         if provider:

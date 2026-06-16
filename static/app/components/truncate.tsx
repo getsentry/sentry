@@ -2,6 +2,8 @@ import {useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 interface TruncateProps {
   value: string;
   className?: string;
@@ -70,7 +72,9 @@ export function Truncate({
   }
 
   return (
-    <Wrapper
+    <Container
+      as="span"
+      position="relative"
       className={className}
       onMouseOver={expandable ? onFocus : undefined}
       onMouseOut={expandable ? onBlur : undefined}
@@ -83,13 +87,9 @@ export function Truncate({
           {value}
         </FullValue>
       )}
-    </Wrapper>
+    </Container>
   );
 }
-
-const Wrapper = styled('span')`
-  position: relative;
-`;
 
 const FullValue = styled('span')<{
   expandDirection: 'left' | 'right';

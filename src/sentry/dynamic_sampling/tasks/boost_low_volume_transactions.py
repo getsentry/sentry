@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from datetime import datetime
 from typing import TypedDict
 
 import sentry_sdk
@@ -53,6 +52,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.utils import metrics
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -219,6 +219,15 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     # Only after checking the nullability of rebalanced_transactions, we want to unpack the tuple.
     named_rates, implicit_rate = rebalanced_transactions
+    if sample_rate > 0:
+        implicit_factor = implicit_rate / sample_rate
+        comparison = (
+            "below" if implicit_factor < 1.0 else "above" if implicit_factor > 1.0 else "equal"
+        )
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_transactions.implicit_factor",
+            tags={"comparison": comparison},
+        )
     set_transactions_resampling_rates(
         org_id=org_id,
         proj_id=project_id,
@@ -281,9 +290,9 @@ class FetchProjectTransactionTotals:
                 Condition(
                     Column("timestamp"),
                     Op.GTE,
-                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    deprecated_utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
                 ),
-                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
                 Condition(Column("org_id"), Op.IN, self.org_ids),
             ]
@@ -430,9 +439,9 @@ class FetchProjectTransactionVolumes:
                 Condition(
                     Column("timestamp"),
                     Op.GTE,
-                    datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                    deprecated_utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
                 ),
-                Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                Condition(Column("timestamp"), Op.LT, deprecated_utcnow()),
                 Condition(Column("metric_id"), Op.EQ, self.metric_id),
                 Condition(Column("org_id"), Op.IN, self.org_ids),
             ]

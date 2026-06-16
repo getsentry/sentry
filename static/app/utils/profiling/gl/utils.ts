@@ -4,7 +4,8 @@ import {mat3, vec2} from 'gl-matrix';
 
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {clamp, colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
+import {clamp} from 'sentry/utils/profiling/colors/clamp';
+import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -830,11 +831,11 @@ export function useResizeCanvasObserver(
 ) {
   useLayoutEffect(() => {
     if (!canvas || !canvases.length) {
-      return undefined;
+      return;
     }
 
     if (canvases.includes(null)) {
-      return undefined;
+      return;
     }
 
     const observer = watchForResize(canvases as HTMLCanvasElement[], () => {

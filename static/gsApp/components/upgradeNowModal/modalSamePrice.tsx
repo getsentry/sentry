@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -12,7 +11,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Plan, Subscription} from 'getsentry/types';
@@ -21,7 +22,6 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import type {Reservations} from './types';
 import {useLogUpgradeNowViewed} from './useLogUpgradeNowViewed';
-import {redirectToManage} from './utils';
 
 type Props = ModalRenderProps & {
   organization: Organization;
@@ -43,8 +43,9 @@ function UpgradeNowModal({
   useLogUpgradeNowViewed({organization, subscription, surface, hasPriceChange: false});
 
   const api = useApi();
+  const navigate = useNavigate();
 
-  const onUpdatePlan = useCallback(async () => {
+  const onUpdatePlan = async () => {
     try {
       await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
         method: 'PUT',
@@ -75,14 +76,20 @@ function UpgradeNowModal({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(organization);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'replay_same_price_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
       addErrorMessage(
         t(
           'Oops! Unable to update Subscription automatically. Click through to update manually.'
         )
       );
     }
-  }, [api, organization, subscription, plan, reservations, onComplete, surface]);
+  };
 
   return (
     <UpsellContent>
@@ -90,7 +97,7 @@ function UpgradeNowModal({
       <Header>{t('Get to the root cause of an error faster')}</Header>
       <p>
         {t(
-          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occured.'
+          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occurred.'
         )}
       </p>
       <CTAPanel>
@@ -98,7 +105,7 @@ function UpgradeNowModal({
           <CTAPrimary>{t('500 replays')}</CTAPrimary>
           <CTASecondary>{t('at no additional cost')}</CTASecondary>
         </div>
-        <Button priority="primary" onClick={onUpdatePlan}>
+        <Button variant="primary" onClick={onUpdatePlan}>
           {t('Enable Now')}
         </Button>
       </CTAPanel>

@@ -15,10 +15,70 @@ import {
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {FieldValueType} from 'sentry/utils/fields';
 
-function getSearchConfigFromKeys(
-  keys: TagCollection,
+function getFilterKeysFromQuery(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  const keys = new Set<string>();
+  const filterKeyPattern = /(?:^|[\s(])!?([^\s():]+):/g;
+
+  for (const match of value.matchAll(filterKeyPattern)) {
+    if (match[1]) {
+      keys.add(match[1]);
+    }
+  }
+
+  return Array.from(keys);
+}
+
+function addKeyToSearchConfig(
+  config: Partial<SearchConfig>,
+  key: string,
   getFieldDefinition: FieldDefinitionGetter
-): Partial<SearchConfig> {
+) {
+  const fieldDef = getFieldDefinition(key);
+  if (!fieldDef) {
+    return;
+  }
+
+  if (fieldDef.allowComparisonOperators) {
+    config.textOperatorKeys!.add(key);
+  }
+
+  switch (fieldDef.valueType) {
+    case FieldValueType.BOOLEAN:
+      config.booleanKeys!.add(key);
+      break;
+    case FieldValueType.NUMBER:
+    case FieldValueType.INTEGER:
+    case FieldValueType.PERCENTAGE:
+    case FieldValueType.CURRENCY:
+      config.numericKeys!.add(key);
+      break;
+    case FieldValueType.DATE:
+      config.dateKeys!.add(key);
+      break;
+    case FieldValueType.DURATION:
+      config.durationKeys!.add(key);
+      break;
+    case FieldValueType.SIZE:
+      config.sizeKeys!.add(key);
+      break;
+    default:
+      break;
+  }
+}
+
+function getSearchConfigFromKeys({
+  keys,
+  getFieldDefinition,
+  queryKeys = [],
+}: {
+  getFieldDefinition: FieldDefinitionGetter;
+  keys: TagCollection;
+  queryKeys?: string[];
+}): Partial<SearchConfig> {
   const config = {
     textOperatorKeys: new Set<string>(),
     booleanKeys: new Set<string>(),
@@ -30,37 +90,11 @@ function getSearchConfigFromKeys(
   } satisfies Partial<SearchConfig>;
 
   for (const key in keys) {
-    const fieldDef = getFieldDefinition(key);
-    if (!fieldDef) {
-      continue;
-    }
+    addKeyToSearchConfig(config, key, getFieldDefinition);
+  }
 
-    if (fieldDef.allowComparisonOperators) {
-      config.textOperatorKeys.add(key);
-    }
-
-    switch (fieldDef.valueType) {
-      case FieldValueType.BOOLEAN:
-        config.booleanKeys.add(key);
-        break;
-      case FieldValueType.NUMBER:
-      case FieldValueType.INTEGER:
-      case FieldValueType.PERCENTAGE:
-      case FieldValueType.CURRENCY:
-        config.numericKeys.add(key);
-        break;
-      case FieldValueType.DATE:
-        config.dateKeys.add(key);
-        break;
-      case FieldValueType.DURATION:
-        config.durationKeys.add(key);
-        break;
-      case FieldValueType.SIZE:
-        config.sizeKeys.add(key);
-        break;
-      default:
-        break;
-    }
+  for (const key of queryKeys) {
+    addKeyToSearchConfig(config, key, getFieldDefinition);
   }
 
   return config;
@@ -91,7 +125,13 @@ export function parseQueryBuilderValue(
         ? new Set([BooleanOperator.AND, BooleanOperator.OR])
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
-      ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
+      ...getSearchConfigFromKeys({
+        keys: options?.filterKeys ?? {},
+        getFieldDefinition,
+        queryKeys: options?.disallowUnsupportedFilters
+          ? []
+          : getFilterKeysFromQuery(value),
+      }),
       invalidMessages: options?.invalidMessages,
       supportedTags: {
         ...(options?.filterKeys ? options.filterKeys : {}),

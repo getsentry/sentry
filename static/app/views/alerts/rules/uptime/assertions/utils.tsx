@@ -370,7 +370,9 @@ export const isLeafOp = (op: UptimeOp) =>
   op.op === UptimeOpType.HEADER_CHECK;
 
 export function leafOpsMatchByValue(a: UptimeOp, b: UptimeOp): boolean {
-  if (a.op !== b.op) return false;
+  if (a.op !== b.op) {
+    return false;
+  }
 
   if (
     a.op === UptimeOpType.STATUS_CODE_CHECK &&

@@ -124,7 +124,7 @@ export function ChoiceMapperDropdown({
 
   const asyncUrl = config.addDropdown?.url;
   const selectableValues =
-    config.addDropdown?.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
+    config.addDropdown?.items?.filter(i => !Object.hasOwn(value, i.value)) ?? [];
 
   const addRow = (item: SelectOption<string>) => {
     const emptyValue = Object.keys(columnLabels).reduce<Record<string, null>>(
@@ -288,7 +288,7 @@ export function ChoiceMapperTable({
                   onChange={(v: {value: string | number | null} | null) =>
                     setValue(itemKey, fieldKey, v ? v.value : null)
                   }
-                  value={value[itemKey]?.[fieldKey] as string | null}
+                  value={value[itemKey]?.[fieldKey]}
                 />
               </Flex>
               {i === mappedKeys.length - 1 && (

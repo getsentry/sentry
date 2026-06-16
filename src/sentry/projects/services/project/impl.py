@@ -6,6 +6,7 @@ from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.api.serializers import ProjectSerializer
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.rpc import OptionValue
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.models.options.project_option import ProjectOption
@@ -192,3 +193,54 @@ class DatabaseBackedProjectService(ProjectService):
             project.save()
 
         return serialize_project(project)
+
+    def delete_project(self, *, organization_id: int, project_id: int) -> bool:
+        """Soft-delete a project; matches the behavior of the project DELETE
+        endpoint except it does NOT write an audit log entry (callers are
+        responsible for auditing) and does NOT schedule a Seer grouping-
+        records cleanup (Stripe Projects sandboxes aren't similarity-
+        backfilled so there's nothing to clean).
+
+        Idempotent: a second call on an already-PENDING_DELETION row
+        returns True without re-scheduling. Returns False if the project
+        doesn't exist, doesn't belong to the given org, or is the internal
+        project (``settings.SENTRY_PROJECT``).
+        """
+        try:
+            project = Project.objects.get(id=project_id, organization_id=organization_id)
+        except Project.DoesNotExist:
+            return False
+
+        if project.is_internal_project():
+            # Match the project-details endpoint's protection; callers
+            # should never hit this for Stripe Projects resources, but be
+            # defensive.
+            return False
+
+        # Wrap the three-step deletion in a transaction so a failure on
+        # ``CellScheduledDeletion.schedule`` or ``rename_on_pending_deletion``
+        # doesn't leave the row in PENDING_DELETION with no actual
+        # deletion scheduled -- a subsequent retry would find the row
+        # already PENDING_DELETION and skip the whole block, orphaning
+        # it forever.
+        with transaction.atomic(router.db_for_write(Project)):
+            # Atomic ACTIVE → PENDING_DELETION guards against
+            # double-delete races; if the row is already
+            # PENDING_DELETION, ``updated`` is 0 and we short-circuit
+            # (the earlier call already scheduled deletion).
+            updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
+                status=ObjectStatus.PENDING_DELETION
+            )
+            if updated:
+                # Schedule first (matches the endpoint's order in
+                # project_details.py); if rename fails after this, the
+                # deletion task still runs and the row gets cleaned up
+                # on its normal schedule.
+                CellScheduledDeletion.schedule(project, days=0)
+                # Rename the slug so a recreated project with the same
+                # slug doesn't collide with the pending-deletion row
+                # during its retention window. Without this,
+                # deleting+recreating a Stripe Projects resource in
+                # quick succession would fail with a uniqueness error.
+                project.rename_on_pending_deletion()
+        return True

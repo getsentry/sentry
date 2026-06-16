@@ -2,7 +2,8 @@ import {useState} from 'react';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
-import type {SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import {type BaseFieldProps} from './baseField';

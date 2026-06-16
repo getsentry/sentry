@@ -105,7 +105,7 @@ function ImportDashboardFromFileModal({
           <Button
             onClick={handleUploadClick}
             disabled={!validated}
-            priority="primary"
+            variant="primary"
             icon={<IconUpload />}
           >
             {t('Import')}

@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
@@ -13,8 +14,8 @@ type Props = {
   align: Alignments;
   canSort: boolean;
   direction: Directions;
-  generateSortLink: () => LocationDescriptorObject | undefined;
   title: React.ReactNode;
+  generateSortLink?: () => LocationDescriptorObject | undefined;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   preventScrollReset?: boolean;
   replace?: boolean;
@@ -30,7 +31,7 @@ export function SortLink({
   replace,
   preventScrollReset,
 }: Props) {
-  const target = generateSortLink();
+  const target = generateSortLink?.();
   const navigate = useNavigate();
 
   if (!target || !canSort) {
@@ -83,14 +84,24 @@ const StyledLink = styled((props: StyledLinkProps) => {
     color: inherit;
   }
 
-  ${(p: StyledLinkProps) => (p.align ? `text-align: ${p.align};` : '')}
+  ${(p: StyledLinkProps) =>
+    p.align
+      ? css`
+          text-align: ${p.align};
+        `
+      : ''}
 `;
 
 const StyledNonLink = styled('div')<{align: Alignments}>`
   display: block;
   width: 100%;
   white-space: nowrap;
-  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
+  ${(p: {align: Alignments}) =>
+    p.align
+      ? css`
+          text-align: ${p.align};
+        `
+      : ''}
 `;
 
 const StyledIconArrow = styled(IconArrow)`

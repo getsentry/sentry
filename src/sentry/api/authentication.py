@@ -48,7 +48,8 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
+from sentry.utils.auth import record_suspended_user_rejection
 from sentry.utils.linksign import process_signature
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -99,10 +100,26 @@ def is_internal_relay(request, public_key):
 
     # check legacy whitelisted public_key settings
     # (we can't check specific relays but we can check public keys)
-    if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
+    if settings.DEBUG:
         return True
 
-    return is_internal_ip(request)
+    if public_key in settings.SENTRY_RELAY_WHITELIST_PK:
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "whitelist_pk"},
+            sample_rate=1.0,
+        )
+        return True
+
+    if is_internal_ip(request) and options.get("relay.allow_internal_ip_auth"):
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "internal_ip"},
+            sample_rate=1.0,
+        )
+        return True
+
+    return False
 
 
 def is_static_relay(request):
@@ -112,9 +129,18 @@ def is_static_relay(request):
     Note: Only checks the relay_id (no public key validation is done).
     """
     relay_id = get_header_relay_id(request)
-    static_relays = options.get("relay.static_auth")
+    static_relays = settings.SENTRY_RELAY_STATIC_AUTH
     relay_info = static_relays.get(relay_id)
-    return relay_info is not None
+
+    if relay_info is not None:
+        metrics.incr(
+            "relay.is_internal_relay",
+            tags={"reason": "static_relay"},
+            sample_rate=1.0,
+        )
+        return True
+
+    return False
 
 
 def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
@@ -128,7 +154,7 @@ def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
 
     # first see if we have a statically configured relay and therefore we don't
     # need to go to the database for it
-    static_relays = options.get("relay.static_auth")
+    static_relays = settings.SENTRY_RELAY_STATIC_AUTH
     relay_info = static_relays.get(relay_id)
 
     if relay_info is not None:
@@ -177,8 +203,11 @@ class QuietBasicAuthentication(BasicAuthentication):
         if auth_token and entity_id_tag:
             scope = sentry_sdk.get_isolation_scope()
             scope.set_tag(entity_id_tag, auth_token.entity_id)
+            if auth_token.entity_id is not None:
+                scope.set_attribute(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
+                scope.set_attribute(k, v.decode() if isinstance(v, bytes) else v)
 
         return (user, auth_token)
 
@@ -227,6 +256,7 @@ class RelayAuthentication(BasicAuthentication):
         self, relay_id: str, relay_sig: str, request=None
     ) -> tuple[AnonymousUser, None]:
         sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
+        sentry_sdk.get_isolation_scope().set_attribute("relay_id", relay_id)
 
         if request is None:
             raise AuthenticationFailed("missing request")
@@ -524,6 +554,18 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if not isinstance(token, SystemToken) and user and not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
+        if not isinstance(token, SystemToken) and user and getattr(user, "is_suspended", False):
+            logger.info(
+                "api.token.suspended-user",
+                extra={
+                    "user_id": user.id,
+                    "token_id": getattr(token, "id", None),
+                    "ip_address": request.META.get("REMOTE_ADDR"),
+                },
+            )
+            record_suspended_user_rejection("token_auth")
+            raise AuthenticationFailed("User account is suspended")
+
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
@@ -618,7 +660,9 @@ class DSNAuthentication(StandardAuthentication):
 
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
+        scope.set_attribute("api_token_type", self.token_name.decode())
         scope.set_tag("api_project_key", key.id)
+        scope.set_attribute("api_project_key", key.id)
 
         return (AnonymousUser(), AuthenticatedToken.from_token(key))
 
@@ -653,6 +697,7 @@ class RpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag("rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -772,5 +817,77 @@ class HmacSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
+        sentry_sdk.get_isolation_scope().set_attribute(self.sdk_tag_name, True)
 
         return (AnonymousUser(), token)
+
+
+class ViewerContextAuthentication(BaseAuthentication):
+    """Authenticate requests using X-Viewer-Context headers.
+
+    Accepts JWT (HS256) ``X-Viewer-Context`` headers.
+    Used by trusted services (e.g., Seer) that echo back the viewer context
+    originally signed by Sentry.
+
+    The user is resolved via user_service.get_user() (RPC-backed, cached).
+    Sets request.auth = None so that determine_access derives permissions
+    from the user's OrganizationMember role — identical to session auth.
+    """
+
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
+        from sentry.viewer_context import _get_verification_keys, viewer_context_from_header
+
+        header = request.META.get("HTTP_X_VIEWER_CONTEXT")
+        if not header:
+            return None
+
+        verification_keys = _get_verification_keys()
+        vc = viewer_context_from_header(header)
+
+        if vc is None or vc.user_id is None:
+            # TODO(jstanley): Temporary logging for debugging non-public prod 401s
+            # during X-Viewer-Context propagation (Seer code mode callbacks).
+            # Remove once the auth issue is resolved.
+            logger.warning(
+                "viewer_context_auth.failed",
+                extra={
+                    "reason": "vc_not_resolved" if vc is None else "no_user_id",
+                    "header_length": len(header),
+                    "header_is_jwt": "." in header and header.count(".") == 2,
+                    "verification_key_count": len(verification_keys),
+                    "path": request.path,
+                },
+            )
+            return None
+
+        user = user_service.get_user(user_id=vc.user_id)
+        if user is None or not user.is_active or getattr(user, "is_suspended", False):
+            # TODO(jstanley): Temporary logging for debugging non-public prod 401s
+            # during X-Viewer-Context propagation (Seer code mode callbacks).
+            # Remove once the auth issue is resolved.
+            logger.warning(
+                "viewer_context_auth.failed",
+                extra={
+                    "reason": "user_not_found"
+                    if user is None
+                    else "user_suspended"
+                    if getattr(user, "is_suspended", False)
+                    else "user_inactive",
+                    "vc_user_id": vc.user_id,
+                    "path": request.path,
+                },
+            )
+            if user is not None and getattr(user, "is_suspended", False):
+                record_suspended_user_rejection("viewer_context_auth")
+            return None
+
+        sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("viewer_context_auth", True)
+        # Viewer context comes from a trusted first-party service. Keep auth
+        # session-like for permission derivation, but mark it so org access can
+        # avoid requiring browser-session SSO state on service callbacks.
+        setattr(request, "user_from_viewer_context", True)
+
+        # Return None for auth to match session behavior —
+        # determine_access will derive scopes from org membership role.
+        return (user, None)

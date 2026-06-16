@@ -14,7 +14,7 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
  * nav or into the dead space of the primary navigation. This is delayed slightly
  * to prevent accidental dismissals.
  */
-export function useResetActiveNavigationGroup(): DOMAttributes<FocusableElement> {
+export function useResetActiveNavigationGroup(): DOMAttributes {
   const {layout, setActiveGroup} = usePrimaryNavigation();
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 

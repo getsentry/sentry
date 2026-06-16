@@ -4,6 +4,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
@@ -31,6 +32,10 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('Number of events.');
     case IssueSortOptions.USER:
       return t('Number of users affected.');
+    case IssueSortOptions.RECOMMENDED:
+      return t('Issues ranked by combined recency, severity, and impact signals.');
+    case IssueSortOptions.PROGRESS:
+      return t('Issues ranked by how far along they are toward a fix.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
@@ -45,6 +50,13 @@ export function IssueListSortOptions({
   triggerSize = 'xs',
   showIcon = true,
 }: Props) {
+  const organization = useOrganization();
+  const hasRecommendedSort =
+    organization.features.includes('issue-stream-recommended-sort') ||
+    sort === IssueSortOptions.RECOMMENDED;
+  const hasProgressSort =
+    organization.features.includes('issue-stream-progress-sort') ||
+    sort === IssueSortOptions.PROGRESS;
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
@@ -53,6 +65,8 @@ export function IssueListSortOptions({
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
+    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
+    ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 
   return (

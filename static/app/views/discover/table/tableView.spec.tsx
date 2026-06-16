@@ -14,7 +14,7 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {TableView} from 'sentry/views/discover/table/tableView';
 
@@ -54,7 +54,11 @@ describe('TableView > CellActions', () => {
 
   const eventView = EventView.fromLocation(location);
 
-  function renderComponent(tableData: TableData, view: EventView) {
+  function renderComponent(
+    tableData: TableData,
+    view: EventView,
+    queryDataset = SavedQueryDatasets.TRANSACTIONS
+  ) {
     return render(
       <TableView
         organization={organization}
@@ -68,7 +72,7 @@ describe('TableView > CellActions', () => {
         measurementKeys={null}
         showTags={false}
         title=""
-        queryDataset={SavedQueryDatasets.TRANSACTIONS}
+        queryDataset={queryDataset}
       />,
       {
         organization,
@@ -487,6 +491,31 @@ describe('TableView > CellActions', () => {
           '/organizations/org-slug/explore/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )
+    );
+  });
+
+  it('renders issue event id links directly to the issue event', () => {
+    const view = EventView.fromLocation(
+      LocationFixture({
+        query: {...locationQuery, field: ['id', 'title']},
+      })
+    );
+    rows.meta = {...rows.meta, id: 'string', 'issue.id': 'integer'};
+    rows.data[0] = {
+      ...rows.data[0]!,
+      id: 'deadbeef',
+      'issue.id': 123,
+      'project.name': 'project-slug',
+    };
+
+    renderComponent(rows, view, SavedQueryDatasets.ERRORS);
+
+    const firstRow = screen.getAllByRole('row')[1]!;
+    const link = within(firstRow).getByTestId('view-event');
+
+    expect(link).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/123/events/deadbeef/?referrer=discover-events-table'
     );
   });
 

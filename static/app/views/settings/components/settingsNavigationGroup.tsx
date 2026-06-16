@@ -13,7 +13,7 @@ export function SettingsNavigationGroup(props: NavigationGroupProps) {
     if (typeof show === 'function' && !show(props)) {
       return null;
     }
-    if (typeof show !== 'undefined' && !show) {
+    if (show !== undefined && !show) {
       return null;
     }
     const badgeResult = typeof badge === 'function' ? badge(props) : null;

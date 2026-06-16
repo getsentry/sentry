@@ -55,6 +55,7 @@ class RpcUserProfile(RpcModel):
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
+    is_suspended: bool = False
     session_nonce: str | None = Field(repr=False, default=None)
 
 

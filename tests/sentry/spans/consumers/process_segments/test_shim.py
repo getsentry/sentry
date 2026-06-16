@@ -7,7 +7,7 @@ from sentry.spans.consumers.process_segments.types import Attributes
 from tests.sentry.spans.consumers.process_segments.test_convert import SPAN_KAFKA_MESSAGE
 
 
-def test_make_compatible():
+def test_make_compatible() -> None:
     message = {**SPAN_KAFKA_MESSAGE}
     attributes: Attributes = {
         "sentry.exclusive_time_ms": {"type": "double", "value": 100.0},

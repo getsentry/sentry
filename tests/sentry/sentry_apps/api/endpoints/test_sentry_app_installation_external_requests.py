@@ -93,3 +93,10 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         url = self.url + f"?uri={self.project.id}"
         response = self.client.get(url, format="json")
         assert response.status_code == 500
+
+    def test_invalid_project_id_returns_400(self) -> None:
+        self.login_as(user=self.user)
+        url = self.url + "?projectId=not-an-int&uri=/get-projects&query=proj"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400
+        assert response.data["detail"] == "projectId must be an integer"

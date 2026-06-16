@@ -42,7 +42,7 @@ from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.context import GroupingContext
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 
 logger = logging.getLogger(__name__)
@@ -302,7 +302,7 @@ def get_function_component(
     interface=Frame,
 )
 def frame(
-    interface: Frame, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Frame, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     frame = interface
     platform = frame.platform or event.platform
@@ -413,7 +413,7 @@ def get_contextline_component(
 
 @strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
 def stacktrace(
-    interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Stacktrace, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     assert context.get("variant_name") is None
 
@@ -480,7 +480,7 @@ def stacktrace(
 
 
 def _single_stacktrace_variant(
-    stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
+    stacktrace: Stacktrace, event: BaseEvent, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
     assert variant_name is not None
@@ -552,7 +552,7 @@ def stacktrace_variant_processor(
     interface=SingleException,
 )
 def single_exception(
-    interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
+    interface: SingleException, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     exception = interface
 
@@ -643,7 +643,7 @@ def single_exception(
 
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
-    interface: ChainedException, event: Event, context: GroupingContext, **kwargs: Any
+    interface: ChainedException, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
@@ -721,7 +721,7 @@ def chained_exception(
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
     exception_components: dict[int, dict[str, ExceptionGroupingComponent]],
-    event: Event,
+    event: BaseEvent,
 ) -> list[SingleException]:
     """
     Attempt to filter exceptions in exception groups in order to deduplicate sibling exceptions, and
@@ -870,7 +870,7 @@ def chained_exception_variant_processor(
 
 @strategy(ids=["threads:v1"], interface=Threads, score=1900)
 def threads(
-    interface: Threads, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Threads, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
     thread_components = _get_thread_components(crashed_threads, event, context, **kwargs)
@@ -900,7 +900,10 @@ def threads(
 
 
 def _get_thread_components(
-    threads: list[dict[str, Any]], event: Event, context: GroupingContext, **kwargs: dict[str, Any]
+    threads: list[dict[str, Any]],
+    event: BaseEvent,
+    context: GroupingContext,
+    **kwargs: dict[str, Any],
 ) -> ComponentsByVariant | None:
     if len(threads) != 1:
         return None
@@ -958,9 +961,38 @@ JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = [
     "UndeliverableException",
 ]
 
-KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES = [
-    "DiagnosticCoroutineContextException",
-]
+# (module, type) pairs for diagnostic wrapper exceptions added by Kotlin Coroutines
+# and Jetpack Compose runtime tooling. They have no useful stacktrace and a
+# placeholder message, so they should never determine the issue title — the real
+# error is always reachable via the mechanism parent_id chain.
+_DIAGNOSTIC_WRAPPER_EXCEPTIONS: tuple[tuple[str, str], ...] = (
+    ("kotlinx.coroutines.internal", "DiagnosticCoroutineContextException"),
+    ("androidx.compose.runtime.tooling", "DiagnosticComposeException"),
+)
+
+
+def _is_diagnostic_wrapper(exception: SingleException) -> bool:
+    return (exception.module, exception.type) in _DIAGNOSTIC_WRAPPER_EXCEPTIONS
+
+
+def _walk_to_non_wrapper_parent(
+    exception: SingleException, exceptions_by_id: dict[int, SingleException]
+) -> int | None:
+    # Bounded by the number of known exceptions to guard against malformed cycles.
+    current = exception
+    for _ in range(len(exceptions_by_id)):
+        if not (
+            current.mechanism
+            and current.mechanism.parent_id is not None
+            and current.mechanism.parent_id in exceptions_by_id
+        ):
+            return None
+        parent_id = current.mechanism.parent_id
+        parent = exceptions_by_id[parent_id]
+        if not _is_diagnostic_wrapper(parent):
+            return parent_id
+        current = parent
+    return None
 
 
 def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int | None:
@@ -991,32 +1023,27 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
     return None
 
 
-def kotlin_coroutine_framework_exceptions(exceptions: list[SingleException]) -> int | None:
+def kotlin_diagnostic_wrapper_exceptions(exceptions: list[SingleException]) -> int | None:
     """
-    DiagnosticCoroutineContextException is added by Kotlin Coroutines for debugging.
-    It has no stacktrace and no meaningful message, so it should not determine the title.
-    When found with a parent, return the parent exception as the main one.
+    DiagnosticCoroutineContextException (Kotlin Coroutines) and DiagnosticComposeException
+    (Jetpack Compose) are debugging wrappers with no useful stacktrace or message. When
+    present in the chain, walk past any chained wrappers and return the first non-wrapper
+    ancestor as the main exception.
     """
-    if len(exceptions) < 2:
+    if len(exceptions) < 2 or not any(_is_diagnostic_wrapper(exc) for exc in exceptions):
         return None
 
-    # Build a set of valid exception IDs for validation
-    valid_exception_ids = {
-        exc.mechanism.exception_id
+    exceptions_by_id = {
+        exc.mechanism.exception_id: exc
         for exc in exceptions
         if exc.mechanism and exc.mechanism.exception_id is not None
     }
 
     for exception in exceptions:
-        if (
-            exception.module == "kotlinx.coroutines.internal"
-            and exception.type in KOTLIN_COROUTINE_FRAMEWORK_EXCEPTION_TYPES
-            and exception.mechanism
-            and exception.mechanism.parent_id is not None
-            and exception.mechanism.parent_id in valid_exception_ids
-        ):
-            # Return the parent as the main exception
-            return exception.mechanism.parent_id
+        if _is_diagnostic_wrapper(exception):
+            resolved = _walk_to_non_wrapper_parent(exception, exceptions_by_id)
+            if resolved is not None:
+                return resolved
 
     return None
 
@@ -1024,11 +1051,11 @@ def kotlin_coroutine_framework_exceptions(exceptions: list[SingleException]) -> 
 MAIN_EXCEPTION_ID_FUNCS = [
     react_error_with_cause,
     java_rxjava_framework_exceptions,
-    kotlin_coroutine_framework_exceptions,
+    kotlin_diagnostic_wrapper_exceptions,
 ]
 
 
-def _maybe_override_main_exception_id(event: Event, exceptions: list[SingleException]) -> None:
+def _maybe_override_main_exception_id(event: BaseEvent, exceptions: list[SingleException]) -> None:
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
         main_exception_id = func(exceptions)

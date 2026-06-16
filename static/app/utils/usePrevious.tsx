@@ -11,7 +11,7 @@ import {useEffect, useRef} from 'react';
 export function usePrevious<T>(value: T, skipUpdate?: boolean): T {
   // The ref object is a generic container whose current property is mutable ...
   // ... and can hold any value, similar to an instance property on a class
-  const ref = useRef<T>(value);
+  const ref = useRef(value);
   // Store current value in ref
   useEffect(() => {
     if (!skipUpdate) {

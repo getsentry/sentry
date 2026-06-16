@@ -8,7 +8,7 @@ import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
-import {normalizeUnit} from 'sentry/views/dashboards/utils';
+import {normalizeUnit} from 'sentry/views/dashboards/utils/normalizeUnit';
 import {
   NEGATIVE_POLARITY_COLOR_ORDER,
   POSITIVE_POLARITY_COLOR_ORDER,

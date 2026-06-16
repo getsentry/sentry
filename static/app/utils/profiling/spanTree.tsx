@@ -1,116 +1,120 @@
 import {uuid4} from '@sentry/core';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
+import {isBrowserJavaScriptSDKName} from 'sentry/components/events/interfaces/spans/utils';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
-import {EventOrGroupType} from 'sentry/types/event';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-// Empty transaction to use as a default value with duration of 1 second
-const EmptyEventTransaction: EventTransaction = {
-  id: '',
-  projectID: '',
-  user: {},
-  contexts: {},
-  entries: [],
-  errors: [],
-  dateCreated: '',
-  startTimestamp: Date.now(),
-  endTimestamp: Date.now() + 1000,
-  title: '',
-  type: EventOrGroupType.TRANSACTION,
-  culprit: '',
-  dist: null,
-  eventID: '',
-  fingerprints: [],
-  dateReceived: new Date().toISOString(),
-  message: '',
-  metadata: {},
-  size: 0,
-  tags: [],
-  occurrence: null,
-  location: '',
-  crashFile: null,
+export type TransactionSpanData = Pick<
+  SpanResponse,
+  | 'span.description'
+  | 'precise.start_ts'
+  | 'precise.finish_ts'
+  | 'span_id'
+  | 'span.self_time'
+  | 'trace'
+  | 'sdk.name'
+  | 'transaction.event_id'
+>;
+
+export type SpanNodeData = Pick<
+  SpanResponse,
+  | 'span.description'
+  | 'span.op'
+  | 'precise.start_ts'
+  | 'precise.finish_ts'
+  | 'span_id'
+  | 'trace'
+  | 'trace.parent_span'
+  | 'trace.status'
+  | 'transaction.event_id'
+>;
+
+// Empty transaction to use as a default value with duration of 1 second.
+// Timestamps are in seconds to match precise.*_ts semantics downstream.
+const EmptyTransactionSpan: TransactionSpanData = {
+  [SpanFields.SPAN_DESCRIPTION]: '',
+  [SpanFields.PRECISE_START_TS]: 0,
+  [SpanFields.PRECISE_FINISH_TS]: 1,
+  [SpanFields.SPAN_ID]: '',
+  [SpanFields.SPAN_SELF_TIME]: 0,
+  [SpanFields.TRACE]: '',
+  [SpanFields.SDK_NAME]: '',
+  [SpanFields.TRANSACTION_EVENT_ID]: '',
 };
 
-function sortByStartTimeAndDuration(a: SpanType, b: SpanType) {
-  return a.start_timestamp - b.start_timestamp;
-}
-
-interface SpanType extends RawSpanType {
-  event_id?: string;
+function sortByStartTimeAndDuration(a: SpanNodeData, b: SpanNodeData) {
+  return a[SpanFields.PRECISE_START_TS] - b[SpanFields.PRECISE_START_TS];
 }
 
 export class SpanTreeNode {
   parent?: SpanTreeNode | null = null;
-  span: SpanType;
+  span: SpanNodeData;
   children: SpanTreeNode[] = [];
 
-  constructor(span: SpanType, parent?: SpanTreeNode | null) {
+  constructor(span: SpanNodeData, parent?: SpanTreeNode | null) {
     this.span = span;
     this.parent = parent;
   }
 
-  static Root(partial: Partial<SpanType> = {}): SpanTreeNode {
+  static Root(partial: Partial<SpanNodeData> = {}): SpanTreeNode {
     return new SpanTreeNode(
       {
-        description: 'root',
-        op: 'root',
-        start_timestamp: 0,
-        exclusive_time: 0,
-        timestamp: Number.MAX_SAFE_INTEGER,
-        parent_span_id: '',
-        data: {},
-        span_id: '<root>',
-        trace_id: '',
-        hash: '',
+        [SpanFields.SPAN_DESCRIPTION]: 'root',
+        [SpanFields.SPAN_OP]: 'root',
+        [SpanFields.PRECISE_START_TS]: 0,
+        [SpanFields.PRECISE_FINISH_TS]: Number.MAX_SAFE_INTEGER,
+        [SpanFields.TRACE_PARENT_SPAN]: '',
+        [SpanFields.SPAN_ID]: '<root>',
+        [SpanFields.TRACE]: '',
+        [SpanFields.TRACE_STATUS]: '',
+        [SpanFields.TRANSACTION_EVENT_ID]: '',
         ...partial,
       },
       null
     );
   }
 
-  contains(span: SpanType) {
+  contains(span: SpanNodeData) {
     return (
-      this.span.start_timestamp <= span.start_timestamp &&
-      this.span.timestamp >= span.timestamp
+      this.span[SpanFields.PRECISE_START_TS] <= span[SpanFields.PRECISE_START_TS] &&
+      this.span[SpanFields.PRECISE_FINISH_TS] >= span[SpanFields.PRECISE_FINISH_TS]
     );
   }
 }
 
 class SpanTree {
   root: SpanTreeNode;
-  orphanedSpans: SpanType[] = [];
-  transaction: EventTransaction;
+  orphanedSpans: SpanNodeData[] = [];
+  transaction: TransactionSpanData;
   injectMissingInstrumentationSpans = true;
 
-  constructor(transaction: EventTransaction, spans: SpanType[]) {
+  constructor(transaction: TransactionSpanData, spans: SpanNodeData[]) {
     this.transaction = transaction;
-    this.injectMissingInstrumentationSpans =
-      !isEventFromBrowserJavaScriptSDK(transaction);
+    this.injectMissingInstrumentationSpans = !isBrowserJavaScriptSDKName(
+      transaction[SpanFields.SDK_NAME]
+    );
 
     this.root = SpanTreeNode.Root({
-      description: transaction.title,
-      start_timestamp: transaction.startTimestamp,
-      timestamp: transaction.endTimestamp,
-      exclusive_time: transaction.contexts?.trace?.exclusive_time ?? undefined,
-      span_id: transaction.contexts?.trace?.span_id ?? undefined,
-      event_id: transaction.eventID,
-      parent_span_id: undefined,
-      trace_id: transaction.contexts?.trace?.trace_id ?? undefined,
-      op: 'transaction',
+      [SpanFields.SPAN_DESCRIPTION]: transaction[SpanFields.SPAN_DESCRIPTION],
+      [SpanFields.PRECISE_START_TS]: transaction[SpanFields.PRECISE_START_TS],
+      [SpanFields.PRECISE_FINISH_TS]: transaction[SpanFields.PRECISE_FINISH_TS],
+      [SpanFields.SPAN_ID]: transaction[SpanFields.SPAN_ID],
+      [SpanFields.TRANSACTION_EVENT_ID]: transaction[SpanFields.TRANSACTION_EVENT_ID],
+      [SpanFields.TRACE]: transaction[SpanFields.TRACE],
+      [SpanFields.SPAN_OP]: 'transaction',
     });
 
     this.buildCollapsedSpanTree(spans);
   }
 
-  static Empty = new SpanTree(EmptyEventTransaction, []);
+  static Empty = new SpanTree(EmptyTransactionSpan, []);
 
   isEmpty(): boolean {
     return this === SpanTree.Empty;
   }
 
-  buildCollapsedSpanTree(spans: SpanType[]) {
+  buildCollapsedSpanTree(spans: SpanNodeData[]) {
     const spansSortedByStartTime = [...spans].sort(sortByStartTimeAndDuration);
     const MISSING_INSTRUMENTATION_THRESHOLD_S = 0.1;
 
@@ -120,7 +124,10 @@ class SpanTree {
       while (parent.contains(span)) {
         let nextParent: SpanTreeNode | null = null;
         for (const child of parent.children) {
-          if (child.span.op !== 'missing instrumentation' && child.contains(span)) {
+          if (
+            child.span[SpanFields.SPAN_OP] !== 'missing instrumentation' &&
+            child.contains(span)
+          ) {
             nextParent = child;
             break;
           }
@@ -131,29 +138,35 @@ class SpanTree {
         parent = nextParent;
       }
 
-      if (parent.span.span_id === span.parent_span_id) {
+      if (parent.span[SpanFields.SPAN_ID] === span[SpanFields.TRACE_PARENT_SPAN]) {
         // If the missing instrumentation threshold is exceeded, add a span to
         // indicate that there is a gap in instrumentation. We can rely on this check
         // because the spans are sorted by start time, so we know that we will not be
-        // updating anything before span.start_timestamp.
+        // updating anything before span start timestamp.
         if (
           this.injectMissingInstrumentationSpans &&
           parent.children.length > 0 &&
-          span.start_timestamp -
-            parent.children[parent.children.length - 1]!.span.timestamp >
+          span[SpanFields.PRECISE_START_TS] -
+            parent.children[parent.children.length - 1]!.span[
+              SpanFields.PRECISE_FINISH_TS
+            ] >
             MISSING_INSTRUMENTATION_THRESHOLD_S
         ) {
           parent.children.push(
             new SpanTreeNode(
               {
-                description: t('Missing span instrumentation'),
-                op: 'missing span instrumentation',
-                start_timestamp:
-                  parent.children[parent.children.length - 1]!.span.timestamp,
-                timestamp: span.start_timestamp,
-                span_id: uuid4(),
-                data: {},
-                trace_id: span.trace_id,
+                [SpanFields.SPAN_DESCRIPTION]: t('Missing span instrumentation'),
+                [SpanFields.SPAN_OP]: 'missing span instrumentation',
+                [SpanFields.PRECISE_START_TS]:
+                  parent.children[parent.children.length - 1]!.span[
+                    SpanFields.PRECISE_FINISH_TS
+                  ],
+                [SpanFields.PRECISE_FINISH_TS]: span[SpanFields.PRECISE_START_TS],
+                [SpanFields.SPAN_ID]: uuid4(),
+                [SpanFields.TRACE]: span[SpanFields.TRACE],
+                [SpanFields.TRACE_PARENT_SPAN]: '',
+                [SpanFields.TRACE_STATUS]: '',
+                [SpanFields.TRANSACTION_EVENT_ID]: '',
               },
               parent
             )
@@ -164,7 +177,9 @@ class SpanTree {
         let start = parent.children.length - 1;
         while (start >= 0) {
           const child = parent.children[start]!;
-          if (span.start_timestamp < child.span.timestamp) {
+          if (
+            span[SpanFields.PRECISE_START_TS] < child.span[SpanFields.PRECISE_FINISH_TS]
+          ) {
             foundOverlap = true;
             break;
           }

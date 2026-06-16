@@ -25,6 +25,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_cells
 from sentry.users.models.user import User
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 @control_silo_test(cells=create_test_cells("us"))
@@ -32,11 +33,13 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
     def get_provisioning_args(
         self, user: User, is_test: bool = False, create_default_team: bool = True
     ) -> OrganizationProvisioningOptions:
+        rpc_user = serialize_generic_user(user)
+        assert rpc_user
         return OrganizationProvisioningOptions(
             provision_options=OrganizationOptions(
                 name="Santry",
                 slug="santry",
-                owning_user_id=user.id,
+                owner=rpc_user,
                 is_test=is_test,
                 create_default_team=create_default_team,
             ),
@@ -50,9 +53,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             org: Organization = Organization.objects.get(id=organization_id)
             assert org.slug == provisioning_options.provision_options.slug
             assert org.name == provisioning_options.provision_options.name
-            assert (
-                org.get_default_owner().id == provisioning_options.provision_options.owning_user_id
-            )
+            assert org.get_default_owner().id == provisioning_options.provision_options.owner.id
         assert org.is_test == provisioning_options.provision_options.is_test
 
     def assert_has_default_team_and_membership(self, organization_id: int, user_id: int) -> None:
@@ -235,7 +236,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             name="Santry", slug="santry", owner=self.provisioning_user
         )
 
-    def create_temporary_slug_res(self, organization: Organization, slug: str, region: str) -> None:
+    def create_temporary_slug_res(self, organization: Organization, slug: str, cell: str) -> None:
         with (
             assume_test_silo_mode(SiloMode.CONTROL),
             outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))),
@@ -244,7 +245,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
                 slug=slug,
                 organization_id=organization.id,
-                cell_name=region,
+                cell_name=cell,
                 user_id=-1,
             ).save(unsafe_write=True)
 
@@ -254,7 +255,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             slug=slug,
             organization_id=self.provisioned_org.id,
             user_id=self.provisioning_user.id,
-            region_name="us",
+            cell_name="us",
             reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
         )
 
@@ -262,7 +263,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         desired_slug = "new-santry"
         # We have to create a temporary slug reservation in order for org mapping drains to proceed
         self.create_temporary_slug_res(
-            organization=self.provisioned_org, region="us", slug=desired_slug
+            organization=self.provisioned_org, cell="us", slug=desired_slug
         )
         result = (
             cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(

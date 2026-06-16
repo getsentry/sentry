@@ -30,14 +30,13 @@ export function RangeField({
             {...props}
             value={value}
             onChange={onChange}
-            onPointerUp={e => {
-              props.onPointerUp?.(e);
+            onChangeEnd={() => {
               if (autoSaveContext) {
                 fieldProps.onBlur();
               }
             }}
           />
-          {indicator ?? <Flex width="14px" flexShrink={0} />}
+          {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
         </Fragment>
       )}
     </BaseField>

@@ -149,7 +149,7 @@ class SCIMListBaseResponse(TypedDict):
 
 @extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 

@@ -23,10 +23,6 @@ declare global {
      */
     uetq: any;
     /**
-     * Zendesk widget
-     */
-    zE: any;
-    /**
      * Stripe SDK
      */
     Stripe?: StripeConstructor;
@@ -197,6 +193,11 @@ export type Plan = {
 
   hasOnDemandModes: boolean;
   id: string;
+  /**
+   * Whether the plan is treated as enterprise in the UI (display name,
+   * upsell suppression, provisioning).
+   */
+  isEnterprise: boolean;
   isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
@@ -234,15 +235,7 @@ type PendingChanges = {
   reservedCpe: Partial<Record<DataCategory, number | null>>;
 };
 
-enum VatStatus {
-  UNKNOWN = 'unknown',
-  PERSONAL = 'personal',
-  BUSINESS = 'business',
-  BUSINESS_NOVAT = 'business_novat',
-  OTHER = 'other',
-}
-
-export type GDPRDetails = {
+type GDPRDetails = {
   dpoAddress: string;
   dpoEmail: string;
   dpoName: string;
@@ -326,7 +319,6 @@ export type Subscription = {
 
   billingPeriodStart: string;
   canCancel: boolean;
-  canGracePeriod: boolean;
   canSelfServe: boolean;
   canTrial: boolean;
 
@@ -341,7 +333,6 @@ export type Subscription = {
   contractPeriodStart: string;
   customPrice: number | null;
   customPricePcss: number | null;
-  dataRetention: string | null;
   // Event details
   dateJoined: string;
   effectiveRetentions: Partial<
@@ -355,16 +346,14 @@ export type Subscription = {
   >;
   // GDPR Info
   gdprDetails: GDPRDetails | null;
-  gracePeriodEnd: string | null;
-  gracePeriodStart: string | null;
   hadCustomDynamicSampling: boolean;
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
+  hasMigratedToBillingPlatform: boolean;
   hasOverageNotificationsDisabled: boolean;
   hasRestrictedIntegration: boolean | null;
   hasSoftCap: boolean;
   id: string;
-  isBundleEligible: boolean;
 
   // Added by SubscriptionStore to show/hide a UI element
   isEnterpriseTrial: boolean;
@@ -374,8 +363,6 @@ export type Subscription = {
   isFree: boolean;
 
   // Subscription flags
-  isGracePeriod: boolean;
-  isHeroku: boolean;
   isManaged: boolean;
   isOverMemberLimit: boolean;
 
@@ -443,7 +430,6 @@ export type Subscription = {
    * Optional without access, and possibly null with access
    */
   companyName?: string | null;
-  contactInfo?: string | null;
   countryCode?: string | null;
 
   // Refetch usage data if Subscription is updated
@@ -459,8 +445,6 @@ export type Subscription = {
   };
 
   owner?: {email: string; name: string};
-  previousPaidPlans?: string[];
-
   productTrials?: ProductTrial[];
   reservedBudgets?: ReservedBudget[];
   // Added by SubscriptionStore
@@ -472,16 +456,9 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-
-  /**
-   * Optional without access, and possibly null with access
-   */
-  vatID?: string | null;
-
-  vatStatus?: VatStatus | null;
 };
 
-export type DiscountInfo = {
+type DiscountInfo = {
   amount: number;
   billingInterval: 'monthly' | 'annual';
   billingPeriods: number;
@@ -571,8 +548,6 @@ export type BillingStatTotal = {
 };
 
 export type CustomerUsage = {
-  onDemandEventsAllowed: number;
-  onDemandMaxSpend: number;
   periodEnd: string;
   periodStart: string;
   stats: Record<string, BillingStats>;
@@ -951,54 +926,6 @@ export type RecurringCredit =
   | RecurringPercentDiscount
   | RecurringEventCredit;
 
-export enum CohortId {
-  SECOND = 2,
-  THIRD = 3,
-  FOURTH = 4,
-  FIFTH = 5,
-  SIXTH = 6,
-  SEVENTH = 7,
-  EIGHTH = 8,
-  NINTH = 9,
-  TENTH = 10,
-  TEST_ONE = 111,
-}
-
-export type Cohort = {
-  cohortId: CohortId;
-  nextPlan: NextPlanInfo | null;
-  secondDiscount: number;
-};
-
-export type NextPlanInfo = {
-  contractPeriod: string;
-  discountAmount: number;
-  discountMonths: number;
-  id: string;
-  name: string;
-  reserved: Partial<Record<DataCategory, number>>;
-  totalPrice: number;
-  categoryCredits?: Partial<
-    Record<
-      DataCategory,
-      {
-        credits: number;
-        months: number;
-      }
-    >
-  >;
-};
-
-export type PlanMigration = {
-  cohort: Cohort | null;
-  dateApplied: string | null;
-  effectiveAt: string | null;
-  id: number | string;
-  planTier: string;
-  recurringCredits: RecurringCredit[];
-  scheduled: boolean;
-};
-
 export enum PlanTier {
   /**
    * Performance plans with continuous profiling
@@ -1015,15 +942,6 @@ export enum PlanTier {
    * Includes performance features.
    */
   AM1 = 'am1',
-  /**
-   * Monthly metered plans with variable data options.
-   */
-  MM2 = 'mm2',
-  /**
-   * First generation of monthly metered plans.
-   * Features and data volumes are tightly coupled.
-   */
-  MM1 = 'mm1',
   /**
    * No specified tier
    */

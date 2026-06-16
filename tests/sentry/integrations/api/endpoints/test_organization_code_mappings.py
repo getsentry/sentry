@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.integrations.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
@@ -254,6 +255,9 @@ class OrganizationCodeMappingsTest(APITestCase):
             "sourceRoot": "/source/root",
             "defaultBranch": "master",
         }
+        assert ProjectRepository.objects.filter(
+            project=self.project1, repository=self.repo1
+        ).exists()
 
     def test_basic_post_from_member_permissions(self) -> None:
         self.login_as(user=self.user2)
@@ -329,7 +333,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "nonFieldErrors": [
-                "Code path config already exists with this project and stack trace root"
+                "Code path config already exists with this project, stack trace root, and source root"
             ]
         }
 

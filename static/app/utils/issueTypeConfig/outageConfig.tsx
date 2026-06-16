@@ -35,6 +35,7 @@ export const outageConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true},
       graph: {enabled: true, type: 'cron-checks'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: true},
     },
@@ -69,13 +70,14 @@ export const outageConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true, fixedEnvironment: true},
       graph: {enabled: true, type: 'uptime-checks'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: true, downtime: true},
     },
     detector: {
       enabled: true,
       title: t('Uptime Monitor'),
-      ctaText: t('View alert details'),
+      ctaText: t('View monitor details'),
     },
     customCopy: {
       eventUnits: t('Events'),

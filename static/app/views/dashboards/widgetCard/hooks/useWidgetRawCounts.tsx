@@ -1,14 +1,15 @@
 import {useMemo} from 'react';
 
-import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
-import {explodeFieldString} from 'sentry/utils/discover/fields';
+import {defined} from 'sentry/utils/defined';
+import {explodeFieldString, isEquation} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {
+  createTraceMetricEventsFilter,
+  getEquationMetricsTotalFilter,
+} from 'sentry/views/explore/metrics/utils';
 import {useRawCounts, type RawCounts} from 'sentry/views/explore/useRawCounts';
 
 type Props = {
@@ -20,40 +21,9 @@ type RawCountConfig = {
   dataset: DiscoverDatasets;
   enabled: boolean;
   supported: boolean;
+  normalModeExtrapolated?: boolean;
+  query?: string;
 };
-
-export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): string {
-  const search = new MutableSearch('');
-  traceMetrics.forEach((traceMetric, index) => {
-    // Open the parentheses around this tracemetric filter
-    search.addOp('(');
-
-    search.addFilterValue('metric.name', traceMetric.name);
-    search.addFilterValue('metric.type', traceMetric.type);
-    const addNoneOperators = traceMetric.unit === NONE_UNIT;
-    if (addNoneOperators) {
-      search.addOp('(');
-      search.addFilterValue('!has', 'metric.unit');
-      search.addOp('OR');
-    }
-
-    search.addFilterValue('metric.unit', traceMetric.unit ?? NONE_UNIT);
-
-    if (addNoneOperators) {
-      search.addOp(')');
-    }
-
-    // Close the parentheses around this tracemetric filter
-    search.addOp(')');
-
-    // Add the OR operator between this tracemetric filter and the next one
-    if (index < traceMetrics.length - 1) {
-      search.addOp('OR');
-    }
-  });
-
-  return search.toString();
-}
 
 export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null {
   const rawCountConfig = useMemo<RawCountConfig>(() => {
@@ -71,12 +41,32 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
           enabled: isSupportedDisplayType,
         };
       case WidgetType.TRACEMETRICS: {
-        const traceMetrics = widget.queries?.[0]?.aggregates
-          ?.map(aggregate => explodeFieldString(aggregate))
-          ?.map(extractTraceMetricFromColumn)
-          ?.filter(defined);
+        // Process all function aggregates and equations to ensure the total count
+        // query can be derived from either
+        // In the current set up, we should only have one or the other being
+        // processed for this raw count
+        const aggregates = widget.queries?.[0]?.aggregates ?? [];
+        const functionAggregates = aggregates.filter(agg => !isEquation(agg));
+        const equationAggregates = aggregates.filter(agg => isEquation(agg));
 
-        if (!defined(traceMetrics) || traceMetrics.length === 0) {
+        const traceMetrics = functionAggregates
+          .map(aggregate => extractTraceMetricFromColumn(explodeFieldString(aggregate)))
+          .filter(defined);
+
+        const filters: string[] = [];
+
+        if (traceMetrics.length > 0) {
+          filters.push(createTraceMetricEventsFilter(traceMetrics));
+        }
+
+        for (const equation of equationAggregates) {
+          const equationFilter = getEquationMetricsTotalFilter(equation);
+          if (equationFilter) {
+            filters.push(equationFilter);
+          }
+        }
+
+        if (filters.length === 0) {
           return {
             supported: true,
             dataset: DiscoverDatasets.TRACEMETRICS,
@@ -88,7 +78,7 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
           supported: true,
           dataset: DiscoverDatasets.TRACEMETRICS,
           enabled: isSupportedDisplayType,
-          query: createTraceMetricEventsFilter(traceMetrics),
+          query: filters.join(' OR '),
           normalModeExtrapolated: true,
         };
       }

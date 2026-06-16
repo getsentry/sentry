@@ -34,7 +34,7 @@ from sentry.db.postgres.transactions import (
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
-from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
+from sentry.hybridcloud.rpc import CELL_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
@@ -173,7 +173,7 @@ class OutboxBase(Model):
     category = BoundedPositiveIntegerField(choices=OutboxCategory.as_choices(), null=False)
     object_identifier = BoundedBigIntegerField(null=False)
 
-    # payload is used for webhook payloads.
+    # payload is used for outboxes that need to snapshot state like provisioning and audit logs.
     payload = models.JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.
@@ -468,13 +468,13 @@ class ControlOutboxBase(OutboxBase):
         "object_identifier",
     )
 
-    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
+    cell_name = models.CharField(max_length=CELL_NAME_LENGTH, db_column="region_name")
 
     def send_signal(self) -> None:
         process_control_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
-            region_name=self.cell_name,
+            cell_name=self.cell_name,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,

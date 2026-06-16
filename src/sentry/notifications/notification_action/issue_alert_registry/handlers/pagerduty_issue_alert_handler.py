@@ -24,7 +24,9 @@ class PagerDutyIssueAlertHandler(BaseIssueAlertHandler):
         return {"severity": blob.priority}
 
     @classmethod
-    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+    def render_label(
+        cls, organization_id: int, blob: dict[str, Any], integration_cache: Any = None
+    ) -> str:
         result = integration_service.organization_context(
             organization_id=organization_id,
             integration_id=blob["account"],

@@ -44,7 +44,7 @@ export function ProjectTeamAccess({organization, project}: Props) {
               ? undefined
               : t('You do not have permission to do this'),
           }}
-          priority="primary"
+          variant="primary"
           size="sm"
         >
           {t('Assign Team')}
@@ -55,7 +55,7 @@ export function ProjectTeamAccess({organization, project}: Props) {
     return (
       <Collapsible
         expandButton={({onExpand, numberOfHiddenItems}) => (
-          <Button priority="link" onClick={onExpand}>
+          <Button variant="link" onClick={onExpand}>
             {tn('Show %s collapsed team', 'Show %s collapsed teams', numberOfHiddenItems)}
           </Button>
         )}

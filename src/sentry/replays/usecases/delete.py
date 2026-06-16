@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import concurrent.futures as cf
 import functools
 import logging
 from datetime import datetime
@@ -24,7 +23,7 @@ from urllib3 import Retry
 
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
-from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.lib.seer_api import ReplayDeleteSeerDataRequest, make_replay_delete_request
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -36,6 +35,7 @@ from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
     QueryExecutionError,
@@ -69,14 +69,12 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
 
 def delete_replays(project_id: int, replay_ids: list[str]) -> None:
     """Set the archived bit flag to true on each replay."""
-    publisher = initialize_replays_publisher(is_async=True)
     for replay_id in replay_ids:
-        publisher.publish("ingest-replay-events", archive_event(project_id, replay_id))
-    publisher.flush()
+        publish_replay_event(archive_event(project_id, replay_id))
 
 
 def delete_replay_recordings(project_id: int, row: MatchedRow) -> None:
-    with cf.ThreadPoolExecutor(max_workers=100) as pool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
         pool.map(_delete_if_exists, _make_recording_filenames(project_id, row))
 
 

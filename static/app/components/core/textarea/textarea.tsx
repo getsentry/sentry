@@ -34,7 +34,7 @@ function TextAreaControl({
   ...p
 }: TextAreaProps) {
   return autosize ? (
-    <TextareaAutosize {...p} ref={ref} rows={rows} maxRows={maxRows} />
+    <TextareaAutosize {...p} ref={ref} minRows={rows} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} rows={rows} />
   );

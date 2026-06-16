@@ -47,7 +47,7 @@ export const feedback: OnboardingConfig<PlatformOptions> = {
               label: 'JavaScript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/vue";`,
+                importStatement: 'import * as Sentry from "@sentry/vue";',
                 dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),

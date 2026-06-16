@@ -3,7 +3,12 @@ import {useMatches} from 'react-router-dom';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
-export function useRoutes(): Array<PlainRoute<any>> {
+/**
+ * @deprecated Please do not use this. Switch to useMatches() from 'react-router-dom'
+ *
+ * See https://github.com/getsentry/frontend-tsc/issues/78
+ */
+export function useRoutes(): PlainRoute[] {
   const matches = useMatches();
 
   // XXX(epurkhiser): This transforms react-router 6 style matches back to old

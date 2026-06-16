@@ -37,6 +37,15 @@ class AuthenticatorInterfaceSerializerResponse(TypedDict):
     authId: NotRequired[str]
     createdAt: NotRequired[datetime]
     lastUsedAt: NotRequired[datetime | None]
+    # Interface-specific extensions populated by enroll/details endpoints
+    # after calling serialize(); kept as NotRequired so the base serializer
+    # output remains a structurally valid AuthenticatorInterfaceSerializerResponse.
+    form: NotRequired[list[dict[str, Any]]]
+    secret: NotRequired[str]
+    qrcode: NotRequired[str]
+    challenge: NotRequired[dict[str, Any]]
+    codes: NotRequired[list[str]]
+    devices: NotRequired[list[dict[str, Any]]]
 
 
 @register(AuthenticatorInterface)

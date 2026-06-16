@@ -7,8 +7,10 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
@@ -36,9 +38,10 @@ import type {
 } from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {defined, percent} from 'sentry/utils';
+import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {defined} from 'sentry/utils/defined';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -60,6 +63,11 @@ import {
   DISCOVER_EXCLUSION_FIELDS,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
+import {
+  formatProgressState,
+  getProgressIcon,
+  ProgressState,
+} from 'sentry/views/issueList/utils/progress';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 const COLUMNS: GroupListColumn[] = [
@@ -80,6 +88,7 @@ type Props = {
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
+  progressState?: ProgressState | null;
   query?: string;
   queryFilterDescription?: string;
   showLastTriggered?: boolean;
@@ -248,15 +257,20 @@ export function LoadingStreamGroup({
               <Placeholder height="18px" width="40px" />
             </NarrowEventsOrUsersCountsWrapper>
           )}
-          {withColumns.includes('assignee') && (
-            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
-              <Placeholder height="24px" />
-            </AssigneeWrapper>
+          {withColumns.includes('progress') && (
+            <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
+              <Placeholder height="18px" />
+            </ProgressWrapper>
           )}
           {withColumns.includes('priority') && (
             <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
               <Placeholder height="24px" />
             </PriorityWrapper>
+          )}
+          {withColumns.includes('assignee') && (
+            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+              <Placeholder height="24px" />
+            </AssigneeWrapper>
           )}
         </Fragment>
       )}
@@ -282,6 +296,7 @@ export function StreamGroup({
   showLastTriggered = false,
   onPriorityChange,
   onAssigneeChange,
+  progressState,
 }: Props) {
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
   const issueSelectionActions = useOptionalIssueSelectionActions();
@@ -290,6 +305,7 @@ export function StreamGroup({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const area = useAnalyticsArea();
   const selectionEnabled =
     canSelect && !!issueSelectionSummary && !!issueSelectionActions;
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
@@ -334,6 +350,7 @@ export function StreamGroup({
                 assigned_suggestion_reason:
                   newAssignee.suggestedAssignee?.suggestedReason,
                 assigned_type: newAssignee.type,
+                area,
               });
             }
             onAssigneeChange?.(newAssignee);
@@ -341,7 +358,15 @@ export function StreamGroup({
         }
       );
     },
-    [assignMutate, groupId, onAssigneeChange, organization.slug, query, sharedAnalytics]
+    [
+      area,
+      assignMutate,
+      groupId,
+      onAssigneeChange,
+      organization.slug,
+      query,
+      sharedAnalytics,
+    ]
   );
 
   const clickHasBeenHandled = useCallback((evt: React.MouseEvent<HTMLDivElement>) => {
@@ -701,6 +726,18 @@ export function StreamGroup({
               ) : null}
             </PriorityWrapper>
           )}
+          {withColumns.includes('progress') && (
+            <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
+              {progressState ? (
+                <Stack direction="row" align="center" gap="sm">
+                  {getProgressIcon(progressState)}
+                  <Text>{formatProgressState(progressState)}</Text>
+                </Stack>
+              ) : (
+                <Placeholder height="18px" width="80px" />
+              )}
+            </ProgressWrapper>
+          )}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
               <AssigneeSelector
@@ -751,7 +788,7 @@ const Wrapper = styled(PanelItem)<{
   padding: ${p => p.theme.space.md} 0;
   min-height: 82px;
 
-  &:not(:has(:hover)):not(:has(input:checked)) {
+  &:not(:has(:hover)):not(:has(input:checked)):not(:focus-within) {
     ${CheckboxLabel} {
       ${p => p.theme.visuallyHidden};
     }
@@ -807,10 +844,10 @@ const Wrapper = styled(PanelItem)<{
           background-color: ${p.theme.tokens.background.secondary};
         }
       }
-    `};
+    `}
 `;
 
-export const GroupSummary = styled('div')<{canSelect: boolean}>`
+const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
   margin-left: ${p => (p.canSelect ? p.theme.space.md : p.theme.space.xl)};
   margin-right: ${p => p.theme.space['3xl']};
@@ -944,6 +981,19 @@ const PriorityWrapper = styled('div')<{breakpoint: string}>`
   align-self: center;
   display: flex;
   justify-content: flex-end;
+
+  @container (width < ${p => p.breakpoint}) {
+    display: none;
+  }
+`;
+
+const ProgressWrapper = styled('div')<{breakpoint: string}>`
+  width: 124px;
+  padding-right: ${p => p.theme.space.xl};
+  margin-right: ${p => p.theme.space.xl};
+  align-self: center;
+  display: flex;
+  justify-content: flex-start;
 
   @container (width < ${p => p.breakpoint}) {
     display: none;

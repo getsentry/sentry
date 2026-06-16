@@ -4,6 +4,11 @@ import {Tab} from 'sentry/views/issueDetails/types';
 
 export const preprodConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
+    detector: {
+      enabled: true,
+      title: t('Mobile Build Monitor'),
+      ctaText: t('View monitor details'),
+    },
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {

@@ -25,15 +25,14 @@ describe('GuideStore', () => {
     GuideStore.init();
     data = [
       {
-        guide: 'issue',
+        guide: 'trace_view',
         seen: false,
       },
       {guide: 'issue_stream', seen: true},
     ];
-    GuideStore.registerAnchor('issue_header_stats');
-    GuideStore.registerAnchor('issue_sidebar_owners');
-    GuideStore.registerAnchor('breadcrumbs');
     GuideStore.registerAnchor('issue_stream');
+    GuideStore.registerAnchor('trace_view_guide_row');
+    GuideStore.registerAnchor('trace_view_guide_row_details');
   });
 
   afterEach(() => {
@@ -44,14 +43,12 @@ describe('GuideStore', () => {
     GuideStore.fetchSucceeded(data);
     // Should pick the first non-seen guide in alphabetic order.
     expect(GuideStore.getState().currentStep).toBe(0);
-    expect(GuideStore.getState().currentGuide?.guide).toBe('issue');
+    expect(GuideStore.getState().currentGuide?.guide).toBe('trace_view');
     // Should prune steps that don't have anchors.
-    expect(GuideStore.getState().currentGuide?.steps).toHaveLength(3);
+    expect(GuideStore.getState().currentGuide?.steps).toHaveLength(2);
 
     GuideStore.nextStep();
     expect(GuideStore.getState().currentStep).toBe(1);
-    GuideStore.nextStep();
-    expect(GuideStore.getState().currentStep).toBe(2);
     GuideStore.closeGuide();
     expect(GuideStore.getState().currentGuide).toBeNull();
   });
@@ -59,18 +56,18 @@ describe('GuideStore', () => {
   it('should force show a guide with #assistant', () => {
     data = [
       {
-        guide: 'issue',
+        guide: 'issue_stream',
         seen: true,
       },
-      {guide: 'issue_stream', seen: false},
+      {guide: 'trace_view', seen: false},
     ];
 
     GuideStore.fetchSucceeded(data);
     window.location.hash = '#assistant';
     window.dispatchEvent(new Event('load'));
-    expect(GuideStore.getState().currentGuide?.guide).toBe('issue');
-    GuideStore.closeGuide();
     expect(GuideStore.getState().currentGuide?.guide).toBe('issue_stream');
+    GuideStore.closeGuide();
+    expect(GuideStore.getState().currentGuide?.guide).toBe('trace_view');
     window.location.hash = '';
   });
 
@@ -85,10 +82,10 @@ describe('GuideStore', () => {
   it('should record analytics events when guide is cued', () => {
     const spy = jest.spyOn(GuideStore, 'recordCue');
     GuideStore.fetchSucceeded(data);
-    expect(spy).toHaveBeenCalledWith('issue');
+    expect(spy).toHaveBeenCalledWith('trace_view');
 
     expect(trackAnalytics).toHaveBeenCalledWith('assistant.guide_cued', {
-      guide: 'issue',
+      guide: 'trace_view',
       organization: null,
     });
 
@@ -105,7 +102,7 @@ describe('GuideStore', () => {
   it('only shows guides with server data and content', () => {
     data = [
       {
-        guide: 'issue',
+        guide: 'issue_stream',
         seen: true,
       },
       {

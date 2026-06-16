@@ -7,6 +7,7 @@ from typing import Any, Literal, TypedDict
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
@@ -254,7 +255,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 assignee=assignee,
                 priority=priority,
             ),
-            {},
+            {
+                "environment": (snuba_query.environment.name if snuba_query.environment else None),
+            },
         )
 
     def extract_dedupe_value(self, data_packet: DataPacket[MetricUpdate]) -> int:
@@ -282,6 +285,8 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
         if is_mri_field(agg_display_key):
             aggregate = format_mri_field(agg_display_key)
+        elif is_equation(agg_display_key):
+            aggregate = strip_equation(agg_display_key)
         elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in agg_display_key:
             agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[
                 0
@@ -346,10 +351,10 @@ class MetricIssue(GroupType):
     type_id = 8001
     slug = "metric_issue"
     description = "Metric issue triggered"
-    category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.METRIC.value
+    category = GroupCategory.METRIC.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
@@ -375,18 +380,3 @@ class MetricIssue(GroupType):
             },
         },
     )
-
-    @classmethod
-    def allow_ingest(cls, organization: Organization) -> bool:
-        return True
-
-    @classmethod
-    def allow_post_process_group(cls, organization: Organization) -> bool:
-        return True
-
-    @classmethod
-    def build_visible_feature_name(cls) -> list[str]:
-        return [
-            "organizations:workflow-engine-ui",
-            "organizations:workflow-engine-metric-issue-ui",
-        ]

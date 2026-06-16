@@ -1,7 +1,6 @@
 import dataclasses
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, NotRequired, TypedDict
@@ -56,6 +55,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries_with_referrers
@@ -115,6 +115,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
 
     def validate_dataset(self, value):
         sentry_sdk.set_tag("query.dataset", value)
+        sentry_sdk.set_attribute("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         raise ParseError(detail=f"Unsupported dataset: {value}")
@@ -253,7 +254,7 @@ class TracesExecutor:
         # issue
         if len(self.snuba_params.projects) < len(all_projects) and self.offset == 0:
             selected_project_request = self.get_traces_rpc(list(self.snuba_params.projects))
-            with ThreadPoolExecutor(
+            with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__, max_workers=2
             ) as query_thread_pool:
                 all_project_future = query_thread_pool.submit(get_traces_rpc, all_project_request)
@@ -369,7 +370,7 @@ class TracesExecutor:
                 traces_errors,
                 eap_traces_errors,
                 errors_callsite,
-                is_experimental_data_a_null_result=len(eap_traces_errors) == 0,
+                is_experimental_data_nullish=len(eap_traces_errors) == 0,
                 reasonable_match_comparator=_reasonable_trace_count_map_match,
                 debug_context=debug_context,
             )
@@ -386,7 +387,7 @@ class TracesExecutor:
                 traces_occurrences,
                 eap_traces_occurrences,
                 occurrences_callsite,
-                is_experimental_data_a_null_result=len(eap_traces_occurrences) == 0,
+                is_experimental_data_nullish=len(eap_traces_occurrences) == 0,
                 reasonable_match_comparator=_reasonable_trace_count_map_match,
                 debug_context=debug_context,
             )
@@ -961,6 +962,7 @@ def process_rpc_user_queries(
 
     set_span_attribute("user_queries_count", len(queries))
     sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
+    sentry_sdk.set_attribute("user_queries.raw_queries", user_queries)
 
     return queries
 

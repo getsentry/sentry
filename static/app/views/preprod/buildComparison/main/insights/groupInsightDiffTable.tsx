@@ -84,8 +84,12 @@ export function GroupInsightItemDiffTable({
         throw new Error(`Invalid field: ${field}`);
     }
 
-    if (aValue < bValue) return kind === 'asc' ? -1 : 1;
-    if (aValue > bValue) return kind === 'asc' ? 1 : -1;
+    if (aValue < bValue) {
+      return kind === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return kind === 'asc' ? 1 : -1;
+    }
     return 0;
   });
 
@@ -215,7 +219,7 @@ export function GroupInsightItemDiffTable({
                         <Flex align="start" gap="xs">
                           <Text monospace>{groupDiffItem.path}</Text>
                           <CopyToClipboardButton
-                            priority="transparent"
+                            variant="transparent"
                             size="zero"
                             text={groupDiffItem.path}
                             style={{flexShrink: 0}}

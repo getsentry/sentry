@@ -29,7 +29,7 @@ export function useDrawSelectedBorderEffect({
 }) {
   useEffect(() => {
     if (!canvas || !view || !renderer) {
-      return undefined;
+      return;
     }
     function onHighlight(
       node: FlamegraphFrame[] | SpanChartNode[] | null,

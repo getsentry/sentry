@@ -19,7 +19,7 @@ export const useMouseMovement = ({
   ref: React.RefObject<HTMLElement | null>;
   disabled?: boolean;
 }): React.RefObject<MouseMovementData> => {
-  const mouseMovementDataRef = useRef<MouseMovementData>({
+  const mouseMovementDataRef = useRef({
     x: 0,
     y: 0,
     verticalSpeed: 0,
@@ -36,9 +36,9 @@ export const useMouseMovement = ({
     currentEvent: null,
   });
 
-  const rafRef = useRef<number>(0);
-  const lastTimestampRef = useRef<number>(0);
-  const isCalculating = useRef<boolean>(false);
+  const rafRef = useRef(0);
+  const lastTimestampRef = useRef(0);
+  const isCalculating = useRef(false);
 
   const reset = useCallback(() => {
     mouseRef.current = {

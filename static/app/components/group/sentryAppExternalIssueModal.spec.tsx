@@ -42,7 +42,7 @@ describe('openSentryAppIssueModal', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/external-issues/`,
+      url: '/organizations/org-slug/issues/1/external-issues/',
       body: [],
     });
   });

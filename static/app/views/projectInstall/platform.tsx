@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
@@ -8,10 +8,10 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {NotFound} from 'sentry/components/errors/notFound';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
@@ -27,8 +27,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
 import {PlatformDocHeader} from './platformDocHeader';
 
-const ProductUnavailableCTAHook = HookOrDefault({
-  hookName: 'component:product-unavailable-cta',
+const ProductUnavailableCTA = OverrideOrDefault({
+  overrideName: 'component:product-unavailable-cta',
 });
 
 type Props = {
@@ -48,27 +48,24 @@ export function ProjectInstallPlatform({project, platform}: Props) {
     [location.query.product]
   );
 
-  const redirectWithProjectSelection = useCallback(
-    (to: LocationDescriptorObject) => {
-      if (!project?.id) {
-        return;
-      }
-      // We need to persist and pin the project filter
-      // so the selection does not reset on further navigation
-      PageFiltersStore.updateProjects([Number(project?.id)], null);
-      PageFiltersStore.pin('projects', true);
-      setPageFiltersStorage(organization.slug, new Set(['projects']));
+  const redirectWithProjectSelection = (to: LocationDescriptorObject) => {
+    if (!project?.id) {
+      return;
+    }
+    // We need to persist and pin the project filter
+    // so the selection does not reset on further navigation
+    PageFiltersStore.updateProjects([Number(project?.id)], null);
+    PageFiltersStore.pin('projects', true);
+    setPageFiltersStorage(organization.slug, new Set(['projects']));
 
-      navigate({
-        ...to,
-        query: {
-          ...to.query,
-          project: project?.id,
-        },
-      });
-    },
-    [navigate, organization.slug, project?.id]
-  );
+    navigate({
+      ...to,
+      query: {
+        ...to.query,
+        project: project?.id,
+      },
+    });
+  };
 
   if (!platform) {
     return <NotFound />;
@@ -83,7 +80,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
   return (
     <Fragment>
       {!isSelfHosted && showDocsWithProductSelection && (
-        <ProductUnavailableCTAHook organization={organization} />
+        <ProductUnavailableCTA organization={organization} />
       )}
       <PlatformDocHeader projectSlug={project.slug} platform={platform} />
       {platform.id === 'other' ? (
@@ -103,7 +100,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
         {isGettingStarted && showPerformancePrompt && (
           <Feature
             features="performance-view"
-            hookName="feature-disabled:performance-new-project"
+            overrideName="feature-disabled:performance-new-project"
           >
             {({hasFeature}) => {
               if (hasFeature) {
@@ -113,7 +110,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
                 <Alert.Container>
                   <StyledAlert variant="info">
                     {t(
-                      `Your selected platform supports performance, but your organization does not have performance enabled.`
+                      'Your selected platform supports performance, but your organization does not have performance enabled.'
                     )}
                   </StyledAlert>
                 </Alert.Container>
@@ -123,7 +120,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
         )}
         <StyledButtonBar>
           <Button
-            priority="primary"
+            variant="primary"
             onClick={() => {
               trackAnalytics('onboarding.take_me_to_issues_clicked', {
                 organization,

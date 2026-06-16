@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -39,6 +39,8 @@ export function CodeOwnerFileTable({
   onDelete,
   disabled,
 }: CodeOwnerFileTableProps) {
+  const {openModal} = useModal();
+
   const api = useApi();
   const theme = useTheme();
   const organization = useOrganization();
@@ -68,7 +70,7 @@ export function CodeOwnerFileTable({
         `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
         {
           method: 'PUT',
-          data: {raw: codeownerFile.raw, date_updated: new Date().toISOString()},
+          data: {raw: codeownerFile.raw},
         }
       );
       onUpdate({...codeowner, ...data});
@@ -118,7 +120,7 @@ export function CodeOwnerFileTable({
             <code>{codeowner.codeMapping?.sourceRoot}</code>
           </Flex>
           <Flex align="center" gap="md">
-            <TimeSince date={codeowner.dateUpdated} />
+            <TimeSince date={codeowner.dateSynced ?? codeowner.dateUpdated} />
           </Flex>
           <Flex align="center" gap="md">
             {codeowner.codeOwnersUrl === 'unknown' ? null : (

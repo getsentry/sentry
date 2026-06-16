@@ -11,16 +11,16 @@ from sentry.models.project import Project
 from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
 
 
 @instrumented_task(
     name="sentry.integrations.jira.tasks.migrate_issues",
     namespace=integrations_tasks,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(times=5, delay=60 * 5, on=(Exception,), ignore=(Integration.DoesNotExist,)),
+    silenced_exceptions=(Integration.DoesNotExist,),
 )
-@retry(exclude=(Integration.DoesNotExist))
 def migrate_issues(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.jira.plugin import JiraPlugin
 
@@ -117,10 +117,10 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
 @instrumented_task(
     name="sentry.integrations.jira.tasks.sync_metadata",
     namespace=integrations_control_tasks,
-    retry=Retry(times=5, delay=20),
+    retry=Retry(times=5, delay=20, on=(IntegrationError,), ignore=(Integration.DoesNotExist,)),
     silo_mode=SiloMode.CONTROL,
+    silenced_exceptions=(Integration.DoesNotExist,),
 )
-@retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))
 def sync_metadata(integration_id: int) -> None:
     from sentry.integrations.jira.integration import JiraIntegration
     from sentry.integrations.jira_server.integration import JiraServerIntegration

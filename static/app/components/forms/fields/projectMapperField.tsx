@@ -266,7 +266,7 @@ export class RenderField extends Component<RenderProps, State> {
             <Button
               disabled={!selectedSentryProjectId || !selectedMappedValue}
               size="sm"
-              priority="primary"
+              variant="primary"
               onClick={handleAdd}
               icon={<IconAdd />}
               aria-label={t('Add project')}
@@ -284,7 +284,7 @@ export class RenderField extends Component<RenderProps, State> {
               {nextDescription ?? ''}
               <LinkButton
                 size="sm"
-                priority="primary"
+                variant="primary"
                 icon={<IconOpen />}
                 disabled={!existingValues.length}
                 href={nextUrl}

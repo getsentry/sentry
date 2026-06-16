@@ -8,8 +8,8 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
@@ -54,7 +54,6 @@ export function ProjectSessionsAnrRequest({
     const baseParams = {
       field: [yAxis, 'count_unique(user)'],
       interval: getSessionsInterval(datetime, {
-        highFidelity: organization.features.includes('minute-resolution-sessions'),
         dailyInterval: true,
       }),
       project: projects[0],
@@ -85,7 +84,7 @@ export function ProjectSessionsAnrRequest({
 
   const {data, isRefetching, isError} = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: queryParams},

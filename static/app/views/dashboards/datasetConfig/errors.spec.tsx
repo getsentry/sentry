@@ -7,7 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 
 const theme = ThemeFixture();
@@ -42,6 +42,7 @@ describe('ErrorsConfig', () => {
           {trace: 'abcd'},
           {
             organization,
+            navigate: jest.fn(),
             location,
             theme,
             eventView: new EventView({
@@ -70,6 +71,7 @@ describe('ErrorsConfig', () => {
           {id: 'defg', 'project.name': project.slug},
           {
             organization,
+            navigate: jest.fn(),
             location,
             theme,
             eventView: new EventView({

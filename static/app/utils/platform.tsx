@@ -8,7 +8,7 @@ import {
   PlatformCategory,
   serverless,
 } from 'sentry/data/platformCategories';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 /**
  *
@@ -72,7 +72,7 @@ export function isDisabledGamingPlatform({
   platform,
   enabledConsolePlatforms,
 }: {
-  platform: Platform;
+  platform: Pick<Platform, 'id' | 'type'>;
   enabledConsolePlatforms?: string[];
 }) {
   return platform.type === 'console' && !enabledConsolePlatforms?.includes(platform.id);

@@ -25,14 +25,14 @@ describe('rawTrackAnalyticsEvent', () => {
   const org_id = Number(organization.id);
 
   beforeEach(() => {
-    (uniqueId as jest.MockedFunction<typeof uniqueId>).mockReturnValue('345');
+    jest.mocked(uniqueId).mockReturnValue('345');
   });
 
   afterEach(() => {
-    (trackReloadEvent as jest.Mock).mockClear();
-    (trackAmplitudeEvent as jest.Mock).mockClear();
-    (trackMarketingEvent as jest.Mock).mockClear();
-    (uniqueId as jest.Mock).mockClear();
+    jest.mocked(trackReloadEvent).mockClear();
+    jest.mocked(trackAmplitudeEvent).mockClear();
+    jest.mocked(trackMarketingEvent).mockClear();
+    jest.mocked(uniqueId).mockClear();
   });
 
   it('tracks in reload but not amplitude with undefined organization', () => {

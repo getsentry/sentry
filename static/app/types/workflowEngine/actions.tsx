@@ -35,6 +35,7 @@ export enum ActionTarget {
 
 export enum ActionType {
   SLACK = 'slack',
+  SLACK_STAGING = 'slack_staging',
   MSTEAMS = 'msteams',
   DISCORD = 'discord',
   PAGERDUTY = 'pagerduty',

@@ -6,8 +6,8 @@ from rest_framework.request import Request
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import to_valid_int_id
 from sentry.incidents.models.incident import Incident
-from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 
 
 class IncidentPermission(OrganizationPermission):

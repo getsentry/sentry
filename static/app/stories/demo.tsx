@@ -1,6 +1,6 @@
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-export function Demo(props: FlexProps<'div'>) {
+export function Demo(props: FlexProps) {
   return (
     <Flex
       data-test-id="storybook-demo"

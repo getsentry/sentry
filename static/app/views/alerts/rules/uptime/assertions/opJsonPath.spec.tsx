@@ -140,8 +140,8 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
-    const greaterThan = screen.getByRole('option', {name: 'greater than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
+    const greaterThan = await screen.findByRole('option', {name: 'greater than'});
 
     expect(lessThan).toBeInTheDocument();
     expect(greaterThan).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe('AssertionOpJsonPath', () => {
 
   it('enables < and > comparisons for numeric operand values', async () => {
     function Stateful() {
-      const [state, setState] = useState<UptimeJsonPathOp>({
+      const [state, setState] = useState({
         ...makeJsonPathOp({
           operator: defaultOperator,
           operand: defaultOperand,
@@ -179,8 +179,8 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
-    const greaterThan = screen.getByRole('option', {name: 'greater than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
+    const greaterThan = await screen.findByRole('option', {name: 'greater than'});
 
     expect(lessThan).toBeInTheDocument();
     expect(greaterThan).toBeInTheDocument();
@@ -199,8 +199,8 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const globPattern = screen.getByRole('option', {name: 'Glob Pattern'});
-    const literal = screen.getByRole('option', {name: 'Literal'});
+    const globPattern = await screen.findByRole('option', {name: 'Glob Pattern'});
+    const literal = await screen.findByRole('option', {name: 'Literal'});
 
     expect(globPattern).toBeInTheDocument();
     expect(literal).toBeInTheDocument();
@@ -219,8 +219,8 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const globPattern = screen.getByRole('option', {name: 'Glob Pattern'});
-    const literal = screen.getByRole('option', {name: 'Literal'});
+    const globPattern = await screen.findByRole('option', {name: 'Glob Pattern'});
+    const literal = await screen.findByRole('option', {name: 'Literal'});
 
     expect(globPattern).toBeInTheDocument();
     expect(literal).toBeInTheDocument();
@@ -251,7 +251,7 @@ describe('AssertionOpJsonPath', () => {
 
   it('resets glob operand to literal when < or > comparison is selected', async () => {
     function Stateful() {
-      const [state, setState] = useState<UptimeJsonPathOp>(
+      const [state, setState] = useState(
         makeJsonPathOp({
           id: 'test-id-1',
           value: '$.count',
@@ -277,7 +277,7 @@ describe('AssertionOpJsonPath', () => {
     const comparisonButton = screen.getByTestId('json-path-operators-trigger');
     await userEvent.click(comparisonButton);
 
-    const lessThan = screen.getByRole('option', {name: 'less than'});
+    const lessThan = await screen.findByRole('option', {name: 'less than'});
     await userEvent.click(lessThan);
 
     await waitFor(() =>

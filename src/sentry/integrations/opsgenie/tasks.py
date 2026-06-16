@@ -10,7 +10,7 @@ from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 
 ALERT_LEGACY_INTEGRATIONS = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
@@ -24,9 +24,14 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.integrations.opsgenie.tasks.migrate_opsgenie_plugins",
     namespace=integrations_tasks,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(
+        times=5,
+        delay=60 * 5,
+        on=(Exception,),
+        ignore=(Integration.DoesNotExist, OrganizationIntegration.DoesNotExist),
+    ),
+    silenced_exceptions=(Integration.DoesNotExist, OrganizationIntegration.DoesNotExist),
 )
-@retry(exclude=(Integration.DoesNotExist, OrganizationIntegration.DoesNotExist))
 def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
     with record_event(OnCallInteractionType.MIGRATE_PLUGIN).capture():
         from sentry_plugins.opsgenie.plugin import OpsGeniePlugin

@@ -27,7 +27,6 @@ import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integration
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
 import {IntegrationStatus} from 'sentry/views/settings/organizationIntegrations/integrationStatus';
@@ -136,10 +135,9 @@ function Body({
   tabs: React.ReactNode;
   topSection: React.ReactNode;
 }) {
-  const routes = useRoutes();
   return (
     <Fragment>
-      <BreadcrumbTitle routes={routes} title={integrationName} />
+      <BreadcrumbTitle title={integrationName} />
       {alert}
       {topSection}
       {tabs}

@@ -1,9 +1,8 @@
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {Section} from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -48,11 +47,7 @@ function AssignToUser({userId}: {userId: string}) {
   }
 
   const title = user?.name ?? user?.email ?? t('Unknown user');
-  return (
-    <Tooltip title={title} showOnlyOnOverflow>
-      {t('Assign to %s', title)}
-    </Tooltip>
-  );
+  return t('Assign to %s', title);
 }
 
 function DetectorOwner({owner}: {owner: Detector['owner']}) {
@@ -68,8 +63,8 @@ function DetectorOwner({owner}: {owner: Detector['owner']}) {
 
 export function DetectorDetailsAssignee({owner}: {owner: Detector['owner']}) {
   return (
-    <Section title={t('Assign')}>
+    <DetailSection title={t('Assign')}>
       <DetectorOwner owner={owner} />
-    </Section>
+    </DetailSection>
   );
 }

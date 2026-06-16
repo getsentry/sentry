@@ -99,7 +99,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             ),
         )
 
-    def test_slug(self):
+    def test_slug(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -113,7 +113,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         monitor = validator.save()
         assert monitor.slug == "my-monitor"
 
-    def test_invalid_numeric_slug(self):
+    def test_invalid_numeric_slug(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -126,7 +126,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert "slug" in validator.errors
         assert validator.errors["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    def test_generated_slug_not_entirely_numeric(self):
+    def test_generated_slug_not_entirely_numeric(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "1234",
@@ -140,7 +140,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.slug.startswith("1234-")
         assert not monitor.slug.isdecimal()
 
-    def test_crontab_whitespace(self):
+    def test_crontab_whitespace(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "1234",
@@ -154,7 +154,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.config["schedule"] == "* * * * *"
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
-    def test_monitor_organization_limit(self):
+    def test_monitor_organization_limit(self) -> None:
         for i in range(settings.MAX_MONITORS_PER_ORG):
             Monitor.objects.create(
                 organization_id=self.organization.id,
@@ -184,7 +184,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             )
         ]
 
-    def test_simple_with_alert_rule(self):
+    def test_simple_with_alert_rule(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -207,7 +207,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert rule is not None
         assert rule.environment_id == self.environment.id
 
-    def test_checkin_margin_zero(self):
+    def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
         #
         # XXX(epurkhiser): We currently transform 0 -> 1 for backwards
@@ -268,7 +268,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert detector is not None
         assert detector.enabled is False
 
-    def test_invalid_schedule(self):
+    def test_invalid_schedule(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -282,7 +282,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert "schedule" in validator.errors["config"]
         assert validator.errors["config"]["schedule"][0] == "Schedule is invalid"
 
-    def test_create_with_owner_team(self):
+    def test_create_with_owner_team(self) -> None:
         """Test creating a monitor with a team owner."""
         team = self.create_team(organization=self.organization)
         data = {
@@ -300,7 +300,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.owner_user_id is None
         assert monitor.owner_team_id == team.id
 
-    def test_create_with_status_disabled(self):
+    def test_create_with_status_disabled(self) -> None:
         """Test creating a monitor with disabled status."""
         data = {
             "project": self.project.slug,
@@ -316,7 +316,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         assert monitor.status == ObjectStatus.DISABLED
 
-    def test_create_with_is_muted_noop(self):
+    def test_create_with_is_muted_noop(self) -> None:
         """Test that creating a monitor with is_muted does nothing.
 
         Since is_muted is computed from MonitorEnvironment.is_muted, setting is_muted=True
@@ -342,7 +342,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
 
 class MonitorValidatorUpdateTest(MonitorTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -366,7 +366,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         self.access = MagicMock()
         self.access.has_project_scope.return_value = True
 
-    def test_update_name(self):
+    def test_update_name(self) -> None:
         """Test updating monitor name."""
         validator = MonitorValidator(
             instance=self.monitor,
@@ -384,7 +384,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.name == "Updated Monitor Name"
         assert updated_monitor.slug == "test-monitor"  # Slug unchanged
 
-    def test_update_slug(self):
+    def test_update_slug(self) -> None:
         """Test updating monitor slug."""
         validator = MonitorValidator(
             instance=self.monitor,
@@ -402,7 +402,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.slug == "new-monitor-slug"
         assert updated_monitor.name == "Test Monitor"  # Name unchanged
 
-    def test_update_config(self):
+    def test_update_config(self) -> None:
         """Test updating monitor config."""
         new_config = {
             "schedule": "*/30 * * * *",
@@ -429,7 +429,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.config["max_runtime"] == 60
         assert updated_monitor.config["timezone"] == "America/New_York"
 
-    def test_partial_config_update_different_field(self):
+    def test_partial_config_update_different_field(self) -> None:
         """Test that updating a config field doesn't trigger false positive margin/runtime changes."""
         now = timezone.now().replace(second=0, microsecond=0)
         env = self.create_monitor_environment(
@@ -469,7 +469,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         env.refresh_from_db()
         assert env.next_checkin_latest == original_next_checkin_latest
 
-    def test_update_owner_to_user(self):
+    def test_update_owner_to_user(self) -> None:
         """Test updating monitor owner to a user."""
         validator = MonitorValidator(
             instance=self.monitor,
@@ -487,7 +487,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.owner_user_id == self.user.id
         assert updated_monitor.owner_team_id is None
 
-    def test_update_owner_to_team(self):
+    def test_update_owner_to_team(self) -> None:
         """Test updating monitor owner to a team."""
         validator = MonitorValidator(
             instance=self.monitor,
@@ -505,7 +505,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.owner_user_id is None
         assert updated_monitor.owner_team_id == self.team.id
 
-    def test_update_owner_to_none(self):
+    def test_update_owner_to_none(self) -> None:
         """Test removing monitor owner."""
         # First set an owner
         self.monitor.update(owner_user_id=self.user.id)
@@ -526,7 +526,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.owner_user_id is None
         assert updated_monitor.owner_team_id is None
 
-    def test_update_is_muted(self):
+    def test_update_is_muted(self) -> None:
         """Test updating is_muted field."""
         # Create an environment first so the monitor can be muted
         env = self.create_monitor_environment(
@@ -554,7 +554,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         env.refresh_from_db()
         assert env.is_muted is True
 
-    def test_update_is_muted_propagates_to_environments(self):
+    def test_update_is_muted_propagates_to_environments(self) -> None:
         """Test that muting a monitor propagates to all its environments."""
         # Create two monitor environments
         env1 = self.create_monitor_environment(
@@ -590,7 +590,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert env1.is_muted is True
         assert env2.is_muted is True
 
-    def test_update_is_muted_false_propagates_to_environments(self):
+    def test_update_is_muted_false_propagates_to_environments(self) -> None:
         """Test that unmuting a monitor propagates to all its environments."""
         # Create two muted monitor environments
         env1 = self.create_monitor_environment(
@@ -629,7 +629,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert env1.is_muted is False
         assert env2.is_muted is False
 
-    def test_update_status_to_disabled(self):
+    def test_update_status_to_disabled(self) -> None:
         """Test updating monitor status to disabled."""
         validator = MonitorValidator(
             instance=self.monitor,
@@ -699,7 +699,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert not validator.is_valid()
         assert "Monitor quota exceeded" in str(validator.errors["status"])
 
-    def test_update_multiple_fields(self):
+    def test_update_multiple_fields(self) -> None:
         """Test updating multiple fields at once."""
         validator = MonitorValidator(
             instance=self.monitor,
@@ -723,7 +723,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert is_monitor_muted(updated_monitor) is False
         assert updated_monitor.owner_team_id == self.team.id
 
-    def test_update_slug_already_exists(self):
+    def test_update_slug_already_exists(self) -> None:
         """Test updating slug to one that already exists fails."""
         # Create another monitor with target slug
         Monitor.objects.create(
@@ -750,7 +750,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert not validator.is_valid()
         assert 'The slug "existing-slug" is already in use.' in str(validator.errors["slug"])
 
-    def test_update_preserves_unchanged_fields(self):
+    def test_update_preserves_unchanged_fields(self) -> None:
         """Test that update preserves fields that aren't being updated."""
         original_config = self.monitor.config.copy()
 
@@ -771,7 +771,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.slug == "test-monitor"
         assert updated_monitor.config == original_config
 
-    def test_partial_config_update_preserves_existing_fields(self):
+    def test_partial_config_update_preserves_existing_fields(self) -> None:
         """Test that partial config updates preserve fields not included in the update."""
         # Set up a monitor with a complete config
         original_config = {
@@ -806,7 +806,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.config["failure_issue_threshold"] == 3
         assert updated_monitor.config["recovery_threshold"] == 1
 
-    def test_update_schedule_recomputes_next_checkin(self):
+    def test_update_schedule_recomputes_next_checkin(self) -> None:
         """Test that updating the schedule recomputes next_checkin for all environments."""
         # Create monitor environments with specific next_checkin times
         now = timezone.now().replace(second=0, microsecond=0)
@@ -857,7 +857,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert env2.next_checkin == expected_next_checkin
         assert env2.next_checkin_latest == expected_next_checkin_latest
 
-    def test_partial_config_update_does_not_trigger_schedule_recompute(self):
+    def test_partial_config_update_does_not_trigger_schedule_recompute(self) -> None:
         """Test that updating only checkin_margin doesn't trigger schedule recomputation."""
         # Create a monitor environment with specific next_checkin times
         now = timezone.now().replace(second=0, microsecond=0)
@@ -896,7 +896,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         env.refresh_from_db()
         assert env.next_checkin == original_next_checkin
 
-    def test_update_schedule_type_recomputes_next_checkin(self):
+    def test_update_schedule_type_recomputes_next_checkin(self) -> None:
         """Test that changing schedule_type from crontab to interval recomputes next_checkin."""
         # Create a monitor environment
         now = timezone.now().replace(second=0, microsecond=0)
@@ -939,7 +939,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 class BaseMonitorValidatorTestCase(MonitorTestCase):
     """Base class for monitor validator tests with common setup."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.request = RequestFactory().get("/")
@@ -970,7 +970,7 @@ class BaseMonitorValidatorTestCase(MonitorTestCase):
 
 
 class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = self._get_valid_data()
 
@@ -1002,13 +1002,13 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert validated_data["config"]["schedule"] == expected_schedule
         assert validated_data["config"]["schedule_type"] == expected_type
 
-    def test_valid_crontab_config(self):
+    def test_valid_crontab_config(self) -> None:
         validator = self._create_validator()
         self._assert_valid_monitor_data(
             validator, "Test Monitor", "test-monitor", "0 * * * *", ScheduleType.CRONTAB
         )
 
-    def test_valid_interval_config(self):
+    def test_valid_interval_config(self) -> None:
         data = self._get_valid_data(
             name="Interval Monitor",
             slug="interval-monitor",
@@ -1019,7 +1019,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
             validator, "Interval Monitor", "interval-monitor", [1, "hour"], ScheduleType.INTERVAL
         )
 
-    def test_only_slug_provided(self):
+    def test_only_slug_provided(self) -> None:
         data = {
             "slug": "my-monitor-slug",
             "config": self.valid_data["config"],
@@ -1030,7 +1030,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert validated_data["name"] == "my-monitor-slug"
         assert validated_data["slug"] == "my-monitor-slug"
 
-    def test_only_name_provided(self):
+    def test_only_name_provided(self) -> None:
         data = {
             "name": "My Monitor Name",
             "config": self.valid_data["config"],
@@ -1041,26 +1041,26 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert validated_data["name"] == "My Monitor Name"
         assert validated_data["slug"] == "my-monitor-name"
 
-    def test_missing_name_and_slug(self):
+    def test_missing_name_and_slug(self) -> None:
         data = {"config": self.valid_data["config"]}
         validator = self._create_validator(data)
         assert not validator.is_valid()
         assert "Either name or slug must be provided" in str(validator.errors)
 
-    def test_invalid_crontab_schedule(self):
+    def test_invalid_crontab_schedule(self) -> None:
         data = self._get_valid_data()
         data["config"]["schedule"] = "invalid cron"
         validator = self._create_validator(data)
         assert not validator.is_valid()
         assert "schedule" in validator.errors["config"]
 
-    def test_invalid_interval_schedule(self):
+    def test_invalid_interval_schedule(self) -> None:
         data = self._get_valid_data(config=self._get_base_config("interval", schedule=[0, "hour"]))
         validator = self._create_validator(data)
         assert not validator.is_valid()
         assert "schedule" in validator.errors["config"]
 
-    def test_nonstandard_crontab_schedules(self):
+    def test_nonstandard_crontab_schedules(self) -> None:
         data = self._get_valid_data()
         data["config"]["schedule"] = "@hourly"
         validator = self._create_validator(data)
@@ -1080,7 +1080,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.owner_user_id is None
         assert monitor.owner_team_id is None
 
-    def test_validate_with_owner(self):
+    def test_validate_with_owner(self) -> None:
         team = self.create_team(organization=self.organization)
         data = self._get_valid_data(owner=f"team:{team.id}")
         validator = self._create_validator(data)
@@ -1090,21 +1090,21 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert validated_data["owner"].is_team
         assert validated_data["owner"].id == team.id
 
-    def test_validate_with_status(self):
+    def test_validate_with_status(self) -> None:
         data = self._get_valid_data(status="disabled")
         validator = self._create_validator(data)
         assert validator.is_valid(), validator.errors
         validated_data = validator.validated_data
         assert validated_data["status"] == ObjectStatus.DISABLED
 
-    def test_validate_with_is_muted(self):
+    def test_validate_with_is_muted(self) -> None:
         data = self._get_valid_data(isMuted=True)
         validator = self._create_validator(data)
         assert validator.is_valid(), validator.errors
         validated_data = validator.validated_data
         assert validated_data["is_muted"] is True
 
-    def test_slug_uniqueness_validation(self):
+    def test_slug_uniqueness_validation(self) -> None:
         Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -1120,7 +1120,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert "slug" in validator.errors
         assert 'The slug "test-monitor" is already in use.' in str(validator.errors["slug"])
 
-    def test_update_monitor(self):
+    def test_update_monitor(self) -> None:
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
@@ -1155,7 +1155,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
 
 
 class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = self._get_valid_detector_data()
 
@@ -1182,7 +1182,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
             context=self.context,
         )
 
-    def test_valid_detector_with_monitor(self):
+    def test_valid_detector_with_monitor(self) -> None:
         validator = self._create_validator()
         assert validator.is_valid(), validator.errors
         validated_data = validator.validated_data
@@ -1192,7 +1192,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert validated_data["data_sources"][0]["slug"] == "test-monitor"
 
     @pytest.mark.skip("Not required yet, migrating to dataSources")
-    def test_detector_requires_data_source(self):
+    def test_detector_requires_data_source(self) -> None:
         data = {
             "type": "monitor_check_in_failure",
             "name": "Test Monitor Detector",
@@ -1201,7 +1201,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert not validator.is_valid()
         assert "dataSources" in validator.errors
 
-    def test_rejects_multiple_data_sources(self):
+    def test_rejects_multiple_data_sources(self) -> None:
         """Test that multiple data sources are rejected for cron monitors."""
         data = self._get_valid_detector_data(
             dataSources=[
@@ -1222,7 +1222,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert "dataSources" in validator.errors
         assert "Only one data source is allowed" in str(validator.errors["dataSources"])
 
-    def test_create_detector_validates_data_source(self):
+    def test_create_detector_validates_data_source(self) -> None:
         condition_group = DataConditionGroup.objects.create(
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,

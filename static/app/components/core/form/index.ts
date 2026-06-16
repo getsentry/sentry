@@ -1,6 +1,14 @@
 /** @public */
-export {useScrapsForm, defaultFormOptions, setFieldErrors} from './scrapsForm';
+export {
+  formOptions,
+  useScrapsForm,
+  defaultFormOptions,
+  setFieldErrors,
+  withFieldGroup,
+  withForm,
+} from './scrapsForm';
 export {AutoSaveForm} from './autoSaveForm';
+export {AutoSaveContextProvider} from './autoSaveContext';
 export {FieldGroup} from './layout/fieldGroup';
 export {FormSearch} from './FormSearch';
 export {FORM_FIELD_REGISTRY} from './generatedFieldRegistry';

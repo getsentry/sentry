@@ -48,19 +48,19 @@ function setUpTests() {
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/projects/`,
+    url: '/organizations/org-slug/projects/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/teams/`,
+    url: '/organizations/org-slug/teams/',
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/customers/org-slug/`,
+    url: '/customers/org-slug/',
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/`,
+    url: '/organizations/org-slug/',
     body: {},
   });
 
@@ -73,7 +73,6 @@ function setUpTests() {
     'promotion-platform',
     'forced-trial',
     'soft-cap',
-    'grace-period',
     'trial-ending',
     'partner-plan-ending',
     'suspended',
@@ -152,24 +151,6 @@ describe('GSBanner', () => {
     renderGlobalModal();
 
     expect(await screen.findByTestId('modal-usage-exceeded')).toBeInTheDocument();
-  });
-
-  it('renders grace period modal with billing access', async () => {
-    const organization = OrganizationFixture({
-      slug: 'grace-period',
-      access: ['org:billing'],
-    });
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({organization, isGracePeriod: true})
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-    renderGlobalModal();
-
-    expect(await screen.findByTestId('modal-grace-period')).toBeInTheDocument();
   });
 
   it('opens the trialEndingModal within 3 days of ending', async () => {
@@ -1197,7 +1178,7 @@ describe('GSBanner', () => {
       screen.getByRole('button', {name: /update payment information/i})
     ).toHaveAttribute(
       'href',
-      `/settings/past-due/billing/details/?referrer=banner-billing-failure`
+      '/settings/past-due/billing/details/?referrer=banner-billing-failure'
     );
     expect(await screen.findByTestId('modal-past-due')).toBeInTheDocument();
 
@@ -1211,7 +1192,7 @@ describe('GSBanner', () => {
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
-          pathname: `/settings/past-due/billing/details/`,
+          pathname: '/settings/past-due/billing/details/',
           query: {
             referrer: 'banner-billing-failure',
           },

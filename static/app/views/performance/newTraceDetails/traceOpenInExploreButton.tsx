@@ -2,7 +2,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/queryParams/mode';

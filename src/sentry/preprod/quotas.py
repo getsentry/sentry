@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any
 
 import sentry_sdk
@@ -15,10 +16,15 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.producer import PreprodFeature
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
+
+
+class PreprodFeature(Enum):
+    SIZE_ANALYSIS = "size_analysis"
+    BUILD_DISTRIBUTION = "build_distribution"
+
 
 DEFAULT_SIZE_RETENTION_DAYS = 90
 

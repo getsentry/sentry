@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {ToolBox} from 'sentry/components/charts/components/toolBox';
+import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -14,7 +15,6 @@ import type {
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useRouter} from 'sentry/utils/useRouter';
 
 // TODO: replace usages of ChartZoom with useChartZoom
 
@@ -131,7 +131,6 @@ export function useChartZoom({
   const {handleChartReady} = useChartZoomCancel();
   const location = useLocation();
   const navigate = useNavigate();
-  const router = useRouter();
 
   /**
    * Sets the new period due to a zoom related action
@@ -181,12 +180,13 @@ export function useChartZoom({
             start: startFormatted,
             end: endFormatted,
           },
-          router,
+          location,
+          navigate,
           {save: saveOnZoom}
         );
       }
     },
-    [onZoom, navigate, location, router, saveOnZoom, usePageDate]
+    [onZoom, navigate, location, saveOnZoom, usePageDate]
   );
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
@@ -223,16 +223,7 @@ export function useChartZoom({
    * before we update URL state and re-render
    */
   const handleChartFinished = useCallback<EChartFinishedHandler>((_props, chart) => {
-    // This attempts to activate the area zoom toolbox feature
-    const zoom = (chart as any)._componentsViews?.find((c: any) => c._features?.dataZoom);
-    if (zoom && !zoom._features.dataZoom._isZoomActive) {
-      // Calling dispatchAction will re-trigger handleChartFinished
-      chart.dispatchAction({
-        type: 'takeGlobalCursor',
-        key: 'dataZoomSelect',
-        dataZoomSelectActive: true,
-      });
-    }
+    activateZoomAreaSelect(chart);
   }, []);
 
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {

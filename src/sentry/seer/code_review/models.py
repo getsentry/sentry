@@ -38,7 +38,7 @@ class SeerCodeReviewConfig(BaseModel):
     github_rate_limit_sensitive: bool = False
     trigger: SeerCodeReviewTrigger
     trigger_comment_id: int | None = None
-    trigger_comment_type: Literal["issue_comment"] | None = None
+    trigger_comment_type: Literal["pull_request_review_comment"] | None = None
     trigger_user: str | None = None
     trigger_user_id: int | None = None
     trigger_at: datetime | None = None  # When the trigger event occurred on GitHub

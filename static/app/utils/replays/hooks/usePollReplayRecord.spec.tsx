@@ -3,7 +3,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 import {usePollReplayRecord} from './usePollReplayRecord';
 

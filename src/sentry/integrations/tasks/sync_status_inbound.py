@@ -14,6 +14,7 @@ from sentry.api.helpers.group_index.update import get_current_release_version_of
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
@@ -21,7 +22,7 @@ from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.signals import issue_resolved, issue_unresolved
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -193,10 +194,10 @@ def group_was_recently_resolved(group: Group) -> bool:
     name="sentry.integrations.tasks.sync_status_inbound",
     namespace=integrations_tasks,
     processing_deadline_duration=150,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(times=5, delay=60 * 5, on=(Exception,), ignore=(Integration.DoesNotExist,)),
     silo_mode=SiloMode.CELL,
+    silenced_exceptions=(Integration.DoesNotExist,),
 )
-@retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
 def sync_status_inbound(
     integration_id: int, organization_id: int, issue_key: str, data: Mapping[str, Any]
@@ -259,13 +260,14 @@ def sync_status_inbound(
         ) = get_resolutions_and_activity_data_for_groups(
             affected_groups, config.get("resolution_strategy"), activity_data, organization_id
         )
-        Group.objects.update_group_status(
-            groups=resolvable_groups,
-            status=GroupStatus.RESOLVED,
-            substatus=None,
-            activity_type=activity_type,
-            activity_data=activity_data,
-        )
+        with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=resolvable_groups,
+                status=GroupStatus.RESOLVED,
+                substatus=None,
+                activity_type=activity_type,
+                activity_data=activity_data,
+            )
         # after we update the group, update the resolutions
         for group in resolvable_groups:
             resolution_params = resolutions_by_group_id.get(group.id)
@@ -292,6 +294,7 @@ def sync_status_inbound(
                 group=group,
                 project=group.project,
                 resolution_type=provider.key,
+                commit_id=None,
                 sender=f"resolved_with_{provider.key}",
             )
             try:
@@ -311,13 +314,14 @@ def sync_status_inbound(
                 sentry_sdk.capture_exception(e)
 
     elif action == ResolveSyncAction.UNRESOLVE:
-        Group.objects.update_group_status(
-            groups=affected_groups,
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.ONGOING,
-            activity_type=ActivityType.SET_UNRESOLVED,
-            activity_data=activity_data,
-        )
+        with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=affected_groups,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+                activity_type=ActivityType.SET_UNRESOLVED,
+                activity_data=activity_data,
+            )
 
         for group in affected_groups:
             issue_unresolved.send_robust(

@@ -41,7 +41,7 @@ async function saveAsRecentSearch({
 }) {
   // Only save recent search query if there is a type provided.
   // Do not save empty string queries (i.e. if they clear search)
-  if (typeof recentSearches === 'undefined' || !query) {
+  if (recentSearches === undefined || !query) {
     return;
   }
 

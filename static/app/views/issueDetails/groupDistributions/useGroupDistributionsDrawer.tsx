@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -10,7 +11,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 /**
- * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
+ * Shared tags and feature flags distributions drawer used by issue details.
  */
 export function useGroupDistributionsDrawer({
   group,

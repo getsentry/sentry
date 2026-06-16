@@ -2,16 +2,19 @@ import styled from '@emotion/styled';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
+import type {IconVariant} from 'sentry/icons/svgIcon';
 
 type Props = {
   children?: React.ReactNode;
   className?: string;
   small?: boolean;
+  variant?: IconVariant;
   withIcon?: boolean;
 };
 
 export function EmptyStateWarning({
   small = false,
+  variant = 'muted',
   withIcon = true,
   children,
   className,
@@ -19,13 +22,13 @@ export function EmptyStateWarning({
   return small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconSearch variant="muted" size="lg" />}
+        {withIcon && <StyledIconSearch variant={variant} size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch variant="muted" legacySize="54px" />}
+      {withIcon && <IconSearch variant={variant} legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );

@@ -1,14 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useLocation} from 'sentry/utils/useLocation';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
@@ -16,17 +12,7 @@ describe('WebVitalsDetailPanel', () => {
   let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -59,11 +45,11 @@ describe('WebVitalsDetailPanel', () => {
         query: expect.objectContaining({
           dataset: 'spans',
           field: [
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.inp)',
+            'p75(browser.web_vital.lcp.value)',
+            'p75(browser.web_vital.fcp.value)',
+            'p75(browser.web_vital.cls.value)',
+            'p75(browser.web_vital.ttfb.value)',
+            'p75(browser.web_vital.inp.value)',
             'count()',
           ],
           query:
@@ -82,13 +68,13 @@ describe('WebVitalsDetailPanel', () => {
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
             'performance_score(measurements.score.cls)',
-            `performance_score(measurements.score.inp)`,
+            'performance_score(measurements.score.inp)',
             'performance_score(measurements.score.ttfb)',
             'performance_score(measurements.score.total)',
             'avg(measurements.score.weight.lcp)',
             'avg(measurements.score.weight.fcp)',
             'avg(measurements.score.weight.cls)',
-            `avg(measurements.score.weight.inp)`,
+            'avg(measurements.score.weight.inp)',
             'avg(measurements.score.weight.ttfb)',
             'count()',
             'count_scores(measurements.score.total)',
@@ -115,11 +101,11 @@ describe('WebVitalsDetailPanel', () => {
             'project.id',
             'project',
             'transaction',
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.inp)',
+            'p75(browser.web_vital.lcp.value)',
+            'p75(browser.web_vital.fcp.value)',
+            'p75(browser.web_vital.cls.value)',
+            'p75(browser.web_vital.ttfb.value)',
+            'p75(browser.web_vital.inp.value)',
             'performance_score(measurements.score.lcp)',
             'opportunity_score(measurements.score.lcp)',
             'performance_score(measurements.score.total)',

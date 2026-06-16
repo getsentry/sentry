@@ -147,6 +147,14 @@ const prismStyles = (theme: Theme, darkTheme: Theme) => css`
 `;
 
 const styles = (theme: Theme, darkTheme: Theme) => css`
+  *,
+  *::before,
+  *::after {
+    scrollbar-width: thin;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    scrollbar-color: ${theme.tokens.graphics.neutral.moderate} transparent;
+  }
+
   body {
     .sentry-error-embed-wrapper {
       z-index: ${theme.zIndex.sentryErrorEmbed};

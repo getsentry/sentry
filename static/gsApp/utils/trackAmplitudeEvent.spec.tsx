@@ -22,9 +22,9 @@ describe('trackAmplitudeEvent', () => {
     );
   });
   afterEach(() => {
-    (Amplitude.setUserId as jest.Mock).mockClear();
-    (Amplitude.track as jest.Mock).mockClear();
-    (Amplitude.setGroup as jest.Mock).mockClear();
+    jest.mocked(Amplitude.setUserId).mockClear();
+    jest.mocked(Amplitude.track).mockClear();
+    jest.mocked(Amplitude.setGroup).mockClear();
   });
 
   it('organization id is a number calls track', () => {

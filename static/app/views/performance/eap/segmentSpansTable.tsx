@@ -7,21 +7,22 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
-import {Pagination, type CursorHandler} from 'sentry/components/pagination';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -64,7 +65,7 @@ export function SegmentSpansTable({
   const {projects} = useProjects();
   const navigate = useNavigate();
 
-  const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
+  const projectSlug = projects.find(p => p.id === String(eventView.project[0]))?.slug;
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
   const {selected, options} = getEAPSegmentSpansListSort(location, spanCategory);
 
@@ -161,7 +162,16 @@ export function SegmentSpansTable({
               column,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
+            renderBodyCell(
+              column,
+              row,
+              meta,
+              projectSlug,
+              location,
+              navigate,
+              organization,
+              theme
+            ),
         }}
       />
     </Fragment>
@@ -174,6 +184,7 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
+  navigate: ReactRouter3Navigate,
   organization: Organization,
   theme: Theme
 ) {
@@ -217,7 +228,10 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: `/organizations/${organization.slug}/replays/${row.replayId}/`,
+            pathname: makeReplaysPathname({
+              path: `/${row.replayId}/`,
+              organization,
+            }),
             query: {
               referrer: 'performance',
             },
@@ -229,7 +243,7 @@ function renderBodyCell(
     );
   }
 
-  if (!meta || !meta?.fields) {
+  if (!meta?.fields) {
     return row[column.key];
   }
 
@@ -237,6 +251,7 @@ function renderBodyCell(
 
   const rendered = renderer(row, {
     location,
+    navigate,
     organization,
     theme,
     unit: meta.units?.[column.key],

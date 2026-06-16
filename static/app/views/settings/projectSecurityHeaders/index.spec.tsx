@@ -29,10 +29,8 @@ describe('ProjectSecurityHeaders', () => {
       initialRouterConfig,
     });
 
-    // Heading
-    expect(
-      await screen.findByText('Security Header Reports', {selector: 'h1'})
-    ).toBeInTheDocument();
+    // Panel heading
+    expect(await screen.findByText('Additional Configuration')).toBeInTheDocument();
   });
 
   it('renders loading error', async () => {

@@ -648,12 +648,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(
             path, {"email": "bar@example.com", "id": "123", "email_verified": "1"}, follow=True
         )
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-            ("/auth/login/foo/", 302),
-        ]
-        # there should be no prompt as we auto merge the identity
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302), ("/auth/reactivate/", 302)]
+        # identity still auto-merges; the inactive user is now routed to
+        # reactivate instead of being forwarded into the app and bounced back.
 
         auth_identity = AuthIdentity.objects.get(id=auth_identity.id)
 
@@ -677,6 +674,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         the ident changed from the SSO provider), we should be re-linking
         the identity automatically (without prompt) assuming the user is
         a member of the org.
+
+        Session ownership is sufficient — no IdP email_verified claim needed.
         """
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -704,8 +703,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # updated to be something else)
         resp = self.client.post(path, {"email": "adfadsf@example.com"})
 
-        # there should be no prompt as we auto merge the identity
-        assert resp.status_code == 200
+        # authenticated member auto-links without prompt
+        assert resp.status_code == 302
 
     def test_flow_authenticated_without_verified_without_password(self) -> None:
         """

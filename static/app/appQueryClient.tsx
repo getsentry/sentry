@@ -1,14 +1,10 @@
 import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persister';
-import {notifyManager} from '@tanstack/react-query';
+import {notifyManager, QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {PersistQueryClientProvider} from '@tanstack/react-query-persist-client';
 import {get as getItem, del as removeItem, set as setItem} from 'idb-keyval';
 
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants';
-import {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
 
 /**
  * Named it appQueryClient because we already have a queryClient in sentry/utils/queryClient

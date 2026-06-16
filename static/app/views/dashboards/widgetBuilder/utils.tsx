@@ -38,7 +38,7 @@ export function getDiscoverDatasetFromWidgetType(widgetType: WidgetType) {
     case WidgetType.ERRORS:
       return DiscoverDatasets.ERRORS;
     default:
-      return undefined;
+      return;
   }
 }
 

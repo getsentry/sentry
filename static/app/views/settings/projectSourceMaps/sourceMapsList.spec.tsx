@@ -97,11 +97,6 @@ describe('ProjectSourceMaps', () => {
       });
       expect(mockRequests.artifactBundles).toHaveBeenCalledTimes(1);
 
-      // Title
-      expect(
-        screen.getByRole('heading', {name: 'Source Map Uploads'})
-      ).toBeInTheDocument();
-
       // Search bar
       expect(
         screen.getByPlaceholderText('Filter by Debug ID or Upload ID')

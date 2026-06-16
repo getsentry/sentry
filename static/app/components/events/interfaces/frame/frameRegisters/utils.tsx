@@ -34,7 +34,7 @@ function getRegisterMap(deviceArch: string) {
     return REGISTERS_PPC;
   }
 
-  return undefined;
+  return;
 }
 
 function getRegisterIndex(register: string, registerMap: Record<string, number>) {
@@ -59,8 +59,12 @@ export function getSortedRegisters(
       }
 
       // Mapped registers come before unmapped ones
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
+      if (indexA !== -1) {
+        return -1;
+      }
+      if (indexB !== -1) {
+        return 1;
+      }
     }
 
     // Fallback: natural sort (handles numeric suffixes correctly)

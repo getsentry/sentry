@@ -63,7 +63,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         },
         examples=SessionExamples.QUERY_SESSIONS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[SessionsQueryResult]:
         """
         Returns a time series of release health session statistics for projects bound to an organization.
 

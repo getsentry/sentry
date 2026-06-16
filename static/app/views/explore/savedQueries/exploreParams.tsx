@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -33,7 +33,7 @@ export function ExploreParams({
 
   const {width} = useDimensions({elementRef: containerRef});
   const [childWidths, setChildWidths] = useState<number[]>([]);
-  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   const debouncedSetContainerWidth = useMemo(
     () =>
@@ -93,7 +93,7 @@ export function ExploreParams({
     });
   }
   const parsedQuery = useMemo(() => {
-    return parseQueryBuilderValue(query, getFieldDefinition);
+    return parseQueryBuilderValue(query, key => getFieldDefinition(key));
   }, [query]);
   if (query) {
     tokens.push(

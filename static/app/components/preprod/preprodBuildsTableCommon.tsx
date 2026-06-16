@@ -14,6 +14,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
+import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export function PreprodBuildsHeaderCells({
@@ -76,12 +77,18 @@ export function PreprodBuildsRowCells({
                       variant="icon"
                     />
                   ) : (
-                    <Tooltip title={t('Not installable')} skipWrapper>
+                    <Tooltip
+                      title={getDistributionErrorTooltip(
+                        build.distribution_info?.error_code,
+                        build.distribution_info?.error_message
+                      )}
+                      skipWrapper
+                    >
                       <span>
                         <Button
                           aria-label={t('Not installable')}
                           icon={<IconNot variant="danger" size="xs" />}
-                          priority="transparent"
+                          variant="transparent"
                           size="zero"
                           disabled
                         />
@@ -118,8 +125,8 @@ export function PreprodBuildsRowCells({
         </SimpleTable.RowCell>
       )}
 
-      <SimpleTable.RowCell justify="start">
-        <Flex direction="column" gap="xs">
+      <SimpleTable.RowCell justify="start" minWidth={0}>
+        <Flex direction="column" gap="xs" minWidth={0} width="100%">
           <Flex align="center" gap="xs">
             {build.app_info?.version !== null && (
               <Text size="lg" bold>
@@ -133,7 +140,7 @@ export function PreprodBuildsRowCells({
             )}
             {build.state === 3 && <IconCheckmark size="sm" variant="success" />}
           </Flex>
-          <Flex align="center" gap="xs">
+          <Flex align="center" gap="xs" minWidth={0}>
             <IconCommit size="xs" />
             <Text size="sm" variant="muted" monospace>
               {(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
@@ -150,9 +157,17 @@ export function PreprodBuildsRowCells({
                 <Text size="sm" variant="muted">
                   –
                 </Text>
-                <Text size="sm" variant="muted">
-                  {build.vcs_info?.head_ref || '--'}
-                </Text>
+                <Flex flex={1} minWidth={0} overflow="hidden">
+                  <Tooltip
+                    title={build.vcs_info?.head_ref || undefined}
+                    showOnlyOnOverflow
+                    skipWrapper
+                  >
+                    <Text size="sm" variant="muted" ellipsis>
+                      {build.vcs_info?.head_ref || '--'}
+                    </Text>
+                  </Tooltip>
+                </Flex>
               </Fragment>
             )}
           </Flex>

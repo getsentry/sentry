@@ -135,20 +135,21 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
       try {
         setLoading(true);
 
-        const results = await getTraceItemAttributeValues(
-          {
+        const results = await getTraceItemAttributeValues({
+          tag: {
             key: SpanFields.TRANSACTION,
             name: SpanFields.TRANSACTION,
             kind: undefined,
           },
-          query
-        );
+          searchQuery: query,
+        });
 
         const parsedResults = results.reduce(
-          (searchGroup: SearchGroup, item: string) => {
+          (searchGroup: SearchGroup, item) => {
+            const value = typeof item === 'string' ? item : item.value;
             searchGroup.children.push({
-              value: item,
-              title: item,
+              value,
+              title: value,
               type: ItemType.LINK,
               desc: '',
             });

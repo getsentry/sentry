@@ -18,7 +18,6 @@ from sentry.issue_detection.detectors.utils import (
 )
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.safe import get_path
@@ -35,17 +34,16 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None
-        self.gen_ai_chat_spans: list[str] = [
+        self.gen_ai_spans: list[str] = [
             span.get("span_id")
             for span in event.get("spans", [])
-            if span.get("op") == "gen_ai.chat"
+            if (span.get("op") or "").startswith("gen_ai.")
         ]
 
         lcp_value = get_path(self.event(), "measurements", "lcp", "value")
@@ -179,7 +177,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if not op.startswith("http.client"):
             return False
 
-        if span.get("parent_span_id") in self.gen_ai_chat_spans:
+        if span.get("parent_span_id") in self.gen_ai_spans:
             return False
 
         if (
@@ -208,8 +206,5 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         self._validate_and_store_performance_problem()
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]

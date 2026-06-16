@@ -32,7 +32,7 @@ describe('useLoadReplayReader', () => {
     const {result} = renderHookWithProviders(useLoadReplayReader, {
       initialProps: {
         orgSlug: organization.slug,
-        replaySlug: `123`,
+        replaySlug: '123',
       },
     });
 

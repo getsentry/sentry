@@ -9,7 +9,7 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -20,7 +20,7 @@ import {
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
+import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
 
 interface AggregateFlamegraphSidePanelProps {
   scheduler: CanvasScheduler;
@@ -33,13 +33,10 @@ export function AggregateFlamegraphSidePanel({
   const {projects} = useProjects();
 
   const projectsLookupTable = useMemo(() => {
-    return projects.reduce(
-      (acc, project) => {
-        acc[project.id] = project;
-        return acc;
-      },
-      {} as Record<string, Project>
-    );
+    return projects.reduce<Record<string, Project>>((acc, project) => {
+      acc[project.id] = project;
+      return acc;
+    }, {});
   }, [projects]);
 
   const flamegraph = useFlamegraph();

@@ -25,17 +25,13 @@ interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
-  hidden?: boolean;
+  notMerge?: boolean;
 }
 
-export function ChartVisualization({
-  chartXRangeSelection,
-  chartInfo,
-  chartRef,
-}: ChartVisualizationProps) {
+export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
   const theme = useTheme();
 
-  const plottables = useMemo(() => {
+  return useMemo(() => {
     const DataPlottableConstructor =
       chartInfo.chartType === ChartType.LINE
         ? Line
@@ -61,41 +57,40 @@ export function ChartVisualization({
       });
     });
   }, [chartInfo, theme]);
+}
 
+export function ChartVisualization({
+  chartXRangeSelection,
+  chartInfo,
+  chartRef,
+  notMerge,
+}: ChartVisualizationProps) {
+  const plottables = useChartVisualizationPlottables(chartInfo);
   const previousPlottables = usePrevious(
     plottables,
     chartInfo.timeseriesResult.isPending
   );
 
-  if (chartInfo.timeseriesResult.isPending) {
-    if (previousPlottables.length === 0) {
-      const loadingMessage =
-        chartInfo.timeseriesResult.isFetching &&
-        chartInfo.samplingMode === SAMPLING_MODE.HIGH_ACCURACY
-          ? t(
-              "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
-            )
-          : undefined;
-      return (
-        <TimeSeriesWidgetVisualization.LoadingPlaceholder
-          loadingMessage={loadingMessage}
-          expectMessage
-        />
-      );
-    }
+  const isLoading = chartInfo.timeseriesResult.isPending;
+  const activePlottables = isLoading ? previousPlottables : plottables;
 
+  if (isLoading && previousPlottables.length === 0) {
+    const loadingMessage =
+      chartInfo.timeseriesResult.isFetching &&
+      chartInfo.samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+        ? t(
+            "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
+          )
+        : undefined;
     return (
-      <StyledTransparentLoadingMask visible>
-        <TimeSeriesWidgetVisualization
-          ref={chartRef}
-          plottables={previousPlottables}
-          chartXRangeSelection={chartXRangeSelection}
-        />
-      </StyledTransparentLoadingMask>
+      <TimeSeriesWidgetVisualization.LoadingPlaceholder
+        loadingMessage={loadingMessage}
+        expectMessage
+      />
     );
   }
 
-  if (chartInfo.timeseriesResult.error) {
+  if (!isLoading && chartInfo.timeseriesResult.error) {
     return (
       <Container position="absolute" inset={0}>
         <Widget.WidgetError error={chartInfo.timeseriesResult.error} />
@@ -103,7 +98,7 @@ export function ChartVisualization({
     );
   }
 
-  if (plottables.length === 0) {
+  if (!isLoading && plottables.length === 0) {
     // This happens when the `/events-stats/` endpoint returns a blank
     // response. This is a rare error condition that happens when
     // proxying to RPC. Adding explicit handling with a "better" message
@@ -115,11 +110,14 @@ export function ChartVisualization({
   }
 
   return (
-    <TimeSeriesWidgetVisualization
-      ref={chartRef}
-      plottables={plottables}
-      chartXRangeSelection={chartXRangeSelection}
-    />
+    <StyledTransparentLoadingMask loaded={!isLoading} visible>
+      <TimeSeriesWidgetVisualization
+        ref={chartRef}
+        plottables={activePlottables}
+        chartXRangeSelection={chartXRangeSelection}
+        notMerge={notMerge}
+      />
+    </StyledTransparentLoadingMask>
   );
 }
 

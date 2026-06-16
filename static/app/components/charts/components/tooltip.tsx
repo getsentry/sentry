@@ -76,7 +76,7 @@ function defaultMarkerFormatter(value: string) {
 
 function getSeriesValue(series: any, offset: number) {
   if (!series.data) {
-    return undefined;
+    return;
   }
   if (Array.isArray(series.data)) {
     return series.data[offset];
@@ -85,7 +85,7 @@ function getSeriesValue(series: any, offset: number) {
     return series.data.value[offset];
   }
 
-  return undefined;
+  return;
 }
 
 type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc' | 'bucketSize';
@@ -372,7 +372,7 @@ export function computeChartTooltip(
     trigger: 'item',
     backgroundColor: theme.tokens.background.primary,
     borderWidth: 0,
-    extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.dropShadowHeavy}`,
+    extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.shadow.high}; z-index: ${theme.zIndex.tooltip} !important;`,
     transitionDuration: 0,
     padding: 0,
     className: 'tooltip-container',
@@ -427,18 +427,26 @@ export function computeChartTooltip(
         arrowPosition = '50%';
       }
 
+      // Prefer rendering the tooltip above the cursor.
+      let topPos = Number(pos[1]) - tipHeight - 20;
+      let arrowOnTop = false;
+      // When the tooltip is too tall to fit above the cursor (e.g. a group-by
+      // chart with many series), render it below the cursor instead of pinning
+      // it to the top edge of the window, which detaches it from the chart.
+      if (topPos + chartBoundingRect.top < CHART_TOOLTIP_VIEWPORT_OFFSET) {
+        topPos = Number(pos[1]) + 20;
+        arrowOnTop = true;
+      }
+
       const arrow = dom?.querySelector<HTMLDivElement>('.tooltip-arrow');
       if (arrow) {
         arrow.style.left = arrowPosition;
+        arrow.classList.toggle('arrow-top', arrowOnTop);
       }
 
       return {
         left: leftPos,
-        top: Math.max(
-          Number(pos[1]) - tipHeight - 20,
-          // avoid tooltip from being cut off by the top edge of the window
-          CHART_TOOLTIP_VIEWPORT_OFFSET - chartBoundingRect.top
-        ),
+        top: topPos,
       };
     },
     formatter,

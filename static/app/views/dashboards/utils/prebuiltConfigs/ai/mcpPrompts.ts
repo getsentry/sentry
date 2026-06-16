@@ -1,7 +1,12 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {MCP_PROMPTS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -43,7 +48,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           fields: [SpanFields.MCP_PROMPT_NAME, `avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.MCP_PROMPT_NAME],
-          fieldAliases: [t('Prompt'), t('Avg Duration')],
+          fieldAliases: [t('Prompt'), WIDGET_COLUMN_LABELS.avg],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -74,7 +79,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
-const PROMPTS_TABLE = {
+const PROMPTS_TABLE: PrebuiltWidget = {
   id: 'mcp-prompts-table',
   title: t('Prompts'),
   displayType: DisplayType.TABLE,
@@ -105,8 +110,8 @@ const PROMPTS_TABLE = {
         t('Requests'),
         t('Error Rate'),
         t('Errors'),
-        t('Avg'),
-        t('P95'),
+        WIDGET_COLUMN_LABELS.avg,
+        WIDGET_COLUMN_LABELS.p95,
       ],
       orderby: '-count()',
     },
@@ -123,7 +128,7 @@ const PROMPTS_TABLE = {
 export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'MCP Prompt Details',
+  title: MCP_PROMPTS_DASHBOARD_TITLE,
   filters: {
     globalFilter: [
       {

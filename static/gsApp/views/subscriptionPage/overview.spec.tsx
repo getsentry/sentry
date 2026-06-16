@@ -2,17 +2,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
-import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {CohortId, PlanTier} from 'getsentry/types';
+import {PlanTier} from 'getsentry/types';
 import Overview from 'getsentry/views/subscriptionPage/overview';
 
 describe('Subscription > Overview', () => {
@@ -25,12 +23,6 @@ describe('Subscription > Overview', () => {
       url: `/customers/${organization.slug}/usage/`,
       method: 'GET',
       body: CustomerUsageFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/`,
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
@@ -67,7 +59,7 @@ describe('Subscription > Overview', () => {
     SubscriptionStore.set(organization.slug, {});
   });
 
-  describe('Plan Migrations', () => {
+  describe('Pending Changes', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_b_100k',
@@ -90,62 +82,6 @@ describe('Subscription > Overview', () => {
       expect(
         await screen.findByText(/The following changes will take effect on/)
       ).toBeInTheDocument();
-
-      expect(screen.queryByText("We're updating our")).not.toBeInTheDocument();
-    });
-
-    it('renders plan migration', async () => {
-      SubscriptionStore.set(organization.slug, subscription);
-      const planMigrations = [PlanMigrationFixture({cohortId: CohortId.SECOND})];
-      const mockApi = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/plan-migrations/`,
-        query: {scheduled: 1, applied: 0},
-        method: 'GET',
-        body: planMigrations,
-      });
-
-      render(<Overview />, {
-        organization,
-        additionalWrapper: SecondaryNavigationContextProvider,
-      });
-
-      expect(
-        await screen.findByText(textWithMarkupMatcher("We're updating our Team Plan"))
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByText('The following changes will take effect on')
-      ).not.toBeInTheDocument();
-
-      expect(mockApi).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not render already applied plan migration', async () => {
-      SubscriptionStore.set(organization.slug, subscription);
-      const planMigrations = [
-        PlanMigrationFixture({
-          cohortId: CohortId.SECOND,
-          dateApplied: '2021-08-01',
-        }),
-      ];
-      const mockApi = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/plan-migrations/`,
-        query: {scheduled: 1, applied: 0},
-        method: 'GET',
-        body: planMigrations,
-      });
-
-      render(<Overview />, {
-        organization,
-        additionalWrapper: SecondaryNavigationContextProvider,
-      });
-
-      expect(
-        await screen.findByText(/The following changes will take effect on/)
-      ).toBeInTheDocument();
-
-      expect(screen.queryByText("We're updating our")).not.toBeInTheDocument();
-
-      expect(mockApi).toHaveBeenCalledTimes(1);
     });
   });
 

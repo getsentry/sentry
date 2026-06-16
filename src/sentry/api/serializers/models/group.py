@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, TypeGuard
 
 import sentry_sdk
 from django.conf import settings
@@ -58,7 +58,14 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import aliased_query, raw_query
+from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
+
+if TYPE_CHECKING:
+    from sentry.models.groupinbox import InboxDetails
+    from sentry.models.groupowner import OwnersSerialized
+    from sentry.sentry_apps.api.serializers.platform_external_issue import (
+        PlatformExternalIssueSerializerResponse,
+    )
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -111,7 +118,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     id: str
-    shareId: str
+    shareId: str | None
     shortId: str
     title: str
     culprit: str | None
@@ -127,18 +134,44 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     priorityLockedAt: datetime | None
     seerFixabilityScore: float | None
     seerAutofixLastTriggered: datetime | None
+    seerExplorerAutofixLastTriggered: datetime | None
     project: GroupProjectResponse
     type: str
     issueType: str
     issueCategory: str
     metadata: dict[str, Any]
     numComments: int
-    assignedTo: ActorSerializerResponse
+    assignedTo: ActorSerializerResponse | None
     isBookmarked: bool
     isSubscribed: bool
     subscriptionDetails: SubscriptionDetails | None
     hasSeen: bool
     annotations: list[GroupAnnotation]
+
+
+class GroupDetailsResponseOptional(TypedDict, total=False):
+    # Included by default; removable via `?collapse=release|tags|stats`
+    firstRelease: dict[str, Any] | None
+    lastRelease: dict[str, Any] | None
+    tags: list[dict[str, Any]]
+    stats: dict[str, list[list[float]]]
+    # Opt-in via `?expand=...`
+    inbox: InboxDetails | None
+    owners: list[OwnersSerialized] | None
+    forecast: dict[str, Any]
+    integrationIssues: list[dict[str, Any]]
+    sentryAppIssues: list[PlatformExternalIssueSerializerResponse]
+    latestEventHasAttachments: bool
+
+
+class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
+    activity: list[dict[str, Any]]
+    seenBy: list[dict[str, Any]]
+    pluginActions: list[Any]
+    pluginIssues: list[dict[str, Any]]
+    pluginContexts: list[dict[str, Any]]
+    userReportCount: int
+    participants: list[dict[str, Any]]
 
 
 class SeenStats(TypedDict):
@@ -274,7 +307,10 @@ class GroupSerializerBase(Serializer, ABC):
                 filter={"user_ids": user_ids, "is_active": True},
                 as_user=serialize_generic_user(user),
             )
-            actors = {id: u for id, u in zip(user_ids, serialized_users)}
+            # `serialize_many` may omit user_ids that are inactive or missing in
+            # the control silo; key by the returned id rather than zipping so
+            # drifted users don't silently misalign with the request ordering.
+            actors = {int(u["id"]): u for u in serialized_users}
         else:
             actors = {}
 
@@ -362,7 +398,8 @@ class GroupSerializerBase(Serializer, ABC):
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
-        issue_category = obj.issue_category_v2.name.lower()
+        issue_category = obj.issue_category.name.lower()
+
         group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),
             "shareId": share_id,
@@ -393,6 +430,7 @@ class GroupSerializerBase(Serializer, ABC):
             "priorityLockedAt": obj.priority_locked_at,
             "seerFixabilityScore": obj.seer_fixability_score,
             "seerAutofixLastTriggered": obj.seer_autofix_last_triggered,
+            "seerExplorerAutofixLastTriggered": obj.seer_explorer_autofix_last_triggered,
         }
 
         # This attribute is currently feature gated
@@ -908,7 +946,8 @@ SKIP_SNUBA_FIELDS = frozenset(
     (
         "status",
         "substatus",
-        "detector",
+        "detector",  # TODO - delete this once the UI has been updated
+        "monitor",
         "bookmarked_by",
         "assigned_to",
         "for_review",
@@ -923,6 +962,7 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.type",
         "issue.seer_actionability",
         "issue.seer_last_run",
+        "issue.progress",
     )
 )
 
@@ -932,6 +972,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         *SKIP_SNUBA_FIELDS,
         "last_seen",
         "times_seen",
+        "user_count",
         "date",
         "timestamp",  # We merge this with start/end, so don't want to include it as its own
         # condition
@@ -1074,6 +1115,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
+            condition_resolver=get_snuba_column_name,
             referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
             tenant_ids=(
                 {"organization_id": item_list[0].project.organization_id} if item_list else None
@@ -1095,6 +1137,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters["environment"] = environment_ids
+
         return aliased_query(
             dataset=Dataset.IssuePlatform,
             start=start,
@@ -1103,6 +1146,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
+            condition_resolver=get_snuba_column_name,
             referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
             tenant_ids=(
                 {"organization_id": item_list[0].project.organization_id} if item_list else None
@@ -1169,7 +1213,7 @@ class SimpleGroupSerializerResponse(TypedDict):
     lastSeen: datetime | None
 
 
-class SimpleGroupSerializer(Serializer):
+class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
     """
     A serializer that only returns the most basic information about a group.
     It should make minimal queries to the database.
@@ -1182,7 +1226,7 @@ class SimpleGroupSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> SimpleGroupSerializerResponse:
-        issue_category = obj.issue_category_v2.name.lower()
+        issue_category = obj.issue_category.name.lower()
 
         return SimpleGroupSerializerResponse(
             id=str(obj.id),

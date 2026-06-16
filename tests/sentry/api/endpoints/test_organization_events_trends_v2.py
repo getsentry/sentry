@@ -48,26 +48,11 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
         self.features = {
             "organizations:performance-view": True,
-            "organizations:performance-new-trends": True,
         }
 
     @property
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
-
-    def test_no_feature_flag(self) -> None:
-        response = self.client.get(
-            self.url,
-            format="json",
-            data={
-                "end": self.now - timedelta(minutes=1),
-                "start": self.now - timedelta(hours=4),
-                "field": ["project", "transaction"],
-                "query": "event.type:transaction",
-            },
-        )
-
-        assert response.status_code == 404, response.content
 
     def test_no_project(self) -> None:
         with self.feature(self.features):

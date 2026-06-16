@@ -1,16 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
 import FrontendOverviewPage from 'sentry/views/insights/pages/frontend/frontendOverviewPage';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
-jest.mock('sentry/utils/useLocation');
 
 const organization = OrganizationFixture({features: ['performance-view']});
 const pageFilterSelection = PageFiltersFixture({
@@ -37,7 +33,16 @@ describe('FrontendOverviewPage', () => {
 
   describe('data fetching', () => {
     it('fetches correct data with unknown + frontend platform', async () => {
-      render(<FrontendOverviewPage />, {organization});
+      render(<FrontendOverviewPage />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/insights/frontend/',
+            query: {statsPeriod: '10d', project: '1'},
+          },
+          route: '/insights/frontend/',
+        },
+      });
 
       await waitFor(() =>
         expect(mainTableApiCall).toHaveBeenCalledWith(
@@ -53,16 +58,22 @@ describe('FrontendOverviewPage', () => {
     });
 
     it('fetches correct data with unknown platform', async () => {
-      jest.mocked(usePageFilters).mockReturnValue(
-        PageFilterStateFixture({
-          selection: {
-            datetime: pageFilterSelection.datetime,
-            environments: [],
-            projects: [2],
-          },
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          ...pageFilterSelection,
+          projects: [2],
         })
       );
-      render(<FrontendOverviewPage />, {organization});
+      render(<FrontendOverviewPage />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/insights/frontend/',
+            query: {statsPeriod: '10d', project: '2'},
+          },
+          route: '/insights/frontend/',
+        },
+      });
 
       await waitFor(() =>
         expect(mainTableApiCall).toHaveBeenCalledWith(
@@ -174,18 +185,6 @@ const setupMocks = () => {
     body: [],
   });
 
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '/insights/backend/http/',
-    search: '',
-    query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
-
-  jest
-    .mocked(usePageFilters)
-    .mockReturnValue(PageFilterStateFixture({selection: pageFilterSelection}));
+  PageFiltersStore.onInitializeUrlState(pageFilterSelection);
   ProjectsStore.loadInitialData(projects);
 };

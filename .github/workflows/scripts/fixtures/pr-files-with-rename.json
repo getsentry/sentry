@@ -1,0 +1,47 @@
+[
+  {
+    "sha": "798034c0653b888a6d07869c47c7662e55a48ec1",
+    "filename": ".agents/skills/hybrid-cloud-outboxes/SKILL.md",
+    "status": "modified",
+    "additions": 1,
+    "deletions": 1,
+    "changes": 2,
+    "blob_url": "https://github.com/getsentry/sentry/blob/96b8ad19/.agents%2Fskills%2Fhybrid-cloud-outboxes%2FSKILL.md",
+    "raw_url": "https://github.com/getsentry/sentry/raw/96b8ad19/.agents%2Fskills%2Fhybrid-cloud-outboxes%2FSKILL.md",
+    "contents_url": "https://api.github.com/repos/getsentry/sentry/contents/.agents%2Fskills%2Fhybrid-cloud-outboxes%2FSKILL.md?ref=96b8ad19"
+  },
+  {
+    "sha": "91c952f9e0174cc8f574b7f7e9b07353102c5682",
+    "filename": ".agents/skills/hybrid-cloud-outboxes/references/signal-receivers.md",
+    "status": "modified",
+    "additions": 1,
+    "deletions": 1,
+    "changes": 2,
+    "blob_url": "https://github.com/getsentry/sentry/blob/96b8ad19/.agents%2Fskills%2Fhybrid-cloud-outboxes%2Freferences%2Fsignal-receivers.md",
+    "raw_url": "https://github.com/getsentry/sentry/raw/96b8ad19/.agents%2Fskills%2Fhybrid-cloud-outboxes%2Freferences%2Fsignal-receivers.md",
+    "contents_url": "https://api.github.com/repos/getsentry/sentry/contents/.agents%2Fskills%2Fhybrid-cloud-outboxes%2Freferences%2Fsignal-receivers.md?ref=96b8ad19"
+  },
+  {
+    "sha": "9b306a8ce766ae0cae8975c9da9954b305e62498",
+    "filename": ".agents/skills/hybrid-cloud-rpc/SKILL.md",
+    "status": "modified",
+    "additions": 5,
+    "deletions": 5,
+    "changes": 10,
+    "blob_url": "https://github.com/getsentry/sentry/blob/96b8ad19/.agents%2Fskills%2Fhybrid-cloud-rpc%2FSKILL.md",
+    "raw_url": "https://github.com/getsentry/sentry/raw/96b8ad19/.agents%2Fskills%2Fhybrid-cloud-rpc%2FSKILL.md",
+    "contents_url": "https://api.github.com/repos/getsentry/sentry/contents/.agents%2Fskills%2Fhybrid-cloud-rpc%2FSKILL.md?ref=96b8ad19"
+  },
+  {
+    "sha": "442d665073e560105377fc137d7fc4a4868cb57e",
+    "filename": "tests/sentry/hybridcloud/test_cell.py",
+    "status": "renamed",
+    "additions": 28,
+    "deletions": 30,
+    "changes": 58,
+    "previous_filename": "tests/sentry/hybridcloud/test_region.py",
+    "blob_url": "https://github.com/getsentry/sentry/blob/96b8ad19/tests%2Fsentry%2Fhybridcloud%2Ftest_cell.py",
+    "raw_url": "https://github.com/getsentry/sentry/raw/96b8ad19/tests%2Fsentry%2Fhybridcloud%2Ftest_cell.py",
+    "contents_url": "https://api.github.com/repos/getsentry/sentry/contents/tests%2Fsentry%2Fhybridcloud%2Ftest_cell.py?ref=96b8ad19"
+  }
+]

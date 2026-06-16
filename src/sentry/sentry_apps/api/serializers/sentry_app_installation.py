@@ -34,7 +34,7 @@ class SentryAppInstallationResult(TypedDict):
 
 
 @register(SentryAppInstallation)
-class SentryAppInstallationSerializer(Serializer):
+class SentryAppInstallationSerializer(Serializer[SentryAppInstallationResult]):
     def get_attrs(
         self,
         item_list: Sequence[SentryAppInstallation],

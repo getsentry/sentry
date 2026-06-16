@@ -3,7 +3,8 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TimeRangeSelectorProps} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
-import {useRouter} from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export interface DatePageFilterProps extends Partial<
   Partial<Omit<TimeRangeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>>
@@ -23,7 +24,8 @@ export function DatePageFilter({
   resetParamsOnChange,
   ...selectProps
 }: DatePageFilterProps) {
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const {selection, isReady: pageFilterIsReady} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
@@ -41,7 +43,7 @@ export function DatePageFilter({
 
         onChange?.(timePeriodUpdate);
 
-        updateDateTime(newTimePeriod, router, {
+        updateDateTime(newTimePeriod, location, navigate, {
           save: true,
           resetParams: resetParamsOnChange,
         });

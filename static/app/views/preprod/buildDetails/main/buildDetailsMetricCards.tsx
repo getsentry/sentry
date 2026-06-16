@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -241,7 +242,7 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                     <LinkButton
                       to={card.comparisonUrl}
                       size="zero"
-                      priority="link"
+                      variant="link"
                       aria-label={t('Compare builds')}
                     >
                       <Flex align="center" gap="xs">
@@ -391,9 +392,9 @@ function calculateDelta(
 const MetricValue = styled('span')<{$interactive?: boolean}>`
   ${p =>
     p.$interactive
-      ? `
-    text-decoration: underline dotted;
-    cursor: help;
-  `
+      ? css`
+          text-decoration: underline dotted;
+          cursor: help;
+        `
       : ''}
 `;

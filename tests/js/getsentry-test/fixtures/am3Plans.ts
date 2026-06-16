@@ -1,8 +1,5 @@
 import {AM_ADD_ON_CATEGORIES as AM3_ADD_ON_CATEGORIES} from 'getsentry-test/fixtures/constants';
-import {
-  DynamicSamplingReservedBudgetCategoryFixture,
-  SeerReservedBudgetCategoryFixture,
-} from 'getsentry-test/fixtures/reservedBudget';
+import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reservedBudget';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -31,26 +28,8 @@ const AM3_ONDEMAND_CATEGORIES = [
 
 const AM3_CATEGORIES = [...AM3_ONDEMAND_CATEGORIES] as DataCategory[];
 
-const AM3_DS_CHECKOUT_CATEGORIES = [
-  ...AM3_CHECKOUT_CATEGORIES,
-  'spansIndexed',
-] as DataCategory[];
-const AM3_DS_CATEGORIES = [
-  ...AM3_DS_CHECKOUT_CATEGORIES,
-  'profileDuration',
-  'profileDurationUI',
-  'seerAutofix',
-  'seerScanner',
-] as DataCategory[];
-
 const AM3_AVAILABLE_RESERVED_BUDGET_TYPES = {
   [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
-};
-
-const AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES = {
-  ...AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
-  [ReservedBudgetCategoryType.DYNAMIC_SAMPLING]:
-    DynamicSamplingReservedBudgetCategoryFixture({}),
 };
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
@@ -76,11 +55,6 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   },
 };
 
-const AM3_DS_CATEGORY_DISPLAY_NAMES = {
-  ...AM3_CATEGORY_DISPLAY_NAMES,
-  spansIndexed: {plural: 'stored spans', singular: 'stored span'},
-};
-
 const AM3_FREE_FEATURES = [
   'advanced-search',
   'event-attachments',
@@ -97,7 +71,6 @@ const AM3_FREE_FEATURES = [
 
 const AM3_TEAM_FEATURES = [
   ...AM3_FREE_FEATURES,
-  'codecov-integration',
   'crash-rate-alerts',
   'discover-basic',
   'incidents',
@@ -114,7 +87,6 @@ const AM3_TEAM_FEATURES = [
 const AM3_BUSINESS_FEATURES = [
   ...AM3_TEAM_FEATURES,
   'anomaly-detection-alerts',
-  'app-store-connect-multiple',
   'baa',
   'change-alerts',
   'custom-inbound-filters',
@@ -139,12 +111,6 @@ const AM3_BUSINESS_FEATURES = [
 const AM3_TRIAL_FEATURES = AM3_BUSINESS_FEATURES.filter(
   feature => feature !== 'sso-saml2' && feature !== 'baa'
 );
-
-const AM3_DS_FEATURES = [
-  ...AM3_BUSINESS_FEATURES,
-  'dynamic-sampling',
-  'dynamic-sampling-custom',
-];
 
 export const LEGACY_SEER_TIERS_DEVELOPER = {
   seerAutofix: [
@@ -282,20 +248,11 @@ const commonFields = {
   retentions: RETENTION_SETTINGS,
 };
 
-const commonFieldsForDs = {
-  ...commonFields,
-  categories: AM3_DS_CATEGORIES,
-  categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
-  checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
-  availableCategories: AM3_DS_CATEGORIES,
-  onDemandCategories: AM3_DS_CATEGORIES,
-  availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
-};
-
 export const AM3_PLANS = {
   am3_business: {
     ...commonFields,
     id: 'am3_business',
+    isEnterprise: false,
     name: 'Business',
     description: '',
     price: 8900,
@@ -310,7 +267,7 @@ export const AM3_PLANS = {
     features: AM3_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     contractInterval: MONTHLY,
-    onDemandEventPrice: 0.0,
+    onDemandEventPrice: 0,
     allowOnDemand: true,
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
@@ -320,9 +277,9 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 50000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 100000,
@@ -634,9 +591,9 @@ export const AM3_PLANS = {
       replays: [
         {
           events: 50,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 5000,
@@ -750,85 +707,85 @@ export const AM3_PLANS = {
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
           onDemandPrice: 31.25,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
           onDemandPrice: 31.25,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
           onDemandPrice: 31.25,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
           onDemandPrice: 31.25,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
           onDemandPrice: 31.25,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4900,
           onDemandPrice: 31.25,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7400,
           onDemandPrice: 31.25,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9900,
           onDemandPrice: 31.25,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 12400,
           onDemandPrice: 31.25,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 14900,
           onDemandPrice: 31.25,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 17400,
           onDemandPrice: 31.25,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 19900,
           onDemandPrice: 31.25,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 22400,
           onDemandPrice: 31.25,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 24900,
           onDemandPrice: 31.25,
         },
@@ -836,41 +793,41 @@ export const AM3_PLANS = {
       monitorSeats: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       uptime: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDuration: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDurationUI: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       spans: [
         {
           events: 10000000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 20000000,
@@ -1030,6 +987,7 @@ export const AM3_PLANS = {
   am3_business_auf: {
     ...commonFields,
     id: 'am3_business_auf',
+    isEnterprise: false,
     name: 'Business',
     description: '',
     price: 96000,
@@ -1052,9 +1010,9 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 50000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 100000,
@@ -1150,9 +1108,9 @@ export const AM3_PLANS = {
       replays: [
         {
           events: 50,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 5000,
@@ -1266,9 +1224,9 @@ export const AM3_PLANS = {
       spans: [
         {
           events: 10000000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 20000000,
@@ -1400,117 +1358,117 @@ export const AM3_PLANS = {
       monitorSeats: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       uptime: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDuration: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDurationUI: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
           onDemandPrice: 31.25,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 6500,
           onDemandPrice: 31.25,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13000,
           onDemandPrice: 31.25,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 19400,
           onDemandPrice: 31.25,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 25900,
           onDemandPrice: 31.25,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 52900,
           onDemandPrice: 31.25,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 79900,
           onDemandPrice: 31.25,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 106900,
           onDemandPrice: 31.25,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 133900,
           onDemandPrice: 31.25,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 160900,
           onDemandPrice: 31.25,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 187900,
           onDemandPrice: 31.25,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 214900,
           onDemandPrice: 31.25,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 241900,
           onDemandPrice: 31.25,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 268900,
           onDemandPrice: 31.25,
         },
@@ -1548,6 +1506,7 @@ export const AM3_PLANS = {
   am3_business_ent: {
     ...commonFields,
     id: 'am3_business_ent',
+    isEnterprise: true,
     name: 'Enterprise (Business)',
     description: '',
     price: 10_000_00,
@@ -1570,25 +1529,25 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 1_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       replays: [
         {
           events: 10_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       spans: [
         {
           events: 100_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       monitorSeats: [
@@ -1628,7 +1587,7 @@ export const AM3_PLANS = {
           events: 1,
           unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       logBytes: [
@@ -1664,6 +1623,7 @@ export const AM3_PLANS = {
   am3_business_ent_auf: {
     ...commonFields,
     id: 'am3_business_ent_auf',
+    isEnterprise: true,
     name: 'Enterprise (Business)',
     description: '',
     price: 10_000_00,
@@ -1686,25 +1646,25 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 1_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       replays: [
         {
           events: 10_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       spans: [
         {
           events: 100_000_000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
       ],
       monitorSeats: [
@@ -1744,255 +1704,7 @@ export const AM3_PLANS = {
           events: 1,
           unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      logBytes: [
-        {
-          events: 5,
-          unitPrice: 0.5,
-          price: 0,
-          onDemandPrice: 0.5,
-        },
-      ],
-      sizeAnalyses: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
           onDemandPrice: 0,
-        },
-      ],
-      installableBuilds: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
-      ...SEER_TIERS,
-    },
-    dashboardLimit: -1,
-    metricDetectorLimit: -1,
-  },
-  am3_business_ent_ds: {
-    ...commonFieldsForDs,
-    id: 'am3_business_ent_ds',
-    name: 'Enterprise (Business)',
-    description: '',
-    price: 10_000_00,
-    basePrice: 0,
-    totalPrice: 10_000_00,
-    trialPlan: 'am3_business',
-    isTestPlan: false,
-    maxMembers: null,
-    retentionDays: 90,
-    userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
-    features: AM3_DS_FEATURES,
-    billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
-    onDemandEventPrice: 0.1157,
-    allowOnDemand: true,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: true,
-    planCategories: {
-      errors: [
-        {
-          events: 1_000_000,
-          unitPrice: 0.0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      replays: [
-        {
-          events: 10_000,
-          unitPrice: 0.0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      spans: [
-        {
-          events: 0,
-          unitPrice: 0.0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      spansIndexed: [
-        {
-          events: 0,
-          unitPrice: 0.0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      monitorSeats: [
-        {
-          events: 100,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      uptime: [
-        {
-          events: 100,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDuration: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      attachments: [
-        {
-          events: 1,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      logBytes: [
-        {
-          events: 5,
-          unitPrice: 0.5,
-          price: 0,
-          onDemandPrice: 0.5,
-        },
-      ],
-      sizeAnalyses: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      installableBuilds: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
-      ...SEER_TIERS,
-    },
-    dashboardLimit: -1,
-    metricDetectorLimit: -1,
-  },
-  am3_business_ent_ds_auf: {
-    ...commonFieldsForDs,
-    id: 'am3_business_ent_ds_auf',
-    name: 'Enterprise (Business)',
-    description: '',
-    price: 10_000_00,
-    basePrice: 0,
-    totalPrice: 10_000_00,
-    trialPlan: 'am3_business',
-    maxMembers: null,
-    retentionDays: 90,
-    isTestPlan: false,
-    userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
-    features: AM3_DS_FEATURES,
-    billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
-    onDemandEventPrice: 0.1157,
-    allowOnDemand: true,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: true,
-    planCategories: {
-      errors: [
-        {
-          events: 1_000_000,
-          unitPrice: 0.0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      replays: [
-        {
-          events: 10_000,
-          unitPrice: 0.0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      spans: [
-        {
-          events: 0,
-          unitPrice: 0.0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      spansIndexed: [
-        {
-          events: 0,
-          unitPrice: 0.0,
-          price: 0,
-          onDemandPrice: 0.0,
-        },
-      ],
-      monitorSeats: [
-        {
-          events: 100,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      uptime: [
-        {
-          events: 100,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDuration: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      attachments: [
-        {
-          events: 1,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0.0,
         },
       ],
       logBytes: [
@@ -2028,6 +1740,7 @@ export const AM3_PLANS = {
   am3_f: {
     ...commonFields,
     id: 'am3_f',
+    isEnterprise: false,
     name: 'Developer',
     description: '',
     price: 0,
@@ -2144,6 +1857,7 @@ export const AM3_PLANS = {
   am3_t_ent: {
     ...commonFields,
     id: 'am3_t_ent',
+    isEnterprise: true,
     name: 'Enterprise Trial',
     description: '',
     price: 0,
@@ -2257,133 +1971,10 @@ export const AM3_PLANS = {
     dashboardLimit: 20,
     metricDetectorLimit: 20,
   },
-  am3_t_ent_ds: {
-    ...commonFieldsForDs,
-    id: 'am3_t_ent_ds',
-    name: 'Enterprise Trial',
-    description: '',
-    price: 0,
-    basePrice: 0,
-    totalPrice: 0,
-    trialPlan: null,
-    maxMembers: null,
-    retentionDays: 90,
-    isTestPlan: false,
-    userSelectable: false,
-    checkoutType: CheckoutType.STANDARD,
-    features: AM3_DS_FEATURES,
-    billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
-    onDemandEventPrice: 0,
-    allowOnDemand: false,
-    reservedMinimum: UNLIMITED_RESERVED,
-    allowAdditionalReservedEvents: false,
-    planCategories: {
-      errors: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      replays: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      attachments: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      monitorSeats: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      uptime: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDuration: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      spans: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      spansIndexed: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      logBytes: [
-        {
-          events: 5,
-          unitPrice: 0.5,
-          price: 0,
-          onDemandPrice: 0.5,
-        },
-      ],
-      sizeAnalyses: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      installableBuilds: [
-        {
-          events: UNLIMITED_RESERVED,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      ...LEGACY_SEER_TIERS_TRIAL_OR_ENTERPRISE,
-      ...SEER_TIERS,
-    },
-    dashboardLimit: 20,
-    metricDetectorLimit: 20,
-  },
   am3_team: {
     ...commonFields,
     id: 'am3_team',
+    isEnterprise: false,
     name: 'Team',
     description: '',
     price: 2900,
@@ -2408,9 +1999,9 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 50000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 100000,
@@ -2506,9 +2097,9 @@ export const AM3_PLANS = {
       replays: [
         {
           events: 50,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 5000,
@@ -2622,9 +2213,9 @@ export const AM3_PLANS = {
       spans: [
         {
           events: 10000000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 20000000,
@@ -2756,117 +2347,117 @@ export const AM3_PLANS = {
       monitorSeats: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       uptime: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDuration: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDurationUI: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
           onDemandPrice: 31.25,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 600,
           onDemandPrice: 31.25,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1200,
           onDemandPrice: 31.25,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 1800,
           onDemandPrice: 31.25,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 2400,
           onDemandPrice: 31.25,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 4900,
           onDemandPrice: 31.25,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 7400,
           onDemandPrice: 31.25,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 9900,
           onDemandPrice: 31.25,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 12400,
           onDemandPrice: 31.25,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 14900,
           onDemandPrice: 31.25,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 17400,
           onDemandPrice: 31.25,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 19900,
           onDemandPrice: 31.25,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 22400,
           onDemandPrice: 31.25,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 24900,
           onDemandPrice: 31.25,
         },
@@ -2902,6 +2493,7 @@ export const AM3_PLANS = {
   am3_team_auf: {
     ...commonFields,
     id: 'am3_team_auf',
+    isEnterprise: false,
     name: 'Team',
     description: '',
     price: 31200,
@@ -2926,9 +2518,9 @@ export const AM3_PLANS = {
       errors: [
         {
           events: 50000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 100000,
@@ -3024,9 +2616,9 @@ export const AM3_PLANS = {
       replays: [
         {
           events: 50,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 5000,
@@ -3140,9 +2732,9 @@ export const AM3_PLANS = {
       spans: [
         {
           events: 10000000,
-          unitPrice: 0.0,
+          unitPrice: 0,
           price: 0,
-          onDemandPrice: 0.0,
+          onDemandPrice: 0,
         },
         {
           events: 20000000,
@@ -3274,117 +2866,117 @@ export const AM3_PLANS = {
       monitorSeats: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       uptime: [
         {
           events: 1,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDuration: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       profileDurationUI: [
         {
           events: 0,
-          unitPrice: 60.0,
+          unitPrice: 60,
           price: 0,
-          onDemandPrice: 78.0,
+          onDemandPrice: 78,
         },
       ],
       attachments: [
         {
           events: 1,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 0,
           onDemandPrice: 31.25,
         },
         {
           events: 25,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 6500,
           onDemandPrice: 31.25,
         },
         {
           events: 50,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 13000,
           onDemandPrice: 31.25,
         },
         {
           events: 75,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 19400,
           onDemandPrice: 31.25,
         },
         {
           events: 100,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 25900,
           onDemandPrice: 31.25,
         },
         {
           events: 200,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 52900,
           onDemandPrice: 31.25,
         },
         {
           events: 300,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 79900,
           onDemandPrice: 31.25,
         },
         {
           events: 400,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 106900,
           onDemandPrice: 31.25,
         },
         {
           events: 500,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 133900,
           onDemandPrice: 31.25,
         },
         {
           events: 600,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 160900,
           onDemandPrice: 31.25,
         },
         {
           events: 700,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 187900,
           onDemandPrice: 31.25,
         },
         {
           events: 800,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 214900,
           onDemandPrice: 31.25,
         },
         {
           events: 900,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 241900,
           onDemandPrice: 31.25,
         },
         {
           events: 1000,
-          unitPrice: 25.0,
+          unitPrice: 25,
           price: 268900,
           onDemandPrice: 31.25,
         },
@@ -3420,6 +3012,7 @@ export const AM3_PLANS = {
   am3_t: {
     ...commonFields,
     id: 'am3_t',
+    isEnterprise: false,
     name: 'Trial',
     description: '',
     price: 0,

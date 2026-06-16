@@ -16,7 +16,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: [],
     });
 
@@ -28,7 +28,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
   it('calls flags backend and renders distribution cards', async () => {
     const mockTagsEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: FeatureFlagTagsFixture(),
     });
 
@@ -58,7 +58,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
   it('renders error state', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       statusCode: 400,
       body: {
         detail: 'Bad request',
@@ -81,7 +81,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
   it('renders empty state when no flags match the search', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/tags/`,
+      url: '/organizations/org-slug/issues/1/tags/',
       body: FeatureFlagTagsFixture(),
     });
 

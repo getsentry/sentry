@@ -1,10 +1,8 @@
 import {MembersFixture} from 'sentry-fixture/members';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 describe('Project Ownership Input', () => {
@@ -22,8 +20,6 @@ describe('Project Ownership Input', () => {
       method: 'PUT',
       body: {raw: 'url:src @dummy@example.com'},
     });
-    MemberListStore.init();
-    MemberListStore.loadInitialData([UserFixture({id: '1', email: 'bob@example.com'})]);
   });
 
   it('renders', async () => {

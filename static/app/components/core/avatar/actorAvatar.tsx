@@ -1,9 +1,8 @@
-import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import type {Actor} from 'sentry/types/core';
-import {useMembers} from 'sentry/utils/useMembers';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 import {Avatar, type AvatarProps} from './avatar';
@@ -78,11 +77,14 @@ interface AsyncMemberAvatarProps extends Omit<UserAvatarProps, 'user' | 'round'>
 }
 
 function AsyncMemberAvatar({actor, ...props}: AsyncMemberAvatarProps) {
-  const ids = useMemo(() => [actor.id], [actor.id]);
-  const {members, fetching} = useMembers({ids});
+  const canRenderActor = Boolean(actor.name || actor.email);
+  const {data: members = [], isLoading} = useMembers({
+    ids: [actor.id],
+    enabled: !canRenderActor,
+  });
   const member = members.find(u => u.id === actor.id);
 
-  if (fetching) {
+  if (isLoading && !canRenderActor) {
     const size = `${props.size}px`;
     return <Placeholder shape="circle" width={size} height={size} />;
   }

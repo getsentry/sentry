@@ -107,10 +107,44 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "exception_type": "FailedToFetchError",
                 "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                 "referrer": "ingest",
-                "use_reranking": True,
                 "model": GroupingVersion.V1,
                 "training_mode": False,
                 "platform": "python",
+                "skip_fallback": False,
+            },
+            {
+                "platform": "python",
+                "model_version": "v1",
+                "training_mode": False,
+                "hybrid_fingerprint": False,
+            },
+            viewer_context={"organization_id": self.project.organization_id},
+        )
+
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=([], "v1"))
+    def test_sends_skip_fallback_when_feature_flag_enabled(
+        self, mock_get_similarity_data: MagicMock
+    ) -> None:
+        new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
+            self.project
+        )
+
+        with self.feature("projects:similarity-grouping-skip-fallback"):
+            get_seer_similar_issues(new_event, new_grouphash, new_variants)
+
+        mock_get_similarity_data.assert_called_with(
+            {
+                "event_id": new_event.event_id,
+                "hash": new_event.get_primary_hash(),
+                "project_id": self.project.id,
+                "stacktrace": new_stacktrace_string,
+                "exception_type": "FailedToFetchError",
+                "k": options.get("seer.similarity.ingest.num_matches_to_request"),
+                "referrer": "ingest",
+                "model": GroupingVersion.V1,
+                "training_mode": False,
+                "platform": "python",
+                "skip_fallback": True,
             },
             {
                 "platform": "python",
@@ -166,6 +200,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "model": GroupingVersion.V1,
                 "training_mode": False,
                 "platform": "python",
+                "skip_fallback": False,
             }
 
             viewer_ctx = {"organization_id": self.project.organization_id}
@@ -177,7 +212,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                         **base_request_params,
                         "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                         "referrer": "ingest",
-                        "use_reranking": True,
                     },
                     {
                         "platform": "python",
@@ -194,7 +228,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                         **base_request_params,
                         "k": 0,
                         "referrer": "ingest_follow_up",
-                        "use_reranking": False,
                     },
                     {
                         "platform": "python",

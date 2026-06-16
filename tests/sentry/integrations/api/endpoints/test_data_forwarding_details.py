@@ -253,6 +253,61 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert project_config.overrides == {"new": "value"}
         assert not project_config.is_enabled
 
+    def test_update_project_overrides_response_redacts_config(self) -> None:
+        """A project:write user updating an override must not see global config or other projects' overrides."""
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "global_secret"},
+        )
+
+        my_project = self.create_project(organization=self.organization, teams=[self.team])
+        other_project = self.create_project(organization=self.organization, teams=[])
+
+        self.create_data_forwarder_project(
+            data_forwarder=data_forwarder,
+            project=my_project,
+            overrides={"write_key": "my_override"},
+        )
+        self.create_data_forwarder_project(
+            data_forwarder=data_forwarder,
+            project=other_project,
+            overrides={"write_key": "other_secret"},
+        )
+
+        team_admin = self.create_user()
+        self.create_member(
+            user=team_admin,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+            teamRole="admin",
+        )
+        self.login_as(user=team_admin)
+
+        payload = {
+            "project_id": my_project.id,
+            "overrides": {"write_key": "updated_override"},
+            "is_enabled": True,
+        }
+
+        response = self.get_success_response(
+            self.organization.slug, data_forwarder.id, status_code=200, **payload
+        )
+
+        assert response.data["config"] is None
+
+        project_configs_by_id = {
+            int(pc["project"]["id"]): pc for pc in response.data["projectConfigs"]
+        }
+
+        my_config = project_configs_by_id[my_project.id]
+        assert my_config["overrides"] == {"write_key": "updated_override"}
+        assert my_config["effectiveConfig"] == {}
+
+        other_config = project_configs_by_id[other_project.id]
+        assert other_config["overrides"] == {}
+        assert other_config["effectiveConfig"] == {}
+
     def test_update_unenroll_projects_with_project_write(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
