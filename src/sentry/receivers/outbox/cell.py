@@ -237,11 +237,10 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     match run_type:
         case SeerRunType.EXPLORER:
-            user_id = body.get("user_org_context", {}).get("user_id")
-            if user_id is not None:
+            if run.user_id is not None:
                 organization = Organization.objects.get_from_cache(id=run.organization_id)
                 monitoring_provider_connections = get_monitoring_provider_connections(
-                    organization, user_id
+                    organization, run.user_id
                 )
                 if monitoring_provider_connections is not None:
                     body["monitoring_providers"] = monitoring_provider_connections
