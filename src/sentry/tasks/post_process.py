@@ -1441,6 +1441,8 @@ def detect_new_escalation(job: PostProcessJob) -> None:
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
+    from sentry.issues.action_log import ActionSource, publish_action
+    from sentry.issues.action_log.types import EscalatingAction
     from sentry.issues.escalating.issue_velocity import get_latest_threshold
     from sentry.issues.priority import PriorityChangeReason, auto_update_priority
     from sentry.models.activity import Activity
@@ -1486,6 +1488,12 @@ def detect_new_escalation(job: PostProcessJob) -> None:
                     group=group,
                     type=ActivityType.SET_ESCALATING,
                     data={"event_id": job["event"].event_id},
+                )
+                publish_action(
+                    EscalatingAction(),
+                    source=ActionSource.SYSTEM,
+                    group_id=group.id,
+                    project=job["event"].project,
                 )
                 auto_update_priority(group, PriorityChangeReason.ESCALATING)
             logger.info(

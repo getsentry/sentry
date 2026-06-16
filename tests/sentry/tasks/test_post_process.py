@@ -21,6 +21,8 @@ from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.integrations.types import DataForwarderProviderSlug
+from sentry.issues.action_log import ActionSource
+from sentry.issues.action_log.types import EscalatingAction
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -2564,8 +2566,11 @@ class CheckIfFlagsSentTestMixin(BasePostProcessGroupMixin):
 
 
 class DetectNewEscalationTestMixin(BasePostProcessGroupMixin):
+    @patch("sentry.issues.action_log.publish_action")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    def test_has_escalated(self, mock_run_post_process_job: MagicMock) -> None:
+    def test_has_escalated(
+        self, mock_run_post_process_job: MagicMock, mock_publish_action: MagicMock
+    ) -> None:
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(
@@ -2587,6 +2592,13 @@ class DetectNewEscalationTestMixin(BasePostProcessGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
         assert group.priority == PriorityLevel.MEDIUM
+
+        # The escalation transition is recorded in the action log as a system action.
+        mock_publish_action.assert_called_once()
+        published = mock_publish_action.call_args
+        assert isinstance(published.args[0], EscalatingAction)
+        assert published.kwargs["source"] == ActionSource.SYSTEM
+        assert published.kwargs["group_id"] == group.id
 
     @patch("sentry.issues.escalating.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
