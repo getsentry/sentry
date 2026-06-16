@@ -252,7 +252,8 @@ class GitHubIntegration(
     # RepositoryIntegration methods
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+        domain_name = self.model.metadata.get("domain_name", "github.com")
+        return url.startswith("https://{}".format(domain_name))
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
