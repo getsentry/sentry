@@ -7,7 +7,6 @@
 This script benchmarks the performance of issue owner assignment in Sentry.
 Usage: python benchmark_codeowners/benchmark <path_to_code_mapping_file> <path_to_event_data_file>
 """
-
 from sentry.runner import configure
 
 configure()
@@ -89,7 +88,7 @@ def main(code_mapping_file, event_data_file):
     print(f"Time taken: {elapsed_time:.6f} seconds")  # noqa
     print("Ownership rules:")
     for rule, teams, rule_type in issue_owners:
-        print("\nRule:")
+        print(f"\nRule:")
         print(f"  Type: {rule_type}")
         print(f"  Pattern: {rule.matcher.pattern}")
         print("  Teams:")

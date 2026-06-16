@@ -8,7 +8,6 @@ NOTE: This currently only supports FileIOMainThreadDetector.
 
 Usage: python benchmark_detectors
 """
-
 from sentry.runner import configure
 
 configure()
@@ -47,7 +46,7 @@ def main():
     ops = count * len(events)
     print(f"{ops:,} ops")  # noqa
     print(f"{elapsed:.3f} s")  # noqa
-    print(f"{ops / elapsed:,.2f} ops/s")  # noqa
+    print(f"{ops/elapsed:,.2f} ops/s")  # noqa
 
 
 if __name__ == "__main__":
