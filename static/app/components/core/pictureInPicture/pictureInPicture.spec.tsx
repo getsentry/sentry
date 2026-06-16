@@ -164,6 +164,29 @@ describe('usePictureInPicture', () => {
     document.head.removeChild(style);
   });
 
+  it('closes the window and stays untracked if setup fails', async () => {
+    const pip = createFakePipWindow();
+    // Force setup to throw after the window has opened.
+    Object.defineProperty(pip.document.body, 'className', {
+      configurable: true,
+      set() {
+        throw new Error('setup failed');
+      },
+    });
+    stubDocumentPictureInPicture(pip);
+
+    const {result} = renderHook(() => usePictureInPicture(), {
+      wrapper: PictureInPictureProvider,
+    });
+
+    await act(async () => {
+      await expect(result.current.requestPipWindow()).rejects.toThrow('setup failed');
+    });
+
+    expect(pip.close).toHaveBeenCalledTimes(1);
+    expect(result.current.pipWindow).toBeNull();
+  });
+
   it('resets state when the window is closed by the user', async () => {
     const pip = createFakePipWindow();
     stubDocumentPictureInPicture(pip);

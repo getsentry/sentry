@@ -158,15 +158,22 @@ export function PictureInPictureProvider({children}: {children: ReactNode}) {
         preferInitialWindowPlacement,
       });
 
-      copyStyles(document, pip);
-      // Mirror the theme class (e.g. `theme-dark`) onto the PiP body so global
-      // body selectors apply. Kept in sync afterwards by `PictureInPicturePortal`.
-      pip.document.body.className = document.body.className;
+      // If any setup fails, close the window so we don't leak an orphaned,
+      // untracked PiP window with no React portal rendered into it.
+      try {
+        copyStyles(document, pip);
+        // Mirror the theme class (e.g. `theme-dark`) onto the PiP body so global
+        // body selectors apply. Kept in sync after by `PictureInPicturePortal`.
+        pip.document.body.className = document.body.className;
 
-      pip.addEventListener('pagehide', handleClose, {once: true});
+        pip.addEventListener('pagehide', handleClose, {once: true});
 
-      pipWindowRef.current = pip;
-      setPipWindow(pip);
+        pipWindowRef.current = pip;
+        setPipWindow(pip);
+      } catch (error) {
+        pip.close();
+        throw error;
+      }
     },
     [documentPictureInPicture, handleClose]
   );
