@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import TestCase
 
 import pytest
@@ -53,7 +54,7 @@ class SummaryUniquenessTest(TestCase):
     def setUp(self) -> None:
         _ENDPOINT_SERVERS.clear()
 
-    def _op(self, summary: str) -> dict:
+    def _op(self, summary: str) -> dict[str, Any]:
         return {
             "tags": ["Events"],
             "description": "An endpoint",
