@@ -200,30 +200,38 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // runId from sessionStorage flashes polling state before the user engages.
   const [hasEverOpened, setHasEverOpened] = useState(false);
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || isPoppedOut) {
       setHasEverOpened(true);
     }
-  }, [isOpen]);
+  }, [isOpen, isPoppedOut]);
 
-  // Sticky flag: session transitioned from polling → not-polling while the
-  // drawer was closed. Cleared when the drawer opens (user has seen the
-  // result) or when there's no active session.
+  // Sticky flag: session transitioned from polling → not-polling while the user
+  // wasn't viewing it (drawer closed and not popped out). Cleared when the user
+  // views the result (drawer open or popped out) or when there's no active
+  // session.
   const [isDoneThinking, setIsDoneThinking] = useState(false);
   const wasPollingRef = useRef(false);
 
   useEffect(() => {
     const wasPolling = wasPollingRef.current;
     wasPollingRef.current = isPolling;
-    if (hasEverOpened && wasPolling && !isPolling && !isOpen && runId !== null) {
+    if (
+      hasEverOpened &&
+      wasPolling &&
+      !isPolling &&
+      !isOpen &&
+      !isPoppedOut &&
+      runId !== null
+    ) {
       setIsDoneThinking(true);
     }
-  }, [isPolling, isOpen, runId, hasEverOpened]);
+  }, [isPolling, isOpen, isPoppedOut, runId, hasEverOpened]);
 
   useEffect(() => {
-    if (isOpen || runId === null) {
+    if (isOpen || isPoppedOut || runId === null) {
       setIsDoneThinking(false);
     }
-  }, [isOpen, runId]);
+  }, [isOpen, isPoppedOut, runId]);
 
   const sessionState = hasEverOpened
     ? isDoneThinking
