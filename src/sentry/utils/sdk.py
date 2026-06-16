@@ -402,24 +402,29 @@ def configure_sdk():
                 )
 
         def record_lost_event(self, *args, **kwargs):
-            if transport:
-                record = getattr(transport, "record_lost_event", None)
-                if record:
-                    record(*args, **kwargs)
+            if not transport:
+                return
+
+            record = getattr(transport, "record_lost_event", None)
+            if record:
+                record(*args, **kwargs)
 
         def is_healthy(self):
-            if transport:
-                if not transport.is_healthy():
-                    return False
-            return True
+            if not transport:
+                return True
+
+            if not transport.is_healthy():
+                return False
 
         def flush(
             self,
             timeout,
             callback=None,
         ):
-            if transport:
-                getattr(transport, "flush")(timeout, callback)
+            if not transport:
+                return
+
+            getattr(transport, "flush")(timeout, callback)
 
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
