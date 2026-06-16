@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1113_extend_repository_name_length"),
+        ("sentry", "1115_projectdebugfile_add_objectstore_columns"),
     ]
 
     operations = [
