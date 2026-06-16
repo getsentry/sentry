@@ -129,7 +129,7 @@ class BuildsExportEndpoint(OrganizationEndpoint):
         # Filter out non-installable builds since they aren't really relevant for distribution info.
         queryset = queryset.filter(installable_app_file_id__isnull=False)
 
-        # Reject oversized exports rather than silently truncating. The SQL limit is conseratively
+        # Reject oversized exports rather than silently truncating. The SQL limit is conservatively
         # correct, but could lead to false-negatives in some edge cases, which we're ignoring.
         row_count = queryset.count()
         if row_count > CSV_EXPORT_ROW_LIMIT:
