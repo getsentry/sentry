@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {useDrawerContentContext} from '@sentry/scraps/drawer';
@@ -10,6 +10,7 @@ import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -77,7 +78,12 @@ export function ExplorerDrawerContent({
       });
   };
 
-  const [showThinking, setShowThinking] = useState(false);
+  // Persisted so the toggle survives the drawer remounting (e.g. popping out
+  // into the picture-in-picture window, or reopening the drawer).
+  const [showThinking, setShowThinking] = useLocalStorageState(
+    'seer-explorer-show-thinking',
+    false
+  );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
