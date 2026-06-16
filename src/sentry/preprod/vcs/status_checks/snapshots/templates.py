@@ -283,14 +283,23 @@ def _format_snapshot_summary(
     table_rows = []
 
     for artifact in artifacts:
-        name = _name_cell(artifact, snapshot_metrics_map, base_artifact_map)
-
         metrics = snapshot_metrics_map.get(artifact.id)
+        comparison = comparisons_map.get(metrics.id) if metrics else None
+        include_selected_types = comparison is not None and comparison.state not in (
+            PreprodSnapshotComparison.State.PENDING,
+            PreprodSnapshotComparison.State.PROCESSING,
+        )
+        name = _name_cell(
+            artifact,
+            snapshot_metrics_map,
+            base_artifact_map,
+            comparison=comparison if include_selected_types else None,
+        )
+
         if not metrics:
             table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
-        comparison = comparisons_map.get(metrics.id)
         if not comparison:
             table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
@@ -301,10 +310,6 @@ def _format_snapshot_summary(
         ):
             table_rows.append(f"| {name} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
         else:
-            name = _name_cell(
-                artifact, snapshot_metrics_map, base_artifact_map, comparison=comparison
-            )
-
             has_changes = changes_map.get(artifact.id, False)
             is_approved = approvals_map is not None and artifact.id in approvals_map
             if has_changes and is_approved:

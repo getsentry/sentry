@@ -46,14 +46,24 @@ def format_snapshot_pr_comment(
     total_errored = 0
 
     for artifact in artifacts:
-        name_cell = _name_cell(artifact, snapshot_metrics_map, base_artifact_map)
         metrics = snapshot_metrics_map.get(artifact.id)
+        comparison = comparisons_map.get(metrics.id) if metrics else None
+        include_selected_types = comparison is not None and comparison.state not in (
+            PreprodSnapshotComparison.State.PENDING,
+            PreprodSnapshotComparison.State.PROCESSING,
+            PreprodSnapshotComparison.State.FAILED,
+        )
+        name_cell = _name_cell(
+            artifact,
+            snapshot_metrics_map,
+            base_artifact_map,
+            comparison=comparison if include_selected_types else None,
+        )
 
         if not metrics:
             table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
-        comparison = comparisons_map.get(metrics.id)
         has_base = artifact.id in base_artifact_map
 
         if not comparison and not has_base:
@@ -75,10 +85,6 @@ def format_snapshot_pr_comment(
         elif comparison.state == PreprodSnapshotComparison.State.FAILED:
             table_rows.append(f"| {name_cell} | - | - | - | - | - | - | ❌ Comparison failed |")
         else:
-            name_cell = _name_cell(
-                artifact, snapshot_metrics_map, base_artifact_map, comparison=comparison
-            )
-
             has_changes = changes_map.get(artifact.id, False)
             is_approved = approvals_map is not None and artifact.id in approvals_map
             if has_changes and is_approved:
