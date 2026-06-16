@@ -90,8 +90,12 @@ function useChartIntervalImpl({
           break;
       }
 
+      if (diffInMinutes >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
+        options.push(ONE_DAY_OPTION);
+      }
+
       return {
-        baseIntervalOptions: getIntervalOptionsForPageFilterWithDaily(datetime),
+        baseIntervalOptions: options,
         defaultInterval: fallback,
         // The smallest interval allowed for the current time range. Anything more
         // granular than this would produce too many buckets.
@@ -241,20 +245,4 @@ export function getIntervalOptionsForPageFilter(datetime: PageFilters['datetime'
     const optionInHours = parsePeriodToHours(option.value);
     return optionInHours >= minimumOptionInHours && optionInHours <= maximumOptionInHours;
   });
-}
-
-/**
- * Like {@link getIntervalOptionsForPageFilter}, but also includes the `1d`
- * option for long ranges. This matches the full set of intervals the chart
- * interval control offers (and that the heat map snaps its X axis to), which
- * the ladder-derived options on their own omit.
- */
-export function getIntervalOptionsForPageFilterWithDaily(
-  datetime: PageFilters['datetime']
-) {
-  const options = getIntervalOptionsForPageFilter(datetime);
-  if (getDiffInMinutes(datetime) >= MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL) {
-    options.push(ONE_DAY_OPTION);
-  }
-  return options;
 }

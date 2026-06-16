@@ -176,15 +176,7 @@ export function MetricPanel({
 
   const heatmapApiOptions = metricHeatmapApiOptions({
     traceMetric,
-    // Wait for the container to be measured before fetching: the X-axis
-    // interval is derived from the width, so firing at width 0 would request a
-    // coarse fallback bucketing and then immediately refetch once laid out.
-    enabled:
-      hasHeatMap &&
-      isHeatmap &&
-      !isMetricOptionsEmpty &&
-      yBuckets > 0 &&
-      chartContainerWidth > 0,
+    enabled: hasHeatMap && isHeatmap && !isMetricOptionsEmpty && yBuckets > 0,
     organization,
     selection,
     query: userQuery,

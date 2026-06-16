@@ -1,7 +1,7 @@
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import {millisecondsToClosestInterval} from 'sentry/utils/duration/millisecondsToInterval';
-import {getIntervalOptionsForPageFilterWithDaily} from 'sentry/utils/useChartInterval';
+import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {PIXELS_PER_BUCKET} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 
 /**
@@ -14,9 +14,9 @@ export function getHeatmapXAxisBucketInterval(
   selection: PageFilters,
   chartContainerWidth: number
 ): string {
-  const intervalOptions = getIntervalOptionsForPageFilterWithDaily(
-    selection.datetime
-  ).map(option => option.value);
+  const intervalOptions = getIntervalOptionsForPageFilter(selection.datetime).map(
+    option => option.value
+  );
   const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
   const msPerXBucket = Math.round(
     timeRangeInMs / (chartContainerWidth / PIXELS_PER_BUCKET)

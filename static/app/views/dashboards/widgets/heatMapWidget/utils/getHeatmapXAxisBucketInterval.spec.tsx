@@ -1,5 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
-import {getIntervalOptionsForPageFilterWithDaily} from 'sentry/utils/useChartInterval';
+import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
 
 function makeSelection(period: string): PageFilters {
@@ -11,7 +11,7 @@ function makeSelection(period: string): PageFilters {
 }
 
 function optionValues(period: string) {
-  return getIntervalOptionsForPageFilterWithDaily(makeSelection(period).datetime).map(
+  return getIntervalOptionsForPageFilter(makeSelection(period).datetime).map(
     option => option.value
   );
 }
@@ -36,13 +36,5 @@ describe('getHeatmapXAxisBucketInterval()', () => {
     const options = optionValues('24h');
     const result = getHeatmapXAxisBucketInterval(makeSelection('24h'), 724);
     expect(options).toContain(result);
-  });
-
-  it('can snap to the daily interval on long ranges', () => {
-    // Long ranges expose a `1d` option that the ladder-derived options omit;
-    // a narrow container makes each bucket span enough time to snap to it.
-    const options = optionValues('30d');
-    expect(options).toContain('1d');
-    expect(getHeatmapXAxisBucketInterval(makeSelection('30d'), 50)).toBe('1d');
   });
 });
