@@ -272,6 +272,13 @@ export const issueAndEventToMarkdown = ({
     markdownText += `**Date:** ${new Date(event.dateCreated).toLocaleString()}\n`;
   }
 
+  // Mirror Seer: include the event message only when it adds something beyond
+  // the title, since for most errors the title already is the message.
+  const message = event?.message?.trim();
+  if (message && !group.title.includes(message)) {
+    markdownText += `\n## Message\n\n${message}\n`;
+  }
+
   if (autofixData) {
     const sections = getOrderedAutofixSections(autofixData);
     const rootCauseSection = sections.find(isRootCauseSection);
