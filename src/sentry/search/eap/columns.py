@@ -214,7 +214,7 @@ class ResolvedFunction(ResolvedColumn):
 
     @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
-        return constants.DOUBLE
+        return constants.TYPE_MAP[self.search_type]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -256,13 +256,22 @@ class ResolvedAggregate(ResolvedFunction):
     def proto_definition(self) -> AttributeAggregation:
         """The definition of this function as needed by the RPC"""
         if self.default_value is not None:
-            return AttributeAggregation(
-                aggregate=self.internal_name,
-                key=self.argument,
-                label=self.public_alias,
-                extrapolation_mode=self.extrapolation_mode,
-                default_value_double=self.default_value,
-            )
+            if self.proto_type == constants.INT:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.argument,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_int64=int(self.default_value),
+                )
+            else:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.argument,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
         else:
             return AttributeAggregation(
                 aggregate=self.internal_name,
@@ -290,13 +299,22 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
     ) -> AttributeAggregation | AttributeConditionalAggregation:
         if self.trace_metric is None and self.trace_filter is None:
             if self.default_value is not None:
-                return AttributeAggregation(
-                    aggregate=self.internal_name,
-                    key=self.key,
-                    label=self.public_alias,
-                    extrapolation_mode=self.extrapolation_mode,
-                    default_value_double=self.default_value,
-                )
+                if self.proto_type == constants.INT:
+                    return AttributeAggregation(
+                        aggregate=self.internal_name,
+                        key=self.key,
+                        label=self.public_alias,
+                        extrapolation_mode=self.extrapolation_mode,
+                        default_value_int64=int(self.default_value),
+                    )
+                else:
+                    return AttributeAggregation(
+                        aggregate=self.internal_name,
+                        key=self.key,
+                        label=self.public_alias,
+                        extrapolation_mode=self.extrapolation_mode,
+                        default_value_double=self.default_value,
+                    )
             else:
                 return AttributeAggregation(
                     aggregate=self.internal_name,
@@ -315,14 +333,24 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
             )
 
         if self.default_value is not None:
-            return AttributeConditionalAggregation(
-                aggregate=self.internal_name,
-                key=self.key,
-                filter=trace_filter,
-                label=self.public_alias,
-                extrapolation_mode=self.extrapolation_mode,
-                default_value_double=self.default_value,
-            )
+            if self.proto_type == constants.INT:
+                return AttributeConditionalAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    filter=trace_filter,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_int64=int(self.default_value),
+                )
+            else:
+                return AttributeConditionalAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    filter=trace_filter,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
         else:
             return AttributeConditionalAggregation(
                 aggregate=self.internal_name,
@@ -349,14 +377,24 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     def proto_definition(self) -> AttributeConditionalAggregation:
         """The definition of this function as needed by the RPC"""
         if self.default_value is not None:
-            return AttributeConditionalAggregation(
-                aggregate=self.internal_name,
-                key=self.key,
-                filter=self.trace_filter,
-                label=self.public_alias,
-                extrapolation_mode=self.extrapolation_mode,
-                default_value_double=self.default_value,
-            )
+            if self.proto_type == constants.INT:
+                return AttributeConditionalAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    filter=self.trace_filter,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_int64=int(self.default_value),
+                )
+            else:
+                return AttributeConditionalAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    filter=self.trace_filter,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
         else:
             return AttributeConditionalAggregation(
                 aggregate=self.internal_name,

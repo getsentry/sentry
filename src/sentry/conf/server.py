@@ -812,6 +812,7 @@ SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", No
 # This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
+SENTRY_FALLBACK_CELL: str = "--monolith--"
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
 SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
@@ -2240,7 +2241,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.2"
+SELF_HOSTED_STABLE_VERSION = "26.6.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2341,12 +2342,31 @@ SENTRY_PROFILE_LIFECYCLE: Literal["manual", "trace"] = "trace"
 SENTRY_ORGANIZATION_CONTEXT_HELPER: Callable[..., object] | None = None
 
 # Config options that are explicitly disabled from Django
-DEAD = object()
+DEAD: Any = object()
 
 # This will eventually get set from values in SENTRY_OPTIONS during
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
 SENTRY_LOGGING_FORMAT = "human"
+SENTRY_BASE_HOSTNAME = DEAD
+SENTRY_ORGANIZATION_BASE_HOSTNAME = DEAD
+SENTRY_ORGANIZATION_URL_TEMPLATE = DEAD
+SENTRY_REGION_API_URL_TEMPLATE = DEAD
+SENTRY_INTERCOM_API_SECRET = DEAD
+SENTRY_RELAY_STATIC_AUTH = DEAD
+SENTRY_OBJECTSTORE_CONFIG = DEAD
+SENTRY_VIEWER_CONTEXT_ENABLED = DEAD
+SENTRY_ANALYTICS_BACKEND = DEAD
+SENTRY_ANALYTICS_OPTIONS = DEAD
+SENTRY_MAIL_LIST_NAMESPACE = DEAD
+SENTRY_FILE_STORAGE_BACKEND = DEAD
+SENTRY_FILE_STORAGE_CONFIG = DEAD
+SENTRY_RELOCATION_FILE_STORAGE_BACKEND = DEAD
+SENTRY_RELOCATION_FILE_STORAGE_CONFIG = DEAD
+SENTRY_PROFILES_FILE_STORAGE_BACKEND = DEAD
+SENTRY_PROFILES_FILE_STORAGE_CONFIG = DEAD
+SENTRY_CONTROL_FILE_STORAGE_BACKEND = DEAD
+SENTRY_CONTROL_FILE_STORAGE_CONFIG = DEAD
 EMAIL_BACKEND = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
@@ -3308,6 +3328,7 @@ if SILO_DEVSERVER:
     ]
 
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
+    SENTRY_FALLBACK_CELL = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [

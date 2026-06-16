@@ -247,6 +247,22 @@ analytics.record(
 )
 ```
 
+### Metrics Tags
+
+Every distinct tag-value combination is a separate time series, so keep tags **low-cardinality, meaningful, and minimal**:
+
+- Add a tag only if you'll actually filter or group by it. Fewer is better.
+- Tag values must be bounded/enumerable (e.g. `status`, `platform`, `reason`) — never unbounded identifiers (IDs, emails, URLs, free text).
+
+The middleware (`src/sentry/metrics/middleware.py`) enforces this by denylisting tag keys that **end in `_id`** or that are exactly **`event`/`project`/`group`**. Such tags **will not work**: they're silently stripped by default, and raise `BadMetricTags` when `SENTRY_METRICS_DISALLOW_BAD_TAGS` is on (e.g. CI) — so a metric that looks fine locally can fail elsewhere.
+
+```python
+metrics.incr("my.metric", tags={"project_id": project.id})   # WRONG: stripped / raises
+metrics.incr("my.metric", tags={"platform": project.platform})  # RIGHT: bounded values
+```
+
+A few keys are allowlisted despite the rule (see `_NOT_BAD_TAGS`); don't expand it to work around the constraint — pick a low-cardinality tag instead.
+
 ## Architecture Rules
 
 ### Silo Mode
