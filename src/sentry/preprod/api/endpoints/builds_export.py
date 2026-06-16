@@ -33,7 +33,10 @@ def _escape_csv_value(value: object) -> str:
     if value is None:
         return ""
     text = str(value)
-    if text and text[0] in _FORMULA_PREFIXES:
+    # Prefix a quote if the first non-whitespace character is a formula trigger; several
+    # spreadsheet apps strip leading whitespace/tab/CR before evaluating the cell.
+    stripped = text.lstrip()
+    if stripped and stripped[0] in _FORMULA_PREFIXES:
         return "'" + text
     return text
 
@@ -108,8 +111,9 @@ class BuildsExportEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """Stream build distribution stats for the current filters as a CSV.
 
-        Accepts the same ``query``, ``display``, ``project``, and date-range params as
-        the builds list endpoint so the export matches what the user sees on screen.
+        Accepts the same ``query``, ``project``, and date-range params as the builds list
+        endpoint. The export is build-distribution-specific, so it always uses the
+        distribution row set regardless of any ``display`` param.
         """
         filename = (
             f"{organization.slug}-build-distribution-{timezone.now().strftime('%Y-%m-%d-%H%M%S')}"
@@ -121,13 +125,15 @@ class BuildsExportEndpoint(OrganizationEndpoint):
             return BuildsCsvResponder().respond(iter(()), filename)
 
         query = request.GET.get("query", "").strip()
-        display = request.GET.get("display")
 
+        # This export is build-distribution-specific (its columns are distribution stats),
+        # so it always uses the distribution row set (non-snapshot builds), ignoring any
+        # `display` param the request may carry.
         with handle_query_errors():
             queryset = filtered_builds_queryset(
                 organization=organization,
                 query=query,
-                display=display,
+                display="distribution",
                 project_ids=params["project_id"],
                 start=params["start"],
                 end=params["end"],

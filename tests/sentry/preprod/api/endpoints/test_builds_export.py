@@ -169,9 +169,16 @@ class BuildsExportEndpointTest(APITestCase):
         assert _col(rows[1], "project_slug") == self.project.slug
 
     def test_formula_injection_escaped(self) -> None:
-        self._create_installable_build(app_id="com.example.evil", app_name="=HYPERLINK(1)")
+        # Leading formula triggers are neutralized with a quote — including when preceded
+        # by whitespace or a tab that a spreadsheet would strip before evaluating.
+        self._create_installable_build(app_id="evil.plain", app_name="=HYPERLINK(1)")
+        self._create_installable_build(app_id="evil.space", app_name=" =HYPERLINK(1)")
+        self._create_installable_build(app_id="evil.tab", app_name="\t=cmd")
         rows = self._csv_rows(self._request({}))
-        assert _col(rows[1], "app_name") == "'=HYPERLINK(1)"
+        by_app_id = {_col(r, "app_id"): _col(r, "app_name") for r in rows[1:]}
+        assert by_app_id["evil.plain"] == "'=HYPERLINK(1)"
+        assert by_app_id["evil.space"] == "' =HYPERLINK(1)"
+        assert by_app_id["evil.tab"] == "'\t=cmd"
 
     def test_install_groups_json_encoded(self) -> None:
         self._create_installable_build(
@@ -242,12 +249,14 @@ class BuildsExportEndpointTest(APITestCase):
         rows = self._csv_rows(self._request({"project": [self.project.id]}))
         assert rows == [EXPECTED_HEADER]
 
-    def test_display_distribution_excludes_snapshot_builds(self) -> None:
+    def test_snapshot_builds_always_excluded(self) -> None:
+        # The export is distribution-scoped; snapshot builds are excluded even when the
+        # request asks for display=snapshot (the param is ignored).
         self._create_installable_build(app_id="com.regular.app")
         snapshot_artifact = self._create_installable_build(app_id="com.snapshot.app")
         self.create_preprod_snapshot_metrics(preprod_artifact=snapshot_artifact, image_count=5)
 
-        rows = self._csv_rows(self._request({"display": "distribution"}))
+        rows = self._csv_rows(self._request({"display": "snapshot"}))
         assert len(rows) == 2
         assert _col(rows[1], "app_id") == "com.regular.app"
 
