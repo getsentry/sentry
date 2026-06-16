@@ -13,8 +13,10 @@ import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/
 
 const CAPTURE_MESSAGES_PROMPT = `
 > Sentry AI agent monitoring is already instrumented in this app, but the conversation input and output messages are not being recorded, so the Sentry Conversations view is empty.
-> Update the existing Sentry configuration to capture gen_ai message content (prompts and responses): in Python set \`send_default_pii=True\` in \`sentry_sdk.init(...)\`, and in JavaScript/Node set \`sendDefaultPii: true\` in \`Sentry.init(...)\`.
-> If the app has multi-turn chats, also set a conversation ID per chat so Sentry receives the gen_ai.conversation.id attribute.
+> Update the existing Sentry configuration so gen_ai input and output messages (prompts and responses) are captured:
+>   1. Enable PII so message content is recorded: in Python set \`send_default_pii=True\` in \`sentry_sdk.init(...)\`; in JavaScript/Node set \`sendDefaultPii: true\` in \`Sentry.init(...)\`.
+>   2. If you use an SDK agent integration (e.g. OpenAI, Anthropic, LangChain, Vercel AI SDK), make sure its input/output recording options are enabled — some integrations gate message capture behind options like \`include_prompts\` / \`recordInputs\` / \`recordOutputs\` even when PII is on.
+>   3. If your agents are instrumented manually, make sure the input and output messages are explicitly set on the spans (the gen_ai request/response message attributes) so they show up in Conversations.
 
 # Capture Sentry AI Agent Conversation Messages
 
