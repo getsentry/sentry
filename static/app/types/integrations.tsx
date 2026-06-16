@@ -526,7 +526,7 @@ export type Plugin = PluginNoProject & {
   enabled: boolean;
 };
 
-export type PluginProjectItem = {
+type PluginProjectItem = {
   configured: boolean;
   enabled: boolean;
   projectId: string;
