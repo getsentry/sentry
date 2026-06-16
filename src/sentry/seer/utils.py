@@ -17,16 +17,17 @@ from sentry.users.services.user.model import RpcUser
 logger = logging.getLogger(__name__)
 
 
-def encrypt_seer_credential(credential) -> str | None:
-    """Fernet-encrypt a credential for transport to Seer."""
+def encrypt_access_token_for_seer(access_token) -> str | None:
+    """Fernet-encrypt an access token for transport to Seer."""
     if not settings.SEER_GHE_ENCRYPT_KEY:
-        logger.error("Cannot encrypt credential without SEER_GHE_ENCRYPT_KEY")
+        logger.error("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")
         return None
+
     try:
         fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        return fernet.encrypt(credential.encode("utf-8")).decode("utf-8")
+        return fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
-        logger.exception("Failed to encrypt credential")
+        logger.exception("Failed to encrypt access token")
         return None
 
 

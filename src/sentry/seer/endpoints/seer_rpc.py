@@ -7,7 +7,6 @@ from collections.abc import Callable
 from typing import Any, TypedDict
 
 import sentry_sdk
-from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -150,7 +149,7 @@ from sentry.seer.sentry_data_models import (
     ValidateRepoErrorResponse,
     ValidateRepoSuccessResponse,
 )
-from sentry.seer.utils import encrypt_seer_credential, filter_repo_by_provider
+from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
@@ -594,11 +593,8 @@ def get_github_enterprise_integration_config(
         logger.error("No access token found for integration %s", integration.id)
         return GitHubEnterpriseConfigErrorResponse()
 
-    try:
-        fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
-    except Exception:
-        logger.exception("Failed to encrypt access token")
+    encrypted_access_token = encrypt_access_token_for_seer(access_token)
+    if not encrypted_access_token:
         return GitHubEnterpriseConfigErrorResponse()
 
     return GitHubEnterpriseConfigSuccessResponse(
@@ -957,7 +953,7 @@ def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
     if not access_token:
         return {"error": "identity_not_valid"}
 
-    encrypted_access_token = encrypt_seer_credential(access_token)
+    encrypted_access_token = encrypt_access_token_for_seer(access_token)
     if not encrypted_access_token:
         return {"error": "encryption_failed"}
 
