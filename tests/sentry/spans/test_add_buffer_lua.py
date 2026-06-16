@@ -171,9 +171,6 @@ def test_compresses_redirect_chain_on_walk(
     leaf_span_id = "c" * 16
     grandchild_span_id = "d" * 16
 
-    # Build a two-hop chain leaf -> mid -> root without flattening it. Each
-    # call's walk starts at a parent that is not yet in the redirect table, so
-    # it breaks immediately at depth 0 and never traverses the chain.
     eval_add_buffer_script(
         redis_client,
         project_and_trace=project_and_trace,
@@ -193,9 +190,6 @@ def test_compresses_redirect_chain_on_walk(
         mid_span_id.encode(): root_span_id.encode(),
     }
 
-    # A subsegment whose parent is the bottom of the chain forces a two-hop
-    # walk. Path compression repoints every traversed node straight at the root,
-    # so subsequent walks for this trace resolve in a single hop.
     result = eval_add_buffer_script(
         redis_client,
         project_and_trace=project_and_trace,

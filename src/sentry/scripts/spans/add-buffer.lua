@@ -88,15 +88,15 @@ local start_time_ms = get_time_ms()
 local set_span_id = parent_span_id
 local redirect_depth = 0
 
--- Intermediate nodes traversed on the way up to the root. Once the root is
--- resolved we repoint each of these directly at it (path compression), so
--- later walks for this trace are O(1) instead of re-traversing the chain.
-local redirect_chain = {}
-
 local main_redirect_key = string.format("span-buf:ssr:{%s}", project_and_trace)
 
 -- Navigates the tree up to the highest level parent span we can find. Such
 -- span is needed to know the segment we need to merge the subsegment into.
+--
+-- The redirect_chain table contains the intermediate nodes we passed through on
+-- our way up to the root node. These nodes are NOT part of the submission set.
+-- These are nodes that had to be queried.
+local redirect_chain = {}
 for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
     local new_set_span = redis.call("hget", main_redirect_key, set_span_id)
     redirect_depth = i
