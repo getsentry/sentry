@@ -260,15 +260,13 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
             </Stack>
 
             <MotionStack
-              gap="lg"
+              gap="xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
               layout="position"
             >
-              <Stack gap="md">
-                <Heading as="h3">{t('Connect your Git repository')}</Heading>
-              </Stack>
+              <Heading as="h3">{t('Connect your Git repository')}</Heading>
 
               <ScmIntegrationConnect
                 analyticsFlow="project-creation"
@@ -284,17 +282,12 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
             <MotionStack
               layout="position"
-              gap="lg"
+              gap="2xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
             >
-              <Stack gap="md">
-                <Heading as="h3">{t('Platform & features')}</Heading>
-                <Text variant="muted">
-                  {t('Choose a platform and configure what to monitor.')}
-                </Text>
-              </Stack>
+              <Heading as="h3">{t('Platform & features')}</Heading>
               <ScmPlatformFeaturesCore
                 analyticsFlow="project-creation"
                 selectedRepository={selectedRepository}
@@ -308,17 +301,12 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
             <MotionStack
               layout="position"
-              gap="lg"
+              gap="2xl"
               border="primary"
-              radius="md"
-              padding="lg"
+              radius="lg"
+              padding="xl"
             >
-              <Stack gap="md">
-                <Heading as="h3">{t('Project details')}</Heading>
-                <Text variant="muted">
-                  {t('Name your project, assign a team, and set up issue alerts.')}
-                </Text>
-              </Stack>
+              <Heading as="h3">{t('Project details')}</Heading>
               <ScmProjectDetailsCore
                 analyticsFlow="project-creation"
                 projectName={form.projectName}

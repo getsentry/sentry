@@ -197,7 +197,7 @@ export function ScmIntegrationConnect({
           onChange={handleIntegrationSelect}
         />
       ) : (
-        <Text variant="secondary" bold size="sm" density="compressed" uppercase>
+        <Text bold size="sm" density="compressed" uppercase>
           {t(
             'Connected to %s / %s',
             effectiveIntegration.provider.name,

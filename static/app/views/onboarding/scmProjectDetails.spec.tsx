@@ -89,13 +89,13 @@ describe('ScmProjectDetails', () => {
     expect(await screen.findByText('Project details')).toBeInTheDocument();
   });
 
-  it('renders section headers with icons', async () => {
+  it('renders section headers', async () => {
     render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
       organization,
     });
 
-    expect(await screen.findByText('Give your project a name')).toBeInTheDocument();
-    expect(screen.getByText('Assign a team')).toBeInTheDocument();
+    expect(await screen.findByText('Project name')).toBeInTheDocument();
+    expect(screen.getByText('Team')).toBeInTheDocument();
     expect(screen.getByText('Alert frequency')).toBeInTheDocument();
     expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
   });
