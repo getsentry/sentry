@@ -2,8 +2,6 @@ import uuid
 from unittest.mock import Mock, patch
 
 from sentry.issues.action_log.types import TriggerAutofixAction
-
-from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
