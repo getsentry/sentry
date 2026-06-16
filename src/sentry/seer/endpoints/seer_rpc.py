@@ -7,7 +7,6 @@ from collections.abc import Callable
 from typing import Any, TypedDict
 
 import sentry_sdk
-from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -15,6 +14,7 @@ from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from pydantic import BaseModel
+from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -43,14 +43,17 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.identity import default_manager as identity_manager
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
@@ -146,9 +149,10 @@ from sentry.seer.sentry_data_models import (
     ValidateRepoErrorResponse,
     ValidateRepoSuccessResponse,
 )
-from sentry.seer.utils import filter_repo_by_provider
+from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
@@ -589,11 +593,8 @@ def get_github_enterprise_integration_config(
         logger.error("No access token found for integration %s", integration.id)
         return GitHubEnterpriseConfigErrorResponse()
 
-    try:
-        fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
-    except Exception:
-        logger.exception("Failed to encrypt access token")
+    encrypted_access_token = encrypt_access_token_for_seer(access_token)
+    if not encrypted_access_token:
         return GitHubEnterpriseConfigErrorResponse()
 
     return GitHubEnterpriseConfigSuccessResponse(
@@ -926,6 +927,42 @@ def deliver_feature_result(
     handler(organization_id, run_uuid, status, result, error)
 
 
+def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
+    """Refresh the access token for a monitoring provider identity."""
+    if not settings.SEER_GHE_ENCRYPT_KEY:
+        logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
+        return {"error": "encryption_failed"}
+
+    identity = identity_service.get_identity(filter={"id": identity_id})
+    if identity is None:
+        return {"error": "identity_not_found"}
+
+    idp = identity_service.get_provider(provider_id=identity.idp_id)
+    if idp is None or idp.type not in MONITORING_PROVIDERS:
+        return {"error": "identity_not_found"}
+
+    try:
+        provider = identity_manager.get(idp.type)
+        provider.refresh_identity(identity)
+    except IdentityNotValid:
+        return {"error": "identity_not_valid"}
+    except (ApiError, KeyError, RequestException):
+        return {"error": "refresh_failed"}
+
+    access_token = identity.data.get("access_token")
+    if not access_token:
+        return {"error": "identity_not_valid"}
+
+    encrypted_access_token = encrypt_access_token_for_seer(access_token)
+    if not encrypted_access_token:
+        return {"error": "encryption_failed"}
+
+    return {
+        "encrypted_access_token": encrypted_access_token,
+        "expires": identity.data.get("expires"),
+    }
+
+
 def record_pr_attribution(
     *,
     organization_id: int,
@@ -1076,6 +1113,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # PR metrics (judge path)
     "update_pr_metrics": update_pr_metrics,
+    #
+    # Monitoring provider tokens (MCP)
+    "refresh_monitoring_provider_token": refresh_monitoring_provider_token,
 }
 
 

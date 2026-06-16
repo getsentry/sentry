@@ -256,14 +256,14 @@ function AMCheckout(props: Props) {
         );
       }
 
-      // find equivalent current plan for legacy
-      const legacyInitialPlan =
-        subscription.planTier !== config.id &&
-        planList.find(
-          ({name, contractInterval}) =>
-            name === subscription?.planDetails?.name &&
-            contractInterval === subscription?.planDetails?.contractInterval
-        );
+      // The current plan isn't directly available in this checkout's plan list
+      // (the exact-id lookup above returned nothing), so fall back to an
+      // equivalent plan matched by name + contract interval.
+      const legacyInitialPlan = planList.find(
+        ({name, contractInterval}) =>
+          name === subscription?.planDetails?.name &&
+          contractInterval === subscription?.planDetails?.contractInterval
+      );
 
       // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
       return (
@@ -274,7 +274,6 @@ function AMCheckout(props: Props) {
       subscription.plan,
       subscription.planDetails.name,
       subscription.planDetails?.contractInterval,
-      subscription.planTier,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
