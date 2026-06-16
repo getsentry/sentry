@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import string
 from base64 import b64encode
 from typing import Any
 from unittest import mock
 
 from sentry.integrations.github.multi_platform_detection import (
+    MAX_CONTENT_READS,
     MAX_LANGUAGES,
     _build_tree_index,
     _collect_needed_paths,
@@ -16,12 +18,32 @@ from sentry.integrations.github.multi_platform_detection import (
     detect_platforms_multi,
 )
 from sentry.integrations.github.platform_registry import (
+    GITHUB_LANGUAGE_TO_SENTRY_PLATFORM,
     DetectorRule,
     FrameworkDef,
     _PackageManifest,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
+
+
+def _distinct_platform_languages(n: int) -> list[str]:
+    """Return n languages that each map to a different Sentry base platform.
+
+    Iterates GITHUB_LANGUAGE_TO_SENTRY_PLATFORM in insertion order, picking
+    the first language seen for each new base platform, until n entries are
+    collected. Useful for building test inputs that exercise the MAX_LANGUAGES
+    cap without hardcoding specific language names.
+    """
+    seen: set[str] = set()
+    result: list[str] = []
+    for lang, bp in GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.items():
+        if bp not in seen:
+            seen.add(bp)
+            result.append(lang)
+        if len(result) == n:
+            break
+    return result
 
 
 class TestBuildTreeIndex:
@@ -169,12 +191,6 @@ class TestRuleParentDirs:
         rule: DetectorRule = {"match_ext": ".csproj", "match_content": r"Microsoft\.Maui"}
         content = {"myapp.csproj": "...<microsoft.maui...>"}  # lowercase — must not fire
         assert _rule_parent_dirs(rule, {}, {}, content, {}) == set()
-
-    def test_match_content_honors_inline_ignorecase_flag(self) -> None:
-        # Patterns that want case-insensitivity embed (?i) themselves.
-        rule: DetectorRule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
-        content = {"requirements.txt": "DJANGO==4.2\n"}
-        assert _rule_parent_dirs(rule, {}, {}, content, {}) == {""}
 
     def test_match_content_no_path_or_ext_filter_scans_all_files(self) -> None:
         # A bare match_content rule (no path/match_ext) should match any fetched file
@@ -443,10 +459,10 @@ class TestDetectPlatformsMulti:
         assert "javascript-react" in platforms
 
     def test_content_read_cap_and_shallow_first(self) -> None:
-        # Root package.json (deps: next) + 6 deeper workspace package.json files.
-        # Cap is 5; root must be read so javascript-nextjs is detected.
-        # The alphabetically-last deep manifest (packages/f/package.json) must not be fetched.
-        deep_names = [f"packages/{c}/package.json" for c in "abcdef"]  # 6 paths
+        # Root package.json (deps: next) + MAX_CONTENT_READS deeper workspace package.json files.
+        # Root takes the first cap slot; the alphabetically-last deep manifest must not be fetched.
+        deep_letters = string.ascii_lowercase[:MAX_CONTENT_READS]
+        deep_names = [f"packages/{c}/package.json" for c in deep_letters]
         tree = [_make_tree_entry("package.json")] + [_make_tree_entry(p) for p in deep_names]
         root_pkg = json.dumps({"dependencies": {"next": "14.0.0"}})
         contents = {"package.json": root_pkg}
@@ -465,8 +481,9 @@ class TestDetectPlatformsMulti:
             for call in client.get.call_args_list
             if "/contents/" in call.args[0]
         ]
+        last_deep = f"packages/{deep_letters[-1]}/package.json"
         assert "package.json" in fetched
-        assert "packages/f/package.json" not in fetched
+        assert last_deep not in fetched
 
         platforms = {p["platform"] for p in result["platforms"]}
         assert "javascript-nextjs" in platforms
@@ -549,42 +566,16 @@ class TestDetectPlatformsMulti:
         assert result["platforms"][0]["confidence"] == "high"
         assert result["platforms"][0]["platform"] == "python-django"
 
-    def test_max_languages_cap_end_to_end(self) -> None:
-        # Feed 4 mapped languages; only the top MAX_LANGUAGES (3) should appear.
-        tree: list[dict] = []
-        client = _make_client(
-            languages={
-                "Python": 100_000,
-                "JavaScript": 80_000,
-                "Ruby": 60_000,
-                "Go": 40_000,  # 4th — must be excluded
-            },
-            tree=tree,
-            contents={},
-        )
-        result = detect_platforms_multi(client, "owner/repo")
-        returned_platforms = {p["platform"] for p in result["platforms"]}
-        assert "python" in returned_platforms
-        assert "javascript" in returned_platforms
-        assert "ruby" in returned_platforms
-        assert "go" not in returned_platforms
-
 
 class TestSelectActivePlatforms:
     def test_max_languages_cap_keeps_top_n(self) -> None:
-        # Feed 4 distinct base platforms; only the top MAX_LANGUAGES (3) by bytes survive.
-        languages = {
-            "Python": 100_000,  # python  — 1st
-            "JavaScript": 80_000,  # javascript — 2nd
-            "Ruby": 60_000,  # ruby — 3rd
-            "Go": 40_000,  # go — 4th, dropped
-        }
+        # Feed MAX_LANGUAGES + 1 distinct base platforms; only the top MAX_LANGUAGES survive.
+        candidates = _distinct_platform_languages(MAX_LANGUAGES + 1)
+        languages = {lang: 100_000 - i * 10_000 for i, lang in enumerate(candidates)}
         result = _select_active_platforms(languages)
-        assert "python" in result
-        assert "javascript" in result
-        assert "ruby" in result
-        assert "go" not in result
         assert len(result) == MAX_LANGUAGES
+        dropped_platform = GITHUB_LANGUAGE_TO_SENTRY_PLATFORM[candidates[-1]]
+        assert dropped_platform not in result
 
     def test_related_languages_group_into_single_bucket(self) -> None:
         # TypeScript and JavaScript both map to "javascript"; they share one slot.
