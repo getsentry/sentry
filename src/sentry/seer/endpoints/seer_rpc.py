@@ -126,6 +126,8 @@ from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    AttributeBucket,
+    AttributesAndValuesResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -413,7 +415,7 @@ def get_attributes_and_values(
     max_attributes: int = 1000,
     sampled: bool = True,
     attributes_ignored: list[str] | None = None,
-) -> dict:
+) -> AttributesAndValuesResponse:
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
@@ -483,7 +485,7 @@ def get_attributes_and_values(
         definitions=SPAN_DEFINITIONS,
     )
 
-    attributes_and_values: dict[str, list[dict[str, Any]]] = {}
+    attributes_and_values: dict[str, list[AttributeBucket]] = {}
     for result in rpc_response.results:
         for attribute in result.attribute_distributions.attributes:
             try:
@@ -496,16 +498,11 @@ def get_attributes_and_values(
                 if attribute_name not in attributes_and_values:
                     attributes_and_values[attribute_name] = []
                 attributes_and_values[attribute_name].extend(
-                    [
-                        {
-                            "value": value.label,
-                            "count": value.value,
-                        }
-                        for value in attribute.buckets
-                    ]
+                    AttributeBucket(value=value.label, count=value.value)
+                    for value in attribute.buckets
                 )
 
-    return {"attributes_and_values": attributes_and_values}
+    return AttributesAndValuesResponse(attributes_and_values=attributes_and_values)
 
 
 def get_attributes_for_span(
