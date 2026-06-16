@@ -35,13 +35,6 @@ FILTER_HAS_A_REPLAY = ' AND !replay.id:""'
 logger = logging.getLogger(__name__)
 
 
-@dataclasses.dataclass(frozen=True)
-class _SpansIdQueryResult:
-    replay_ids: set[str]
-    row_count: int
-    sampling_tier: int | None
-
-
 class _DatasetQueryFunc(Protocol):
     def __call__(
         self,
@@ -243,6 +236,13 @@ def _get_replay_id_mappings(
                 replay_id_to_issue_map[replay_id].append(row[select_column])
 
     return replay_id_to_issue_map
+
+
+@dataclasses.dataclass(frozen=True)
+class _SpansIdQueryResult:
+    replay_ids: set[str]
+    row_count: int
+    sampling_tier: int | None
 
 
 def _query_eap_spans_for_replay_ids(
