@@ -50,7 +50,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         )
         result = serialize(action)
         self.assert_action_serialized(action, result)
-        assert result["desc"] == action.target_display
+        assert result["desc"] == "Send an email to [removed]"
 
     @responses.activate
     def test_discord(self) -> None:

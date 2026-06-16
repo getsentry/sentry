@@ -53,13 +53,14 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
         alert_rule_trigger_id = kwargs.get("alert_rule_trigger_id", -1)
 
         aarta = attrs.get("aarta")
-        priority = obj.data.get("priority")
+        priority: str | None = obj.data.get("priority")
         type_value = ActionService.get_value(obj.type)
+        assert type_value is not None, f"Unknown ActionService for type {obj.type}"
         target = attrs.get("target")
 
-        target_type = obj.config.get("target_type")
-        target_identifier = obj.config.get("target_identifier")
-        target_display = obj.config.get("target_display")
+        target_type: int = obj.config.get("target_type")
+        target_identifier: str | None = obj.config.get("target_identifier")
+        target_display: str | None = obj.config.get("target_display")
 
         sentry_app_id = None
         sentry_app_config = None
@@ -85,11 +86,9 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
             "dateCreated": obj.date_added,
             "desc": human_desc(
                 type_value,
-                target_type,
                 target_identifier,
                 target,
                 target_display,
-                target_identifier,
                 priority,
             ),
             "priority": priority,
