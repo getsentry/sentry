@@ -10,7 +10,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -46,6 +45,7 @@ from sentry.seer.autofix.autofix_agent import (
     Feedback,
     NoSeerQuotaException,
     PrIterationNoPullRequestException,
+    PrIterationNotEnabledException,
     get_autofix_agent_state,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -68,7 +68,6 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -302,11 +301,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return Response(open_pr_body, status=status.HTTP_202_ACCEPTED)
 
         if step == "pr_iteration":
-            if not features.has("organizations:autofix-pr-iteration", group.organization):
-                return Response(
-                    {"detail": "PR iteration is not enabled for this organization"},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
             if resolved_run_id is None:
                 return Response(
                     {"detail": "run_id is required for pr_iteration"},
@@ -325,10 +319,14 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             and request.user.is_authenticated
         ):
             # Serialize the user here on write so the read path (GET) doesn't have
-            # to hydrate it from the stored user_id on every fetch.
+            # to hydrate it from the stored user_id on every fetch. Serialize as
+            # an anonymous viewer (no ``as_user``) so the result is the public
+            # user representation rather than the self representation, which would
+            # leak the user's full email list, options, and flags. This payload is
+            # embedded in Seer prompt metadata and readable by any org member with
+            # group-read access.
             serialized_users = user_service.serialize_many(
                 filter={"user_ids": [request.user.id]},
-                as_user=serialize_generic_user(request.user),
             )
             feedback = Feedback(
                 message=user_context,
@@ -375,6 +373,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
         except NoSeerQuotaException:
             return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
+        except PrIterationNotEnabledException:
+            return Response(
+                {"detail": "PR iteration is not enabled for this organization"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         except PrIterationNoPullRequestException:
             return Response(
                 {"detail": "Cannot iterate on a PR before one has been created"},

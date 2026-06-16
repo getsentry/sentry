@@ -71,8 +71,12 @@ class UserUIFeedbackSource(TypedDict):
     # use the same stable key (`user_id`) that `GroupSeen` uses to track which
     # users have viewed an issue.
     user_id: int
-    # The serialized user, resolved at write time so the read path doesn't have
-    # to hydrate it. ``None`` if the user could not be serialized.
+    # The publicly serialized user, resolved at write time so the read path
+    # doesn't have to hydrate it. ``None`` if the user could not be serialized.
+    # This is serialized as an anonymous viewer (never as the requester) so the
+    # payload never includes the user's full email list, options, or flags: it
+    # is embedded in Seer prompt metadata and round-tripped back to any org
+    # member with group-read access.
     user: NotRequired[Any]
 
 
@@ -91,6 +95,10 @@ class NoSeerQuotaException(Exception):
 
 
 class PrIterationNoPullRequestException(Exception):
+    pass
+
+
+class PrIterationNotEnabledException(Exception):
     pass
 
 
@@ -387,6 +395,8 @@ def trigger_autofix_agent(
 
     iteration_index: int | None = None
     if step == AutofixStep.PR_ITERATION:
+        if not pr_iteration_enabled:
+            raise PrIterationNotEnabledException()
         if run_state is None or not run_state.repo_pr_states:
             raise PrIterationNoPullRequestException()
         if insert_index is not None:
