@@ -128,6 +128,7 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     AttributeBucket,
     AttributesAndValuesResponse,
+    BulkProjectPreferencesResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -138,6 +139,7 @@ from sentry.seer.sentry_data_models import (
     OrganizationProject,
     OrganizationProjectIdsResponse,
     OrganizationSlugResponse,
+    PrAttributionResponse,
     RepositoryIntegrationsStatusResponse,
     SendSeerWebhookErrorResponse,
     SendSeerWebhookSuccessResponse,
@@ -897,12 +899,14 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> SeerPro
 
 def bulk_get_project_preferences(
     *, organization_id: int, project_ids: list[int]
-) -> dict[str, dict]:
+) -> BulkProjectPreferencesResponse:
     """Bulk get Seer project preferences, keyed by stringified project ID.
 
     Projects not belonging to the given organization are silently skipped."""
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
-    return {str(project_id): pref.dict() for project_id, pref in preferences.items()}
+    return BulkProjectPreferencesResponse(
+        __root__={str(project_id): pref.dict() for project_id, pref in preferences.items()}
+    )
 
 
 def deliver_feature_result(
@@ -932,7 +936,7 @@ def record_pr_attribution(
     pull_request_id: int,
     signal_type: str,
     signal_details: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+) -> PrAttributionResponse:
     """Record a PR attribution signal on behalf of Seer.
 
     Idempotent via the unique constraint on
@@ -965,7 +969,7 @@ def record_pr_attribution(
             "seer.record_pr_attribution.feature_disabled",
             extra={"organization_id": organization_id, "pull_request_id": pull_request_id},
         )
-        return {"attribution_id": None}
+        return PrAttributionResponse(attribution_id=None)
 
     try:
         pull_request = PullRequest.objects.get(
@@ -1000,7 +1004,7 @@ def record_pr_attribution(
             "attribution_id": attribution.id,
         },
     )
-    return {"attribution_id": attribution.id}
+    return PrAttributionResponse(attribution_id=attribution.id)
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized

@@ -61,9 +61,12 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     EAPTrace,
     EmptyResponse,
+    EventDetailsResponse,
     ExecuteQueryErrorResponse,
     ExecuteQuerySuccessResponse,
     GetDsnResponse,
+    IssueAndEventDetailsResponse,
+    IssueDetailsResponse,
     RepositoryDefinitionResponse,
     TraceItemAttributesResponse,
     TraceItemEventsResponse,
@@ -1245,11 +1248,11 @@ def get_issue_and_event_response(
     organization: Organization,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> dict[str, Any]:
+) -> IssueAndEventDetailsResponse:
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
-    result = {
+    event_fields: dict[str, Any] = {
         "event": serialized_event,
         "event_id": event.event_id,
         "event_trace_id": event.trace_id,
@@ -1257,88 +1260,88 @@ def get_issue_and_event_response(
         "project_slug": event.project.slug,
     }
 
-    if group is not None:
-        # Get the issue metadata, tags overview, and event count timeseries.
-        serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
-        # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-        serialized_group["issueTypeDescription"] = group.issue_type.description
+    if group is None:
+        return IssueAndEventDetailsResponse(**event_fields)
 
-        logger.info(
-            "get_issue_and_event_details_v2: Querying for tags overview",
+    # Get the issue metadata, tags overview, and event count timeseries.
+    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
+
+    logger.info(
+        "get_issue_and_event_details_v2: Querying for tags overview",
+        extra={
+            "organization_id": organization.id,
+            "issue_id": group.id,
+            "timedelta": (end - start) if start and end else None,
+            "start": start,
+            "end": end,
+        },
+    )
+
+    try:
+        tags_overview = get_all_tags_overview(group, start, end)
+    except Exception:
+        logger.exception(
+            "Failed to get tags overview for issue",
             extra={
                 "organization_id": organization.id,
                 "issue_id": group.id,
-                "timedelta": (end - start) if start and end else None,
                 "start": start,
                 "end": end,
             },
         )
+        tags_overview = None
 
-        try:
-            tags_overview = get_all_tags_overview(group, start, end)
-        except Exception:
-            logger.exception(
-                "Failed to get tags overview for issue",
-                extra={
-                    "organization_id": organization.id,
-                    "issue_id": group.id,
-                    "start": start,
-                    "end": end,
-                },
-            )
-            tags_overview = None
+    try:
+        ts_result = _get_issue_event_timeseries(
+            group=group,
+            organization=organization,
+            start=start,
+            end=end,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to get issue event timeseries",
+            extra={
+                "organization_id": organization.id,
+                "issue_id": group.id,
+                "start": start,
+                "end": end,
+            },
+        )
+        ts_result = None
 
-        try:
-            ts_result = _get_issue_event_timeseries(
-                group=group,
-                organization=organization,
-                start=start,
-                end=end,
-            )
-        except Exception:
-            logger.exception(
-                "Failed to get issue event timeseries",
-                extra={
-                    "organization_id": organization.id,
-                    "issue_id": group.id,
-                    "start": start,
-                    "end": end,
-                },
-            )
-            ts_result = None
+    if ts_result:
+        timeseries, timeseries_stats_period, timeseries_interval = ts_result
+    else:
+        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
-        if ts_result:
-            timeseries, timeseries_stats_period, timeseries_interval = ts_result
-        else:
-            timeseries, timeseries_stats_period, timeseries_interval = None, None, None
+    # Fetch user activity (comments, status changes, etc.)
+    try:
+        activities = Activity.objects.filter(
+            group=group,
+            type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
+        ).order_by("-datetime")[:50]
+        serialized_activities = serialize(
+            list(activities), user=None, serializer=ActivitySerializer()
+        )
+    except Exception:
+        logger.exception(
+            "Failed to get user activity for issue",
+            extra={"organization_id": organization.id, "issue_id": group.id},
+        )
+        serialized_activities = []
 
-        # Fetch user activity (comments, status changes, etc.)
-        try:
-            activities = Activity.objects.filter(
-                group=group,
-                type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
-            ).order_by("-datetime")[:50]
-            serialized_activities = serialize(
-                list(activities), user=None, serializer=ActivitySerializer()
-            )
-        except Exception:
-            logger.exception(
-                "Failed to get user activity for issue",
-                extra={"organization_id": organization.id, "issue_id": group.id},
-            )
-            serialized_activities = []
-
-        result = {
-            **result,
-            "issue": serialized_group,
-            "event_timeseries": timeseries,
-            "timeseries_stats_period": timeseries_stats_period,
-            "timeseries_interval": timeseries_interval,
-            "tags_overview": tags_overview,
-            "user_activity": serialized_activities,
-        }
-
-    return result
+    return IssueAndEventDetailsResponse(
+        **event_fields,
+        issue=serialized_group,
+        event_timeseries=timeseries,
+        timeseries_stats_period=timeseries_stats_period,
+        timeseries_interval=timeseries_interval,
+        tags_overview=tags_overview,
+        user_activity=serialized_activities,
+    )
 
 
 def get_issue_details(
@@ -1348,7 +1351,7 @@ def get_issue_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> IssueDetailsResponse | None:
     """
     Get issue-level details for an issue, optionally scoped by time range.
 
@@ -1433,16 +1436,16 @@ def get_issue_details(
         )
         serialized_activities = []
 
-    return {
-        "issue": serialized_group,
-        "event_timeseries": timeseries,
-        "timeseries_stats_period": timeseries_stats_period,
-        "timeseries_interval": timeseries_interval,
-        "tags_overview": tags_overview,
-        "user_activity": serialized_activities,
-        "project_id": group.project_id,
-        "project_slug": group.project.slug,
-    }
+    return IssueDetailsResponse(
+        issue=serialized_group,
+        event_timeseries=timeseries,
+        timeseries_stats_period=timeseries_stats_period,
+        timeseries_interval=timeseries_interval,
+        tags_overview=tags_overview,
+        user_activity=serialized_activities,
+        project_id=group.project_id,
+        project_slug=group.project.slug,
+    )
 
 
 def get_event_details(
@@ -1453,7 +1456,7 @@ def get_event_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> EventDetailsResponse | None:
     """
     Get event details by event ID, or get the recommended event for an issue, optionally scoped by time range.
     Exactly one of event_id or issue_id must be provided.
@@ -1554,13 +1557,13 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
-    return {
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": event.project_id,
-        "project_slug": event.project.slug,
-    }
+    return EventDetailsResponse(
+        event=serialized_event,
+        event_id=event.event_id,
+        event_trace_id=event.trace_id,
+        project_id=event.project_id,
+        project_slug=event.project.slug,
+    )
 
 
 def get_issue_and_event_details_v2(
@@ -1572,7 +1575,7 @@ def get_issue_and_event_details_v2(
     event_id: str | None = None,
     project_slug: str | None = None,
     include_issue: bool = True,
-) -> dict[str, Any] | None:
+) -> IssueAndEventDetailsResponse | None:
     if bool(issue_id) == bool(event_id):
         raise BadRequest("Either issue_id or event_id must be provided, but not both.")
 
