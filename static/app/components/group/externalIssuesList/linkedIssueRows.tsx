@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -18,6 +18,8 @@ interface LinkedIssueRowsProps {
 interface LinkedIssueRowProps {
   linkedIssue: GroupIntegrationIssueResult['linkedIssues'][number];
 }
+
+const DEFAULT_ICON_OFFSET = -1;
 
 export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
   return (
@@ -47,54 +49,44 @@ export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
 
 function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
   const title = linkedIssue.title || linkedIssue.displayName;
-  const subtitle =
+  const displayTitle =
     linkedIssue.displayName &&
     !title.toLocaleLowerCase().includes(linkedIssue.displayName.toLocaleLowerCase())
       ? linkedIssue.displayName
-      : null;
-  const hasSubtitle = Boolean(subtitle);
+      : title;
+  const hasHiddenTitle = displayTitle !== title;
 
   return (
     <LinkedIssueRowGrid>
       <InteractionStateLayer />
-      <LinkedIssueRowLink
-        aria-label={subtitle ? t('%s, %s', title, subtitle) : title}
-        href={linkedIssue.url}
-      >
-        <Grid
-          align={hasSubtitle ? 'start' : 'center'}
-          columns="max-content minmax(0, 1fr)"
-          gap="sm"
-          padding={hasSubtitle ? 'sm' : 'xs sm'}
-          width="100%"
+      <LinkedIssueRowLink href={linkedIssue.url}>
+        <LinkedIssueRowIcon
+          aria-hidden
+          style={{
+            transform: `translateY(${linkedIssue.displayIconOffset ?? DEFAULT_ICON_OFFSET}px)`,
+          }}
         >
-          <LinkedIssueRowIcon
-            aria-hidden
-            hasSubtitle={hasSubtitle}
-            style={hasSubtitle ? undefined : {transform: 'translateY(-1px)'}}
-          >
-            {linkedIssue.displayIcon}
-          </LinkedIssueRowIcon>
-          <Flex as="span" direction="column" gap={hasSubtitle ? '2xs' : '0'} minWidth={0}>
-            <LinkedIssueRowTitle title={title}>{title}</LinkedIssueRowTitle>
-            {subtitle && (
-              <Text as="span" ellipsis size="sm" title={subtitle} variant="muted">
-                {subtitle}
+          {linkedIssue.displayIcon}
+        </LinkedIssueRowIcon>
+        <LinkedIssueRowTitleCell>
+          <Tooltip
+            title={
+              <Text as="span" align="left" wordBreak="break-word">
+                {title}
               </Text>
-            )}
-          </Flex>
-        </Grid>
+            }
+            disabled={!hasHiddenTitle}
+            maxWidth={275}
+            skipWrapper
+          >
+            <LinkedIssueRowTitle>{displayTitle}</LinkedIssueRowTitle>
+          </Tooltip>
+        </LinkedIssueRowTitleCell>
       </LinkedIssueRowLink>
-      <Flex
-        as="span"
-        align="center"
-        padding={hasSubtitle ? 'sm' : 'xs sm'}
-        paddingLeft="0"
-        paddingRight="xs"
-      >
+      <Flex as="span" align="center" padding="xs sm" paddingLeft="0" paddingRight="xs">
         <Tooltip title={t('Unlink issue')} skipWrapper>
           <Button
-            aria-label={t('Unlink %s', title)}
+            aria-label={t('Unlink %s', displayTitle)}
             icon={<IconClose variant="muted" />}
             onClick={linkedIssue.onUnlink}
             size="zero"
@@ -117,10 +109,15 @@ const LinkedIssueRowGrid = styled('div')`
 
 const LinkedIssueRowLink = styled(ExternalLink)`
   position: relative;
-  display: flex;
+  display: grid;
   align-items: center;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: ${p => p.theme.space.sm};
   min-width: 0;
+  max-width: 100%;
   width: 100%;
+  overflow: hidden;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
@@ -128,24 +125,32 @@ const LinkedIssueRowLink = styled(ExternalLink)`
   }
 `;
 
-const LinkedIssueRowIcon = styled('span', {
-  shouldForwardProp: prop => prop !== 'hasSubtitle',
-})<{hasSubtitle: boolean}>`
+const LinkedIssueRowTitleCell = styled('span')`
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+`;
+
+const LinkedIssueRowIcon = styled('span')`
   display: inline-flex;
-  align-items: ${p => (p.hasSubtitle ? 'flex-start' : 'center')};
+  align-items: center;
   justify-content: center;
   flex-shrink: 0;
   width: 14px;
   height: 14px;
-  padding-top: ${p => (p.hasSubtitle ? p.theme.space['2xs'] : 0)};
 `;
 
 const LinkedIssueRowTitle = styled('span')`
   display: block;
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1.25;
+  direction: rtl;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
