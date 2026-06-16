@@ -1176,6 +1176,56 @@ class WeeklyReportsTest(
             field: performance_issue[field] for field in substatus_fields
         }
 
+    @mock.patch("sentry.models.pullrequest.PullRequest.get_external_url")
+    def test_key_performance_issue_resolved_in_pr_status_links_pull_request(
+        self, get_external_url: mock.MagicMock
+    ) -> None:
+        get_external_url.return_value = "https://github.com/example/example/pull/1"
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        group = self.create_group(
+            project=self.project,
+            message="performance message",
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            type=PerformanceNPlusOneGroupType.type_id,
+            data={
+                "type": "transaction",
+                "metadata": {"title": "N+1 Query", "value": "performance message"},
+            },
+        )
+        repo = self.create_repo(project=self.project)
+        pull_request = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=self.organization.id,
+            key="1",
+            title="Fix N+1 query",
+        )
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pull_request.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+        group_history = self.create_group_history(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+        )
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        project_context = ProjectContext(self.project)
+        project_context.key_performance_issues = [(group, group_history, 10)]
+        ctx.projects_context_map = {self.project.id: project_context}
+        ctx.project_ownership[user.id] = {self.project.id}
+
+        rendered_context = render_template_context(ctx, user.id)
+
+        assert rendered_context is not None
+        performance_issue = rendered_context["key_performance_issues"][0]
+        assert performance_issue["status"] == "Resolved in PR"
+        assert performance_issue["status_url"] == "https://github.com/example/example/pull/1"
+        assert performance_issue["group_substatus"] is None
+
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_email_override_simple(

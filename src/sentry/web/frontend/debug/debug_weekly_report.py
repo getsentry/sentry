@@ -14,6 +14,7 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
@@ -165,23 +166,37 @@ class DebugWeeklyReportView(MailPreviewView):
                 PerformanceNPlusOneGroupType,
                 PerformanceP95EndpointRegressionGroupType,
             ]
-            project_context.key_performance_issues = [
-                (
-                    make_debug_group(
-                        group_id=20000 + (project.id * 100) + group_index,
-                        project=project,
-                        title=make_debug_issue_title(random, performance_issue_type.description),
-                        message=make_debug_issue_message(random),
-                        group_type=performance_issue_type,
-                        event_type="transaction",
-                        status=substatuses[group_index][0],
-                        substatus=substatuses[group_index][1],
-                    ),
-                    None,
-                    random.randint(100, 1000),
-                )
-                for group_index, performance_issue_type in enumerate(performance_issue_types)
+            performance_issue_statuses = [
+                None,
+                GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST,
+                GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
             ]
+            project_context.key_performance_issues = []
+            for group_index, performance_issue_type in enumerate(performance_issue_types):
+                group = make_debug_group(
+                    group_id=20000 + (project.id * 100) + group_index,
+                    project=project,
+                    title=make_debug_issue_title(random, performance_issue_type.description),
+                    message=make_debug_issue_message(random),
+                    group_type=performance_issue_type,
+                    event_type="transaction",
+                    status=substatuses[group_index][0],
+                    substatus=substatuses[group_index][1],
+                )
+                status = performance_issue_statuses[group_index]
+                group_history = (
+                    GroupHistory(
+                        group=group,
+                        project=project,
+                        organization=organization,
+                        status=status,
+                    )
+                    if status is not None
+                    else None
+                )
+                project_context.key_performance_issues.append(
+                    (group, group_history, random.randint(100, 1000))
+                )
 
             project_context.past_resolved_issues = [
                 (
