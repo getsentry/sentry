@@ -8,6 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {
+  useTraceMetricsHeatmapQuery,
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
 } from './useTraceMetricsWidgetQuery';
@@ -288,5 +289,148 @@ describe('useTraceMetricsTableQuery', () => {
         })
       );
     });
+  });
+});
+
+describe('useTraceMetricsHeatmapQuery', () => {
+  const organization = OrganizationFixture();
+  const pageFilters = PageFiltersFixture();
+
+  const heatmapWidget = WidgetFixture({
+    displayType: DisplayType.HEATMAP,
+    queries: [
+      {
+        name: '',
+        fields: ['sum(value,test_metric,millisecond,none)'],
+        aggregates: ['sum(value,test_metric,millisecond,none)'],
+        columns: [],
+        conditions: 'span.op:db',
+        orderby: '',
+      },
+    ],
+  });
+
+  const heatmapResponse = {
+    meta: {
+      xAxis: {valueType: 'date', valueUnit: null},
+      yAxis: {valueType: 'number', valueUnit: null, bucketCount: 10},
+      zAxis: {valueType: 'integer', valueUnit: null},
+    },
+    values: [{xAxis: 1, yAxis: 0, zAxis: 5}],
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(pageFilters);
+  });
+
+  it('does not fetch until the chart is measured (yBuckets > 0)', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: heatmapWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 0,
+      })
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(false);
+    expect(result.current.heatmapResults).toBeUndefined();
+  });
+
+  it('does not fetch without an interval', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: heatmapWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '',
+        yBuckets: 10,
+      })
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('fetches the events-heatmap endpoint with the selected metric', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: heatmapWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 10,
+      })
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-heatmap/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'tracemetrics',
+            xAxis: 'time',
+            yAxis: 'value',
+            zAxis: 'count()',
+            interval: '1h',
+            yBuckets: 10,
+            query: expect.stringContaining('test_metric'),
+          }),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.heatmapResults?.values).toHaveLength(1);
+    });
+  });
+
+  it('keeps a stable rawData reference across re-renders (no update loop)', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const {result, rerender} = renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: heatmapWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 10,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.heatmapResults).toBeDefined();
+    });
+
+    const firstRawData = result.current.rawData;
+    rerender();
+    // A new array each render would re-fire genericWidgetQueries' onDataFetched
+    // effect and cause an infinite update loop.
+    expect(result.current.rawData).toBe(firstRawData);
   });
 });

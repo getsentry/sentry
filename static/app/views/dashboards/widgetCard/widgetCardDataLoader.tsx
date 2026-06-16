@@ -41,10 +41,6 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
-  // Heat map X-axis bucket interval, derived from the rendered chart width.
-  heatmapInterval?: string;
-  // Heat map Y-axis bucket count, derived from the rendered chart dimensions.
-  heatmapYBuckets?: number;
   onDataFetchStart?: () => void;
   onDataFetched?: (
     results: Pick<
@@ -64,6 +60,9 @@ type Props = {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   tableItemLimit?: number;
   widgetInterval?: string;
+  // Number of buckets for a non-time axis. Used by heat maps for the Y-axis
+  // bucket count, derived from the rendered chart height.
+  yBuckets?: number;
 };
 
 export function WidgetCardDataLoader({
@@ -76,8 +75,7 @@ export function WidgetCardDataLoader({
   onWidgetSplitDecision,
   onDataFetchStart,
   widgetInterval,
-  heatmapInterval,
-  heatmapYBuckets,
+  yBuckets,
 }: Props) {
   if (widgetFetchesOwnData(widget.displayType)) {
     return children({loading: false});
@@ -161,8 +159,7 @@ export function WidgetCardDataLoader({
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
         widgetInterval={widgetInterval}
-        heatmapInterval={heatmapInterval}
-        heatmapYBuckets={heatmapYBuckets}
+        yBuckets={yBuckets}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </TraceMetricsWidgetQueries>

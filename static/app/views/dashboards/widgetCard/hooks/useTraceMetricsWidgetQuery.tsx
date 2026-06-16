@@ -11,7 +11,6 @@ import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {
   explodeField,
@@ -27,7 +26,10 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
+import type {
+  HeatmapWidgetQueryParams,
+  WidgetQueryParams,
+} from 'sentry/views/dashboards/datasetConfig/base';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -431,16 +433,12 @@ export function useTraceMetricsTableQuery(
  * time (X) x value-bucket (Y) grid colored by count (Z), so they use the
  * dedicated `/events-heatmap/` endpoint rather than the timeseries/table flow.
  *
- * The `yBuckets` and `interval` are derived from the widget's rendered width
- * (see `getHeatmapBuckets`) and are passed in from the chart container, since
- * the query layer has no access to the rendered dimensions.
+ * The X-axis `widgetInterval` and Y-axis `yBuckets` are derived from the
+ * widget's rendered dimensions and passed in from the chart container, since
+ * the query layer has no access to the rendered size.
  */
 export function useTraceMetricsHeatmapQuery(
-  params: WidgetQueryParams & {
-    interval?: string;
-    skipDashboardFilterParens?: boolean;
-    yBuckets?: number;
-  }
+  params: HeatmapWidgetQueryParams
 ): HookWidgetQueryResult {
   const {
     widget,
@@ -449,7 +447,7 @@ export function useTraceMetricsHeatmapQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
-    interval = '',
+    widgetInterval = '',
     yBuckets = 0,
   } = params;
 
@@ -472,8 +470,10 @@ export function useTraceMetricsHeatmapQuery(
     ? extractTraceMetricFromColumn(explodeField({field: aggregate}))
     : undefined;
 
-  const heatmapEnabled =
-    enabled && defined(traceMetric) && yBuckets > 0 && Boolean(interval);
+  // `enabled` already reflects whether the widget is valid (TraceMetricsWidgetQueries
+  // disables the query until each aggregate resolves to a metric). Here we only
+  // gate on having the rendered dimensions needed to size the request.
+  const heatmapEnabled = enabled && yBuckets > 0 && Boolean(widgetInterval);
 
   const {data, isFetching, error} = useQuery(
     metricHeatmapApiOptions({
@@ -482,7 +482,7 @@ export function useTraceMetricsHeatmapQuery(
       organization,
       selection: pageFilters,
       query: query?.conditions ?? '',
-      interval,
+      interval: widgetInterval,
       yBuckets,
     })
   );

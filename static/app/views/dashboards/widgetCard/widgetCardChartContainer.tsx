@@ -14,10 +14,6 @@ import type {
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
-import {
-  ChartIntervalUnspecifiedStrategy,
-  useChartInterval,
-} from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
@@ -108,35 +104,18 @@ export function WidgetCardChartContainer({
 
   const isHeatmap = widget.displayType === DisplayType.HEATMAP;
 
-  // Heat maps size their X/Y buckets from the rendered chart dimensions. We
-  // measure the container here (above the data loader) because the query needs
-  // these values before it fires. The query stays disabled until the container
-  // has a non-zero width (see `useTraceMetricsHeatmapQuery`).
-  const heatmapContainerRef = useRef<HTMLDivElement>(null);
-  const {width: heatmapWidth, height: heatmapHeight} = useDimensions({
-    elementRef: heatmapContainerRef,
+  // Measure the chart area here (above the data loader) so that widgets which
+  // size their request from the rendered dimensions — currently heat maps,
+  // whose query needs the bucket interval/count before it fires — can do so.
+  // The heat map query stays disabled until measured (see `useTraceMetricsHeatmapQuery`).
+  const chartAreaRef = useRef<HTMLDivElement>(null);
+  const {width: chartAreaWidth, height: chartAreaHeight} = useDimensions({
+    elementRef: chartAreaRef,
   });
-  // Use the biggest interval as the fallback, matching Explore's heat map.
-  const [, , intervalOptions] = useChartInterval({
-    unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_BIGGEST,
-  });
-  const fallbackInterval = intervalOptions[intervalOptions.length - 1]?.value ?? '';
   const heatmapInterval = isHeatmap
-    ? getHeatmapXAxisBucketInterval(
-        selection,
-        fallbackInterval,
-        heatmapWidth,
-        intervalOptions
-      )
+    ? getHeatmapXAxisBucketInterval(selection, chartAreaWidth)
     : undefined;
-  const heatmapYBuckets = isHeatmap
-    ? getHeatmapYAxisBucketCount(
-        selection,
-        heatmapInterval ?? '',
-        heatmapWidth,
-        heatmapHeight
-      )
-    : undefined;
+  const yBuckets = isHeatmap ? getHeatmapYAxisBucketCount(chartAreaHeight) : undefined;
 
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
@@ -181,9 +160,8 @@ export function WidgetCardChartContainer({
       onWidgetSplitDecision={onWidgetSplitDecision}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
-      widgetInterval={widgetInterval}
-      heatmapInterval={heatmapInterval}
-      heatmapYBuckets={heatmapYBuckets}
+      widgetInterval={isHeatmap ? heatmapInterval : widgetInterval}
+      yBuckets={yBuckets}
     >
       {({
         tableResults,
@@ -204,8 +182,7 @@ export function WidgetCardChartContainer({
 
         // The heat map query can't fire until the container has been measured,
         // so treat it as loading until then to avoid a "No data found" flash.
-        const isLoading =
-          loading || (isHeatmap && (!heatmapYBuckets || heatmapYBuckets <= 0));
+        const isLoading = loading || (isHeatmap && (!yBuckets || yBuckets <= 0));
 
         const errorOrEmptyMessage = isLoading
           ? errorMessage
@@ -279,17 +256,13 @@ export function WidgetCardChartContainer({
   // so wrap them in a full-size measured container that stays mounted
   // regardless of the query/loading state.
   if (isHeatmap) {
-    return (
-      <HeatmapMeasureContainer ref={heatmapContainerRef}>
-        {dataLoader}
-      </HeatmapMeasureContainer>
-    );
+    return <MeasuredChartArea ref={chartAreaRef}>{dataLoader}</MeasuredChartArea>;
   }
 
   return dataLoader;
 }
 
-const HeatmapMeasureContainer = styled('div')`
+const MeasuredChartArea = styled('div')`
   height: 100%;
   width: 100%;
 `;

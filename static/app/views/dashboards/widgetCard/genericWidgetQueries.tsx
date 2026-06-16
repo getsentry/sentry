@@ -94,12 +94,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   disabled?: boolean;
-  // Heat map X-axis bucket interval, derived from the rendered chart width.
-  // Only used for heat map widgets.
-  heatmapInterval?: string;
-  // Heat map Y-axis bucket count, derived from the rendered chart dimensions.
-  // Only used for heat map widgets.
-  heatmapYBuckets?: number;
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
@@ -123,6 +117,9 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   // Optional override for the widget interval (e.g., '1m', '5m', '1h')
   // If not provided, widget interval will be calculated automatically
   widgetInterval?: string;
+  // Number of buckets to slice a non-time axis into. Used by heat maps for the
+  // Y-axis bucket count, derived from the rendered chart height.
+  yBuckets?: number;
 };
 
 /**
@@ -182,8 +179,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     selection: propsSelection,
     skipDashboardFilterParens,
     widgetInterval,
-    heatmapInterval,
-    heatmapYBuckets,
+    yBuckets,
   } = props;
 
   const organization = useOrganization();
@@ -243,14 +239,9 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    onDemandControlContext,
-    mepSetting,
-    samplingMode,
     enabled: isHeatmap && !disabled && !propsLoading,
-    limit,
-    cursor,
-    interval: heatmapInterval,
-    yBuckets: heatmapYBuckets,
+    widgetInterval,
+    yBuckets,
   });
 
   const hookResults = isHeatmap

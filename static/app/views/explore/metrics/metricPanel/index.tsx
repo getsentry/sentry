@@ -175,18 +175,8 @@ export function MetricPanel({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
-  const xBucketInterval = getHeatmapXAxisBucketInterval(
-    selection,
-    interval,
-    chartContainerWidth,
-    intervalOptions
-  );
-  const yBuckets = getHeatmapYAxisBucketCount(
-    selection,
-    xBucketInterval,
-    chartContainerWidth,
-    STACKED_GRAPH_HEIGHT
-  );
+  const xBucketInterval = getHeatmapXAxisBucketInterval(selection, chartContainerWidth);
+  const yBuckets = getHeatmapYAxisBucketCount(STACKED_GRAPH_HEIGHT);
 
   const heatmapApiOptions = metricHeatmapApiOptions({
     traceMetric,
