@@ -14,16 +14,15 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DataUnit} from 'sentry/utils/discover/fields';
 import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
 import {getHeatmapYAxisBucketCount} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYAxisBucketCount';
+import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -54,10 +53,7 @@ import {
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {
-  mapMetricUnitToFieldType,
-  updateVisualizeYAxis,
-} from 'sentry/views/explore/metrics/utils';
+import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
@@ -381,32 +377,4 @@ function DnDPlaceholder({
       </Grid>
     </Container>
   );
-}
-
-/**
- * The heatmap API response doesn't include the metric unit because the
- * query uses the generic `value` field. This function patches the Y-axis
- * meta with the known unit from the selected trace metric so the
- * visualization can format axis labels correctly (e.g. "1.5 KB" instead
- * of "1500").
- */
-function mergeMetricUnit(
-  series: HeatMapSeries,
-  metricUnit: string | undefined
-): HeatMapSeries {
-  const {fieldType, unit} = mapMetricUnitToFieldType(metricUnit);
-  if (!unit) {
-    return series;
-  }
-  return {
-    ...series,
-    meta: {
-      ...series.meta,
-      yAxis: {
-        ...series.meta.yAxis,
-        valueType: fieldType,
-        valueUnit: unit as DataUnit,
-      },
-    },
-  };
 }

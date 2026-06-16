@@ -406,6 +406,45 @@ describe('useTraceMetricsHeatmapQuery', () => {
     });
   });
 
+  it("patches the Y axis with the selected metric's unit", async () => {
+    const durationWidget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      queries: [
+        {
+          name: '',
+          fields: ['count(value,test_metric,distribution,millisecond)'],
+          aggregates: ['count(value,test_metric,distribution,millisecond)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: durationWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 10,
+      })
+    );
+
+    // The API returns the generic `value` field with no unit; the hook patches
+    // the Y axis from the metric's unit (millisecond -> duration).
+    await waitFor(() => {
+      expect(result.current.heatmapResults?.meta.yAxis.valueUnit).toBe('millisecond');
+    });
+    expect(result.current.heatmapResults?.meta.yAxis.valueType).toBe('duration');
+  });
+
   it('keeps a stable rawData reference across re-renders (no update loop)', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-heatmap/',

@@ -44,6 +44,7 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
@@ -493,6 +494,14 @@ export function useTraceMetricsHeatmapQuery(
   // react-query, so memoizing on it is enough.
   const rawData = useMemo(() => (data ? [data] : EMPTY_ARRAY), [data]);
 
+  // The heatmap API returns the Y axis as the generic `value` field with no
+  // unit, so patch it with the selected metric's unit (mirroring Explore).
+  // Memoized so the result stays referentially stable across renders.
+  const heatmapResults = useMemo(
+    () => (data ? mergeMetricUnit(data, traceMetric?.unit ?? undefined) : undefined),
+    [data, traceMetric?.unit]
+  );
+
   if (!heatmapEnabled) {
     return {loading: false, rawData: EMPTY_ARRAY};
   }
@@ -507,7 +516,7 @@ export function useTraceMetricsHeatmapQuery(
 
   return {
     loading: false,
-    heatmapResults: data,
+    heatmapResults,
     rawData,
   };
 }
