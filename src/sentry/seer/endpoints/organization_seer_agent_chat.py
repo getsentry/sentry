@@ -188,7 +188,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
-            return Response({"session": state.dict()})
+            return Response({"session": state.dict(), "sentry_run_id": resolved.uuid})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError as e:
