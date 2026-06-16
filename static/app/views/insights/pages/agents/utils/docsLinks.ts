@@ -1,7 +1,3 @@
-/**
- * Documentation links for AI agent instrumentation, shared across onboarding,
- * the conversations views, and trace detail alerts.
- */
 export const AI_INSTRUMENTATION_DOCS_LINKS = {
   python:
     'https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/',

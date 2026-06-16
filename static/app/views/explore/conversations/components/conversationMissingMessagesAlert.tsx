@@ -7,11 +7,6 @@ import {t, tct} from 'sentry/locale';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
-/**
- * Shown on the conversations overview when conversations exist but none of them
- * have captured input/output messages. This usually means message capture (PII)
- * is disabled in the SDK, so the conversation views are effectively empty.
- */
 export function ConversationMissingMessagesAlert() {
   return (
     <Alert.Container>
