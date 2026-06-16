@@ -63,18 +63,39 @@ def set_top_tags(
 ) -> None:
     try:
         scope.set_tag("project.slug", project.slug)
+        scope.set_attribute("project.slug", project.slug)
         scope.set_tag("organization.slug", project.organization.slug)
+        scope.set_attribute("organization.slug", project.organization.slug)
         scope.set_tag("organization.early_adopter", bool(project.organization.flags.early_adopter))
-        scope.set_tag("stacktrace_link.platform", ctx["platform"])
+        scope.set_attribute(
+            "organization.early_adopter", bool(project.organization.flags.early_adopter)
+        )
+
+        platform = ctx["platform"]
+        scope.set_tag("stacktrace_link.platform", platform)
+        if platform is not None:
+            scope.set_attribute("stacktrace_link.platform", platform)
+
         scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
+        scope.set_attribute("stacktrace_link.code_mappings", has_code_mappings)
         scope.set_tag("stacktrace_link.file", ctx["file"])
+        scope.set_attribute("stacktrace_link.file", ctx["file"])
         # Add tag if filepath is Windows
         if ctx["file"] and ctx["file"].find(":\\") > -1:
             scope.set_tag("stacktrace_link.windows", True)
-        scope.set_tag("stacktrace_link.abs_path", ctx["abs_path"])
+            scope.set_attribute("stacktrace_link.windows", True)
+
+        abs_path = ctx["abs_path"]
+        scope.set_tag("stacktrace_link.abs_path", abs_path)
+        if abs_path is not None:
+            scope.set_attribute("stacktrace_link.abs_path", abs_path)
+
         if ctx["platform"] == "python":
             # This allows detecting a file that belongs to Python's 3rd party modules
             scope.set_tag("stacktrace_link.in_app", "site-packages" not in str(ctx["abs_path"]))
+            scope.set_attribute(
+                "stacktrace_link.in_app", "site-packages" not in str(ctx["abs_path"])
+            )
     except Exception:
         # If errors arises we can still proceed
         logger.exception("We failed to set a tag.")
@@ -82,17 +103,34 @@ def set_top_tags(
 
 def set_tags(scope: Scope, result: StacktraceLinkOutcome, integrations: Collection[Any]) -> None:
     scope.set_tag("stacktrace_link.found", result["source_url"] is not None)
-    scope.set_tag("stacktrace_link.source_url", result["source_url"])
-    scope.set_tag("stacktrace_link.error", result["error"])
+    scope.set_attribute("stacktrace_link.found", result["source_url"] is not None)
+
+    source_url = result["source_url"]
+    scope.set_tag("stacktrace_link.source_url", source_url)
+    if source_url is not None:
+        scope.set_attribute("stacktrace_link.source_url", source_url)
+
+    error = result["error"]
+    scope.set_tag("stacktrace_link.error", error)
+    if error is not None:
+        scope.set_attribute("stacktrace_link.error", error)
+
     if result["current_config"]:
-        scope.set_tag(
-            "stacktrace_link.tried_url", result["current_config"]["outcome"].get("attemptedUrl")
-        )
+        attempted_url = result["current_config"]["outcome"].get("attemptedUrl")
+        scope.set_tag("stacktrace_link.tried_url", attempted_url)
+        if attempted_url is not None:
+            scope.set_attribute("stacktrace_link.tried_url", attempted_url)
+
         scope.set_tag(
             "stacktrace_link.auto_derived",
             result["current_config"]["config"].automatically_generated is True,
         )
+        scope.set_attribute(
+            "stacktrace_link.auto_derived",
+            result["current_config"]["config"].automatically_generated is True,
+        )
     scope.set_tag("stacktrace_link.has_integration", len(integrations) > 0)
+    scope.set_attribute("stacktrace_link.has_integration", len(integrations) > 0)
 
 
 @cell_silo_endpoint
