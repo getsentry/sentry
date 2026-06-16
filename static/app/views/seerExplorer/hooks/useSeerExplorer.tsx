@@ -103,7 +103,6 @@ const getOptimisticAssistantTexts = () => [
 
 const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
   session: {
-    run_id: undefined,
     blocks: [
       {
         id: 'error',

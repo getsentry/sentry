@@ -152,7 +152,6 @@ export type SeerExplorerResponse = {
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;
-    run_id?: number;
   } | null;
   sentry_run_id?: string | null;
 };
