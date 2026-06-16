@@ -7,6 +7,7 @@ from django.contrib.staticfiles import finders
 from django.http import Http404, HttpResponseNotFound
 from django.views import static
 
+from sentry.utils.assets import get_frontend_app_asset_module_path
 from sentry.web.constants import FOREVER_CACHE, NEVER_CACHE, NO_CACHE
 from sentry.web.frontend.base import all_silo_view
 
@@ -47,6 +48,28 @@ def frontend_app_static_media(request, **kwargs):
     kwargs["path"] = f"dist/{path}"
     response = static_media(request, **kwargs)
 
+    if not settings.DEBUG:
+        response["Cache-Control"] = NO_CACHE
+
+    return response
+
+
+@all_silo_view
+def service_worker(request):
+    """
+    Serve the service worker script from our own origin.
+
+    Service workers must be served from the same origin as the scope they
+    control. The built worker bundle lives in the frontend app's dist directory
+    (served from the CDN under `_static/dist`), so we proxy it from disk here at
+    a root-scoped path so it can register with `scope: '/'`.
+    """
+    path = get_frontend_app_asset_module_path("entrypoints/serviceWorker.js")
+    response = static_media(request, module="sentry", path=f"dist/{path}")
+
+    # Allow the worker to control the root scope and force revalidation so a new
+    # deploy's worker is picked up without serving a stale cached copy.
+    response["Service-Worker-Allowed"] = "/"
     if not settings.DEBUG:
         response["Cache-Control"] = NO_CACHE
 
