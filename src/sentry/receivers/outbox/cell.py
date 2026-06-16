@@ -235,14 +235,13 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         _mark_seer_run_failed(run, "seer_run_create.invalid_payload", error=str(e))
         return
 
-    user_id = body.get("user_org_context", {}).get("user_id")
-    if user_id is not None:
-        monitoring_provider_connections = get_monitoring_provider_connections(user_id)
-        if monitoring_provider_connections is not None:
-            body["monitoring_providers"] = monitoring_provider_connections
-
     match run_type:
         case SeerRunType.EXPLORER:
+            user_id = body.get("user_org_context", {}).get("user_id")
+            if user_id is not None:
+                monitoring_provider_connections = get_monitoring_provider_connections(user_id)
+                if monitoring_provider_connections is not None:
+                    body["monitoring_providers"] = monitoring_provider_connections
             response = make_agent_chat_request(
                 cast(AgentChatRequest, body), viewer_context=viewer_context
             )

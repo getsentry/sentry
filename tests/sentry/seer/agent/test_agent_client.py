@@ -1289,7 +1289,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert get_monitoring_provider_connections(self.user.id) is None
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=None)
-    def test_skips_identity_when_encryption_unavailable(self) -> None:
+    def test_skips_identity_when_encryption_fails(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
         self.create_identity(
             user=self.user,
