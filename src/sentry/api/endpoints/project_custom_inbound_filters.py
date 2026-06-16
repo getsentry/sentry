@@ -120,7 +120,7 @@ def get_custom_inbound_filter(project: Project, filter_id: str) -> CustomInbound
         raise ResourceDoesNotExist
 
 
-def get_feature_gate_response(request: Request, project: Project) -> Response | None:
+def feature_access_denied(request: Request, project: Project) -> Response | None:
     if not features.has(
         "organizations:inbound-filters-v2", project.organization, actor=request.user
     ):
@@ -135,6 +135,7 @@ def get_feature_gate_response(request: Request, project: Project) -> Response | 
 def get_audit_log_data(
     project: Project,
     custom_filter: CustomInboundFilter,
+    operation: str,
     changes: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
@@ -143,6 +144,7 @@ def get_audit_log_data(
         "filter_name": custom_filter.name,
         "active": custom_filter.active,
         "conditions": custom_filter.conditions,
+        "operation": operation,
     }
 
     if changes:
@@ -158,7 +160,6 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
     permission_classes = (ProjectSettingPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(
@@ -175,8 +176,8 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
         },
     )
     def get(self, request: Request, project: Project) -> Response:
-        if feature_gate_response := get_feature_gate_response(request, project):
-            return feature_gate_response
+        if denied := feature_access_denied(request, project):
+            return denied
 
         filters = CustomInboundFilter.objects.filter(project_id=project.id)
         return self.paginate(
@@ -188,6 +189,19 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
                 serialize_project_custom_inbound_filter(custom_filter) for custom_filter in results
             ],
         )
+
+
+@cell_silo_endpoint
+@extend_schema(tags=["Projects"])
+class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.UNOWNED
+    permission_classes = (ProjectSettingPermission,)
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
 
     @extend_schema(
         operation_id="Create a Custom Inbound Filter",
@@ -203,9 +217,9 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, project: Project) -> Response:
-        if feature_gate_response := get_feature_gate_response(request, project):
-            return feature_gate_response
+    def post(self, request: Request, project: Project, filter_id: str) -> Response:
+        if denied := feature_access_denied(request, project):
+            return denied
 
         serializer = CustomInboundFilterSerializer(
             data=request.data,
@@ -225,23 +239,11 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
             request=request,
             organization=project.organization,
             target_object=custom_filter.id,
-            event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER_ADD"),
-            data=get_audit_log_data(project, custom_filter),
+            event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+            data=get_audit_log_data(project, custom_filter, "add"),
         )
 
         return Response(serialize_project_custom_inbound_filter(custom_filter), status=201)
-
-
-@cell_silo_endpoint
-@extend_schema(tags=["Projects"])
-class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
-    permission_classes = (ProjectSettingPermission,)
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
-    }
 
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",
@@ -257,8 +259,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         },
     )
     def get(self, request: Request, project: Project, filter_id: str) -> Response:
-        if feature_gate_response := get_feature_gate_response(request, project):
-            return feature_gate_response
+        if denied := feature_access_denied(request, project):
+            return denied
 
         custom_filter = get_custom_inbound_filter(project, filter_id)
         return Response(serialize_project_custom_inbound_filter(custom_filter))
@@ -278,8 +280,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         },
     )
     def put(self, request: Request, project: Project, filter_id: str) -> Response:
-        if feature_gate_response := get_feature_gate_response(request, project):
-            return feature_gate_response
+        if denied := feature_access_denied(request, project):
+            return denied
 
         custom_filter = get_custom_inbound_filter(project, filter_id)
         serializer = CustomInboundFilterSerializer(
@@ -308,8 +310,8 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=custom_filter.id,
-                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER_EDIT"),
-                data=get_audit_log_data(project, custom_filter, changes),
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+                data=get_audit_log_data(project, custom_filter, "edit", changes),
             )
 
         return Response(serialize_project_custom_inbound_filter(custom_filter))
@@ -328,11 +330,11 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         },
     )
     def delete(self, request: Request, project: Project, filter_id: str) -> Response:
-        if feature_gate_response := get_feature_gate_response(request, project):
-            return feature_gate_response
+        if denied := feature_access_denied(request, project):
+            return denied
 
         custom_filter = get_custom_inbound_filter(project, filter_id)
-        audit_log_data = get_audit_log_data(project, custom_filter)
+        audit_log_data = get_audit_log_data(project, custom_filter, "remove")
         target_object = custom_filter.id
         custom_filter.delete()
 
@@ -340,7 +342,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
             request=request,
             organization=project.organization,
             target_object=target_object,
-            event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER_REMOVE"),
+            event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             data=audit_log_data,
         )
 

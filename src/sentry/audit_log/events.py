@@ -230,42 +230,31 @@ def _custom_inbound_filter_display(audit_log_entry: AuditLogEntry) -> str:
     return f'custom inbound filter "{filter_name}" for project {project_slug}'
 
 
-class CustomInboundFilterAddAuditLogEvent(AuditLogEvent):
+class CustomInboundFilterAuditLogEvent(AuditLogEvent):
+    """A single audit log event covering all custom inbound filter operations.
+
+    The specific operation (add/edit/remove) is carried in ``data["operation"]``.
+    """
+
     def __init__(self) -> None:
         super().__init__(
             event_id=218,
-            name="CUSTOM_INBOUND_FILTER_ADD",
-            api_name="custom-inbound-filter.create",
+            name="CUSTOM_INBOUND_FILTER",
+            api_name="custom-inbound-filter",
         )
 
     def render(self, audit_log_entry: AuditLogEntry) -> str:
-        return f"added {_custom_inbound_filter_display(audit_log_entry)}"
-
-
-class CustomInboundFilterEditAuditLogEvent(AuditLogEvent):
-    def __init__(self) -> None:
-        super().__init__(
-            event_id=219,
-            name="CUSTOM_INBOUND_FILTER_EDIT",
-            api_name="custom-inbound-filter.edit",
-        )
-
-    def render(self, audit_log_entry: AuditLogEntry) -> str:
-        changes = audit_log_entry.data.get("changes", {})
-        changed_fields = ", ".join(sorted(changes)) if changes else "unknown fields"
-        return f"edited {_custom_inbound_filter_display(audit_log_entry)}: {changed_fields}"
-
-
-class CustomInboundFilterRemoveAuditLogEvent(AuditLogEvent):
-    def __init__(self) -> None:
-        super().__init__(
-            event_id=220,
-            name="CUSTOM_INBOUND_FILTER_REMOVE",
-            api_name="custom-inbound-filter.remove",
-        )
-
-    def render(self, audit_log_entry: AuditLogEntry) -> str:
-        return f"removed {_custom_inbound_filter_display(audit_log_entry)}"
+        target = _custom_inbound_filter_display(audit_log_entry)
+        operation = audit_log_entry.data.get("operation")
+        if operation == "add":
+            return f"added {target}"
+        if operation == "remove":
+            return f"removed {target}"
+        if operation == "edit":
+            changes = audit_log_entry.data.get("changes", {})
+            changed_fields = ", ".join(sorted(changes)) if changes else "unknown fields"
+            return f"edited {target}: {changed_fields}"
+        return f"updated {target}"
 
 
 class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):

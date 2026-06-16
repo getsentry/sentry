@@ -53,6 +53,36 @@ class CustomInboundFiltersTest(APITestCase):
             },
         ]
 
+    def test_without_inbound_filters_v2_feature(self) -> None:
+        with self.feature(["projects:custom-inbound-filters"]):
+            self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
+
+    def test_without_custom_inbound_filters_plan_feature(self) -> None:
+        with self.feature(["organizations:inbound-filters-v2"]):
+            response = self.get_error_response(
+                self.organization.slug, self.project.slug, status_code=400
+            )
+
+        assert response.data["detail"] == "You do not have that feature enabled"
+
+
+class CustomInboundFilterDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-project-custom-inbound-filter-details"
+    method = "put"
+    features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.custom_filter = self.create_project_custom_inbound_filter(
+            project=self.project,
+            name="Original filter",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+        )
+        self.login_as(user=self.user)
+
     def test_post(self) -> None:
         conditions = [
             {"type": "release", "value": ["1.*"]},
@@ -63,6 +93,7 @@ class CustomInboundFiltersTest(APITestCase):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
+                self.custom_filter.id,
                 method="post",
                 name="Important errors",
                 active=False,
@@ -79,9 +110,10 @@ class CustomInboundFiltersTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             audit_entry = AuditLogEntry.objects.get(
                 organization_id=self.organization.id,
-                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER_ADD"),
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             )
         assert audit_entry.target_object == custom_filter.id
+        assert audit_entry.data["operation"] == "add"
         assert audit_entry.data["filter_name"] == "Important errors"
         assert audit_entry.data["conditions"] == conditions
 
@@ -92,6 +124,7 @@ class CustomInboundFiltersTest(APITestCase):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
+                self.custom_filter.id,
                 method="post",
                 conditions=conditions,
                 status_code=201,
@@ -100,18 +133,6 @@ class CustomInboundFiltersTest(APITestCase):
         custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
         assert response.data["name"] is None
         assert custom_filter.name is None
-
-    def test_without_inbound_filters_v2_feature(self) -> None:
-        with self.feature(["projects:custom-inbound-filters"]):
-            self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
-
-    def test_without_custom_inbound_filters_plan_feature(self) -> None:
-        with self.feature(["organizations:inbound-filters-v2"]):
-            response = self.get_error_response(
-                self.organization.slug, self.project.slug, status_code=400
-            )
-
-        assert response.data["detail"] == "You do not have that feature enabled"
 
     def test_rejects_incompatible_primary_conditions(self) -> None:
         conditions = [
@@ -123,6 +144,7 @@ class CustomInboundFiltersTest(APITestCase):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
+                self.custom_filter.id,
                 method="post",
                 name="Mixed data types",
                 conditions=conditions,
@@ -143,6 +165,7 @@ class CustomInboundFiltersTest(APITestCase):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
+                self.custom_filter.id,
                 method="post",
                 name="Duplicate releases",
                 conditions=conditions,
@@ -155,6 +178,7 @@ class CustomInboundFiltersTest(APITestCase):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
+                self.custom_filter.id,
                 method="post",
                 name="",
                 conditions=[],
@@ -168,6 +192,7 @@ class CustomInboundFiltersTest(APITestCase):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
+                self.custom_filter.id,
                 method="post",
                 name="Empty value",
                 conditions=[{"type": "release", "value": []}],
@@ -180,6 +205,7 @@ class CustomInboundFiltersTest(APITestCase):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
+                self.custom_filter.id,
                 method="post",
                 name="Logs",
                 conditions=[{"type": "log_message", "value": ["Rate limit*"]}],
@@ -195,6 +221,7 @@ class CustomInboundFiltersTest(APITestCase):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
+                self.custom_filter.id,
                 method="post",
                 name="Metrics",
                 conditions=[{"type": "metric_name", "value": ["counter.*"]}],
@@ -204,24 +231,6 @@ class CustomInboundFiltersTest(APITestCase):
             str(response.data["conditions"][0])
             == "Metric name filters are not enabled for this organization."
         )
-
-
-class CustomInboundFilterDetailsTest(APITestCase):
-    endpoint = "sentry-api-0-project-custom-inbound-filter-details"
-    method = "put"
-    features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.organization = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(organization=self.organization, teams=[self.team])
-        self.custom_filter = self.create_project_custom_inbound_filter(
-            project=self.project,
-            name="Original filter",
-            conditions=[{"type": "release", "value": ["1.*"]}],
-        )
-        self.login_as(user=self.user)
 
     def test_get(self) -> None:
         with self.feature(self.features), outbox_runner():
@@ -261,9 +270,10 @@ class CustomInboundFilterDetailsTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             audit_entry = AuditLogEntry.objects.get(
                 organization_id=self.organization.id,
-                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER_EDIT"),
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             )
         assert audit_entry.target_object == self.custom_filter.id
+        assert audit_entry.data["operation"] == "edit"
         assert audit_entry.data["filter_name"] == "Renamed filter"
         assert audit_entry.data["changes"] == {
             "name": {"old": "Original filter", "new": "Renamed filter"},
@@ -288,9 +298,10 @@ class CustomInboundFilterDetailsTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             audit_entry = AuditLogEntry.objects.get(
                 organization_id=self.organization.id,
-                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER_REMOVE"),
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             )
         assert audit_entry.target_object == self.custom_filter.id
+        assert audit_entry.data["operation"] == "remove"
         assert audit_entry.data["filter_name"] == "Original filter"
 
     def test_scopes_lookup_to_project(self) -> None:
