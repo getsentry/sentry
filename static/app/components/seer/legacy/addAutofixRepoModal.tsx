@@ -86,14 +86,19 @@ export function AddAutofixRepoModal({
     });
   }, [repositories, hiddenExternalIds, modalSearchQuery]);
 
-  const handleToggleRepository = useCallback((externalId: string) => {
-    setSelectedExternalIds(prev => {
-      if (prev.includes(externalId)) {
-        return prev.filter(id => id !== externalId);
-      }
-      return prev.length >= MAX_REPOS_LIMIT ? prev : [...prev, externalId];
-    });
-  }, []);
+  const handleToggleRepository = useCallback(
+    (externalId: string) => {
+      setSelectedExternalIds(prev => {
+        if (prev.includes(externalId)) {
+          return prev.filter(id => id !== externalId);
+        }
+        return hiddenExternalIds.length + prev.length >= MAX_REPOS_LIMIT
+          ? prev
+          : [...prev, externalId];
+      });
+    },
+    [hiddenExternalIds.length]
+  );
 
   useEffect(() => {
     setShowMaxLimitAlert(selectedExternalIds.length >= MAX_REPOS_LIMIT);
