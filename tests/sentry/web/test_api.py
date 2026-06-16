@@ -716,6 +716,11 @@ class ApiCatalogTest(TestCase):
         assert "public" in response["Cache-Control"]
         data = json.loads(response.content)
         assert "linkset" in data
+        entry = data["linkset"][0]
+        assert entry["anchor"] == "https://sentry.io"
+        hrefs = [item["href"] for item in entry["item"]]
+        assert "https://sentry.io/api/0/" in hrefs
+        assert "https://mcp.sentry.dev/mcp" in hrefs
 
     def test_non_saas_mode_returns_404(self) -> None:
         with override_settings(SENTRY_MODE="self_hosted"):

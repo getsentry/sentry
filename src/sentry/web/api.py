@@ -101,18 +101,12 @@ def mcp_json(request):
 API_CATALOG = {
     "linkset": [
         {
-            "anchor": "https://sentry.io/api/0/",
-            "rel": [{"href": "https://sentry.io/api/0/", "type": "application/json"}],
-        },
-        {
-            "anchor": "https://mcp.sentry.dev/mcp",
-            "rel": [
-                {
-                    "href": "https://mcp.sentry.dev/mcp",
-                    "type": "application/json",
-                }
+            "anchor": "https://sentry.io",
+            "item": [
+                {"href": "https://sentry.io/api/0/", "type": "application/json"},
+                {"href": "https://mcp.sentry.dev/mcp", "type": "application/json"},
             ],
-        },
+        }
     ]
 }
 
