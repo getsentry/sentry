@@ -278,8 +278,8 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
       identified -> triaged -> diagnosed -> fix_proposed -> fix_applied
 
     "diagnosed" and above are determined by seer/resolution activity types (see
-    ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression, manual unresolve, or auto-set-ongoing
-    resets an issue back, so only activities *after* the latest reset count.
+    ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression or manual unresolve resets an issue
+    back, so only activities *after* the latest reset count.
 
     "identified" and "triaged" are the two base states before any seer activity,
     distinguished solely by whether the issue is currently assigned:
