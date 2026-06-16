@@ -3,11 +3,38 @@
 {% load sentry_helpers %}
 {% load sentry_assets %}
 
+{% block bodyclass %}weekly-report{% endblock %}
+
 {% block head %}
 
   {{ block.super }}
 
   <style type="text/css">
+    body.weekly-report,
+    body.weekly-report .main {
+      font-family: Rubik, "Helvetica Neue", helvetica, sans-serif;
+      font-weight: 400;
+    }
+
+    body.weekly-report a,
+    body.weekly-report strong,
+    body.weekly-report .btn {
+      font-weight: 400;
+    }
+
+    body.weekly-report h1,
+    body.weekly-report h2,
+    body.weekly-report h3,
+    body.weekly-report h4,
+    body.weekly-report h5,
+    body.weekly-report h6,
+    body.weekly-report .header strong {
+      font-weight: 500;
+    }
+
+    body.weekly-report .total-count {
+      font-weight: 400;
+    }
 
     .container {
       padding-top: 18px;
@@ -141,6 +168,8 @@
   </style>
 
   <style type="text/css" inline="false">
+    @import url(https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap);
+
     @media only screen and (max-device-width: 480px) {
 
       .mobile-full-width > th,
@@ -284,7 +313,7 @@
       <td class="project-breakdown-graph-cell transactions-empty">
         <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
           <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
-          <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
+          <h1 style="font-weight: 500; font-size: 17px;">Something slow?</h1>
           <p style="font-size: 11px;">Trace those 10-second page loads to poor-performing API calls.</p>
           {% url 'sentry-organization-performance' organization.slug as performance_landing %}
           {% querystring referrer="weekly_report_upsell" notification_uuid=notification_uuid as query %}
