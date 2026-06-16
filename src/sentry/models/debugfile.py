@@ -252,10 +252,14 @@ class ProjectDebugFile(Model):
     def _get_objectstore_session(self) -> Session:
         from sentry.models.project import Project
 
-        org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
-        return get_debug_files_session(org=org_id, project=self.project_id)
+        try:
+            org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
+            return get_debug_files_session(org=org_id, project=self.project_id)
+        except Project.DoesNotExist:
+            logger.exception("Project doesn't exist, probably deleted")
+            raise
 
-    def getfile(self) -> IO[bytes]:
+    def get_file(self) -> IO[bytes]:
         if self.storage_path is not None:
             try:
                 response = self._get_objectstore_session().get(self.storage_path)
@@ -291,7 +295,7 @@ class ProjectDebugFile(Model):
                     os.rename(tmp_path, path)
                 else:
                     # Someone else has already materialized this cached file.
-                    # Keep the existing one, clean up our temporary one.
+                    # Keep the previous one, clean up our temporary one.
                     os.remove(tmp_path)
             finally:
                 if tmp is not None:

@@ -796,7 +796,6 @@ def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
     )
 
 
-# XXX(lcian): This currently only works for non Objectstore-backed Difs. The upload path needs to be adapted.
 def _clone_proguard_debug_file_for_reupload(
     project: Project,
     debug_file: ProjectDebugFile,
