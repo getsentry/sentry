@@ -8,6 +8,7 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {
   render,
   screen,
@@ -20,7 +21,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {CustomerOverview} from 'admin/components/customers/customerOverview';
-import {AddOnCategory, PlanTier} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 
 describe('CustomerOverview', () => {
   it('renders DetailLabels for SubscriptionSummary section', () => {
@@ -352,7 +353,6 @@ describe('CustomerOverview', () => {
     const mm2_subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_f',
-      planTier: PlanTier.MM2,
     });
 
     render(
@@ -620,7 +620,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    expect(screen.getByText('Team Plan (am3)')).toBeInTheDocument();
+    expect(screen.getByText('Team Plan (am3_team)')).toBeInTheDocument();
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       const definition = term.nextElementSibling;

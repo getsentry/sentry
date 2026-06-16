@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
 
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
@@ -63,6 +64,10 @@ def _make_request(
 
 
 MCP_USER_AGENT = "sentry-mcp/0.18.0 (https://mcp.sentry.dev)"
+
+
+class IntentionalRollback(Exception):
+    """Raised to force a transaction rollback in tests."""
 
 
 class TestResolveActionSource(TestCase):
@@ -223,8 +228,7 @@ class TestPublishAction(TestCase):
                 ResolveAction(),
                 source="mcp:claude-code",
                 group_id=1,
-                organization_id=2,
-                project_id=3,
+                project=self.project,
                 actor=GroupActionActor.user(4),
             )
         assert len(logs.records) == 1
@@ -240,8 +244,7 @@ class TestPublishAction(TestCase):
                 ResolveAction(),
                 source="web",
                 group_id=1,
-                organization_id=2,
-                project_id=3,
+                project=self.project,
                 actor=GroupActionActor.user(99),
             )
         assert getattr(logs.records[0], "actor_type") == "user"
@@ -251,8 +254,7 @@ class TestPublishAction(TestCase):
                 ResolveAction(),
                 source="system",
                 group_id=1,
-                organization_id=2,
-                project_id=3,
+                project=self.project,
             )
         assert getattr(logs.records[0], "actor_type") == "system"
 
@@ -265,8 +267,7 @@ class TestPublishActionFromContext(TestCase):
             publish_action_from_context(
                 ResolveAction(),
                 group_id=1,
-                organization_id=2,
-                project_id=3,
+                project=self.project,
             )
         error_records = [r for r in logs.records if r.levelname == "ERROR"]
         assert any("without ActionContext" in r.message for r in error_records)
@@ -574,13 +575,12 @@ class TestPublishActionWrite(TestCase):
         self.group = self.create_group()
 
     def test_creates_log_entry(self) -> None:
-        with self.options({"issues.action-log.write-to-db": True}):
+        with self.feature("projects:issue-action-log-write-to-db"):
             publish_action(
                 ViewAction(),
                 source=ActionSource.API,
                 group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
+                project=self.group.project,
                 actor=GroupActionActor.user(self.user.id),
             )
 
@@ -593,13 +593,12 @@ class TestPublishActionWrite(TestCase):
         assert entry.date_added is not None
 
     def test_system_action(self) -> None:
-        with self.options({"issues.action-log.write-to-db": True}):
+        with self.feature("projects:issue-action-log-write-to-db"):
             publish_action(
                 ViewAction(),
                 source=ActionSource.SYSTEM,
                 group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
+                project=self.group.project,
                 actor=SYSTEM_ACTOR,
             )
 
@@ -608,14 +607,13 @@ class TestPublishActionWrite(TestCase):
         assert entry.actor_id == 0
 
     def test_multiple_entries_ordered(self) -> None:
-        with self.options({"issues.action-log.write-to-db": True}):
+        with self.feature("projects:issue-action-log-write-to-db"):
             for _ in range(3):
                 publish_action(
                     ViewAction(),
                     source=ActionSource.API,
                     group_id=self.group.id,
-                    organization_id=self.group.project.organization_id,
-                    project_id=self.group.project_id,
+                    project=self.group.project,
                     actor=GroupActionActor.user(self.user.id),
                 )
 
@@ -625,15 +623,63 @@ class TestPublishActionWrite(TestCase):
         assert len(entries) == 3
         assert entries[0].id < entries[1].id < entries[2].id
 
-    def test_option_disabled_skips_write(self) -> None:
-        with self.options({"issues.action-log.write-to-db": False}):
-            publish_action(
-                ViewAction(),
-                source=ActionSource.API,
-                group_id=self.group.id,
-                organization_id=self.group.project.organization_id,
-                project_id=self.group.project_id,
-                actor=GroupActionActor.user(self.user.id),
-            )
+    def test_rolled_back_transaction_does_not_persist(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"):
+            try:
+                with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
+                    publish_action(
+                        ViewAction(),
+                        source=ActionSource.API,
+                        group_id=self.group.id,
+                        project=self.group.project,
+                        actor=GroupActionActor.user(self.user.id),
+                    )
+                    # Verify the row is visible inside the transaction
+                    assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+                    raise IntentionalRollback()
+            except IntentionalRollback:
+                pass
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
+
+    def test_savepoint_rollback_discards_only_inner(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
+                publish_action(
+                    ViewAction(),
+                    source=ActionSource.API,
+                    group_id=self.group.id,
+                    project=self.group.project,
+                    actor=GroupActionActor.user(self.user.id),
+                )
+                try:
+                    with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
+                        publish_action(
+                            ResolveAction(),
+                            source=ActionSource.API,
+                            group_id=self.group.id,
+                            project=self.group.project,
+                            actor=GroupActionActor.user(self.user.id),
+                        )
+                        assert (
+                            GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 2
+                        )
+                        raise IntentionalRollback()
+                except IntentionalRollback:
+                    pass
+                assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+        entries = list(GroupActionLogEntry.objects.filter(group_id=self.group.id))
+        assert len(entries) == 1
+        assert entries[0].type == GroupActionType.VIEW
+
+    def test_feature_disabled_skips_write(self) -> None:
+        publish_action(
+            ViewAction(),
+            source=ActionSource.API,
+            group_id=self.group.id,
+            project=self.group.project,
+            actor=GroupActionActor.user(self.user.id),
+        )
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0

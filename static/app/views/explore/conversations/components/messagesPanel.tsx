@@ -1,12 +1,14 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -126,6 +128,9 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   onSelectNode={onSelectNode}
                 />
               )}
+              {isAssistant && message.reasoning && (
+                <ReasoningSection reasoning={message.reasoning} />
+              )}
               {message.content !== '' && (
                 <StyledClippedBox
                   clipHeight={200}
@@ -228,6 +233,42 @@ const MessageBubble = styled('div')<{
       }
     `}
 `;
+
+function ReasoningSection({reasoning}: {reasoning: string}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <Fragment>
+      <Button
+        size="zero"
+        variant="link"
+        onClick={e => {
+          e.stopPropagation();
+          setIsExpanded(prev => !prev);
+        }}
+        aria-expanded={isExpanded}
+      >
+        <Flex align="center" gap="xs" padding="sm md 0" width="100%" justify="start">
+          <Text size="xs" variant="muted" monospace italic>
+            {t('Thinking...')}
+          </Text>
+          <IconChevron
+            direction={isExpanded ? 'down' : 'right'}
+            size="xs"
+            variant="muted"
+          />
+        </Flex>
+      </Button>
+      {isExpanded && (
+        <Container padding="md">
+          <MessageText size="sm" align="left" variant="muted" monospace italic>
+            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+          </MessageText>
+        </Container>
+      )}
+    </Fragment>
+  );
+}
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;

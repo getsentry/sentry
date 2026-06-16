@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
@@ -11,7 +12,6 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import {SubscriptionHeader} from 'getsentry/views/subscriptionPage/subscriptionHeader';
 
 describe('SubscriptionHeader', () => {

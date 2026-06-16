@@ -20,6 +20,7 @@ from collections.abc import Mapping
 from dataclasses import asdict
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
@@ -28,7 +29,6 @@ from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -65,13 +65,16 @@ from sentry.pr_metrics.emit import (
     is_pr_tracked,
     select_verdict,
 )
+from sentry.pr_metrics.tasks import forward_pr_to_seer_task
+from sentry.pr_metrics.utils import (
+    DELEGATED_AGENT_AUTHOR_LOGINS,
+    DELEGATED_AGENT_BRANCH_PREFIXES,
+    resolved_group_ids,
+)
+from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
-
-# Actions that set attribution for who authored the PR. The PR author is fixed
-# at creation time and never changes, so app attribution is a one-shot write.
-_AUTHOR_ATTRIBUTION_ACTIONS = frozenset({"opened"})
 
 _ACTIVITY_ACTIONS = frozenset(
     {
@@ -125,9 +128,6 @@ def handle_attribution(
     if not (action and github_user):
         return
 
-    if action not in _AUTHOR_ATTRIBUTION_ACTIONS:
-        return
-
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
@@ -135,9 +135,12 @@ def handle_attribution(
     if pr is None:
         return
 
-    _write_author_attribution(pr, github_user)
+    if action == "opened":
+        _write_author_attribution(pr, github_user)
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
+    if action == "opened" and pull_request is not None and has_seer_access(organization):
+        _detect_delegated_agent(pr, pull_request)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -169,6 +172,57 @@ def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
     return bool(claimed)
 
 
+def _claim_for_judge(pr: PullRequest) -> bool:
+    """Claim a needs-judge terminal event for the forward path.
+
+    Like ``_claim_terminal_event`` but for the ``JUDGE_IN_PROGRESS`` sentinel, and
+    tolerant of a missing metrics row: ``select_verdict`` defers to a judge when
+    the row is absent, so ensure it exists before the compare-and-set claims the
+    sentinel onto a null verdict. Returns True if this call won the claim.
+    """
+    PullRequestMetrics.objects.get_or_create(pull_request=pr)
+    return _claim_terminal_event(pr, PullRequestVerdict.JUDGE_IN_PROGRESS)
+
+
+def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
+    """Hand a needs-judge terminal event to Seer, guarded against redelivery.
+
+    Gated on ``pr-metrics-judge`` independently of emission: until it's enabled
+    (and Seer's endpoint exists), a needs-judge PR is skipped — today's behavior.
+    Claims the sentinel via the redelivery guard before enqueuing the forward, so
+    a redelivered terminal event can't forward to Seer twice.
+    """
+    if not features.has("organizations:pr-metrics-judge", organization):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
+        logger.info(
+            "pr_metrics.emit.needs_judge",
+            extra={"organization_id": organization.id, "pull_request_id": pr.id},
+        )
+        return
+
+    if not _claim_for_judge(pr):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        return
+
+    try:
+        forward_pr_to_seer_task.delay(
+            pull_request_id=pr.id,
+            organization_id=organization.id,
+            repository_id=pr.repository_id,
+        )
+    except Exception:
+        # The claim committed but the enqueue didn't, so no task will settle this
+        # PR. Release the sentinel (only if it's still ours) so a webhook
+        # redelivery re-forwards rather than the PR sticking in JUDGE_IN_PROGRESS.
+        PullRequestMetrics.objects.filter(
+            pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
+        ).update(verdict=None)
+        metrics.incr("pr_metrics.judge.enqueue_failed")
+        logger.exception("pr_metrics.judge.enqueue_failed", extra={"pull_request_id": pr.id})
+        return
+    metrics.incr("pr_metrics.judge.enqueued")
+
+
 def handle_emission(
     *,
     github_event: GithubWebhookType,
@@ -188,9 +242,9 @@ def handle_emission(
     claimed: claiming would burn the redelivery guard, so a PR that gained
     attribution only later (e.g. a Seer backfill) could never emit. ``select_verdict``
     then decides the outcome: a deterministic verdict is claimed (the redelivery
-    guard) and emitted. A PR that needs a judge is forwarded to Seer instead; that
-    path — including its own redelivery guard — isn't wired yet, so for now a
-    judge-needed PR is skipped here.
+    guard) and emitted; a PR that needs a judge is forwarded to Seer instead (gated
+    on ``pr-metrics-judge``, guarded by the same claim against redelivery), and Seer
+    calls back to settle and emit it.
     """
     if event.get("action") != "closed":
         return
@@ -208,11 +262,7 @@ def handle_emission(
 
     verdict = select_verdict(pr, organization)
     if verdict is None:
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
-        logger.info(
-            "pr_metrics.emit.needs_judge",
-            extra={"organization_id": organization.id, "pull_request_id": pr.id},
-        )
+        _forward_to_judge(pr, organization)
         return
 
     if not _claim_terminal_event(pr, verdict):
@@ -525,6 +575,25 @@ def _metrics_counters(pull_request: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _is_delegated_agent_candidate(webhook_pull_request: Mapping[str, Any]) -> str | None:
+    """Return a provider hint if a PR looks like a delegated coding-agent PR, else None.
+
+    Two payload-native signals are used. The head branch prefix is primary because
+    Claude-delegated PRs are opened by the Sentry GitHub app (no distinct author to
+    key on), so the ``claude/`` prefix is the only usable signal. The author login
+    covers Copilot, which opens PRs as a distinct bot user. The branch prefix wins
+    when both match. This is a cheap heuristic; the authoritative match happens in
+    Seer downstream.
+    """
+    head_ref = (webhook_pull_request.get("head") or {}).get("ref") or ""
+    for provider, prefix in DELEGATED_AGENT_BRANCH_PREFIXES.items():
+        if prefix and head_ref.startswith(prefix):
+            return provider
+
+    github_login = (webhook_pull_request or {}).get("user", {}).get("login") or ""
+    return DELEGATED_AGENT_AUTHOR_LOGINS.get(github_login)
+
+
 def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType | None:
     seer_id = getattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID", None)
     sentry_id = getattr(settings, "SENTRY_GITHUB_APP_USER_ID", None)
@@ -547,14 +616,28 @@ def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> N
     )
 
 
+def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, Any]) -> None:
+    """
+    Filter PRs that could have been delegated by Autofix to external coding agents,
+    and fire the matching request to Seer if it's a candidate.
+
+    Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
+    """
+    provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
+    # Our candidates are PRs from delegated agents
+    # That explicitly address a Sentry issue
+    if provider_hint is not None and resolved_group_ids(pr):
+        # TODO: Fire-and-forget request to Seer when the match endpoint exists.
+        # We will send: provider_hint, github_login, head_ref
+        sentry_sdk.metrics.count(
+            "pr_metrics.delegated_agent.seer_match.not_implemented",
+            1,
+            attributes={"provider_hint": provider_hint},
+        )
+
+
 def _write_mcp_attribution(pr: PullRequest) -> None:
-    group_ids = list(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=pr.id,
-        ).values_list("group_id", flat=True)
-    )
+    group_ids = resolved_group_ids(pr)
     if not group_ids:
         return
 

@@ -49,6 +49,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 import {Resources} from 'sentry/views/issueDetails/sidebar/resources';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -121,13 +122,6 @@ const AutofixContentHook = registerLLMContext(
     defaultComponent: AutofixContent,
   })
 );
-
-export interface AutofixContentProps {
-  aiConfig: ReturnType<typeof useAiConfig>;
-  group: Group;
-  project: Project;
-  event?: Event;
-}
 
 export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
   const organization = useOrganization();

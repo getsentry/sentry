@@ -38,6 +38,7 @@ from sentry.snuba.events import Columns
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.snuba import DATASETS, _prepare_start_end, bulk_snuba_queries, raw_snql_query
 from sentry.utils.validators import normalize_event_id
 
@@ -925,7 +926,7 @@ class SnubaEventStorage(EventStorage):
         next_filter.conditions.extend(get_after_event_condition(event))
         next_filter.start = event.datetime
         if not next_filter.end:
-            next_filter.end = datetime.utcnow()
+            next_filter.end = deprecated_utcnow()
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)

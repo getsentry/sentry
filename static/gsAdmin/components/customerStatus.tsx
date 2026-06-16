@@ -70,7 +70,7 @@ export function CustomerStatus({customer}: Props) {
       {typeof label !== 'object' && label}
       <br />
       <InfoText variant="inherit" title={getTooltip(customer)}>
-        <small>{`${customer.planDetails?.name} Plan (${customer.planTier})`}</small>
+        <small>{`${customer.planDetails?.name} Plan (${customer.planDetails?.id})`}</small>
       </InfoText>
     </Fragment>
   );

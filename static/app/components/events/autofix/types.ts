@@ -134,16 +134,10 @@ export interface AutofixRepoDefinition {
   provider: string;
 }
 
-export interface BranchOverride {
+interface BranchOverride {
   branch_name: string;
   tag_name: string;
   tag_value: string;
-}
-
-export interface RepoSettings {
-  branch: string;
-  branch_overrides: BranchOverride[];
-  instructions: string;
 }
 
 export interface SeerRepoDefinition {
