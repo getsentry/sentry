@@ -190,12 +190,12 @@ class TestBulkSerializeForSeer(TestCase):
         non_null_groups = [group for group in groups if group is not None]
         result = bulk_serialize_for_seer(non_null_groups)
 
-        assert len(result["issues"]) == 2
-        assert len(result["issues_full"]) == 2
-        assert all(isinstance(item, dict) for item in result["issues_full"])
+        assert len(result.issues) == 2
+        assert len(result.issues_full) == 2
+        assert all(isinstance(item, dict) for item in result.issues_full)
 
         # Check that each dict has the expected IssueDetails fields with correct values
-        for item, group in zip(result["issues_full"], non_null_groups):
+        for item, group in zip(result.issues_full, non_null_groups):
             assert item["id"] == str(group.id)  # IDs are converted to strings
             assert item["title"] == group.title
             assert item["culprit"] == group.culprit
@@ -211,13 +211,13 @@ class TestBulkSerializeForSeer(TestCase):
         non_null_groups = [group for group in groups if group is not None]
         result = bulk_serialize_for_seer(non_null_groups)
 
-        assert len(result["issues"]) == 2
-        assert len(result["issues_full"]) == 2
-        assert all(item is not None for item in result["issues_full"])
+        assert len(result.issues) == 2
+        assert len(result.issues_full) == 2
+        assert all(item is not None for item in result.issues_full)
 
         # Check that the non-None items have the correct values
         assert event.group is not None
-        for group_serialized in result["issues_full"]:
+        for group_serialized in result.issues_full:
             assert group_serialized["id"] == str(event.group.id)  # IDs are converted to strings
             assert group_serialized["title"] == event.group.title
             assert group_serialized["culprit"] == event.group.culprit
