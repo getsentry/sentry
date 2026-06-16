@@ -368,8 +368,8 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(status=204)
 
     @extend_schema(
-        operation_id="updateOrganizationScimV2User",
-        summary="Update an Organization Member's Attributes",
+        operation_id="replaceOrganizationScimV2User",
+        summary="Replace an Organization Member's Attributes",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
