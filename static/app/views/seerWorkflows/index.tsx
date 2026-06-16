@@ -430,7 +430,10 @@ const SOURCE_LABELS: Record<string, string> = {
   manual: 'Manual',
 };
 
-const SOURCE_ICONS: Record<string, React.ComponentType<{size?: 'xs' | 'sm' | 'md'}>> = {
+const SOURCE_ICONS: Record<
+  string,
+  React.ComponentType<{size?: 'xs' | 'sm' | 'md'; variant?: 'muted'}>
+> = {
   cron: IconBot,
   manual: IconUser,
 };
@@ -453,9 +456,9 @@ function SourceIcon({source}: {source: string | undefined}) {
   const label = getSourceLabel(source);
   return (
     <Tooltip title={label} skipWrapper>
-      <Text variant="muted" aria-label={label}>
-        <Icon size="xs" />
-      </Text>
+      <Flex as="span" align="center" aria-label={label}>
+        <Icon size="xs" variant="muted" />
+      </Flex>
     </Tooltip>
   );
 }
@@ -553,7 +556,11 @@ function getResultContent(row: WorkflowRow) {
   if (row.kind === 'agentic_triage') {
     const triage = row.triage;
     if (triage?.dryRun) {
-      return <Text variant="muted">{t('dry run')}</Text>;
+      return (
+        <Text variant="muted" size="sm">
+          {t('dry run')}
+        </Text>
+      );
     }
     const issueCount = triage?.issues.length ?? 0;
     if (issueCount === 0) {
