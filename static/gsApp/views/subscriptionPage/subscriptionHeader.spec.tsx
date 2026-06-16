@@ -386,7 +386,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -419,7 +418,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -452,7 +450,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',
@@ -492,7 +489,6 @@ describe('SubscriptionHeader', () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_sponsored_team_auf',
       planDetails: PlanFixture({}),
-      planTier: 'am2',
       partner: {
         externalId: 'x123x',
         name: 'FOO Org',

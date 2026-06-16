@@ -397,7 +397,6 @@ export type Subscription = {
   // Subscription details
   plan: string;
   planDetails: Plan;
-  planTier: string;
   /**
    * Total events allowed for the current usage period including gifted
    */
@@ -413,7 +412,6 @@ export type Subscription = {
   totalProjects: number | null;
   trialEnd: string | null;
   trialPlan: string | null;
-  trialTier: string | null;
   type: BillingType;
   /**
    * All quotas available on the plan are exceeded

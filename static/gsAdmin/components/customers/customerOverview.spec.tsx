@@ -8,7 +8,6 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {PlanTier} from 'getsentry-test/planTier';
 import {
   render,
   screen,
@@ -376,7 +375,6 @@ describe('CustomerOverview', () => {
     const enterprise_subscription = InvoicedSubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
-      planTier: PlanTier.AM3,
     });
 
     render(
@@ -403,7 +401,6 @@ describe('CustomerOverview', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
     });
 
     render(
@@ -427,7 +424,6 @@ describe('CustomerOverview', () => {
     const am3Subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
       productTrials: [
         {
           category: DataCategory.REPLAYS,
@@ -604,7 +600,6 @@ describe('CustomerOverview', () => {
     const am3Subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      planTier: PlanTier.AM3,
     });
 
     MockApiClient.addMockResponse({
