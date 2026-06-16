@@ -33,7 +33,7 @@ from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import (
     _trigger_explorer_indexes_if_needed,
-    get_monitoring_provider_connections,
+    get_monitoring_providers,
 )
 from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -237,7 +237,7 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     user_id = body.get("user_org_context", {}).get("user_id")
     if user_id is not None:
-        monitoring_providers = get_monitoring_provider_connections(user_id)
+        monitoring_providers = get_monitoring_providers(user_id)
         if monitoring_providers is not None:
             body["monitoring_providers"] = monitoring_providers
 

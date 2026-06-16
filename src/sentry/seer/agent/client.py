@@ -117,7 +117,7 @@ def _get_mcp_url(provider_type: str, identity_data: dict[str, Any]) -> str | Non
     return None
 
 
-def get_monitoring_provider_connections(user_id: int) -> list[dict[str, Any]] | None:
+def get_monitoring_providers(user_id: int) -> list[dict[str, Any]] | None:
     """Fetch the user's monitoring provider identities and build connection dicts for Seer.
 
     Returns None if the user has no connected monitoring providers.
@@ -616,7 +616,7 @@ class SeerAgentClient:
             chat_body["ui_tools"] = ui_tools
 
         if self.user and not isinstance(self.user, AnonymousUser):
-            monitoring_providers = get_monitoring_provider_connections(self.user.id)
+            monitoring_providers = get_monitoring_providers(self.user.id)
             if monitoring_providers is not None:
                 chat_body["monitoring_providers"] = monitoring_providers
 
