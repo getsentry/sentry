@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
 
-from sentry import analytics, search
+from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -54,7 +54,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.constants import ALLOWED_FUTURE_DELTA, DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
@@ -183,6 +183,10 @@ def search_issues(
         query_kwargs["environments"] = environments if environments else None
 
         query_kwargs["actor"] = request.user
+        if query_kwargs["sort_by"] == "progress" and not features.has(
+            "organizations:issue-stream-progress-sort", organization, actor=request.user
+        ):
+            query_kwargs["sort_by"] = DEFAULT_SORT_OPTION
         if query_kwargs["sort_by"] == "inbox":
             query_kwargs.pop("sort_by")
             query_kwargs.pop("referrer")
