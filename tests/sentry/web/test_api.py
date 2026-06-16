@@ -870,8 +870,23 @@ class AgentDiscoveryMiddlewareTest(TestCase):
         assert "api-catalog" in response["Link"]
 
     def test_api_response_no_link_header(self) -> None:
+        from django.http import HttpRequest, HttpResponse
+
+        from sentry.middleware.agent_discovery import AgentDiscoveryMiddleware
+
+        inner_response = HttpResponse("ok", content_type="text/html")
+
+        def get_response(request):
+            return inner_response
+
+        middleware = AgentDiscoveryMiddleware(get_response)
+        request = HttpRequest()
+        request.method = "GET"
+        request.path = "/api/0/organizations/"
+        request.subdomain = None
+
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/api/0/")
+            response = middleware(request)
 
         assert "api-catalog" not in response.get("Link", "")
 
