@@ -15,6 +15,8 @@ interface IssueListCache {
   pageLinks: string;
   queryCount: number;
   queryMaxCount: number;
+  // The requested sort the backend couldn't fully honor; null when applied normally.
+  sortFallback: string | null;
 }
 
 interface IssueListCacheState {

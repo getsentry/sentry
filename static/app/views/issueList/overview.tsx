@@ -300,6 +300,7 @@ function IssueListOverviewInner({
     setQueryCount(cache.queryCount);
     setQueryMaxCount(cache.queryMaxCount);
     setPageLinks(cache.pageLinks);
+    setSortFallback(cache.sortFallback);
 
     GroupStore.add(cache.groups);
 
@@ -463,13 +464,14 @@ function IssueListOverviewInner({
       const newQueryMaxCount =
         maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
       const newPageLinks = resp.getResponseHeader('Link');
+      const newSortFallback = resp.getResponseHeader('X-Sentry-Sort-Fallback');
 
       setError(null);
       setIssuesLoading(false);
       setIssuesSuccessfullyLoaded(true);
       setQueryCount(newQueryCount);
       setQueryMaxCount(newQueryMaxCount);
-      setSortFallback(resp.getResponseHeader('X-Sentry-Sort-Fallback'));
+      setSortFallback(newSortFallback);
       setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
       // AI query analytics
@@ -492,6 +494,7 @@ function IssueListOverviewInner({
         queryCount: newQueryCount,
         queryMaxCount: newQueryMaxCount,
         pageLinks: newPageLinks ?? '',
+        sortFallback: newSortFallback,
       });
     } catch (err) {
       trackAnalytics('issue_search.failed', {
@@ -504,6 +507,7 @@ function IssueListOverviewInner({
       setError(parseApiError(err as RequestError));
       setIssuesLoading(false);
       setIssuesSuccessfullyLoaded(false);
+      setSortFallback(null);
 
       // AI query analytics
       const aiQueryRunId = getRunIdForAnalytics();
