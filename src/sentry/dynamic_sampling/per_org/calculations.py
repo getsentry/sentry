@@ -319,6 +319,7 @@ def compare_rebalanced_transactions_with_cache(
                     "transaction": transaction,
                     "generic_metrics_sample_rate": generic_metrics_rate,
                     "eap_sample_rate": item.new_sample_rate,
+                    "eap_volume": item.count,
                     "relative_deviation": get_relative_deviation(
                         generic_metrics_rate, item.new_sample_rate
                     ),
