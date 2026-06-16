@@ -15,7 +15,6 @@ from sentry.sentry_metrics.indexer.strings import (
     SPAN_METRICS_NAMES,
     TRANSACTION_METRICS_NAMES,
 )
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.outcomes import Outcome
 
 
@@ -144,7 +143,6 @@ def test_outcomes_consumed_span_segments(track_outcome) -> None:
     assert next_step.join.call_count == 1
 
 
-@with_feature("organizations:relay-generate-billing-outcome")
 @mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
 def test_no_double_billing_outcomes(track_outcome) -> None:
     topic = Topic("snuba-generic-metrics")
@@ -164,7 +162,7 @@ def test_no_double_billing_outcomes(track_outcome) -> None:
             "project_id": project_1,
             "timestamp": 123456,
             "value": 65.0,
-            "tags": {str(SHARED_TAG_STRINGS["billing_outcome_accepted"]): "true"},
+            "tags": {str(SHARED_TAG_STRINGS["billing_outcome_emitted"]): "true"},
             "use_case_id": "spans",
             "retention_days": 90,
         },

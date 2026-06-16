@@ -42,7 +42,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     span_metric_id = SPAN_METRICS_NAMES["c:spans/usage@none"]
     span_is_segment_tag = str(SHARED_TAG_STRINGS["is_segment"])
-    billing_outcome_accepted_tag = str(SHARED_TAG_STRINGS["billing_outcome_accepted"])
+    billing_outcome_accepted_tag = str(SHARED_TAG_STRINGS["billing_outcome_emitted"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
