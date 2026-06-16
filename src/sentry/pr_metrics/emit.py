@@ -222,7 +222,7 @@ def emit_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,
         attributions=attributions,
-        group_ids=resolved_group_ids(pull_request, include_groups_from_commits=True),
+        group_ids=resolved_group_ids(pull_request),
     )
     analytics.record(row)
     metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})

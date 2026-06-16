@@ -483,15 +483,13 @@ class PrMetricsEmissionTest(TestCase):
     def test_resolved_group_ids_includes_commit_link_via_activity(self) -> None:
         group_id, _ = self._link_commit_group(key="a" * 40)
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
-        assert resolved_group_ids(self.pull_request, include_groups_from_commits=True) == [group_id]
+        assert resolved_group_ids(self.pull_request) == [group_id]
 
     def test_resolved_group_ids_merges_pr_and_commit_links(self) -> None:
         pr_group_id = self._link_group()
         commit_group_id, _ = self._link_commit_group(key="c" * 40)
         self._sync_activity(after_sha="c" * 40, before_sha="d" * 40, webhook_id="s1")
-        assert resolved_group_ids(self.pull_request, include_groups_from_commits=True) == sorted(
-            [pr_group_id, commit_group_id]
-        )
+        assert resolved_group_ids(self.pull_request) == sorted([pr_group_id, commit_group_id])
 
     def test_resolved_group_ids_deduplicates_pr_and_commit_links(self) -> None:
         # Same group linked both via PR and via a commit in the activity chain.
@@ -512,7 +510,7 @@ class PrMetricsEmissionTest(TestCase):
             linked_id=commit.id,
         )
         self._sync_activity(after_sha="e" * 40, before_sha="f" * 40, webhook_id="s1")
-        assert resolved_group_ids(self.pull_request, include_groups_from_commits=True) == [group.id]
+        assert resolved_group_ids(self.pull_request) == [group.id]
 
     def test_resolved_group_ids_excludes_commit_references_links(self) -> None:
         commit = self.create_commit(repo=self.repo, key="a" * 40)
@@ -525,7 +523,7 @@ class PrMetricsEmissionTest(TestCase):
             linked_id=commit.id,
         )
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
-        assert resolved_group_ids(self.pull_request, include_groups_from_commits=True) == []
+        assert resolved_group_ids(self.pull_request) == []
 
     def test_resolved_group_ids_excludes_commits_after_force_push(self) -> None:
         # sha "x" is behind a force-push boundary and should be excluded.
@@ -534,22 +532,19 @@ class PrMetricsEmissionTest(TestCase):
         self._sync_activity(after_sha="x" * 40, before_sha="y" * 40, webhook_id="s1")
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s2")
         # "x" != "b" → force push detected; only "a" survives.
-        assert resolved_group_ids(self.pull_request, include_groups_from_commits=True) == []
+        assert resolved_group_ids(self.pull_request) == []
 
     def test_resolved_group_ids_ignores_untracked_commit_shas(self) -> None:
         # A SHA in the activity that has no Commit row in Sentry doesn't error.
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
-        assert resolved_group_ids(self.pull_request, include_groups_from_commits=True) == []
+        assert resolved_group_ids(self.pull_request) == []
 
     def test_resolved_group_ids_with_commits_falls_back_to_pr_links_when_no_activity(
         self,
     ) -> None:
-        # include_groups_from_commits=True but no SYNCHRONIZED activity: the PR-linked
-        # groups are still returned (the commit path is simply a no-op).
+        # No SYNCHRONIZED activity: PR-linked groups are still returned (commit path is a no-op).
         pr_group_id = self._link_group()
-        assert resolved_group_ids(self.pull_request, include_groups_from_commits=True) == [
-            pr_group_id
-        ]
+        assert resolved_group_ids(self.pull_request) == [pr_group_id]
 
     @patch("sentry.analytics.record")
     def test_emit_picks_up_commit_linked_groups_via_activity(self, mock_record: Any) -> None:

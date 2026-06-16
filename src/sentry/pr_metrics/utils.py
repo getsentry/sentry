@@ -94,17 +94,12 @@ def _commit_shas_from_activity(pull_request: PullRequest) -> set[str]:
     return shas
 
 
-def resolved_group_ids(
-    pull_request: PullRequest,
-    *,
-    include_groups_from_commits: bool = False,
-) -> list[int]:
+def resolved_group_ids(pull_request: PullRequest) -> list[int]:
     """Group IDs this PR resolves, from the resolving GroupLink rows.
 
-    When ``include_groups_from_commits`` is ``False`` (default), only groups
-    linked directly to the PR are returned.  When ``True``, groups linked to
-    commits reachable from SYNCHRONIZED activity (stopping at any force push)
-    are merged in via a single combined query.
+    Includes groups linked directly to the PR and groups linked to commits
+    reachable from SYNCHRONIZED activity (stopping at any force push). Both
+    lookup paths are merged into a single GroupLink query.
 
     Sorted for a deterministic ordering; empty when the PR resolves no issues.
     """
@@ -114,20 +109,17 @@ def resolved_group_ids(
         linked_id=pull_request.id,
     )
 
-    if include_groups_from_commits:
-        shas = _commit_shas_from_activity(pull_request)
-        if shas:
-            commit_ids = Commit.objects.filter(
-                repository_id=pull_request.repository_id,
-                key__in=shas,
-            ).values("id")
-            combined = pr_filter | Q(
-                linked_type=GroupLink.LinkedType.commit,
-                relationship=GroupLink.Relationship.resolves,
-                linked_id__in=commit_ids,
-            )
-        else:
-            combined = pr_filter
+    shas = _commit_shas_from_activity(pull_request)
+    if shas:
+        commit_ids = Commit.objects.filter(
+            repository_id=pull_request.repository_id,
+            key__in=shas,
+        ).values("id")
+        combined = pr_filter | Q(
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id__in=commit_ids,
+        )
     else:
         combined = pr_filter
 
