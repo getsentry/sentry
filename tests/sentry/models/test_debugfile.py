@@ -292,7 +292,7 @@ class DebugFileObjectstoreTest(TestCase):
     def test_get_file(self):
         dif = self._create_objectstore_dif()
 
-        assert dif.getfile().read() == b"test-content"
+        assert dif.get_file().read() == b"test-content"
 
     @requires_objectstore
     def test_save_to(self):
@@ -303,7 +303,7 @@ class DebugFileObjectstoreTest(TestCase):
             dif.save_to(path)
 
             with open(path, "rb") as f:
-                assert f.read() == b"objectstore-content"
+                assert f.read() == b"test-content"
 
     @requires_objectstore
     def test_delete(self):
