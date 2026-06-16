@@ -1,14 +1,15 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {IconPlay} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateAutomation} from 'sentry/views/automations/hooks';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanEditAutomation,
+} from 'sentry/views/automations/hooks/useCanEditAutomation';
 
 type DisabledAlertProps = {
   automation: Automation;
@@ -20,10 +21,9 @@ type DisabledAlertProps = {
  * enable it. The alert automatically hides when the automation is enabled.
  */
 export function DisabledAlert({automation}: DisabledAlertProps) {
-  const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isEnabling} = useUpdateAutomation();
 
-  const canEdit = hasEveryAccess(['alerts:write'], {organization});
+  const canEdit = useCanEditAutomation();
 
   if (automation.enabled) {
     return null;
@@ -37,19 +37,7 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
     });
   };
 
-  const permissionTooltipText = tct(
-    'You do not have permission to edit this alert. Ask your organization owner or manager to [settingsLink:enable alert access] for you.',
-    {
-      settingsLink: (
-        <Link
-          to={{
-            pathname: `/settings/${organization.slug}/`,
-            hash: 'alertsMemberWrite',
-          }}
-        />
-      ),
-    }
-  );
+  const permissionTooltipText = getNoAlertWritePermissionTooltip();
 
   return (
     <Alert.Container>

@@ -100,6 +100,13 @@ x-sentry-service-config:
       description: Memcached used for caching
     spotlight:
       description: Spotlight server for local debugging
+    # Local Relays used only by the `cell-routing` mode to exercise Relay's
+    # advertised-upstream routing without touching the relay repo or the default
+    # `relay` config. relay-cell replaces the plain `relay` in this mode.
+    relay-cell:
+      description: Processing Relay terminus that advertises an upstream (cell-routing only)
+    relay-edge:
+      description: Downstream Relay that routes on the advertised upstream (cell-routing only)
     objectstore:
       description: Storage for files and blobs
       remote:
@@ -294,7 +301,22 @@ x-sentry-service-config:
         post-process-forwarder-errors,
       ]
     minimal: [postgres, snuba]
-    cell-routing: [postgres, snuba, relay, spotlight, objectstore, synapse]
+    cell-routing:
+      [
+        postgres,
+        snuba,
+        redis,
+        taskbroker,
+        spotlight,
+        objectstore,
+        synapse,
+        taskworker,
+        taskworker-scheduler,
+        ingest-events,
+        post-process-forwarder-errors,
+        relay-cell,
+        relay-edge,
+      ]
     # The minimal set of services Symbolicator needs to run
     # Sentry integration tests.
     symbolicator-tests: [postgres, snuba, objectstore]
@@ -491,20 +513,84 @@ services:
       - devservices
     labels:
       - orchestrator=devservices
+  # Relay chain for the `cell-routing` mode. These exercise Relay's
+  # advertised-upstream routing entirely from sentry's devservices: the
+  # `advertised_upstream` value lives in relay-cell.yml (mounted only here), so
+  # the default `relay` service and its config are untouched. relay-cell is the
+  # processing terminus (replaces plain `relay` here); relay-edge forwards.
+  relay-cell:
+    image: ghcr.io/getsentry/relay:nightly
+    command: [run, --config, /etc/relay]
+    healthcheck:
+      test:
+        ['CMD', '/bin/relay', '--config', '/etc/relay', 'healthcheck', '--mode', 'live']
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 127.0.0.1:7900:7900
+    volumes:
+      - ./config/relay-cell.yml:/etc/relay/config.yml
+      - ./config/relay-cell-credentials.json:/etc/relay/credentials.json
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - devservices
+    labels:
+      - orchestrator=devservices
+    restart: unless-stopped
+  relay-edge:
+    image: ghcr.io/getsentry/relay:nightly
+    command: [run, --config, /etc/relay]
+    healthcheck:
+      test:
+        ['CMD', '/bin/relay', '--config', '/etc/relay', 'healthcheck', '--mode', 'live']
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 127.0.0.1:7901:7901
+    volumes:
+      - ./config/relay-edge.yml:/etc/relay/config.yml
+      - ./config/relay-edge-credentials.json:/etc/relay/credentials.json
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - devservices
+    labels:
+      - orchestrator=devservices
+    restart: unless-stopped
   # Taskbroker in passthrough mode for ingest-profiles topic (STREAM-1041).
   # This is a local service rather than a remote dependency because devservices
   # doesn't support passing custom environment variables to remote services (DI-1956).
   ingest-profiles:
     image: ghcr.io/getsentry/taskbroker:nightly
     environment:
-      TASKBROKER_KAFKA_CLUSTER: 'kafka-kafka-1:9093'
-      TASKBROKER_KAFKA_TOPIC: 'profiles'
-      TASKBROKER_KAFKA_CONSUMER_GROUP: 'ingest-profiles'
+      # Multi-topic/cluster config via env vars: nested keys use "__", and
+      # figment lowercases each segment, so topic/cluster names can only use
+      # underscores (not hyphens) when set this way.
+      TASKBROKER_KAFKA_CLUSTERS__DEFAULT__ADDRESS: 'kafka-kafka-1:9093'
+      # Consumed topic, in raw (passthrough) mode. Raw mode is configured per
+      # topic via the topic's `raw` block.
+      TASKBROKER_KAFKA_TOPICS__PROFILES__CLUSTER: 'default'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__CONSUMER_GROUP: 'ingest-profiles'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__NAMESPACE: 'ingest.profiling.passthrough'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__APPLICATION: 'sentry'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__TASKNAME: 'sentry.profiles.task.process_profile_from_kafka'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__PROCESSING_DEADLINE_DURATION: '30'
+      # A raw topic's messages aren't activations, so retries (which are
+      # activation-encoded) cannot loop back into `profiles`; a separate retry
+      # topic is mandatory. Send them to the main `taskworker` topic so the
+      # default taskbroker picks them up instead of standing up another broker.
+      TASKBROKER_KAFKA_RETRY_TOPIC: 'taskworker'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER__CLUSTER: 'default'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER__CONSUMER_GROUP: 'ingest-profiles'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER__PRODUCE_ONLY: 'true'
+      TASKBROKER_KAFKA_DEADLETTER_TOPIC: 'taskworker_dlq'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__CLUSTER: 'default'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__CONSUMER_GROUP: 'ingest-profiles'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__PRODUCE_ONLY: 'true'
       TASKBROKER_CREATE_MISSING_TOPICS: 'true'
-      TASKBROKER_RAW_MODE: 'true'
-      TASKBROKER_RAW_NAMESPACE: 'ingest.profiling.passthrough'
-      TASKBROKER_RAW_APPLICATION: 'sentry'
-      TASKBROKER_RAW_TASKNAME: 'sentry.profiles.task.process_profile_from_kafka'
       # TODO(STREAM-1041): Remove debug logging once passthrough mode is stable
       TASKBROKER_LOG_FILTER: 'debug'
     ports:

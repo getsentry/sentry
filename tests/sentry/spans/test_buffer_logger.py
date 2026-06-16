@@ -14,7 +14,14 @@ from sentry.spans.buffer_logger import (
     SubsegmentDebugLog,
     emit_observability_metrics,
 )
-from sentry.spans.buffer_types import EvalshaResult, InsertedSubsegment, Span, Subsegment
+from sentry.spans.buffer_types import (
+    EvalshaResult,
+    FlushCandidate,
+    InsertedSubsegment,
+    LoadedSegment,
+    Span,
+    Subsegment,
+)
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
@@ -351,12 +358,23 @@ def test_flusher_logger_records_loaded_segments(mock_time):
         empty_segment_key = _segment_id(3, "e" * 32, "f" * 16)
 
         flusher_logger.log_loaded_segments(
-            [first_segment_key, empty_segment_key, second_segment_key],
-            {
-                first_segment_key: [b"first", b"second"],
-                empty_segment_key: [],
-                second_segment_key: [b"third"],
-            },
+            [
+                LoadedSegment(
+                    FlushCandidate(0, b"queue", first_segment_key, 5),
+                    [b"first", b"second"],
+                    [],
+                ),
+                LoadedSegment(
+                    FlushCandidate(0, b"queue", empty_segment_key, 5),
+                    [],
+                    [],
+                ),
+                LoadedSegment(
+                    FlushCandidate(0, b"queue", second_segment_key, 5),
+                    [b"third"],
+                    [],
+                ),
+            ],
             load_ids_latency_ms=5,
             load_data_latency_ms=10,
             decompress_latency_ms=3,

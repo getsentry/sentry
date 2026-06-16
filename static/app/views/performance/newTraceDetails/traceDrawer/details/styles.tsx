@@ -44,6 +44,7 @@ import {
   IconJson,
   IconPanel,
   IconProfiling,
+  IconTerminal,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
@@ -56,6 +57,7 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -65,6 +67,7 @@ import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {
@@ -952,6 +955,7 @@ function NodeActions(props: {
   threadId?: string;
 }) {
   const organization = useOrganization();
+  const user = useUser();
   const params = useParams<{traceSlug?: string}>();
 
   const transactionId = props.node.transactionId ?? '';
@@ -1001,6 +1005,16 @@ function NodeActions(props: {
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
+          />
+        </Tooltip>
+      ) : null}
+      {user.isSuperuser && isEAPSpanNode(props.node) && params.traceSlug ? (
+        <Tooltip title={t('Span JSON (Superuser Only)')} skipWrapper>
+          <ActionLinkButton
+            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}&debug=true`}
+            size="zero"
+            aria-label={t('Span JSON (Superuser Only)')}
+            icon={<IconTerminal />}
           />
         </Tooltip>
       ) : null}
@@ -1302,8 +1316,10 @@ const MultilineTextWrapper = styled('div')`
 function MultilineJSON({
   value,
   maxDefaultDepth = 2,
+  autoCollapseLimit,
 }: {
   value: any;
+  autoCollapseLimit?: number;
   maxDefaultDepth?: number;
 }) {
   const [showRaw, setShowRaw] = useState(false);
@@ -1314,9 +1330,9 @@ function MultilineJSON({
 
   // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
   const computedExpandedPaths = useMemo(() => {
-    const childPaths = getDefaultExpanded(maxDefaultDepth, json);
+    const childPaths = getDefaultExpanded(maxDefaultDepth, json, autoCollapseLimit);
     return Array.from(new Set(['$', ...childPaths]));
-  }, [maxDefaultDepth, json]);
+  }, [maxDefaultDepth, json, autoCollapseLimit]);
 
   return (
     <MultilineTextWrapperMonospace {...hoverProps}>
@@ -1353,6 +1369,7 @@ function MultilineJSON({
           }}
           value={json}
           maxDefaultDepth={maxDefaultDepth}
+          autoCollapseLimit={autoCollapseLimit}
           initialExpandedPaths={computedExpandedPaths}
           withAnnotatedText
         />

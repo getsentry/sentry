@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple, TypeVar
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
-from sentry.spans.buffer_types import EvalshaData, EvalshaResult, InsertedSubsegment, Span
+from sentry.spans.buffer_types import (
+    EvalshaData,
+    EvalshaResult,
+    InsertedSubsegment,
+    LoadedSegment,
+    Span,
+)
 from sentry.spans.debug_trace_logger import DebugTraceLogger
 from sentry.spans.segment_key import SegmentKey, parse_segment_key
 from sentry.utils import metrics
@@ -168,8 +174,7 @@ class FlusherLogger:
 
     def log_loaded_segments(
         self,
-        segment_keys: Sequence[SegmentKey],
-        payloads: Mapping[SegmentKey, Sequence[bytes]],
+        loaded_segments: Sequence[LoadedSegment],
         *,
         load_ids_latency_ms: int,
         load_data_latency_ms: int,
@@ -183,17 +188,17 @@ class FlusherLogger:
             return
 
         entries: list[FlusherLogEntry] = []
-        for segment_key in segment_keys:
-            segment = payloads.get(segment_key, [])
-            if not segment:
+        for loaded_segment in loaded_segments:
+            if not loaded_segment.payloads:
                 continue
 
+            segment_key = loaded_segment.segment_key
             project_id, trace_id, _ = parse_segment_key(segment_key)
             entries.append(
                 FlusherLogEntry(
                     f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}",
-                    len(segment),
-                    sum(len(payload) for payload in segment),
+                    len(loaded_segment.payloads),
+                    sum(len(payload) for payload in loaded_segment.payloads),
                 )
             )
 

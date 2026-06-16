@@ -1,6 +1,5 @@
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
@@ -48,11 +47,7 @@ function AssignToUser({userId}: {userId: string}) {
   }
 
   const title = user?.name ?? user?.email ?? t('Unknown user');
-  return (
-    <Tooltip title={title} showOnlyOnOverflow>
-      {t('Assign to %s', title)}
-    </Tooltip>
-  );
+  return t('Assign to %s', title);
 }
 
 function DetectorOwner({owner}: {owner: Detector['owner']}) {

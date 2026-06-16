@@ -46,33 +46,33 @@ export class Settings extends DefaultSettings<Props, State> {
     return this.state.page === 2;
   };
 
-  fetchData() {
+  async fetchData() {
     // This is mostly copy paste of parent class
     // except for setting edit state
-    this.api.request(this.getPluginEndpoint(), {
-      success: (data: ApiData) => {
-        const formData: Record<string, any> = {};
-        const initialData = {};
-        data.config.forEach(field => {
-          formData[field.name] = field.value || field.defaultValue;
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          initialData[field.name] = field.value;
-        });
-        this.setState(
-          {
-            fieldList: data.config,
-            formData,
-            initialData,
-            // start off in edit mode if there isn't a project set
-            editing: !formData?.default_project,
-            // call this here to prevent FormState.READY from being
-            // set before fieldList is
-          },
-          this.onLoadSuccess
-        );
-      },
-      error: this.onLoadError,
-    });
+    try {
+      const data: ApiData = await this.api.requestPromise(this.getPluginEndpoint());
+      const formData: Record<string, any> = {};
+      const initialData = {};
+      data.config.forEach((field: FieldWithValues) => {
+        formData[field.name] = field.value || field.defaultValue;
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        initialData[field.name] = field.value;
+      });
+      this.setState(
+        {
+          fieldList: data.config,
+          formData,
+          initialData,
+          // start off in edit mode if there isn't a project set
+          editing: !formData?.default_project,
+          // call this here to prevent FormState.READY from being
+          // set before fieldList is
+        },
+        this.onLoadSuccess
+      );
+    } catch (error) {
+      this.onLoadError(error);
+    }
   }
 
   startEditing = () => {

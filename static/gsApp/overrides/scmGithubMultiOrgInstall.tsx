@@ -7,7 +7,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   buildInstallationMenuItems,
   NEW_INSTALL_KEY,
-} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
+} from 'sentry/components/pipeline/integrationGitHub';
 import {IconLightning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -97,19 +97,11 @@ function UpgradeMessage({subscription}: {subscription: Subscription | null}) {
     );
   }
 
-  return (
-    <UpgradeMessageWithBilling organization={organization} subscription={subscription} />
-  );
+  return <UpgradeMessageWithBilling organization={organization} />;
 }
 
-function UpgradeMessageWithBilling({
-  organization,
-  subscription,
-}: {
-  organization: Organization;
-  subscription: Subscription;
-}) {
-  const {data: billingConfig} = useBillingConfig({organization, subscription});
+function UpgradeMessageWithBilling({organization}: {organization: Organization}) {
+  const {data: billingConfig} = useBillingConfig({organization});
   const planName = getRequiredPlanName(billingConfig);
 
   if (planName) {

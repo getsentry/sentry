@@ -13,10 +13,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.projectownership import ProjectOwnershipSerializer
+from sentry.api.serializers.models.projectownership import (
+    ProjectOwnershipResponse,
+    ProjectOwnershipSerializer,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.issues.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -277,7 +281,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         responses={200: ProjectOwnershipSerializer},
         examples=ownership_examples.GET_PROJECT_OWNERSHIP,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[ProjectOwnershipResponse]:
         """
         Returns details on a project's ownership configuration.
         """
@@ -287,7 +291,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             self.refresh_ownership_schema(ownership, project)
             self.rename_schema_identifier_for_parsing(ownership)
 
-        return Response(serialize(ownership, request.user))
+        body: ProjectOwnershipResponse = serialize(ownership, request.user)
+        return Response(body)
 
     @extend_schema(
         operation_id="Update Ownership Configuration for a Project",
@@ -302,7 +307,9 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         },
         examples=ownership_examples.UPDATE_PROJECT_OWNERSHIP,
     )
-    def put(self, request: Request, project) -> Response:
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[ProjectOwnershipResponse] | Response[ValidationErrorResponse]:
         """
         Updates ownership configurations for a project. Note that only the
         attributes submitted are modified.
@@ -323,7 +330,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             context={"ownership": self.get_ownership(project), "request": request},
         )
         if serializer.is_valid():
-            ownership = serializer.save()
+            ownership: ProjectOwnership = serializer.save()
 
             change_data = {**serializer.validated_data}
             # Ownership rules can be large (3 MB) and we don't want to store them in the audit log
@@ -341,5 +348,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 data={**change_data, **project.get_audit_log_data()},
             )
             ownership_rule_created.send_robust(project=project, sender=self.__class__)
-            return Response(serialize(ownership, request.user))
-        return Response(serializer.errors, status=400)
+            return Response(
+                serialize(ownership, request.user, serializer=ProjectOwnershipSerializer())
+            )
+        return Response(as_validation_errors(serializer), status=400)

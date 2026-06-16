@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -35,7 +35,6 @@ export function RootAllocationCard({
   selectedMetric,
   subscription,
 }: Props) {
-  const theme = useTheme();
   const availableEvents = useMemo(() => {
     return rootAllocation
       ? Math.max(rootAllocation.reservedQuantity - rootAllocation.consumedQuantity, 0)
@@ -124,9 +123,12 @@ export function RootAllocationCard({
                   <Cell>{t('Available')}</Cell>
                   <Cell>
                     {rootAllocation.costPerItem === 0 ? (
-                      <Tooltip title={t('Cost per event is unavailable for base plans')}>
-                        --
-                      </Tooltip>
+                      <InfoText
+                        variant="inherit"
+                        title={t('Cost per event is unavailable for base plans')}
+                      >
+                        N/A
+                      </InfoText>
                     ) : (
                       displayPrice({
                         cents: rootAllocation.costPerItem * availableEvents,
@@ -134,9 +136,9 @@ export function RootAllocationCard({
                     )}
                   </Cell>
                   <Cell>
-                    <Tooltip title={availableEvents.toLocaleString()}>
+                    <InfoText variant="inherit" title={availableEvents.toLocaleString()}>
                       {bigNumFormatter(availableEvents, 2, metricUnit)}
-                    </Tooltip>
+                    </InfoText>
                   </Cell>
                 </tr>
                 <tr>
@@ -144,9 +146,12 @@ export function RootAllocationCard({
                   <Cell>
                     {/* TODO: include OD costs if enabled */}
                     {rootAllocation.costPerItem === 0 ? (
-                      <Tooltip title={t('Cost per event is unavailable for base plans')}>
-                        --
-                      </Tooltip>
+                      <InfoText
+                        variant="inherit"
+                        title={t('Cost per event is unavailable for base plans')}
+                      >
+                        N/A
+                      </InfoText>
                     ) : (
                       displayPrice({
                         cents:
@@ -159,27 +164,28 @@ export function RootAllocationCard({
                     )}
                   </Cell>
                   <Cell>
-                    <Tooltip title={rootAllocation.consumedQuantity.toLocaleString()}>
-                      {bigNumFormatter(
-                        Math.min(
-                          rootAllocation.reservedQuantity,
-                          rootAllocation.consumedQuantity
-                        ),
-                        2,
-                        metricUnit
-                      )}
-                    </Tooltip>
-                    {rootAllocation.consumedQuantity >
-                      rootAllocation.reservedQuantity && (
-                      <Tooltip
-                        title={
-                          rootAllocation.consumedQuantity -
-                          rootAllocation.reservedQuantity
-                        }
+                    <Flex gap="md">
+                      <InfoText
+                        variant="inherit"
+                        title={rootAllocation.consumedQuantity.toLocaleString()}
                       >
-                        &nbsp;
-                        <span
-                          style={{color: theme.colors.red500, marginLeft: theme.space.md}}
+                        {bigNumFormatter(
+                          Math.min(
+                            rootAllocation.reservedQuantity,
+                            rootAllocation.consumedQuantity
+                          ),
+                          2,
+                          metricUnit
+                        )}
+                      </InfoText>
+                      {rootAllocation.consumedQuantity >
+                        rootAllocation.reservedQuantity && (
+                        <InfoText
+                          variant="danger"
+                          title={(
+                            rootAllocation.consumedQuantity -
+                            rootAllocation.reservedQuantity
+                          ).toLocaleString()}
                         >
                           {tct('([overCount] over)', {
                             overCount: bigNumFormatter(
@@ -189,9 +195,9 @@ export function RootAllocationCard({
                               metricUnit
                             ),
                           })}
-                        </span>
-                      </Tooltip>
-                    )}
+                        </InfoText>
+                      )}
+                    </Flex>
                   </Cell>
                 </tr>
               </tbody>

@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {millisecondsToClosestInterval} from 'sentry/utils/duration/millisecondsToInterval';
 import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
@@ -50,6 +51,7 @@ import {MetricsHeatMap} from 'sentry/views/explore/metrics/metricsHeatMap';
 import {
   useMetricVisualize,
   useMetricVisualizes,
+  useSetMetricAggregateFields,
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
@@ -60,11 +62,9 @@ import {
 } from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
-  useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSortBys,
-  useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
@@ -74,12 +74,13 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
+const PIXELS_PER_X_BUCKET = 15;
 
-const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'scatter'> = {
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
   [ChartType.LINE]: 'line',
   [ChartType.AREA]: 'area',
   [ChartType.BAR]: 'bar',
-  [ChartType.HEATMAP]: 'scatter',
+  [ChartType.HEATMAP]: 'heatmap',
 };
 
 interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -121,18 +122,19 @@ export function MetricPanel({
   const mode = useQueryParamsMode();
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const groupBys = useQueryParamsGroupBys();
-  const setGroupBys = useSetQueryParamsGroupBys();
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setVisualizes = useSetMetricVisualizes();
+  const setAggregateFields = useSetMetricAggregateFields();
+
+  const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+
   // use the biggest interval for the heat map as this produces better patterns
   const [interval, setInterval, intervalOptions] = useChartInterval({
-    unspecifiedStrategy:
-      visualize.chartType === ChartType.HEATMAP
-        ? ChartIntervalUnspecifiedStrategy.USE_BIGGEST
-        : ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
+    unspecifiedStrategy: isHeatmap
+      ? ChartIntervalUnspecifiedStrategy.USE_BIGGEST
+      : ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
 
   const [title, setTitle] = useState<string | undefined>(() => {
@@ -164,7 +166,6 @@ export function MetricPanel({
     staleTime: Infinity,
   });
 
-  const isHeatmap = visualize.chartType === ChartType.HEATMAP;
   const hasHeatMap = canUseMetricsHeatMap(organization);
 
   const {result: timeseriesResult} = useMetricTimeseries({
@@ -177,7 +178,13 @@ export function MetricPanel({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
-  const yBuckets = getHeatmapYBuckets(selection, interval, chartContainerWidth);
+  const xBucketInterval = getHeatmapXBucketInterval(
+    selection,
+    interval,
+    chartContainerWidth,
+    intervalOptions
+  );
+  const yBuckets = getHeatmapYBuckets(selection, xBucketInterval, chartContainerWidth);
 
   const heatmapApiOptions = metricHeatmapApiOptions({
     traceMetric,
@@ -185,7 +192,7 @@ export function MetricPanel({
     organization,
     selection,
     query: userQuery,
-    interval,
+    interval: xBucketInterval,
     yBuckets,
   });
   const heatmapResult = useQuery({
@@ -212,7 +219,7 @@ export function MetricPanel({
   function handleChartTypeChange(newChartType: ChartType) {
     if (newChartType === ChartType.HEATMAP) {
       // Heatmap always uses count() with no group by
-      setVisualizes(
+      setAggregateFields(
         visualizes.map(v =>
           isVisualizeFunction(v)
             ? updateVisualizeYAxis(v, 'count', traceMetric).replace({
@@ -221,9 +228,6 @@ export function MetricPanel({
             : v.replace({chartType: ChartType.HEATMAP})
         )
       );
-      if (groupBys.length > 0) {
-        setGroupBys([]);
-      }
     } else if (isHeatmap) {
       // Switching away from heatmap — restore the default aggregate
       const defaultAggregate = DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'count';
@@ -247,6 +251,7 @@ export function MetricPanel({
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
+            data-test-id="metric-panel-chart-type-select"
             tooltipProps={{
               title: t('Type of chart displayed in this visualization (ex. line)'),
             }}
@@ -258,11 +263,12 @@ export function MetricPanel({
         )}
         value={visualize.chartType}
         menuTitle="Type"
-        options={getMetricsChartTypeOptions(organization)}
+        options={getMetricsChartTypeOptions(organization, isVisualizeEquation(visualize))}
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={interval}
+        value={isHeatmap ? xBucketInterval : interval}
+        disabled={isHeatmap}
         onChange={({value}) => setInterval(value)}
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -401,13 +407,34 @@ function getHeatmapYBuckets(
   if (intervalInMs <= 0 || chartContainerWidth <= 0) {
     return 0;
   }
-
   const xBuckets = Math.round(timeRangeInMs / intervalInMs);
   if (xBuckets <= 0) {
     return 0;
   }
 
   return Math.max(1, Math.round(xBuckets * (STACKED_GRAPH_HEIGHT / chartContainerWidth)));
+}
+
+/**
+ * Computes the X-axis bucket interval for the heatmap API.
+ * The X-axis bucket interval is derived from the container width and the number of
+ * pixels per X bucket.
+ */
+function getHeatmapXBucketInterval(
+  selection: PageFilters,
+  interval: string,
+  chartContainerWidth: number,
+  intervalOptions: Array<{label: string; value: string}>
+): string {
+  const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
+  const msPerXBucket = Math.round(
+    timeRangeInMs / (chartContainerWidth / PIXELS_PER_X_BUCKET)
+  );
+  const xBucketInterval = millisecondsToClosestInterval(
+    msPerXBucket,
+    intervalOptions.map(option => option.value)
+  );
+  return xBucketInterval || interval;
 }
 
 /**

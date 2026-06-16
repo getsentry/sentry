@@ -156,7 +156,12 @@ def observe_viewer_context_propagation(
         }
     )
 
-    sentry_sdk.metrics.count("viewer_context.observation", 1, attributes=attributes)
+    # testing internal sampling on high volume metrics, not yet public api
+    attributes_with_sampling: dict[str, str | float] = {
+        **attributes,
+        "sentry.client_sample_rate": 0.001,
+    }
+    sentry_sdk.metrics.count("viewer_context.observation", 1, attributes=attributes_with_sampling)
 
     if expected and ctx is None:
         log_extra: dict[str, Any] = dict(extra_attributes) if extra_attributes else {}

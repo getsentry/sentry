@@ -1,17 +1,18 @@
-import {Fragment, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TextareaField} from 'sentry/components/forms/fields/textareaField';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
 type Props = {
   name: string;
   onSuccess: () => void;
@@ -19,34 +20,40 @@ type Props = {
   type: IntegrationType;
 } & ModalRenderProps;
 
+const schema = z.object({
+  message: z.string(),
+});
+
 /**
  * This modal serves as a non-owner's confirmation step before sending
  * organization owners an email requesting a new organization integration. It
  * lets the user attach an optional message to be included in the email.
  */
-export function RequestIntegrationModal(props: Props) {
-  const [isSending, setIsSending] = useState(false);
-  const [message, setMessage] = useState('');
+export function RequestIntegrationModal({
+  Header,
+  Body,
+  Footer,
+  CloseButton,
+  name,
+  slug,
+  type,
+  closeModal,
+  onSuccess,
+}: Props) {
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
-
-  const {Header, Body, Footer, CloseButton, name, slug, type, closeModal, onSuccess} =
-    props;
-  const endpoint = `/organizations/${organization.slug}/integration-requests/`;
 
   const sendRequestMutation = useMutation({
-    mutationFn: () => {
-      return api.requestPromise(endpoint, {
+    mutationFn: (data: z.infer<typeof schema>) =>
+      fetchMutation({
+        url: `/organizations/${organization.slug}/integration-requests/`,
         method: 'POST',
         data: {
           providerSlug: slug,
           providerType: type,
-          message,
+          message: data.message,
         },
-      });
-    },
+      }),
     onMutate: () => {
-      setIsSending(true);
       trackIntegrationAnalytics('integrations.request_install', {
         integration_type: type,
         integration: slug,
@@ -55,55 +62,60 @@ export function RequestIntegrationModal(props: Props) {
     },
     onSuccess: () => {
       addSuccessMessage(t('Request successfully sent.'));
-      setIsSending(false);
       onSuccess();
       closeModal();
     },
     onError: () => {
-      addErrorMessage('Error sending the request');
-      setIsSending(false);
+      addErrorMessage(t('Error sending the request'));
     },
   });
 
-  const buttonText = isSending ? t('Sending Request') : t('Send Request');
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {message: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => sendRequestMutation.mutateAsync(value).catch(() => {}),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header>
         <h4>{t('Request %s Installation', name)}</h4>
         <CloseButton />
       </Header>
       <Body>
-        <TextBlock>
-          {t(
-            'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
-            name
-          )}
-        </TextBlock>
-        <TextBlock>
-          {t(
-            '(Optional) You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
-            name
-          )}
-        </TextBlock>
-        <TextareaField
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          name="message"
-          type="string"
-          onChange={setMessage}
-          placeholder={t('Optional message…')}
-        />
-        <TextBlock>
-          {t(
-            'When you click “Send Request”, we’ll email your request to your organization’s owners. So just keep that in mind.'
-          )}
-        </TextBlock>
+        <Stack gap="2xl">
+          <Text as="p">
+            {t(
+              'Looks like your organization owner, manager, or admin needs to install %s. Want to send them a request?',
+              name
+            )}
+          </Text>
+          <Text as="p">
+            {t(
+              'You’ve got good reasons for installing the %s Integration. Share them with your organization owner.',
+              name
+            )}
+          </Text>
+          <form.AppField name="message">
+            {field => (
+              <field.TextArea
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={t('Optional message…')}
+              />
+            )}
+          </form.AppField>
+          <Text as="p">
+            {t(
+              'When you click “Send Request”, we’ll email your request to your organization’s owners. So just keep that in mind.'
+            )}
+          </Text>
+        </Stack>
       </Body>
       <Footer>
-        <Button onClick={() => sendRequestMutation.mutate()}>{buttonText}</Button>
+        <form.SubmitButton>{t('Send Request')}</form.SubmitButton>
       </Footer>
-    </Fragment>
+    </form.AppForm>
   );
 }

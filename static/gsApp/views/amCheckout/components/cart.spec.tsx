@@ -63,11 +63,6 @@ describe('Cart', () => {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
@@ -108,9 +103,7 @@ describe('Cart', () => {
   }
 
   it('renders with default selections', async () => {
-    render(
-      <AMCheckout api={new MockApiClient()} checkoutTier={PlanTier.AM3} {...props} />
-    );
+    render(<AMCheckout api={new MockApiClient()} {...props} />);
     const cart = await screen.findByTestId('cart');
     expect(cart).toHaveTextContent('Business Plan');
     expect(cart).toHaveTextContent('Pay-as-you-go spend limitup to $300/mo');

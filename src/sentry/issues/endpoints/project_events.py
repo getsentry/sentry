@@ -66,7 +66,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         },
         examples=EventExamples.PROJECT_EVENTS_SIMPLE,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[SimpleEventSerializerResponse]]:
         """
         Return a list of events bound to a project.
         """

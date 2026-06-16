@@ -51,11 +51,6 @@ describe('IntegrationDetailedView', () => {
             },
             name: 'Bitbucket',
 
-            setupDialog: {
-              height: 600,
-              url: '/organizations/sentry/integrations/bitbucket/setup/',
-              width: 600,
-            },
             slug: 'bitbucket',
           },
         ],

@@ -294,6 +294,15 @@ describe('MutableSearch', () => {
       expect(results.getFilterValues('nonexistent')).toEqual([]);
     });
 
+    it('getFilters handles keys that match Object prototype properties', () => {
+      const filters = new MutableSearch(
+        'constructor:value constructor:other tag:value'
+      ).getFilters();
+
+      expect(filters.constructor).toEqual(['value', 'other']);
+      expect(filters.tag).toEqual(['value']);
+    });
+
     it('getFilterValues splits bracket list into items', () => {
       const results = new MutableSearch('event.type:[error, default]');
       expect(results.getFilterValues('event.type')).toEqual(['error', 'default']);

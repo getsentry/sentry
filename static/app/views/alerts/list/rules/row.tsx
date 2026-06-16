@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
@@ -390,7 +391,10 @@ const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
   gap: ${p => p.theme.space.xl};
   ${p =>
     p.isIssueAlert &&
-    `padding: ${p.theme.space['2xl']} ${p.theme.space.xl}; line-height: 2.4;`}
+    css`
+      padding: ${p.theme.space['2xl']} ${p.theme.space.xl};
+      line-height: 2.4;
+    `}
 `;
 
 const AlertNameAndStatus = styled('div')`

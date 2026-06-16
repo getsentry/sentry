@@ -1,8 +1,9 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export const QUEUE_CHARTS: Widget[] = [
+export const QUEUE_CHARTS: PrebuiltWidget[] = [
   {
     id: 'average-duration-widget',
     title: t('Average Duration'),

@@ -9,8 +9,7 @@ import {IconArrow} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
-import type {Plan, PlanMigration, Subscription} from 'getsentry/types';
+import type {Plan, Subscription} from 'getsentry/types';
 import {displayBudgetName, formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
@@ -332,7 +331,7 @@ type Change = {
   items: React.ReactNode[];
 };
 
-function getChanges(subscription: Subscription, planMigrations: PlanMigration[]) {
+function getChanges(subscription: Subscription) {
   const {pendingChanges} = subscription;
   const changeSet: Change[] = [];
 
@@ -340,13 +339,7 @@ function getChanges(subscription: Subscription, planMigrations: PlanMigration[])
     return changeSet;
   }
 
-  const activeMigration = planMigrations.find(
-    ({dateApplied, cohort}) => dateApplied === null && cohort?.nextPlan
-  );
-
-  const {onDemandEffectiveDate} = pendingChanges;
-
-  const effectiveDate = activeMigration?.effectiveAt ?? pendingChanges.effectiveDate;
+  const {onDemandEffectiveDate, effectiveDate} = pendingChanges;
 
   const regularChanges = getRegularChanges(subscription);
   const onDemandChanges = getOnDemandChanges(subscription);
@@ -371,16 +364,12 @@ function getChanges(subscription: Subscription, planMigrations: PlanMigration[])
 
 export function PendingChanges({subscription}: any) {
   const {pendingChanges} = subscription;
-  const {planMigrations, isLoading} = usePlanMigrations();
-  if (isLoading) {
-    return null;
-  }
 
   if (typeof pendingChanges !== 'object' || pendingChanges === null) {
     return null;
   }
 
-  const changes = getChanges(subscription, planMigrations);
+  const changes = getChanges(subscription);
   if (!changes.length) {
     return null;
   }

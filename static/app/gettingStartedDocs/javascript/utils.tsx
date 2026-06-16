@@ -107,9 +107,12 @@ export const getSdkSetupSnippet = (params: Params) => {
     params,
     staticParts: [
       `dsn: "${params.dsn.public}"`,
-      `// Setting this option to true will send default PII data to Sentry.
-      // For example, automatic IP address collection on events
-      sendDefaultPii: true`,
+      `dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: []
+  }`,
     ],
     getIntegrations,
     getDynamicParts,

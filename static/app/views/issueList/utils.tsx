@@ -32,6 +32,7 @@ export enum IssueSortOptions {
   USER = 'user',
   INBOX = 'inbox',
   RECOMMENDED = 'recommended',
+  PROGRESS = 'progress',
 }
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
@@ -50,6 +51,8 @@ export function getSortLabel(key: string) {
       return t('Date Added');
     case IssueSortOptions.RECOMMENDED:
       return t('Recommended');
+    case IssueSortOptions.PROGRESS:
+      return t('Progress');
     case IssueSortOptions.DATE:
     default:
       return t('Last Seen');
@@ -71,6 +74,7 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   '__text',
   'issue.priority',
   'issue.category',
+  'issue.progress',
   'issue.type',
   'issue.seer_actionability',
   'issue.seer_last_run',

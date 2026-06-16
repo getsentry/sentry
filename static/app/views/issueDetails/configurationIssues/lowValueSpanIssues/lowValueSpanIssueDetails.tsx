@@ -1,7 +1,9 @@
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {ProblemSection} from './problemSection';
 import {TroubleshootingSection} from './troubleshootingSection';
@@ -13,14 +15,26 @@ interface LowValueSpanIssueDetailsProps {
   project: Project;
 }
 
-export function LowValueSpanIssueDetails({event}: LowValueSpanIssueDetailsProps) {
+export function LowValueSpanIssueDetails({
+  event,
+  project,
+}: LowValueSpanIssueDetailsProps) {
   const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
 
   return (
     <div>
-      <ProblemSection evidenceData={evidenceData} />
-      <SectionDivider orientation="horizontal" />
-      <TroubleshootingSection evidenceData={evidenceData} />
+      <FoldSection sectionKey={SectionKey.CONFIGURATION_PROBLEM} title={t('Problem')}>
+        <ProblemSection evidenceData={evidenceData} />
+      </FoldSection>
+      <FoldSection
+        sectionKey={SectionKey.CONFIGURATION_SOLUTION}
+        title={t('Troubleshooting')}
+      >
+        <TroubleshootingSection
+          evidenceData={evidenceData}
+          projectPlatform={project.platform}
+        />
+      </FoldSection>
     </div>
   );
 }

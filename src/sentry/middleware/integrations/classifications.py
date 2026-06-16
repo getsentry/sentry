@@ -116,7 +116,6 @@ class IntegrationClassification(BaseClassification):
             and not request.path.endswith("/setup/")
             # or match the routes for integrationOrganizationLink page (See routes.tsx)
             and not request.path.endswith("/link/")
-            and not request.path.startswith("/extensions/external-install/")
         )
 
     def get_response(self, request: HttpRequest) -> HttpResponseBase:
@@ -126,9 +125,10 @@ class IntegrationClassification(BaseClassification):
 
         parser_class = self.integration_parsers.get(provider)
         if not parser_class:
-            scope = sentry_sdk.get_isolation_scope()
-            scope.set_tag("provider", provider)
-            scope.set_tag("path", request.path)
+            sentry_sdk.set_tag("provider", provider)
+            sentry_sdk.set_attribute("provider", provider)
+            sentry_sdk.set_tag("path", request.path)
+            sentry_sdk.set_attribute("path", request.path)
             sentry_sdk.capture_exception(
                 Exception("Unknown provider was extracted from integration extension url")
             )

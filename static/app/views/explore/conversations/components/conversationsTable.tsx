@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -35,6 +36,7 @@ import {
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -269,9 +271,9 @@ const BodyCell = memo(function BodyCell({
     case 'user': {
       if (!dataRow.user) {
         return (
-          <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
-            <Text variant="muted">&mdash;</Text>
-          </Tooltip>
+          <InfoText variant="muted" title={<UserNotInstrumentedTooltip />}>
+            &mdash;
+          </InfoText>
         );
       }
       const displayName = getUserDisplayName(dataRow.user);
@@ -324,7 +326,12 @@ const BodyCell = memo(function BodyCell({
     case 'tokensAndCost':
       return (
         <Text as="div" align="right">
-          <Count value={dataRow.totalTokens} /> / <LLMCosts cost={dataRow.totalCost} />
+          <Count value={dataRow.totalTokens} /> /{' '}
+          {dataRow.totalCost !== null && dataRow.totalCost < 0 ? (
+            <NegativeCostInfo cost={dataRow.totalCost} />
+          ) : (
+            <LLMCosts cost={dataRow.totalCost} />
+          )}
         </Text>
       );
     case 'timestamp':

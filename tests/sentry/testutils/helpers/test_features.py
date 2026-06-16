@@ -27,14 +27,14 @@ class TestTestUtilsFeatureHelper(TestCase):
                 ret = features.batch_has(
                     [
                         "organizations:advanced-search",
-                        "organizations:codecov-integration",
+                        "organizations:anomaly-detection-alerts",
                     ],
                     organization=self.org,
                 )
                 assert ret is not None
                 results = list(ret.values())[0]
                 assert results["organizations:advanced-search"]
-                assert not results["organizations:codecov-integration"]
+                assert not results["organizations:anomaly-detection-alerts"]
 
     def test_feature_with_rpc_organization(self) -> None:
         with self.feature({"system:multi-region": False}):
@@ -102,7 +102,7 @@ class TestNestedFeatureOverrides(TestCase):
         """Test that nested context managers properly override outer contexts."""
         # Initially disabled
         assert not features.has("organizations:session-replay", self.org)
-        assert not features.has("organizations:codecov-integration", self.org)
+        assert not features.has("organizations:anomaly-detection-alerts", self.org)
 
         # Enable feature in outer context
         with self.feature("organizations:session-replay"):
@@ -113,11 +113,13 @@ class TestNestedFeatureOverrides(TestCase):
                 assert not features.has("organizations:session-replay", self.org)
 
                 # Enable different feature in inner context
-                with self.feature("organizations:codecov-integration"):
+                with self.feature("organizations:anomaly-detection-alerts"):
                     assert not features.has(
                         "organizations:session-replay", self.org
                     )  # Still disabled
-                    assert features.has("organizations:codecov-integration", self.org)  # Enabled
+                    assert features.has(
+                        "organizations:anomaly-detection-alerts", self.org
+                    )  # Enabled
 
             # Back to outer context - should be enabled again
             assert features.has("organizations:session-replay", self.org)
@@ -125,21 +127,24 @@ class TestNestedFeatureOverrides(TestCase):
     def test_multiple_features_nested_contexts(self) -> None:
         """Test multiple features being enabled/disabled in nested contexts."""
         with self.feature(
-            {"organizations:session-replay": True, "organizations:codecov-integration": False}
+            {"organizations:session-replay": True, "organizations:anomaly-detection-alerts": False}
         ):
             assert features.has("organizations:session-replay", self.org)
-            assert not features.has("organizations:codecov-integration", self.org)
+            assert not features.has("organizations:anomaly-detection-alerts", self.org)
 
             # Override both in nested context
             with self.feature(
-                {"organizations:session-replay": False, "organizations:codecov-integration": True}
+                {
+                    "organizations:session-replay": False,
+                    "organizations:anomaly-detection-alerts": True,
+                }
             ):
                 assert not features.has("organizations:session-replay", self.org)
-                assert features.has("organizations:codecov-integration", self.org)
+                assert features.has("organizations:anomaly-detection-alerts", self.org)
 
             # Back to original state
             assert features.has("organizations:session-replay", self.org)
-            assert not features.has("organizations:codecov-integration", self.org)
+            assert not features.has("organizations:anomaly-detection-alerts", self.org)
 
     @with_feature("organizations:session-replay")
     def test_method_decorator_with_context_override(self) -> None:
@@ -155,22 +160,22 @@ class TestNestedFeatureOverrides(TestCase):
         assert features.has("organizations:session-replay", self.org)
 
     @with_feature(
-        {"organizations:session-replay": True, "organizations:codecov-integration": False}
+        {"organizations:session-replay": True, "organizations:anomaly-detection-alerts": False}
     )
     def test_method_decorator_multiple_features_with_context_override(self) -> None:
         """Test context manager overriding specific features from method decorator."""
         # Method decorator state
         assert features.has("organizations:session-replay", self.org)
-        assert not features.has("organizations:codecov-integration", self.org)
+        assert not features.has("organizations:anomaly-detection-alerts", self.org)
 
         # Override only one feature in context
-        with self.feature({"organizations:codecov-integration": True}):
+        with self.feature({"organizations:anomaly-detection-alerts": True}):
             assert features.has("organizations:session-replay", self.org)  # Still from decorator
-            assert features.has("organizations:codecov-integration", self.org)  # Overridden
+            assert features.has("organizations:anomaly-detection-alerts", self.org)  # Overridden
 
         # Back to decorator state
         assert features.has("organizations:session-replay", self.org)
-        assert not features.has("organizations:codecov-integration", self.org)
+        assert not features.has("organizations:anomaly-detection-alerts", self.org)
 
 
 @with_feature("organizations:session-replay")
@@ -203,23 +208,23 @@ class TestClassDecoratorWithNestedOverrides(TestCase):
         # Back to class decorator state
         assert features.has("organizations:session-replay", self.org)
 
-    @with_feature("organizations:codecov-integration")
+    @with_feature("organizations:anomaly-detection-alerts")
     def test_method_and_class_decorators_with_context_override(self) -> None:
         """Test interaction of class decorator + method decorator + context manager."""
         # Both class and method decorators should be active
         assert features.has("organizations:session-replay", self.org)  # From class
-        assert features.has("organizations:codecov-integration", self.org)  # From method
+        assert features.has("organizations:anomaly-detection-alerts", self.org)  # From method
 
         # Override both with context manager
         with self.feature(
-            {"organizations:session-replay": False, "organizations:codecov-integration": False}
+            {"organizations:session-replay": False, "organizations:anomaly-detection-alerts": False}
         ):
             assert not features.has("organizations:session-replay", self.org)
-            assert not features.has("organizations:codecov-integration", self.org)
+            assert not features.has("organizations:anomaly-detection-alerts", self.org)
 
         # Back to decorator states
         assert features.has("organizations:session-replay", self.org)
-        assert features.has("organizations:codecov-integration", self.org)
+        assert features.has("organizations:anomaly-detection-alerts", self.org)
 
     def test_deeply_nested_context_managers(self) -> None:
         """Test deeply nested context managers with alternating states."""

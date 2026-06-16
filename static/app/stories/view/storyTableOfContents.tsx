@@ -1,5 +1,6 @@
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -316,7 +317,7 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
 
   ${p =>
     p.isActive &&
-    `
+    css`
       &::before {
         content: '';
         display: block;

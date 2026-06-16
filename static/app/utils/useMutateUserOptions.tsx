@@ -25,6 +25,13 @@ export function useMutateUserOptions({onSuccess, onError}: Props = {}) {
       });
     },
     onMutate: (options: UpdateUserOptionsVariables) => {
+      if (
+        options.theme &&
+        user.options.theme !== options.theme &&
+        options.theme !== 'system'
+      ) {
+        ConfigStore.set('theme', options.theme);
+      }
       ConfigStore.set('user', merge({}, user, {options}));
       return onSuccess?.();
     },

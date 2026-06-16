@@ -10,9 +10,8 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
-import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
@@ -61,15 +60,10 @@ export function renderPerformanceHovercard() {
 
 export function VolumeSliders({
   currentSliderValues,
-  checkoutTier,
   activePlan,
   organization,
-  subscription,
   onReservedChange,
-}: Pick<
-  StepProps,
-  'activePlan' | 'checkoutTier' | 'organization' | 'onUpdate' | 'subscription'
-> & {
+}: Pick<StepProps, 'activePlan' | 'organization' | 'onUpdate'> & {
   currentSliderValues: Partial<Record<DataCategory, number>>;
   onReservedChange: (value: number, category: DataCategory) => void;
 }) {
@@ -118,21 +112,18 @@ export function VolumeSliders({
 
           const sliderId = `slider-${category}`;
 
-          // pre-AM3 specific behavior
+          // AM2-specific behavior: AM2 rebrands transactions as "performance
+          // units". AM2 is the only tier that bills both transactions and
+          // continuous profiling (AM1 has no profiling; AM3 replaced
+          // transactions with spans), so this pair of data categories
+          // identifies it without branching on the tier id.
+          const isAm2Plan =
+            activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
+            activePlan.categories.includes(DataCategory.PROFILE_DURATION);
           const showPerformanceUnits =
-            checkoutTier === PlanTier.AM2 &&
+            isAm2Plan &&
             organization?.features?.includes('profiling-billing') &&
             category === DataCategory.TRANSACTIONS;
-
-          // TODO: Remove after profiling launch
-          const showTransactionsDisclaimer =
-            !showPerformanceUnits &&
-            category === DataCategory.TRANSACTIONS &&
-            checkoutTier === PlanTier.AM2 &&
-            subscription.planTier === PlanTier.AM1 &&
-            subscription.planDetails.name === activePlan.name &&
-            subscription.billingInterval === activePlan.billingInterval &&
-            (subscription.categories.transactions?.reserved ?? 0) > 5_000_000;
 
           const isIncluded = eventBucket.price === 0;
 
@@ -219,13 +210,6 @@ export function VolumeSliders({
                     </div>
                   </MinMax>
                 </div>
-                {showTransactionsDisclaimer && (
-                  <span>
-                    {t(
-                      'We updated your event quota to make sure you get the best cost per transaction. Feel free to adjust as needed.'
-                    )}
-                  </span>
-                )}
               </CategoryContainer>
             </DataVolumeItem>
           );

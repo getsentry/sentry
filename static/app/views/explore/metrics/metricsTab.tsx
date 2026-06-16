@@ -10,6 +10,7 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -40,13 +41,15 @@ import {
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
   datePageFilterProps: DatePageFilterProps;
 };
 
-export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
+function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
   const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
 
   return (
@@ -120,8 +123,21 @@ function MetricsTabBodySection({
 }: SectionProps) {
   const metricQueries = useMultiMetricsQueryParams();
   const [interval] = useChartInterval();
+  const pageFilters = usePageFilters();
   const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
     enabled: true,
+  });
+
+  useLLMContext({
+    contextHint:
+      'Sentry metrics explorer page. Users search and visualize application metrics (counters, gauges, distributions) with filters, grouping, and aggregation functions. You can search live telemetry for metrics, discover metric names via the telemetry index, and query metric data with specific filters and time ranges.',
+    metricQueries: metricQueries.map(q => ({
+      metric: q.metric?.name,
+      label: q.label,
+      query: q.queryParams.search.formatString(),
+    })),
+    interval,
+    currentSelectedDateRange: pageFilters.selection.datetime,
   });
 
   useMetricsAnalytics({
@@ -244,3 +260,8 @@ function SortableMetricPanelSection({
     </Stack>
   );
 }
+
+export const MetricsTabContent = registerLLMContext(
+  'metrics-explorer',
+  MetricsTabContentInner
+);

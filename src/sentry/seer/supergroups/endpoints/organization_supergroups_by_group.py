@@ -12,9 +12,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.helpers.group_index import get_group_list
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.models.group import STATUS_QUERY_CHOICES, Group
+from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.team import Team
@@ -72,12 +73,8 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 status=status_codes.HTTP_400_BAD_REQUEST,
             )
 
-        valid_group_ids = set(
-            Group.objects.filter(
-                id__in=group_ids,
-                project__organization=organization,
-            ).values_list("id", flat=True)
-        )
+        projects = self.get_projects(request, organization)
+        valid_group_ids = {g.id for g in get_group_list(organization.id, projects, group_ids)}
         group_ids = [gid for gid in group_ids if gid in valid_group_ids]
 
         if not group_ids:
@@ -98,13 +95,11 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
             return Response({"data": data["data"], "meta": {"estimated": True}})
 
         if status_param:
-            matching_ids = set(
-                Group.objects.filter(
-                    id__in=all_response_group_ids,
-                    project__organization=organization,
-                    status=STATUS_QUERY_CHOICES[status_param],
-                ).values_list("id", flat=True)
-            )
+            matching_ids = {
+                g.id
+                for g in get_group_list(organization.id, projects, list(all_response_group_ids))
+                if g.status == STATUS_QUERY_CHOICES[status_param]
+            }
 
             for sg in data["data"]:
                 sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]

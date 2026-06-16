@@ -3,7 +3,6 @@ import {useMemo, useState} from 'react';
 import {Grid} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
   associateTagsWithMeta,
@@ -14,8 +13,8 @@ import {
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 type Props = {
   event: Event;
@@ -83,11 +82,7 @@ export function EventTagsDataSection({
   return (
     <FoldSection
       disableCollapsePersistence={disableCollapsePersistence}
-      title={
-        <GuideAnchor target="tags" position="top">
-          {t('Tags')}
-        </GuideAnchor>
-      }
+      title={t('Tags')}
       actions={actions}
       sectionKey={SectionKey.TAGS}
       ref={ref}

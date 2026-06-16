@@ -36,12 +36,6 @@ describe('SubscriptionHeader', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: '/customers/org-slug/plan-migrations/',
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });

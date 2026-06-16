@@ -258,7 +258,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
       &:last-child {
         border-bottom: none;
       }
-    `};
+    `}
   ${p =>
     p.divider &&
     css`

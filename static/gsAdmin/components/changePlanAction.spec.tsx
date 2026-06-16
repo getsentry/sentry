@@ -3,25 +3,17 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 
 import {triggerChangePlanAction} from 'admin/components/changePlanAction';
-import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
@@ -43,42 +35,6 @@ describe('ChangePlanAction', () => {
     },
   });
   const BILLING_CONFIG = BillingConfigFixture(PlanTier.ALL);
-  const testPlan = PlanFixture({
-    id: 'test_test_monthly',
-    name: 'TEST Tier Test Plan',
-    price: 5000,
-    basePrice: 5000,
-    billingInterval: 'monthly',
-    contractInterval: 'monthly',
-    reservedMinimum: 500000,
-    categories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
-    checkoutCategories: [DataCategory.ERRORS, DataCategory.TRANSACTIONS],
-    planCategories: {
-      errors: [
-        {events: 50000, price: 1000},
-        {events: 100000, price: 2000},
-      ],
-      transactions: [
-        {events: 10000, price: 2500},
-        {events: 25000, price: 5000},
-      ],
-    },
-    userSelectable: false,
-    isTestPlan: true,
-  });
-
-  const freeTestPlan = PlanFixture({
-    id: 'free_test_monthly',
-    name: 'TEST Tier Free Test Plan',
-    price: 0,
-    basePrice: 0,
-    billingInterval: 'monthly',
-    userSelectable: false,
-    isTestPlan: true,
-  });
-
-  BILLING_CONFIG.planList.push(testPlan);
-  BILLING_CONFIG.planList.push(freeTestPlan);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -118,53 +74,28 @@ describe('ChangePlanAction', () => {
   it('loads the billing config and displays plan options', async () => {
     openAndLoadModal();
 
-    // Wait for async data to load
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-    });
-
-    // Verify the tabs are rendered
-    expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'AM2'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'MM2'})).not.toBeInTheDocument();
-
-    // Verify at least one plan option is displayed
-    expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
-    await userEvent.click(screen.getAllByRole('radio')[0]!);
-
-    // Verify checkout categories are displayed
-    expect(screen.getAllByRole('textbox')).toHaveLength(
-      subscription.planDetails.checkoutCategories.length + 2 // +2 for audit fields
-    );
-    expect(screen.getByRole('textbox', {name: 'Spans'})).toBeInTheDocument();
-
-    // Does not display non-checkout categories or non-existent categories
+    // All tiers' plans load into a single list (no tabbed interface)
     expect(
-      screen.queryByRole('textbox', {name: 'Continuous profile hours'})
-    ).not.toBeInTheDocument();
+      await screen.findByTestId('change-plan-label-am3_business')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
+
+    // Selecting an AM3 plan shows its checkout categories (spans, not transactions)
+    await userEvent.click(screen.getByRole('radio', {name: /am3_business\b/}));
+    expect(screen.getByRole('textbox', {name: 'Spans'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
     expect(
       screen.queryByRole('textbox', {name: 'Performance units'})
     ).not.toBeInTheDocument();
-
-    // Test basic interaction - click on AM2 tier
-    const am2Tab = screen.getByRole('tab', {name: 'AM2'});
-    await userEvent.click(am2Tab);
-
-    // Verify tab change changes plan options displayed
-    expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
-    await userEvent.click(screen.getAllByRole('radio')[0]!);
-
-    // Verify tab change changes categories displayed
-    expect(screen.getAllByRole('textbox')).toHaveLength(
-      PlanDetailsLookupFixture('am2_business').checkoutCategories.length + 2 // +2 for audit fields
-    );
-    expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
     expect(
       screen.queryByRole('textbox', {name: 'Continuous profile hours'})
     ).not.toBeInTheDocument();
+
+    // Selecting an AM2 plan swaps to its categories (performance units, not spans)
+    await userEvent.click(screen.getByRole('radio', {name: /am2_business\b/}));
+    expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Spans'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
   });
 
   it('only displays current plan for NT customers', async () => {
@@ -191,12 +122,11 @@ describe('ChangePlanAction', () => {
 
     await openAndLoadModal({partnerPlanId: ntSubscription.plan});
 
-    expect(screen.queryByTestId('am3-tier')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('am2-tier')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('am1-tier')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('mm2-tier')).not.toBeInTheDocument();
+    // Partner plans aren't modifiable, so only the existing plan is shown
+    expect(
+      await screen.findByTestId('change-plan-label-am2_business')
+    ).toBeInTheDocument();
     expect(screen.getAllByRole('radio')).toHaveLength(1);
-    expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
   });
 
   it('completes form submission flow', async () => {
@@ -210,13 +140,8 @@ describe('ChangePlanAction', () => {
 
     openAndLoadModal();
 
-    // Wait for component to load
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-    });
-
-    // Select a plan
-    await userEvent.click(screen.getAllByRole('radio')[0]!);
+    // Select an AM3 plan from the flat list
+    await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
     // Select reserved volumes
     await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
@@ -258,11 +183,7 @@ describe('ChangePlanAction', () => {
 
     openAndLoadModal();
 
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-    });
-
-    await userEvent.click(screen.getAllByRole('radio')[0]!);
+    await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
     await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
     await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
@@ -302,95 +223,6 @@ describe('ChangePlanAction', () => {
     expect(requestData).toHaveProperty('addOnSeer', true);
   });
 
-  it('updates plan list when switching between tiers', async () => {
-    openAndLoadModal();
-
-    // Wait for component to load
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-    });
-
-    // Verify AM3 tier plans are displayed
-    expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
-
-    // Switch to AM2 tier
-    const am2Tab = screen.getByRole('tab', {name: 'AM2'});
-    await userEvent.click(am2Tab);
-
-    // When clicking on a different tier, it takes time for the plan list to update
-    // Rather than checking for a specific plan, let's check that we still have a plan option
-    // but it's no longer the AM3 plan
-    await waitFor(() => {
-      const radios = document.querySelectorAll('input[type="radio"]');
-      expect(radios.length).toBeGreaterThan(0);
-    });
-  });
-
-  it('shows only test plans when using TEST tier', async () => {
-    openAndLoadModal();
-
-    // First, click the TEST tier to activate it
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'TEST'})).toBeInTheDocument();
-    });
-
-    const testTierTab = screen.getByRole('tab', {name: 'TEST'});
-    await userEvent.click(testTierTab);
-
-    // Verify >$0 TEST tier plans are shown after clicking the TEST tier tab
-    await waitFor(() => {
-      const testPlans = screen.queryAllByTestId(/_test_monthly/);
-      expect(testPlans).toHaveLength(1);
-
-      testPlans.forEach(planLabel => {
-        expect(within(planLabel).getByText('$50 / monthly')).toBeInTheDocument();
-        expect(within(planLabel).queryByText('$0 / monthly')).not.toBeInTheDocument();
-      });
-    });
-  });
-
-  it('completes form submission flow for the TEST tier', async () => {
-    // Mock the PUT endpoint response
-    const putMock = MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/subscription/`,
-      method: 'PUT',
-      body: {success: true},
-    });
-
-    openAndLoadModal();
-
-    // Wait for component to load
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'TEST'})).toBeInTheDocument();
-    });
-
-    // Click on the TEST tier tab (if not already active)
-    const testTierTab = screen.getByRole('tab', {name: 'TEST'});
-    await userEvent.click(testTierTab);
-    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeDisabled();
-    expect(screen.getByTestId('change-plan-label-test_test_monthly')).toBeInTheDocument();
-
-    // Select a plan
-    await userEvent.click(screen.getAllByRole('radio')[0]!);
-
-    // Select reserved volumes
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '50,000');
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Transactions'}),
-      '25,000'
-    );
-
-    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-    // Verify the PUT API was called
-    expect(putMock).toHaveBeenCalled();
-    const requestData = putMock.mock.calls[0][1].data;
-    expect(requestData).toHaveProperty('plan', 'test_test_monthly');
-    expect(requestData).toHaveProperty('reservedErrors', 50000);
-    expect(requestData).toHaveProperty('reservedTransactions', 25000);
-  });
-
   describe('Legacy Seer', () => {
     beforeEach(() => {
       mockOrg.features = ['seer-billing'];
@@ -418,23 +250,13 @@ describe('ChangePlanAction', () => {
     it('shows Seer budget checkbox for AM tiers', async () => {
       openAndLoadModal();
 
-      await waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      });
-      await userEvent.click(screen.getAllByRole('radio')[0]!);
-
+      await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
       expect(screen.getByText('Seer')).toBeInTheDocument();
 
-      const am2Tab = screen.getByRole('tab', {name: 'AM2'});
-      await userEvent.click(am2Tab);
-      await userEvent.click(screen.getAllByRole('radio')[0]!);
-
+      await userEvent.click(screen.getByRole('radio', {name: /am2_business\b/}));
       expect(screen.getByText('Seer')).toBeInTheDocument();
 
-      const am1Tab = screen.getByRole('tab', {name: 'AM1'});
-      await userEvent.click(am1Tab);
-      await userEvent.click(screen.getAllByRole('radio')[0]!);
-
+      await userEvent.click(screen.getByRole('radio', {name: /am1_business\b/}));
       expect(screen.getByText('Seer')).toBeInTheDocument();
     });
 
@@ -454,13 +276,8 @@ describe('ChangePlanAction', () => {
 
       await openAndLoadModal({subscription: subscriptionWithSeer});
 
-      // Wait for component to load
-      await waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      });
-
       // Select a plan to make the Available Products section visible
-      await userEvent.click(screen.getAllByRole('radio')[0]!);
+      await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
       // Verify Seer budget checkbox is checked when subscription has Seer budget
       const seerCheckbox = screen.getByRole('checkbox', {
@@ -472,13 +289,8 @@ describe('ChangePlanAction', () => {
     it('initializes Seer budget checkbox as unchecked when subscription has no Seer budget', async () => {
       openAndLoadModal({});
 
-      // Wait for component to load
-      await waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      });
-
       // Select a plan to make the Available Products section visible
-      await userEvent.click(screen.getAllByRole('radio')[0]!);
+      await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
       // Verify Seer budget checkbox is unchecked when subscription has no Seer budget
       const seerCheckbox = screen.getByRole('checkbox', {
@@ -497,13 +309,8 @@ describe('ChangePlanAction', () => {
 
       openAndLoadModal({});
 
-      // Wait for component to load
-      await waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      });
-
       // Select a plan
-      await userEvent.click(screen.getAllByRole('radio')[0]!);
+      await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
       // Check the Seer budget checkbox
       const seerCheckbox = screen.getByRole('checkbox', {
@@ -557,13 +364,8 @@ describe('ChangePlanAction', () => {
 
       openAndLoadModal({});
 
-      // Wait for component to load
-      await waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      });
-
       // Select a plan
-      await userEvent.click(screen.getAllByRole('radio')[0]!);
+      await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
       // Verify Seer budget checkbox is unchecked (default state)
       const seerCheckbox = screen.getByRole('checkbox', {

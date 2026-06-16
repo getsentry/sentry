@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -8,19 +7,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from './useBulkAutofixAutomationSettings';
-
-export function useFetchProjectSeerPreferences({project}: {project: Project}) {
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-
-  return useCallback(async () => {
-    const data = await queryClient.fetchQuery({
-      ...projectSeerPreferencesApiOptions(organization.slug, project.slug),
-      staleTime: 0,
-    });
-    return data?.json?.preference;
-  }, [queryClient, organization.slug, project.slug]);
-}
 
 export function useUpdateProjectSeerPreferences(project: Project) {
   const organization = useOrganization();

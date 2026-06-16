@@ -186,10 +186,10 @@ const initialAutomationBuilderState: AutomationBuilderState = {
     id: 'when',
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
     conditions: [
-      createWhenCondition(DataConditionType.FIRST_SEEN_EVENT),
-      createWhenCondition(DataConditionType.ISSUE_RESOLVED_TRIGGER),
-      createWhenCondition(DataConditionType.REAPPEARED_EVENT),
-      createWhenCondition(DataConditionType.REGRESSION_EVENT),
+      createCondition(DataConditionType.FIRST_SEEN_EVENT),
+      createCondition(DataConditionType.ISSUE_RESOLVED_TRIGGER),
+      createCondition(DataConditionType.REAPPEARED_EVENT),
+      createCondition(DataConditionType.REGRESSION_EVENT),
     ],
   },
   actionFilters: [
@@ -297,15 +297,17 @@ type AutomationBuilderAction =
   | UpdateIfActionAction
   | UpdateIfLogicTypeAction;
 
-function createWhenCondition(conditionType: DataConditionType): DataCondition {
+function createCondition(conditionType: DataConditionType): DataCondition {
   return {
     id: uuid4(),
     type: conditionType,
-    comparison: true,
+    // Most when conditions are booleans, so it's a safe fallback.
+    // If a condition's comparison is not a boolean, it MUST set a default comparison.
+    // For example, see DataConditionType.SEER_ACTIVITY_TRIGGER.
+    comparison: dataConditionNodesMap.get(conditionType)?.defaultComparison ?? true,
     conditionResult: true,
   };
 }
-
 function addWhenCondition(
   state: AutomationBuilderState,
   action: AddWhenConditionAction
@@ -314,10 +316,7 @@ function addWhenCondition(
     ...state,
     triggers: {
       ...state.triggers,
-      conditions: [
-        ...state.triggers.conditions,
-        createWhenCondition(action.conditionType),
-      ],
+      conditions: [...state.triggers.conditions, createCondition(action.conditionType)],
     },
   };
 }
@@ -409,16 +408,7 @@ function addIfCondition(
       }
       return {
         ...group,
-        conditions: [
-          ...group.conditions,
-          {
-            id: uuid4(),
-            type: conditionType,
-            comparison:
-              dataConditionNodesMap.get(conditionType)?.defaultComparison || true,
-            conditionResult: true,
-          },
-        ],
+        conditions: [...group.conditions, createCondition(conditionType)],
       };
     }),
   };

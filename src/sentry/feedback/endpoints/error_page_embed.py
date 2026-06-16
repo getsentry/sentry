@@ -1,25 +1,30 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
+from urllib.parse import urlparse
 
 from django import forms
+from django.conf import settings
 from django.db import IntegrityError, router
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
 
+from sentry import options
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
+from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.signals import user_feedback_received
-from sentry.types.cell import get_local_locality
+from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.http import is_valid_origin, origin_from_request
@@ -76,7 +81,48 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
-@cell_silo_view
+class ErrorEmbedResolver(CellRequestResolver):
+    def resolve(
+        self,
+        request: Request,
+        view_func: Callable[..., HttpResponseBase],
+        view_kwargs: dict[str, Any],
+    ) -> Cell | None:
+        if "dsn" not in request.GET:
+            return None
+
+        dsn = request.GET["dsn"]
+        try:
+            parsed = urlparse(dsn)
+        except Exception:
+            return None
+
+        # Match against hostname, ignoring port and key, since these seem
+        # irrelevant to routing decisions.
+        host = parsed.hostname
+        if not host:
+            return None
+        app_host = urlparse(options.get("system.url-prefix")).hostname
+        if not app_host or not host.endswith(app_host):
+            # Don't further parse URLs that aren't for us.
+            return None
+
+        app_segments = app_host.split(".")
+        host_segments = host.split(".")
+        if len(host_segments) - len(app_segments) < 3:
+            # If we don't have a o123.ingest.{cell}.{app_host} style domain
+            # we forward to the monolith cell
+            return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+
+        try:
+            cell_offset = len(app_segments) + 1
+            cell_segment = host_segments[cell_offset * -1]
+            return get_cell_by_name(cell_segment)
+        except Exception:
+            return None
+
+
+@cell_silo_view(cell_resolver=ErrorEmbedResolver())
 class ErrorPageEmbedView(View):
     """
     View for the crash report modal.

@@ -77,41 +77,12 @@
     .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors {
       padding-right: 10px;
     }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors-wide {
-      padding-bottom: 10px;
-    }
     .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions {
       padding-left: 10px;
       border: 1px solid #C4C4C4;
     }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions-below {
-      padding-top: 10px;
-      padding-left: 10px;
-      padding-right: 10px;
-      border: 1px solid #C4C4C4;
-    }
     .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions-empty {
       padding-left: 10px;
-    }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions-empty-below {
-      padding-top: 10px;
-      padding-left: 10px;
-      padding-right: 10px;
-      border-top: 1px solid #C4C4C4;
-    }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.replays {
-      padding-top: 10px;
-      padding-left: 10px;
-      border: 1px solid #C4C4C4;
-    }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.replays-empty {
-      padding-top: 10px;
-      padding-left: 10px;
-      border-top: 1px solid #C4C4C4;
-    }
-    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.some-empty-below {
-      border-left: none;
-      border-right: none;
     }
     .project-breakdown .total-count-title {
       margin-top: 0;
@@ -165,9 +136,6 @@
       text-align: center;
     }
 
-    .project-breakdown .col-errors-dropped {
-      padding-right: 2rem;
-    }
   </style>
 
   <style type="text/css" inline="false">
@@ -185,10 +153,6 @@
 
       .header td {
         text-align: center !important;
-      }
-
-      .project-breakdown .col-dropped {
-        display: none;
       }
 
       #events-by-issue-type .legend {
@@ -229,9 +193,15 @@
     {% with height=110 %}
     <table class="project-breakdown-graph-deck"><tbody><tr>
 
-    <td class="project-breakdown-graph-cell {% if has_replay_graph %}errors-wide{% else %}errors{% endif %}" {% if has_replay_graph %}colspan="2"{% endif %}>
+    <td class="project-breakdown-graph-cell errors">
     <h4 class="total-count-title">Total Project Errors</h4>
-    <h1 style="margin: 0;" class="total-count">{{ trends.total_error_count|small_count:1 }}</h1>
+    <h1 style="margin: 0;" class="total-count">
+      {{ trends.total_error_count|small_count:1 }}
+      {% if show_week_over_week_metric and trends.error_pct_change %}
+      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #80708F;">{{ trends.error_pct_change }}</span>
+      <span style="font-size: 12px; font-weight: normal; color: #80708F; margin-left: 4px; vertical-align: middle;">(vs. last week)</span>
+      {% endif %}
+    </h1>
     {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
     {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
     <a href="{% org_url organization issue_list query=query %}"
@@ -265,15 +235,16 @@
     </table>
     </td>
 
-{% if has_replay_graph %}
-</tr>
-<tr>
-{% endif %}
-
     {% if trends.total_transaction_count > 0 %}
-    <td class="project-breakdown-graph-cell {% if has_replay_graph %}transactions-below{% else %}transactions{% endif %} {% if has_replay_graph and trends.total_replay_count == 0 %}some-empty-below{% endif %}">
+    <td class="project-breakdown-graph-cell transactions">
       <h4 class="total-count-title">Total Project Transactions</h4>
-      <h1 style="margin: 0;" class="total-count">{{ trends.total_transaction_count|small_count:1 }}</h1>
+      <h1 style="margin: 0;" class="total-count">
+        {{ trends.total_transaction_count|small_count:1 }}
+        {% if show_week_over_week_metric and trends.transaction_pct_change %}
+        <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #80708F;">{{ trends.transaction_pct_change }}</span>
+        <span style="font-size: 12px; font-weight: normal; color: #80708F; margin-left: 4px; vertical-align: middle;">(vs. last week)</span>
+        {% endif %}
+      </h1>
       {% url 'sentry-organization-performance' organization.slug as performance_landing %}
       {% querystring referrer="weekly_report_view_all" notification_uuid=notification_uuid as query %}
       <a href="{% org_url organization performance_landing query=query %}"
@@ -306,7 +277,7 @@
       </table>
       </td>
     {% else %}
-      <td class="project-breakdown-graph-cell {% if has_replay_graph and trends.total_replay_count > 0 %}transactions-empty-below{% elif has_replay_graph %}transactions-empty-below some-empty-below{% else %}transactions-empty{% endif %}">
+      <td class="project-breakdown-graph-cell transactions-empty">
         <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
           <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
           <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
@@ -319,57 +290,6 @@
       </td>
     {% endif %}
 
-    {% if has_replay_graph and trends.total_replay_count > 0 %}
-      <td class="project-breakdown-graph-cell replays {% if trends.total_transaction_count == 0 %}some-empty-below{% endif %}">
-        <h4 class="total-count-title">Total Project Replays</h4>
-        <h1 style="margin: 0;" class="total-count">{{ trends.total_replay_count|small_count:1 }}</h1>
-        {% url 'sentry-organization-replays' organization.slug as replay_landing %}
-        {% querystring referrer="weekly_report_view_all" notification_uuid=notification_uuid as query %}
-        <a href="{% org_url organization replay_landing query=query %}"
-          style="font-size: 12px; margin-bottom: 16px; display: block;">View All Replays</a>
-        <table class="graph">
-          <tr>
-            {% for timestamp, project_values in trends.series %}
-            <td valign="bottom" class="bar"
-              style="height: {{ height }}px; width: {% widthratio 1 trends.series|length 100 %}%">
-              <table class="bar">
-                {% for project_value in project_values %}
-                <tr>
-                  <td height="{% widthratio project_value.replay_count trends.replay_maximum height %}"
-                    style="background-color: {{ project_value.color }};">&nbsp;</td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td height="1" style="background-color: #ebe9f7;"></td>
-                </tr>
-                {% endfor %}
-              </table>
-            </td>
-            {% endfor %}
-          </tr>
-          <tr>
-            {% for timestamp, project_values in trends.series %}
-            <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
-              {{ timestamp|date:"D" }}
-            </td>
-            {% endfor %}
-          </tr>
-        </table>
-      </td>
-    {% elif has_replay_graph %}
-      <td class="project-breakdown-graph-cell {% if trends.total_transaction_count > 0 %}replays-empty some-empty-below{% else %}replays-empty{% endif %}">
-        <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
-          <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-play.png' %}" width="32px" height="32px"
-            alt="Sentry">
-          <h1 style="font-weight: bold; font-size: 17px;">Tricky bug?</h1>
-          <p style="font-size: 11px;">Rewind and replay every step of a user’s journey before and after they encounter an issue.</p>
-          {% url 'sentry-organization-replays' organization.slug as replay_landing %}
-          {% querystring referrer="weekly_report_upsell" notification_uuid=notification_uuid as query %}
-          <a href="{% org_url organization replay_landing query=query %}" class="btn"
-            style="margin-top: 8px;">Set Up Session Replay</a>
-        </div>
-      </td>
-    {% endif %}
 
     </tr></tbody></table>
 
@@ -378,10 +298,8 @@
         <tr>
           <th style="width: 2em; padding-right: 0.5em"></th>
           <th>Project</th>
-          <th style="width: 5em;" class="numeric">Errors</th>
-          <th style="width: 5em;" class="numeric col-dropped col-errors-dropped">Dropped</th>
+          <th style="width: 5em; padding-right: 2em;" class="numeric">Errors</th>
           <th style="width: 7em;" class="numeric">Transactions</th>
-          <th style="width: 7em;" class="numeric col-dropped">Dropped</th>
         </tr>
       </thead>
       <tbody>
@@ -393,10 +311,8 @@
           <td>
               {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
           </td>
-          <td class="numeric">{{ project.accepted_error_count|small_count:1 }}</td>
-          <td class="numeric col-dropped col-errors-dropped">{{ project.dropped_error_count|small_count:1 }}</td>
+          <td class="numeric" style="padding-right: 2em;">{{ project.accepted_error_count|small_count:1 }}</td>
           <td class="numeric">{{ project.accepted_transaction_count|small_count:1 }}</td>
-          <td class="numeric col-dropped">{{ project.dropped_transaction_count|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -476,7 +392,17 @@
 
   </div>
 
-  {% if key_errors|length > 0 %}
+  {% if enhanced_privacy %}
+  <div style="padding: 16px; margin: 16px 0; background-color: #f5f3f7; border-radius: 4px; font-size: 14px;">
+    Details about specific issues and transactions are not shown in this report since enhanced privacy
+    controls are enabled. For more details,
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
+    {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
+    <a href="{% org_url organization issue_list query=query %}">view your issues on Sentry</a>.
+  </div>
+  {% endif %}
+
+  {% if key_errors|length > 0 and not enhanced_privacy %}
   <div id="key-errors">
     <h4>Issues with the most errors</h4>
     {% for a in key_errors %}
@@ -498,7 +424,7 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if key_performance_issues|length > 0 %}
+  {% if key_performance_issues|length > 0 and not enhanced_privacy %}
   <div id="key-performance-issues">
     <h4>Most frequent performance issues</h4>
     {% for a in key_performance_issues %}
@@ -516,7 +442,7 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if key_transactions|length > 0 %}
+  {% if key_transactions|length > 0 and not enhanced_privacy %}
   <div id="key-transactions">
     <h4>Most frequent transactions</h4>
     {% for a in key_transactions %}

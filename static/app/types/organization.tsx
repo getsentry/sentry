@@ -13,6 +13,7 @@ import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
 import type {Relay} from './relay';
+import type {BaseRole, OrgRole, TeamRole} from './roles';
 import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
 
@@ -21,7 +22,6 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   avatar: Avatar;
-  codecovAccess: boolean;
   dateCreated: string;
   hideAiFeatures: boolean;
   id: string;
@@ -146,25 +146,7 @@ export interface DetailedTeam extends Team {
   projects: Project[];
 }
 
-export interface BaseRole {
-  desc: string;
-  id: string;
-  name: string;
-  isAllowed?: boolean;
-  isRetired?: boolean;
-  isTeamRolesAllowed?: boolean;
-}
-export interface OrgRole extends BaseRole {
-  minimumTeamRole: string;
-  isGlobal?: boolean;
-  /**
-   * @deprecated use isGlobal
-   */
-  is_global?: boolean;
-}
-export interface TeamRole extends BaseRole {
-  isMinimumRoleFor: string;
-}
+export type {BaseRole, OrgRole, TeamRole};
 
 /**
  * Returned from /organizations/org/users/

@@ -326,8 +326,3 @@ def get_deprecated_source_internal_names(
     replacement: str, item_type: SupportedTraceItemType
 ) -> set[str]:
     return SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP.get(item_type, {}).get(replacement, set())
-
-
-def translate_to_sentry_conventions(public_alias: str, item_type: SupportedTraceItemType) -> str:
-    mapping = SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.get(item_type, {})
-    return mapping.get(public_alias, public_alias)

@@ -152,6 +152,7 @@ def _detect_for_config(
     matching_error_types = sorted(
         config.handler_cls.error_types.intersection(filter(None, (e.get("type") for e in errors)))
     )
+    # testing internal sampling on high volume metrics, not yet public api
     sentry_sdk.metrics.count(
         f"processing_errors.{config.slug}.event_with_errors",
         1,
@@ -164,6 +165,7 @@ def _detect_for_config(
             "event_sdk": normalized_sdk_tag_from_event(event.data),
             "error_type": ",".join(matching_error_types),
             "project_age_bucket": _project_age_bucket(event.project),
+            "sentry.client_sample_rate": 0.01,
         },
     )
 

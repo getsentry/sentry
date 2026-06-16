@@ -6,9 +6,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 const mockImportProfile = jest.fn();
 const mockProfileGroup: ProfileGroup = {

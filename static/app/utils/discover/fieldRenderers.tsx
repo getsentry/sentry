@@ -6,6 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -28,9 +29,9 @@ import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
+import {defined} from 'sentry/utils/defined';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
@@ -332,9 +333,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
         return (
           <NumberContainer>
-            <Tooltip title={formatTooltipValue(data[field], 'number')}>
+            <InfoText variant="inherit" title={formatTooltipValue(data[field], 'number')}>
               <span>{`<${NUMBER_MIN_VALUE}`}</span>
-            </Tooltip>
+            </InfoText>
           </NumberContainer>
         );
       }

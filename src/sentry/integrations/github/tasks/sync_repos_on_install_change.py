@@ -3,7 +3,6 @@ from typing import Literal
 
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook_types import GitHubInstallationRepo
 from sentry.integrations.services.integration import integration_service
@@ -84,9 +83,6 @@ def sync_repos_on_install_change(
             )
             continue
 
-        if not features.has("organizations:github-repo-auto-sync-webhook", rpc_org):
-            continue
-
         with SCMIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.SYNC_REPOS_ON_INSTALL_CHANGE,
             integration_id=integration_id,
@@ -131,6 +127,11 @@ def _sync_repos_for_org(
                 )
             )
             changed = bool(created_repos or reactivated_repos)
+
+            if created_repos:
+                repository_service.auto_link_repos_by_name(
+                    organization_id=rpc_org.id, repo_ids=[r.id for r in created_repos]
+                )
 
             for created_repo in created_repos:
                 log_repo_change(

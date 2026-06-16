@@ -31,12 +31,12 @@ def register_permanent_features(manager: FeatureManager) -> None:
     permanent_organization_features = {
         # Enable advanced search features, like negation and wildcard matching.
         "organizations:advanced-search": True,
+        # Denotes organizations on the AM3 billing tier
+        "organizations:am3-tier": False,
         # Enable anomaly detection alerts
         "organizations:anomaly-detection-alerts": False,
         # Enable change alerts for an org
         "organizations:change-alerts": True,
-        # The overall flag for codecov integration, gated by plans.
-        "organizations:codecov-integration": False,
         # Enable alerting based on crash free sessions/users
         "organizations:crash-rate-alerts": True,
         # Allow organizations to configure custom external symbol sources.

@@ -1,5 +1,12 @@
+import process from 'node:process';
+
 import type {Config} from '@jest/types';
 import type {Options as SwcOptions} from '@swc/core';
+
+const {CI, GITHUB_PR_SHA, GITHUB_PR_REF, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, SENTRY_DSN} =
+  process.env;
+
+const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const swcConfig: SwcOptions = {
   isModule: true,
@@ -41,11 +48,31 @@ const swcConfig: SwcOptions = {
 const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
 
 const config: Config.InitialOptions = {
+  testTimeout: 30_000,
   cacheDirectory: '.cache/jest-snapshots',
   // testEnvironment and testMatch are the core differences between this and the main config
-  testEnvironment: 'node',
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment-node.js',
   testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
   testPathIgnorePatterns: ['/node_modules/'],
+  testEnvironmentOptions: {
+    sentryConfig: {
+      init: {
+        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
+        environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
+        tracesSampleRate: CI ? 0.75 : 0,
+        profilesSampleRate: 0,
+        transportOptions: {keepAlive: true},
+      },
+      transactionOptions: {
+        tags: {
+          branch: GITHUB_PR_REF,
+          commit: GITHUB_PR_SHA,
+          github_run_attempt: GITHUB_RUN_ATTEMPT,
+          github_actions_run: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
+        },
+      },
+    },
+  },
 
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
@@ -68,6 +95,7 @@ const config: Config.InitialOptions = {
 
   transform: {
     '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
+    '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
@@ -75,7 +103,7 @@ const config: Config.InitialOptions = {
       : '/node_modules/',
   ],
 
-  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
 };
 
 export default config;

@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
@@ -78,26 +78,21 @@ function GroupUserFeedback() {
         {reportList.length === 0 ? (
           <FeedbackEmptyState projectIds={[group.project.id]} issueTab />
         ) : (
-          <Fragment>
-            {reportList.map((item, idx) => (
-              <StyledEventUserFeedback
-                key={idx}
+          <Stack gap="xl">
+            {reportList.map(item => (
+              <EventUserFeedback
+                key={item.id}
                 report={item}
-                orgSlug={organization.slug}
-                issueId={params.groupId}
+                eventLink={`/organizations/${organization.slug}/issues/${params.groupId}/events/${item.eventID}/?referrer=user-feedback`}
               />
             ))}
             <Pagination pageLinks={pageLinks} />
-          </Fragment>
+          </Stack>
         )}
       </Layout.Main>
     </StyledLayoutBody>
   );
 }
-
-const StyledEventUserFeedback = styled(EventUserFeedback)`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const StyledLayoutBody = styled(Layout.Body)`
   border: 1px solid ${p => p.theme.tokens.border.primary};

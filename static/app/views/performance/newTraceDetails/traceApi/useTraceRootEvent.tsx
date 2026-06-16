@@ -1,3 +1,5 @@
+import type {UseQueryResult} from '@tanstack/react-query';
+
 import type {EventTransaction} from 'sentry/types/event';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -16,17 +18,19 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 
 type Params = {
   logs: OurLogsResponseItem[] | undefined;
+  timestamp: number | undefined;
   traceId: string;
   tree: TraceTree;
 };
 
 export type TraceRootEventQueryResults =
   | UseApiQueryResult<EventTransaction, RequestError>
-  | UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
+  | UseQueryResult<TraceItemDetailsResponse>;
 
 export function useTraceRootEvent({
   tree,
   logs,
+  timestamp,
   traceId,
 }: Params): TraceRootEventQueryResults {
   const rep = tree.findRepresentativeTraceNode({logs});
@@ -83,6 +87,7 @@ export function useTraceRootEvent({
     traceId,
     traceItemType: dataset,
     referrer: 'api.explore.log-item-details',
+    timestamp,
     enabled: enabledBase && isEAPQueryEnabled,
   });
 

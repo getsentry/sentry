@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from django import forms
+from django.core.validators import RegexValidator
 
 from sentry import tagstore
 from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
@@ -12,11 +13,15 @@ from sentry.rules.history.preview_strategy import get_dataset_columns
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.tagstore.base import TAG_KEY_RE
 from sentry.types.condition_activity import ConditionActivity
 
 
 class TaggedEventForm(forms.Form):
-    key = forms.CharField(widget=forms.TextInput())
+    key = forms.CharField(
+        widget=forms.TextInput(),
+        validators=[RegexValidator(TAG_KEY_RE, "Invalid tag key format.")],
+    )
     match = forms.ChoiceField(choices=list(MATCH_CHOICES.items()), widget=forms.Select())
     value = forms.CharField(widget=forms.TextInput(), required=False)
 

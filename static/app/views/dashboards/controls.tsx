@@ -16,8 +16,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -368,11 +368,7 @@ export function Controls({
               />
             )}
             {!hasPageFrameFeature && renderEditButton(hasFeature)}
-            {hasFeature && (
-              <Feature features="dashboards-revisions">
-                <DashboardRevisionsButton dashboard={dashboard} />
-              </Feature>
-            )}
+            {hasFeature && <DashboardRevisionsButton dashboard={dashboard} />}
             {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
               <Tooltip
                 title={tooltipMessage}

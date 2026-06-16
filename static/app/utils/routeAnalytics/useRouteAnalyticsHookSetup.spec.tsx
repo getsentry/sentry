@@ -1,8 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {callSetOrganizationCallback} from 'sentry/utils/routeAnalytics/setOrganizationCallback';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 import {useRouteAnalyticsHookSetup} from './useRouteAnalyticsHookSetup';

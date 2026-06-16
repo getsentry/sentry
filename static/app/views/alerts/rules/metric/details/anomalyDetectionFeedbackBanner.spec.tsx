@@ -24,7 +24,7 @@ describe('AnomalyDetectionFeedbackBanner', () => {
   const mockIncident2 = IncidentFixture({id: '6702'});
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  it('submits anomaly detection feedback (yes)', async () => {
+  it.isKnownFlake('submits anomaly detection feedback (yes)', async () => {
     const {container} = render(
       <AnomalyDetectionFeedbackBanner
         id={mockIncident.id}

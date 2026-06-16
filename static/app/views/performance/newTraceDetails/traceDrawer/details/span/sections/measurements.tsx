@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   DURATION_UNITS,
   FIELD_FORMATTERS,

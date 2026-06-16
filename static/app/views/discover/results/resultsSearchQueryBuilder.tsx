@@ -20,7 +20,7 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {
   CallbackSearchState,
@@ -28,8 +28,8 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {defined} from 'sentry/utils/defined';
 import type {Field} from 'sentry/utils/discover/fields';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -72,6 +72,7 @@ type DataProviderProps = {
 
 type Props = {
   disabled?: boolean;
+  enableAISearch?: boolean;
   onChange?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string) => void;
   placeholder?: string;
@@ -109,7 +110,7 @@ function ErrorsSearchBar({
   recentSearches,
   searchSource,
 }: ErrorsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer && onSearch) {
     return <IssueListSeerComboBox onSearch={onSearch} />;
@@ -144,6 +145,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
     customMeasurements,
     dataset,
     includeTransactions = true,
+    enableAISearch: enableAISearchProp = false,
   } = props;
 
   const placeholderText = useMemo(() => {
@@ -161,12 +163,13 @@ export function ResultsSearchQueryBuilder(props: Props) {
       includeTransactions,
     });
 
-  // AI search is only enabled for Errors dataset if translate endpoint is enabled
+  // AI search is only enabled for Errors dataset if translate endpoint is enabled.
   const isErrorsDataset = dataset === DiscoverDatasets.ERRORS;
   const organization = useOrganization();
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
+  const enableAISearch = hasTranslateEndpoint && enableAISearchProp;
 
   const searchBarProps = {
     placeholderText,
@@ -187,7 +190,7 @@ export function ResultsSearchQueryBuilder(props: Props) {
     return (
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
-        enableAISearch={hasTranslateEndpoint}
+        enableAISearch={enableAISearch}
         aiSearchBadgeType="beta"
         disabled={disabled}
         fieldDefinitionGetter={undefined}

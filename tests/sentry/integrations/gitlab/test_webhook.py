@@ -15,11 +15,13 @@ from fixtures.gitlab import (
     WEBHOOK_TOKEN,
     GitLabTestCase,
 )
+from sentry.integrations.gitlab.webhooks import MergeEventWebhook
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
+from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -75,7 +77,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 400
         assert (
             response.reason_phrase
-            == "The customer has edited the webhook in Gitlab to include other types of events. We only support these kinds of events: Issue Hook, Merge Request Hook, Push Hook"
+            == "The customer has edited the webhook in Gitlab to include other types of events. We only support these kinds of events: Issue Hook, Merge Request Hook, Note Hook, Push Hook"
         )
 
     def test_invalid_token(self) -> None:
@@ -342,6 +344,59 @@ class WebhookTest(GitLabTestCase):
 
         assert_success_metric(mock_record)
 
+    @patch("sentry.integrations.gitlab.webhooks.metrics.incr")
+    def test_merge_event_no_author_email_does_not_error(self, mock_incr: MagicMock) -> None:
+        # A repo exists (so the processor runs), but the MR has no commit author
+        # email. The PR processor must stop cleanly rather than raising, which
+        # _handle would otherwise catch and mislabel as a processor error.
+        self.create_gitlab_repo("getsentry/sentry")
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        del payload["object_attributes"]["last_commit"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+        assert 0 == PullRequest.objects.count()
+
+        error_metrics = [
+            c
+            for c in mock_incr.call_args_list
+            if c.args and c.args[0] == "gitlab.webhook.processor.error"
+        ]
+        assert error_metrics == []
+
+    def test_merge_event_invokes_code_review_handler(self) -> None:
+        # The code-review handler is wired into the endpoint via the processor
+        # tuple. Confirm both that it is registered and that an inbound
+        # merge_request event is dispatched into it with the expected context.
+        assert handle_merge_request_event in MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS
+
+        self.create_gitlab_repo("getsentry/sentry")
+
+        # wraps the real handler so it still runs while we record the invocation
+        spy = MagicMock(wraps=handle_merge_request_event)
+        with patch.object(MergeEventWebhook, "WEBHOOK_EVENT_PROCESSORS", (spy,)):
+            response = self.client.post(
+                self.url,
+                data=MERGE_REQUEST_OPENED_EVENT,
+                content_type="application/json",
+                HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+                HTTP_X_GITLAB_EVENT="Merge Request Hook",
+            )
+
+        assert response.status_code == 204
+        spy.assert_called_once()
+        call_kwargs = spy.call_args.kwargs
+        assert call_kwargs["event"]["object_attributes"]["action"] == "open"
+        assert call_kwargs["integration"].id == self.integration.id
+        assert call_kwargs["organization"].id == self.organization.id
+        assert call_kwargs["repo"].name == "getsentry/sentry"
+
     def test_merge_event_create_pull_request(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
@@ -469,6 +524,31 @@ class WebhookTest(GitLabTestCase):
         assert mock_sync.called
         call_args = mock_sync.call_args
         assert call_args[1]["external_user_name"] == "@root"
+        assert (
+            call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
+        )
+        assert call_args[1]["assign"] is True
+        assert call_args[1]["external_user_id"] == 1
+
+    @patch("sentry.integrations.gitlab.webhooks.sync_group_assignee_inbound_by_external_actor")
+    def test_issue_assigned_with_dotted_username(self, mock_sync: MagicMock) -> None:
+        event = orjson.loads(ISSUE_ASSIGNED_EVENT)
+        event["assignees"][0]["id"] = 123
+        event["assignees"][0]["username"] = "first.last"
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(event),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+        assert mock_sync.called
+        call_args = mock_sync.call_args
+        assert call_args[1]["external_user_name"] == "@first.last"
+        assert call_args[1]["external_user_id"] == 123
         assert (
             call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
         )

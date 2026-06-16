@@ -103,7 +103,7 @@ describe('Hovercard', () => {
         position="top"
         body={
           <Tooltip title="Inner tooltip content">
-            <span>Inner trigger</span>
+            <button>Inner trigger</button>
           </Tooltip>
         }
         header="Hovercard Header"

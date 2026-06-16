@@ -1,4 +1,5 @@
 import type {ComponentPropsWithoutRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
@@ -6,7 +7,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/eventTitle';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
@@ -15,6 +16,11 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 
 export const Header = styled('h3')`
   display: block;
+  min-width: 0;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   margin: 0;
@@ -44,7 +50,7 @@ const EventDrawerContainerRoot = styled('div')<{hasPageFrameFeature: boolean}>`
 
   ${p =>
     p.hasPageFrameFeature &&
-    `
+    css`
       /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
       --event-drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
       --event-navigator-box-shadow: none;
@@ -100,22 +106,6 @@ export const EventNavigator = styled('div')`
     --event-navigator-box-shadow,
     ${p => `${p.theme.tokens.border.primary} 0 1px`}
   );
-`;
-
-export const EventStickyControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  position: sticky;
-  top: -${p => p.theme.space.xl};
-  margin-block: -${p => p.theme.space.xl};
-  padding-block: ${p => p.theme.space.xl};
-  background: ${p => p.theme.tokens.background.primary};
-  z-index: 1; /* Just below EventNavigator */
-
-  /* Make this full-width inside DrawerBody */
-  margin-inline: -24px;
-  padding-inline: 24px;
 `;
 
 export const EventDrawerBody = styled(DrawerBody)`

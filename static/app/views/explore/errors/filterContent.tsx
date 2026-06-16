@@ -12,8 +12,11 @@ import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles'
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {StyledPageFilterBar} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {useExploreSchemaHintsRemoval} from 'sentry/views/explore/useExploreSchemaHintsRemoval';
 
 export function ErrorsFilterSection() {
+  const schemaHintsRemoval = useExploreSchemaHintsRemoval();
+
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
@@ -43,17 +46,19 @@ export function ErrorsFilterSection() {
             stringSecondaryAliases={{}}
           />
         </Grid>
-        <ExploreSchemaHintsSection>
-          <SchemaHintsList
-            supportedAggregates={[]}
-            booleanTags={{}}
-            numberTags={{}}
-            stringTags={{}}
-            isLoading={false}
-            exploreQuery=""
-            source={SchemaHintsSources.ERRORS}
-          />
-        </ExploreSchemaHintsSection>
+        {!schemaHintsRemoval && (
+          <ExploreSchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={[]}
+              booleanTags={{}}
+              numberTags={{}}
+              stringTags={{}}
+              isLoading={false}
+              exploreQuery=""
+              source={SchemaHintsSources.ERRORS}
+            />
+          </ExploreSchemaHintsSection>
+        )}
       </SearchQueryBuilderProvider>
     </Layout.Main>
   );

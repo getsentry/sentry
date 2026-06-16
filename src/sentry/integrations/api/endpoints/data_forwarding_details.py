@@ -299,7 +299,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     )
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
-    ) -> Response:
+    ) -> Response[DataForwarderResponse]:
         """
         Updates a data forwarder for an organization or update a project-specific override.
         Updates to the data forwarder's configuration require `org:write` permissions, and the entire
@@ -352,7 +352,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
-    ) -> Response:
+    ) -> Response[None]:
         """
         Deletes a data forwarder for an organization. All project-specific overrides will be deleted as well.
         """

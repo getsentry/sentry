@@ -1,7 +1,6 @@
 import {useCallback, useId, useState} from 'react';
 import {Mention, MentionsInput} from 'react-mentions';
-import type {Theme} from '@emotion/react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, useReducedMotion} from 'framer-motion';
 import {z} from 'zod';
@@ -9,13 +8,13 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Text} from '@sentry/scraps/text';
 
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMemberMentionData} from 'sentry/utils/members/useMemberMentionData';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -156,65 +155,62 @@ export function NoteInput({
       <EditorSurface>
         <form.AppField name="text">
           {field => (
-            <NoteInputPanel>
+            <div>
               {editorMode === 'write' ? (
                 <field.Base<HTMLTextAreaElement>>
                   {({ref, ...fieldProps}) => (
-                    <MentionsEditor>
-                      <MentionsInput
-                        {...fieldProps}
-                        aria-label={existingItem ? t('Edit comment') : t('Add a comment')}
-                        aria-errormessage={errorMessage ? errorId : undefined}
-                        inputRef={ref}
-                        style={mentionStyle({theme, minHeight})}
-                        placeholder={placeholder}
-                        onChange={(e: MentionChangeEvent) => {
-                          setAreControlsVisible(true);
-                          field.handleChange(e.target.value);
-                          onChange?.(e, {updating: existingItem});
-                        }}
-                        onFocus={() => setAreControlsVisible(true)}
-                        onKeyDown={e => {
-                          if (
-                            e.key === 'Enter' &&
-                            (e.metaKey || e.ctrlKey) &&
-                            field.state.value.trim() !== ''
-                          ) {
-                            e.preventDefault();
-                            form.handleSubmit();
-                          }
-                        }}
-                        value={field.state.value}
-                        required
-                        autoFocus={existingItem}
-                      >
-                        <Mention
-                          trigger="@"
-                          data={getMemberSuggestions}
-                          onAdd={handleAddMember}
-                          displayTransform={(_id, display) => `@${display}`}
-                          markup="**[sentry.strip:member]__display__**"
-                          appendSpaceOnAdd
-                        />
-                        <Mention
-                          trigger="#"
-                          data={suggestTeams}
-                          onAdd={handleAddTeam}
-                          markup="**[sentry.strip:team]__display__**"
-                          displayTransform={(_id, display) => display}
-                          appendSpaceOnAdd
-                        />
-                      </MentionsInput>
-                    </MentionsEditor>
+                    <MentionsInput
+                      {...fieldProps}
+                      aria-label={existingItem ? t('Edit comment') : t('Add a comment')}
+                      aria-errormessage={errorMessage ? errorId : undefined}
+                      inputRef={ref}
+                      style={mentionStyle({theme, minHeight})}
+                      placeholder={placeholder}
+                      onChange={(e: MentionChangeEvent) => {
+                        setAreControlsVisible(true);
+                        field.handleChange(e.target.value);
+                        onChange?.(e, {updating: existingItem});
+                      }}
+                      onFocus={() => setAreControlsVisible(true)}
+                      onKeyDown={e => {
+                        if (
+                          e.key === 'Enter' &&
+                          (e.metaKey || e.ctrlKey) &&
+                          field.state.value.trim() !== ''
+                        ) {
+                          e.preventDefault();
+                          form.handleSubmit();
+                        }
+                      }}
+                      value={field.state.value}
+                      required
+                      autoFocus={existingItem}
+                    >
+                      <Mention
+                        trigger="@"
+                        data={getMemberSuggestions}
+                        onAdd={handleAddMember}
+                        displayTransform={(_id, display) => `@${display}`}
+                        markup="**[sentry.strip:member]__display__**"
+                        appendSpaceOnAdd
+                      />
+                      <Mention
+                        trigger="#"
+                        data={suggestTeams}
+                        onAdd={handleAddTeam}
+                        markup="**[sentry.strip:team]__display__**"
+                        displayTransform={(_id, display) => display}
+                        appendSpaceOnAdd
+                      />
+                    </MentionsInput>
                   )}
                 </field.Base>
               ) : (
-                <NotePreview
-                  minHeight={minHeight}
-                  text={getCleanMarkdown(field.state.value)}
-                />
+                <NotePreview style={{minHeight}}>
+                  <Markdown raw={getCleanMarkdown(field.state.value)} />
+                </NotePreview>
               )}
-            </NoteInputPanel>
+            </div>
           )}
         </form.AppField>
       </EditorSurface>
@@ -236,16 +232,20 @@ export function NoteInput({
                     {t('Preview')}
                   </SegmentedControl.Item>
                 </SegmentedControl>
-                <MarkdownIndicator>
-                  <IconMarkdown size="sm" />
-                  {t('Markdown supported')}
-                </MarkdownIndicator>
+                <Flex as="span" align="center" gap="xs">
+                  <IconMarkdown size="sm" variant="muted" />
+                  <Text as="span" size="sm" variant="muted">
+                    {t('Markdown supported')}
+                  </Text>
+                </Flex>
               </Flex>
               <Flex align="center" gap="sm">
                 {errorMessage && (
-                  <div id={errorId}>
-                    <ErrorMessage>{errorMessage}</ErrorMessage>
-                  </div>
+                  <Flex id={errorId} align="center" height="100%">
+                    <Text as="span" variant="danger" size="sm">
+                      {errorMessage}
+                    </Text>
+                  </Flex>
                 )}
                 <Flex gap="sm">
                   {existingItem && (
@@ -270,37 +270,10 @@ export function NoteInput({
   );
 }
 
-type NotePreviewProps = {
-  minHeight: Props['minHeight'];
-  theme: Theme;
-};
-
-const getNotePreviewCss = (p: NotePreviewProps) => css`
-  max-height: 1000px;
-  max-width: 100%;
-  ${p.minHeight
-    ? css`
-        min-height: ${p.minHeight}px;
-      `
-    : ''};
-  padding: ${p.theme.space.lg} ${p.theme.space.lg};
-  overflow: auto;
-  border: 0;
-`;
-
 const EditorSurface = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const NoteInputPanel = styled('div')`
-  ${textStyles}
-`;
-
-const MentionsEditor = styled('div')`
-  flex: 1;
-  min-width: 0;
 `;
 
 const MotionControls = styled(motion.div)`
@@ -308,24 +281,9 @@ const MotionControls = styled(motion.div)`
   isolation: isolate;
 `;
 
-const ErrorMessage = styled('span')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  color: ${p => p.theme.tokens.content.danger};
-  font-size: 0.9em;
-`;
-
-const MarkdownIndicator = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const NotePreview = styled(MarkedText, {
-  shouldForwardProp: prop => prop !== 'minHeight',
-})<{minHeight: Props['minHeight']}>`
-  ${p => getNotePreviewCss(p)};
+const NotePreview = styled('div')`
+  max-height: 1000px;
+  max-width: 100%;
+  padding: ${p => p.theme.space.lg};
+  overflow: auto;
 `;

@@ -18,7 +18,7 @@ export const SUPERGROUP_DRAWER_QUERY_PARAM = 'supergroupDrawer';
 
 interface UseSupergroupDrawerOptions {
   lookup: SupergroupLookup;
-  memberList: IndexedMembersByProject;
+  memberList: IndexedMembersByProject | undefined;
 }
 
 export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOptions) {

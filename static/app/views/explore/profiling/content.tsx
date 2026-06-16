@@ -19,7 +19,6 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
-import {ProfilingBetaAlertBanner} from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -46,6 +45,8 @@ import {
 import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
 import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
@@ -65,7 +66,7 @@ function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
   return validateTab(tab) ? tab : 'transactions';
 }
 
-export default function ProfilingContent() {
+function ProfilingContentInner() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -111,6 +112,15 @@ export default function ProfilingContent() {
   }, [selection, projects]);
 
   const tab = decodeTab(location.query.tab);
+
+  useLLMContext({
+    contextHint:
+      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples.',
+    currentTab: tab,
+    searchQuery: decodeScalar(location.query.query, ''),
+    sort: decodeScalar(location.query.sort, ''),
+    currentSelectedDateRange: selection.datetime,
+  });
 
   const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
     // make sure to reset the state of the tabs
@@ -159,7 +169,6 @@ export default function ProfilingContent() {
         }
       >
         <Stack flex={1}>
-          <ProfilingBetaAlertBanner organization={organization} />
           <ProfilingContentPageHeader />
           <ExploreBodySearch>
             <Layout.Main width="full">
@@ -445,3 +454,5 @@ const StyledPagination = styled(Pagination)`
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   margin-left: ${p => p.theme.space.xs};
 `;
+
+export default registerLLMContext('profiling-explorer', ProfilingContentInner);

@@ -11,19 +11,16 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity
 
 
-def get_type_choices() -> OrderedDict[str, str]:
+def get_type_choices() -> list[tuple[str, str]]:
     """Generate choices from all registered group types."""
-    type_choices = OrderedDict()
-    for group_type_cls in grouptype.registry.all():
-        if not group_type_cls.released:
-            continue
-        # Use slug as key, description for display
-        display_name = getattr(group_type_cls, "description", None) or group_type_cls.slug
-        type_choices[group_type_cls.slug] = display_name
-    return type_choices
+    return [
+        # Use slug as value, description for display
+        (group_type_cls.slug, getattr(group_type_cls, "description", group_type_cls.slug))
+        for group_type_cls in grouptype.registry.all()
+        if group_type_cls.released
+    ]
 
 
-TYPE_CHOICES = get_type_choices()
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
 
 
@@ -31,22 +28,25 @@ class IssueTypeForm(forms.Form):
     include = forms.ChoiceField(
         choices=list(INCLUDE_CHOICES.items()), required=False, initial="true"
     )
-    value = forms.ChoiceField(choices=list(TYPE_CHOICES.items()))
+    value = forms.ChoiceField(choices=get_type_choices)
 
 
 class IssueTypeFilter(EventFilter):
     id = "sentry.rules.filters.issue_type.IssueTypeFilter"
-    form_fields = {
-        "include": {
-            "type": "choice",
-            "choices": list(INCLUDE_CHOICES.items()),
-            "initial": "true",
-        },
-        "value": {"type": "choice", "choices": list(TYPE_CHOICES.items())},
-    }
     rule_type = "filter/event"
     label = "The issue's type is {include} {value}"
     prompt = "The issue's type is ..."
+
+    @property
+    def form_fields(self) -> dict:
+        return {
+            "include": {
+                "type": "choice",
+                "choices": list(INCLUDE_CHOICES.items()),
+                "initial": "true",
+            },
+            "value": {"type": "choice", "choices": get_type_choices()},
+        }
 
     def _passes(self, group: Group) -> bool:
         try:
@@ -82,8 +82,10 @@ class IssueTypeFilter(EventFilter):
 
     def render_label(self) -> str:
         value = self.data["value"]
-        title = TYPE_CHOICES.get(value)
-        issue_type_name = title if title else ""
+        # Look up the GroupType at call time so the registry is fully populated;
+        # GroupType.description is the human-readable display name (e.g. "Error").
+        group_type = grouptype.registry.get_by_slug(value)
+        issue_type_name = (getattr(group_type, "description", None) or value) if group_type else ""
         include_label = INCLUDE_CHOICES.get(self.data.get("include", "true"), "equal to")
         return self.label.format(include=include_label, value=issue_type_name)
 

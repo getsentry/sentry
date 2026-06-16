@@ -14,6 +14,7 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -27,10 +28,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
@@ -88,6 +89,7 @@ interface Props {
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
+  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
@@ -121,10 +123,7 @@ function useIssuesINPObserver() {
 }
 
 const parsePageQueryParam = (location: Location, defaultPage = 0) => {
-  const page = location.query.page;
-  const pageInt = Array.isArray(page)
-    ? parseInt(page[0] ?? '', 10)
-    : parseInt(page ?? '', 10);
+  const pageInt = parseInt(decodeScalar(location.query.page, ''), 10);
 
   if (isNaN(pageInt)) {
     return defaultPage;
@@ -139,6 +138,7 @@ function IssueListOverviewInner({
   title = t('Issues'),
   titleDescription,
   headerActions,
+  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -164,7 +164,7 @@ function IssueListOverviewInner({
     () => selection.projects.map(String),
     [selection.projects]
   );
-  const {data: memberList = {}} = useQuery({
+  const {data: memberList} = useQuery({
     ...useProjectMembersQueryOptions(organizationUsersProjectIds),
     select: resp => indexMembersByProject(resp.json),
   });
@@ -213,7 +213,7 @@ function IssueListOverviewInner({
   }, [onRealtimePoll, pageLinks]);
 
   const query = defined(location.query.query)
-    ? (location.query.query as string)
+    ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
   const hasRecommendedSort = organization.features.includes(
     'issue-stream-recommended-sort'
@@ -224,12 +224,10 @@ function IssueListOverviewInner({
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
-    let currentPeriod: string;
-    if (typeof location.query?.groupStatsPeriod === 'string') {
-      currentPeriod = location.query.groupStatsPeriod;
-    } else {
-      currentPeriod = DEFAULT_GRAPH_STATS_PERIOD;
-    }
+    const currentPeriod = decodeScalar(
+      location.query?.groupStatsPeriod,
+      DEFAULT_GRAPH_STATS_PERIOD
+    );
 
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
@@ -275,9 +273,9 @@ function IssueListOverviewInner({
       shortIdLookup: 1,
     };
 
-    const currentQuery = location.query || {};
-    if ('cursor' in currentQuery) {
-      params.cursor = currentQuery.cursor;
+    const cursor = decodeScalar(location.query.cursor);
+    if (cursor) {
+      params.cursor = cursor;
     }
 
     // If no stats period values are set, use default
@@ -389,7 +387,7 @@ function IssueListOverviewInner({
     }
   }, [location.pathname, navigate, location.query]);
 
-  const fetchData = useCallback(() => {
+  const fetchData = useCallback(async () => {
     resetNewViewQueryParam();
 
     if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
@@ -408,109 +406,126 @@ function IssueListOverviewInner({
     api.clear();
     pollerRef.current?.disable();
 
-    api.request(`/organizations/${organization.slug}/issues/`, {
-      method: 'GET',
-      data: qs.stringify(requestParams),
-      success: async (data, _, resp) => {
-        if (!resp) {
-          return;
+    try {
+      const [data, _, resp] = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/`,
+        {
+          method: 'GET',
+          data: qs.stringify(requestParams),
+          includeAllArgs: true,
+        }
+      );
+
+      if (!resp) {
+        return;
+      }
+
+      // If this is a direct hit, we redirect to the intended result directly.
+      if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+        let redirect: string;
+        if (data[0]?.matchingEventId) {
+          const {id, matchingEventId} = data[0];
+          redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
+        } else {
+          const {id} = data[0];
+          redirect = `/organizations/${organization.slug}/issues/${id}/`;
         }
 
-        // If this is a direct hit, we redirect to the intended result directly.
-        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          let redirect: string;
-          if (data[0]?.matchingEventId) {
-            const {id, matchingEventId} = data[0];
-            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
-          } else {
-            const {id} = data[0];
-            redirect = `/organizations/${organization.slug}/issues/${id}/`;
-          }
+        navigate(
+          normalizeUrl({
+            pathname: redirect,
+            query: {
+              referrer: 'issue-list',
+              ...extractSelectionParameters(location.query),
+            },
+          }),
+          {replace: true}
+        );
+        return;
+      }
 
-          navigate(
-            normalizeUrl({
-              pathname: redirect,
-              query: {
-                referrer: 'issue-list',
-                ...extractSelectionParameters(location.query),
-              },
-            }),
-            {replace: true}
-          );
-          return;
-        }
+      if (undoRef.current) {
+        GroupStore.loadInitialData(data);
+      }
+      GroupStore.add(data);
 
-        if (undoRef.current) {
-          GroupStore.loadInitialData(data);
-        }
-        GroupStore.add(data);
-
-        if (data.length === 0) {
-          trackAnalytics('issue_search.empty', {
-            organization,
-            search_type: 'issues',
-            search_source: 'main_search',
-            query,
-          });
-        }
-
-        const hits = resp.getResponseHeader('X-Hits');
-        const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
-        const maxHits = resp.getResponseHeader('X-Max-Hits');
-        const newQueryMaxCount =
-          maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-        const newPageLinks = resp.getResponseHeader('Link');
-
-        setError(null);
-        setIssuesLoading(false);
-        setIssuesSuccessfullyLoaded(true);
-        setQueryCount(newQueryCount);
-        setQueryMaxCount(newQueryMaxCount);
-        setPageLinks(newPageLinks === null ? '' : newPageLinks);
-
-        // AI query analytics
-        const aiQueryRunId = getRunIdForAnalytics();
-        if (aiQueryRunId !== null) {
-          trackAiQueryOutcome({
-            dataset: 'issues',
-            mode: 'samples',
-            referrer: 'issues',
-            resultCount: data.length, // Can also use newQueryCount for total hits
-            orgSlug: organization.slug,
-            runId: aiQueryRunId,
-          });
-        }
-
-        // Need to wait for stats request to finish before saving to cache
-        await fetchStats(data.map((group: BaseGroup) => group.id));
-        IssueListCacheStore.save(requestParams, {
-          groups: GroupStore.getState() as Group[],
-          queryCount: newQueryCount,
-          queryMaxCount: newQueryMaxCount,
-          pageLinks: newPageLinks ?? '',
-        });
-      },
-      error: err => {
-        trackAnalytics('issue_search.failed', {
+      if (data.length === 0) {
+        trackAnalytics('issue_search.empty', {
           organization,
           search_type: 'issues',
           search_source: 'main_search',
-          error: parseApiError(err),
+          query,
         });
+      }
 
-        setError(parseApiError(err));
-        setIssuesLoading(false);
-        setIssuesSuccessfullyLoaded(false);
-      },
-      complete: () => {
-        resumePolling();
+      const hits = resp.getResponseHeader('X-Hits');
+      const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
+      const maxHits = resp.getResponseHeader('X-Max-Hits');
+      const newQueryMaxCount =
+        maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+      const newPageLinks = resp.getResponseHeader('Link');
 
-        if (!realtimeActive) {
-          actionTakenRef.current = false;
-          undoRef.current = false;
-        }
-      },
-    });
+      setError(null);
+      setIssuesLoading(false);
+      setIssuesSuccessfullyLoaded(true);
+      setQueryCount(newQueryCount);
+      setQueryMaxCount(newQueryMaxCount);
+      setPageLinks(newPageLinks === null ? '' : newPageLinks);
+
+      // AI query analytics
+      const aiQueryRunId = getRunIdForAnalytics();
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'issues',
+          mode: 'samples',
+          referrer: 'issues',
+          resultCount: data.length, // Can also use newQueryCount for total hits
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+        });
+      }
+
+      // Need to wait for stats request to finish before saving to cache
+      await fetchStats(data.map((group: BaseGroup) => group.id));
+      IssueListCacheStore.save(requestParams, {
+        groups: GroupStore.getState() as Group[],
+        queryCount: newQueryCount,
+        queryMaxCount: newQueryMaxCount,
+        pageLinks: newPageLinks ?? '',
+      });
+    } catch (err) {
+      trackAnalytics('issue_search.failed', {
+        organization,
+        search_type: 'issues',
+        search_source: 'main_search',
+        error: parseApiError(err as RequestError),
+      });
+
+      setError(parseApiError(err as RequestError));
+      setIssuesLoading(false);
+      setIssuesSuccessfullyLoaded(false);
+
+      // AI query analytics
+      const aiQueryRunId = getRunIdForAnalytics();
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'issues',
+          mode: 'samples',
+          referrer: 'issues',
+          resultCount: 0,
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+          error: parseApiError(err as RequestError),
+        });
+      }
+    } finally {
+      resumePolling();
+
+      if (!realtimeActive) {
+        actionTakenRef.current = false;
+        undoRef.current = false;
+      }
+    }
   }, [
     resetNewViewQueryParam,
     realtimeActive,
@@ -685,9 +700,7 @@ function IssueListOverviewInner({
   };
 
   const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
-    const queryPageInt = Array.isArray(location.query.page)
-      ? NaN
-      : parseInt(location.query.page?.toString() ?? '', 10);
+    const queryPageInt = parsePageQueryParam(location, NaN);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 
     let cursor = nextCursor;
@@ -705,16 +718,14 @@ function IssueListOverviewInner({
 
   const onSelectStatsPeriod = (period: string) => {
     if (period !== getGroupStatsPeriod()) {
-      const cursor = Array.isArray(location.query.cursor)
-        ? location.query.cursor[0]
-        : (location.query.cursor ?? undefined);
+      const cursor = decodeScalar(location.query.cursor);
       const queryPageInt = parsePageQueryParam(location, 0);
-      const page = location.query.cursor ? queryPageInt : 0;
+      const page = cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };
 
-  const undoAction = ({
+  const undoAction = async ({
     data,
     groupItems,
   }: {
@@ -726,17 +737,17 @@ function IssueListOverviewInner({
 
     api.clear();
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data,
-      query: {
-        project: projectIds,
-        id: groupItems.map(group => group.id),
-      },
-      success: response => {
-        if (!response) {
-          return;
-        }
+    try {
+      const response = await api.requestPromise(endpoint, {
+        method: 'PUT',
+        data,
+        query: {
+          project: projectIds,
+          id: groupItems.map(group => group.id),
+        },
+      });
+
+      if (response) {
         // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
         // on this page for a second and then be removed (will show up on All Unresolved). This is to
         // stop this from happening and avoid confusion.
@@ -744,15 +755,13 @@ function IssueListOverviewInner({
           GroupStore.add(groupItems);
         }
         actionTakenRef.current = true;
-      },
-      error: err => {
-        setError(parseApiError(err as RequestError));
-        setIssuesLoading(false);
-      },
-      complete: () => {
-        fetchData();
-      },
-    });
+      }
+    } catch (err) {
+      setError(parseApiError(err as RequestError));
+      setIssuesLoading(false);
+    } finally {
+      fetchData();
+    }
   };
 
   const onIssueAction = ({
@@ -983,6 +992,7 @@ function IssueListOverviewInner({
               supergroupLookup={supergroupLookup}
               error={error}
               refetchGroups={fetchData}
+              withColumns={withColumns}
               paginationCaption={
                 !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {

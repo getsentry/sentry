@@ -6,7 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 

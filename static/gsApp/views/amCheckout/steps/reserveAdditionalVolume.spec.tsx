@@ -79,7 +79,6 @@ describe('ReserveAdditionalVolume', () => {
     const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf');
 
     const stepProps = {
-      checkoutTier: PlanTier.AM2,
       subscription,
       isActive: true,
       stepNumber: 2,
@@ -99,11 +98,6 @@ describe('ReserveAdditionalVolume', () => {
 
     beforeEach(() => {
       SubscriptionStore.set(organization.slug, subscription);
-      MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-        method: 'GET',
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'GET',
@@ -213,7 +207,6 @@ describe('ReserveAdditionalVolume', () => {
     const bizPlanMonthly = PlanDetailsLookupFixture('am3_business');
 
     const stepProps: any = {
-      checkoutTier: PlanTier.AM3,
       isActive: true,
       stepNumber: 2,
       onUpdate: jest.fn(),
@@ -234,11 +227,6 @@ describe('ReserveAdditionalVolume', () => {
       subscription = SubscriptionFixture({organization});
       stepProps.subscription = subscription;
       SubscriptionStore.set(organization.slug, subscription);
-      MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-        method: 'GET',
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'GET',

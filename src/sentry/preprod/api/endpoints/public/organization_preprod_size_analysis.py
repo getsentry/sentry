@@ -16,6 +16,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.file import File
 from sentry.models.organization import Organization
@@ -103,7 +104,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         artifact_id: str,
-    ) -> Response:
+    ) -> Response[SizeAnalysisResponseDict] | Response[DetailResponse]:
         """
         Retrieve size analysis results for a given artifact.
 
@@ -120,9 +121,12 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
 
         try:
             head_artifact = PreprodArtifact.objects.select_related(
-                "mobile_app_info", "build_configuration", "commit_comparison"
+                "mobile_app_info", "build_configuration", "commit_comparison", "project"
             ).get(id=int(artifact_id), project__organization_id=organization.id)
         except (PreprodArtifact.DoesNotExist, ValueError):
+            return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
+
+        if not request.access.has_project_access(head_artifact.project):
             return Response({"detail": "The requested preprod artifact does not exist"}, status=404)
 
         response_data = _base_response(head_artifact)
@@ -282,15 +286,28 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         if base_artifact_id:
             try:
                 base_artifact = PreprodArtifact.objects.select_related(
-                    "mobile_app_info", "build_configuration", "commit_comparison"
+                    "mobile_app_info", "build_configuration", "commit_comparison", "project"
                 ).get(id=int(base_artifact_id), project__organization_id=organization.id)
-                return base_artifact
             except (PreprodArtifact.DoesNotExist, ValueError):
                 raise PreprodArtifactResourceDoesNotExist(
                     detail="The requested base preprod artifact does not exist"
                 )
 
-        base_artifact_qs = head_artifact.get_base_artifact_for_commit().select_related(
-            "mobile_app_info", "build_configuration", "commit_comparison"
+            if base_artifact.project_id != head_artifact.project_id:
+                raise PreprodArtifactResourceDoesNotExist(
+                    detail="The requested base preprod artifact does not exist"
+                )
+
+            if not request.access.has_project_access(base_artifact.project):
+                raise PreprodArtifactResourceDoesNotExist(
+                    detail="The requested base preprod artifact does not exist"
+                )
+
+            return base_artifact
+
+        base_artifact_qs = (
+            head_artifact.get_base_artifact_for_commit()
+            .filter(project_id=head_artifact.project_id)
+            .select_related("mobile_app_info", "build_configuration", "commit_comparison")
         )
         return base_artifact_qs.first()

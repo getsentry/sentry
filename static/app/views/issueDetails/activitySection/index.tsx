@@ -17,7 +17,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
@@ -32,9 +31,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -44,6 +43,13 @@ function getAuthorName(item: GroupActivity) {
   }
   if (item.user) {
     return item.user.name;
+  }
+  if (
+    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    item.data.pullRequest?.author?.name &&
+    !item.data.pullRequest.author.email?.endsWith('@localhost')
+  ) {
+    return item.data.pullRequest.author.name;
   }
   return 'Sentry';
 }
@@ -124,6 +130,7 @@ function TimelineItem({
   teams,
   size,
   inputVariant,
+  timestampUnitStyle,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
@@ -132,6 +139,7 @@ function TimelineItem({
   item: GroupActivity;
   size: 'sm' | 'md';
   teams: Team[];
+  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const organization = useOrganization();
   const theme = useTheme();
@@ -177,7 +185,7 @@ function TimelineItem({
           )}
         </Flex>
       }
-      timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
+      timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
       marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
       colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
@@ -205,9 +213,7 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper size={size}>
-          <NoteBody text={message} />
-        </NoteWrapper>
+        <NoteBody text={message} />
       ) : (
         <Text as="div" size={size}>
           {message}
@@ -371,7 +377,9 @@ export function ActivitySection({
     },
   };
 
-  const showSeerActivities = organization.features.includes('seer-activity-timeline');
+  const showSeerActivities = organization.features.includes(
+    'display-seer-actions-as-issue-activities'
+  );
   const visibleActivities = showSeerActivities
     ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
@@ -380,6 +388,7 @@ export function ActivitySection({
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
+  const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
   const renderActivityItem = (item: GroupActivity) => (
     <TimelineItem
@@ -391,6 +400,7 @@ export function ActivitySection({
       key={item.id}
       size={size}
       inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
     />
   );
 
@@ -519,11 +529,6 @@ const MoreActivityIcon = styled('div')`
   min-height: 22px;
   color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.primary};
-`;
-
-const NoteWrapper = styled('div')<{size: 'sm' | 'md'}>`
-  ${textStyles}
-  font-size: ${p => (p.size === 'md' ? p.theme.font.size.md : p.theme.font.size.sm)};
 `;
 
 const ActivityInputFrame = styled('div')`

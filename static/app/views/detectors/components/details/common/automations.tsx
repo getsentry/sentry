@@ -7,7 +7,6 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -27,6 +26,7 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
+import {getNoAlertWritePermissionTooltip} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
@@ -217,19 +217,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
 
   const permissionTooltipText = canEditWorkflowConnections
     ? undefined
-    : t(
-        'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
-        {
-          settingsLink: (
-            <Link
-              to={{
-                pathname: `/settings/${organization.slug}/`,
-                hash: 'alertsMemberWrite',
-              }}
-            />
-          ),
-        }
-      );
+    : getNoAlertWritePermissionTooltip();
 
   return (
     <Fragment>
@@ -242,7 +230,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
               icon={<IconAdd />}
               onClick={openCreateDrawer}
               disabled={!canEditWorkflowConnections}
-              tooltipProps={{title: permissionTooltipText}}
+              tooltipProps={{title: permissionTooltipText, isHoverable: true}}
             >
               {t('New Alert')}
             </Button>
@@ -250,7 +238,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
               size="xs"
               onClick={toggleDrawer}
               disabled={!canEditWorkflowConnections}
-              tooltipProps={{title: permissionTooltipText}}
+              tooltipProps={{title: permissionTooltipText, isHoverable: true}}
               icon={<IconEdit />}
             >
               {t('Edit Alerts')}
@@ -268,7 +256,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                     size="sm"
                     onClick={toggleDrawer}
                     disabled={!canEditWorkflowConnections}
-                    tooltipProps={{title: permissionTooltipText}}
+                    tooltipProps={{title: permissionTooltipText, isHoverable: true}}
                   >
                     {t('Connect Existing Alerts')}
                   </Button>
@@ -277,7 +265,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
                     icon={<IconAdd />}
                     onClick={openCreateDrawer}
                     disabled={!canEditWorkflowConnections}
-                    tooltipProps={{title: permissionTooltipText}}
+                    tooltipProps={{title: permissionTooltipText, isHoverable: true}}
                   >
                     {t('Create a New Alert')}
                   </Button>

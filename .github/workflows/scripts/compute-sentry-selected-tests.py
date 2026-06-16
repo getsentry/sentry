@@ -88,9 +88,6 @@ EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
     # JSON/binary files not tracked by coverage DB
     "src/sentry/issues/event.schema.json": ["tests/sentry/issues/test_json_schemas.py"],
     "fixtures/test.mmdb": ["tests/sentry/utils/test_geo.py"],
-    "src/sentry/search/eap/spans/sentry_conventions/deprecated_attributes.json": [
-        "tests/sentry/search/eap/test_spans.py"
-    ],
     # Backup/restore golden fixtures — coverage won't see non-Python files
     "fixtures/backup/fresh-install.json": ["tests/sentry/backup/test_imports.py"],
     "fixtures/backup/user-with-minimum-privileges.json": ["tests/sentry/backup/test_rpc.py"],
@@ -125,6 +122,7 @@ EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
 # Tests that should always be run even if not explicitly selected.
 ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/taskworker/test_config.py",
+    "tests/sentry/management/commands/test_generate_controlsilo_urls.py",
 }
 
 

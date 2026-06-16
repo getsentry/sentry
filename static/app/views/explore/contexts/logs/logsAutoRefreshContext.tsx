@@ -132,7 +132,9 @@ function pausedAtAllowedToContinue(pausedAt: number | undefined) {
 export function useSetLogsAutoRefresh() {
   const location = useLocation();
   const navigate = useNavigate();
-  const highFidelity = useLogsQueryHighFidelity();
+  const rawHighFidelity = useLogsQueryHighFidelity();
+  const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
+  const highFidelity = autoRefreshHasInitialized ? false : rawHighFidelity;
   const {infiniteApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: true,
@@ -152,6 +154,7 @@ export function useSetLogsAutoRefresh() {
       const target: Location = {...location, query: {...location.query}};
       if (autoRefresh === 'paused') {
         setPausedAt(newPausedAt);
+        queryClient.removeQueries({queryKey});
       } else if (autoRefresh !== 'enabled') {
         // Any error state, or disabled state, should reset the pause state.
         setPausedAt(undefined);

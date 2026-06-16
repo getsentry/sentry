@@ -16,19 +16,8 @@ describe('SubscriptionUpsellBanner', () => {
       body: promptResponse,
     });
     MockApiClient.addMockResponse({
-      url: '/customers/org-slug/plan-migrations/?applied=0',
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: '/customers/org-slug/',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/plan-migrations/',
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
     });
   });
 

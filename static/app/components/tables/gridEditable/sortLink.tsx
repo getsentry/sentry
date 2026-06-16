@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
@@ -83,14 +84,24 @@ const StyledLink = styled((props: StyledLinkProps) => {
     color: inherit;
   }
 
-  ${(p: StyledLinkProps) => (p.align ? `text-align: ${p.align};` : '')}
+  ${(p: StyledLinkProps) =>
+    p.align
+      ? css`
+          text-align: ${p.align};
+        `
+      : ''}
 `;
 
 const StyledNonLink = styled('div')<{align: Alignments}>`
   display: block;
   width: 100%;
   white-space: nowrap;
-  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
+  ${(p: {align: Alignments}) =>
+    p.align
+      ? css`
+          text-align: ${p.align};
+        `
+      : ''}
 `;
 
 const StyledIconArrow = styled(IconArrow)`

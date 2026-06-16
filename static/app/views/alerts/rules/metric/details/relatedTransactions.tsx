@@ -1,4 +1,5 @@
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -146,5 +147,10 @@ const HeaderCell = styled('div')<{align: Alignments}>`
   display: block;
   width: 100%;
   white-space: nowrap;
-  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
+  ${(p: {align: Alignments}) =>
+    p.align
+      ? css`
+          text-align: ${p.align};
+        `
+      : ''}
 `;

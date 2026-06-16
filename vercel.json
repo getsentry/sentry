@@ -4,7 +4,7 @@
 
   "rewrites": [
     {
-      "source": "/(api|organization-avatar|avatar)/(.*)",
+      "source": "/(api|organization-avatar|team-avatar|avatar)/(.*)",
       "destination": "https://sentry.io/$1/$2"
     },
     {

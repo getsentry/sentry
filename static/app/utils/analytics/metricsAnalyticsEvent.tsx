@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export type MetricsAnalyticsEventParameters = {
   'metrics.explorer.metadata': {
@@ -30,7 +30,7 @@ export type MetricsAnalyticsEventParameters = {
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
-    ai_query_run_id?: number;
+    ai_query_run_id?: number | string;
     panel_index?: number;
   };
   'metrics.explorer.setup_button_clicked': {

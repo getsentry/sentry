@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 
 from django.db.models import prefetch_related_objects
 
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
@@ -115,7 +114,7 @@ class DashboardPermissionsResponse(TypedDict):
 
 
 @register(DashboardWidget)
-class DashboardWidgetSerializer(Serializer):
+class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         result = {}
         data_sources = serialize(
@@ -318,16 +317,9 @@ class DashboardWidgetSerializer(Serializer):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
 
         explore_urls = None
-        if (
-            obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
-            or (
-                obj.widget_type == DashboardWidgetTypes.DISCOVER
-                and obj.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
-            )
-        ) and features.has(
-            "organizations:transaction-widget-deprecation-explore-view",
-            organization=obj.dashboard.organization,
-            actor=user,
+        if obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE or (
+            obj.widget_type == DashboardWidgetTypes.DISCOVER
+            and obj.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
         ):
             try:
                 explore_urls = self.get_explore_urls(obj, attrs)
@@ -362,7 +354,7 @@ class DashboardWidgetSerializer(Serializer):
 
 
 @register(DashboardWidgetQueryOnDemand)
-class DashboardWidgetQueryOnDemandSerializer(Serializer):
+class DashboardWidgetQueryOnDemandSerializer(Serializer[OnDemandResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> OnDemandResponse:
         return {
             "enabled": obj.extraction_enabled(),
@@ -372,7 +364,7 @@ class DashboardWidgetQueryOnDemandSerializer(Serializer):
 
 
 @register(DashboardWidgetQuery)
-class DashboardWidgetQuerySerializer(Serializer):
+class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         result = {}
 
@@ -425,7 +417,7 @@ class DashboardWidgetQuerySerializer(Serializer):
 
 
 @register(DashboardPermissions)
-class DashboardPermissionsSerializer(Serializer):
+class DashboardPermissionsSerializer(Serializer[DashboardPermissionsResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
         return {
             "isEditableByEveryone": obj.is_editable_by_everyone,
@@ -691,7 +683,7 @@ class DashboardRevisionResponse(TypedDict):
 
 
 @register(DashboardRevision)
-class DashboardRevisionSerializer(Serializer):
+class DashboardRevisionSerializer(Serializer[DashboardRevisionResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         user_ids = [r.created_by_id for r in item_list if r.created_by_id is not None]
         users_by_id = {

@@ -148,7 +148,7 @@ def make_signed_seer_api_request(
         except ValueError:
             logger.warning(
                 "viewer_context_jwt.no_signing_key",
-                extra={"msg": "No key available to sign viewer context JWT."},
+                extra={"reason": "No key available to sign viewer context JWT."},
             )
         except Exception:
             logger.exception("Failed to encode viewer context JWT for call to Seer.")

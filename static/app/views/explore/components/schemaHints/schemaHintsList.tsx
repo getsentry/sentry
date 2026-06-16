@@ -6,11 +6,15 @@ import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {Placeholder} from 'sentry/components/placeholder';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -29,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsDrawer} from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
+  CONVERSATIONS_INCLUDES_KEYS,
   getSchemaHintsListOrder,
   onlyShowSchemaHintsKeys,
   removeHiddenSchemaHintsKeys,
@@ -44,6 +49,23 @@ import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
+
+const PLACEHOLDER_WIDTHS = [
+  '8%',
+  '10%',
+  '9%',
+  '11%',
+  '8%',
+  '10%',
+  '9%',
+  '8%',
+  '11%',
+  '9%',
+  '8%',
+  '10%',
+  '9%',
+  '8%',
+];
 
 interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
@@ -95,6 +117,8 @@ export function addFilterToQuery(
   if (tag.kind === FieldKind.FUNCTION) {
     const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue ?? '';
     filterQuery.addFilterValue(`${tag.key}(${defaultFunctionParam})`, '>0');
+  } else if (CONVERSATIONS_INCLUDES_KEYS.has(tag.key)) {
+    filterQuery.addContainsFilterValue(tag.key, '');
   } else {
     const isBoolean = fieldDefinition?.valueType === FieldValueType.BOOLEAN;
     filterQuery.addFilterValue(
@@ -136,6 +160,9 @@ function formatHintOperator(hint: Tag) {
   if (hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION) {
     return '>';
   }
+  if (CONVERSATIONS_INCLUDES_KEYS.has(hint.key)) {
+    return 'contains';
+  }
   return 'is';
 }
 
@@ -153,7 +180,8 @@ export function SchemaHintsList({
   const organization = useOrganization();
   const {openDrawer, panelRef} = useDrawer();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const {dispatch, query, wrapperRef: searchBarWrapperRef} = useSearchQueryBuilder();
+  const {dispatch, query} = useSearchQueryBuilderState();
+  const {wrapperRef: searchBarWrapperRef} = useSearchQueryBuilderLayout();
 
   // Create a ref to hold the latest query for the drawer
   const queryRef = useRef(query);
@@ -245,7 +273,10 @@ export function SchemaHintsList({
         // Render items in hidden div to measure
         [...filterTagsSorted, seeFullListTag].forEach(hint => {
           const el = container.children[0]?.cloneNode(true) as HTMLElement;
-          el.innerHTML = getHintText(hint);
+          const button = el?.firstElementChild;
+          if (button instanceof HTMLElement) {
+            button.textContent = getHintText(hint);
+          }
           measureDiv.appendChild(el);
         });
 
@@ -418,71 +449,46 @@ export function SchemaHintsList({
 
     return (
       <Flex gap="xs">
-        <HintName>{formatHintName(hint)}</HintName>
-        <HintOperator>{formatHintOperator(hint)}</HintOperator>
-        <HintValue>...</HintValue>
+        <Text bold={false}>{formatHintName(hint)}</Text>
+        <Text bold={false} variant="muted">
+          {formatHintOperator(hint)}
+        </Text>
+        <Text bold={false} variant="accent">
+          ...
+        </Text>
       </Flex>
     );
   };
 
   if (isLoading) {
     return (
-      <SchemaHintsContainer
-        aria-label={t('Schema Hints List')}
-        style={{overflow: 'hidden'}}
-      >
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="11%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="11%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-        <Placeholder width="10%" height="28px" />
-        <Placeholder width="9%" height="28px" />
-        <Placeholder width="8%" height="28px" />
-      </SchemaHintsContainer>
+      <Flex aria-label={t('Schema Hints List')} gap="md" wrap="nowrap" overflow="hidden">
+        {PLACEHOLDER_WIDTHS.map((width, index) => (
+          <Container key={index} flexShrink={0} width={width}>
+            <Placeholder width="100%" height="28px" />
+          </Container>
+        ))}
+      </Flex>
     );
   }
 
   return (
-    <SchemaHintsContainer
+    <Flex
       ref={schemaHintsContainerRef}
       aria-label={t('Schema Hints List')}
+      gap="md"
+      wrap="nowrap"
     >
       {visibleHints.map(hint => (
-        <SchemaHintOption
-          size="xs"
-          key={hint.key}
-          data-type={hint.key}
-          onClick={() => onHintClick(hint)}
-        >
-          {getHintElement(hint)}
-        </SchemaHintOption>
+        <Container key={hint.key} flexShrink={0}>
+          <Button size="xs" data-type={hint.key} onClick={() => onHintClick(hint)}>
+            {getHintElement(hint)}
+          </Button>
+        </Container>
       ))}
-    </SchemaHintsContainer>
+    </Flex>
   );
 }
-
-const SchemaHintsContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.md};
-  flex-wrap: nowrap;
-
-  > * {
-    flex-shrink: 0;
-  }
-`;
-
-const SchemaHintOption = styled(Button)`
-  /* Ensures that filters do not grow outside of the container */
-  min-width: fit-content;
-`;
 
 export const SchemaHintsSection = styled('div')`
   display: grid;
@@ -497,19 +503,4 @@ export const SchemaHintsSection = styled('div')`
     margin-bottom: 0;
     margin-top: 0;
   }
-`;
-
-const HintName = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
-const HintOperator = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const HintValue = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.accent};
 `;

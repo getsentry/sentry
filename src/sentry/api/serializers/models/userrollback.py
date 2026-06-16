@@ -20,7 +20,7 @@ class RollbackSerializerResponse(TypedDict):
     data: dict  # JSON Blob
 
 
-class UserRollbackSerializer(Serializer):
+class UserRollbackSerializer(Serializer[RollbackSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> RollbackSerializerResponse:
         rollback_org = kwargs.get("rollback_org")
 

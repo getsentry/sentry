@@ -1,12 +1,26 @@
 import {t} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types/platform';
 
 import type {LowValueSpanEvidenceData} from './types';
 
 const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
-  'https://docs.sentry.io/platforms/javascript/configuration/options/#ignorespans';
+  'https://docs.sentry.io/platforms/javascript/configuration/options/#ignoreSpans';
 const PYTHON_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/python/configuration/filtering/#filtering-transaction-events';
-const GENERIC_SPAN_FILTERING_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
+const GENERIC_FILTERING_DOCS_URL =
+  'https://docs.sentry.io/platform-redirect/?next=/configuration/filtering/';
+const CUSTOM_INSTRUMENTATION_DOCS_URL =
+  'https://docs.sentry.io/platform-redirect/?next=/tracing/instrumentation/custom-instrumentation/';
+const JAVASCRIPT_PROJECT_PLATFORMS = new Set<PlatformKey>([
+  'bun',
+  'capacitor',
+  'cordova',
+  'deno',
+  'electron',
+  'ionic',
+  'react',
+  'react-native',
+]);
 
 export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
   const {op, description} = evidenceData;
@@ -21,10 +35,6 @@ export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
     return description;
   }
   return t('Unknown span');
-}
-
-export function formatCount(count: number | null): string {
-  return count === null ? t('Unknown') : count.toLocaleString();
 }
 
 export function formatDurationMs(duration: number | null): string {
@@ -52,49 +62,63 @@ export function formatEstimatedCostUsd(estimatedCostUsd: number | null): string 
   });
 }
 
-export function isPythonSdk(evidenceData: LowValueSpanEvidenceData): boolean {
-  const sdkName = evidenceData.sdkName?.toLowerCase() ?? '';
+export function isPythonProjectPlatform(projectPlatform?: PlatformKey | null): boolean {
+  if (projectPlatform === null || projectPlatform === undefined) {
+    return false;
+  }
 
-  return sdkName.includes('python');
+  return projectPlatform.startsWith('python');
 }
 
-export function isJavaScriptSdk(evidenceData: LowValueSpanEvidenceData): boolean {
-  const sdkName = evidenceData.sdkName?.toLowerCase() ?? '';
+export function isJavaScriptProjectPlatform(
+  projectPlatform?: PlatformKey | null
+): boolean {
+  if (projectPlatform === null || projectPlatform === undefined) {
+    return false;
+  }
 
   return (
-    sdkName.includes('javascript') ||
-    sdkName.includes('node') ||
-    sdkName.includes('browser') ||
-    sdkName.includes('nextjs') ||
-    sdkName.includes('react')
+    projectPlatform.startsWith('javascript') ||
+    projectPlatform.startsWith('node') ||
+    JAVASCRIPT_PROJECT_PLATFORMS.has(projectPlatform)
   );
 }
 
-export function getSpanFilteringDocsUrl(evidenceData: LowValueSpanEvidenceData): string {
-  if (isPythonSdk(evidenceData)) {
+export function getSpanFilteringDocsUrl(projectPlatform?: PlatformKey | null): string {
+  if (isPythonProjectPlatform(projectPlatform)) {
     return PYTHON_SPAN_FILTERING_DOCS_URL;
   }
-  if (isJavaScriptSdk(evidenceData)) {
+  if (isJavaScriptProjectPlatform(projectPlatform)) {
     return JAVASCRIPT_SPAN_FILTERING_DOCS_URL;
   }
-  return GENERIC_SPAN_FILTERING_DOCS_URL;
+  return GENERIC_FILTERING_DOCS_URL;
 }
 
-function toCodeString(value: string | null, fallback: string): string {
-  return JSON.stringify(value ?? fallback);
+export function getCustomInstrumentationDocsUrl(): string {
+  return CUSTOM_INSTRUMENTATION_DOCS_URL;
 }
 
 export function getJavaScriptSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const spanOp = toCodeString(evidenceData.op, '<span.op>');
-  const spanDescription = toCodeString(evidenceData.description, '<span.description>');
+  const matcherLines: string[] = [];
+  if (evidenceData.description === null && evidenceData.op !== null) {
+    matcherLines.push(`      // NOTE: This span has no description, so it can only be`);
+    matcherLines.push(
+      `      // targeted by op. This will also drop other spans with this op.`
+    );
+  }
+  if (evidenceData.op !== null) {
+    matcherLines.push(`      op: ${JSON.stringify(evidenceData.op)},`);
+  }
+  if (evidenceData.description !== null) {
+    matcherLines.push(`      name: ${JSON.stringify(evidenceData.description)},`);
+  }
 
   return `Sentry.init({
   ignoreSpans: [
     {
-      op: ${spanOp},
-      name: ${spanDescription},
+${matcherLines.join('\n')}
     },
   ],
 });`;
@@ -103,8 +127,19 @@ export function getJavaScriptSpanFilterSnippet(
 export function getPythonSpanFilterSnippet(
   evidenceData: LowValueSpanEvidenceData
 ): string {
-  const spanOp = toCodeString(evidenceData.op, '<span.op>');
-  const spanDescription = toCodeString(evidenceData.description, '<span.description>');
+  const conditions: string[] = [];
+  if (evidenceData.op === null) {
+    conditions.push(`            span.get("op") is None`);
+  } else {
+    conditions.push(`            span.get("op") == ${JSON.stringify(evidenceData.op)}`);
+  }
+  if (evidenceData.description === null) {
+    conditions.push(`            and span.get("description") is None`);
+  } else {
+    conditions.push(
+      `            and span.get("description") == ${JSON.stringify(evidenceData.description)}`
+    );
+  }
 
   return `import sentry_sdk
 
@@ -113,8 +148,7 @@ def before_send_transaction(event, hint):
     event["spans"] = [
         span for span in event.get("spans", [])
         if not (
-            span.get("op") == ${spanOp}
-            and span.get("description") == ${spanDescription}
+${conditions.join('\n')}
         )
     ]
     return event
