@@ -29,7 +29,8 @@ def _iter_extend_schema_kwargs() -> list[tuple[str, str, str]]:
                 continue
             path = os.path.join(root, name)
             try:
-                tree = ast.parse(open(path, encoding="utf-8").read(), filename=path)
+                with open(path, encoding="utf-8") as f:
+                    tree = ast.parse(f.read(), filename=path)
             except (SyntaxError, UnicodeDecodeError):
                 continue
             for node in ast.walk(tree):
