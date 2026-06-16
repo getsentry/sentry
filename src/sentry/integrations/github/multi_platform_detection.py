@@ -359,9 +359,7 @@ def _rule_parent_dirs(
 ) -> set[str]:
     """Collect parent directories where this rule is satisfiable.
 
-    Works for all rule types.  Pass empty dicts for ``content_by_path`` and
-    ``manifests_by_path`` in the existence pass; content/package rules will
-    then return an empty set (don't fire) without any special-casing.
+    Works for all rule types i.e. existence-only, content, and package.
     """
     if "match_package" in rule:
         return {
@@ -419,10 +417,6 @@ def _framework_matches_scoped(
     manifests_by_path: dict[str, _PackageManifest],
 ) -> bool:
     """Co-location-aware framework matcher for the multi detector.
-
-    Pass empty dicts for ``content_by_path`` and ``manifests_by_path`` in the
-    existence pass; content/package rules will return empty scope sets and
-    therefore not fire, with no special-casing needed.
 
     For ``some``-only frameworks any single signal anywhere in the tree is
     sufficient.  For frameworks with ``every`` rules all conditions must be
