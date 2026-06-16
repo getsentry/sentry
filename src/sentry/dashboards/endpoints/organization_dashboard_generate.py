@@ -198,7 +198,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                 artifact_schema=GeneratedDashboard,
                 request=request,
             )
-            return Response({"run_id": run.seer_run_state_id})
+            return Response({"run_id": run.seer_run_state_id, "sentry_run_id": str(run.uuid)})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError:
