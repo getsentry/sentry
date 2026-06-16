@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -15,7 +15,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -31,6 +30,7 @@ import {
   orgDefaultAgentQueryOptions,
   seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
   useOrgDefaultStoppingPoint,
@@ -61,7 +61,9 @@ export function ProjectAddRepoModal({
   const repositoriesById = useRepositoriesById();
 
   const unconfiguredProjects = useUnconfiguredProjects();
-  const projectOptions = useCompactSelectProjectOptions({projects: unconfiguredProjects});
+  const projectOptions = useCompactSelectProjectOptions({
+    projects: unconfiguredProjects.data ?? [],
+  });
   const repositoryOptions = useCompactSelectRepositoryOptions();
   const {data: agentOptions = []} = useQuery(
     seerAgentIntegrationsSelectQueryOptions({organization})
@@ -379,28 +381,25 @@ export function ProjectAddRepoModal({
 function useUnconfiguredProjects() {
   const organization = useOrganization();
   const {projects} = useProjects();
-
-  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
-    organization,
-  });
   const result = useInfiniteQuery({
-    ...autofixSettingsQueryOptions,
-    select: ({pages}) =>
-      Array.from(
+    ...getInfiniteSeerProjectsSettingsQueryOptions({
+      organization,
+      query: {
+        per_page: 100,
+      },
+    }),
+    select: ({pages}) => {
+      const configuredProjects = Array.from(
         new Set(
           pages
             .flatMap(page => page.json)
             .filter(setting => setting.reposCount > 0)
             .map(setting => String(setting.projectId))
         )
-      ),
+      );
+      return projects.filter(p => !configuredProjects.includes(String(p.id)));
+    },
   });
   useFetchAllPages({result});
-  const {data: projectsWithRepos, isPending, hasNextPage} = result;
-
-  return useMemo(() => {
-    return isPending || hasNextPage
-      ? projects
-      : projects.filter(p => !projectsWithRepos?.includes(String(p.id)));
-  }, [projects, projectsWithRepos, isPending, hasNextPage]);
+  return result;
 }
