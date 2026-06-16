@@ -277,6 +277,8 @@ class DatadogIdentityProvider(OAuth2Provider):
         site = data.get("site")
         if not site:
             raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
+        elif site not in DATADOG_VALID_SITES:
+            raise ValueError(f"Invalid Datadog site: {site}")
         return {"site": site}
 
     def _get_mcp_base_url(self) -> str:

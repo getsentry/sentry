@@ -92,11 +92,19 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert response.status_code == 400
         assert "site" in response.data["detail"]
 
+    def test_connect_datadog_invalid_site(self) -> None:
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(self.organization.slug, "datadog", site="evil.example.com")
+
+        assert response.status_code == 400
+        assert "Invalid Datadog site" in response.data["detail"]
+
     def test_connect_unknown_provider(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(self.organization.slug, "unknown")
 
         assert response.status_code == 400
+        assert "Unknown monitoring provider" in response.data["detail"]
 
     @patch(
         "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
@@ -200,12 +208,14 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
             response = self.get_response(self.organization.slug, "unknown")
 
         assert response.status_code == 400
+        assert "Unknown monitoring provider" in response.data["detail"]
 
     def test_disconnect_not_connected(self) -> None:
         with self.feature("organizations:seer-infra-telemetry"):
             response = self.get_response(self.organization.slug, "gcp")
 
         assert response.status_code == 404
+        assert "Not connected to this provider" in response.data["detail"]
 
     def test_disconnect_allowed_for_org_read_member(self) -> None:
         member_user = self.create_user()
