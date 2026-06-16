@@ -229,7 +229,12 @@ class MetricMetadataRow(BaseModel):
     count: int
 
 
-class MetricMetadataResponse(BaseModel):
+class MetricMetadataSuccessResponse(BaseModel):
     candidates: list[MetricMetadataRow]
     has_more: bool
-    error: str | None = None
+
+
+class MetricMetadataErrorResponse(BaseModel):
+    candidates: list[MetricMetadataRow]
+    has_more: bool
+    error: str

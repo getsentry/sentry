@@ -5,6 +5,7 @@ from sentry.seer.assisted_query.metrics_tools import (
     _build_or_query,
     get_metric_metadata,
 )
+from sentry.seer.sentry_data_models import MetricMetadataSuccessResponse
 from sentry.testutils.cases import (
     APITransactionTestCase,
     SnubaTestCase,
@@ -307,7 +308,7 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
         )
 
         # A broken aggregate would short-circuit into events_query_failed.
-        assert result.error is None, result
+        assert isinstance(result, MetricMetadataSuccessResponse), result
         names = {c.name for c in result.candidates}
         assert "http.request.duration" in names
         assert "api.request.count" not in names
