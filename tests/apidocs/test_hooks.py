@@ -1,6 +1,9 @@
 from unittest import TestCase
 
+import pytest
+
 from sentry.apidocs.hooks import _ENDPOINT_SERVERS, custom_postprocessing_hook
+from sentry.apidocs.utils import SentryApiBuildError
 
 
 class EndpointServersTest(TestCase):
@@ -44,6 +47,42 @@ class EndpointServersTest(TestCase):
         ]
         # Servers should NOT be applied to non-matching endpoint
         assert "servers" not in processed["paths"]["/api/0/other/endpoint/"]["get"]
+
+
+class SummaryUniquenessTest(TestCase):
+    def setUp(self) -> None:
+        _ENDPOINT_SERVERS.clear()
+
+    def _op(self, summary: str) -> dict:
+        return {
+            "tags": ["Events"],
+            "description": "An endpoint",
+            "operationId": summary.lower().replace(" ", "-"),
+            "summary": summary,
+            "parameters": [],
+        }
+
+    def test_duplicate_summary_raises(self) -> None:
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/foo/": {"get": self._op("List Foos")},
+                "/api/0/bar/": {"get": self._op("List Foos")},
+            },
+        }
+        with pytest.raises(SentryApiBuildError):
+            custom_postprocessing_hook(result, None)
+
+    def test_unique_summaries_pass(self) -> None:
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/foo/": {"get": self._op("List Foos")},
+                "/api/0/bar/": {"get": self._op("List Bars")},
+            },
+        }
+        # Should not raise.
+        custom_postprocessing_hook(result, None)
 
 
 class FixIssueRoutesTest(TestCase):
