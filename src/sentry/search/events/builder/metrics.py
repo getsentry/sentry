@@ -804,13 +804,18 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             if value:
                 values.append(self._resolve_environment_filter_value(value))
             else:
-                # The "no environment" environment. Metrics tag values are
-                # integer-indexed (`tags.value` is UInt64), and an absent tag
-                # resolves to 0, so the sentinel must be the integer 0. Appending
-                # the string "" instead makes ClickHouse fail converting '' to
-                # UInt64 (it was dropped here when the tag_values_are_strings
-                # option was removed).
-                values.append(0)
+                # The "no environment" environment. Its sentinel must match the
+                # type of the environment column: performance metrics store raw
+                # string tag values (`tags_raw`), while every other metrics
+                # use case is integer-indexed (`tags` is UInt64). For the integer
+                # case the sentinel must be the int 0 (an absent tag resolves to
+                # 0) -- comparing the UInt64 column to "" makes ClickHouse fail
+                # converting '' to UInt64. This matches resolve_tag_value, which
+                # returns a str for performance and an int otherwise, so `values`
+                # stays single-typed and `values.sort()` below never mixes types.
+                # (This branch lost the integer case when the
+                # tag_values_are_strings option was removed.)
+                values.append("" if self.is_performance else 0)
         values.sort()
         environment = self.column("environment")
         if len(values) == 1:

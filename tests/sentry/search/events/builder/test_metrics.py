@@ -190,17 +190,34 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_empty_environment_filter_resolves_to_integer_sentinel(self) -> None:
-        # The "no environment" filter (`environment:""`) must compare the
-        # integer-indexed `tags[environment]` UInt64 column to the integer 0, not
-        # the string "". Comparing to "" makes ClickHouse fail converting '' to
-        # UInt64 and breaks crash-rate alert subscriptions on the metrics dataset.
+        # Integer-indexed metrics (release-health / alerts) store tag values in the
+        # UInt64 `tags` column, so the "no environment" filter (`environment:""`)
+        # must compare to the integer 0 -- comparing the UInt64 column to "" makes
+        # ClickHouse fail converting '' to UInt64 and breaks crash-rate alert
+        # subscriptions (SNUBA-B5T).
         query = MetricsQueryBuilder(
             self.params,
             query='environment:""',
+            dataset=Dataset.Metrics,
+            selected_columns=[],
+            config=QueryBuilderConfig(skip_field_validation_for_entity_subscription_deletion=True),
+        )
+        assert not query.is_performance
+        assert Condition(query.column("environment"), Op.EQ, 0) in query.where
+
+    def test_empty_environment_filter_with_named_environment_does_not_mix_types(self) -> None:
+        # Performance metrics store raw string tag values (`tags_raw`), so the "no
+        # environment" sentinel is "" and named environments stay strings. The
+        # values list must remain single-typed so `values.sort()` does not raise a
+        # TypeError when an empty and a named environment are combined.
+        query = MetricsQueryBuilder(
+            self.params,
+            query='environment:["", "prod"]',
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p50(transaction.duration)"],
         )
-        assert Condition(query.column("environment"), Op.EQ, 0) in query.where
+        assert query.is_performance
+        assert Condition(query.column("environment"), Op.IN, ["", "prod"]) in query.where
 
     def test_simple_aggregates(self) -> None:
         query = MetricsQueryBuilder(
