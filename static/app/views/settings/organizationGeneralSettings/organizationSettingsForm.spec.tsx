@@ -10,10 +10,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import * as RegionUtils from 'sentry/utils/regions';
+import * as RegionUtils from 'sentry/utils/cells';
 import {OrganizationSettingsForm} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('sentry/utils/regions');
+jest.mock('sentry/utils/cells');
 
 describe('OrganizationSettingsForm', () => {
   const organization = OrganizationFixture();

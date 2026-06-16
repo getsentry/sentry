@@ -3,7 +3,7 @@ from drf_spectacular.utils import OpenApiExample
 AUTOFIX_POST_RESPONSE = [
     OpenApiExample(
         name="Successful Autofix Creation",
-        value={"run_id": 12345},
+        value={"run_id": 12345, "sentry_run_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"},
         response_only=True,
         status_codes=["202"],
     ),

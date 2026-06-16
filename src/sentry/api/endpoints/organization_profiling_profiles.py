@@ -165,6 +165,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         serialized = serializer.validated_data
 
         sentry_sdk.set_tag("query.dataSource", serialized["dataSource"])
+        sentry_sdk.set_attribute("query.dataSource", serialized["dataSource"])
 
         with handle_query_errors():
             executor = FlamegraphExecutor(

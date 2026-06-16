@@ -12,6 +12,7 @@ import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerHeaderProps {
   onCopyMarkdown?: () => void;
@@ -26,6 +27,8 @@ export function SeerDrawerHeader({
   onReset,
   referrer,
 }: SeerDrawerHeaderProps) {
+  const organization = useOrganization();
+  const hasDebugFlag = organization.features.includes('autofix-seer-agent-debug');
   const isSentryEmployee = useIsSentryEmployee();
   const tooltip = useMemo(() => {
     const config = getReferrerConfig(referrer);
@@ -58,7 +61,7 @@ export function SeerDrawerHeader({
             aria-label={t('Copy analysis as Markdown')}
             variant="transparent"
           />
-          {isSentryEmployee && onOpenSeerAgent && (
+          {isSentryEmployee && hasDebugFlag && onOpenSeerAgent && (
             <Button
               size="xs"
               icon={<IconBot />}

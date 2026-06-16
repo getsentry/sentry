@@ -18,7 +18,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getCells} from 'sentry/utils/regions';
+import {getCells} from 'sentry/utils/cells';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 

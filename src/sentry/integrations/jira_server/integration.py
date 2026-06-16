@@ -41,7 +41,7 @@ from sentry.integrations.utils.metrics import (
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -1395,11 +1395,6 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.USER_MAPPING,
         ]
     )
-
-    setup_dialog_config = {"width": 1030, "height": 1000}
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [InstallationConfigApiStep(), OAuthApiStep()]

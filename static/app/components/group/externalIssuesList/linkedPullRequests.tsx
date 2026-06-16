@@ -16,7 +16,9 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {PullRequest} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
@@ -31,6 +33,11 @@ type LinkedPullRequest = PullRequest & {
 type LinkedPullRequestsResponse = {
   pullRequests: LinkedPullRequest[];
 };
+
+interface LinkedPullRequestsProps {
+  group: Group;
+  showEmptyState?: boolean;
+}
 
 type StatusIconConfig = {
   Icon: React.ComponentType<SVGIconProps>;
@@ -74,7 +81,14 @@ function getStatusLabel(status: LinkedPullRequestStatus) {
   }
 }
 
-function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
+function LinkedPullRequestRow({
+  group,
+  pullRequest,
+}: {
+  group: Group;
+  pullRequest: LinkedPullRequest;
+}) {
+  const organization = useOrganization();
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   const statusLabel = getStatusLabel(pullRequest.status);
 
@@ -88,6 +102,16 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
         pullRequest.repository.name
       )}
       href={pullRequest.externalUrl}
+      onClick={() =>
+        trackAnalytics('issue_details.external_issue_pull_request_clicked', {
+          organization,
+          pull_request_id: pullRequest.id,
+          pull_request_status: pullRequest.status,
+          repository_id: pullRequest.repository.id,
+          repository_provider: pullRequest.repository.provider.id,
+          ...getAnalyticsDataForGroup(group),
+        })
+      }
     >
       <Grid columns="max-content minmax(0, 1fr)" gap="sm" padding="sm">
         <Flex as="span" aria-hidden align="start" paddingTop="2xs">
@@ -124,11 +148,11 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
   );
 }
 
-export function LinkedPullRequests({group}: {group: Group}) {
+export function useLinkedPullRequests({group}: {group: Group}) {
   const organization = useOrganization();
   const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
 
-  const {data, isError} = useQuery(
+  return useQuery(
     apiOptions.as<LinkedPullRequestsResponse>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
@@ -139,8 +163,26 @@ export function LinkedPullRequests({group}: {group: Group}) {
       }
     )
   );
+}
 
-  if (!hasFeature || isError || !data?.pullRequests.length) {
+export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
+  const organization = useOrganization();
+  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
+  const {data, isError} = useLinkedPullRequests({group});
+
+  if (!hasFeature || isError) {
+    return null;
+  }
+
+  if (data?.pullRequests.length === 0) {
+    return showEmptyState ? (
+      <EmptyLinksText variant="muted">
+        {t('No linked issues or pull requests')}
+      </EmptyLinksText>
+    ) : null;
+  }
+
+  if (!data?.pullRequests.length) {
     return null;
   }
 
@@ -162,7 +204,7 @@ export function LinkedPullRequests({group}: {group: Group}) {
           borderTop={index === 0 ? undefined : 'primary'}
           style={{listStyle: 'none'}}
         >
-          <LinkedPullRequestRow pullRequest={pullRequest} />
+          <LinkedPullRequestRow group={group} pullRequest={pullRequest} />
         </Container>
       ))}
     </Flex>
@@ -179,6 +221,10 @@ const PullRequestRow = styled(ExternalLink)`
   }
 `;
 
+const EmptyLinksText = styled(Text)`
+  margin: 0;
+`;
+
 const RepositoryIcon = styled(IconRepository)`
   transform: translateY(1px);
 `;
@@ -188,8 +234,6 @@ const PullRequestTitle = styled('span')`
   overflow: hidden;
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-variant-ligatures: no-common-ligatures;
-  font-feature-settings: 'liga' 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;

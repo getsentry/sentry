@@ -23,7 +23,13 @@ class NodestoreDeletionTaskTest(TestCase):
             events.append(event)
         return events
 
-    def fetch_events_from_eventstore(self, group_ids: list[int], dataset: Dataset) -> list[Event]:
+    def fetch_events_from_eventstore(
+        self,
+        group_ids: list[int],
+        dataset: Dataset,
+        last_event_id: str | None = None,
+        last_event_timestamp: str | None = None,
+    ) -> list[Event]:
         return fetch_events_from_eventstore(
             project_id=self.project.id,
             group_ids=group_ids,
@@ -33,6 +39,8 @@ class NodestoreDeletionTaskTest(TestCase):
                 "referrer": Referrer.DELETIONS_GROUP.value,
                 "organization_id": self.project.organization_id,
             },
+            last_event_id=last_event_id,
+            last_event_timestamp=last_event_timestamp,
         )
 
     def test_simple_deletion_with_events(self) -> None:
@@ -90,3 +98,23 @@ class NodestoreDeletionTaskTest(TestCase):
 
         with pytest.raises(UnqualifiedQueryError):
             self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
+
+    def test_fetch_events_with_pagination_cursor(self) -> None:
+        """Fetching with a cursor (last event's id/timestamp) returns the remaining events."""
+        events = self.create_n_events_with_group(n_events=5)
+        group_ids = [event.group_id for event in events if event.group_id is not None]
+
+        all_events = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
+        assert len(all_events) == 5
+
+        cursor_event = all_events[0]
+        remaining = self.fetch_events_from_eventstore(
+            group_ids,
+            dataset=Dataset.Events,
+            last_event_id=cursor_event.event_id,
+            last_event_timestamp=cursor_event.timestamp,
+        )
+        # Results are ordered by -timestamp, -event_id, so the keyset cursor excludes everything
+        # at or before the first event, returning the strictly-later remainder.
+        assert cursor_event.event_id not in {event.event_id for event in remaining}
+        assert len(remaining) == len(all_events) - 1

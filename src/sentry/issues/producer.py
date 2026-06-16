@@ -4,6 +4,7 @@ import logging
 from collections.abc import MutableMapping
 from functools import partial
 from typing import Any, cast
+from uuid import uuid4
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
@@ -21,6 +22,7 @@ from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.safe import get_path, set_path
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +118,18 @@ def _prepare_occurrence_message(
     payload_data = cast(MutableMapping[str, Any], occurrence.to_dict())
     payload_data["payload_type"] = PayloadType.OCCURRENCE.value
     if event_data:
+        # All errors need a trace ID.
+        if get_path(event_data, "contexts", "trace", "trace_id") is None:
+            set_path(
+                event_data,
+                "contexts",
+                "trace",
+                value={
+                    "trace_id": uuid4().hex,
+                    "span_id": None,
+                },
+            )
+
         payload_data["event"] = event_data
 
     if is_buffered_spans:

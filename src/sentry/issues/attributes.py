@@ -3,10 +3,11 @@ import logging
 from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
+from functools import partial
 
 import urllib3
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
 from django.db.models import F, Window
 from django.db.models.functions import Rank
@@ -18,7 +19,9 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.options.rollout import in_random_rollout
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned, post_update
+from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics, snuba
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
@@ -45,9 +48,9 @@ class GroupValues:
     first_release_id: int | None
 
 
-def _get_attribute_snapshot_producer():
+def _get_attribute_snapshot_producer(name: str = "sentry.issues.attributes") -> KafkaProducer:
     return get_arroyo_producer(
-        "sentry.issues.attributes",
+        name,
         Topic.GROUP_ATTRIBUTES,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
@@ -55,6 +58,11 @@ def _get_attribute_snapshot_producer():
 
 _attribute_snapshot_producer = SingletonProducer(
     _get_attribute_snapshot_producer, max_futures=settings.SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT
+)
+_task_producer_name = "sentry.tasks.issues.attributes"
+_attribute_snapshot_task_producer = get_task_producer(
+    producer_name=_task_producer_name,
+    producer_factory=partial(_get_attribute_snapshot_producer, name=_task_producer_name),
 )
 
 
@@ -123,9 +131,18 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
             raise snuba.SnubaError(err)
     else:
         payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-        _attribute_snapshot_producer.produce(
-            ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]), payload
-        )
+        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
+            "tasks.producer.snapshots.rollout"
+        ):
+            _attribute_snapshot_task_producer.produce(
+                ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
+                payload,
+            )
+        else:
+            _attribute_snapshot_producer.produce(
+                ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
+                payload,
+            )
 
 
 def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:

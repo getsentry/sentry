@@ -13,9 +13,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {getLocalities} from 'sentry/utils/regions';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
