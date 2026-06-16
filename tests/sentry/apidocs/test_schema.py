@@ -1,6 +1,11 @@
+from datetime import UTC, datetime
+
+from django.urls import path
 from drf_spectacular.utils import extend_schema
 
 from sentry.api.base import Endpoint
+from sentry.api.helpers.deprecation import deprecated
+from sentry.apidocs.hooks import CustomGenerator
 from tests.sentry.apidocs import generate_schema
 
 
@@ -65,3 +70,37 @@ def test_description() -> None:
 
     assert schema["paths"]["/foo"]["put"]["operationId"] != "Autoschema Description"
     assert schema["paths"]["/foo"]["put"]["description"] == "Autoschema Description"
+
+
+def test_deprecated_decorator_marks_openapi_operation() -> None:
+    class ExampleEndpoint(Endpoint):
+        permission_classes = ()
+
+        @deprecated(datetime(2020, 1, 1, tzinfo=UTC))
+        def get(self, request, *args, **kwargs):
+            pass
+
+        def post(self, request, *args, **kwargs):
+            pass
+
+    schema = generate_schema("foo", view=ExampleEndpoint)
+    assert schema["paths"]["/foo"]["get"]["deprecated"] is True
+    assert "deprecated" not in schema["paths"]["/foo"]["post"]
+
+
+def test_deprecated_decorator_marks_openapi_operation_for_matching_url_name() -> None:
+    class ExampleEndpoint(Endpoint):
+        permission_classes = ()
+
+        @deprecated(datetime(2020, 1, 1, tzinfo=UTC), url_names=["deprecated-route"])
+        def get(self, request, *args, **kwargs):
+            pass
+
+    patterns = [
+        path("deprecated/", ExampleEndpoint.as_view(), name="deprecated-route"),
+        path("active/", ExampleEndpoint.as_view(), name="active-route"),
+    ]
+    schema = CustomGenerator(patterns=patterns).get_schema(request=None, public=True)
+
+    assert schema["paths"]["/deprecated/"]["get"]["deprecated"] is True
+    assert "deprecated" not in schema["paths"]["/active/"]["get"]

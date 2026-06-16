@@ -1,6 +1,13 @@
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.plumbing import get_doc
 
+from sentry.api.helpers.deprecation import (
+    OPENAPI_DEPRECATED_ATTR,
+    OPENAPI_DEPRECATED_URL_NAMES_ATTR,
+)
+
+URL_NAME_ATTR = "_sentry_url_name"
+
 
 class SentrySchema(AutoSchema):
     """DRF Documentation Schema for sentry endpoints"""
@@ -26,3 +33,18 @@ class SentrySchema(AutoSchema):
         if len(docstring.splitlines()) > 1:
             return docstring
         return super().get_description()
+
+    def is_deprecated(self) -> bool:
+        if super().is_deprecated():
+            return True
+
+        func = self.view_func
+        while func is not None:
+            if getattr(func, OPENAPI_DEPRECATED_ATTR, False):
+                url_names = getattr(func, OPENAPI_DEPRECATED_URL_NAMES_ATTR, None)
+                if not url_names:
+                    return True
+                return getattr(self.view, URL_NAME_ATTR, None) in url_names
+            func = getattr(func, "__wrapped__", None)
+
+        return False
