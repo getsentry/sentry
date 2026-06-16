@@ -270,10 +270,13 @@ class EventFilterKeysResponse(BaseModel):
 class EventFilterKeyValue(BaseModel):
     # Subset of TagValueSerializerResponse — `get_event_filter_key_values` filters
     # the upstream dict to these four keys, so the wire shape only carries them.
-    # `lastSeen`/`firstSeen` arrive from the tags API as `datetime` objects and
-    # are stringified by DRF's JSON renderer at the dispatcher edge — typed as
-    # `Any` here so Pydantic doesn't reject the pre-render value.
-    value: str
+    # `value` matches `TagValueSerializerResponse.value` (`str | None`); the
+    # tag-values endpoint can return `value: null` and the pre-typed code passed
+    # those rows through verbatim. `lastSeen`/`firstSeen` arrive from the tags
+    # API as `datetime` objects and are stringified by DRF's JSON renderer at the
+    # dispatcher edge — typed as `Any` so Pydantic doesn't reject the pre-render
+    # value.
+    value: str | None
     count: int | None = None
     lastSeen: Any = None
     firstSeen: Any = None
