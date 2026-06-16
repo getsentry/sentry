@@ -885,7 +885,12 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                 <Fragment>
                                   {state.dataset === WidgetType.TRACEMETRICS ? (
                                     <MetricSelectRow
-                                      disabled={disableTransactionWidget}
+                                      // Heat maps always count() the metric, so
+                                      // the aggregate function is locked (only the
+                                      // metric is selectable), mirroring Explore.
+                                      disabled={
+                                        disableTransactionWidget || isHeatmapWidget
+                                      }
                                       field={field}
                                       index={index}
                                     />
