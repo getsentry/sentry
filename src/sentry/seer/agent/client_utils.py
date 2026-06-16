@@ -108,11 +108,6 @@ class SeerFeatureRunRequest(TypedDict):
     payload: dict[str, Any]
 
 
-class AgentReposRequest(TypedDict):
-    run_id: int
-    organization_id: int
-
-
 def make_agent_state_request(
     body: AgentStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -121,19 +116,6 @@ def make_agent_state_request(
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/state",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        viewer_context=viewer_context,
-    )
-
-
-def make_agent_repos_request(
-    body: AgentReposRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or agent_connection_pool,
-        "/v1/automation/explorer/repos",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
