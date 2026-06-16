@@ -43,6 +43,33 @@ interface PictureInPictureContextValue {
 
 const PictureInPictureContext = createContext<PictureInPictureContextValue | null>(null);
 
+const NON_RELATIVE_URL = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i;
+
+/**
+ * Rewrites relative `url(...)` references in serialized CSS to absolute URLs
+ * against `baseHref`.
+ *
+ * Chromium serializes `url()` in `cssText` as authored (relative), so once the
+ * text is inlined into the PiP document — whose base URL is `about:blank` —
+ * relative references (e.g. `@font-face` files) would no longer resolve. We
+ * resolve them against the source sheet's own URL instead.
+ */
+function resolveCssUrls(cssText: string, baseHref: string): string {
+  return cssText.replace(
+    /url\((['"]?)([^'")]*)\1\)/g,
+    (match: string, quote: string, url: string) => {
+      if (!url || NON_RELATIVE_URL.test(url)) {
+        return match;
+      }
+      try {
+        return `url(${quote}${new URL(url, baseHref).href}${quote})`;
+      } catch {
+        return match;
+      }
+    }
+  );
+}
+
 /**
  * Copies the document's stylesheets into the picture-in-picture window so its
  * content renders with the same styles.
@@ -52,8 +79,10 @@ const PictureInPictureContext = createContext<PictureInPictureContextValue | nul
  * mount (e.g. autosizing textareas reading `getComputedStyle`) would otherwise
  * compute the wrong size before styles load. Reading the CSSOM also captures
  * rules inserted at runtime via `insertRule` (which leave the source `<style>`
- * empty), which cloning the node would miss. Cross-origin sheets throw on
- * `cssRules` access — those fall back to cloning the owning node (loads async).
+ * empty), which cloning the node would miss. Relative `url()`s are resolved
+ * against the source sheet so assets (e.g. fonts) still load in the PiP document.
+ * Cross-origin sheets throw on `cssRules` access — those fall back to cloning the
+ * owning node (loads async).
  *
  * Emotion's own style tags are skipped because `PictureInPicturePortal`
  * re-injects them via a PiP-scoped cache. Copying them here would duplicate a
@@ -74,7 +103,7 @@ function copyStyles(source: Document, target: Window) {
         .map(rule => rule.cssText)
         .join('');
       const style = target.document.createElement('style');
-      style.textContent = cssText;
+      style.textContent = resolveCssUrls(cssText, sheet.href ?? source.baseURI);
       target.document.head.appendChild(style);
     } catch {
       // Cross-origin stylesheet — clone the owning node (loads asynchronously).

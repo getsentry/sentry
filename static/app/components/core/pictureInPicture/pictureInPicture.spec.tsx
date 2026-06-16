@@ -132,6 +132,38 @@ describe('usePictureInPicture', () => {
     document.head.removeChild(emotionStyle);
   });
 
+  it('resolves relative urls against the source stylesheet', async () => {
+    const style = appendStyle('.bg{background:url(images/x.png);}');
+    // jsdom leaves `sheet.href` null — point it at a known stylesheet location.
+    if (style.sheet) {
+      Object.defineProperty(style.sheet, 'href', {
+        value: 'http://localhost/_static/dist/sentry/entrypoints/app.css',
+        configurable: true,
+      });
+    }
+
+    const pip = createFakePipWindow();
+    stubDocumentPictureInPicture(pip);
+
+    const {result} = renderHook(() => usePictureInPicture(), {
+      wrapper: PictureInPictureProvider,
+    });
+
+    await act(async () => {
+      await result.current.requestPipWindow();
+    });
+    await waitFor(() => expect(result.current.pipWindow).toBe(pip));
+
+    const copied = Array.from(pip.document.head.querySelectorAll('style'))
+      .map(tag => tag.innerHTML)
+      .join('');
+    expect(copied).toContain(
+      'http://localhost/_static/dist/sentry/entrypoints/images/x.png'
+    );
+
+    document.head.removeChild(style);
+  });
+
   it('resets state when the window is closed by the user', async () => {
     const pip = createFakePipWindow();
     stubDocumentPictureInPicture(pip);
