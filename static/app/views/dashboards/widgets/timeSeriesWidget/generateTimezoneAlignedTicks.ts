@@ -51,20 +51,13 @@ export function generateTimezoneAlignedTicks(
     userTimezone
   );
 
-  // Start one step before the snapped boundary and extend one step past the
-  // end of the data range. ECharts' visible axis is wider than the data
-  // range [startMs, endMs] — it adds padding so the first/last data points
-  // aren't flush against the edge. Without this extension, boundary ticks
-  // would be missing (e.g., data starting exactly at midnight would have no
-  // tick to the left of it in the padded area). ECharts automatically clips
-  // any ticks that fall outside the visible axis, so extra ticks are harmless.
-  currentTick.subtract(interval.step, interval.unit);
+  // Walk forward from the snapped boundary, collecting only ticks that fall
+  // within the data range [startMs, endMs].
   const ticks: number[] = [];
-  while (
-    currentTick.valueOf() <=
-    endMs + interval.step * AXIS_UNIT_DURATIONS[interval.unit]
-  ) {
-    ticks.push(currentTick.valueOf());
+  while (currentTick.valueOf() <= endMs) {
+    if (currentTick.valueOf() >= startMs) {
+      ticks.push(currentTick.valueOf());
+    }
     currentTick.add(interval.step, interval.unit);
   }
 

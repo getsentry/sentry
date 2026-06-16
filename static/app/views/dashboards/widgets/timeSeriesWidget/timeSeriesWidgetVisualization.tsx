@@ -370,7 +370,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      ? props.releases?.map(({timestamp, version}) => ({
+          date: timestamp,
+          version,
+        }))
       : [],
     yAxisIndex: yAxes.length,
   });
@@ -450,18 +453,22 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const xAxis = showXAxis
     ? {
         animation: false,
+        type: 'value',
+        min: 'dataMin',
+        max: 'dataMax',
         axisLabel: {
           padding: [0, 10, 0, 10],
-          width: 60,
           formatter: (value: number) => {
             return formatXAxisTimestamp(value, timezone);
           },
           ...(customTicks?.length ? {customValues: customTicks} : {}),
+          showMaxLabel: true,
         },
         axisTick: {
+          show: true,
           ...(customTicks?.length ? {customValues: customTicks} : {}),
         },
-        splitNumber: X_AXIS_SPLIT_NUMBER,
+        splitNumber: customTicks?.length || X_AXIS_SPLIT_NUMBER,
         ...releaseBubbleXAxis,
       }
     : HIDDEN_AXIS;
