@@ -10,75 +10,6 @@ from sentry.users.models.identity import Identity, IdentityProvider
 
 
 @control_silo_test
-class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-monitoring-providers"
-    method = "get"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(self.user)
-
-    def test_list_requires_feature_flag(self) -> None:
-        response = self.get_response(self.organization.slug)
-        assert response.status_code == 404
-
-    def test_list_providers(self) -> None:
-        with self.feature("organizations:seer-infra-telemetry"):
-            response = self.get_success_response(self.organization.slug)
-
-        providers = {p["provider"]: p for p in response.data["providers"]}
-        assert "gcp" in providers
-        assert "datadog" in providers
-        assert providers["gcp"]["name"] == "Google Cloud Platform"
-        assert providers["datadog"]["name"] == "Datadog"
-        assert providers["gcp"]["connected"] is False
-        assert providers["datadog"]["connected"] is False
-
-    def test_list_shows_connected_provider(self) -> None:
-        idp = self.create_identity_provider(type="gcp")
-        self.create_identity(
-            user=self.user,
-            identity_provider=idp,
-            external_id="google-user-123",
-            data={"access_token": "token"},
-        )
-
-        with self.feature("organizations:seer-infra-telemetry"):
-            response = self.get_success_response(self.organization.slug)
-
-        providers = {p["provider"]: p for p in response.data["providers"]}
-        assert providers["gcp"] == {
-            "provider": "gcp",
-            "name": "Google Cloud Platform",
-            "connected": True,
-        }
-        assert providers["datadog"] == {
-            "provider": "datadog",
-            "name": "Datadog",
-            "connected": False,
-        }
-
-    def test_list_does_not_show_other_users_connections(self) -> None:
-        other_user = self.create_user()
-        self.create_member(organization=self.organization, user=other_user)
-
-        idp = self.create_identity_provider(type="gcp")
-        self.create_identity(
-            user=other_user,
-            identity_provider=idp,
-            external_id="other-google-user-456",
-            data={"email": "other@example.com", "access_token": "token"},
-        )
-
-        with self.feature("organizations:seer-infra-telemetry"):
-            response = self.get_success_response(self.organization.slug)
-
-        providers = {p["provider"]: p for p in response.data["providers"]}
-        assert providers["gcp"]["connected"] is False
-        assert providers["datadog"]["connected"] is False
-
-
-@control_silo_test
 class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
     endpoint = "sentry-api-0-organization-monitoring-provider-details"
     method = "post"
@@ -91,8 +22,12 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         response = self.get_response(self.organization.slug, "datadog")
         assert response.status_code == 404
 
-    @patch("sentry.api.endpoints.organization_monitoring_providers.IdentityPipeline.current_step")
-    @patch("sentry.api.endpoints.organization_monitoring_providers.IdentityPipeline.initialize")
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+    )
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+    )
     def test_connect_returns_redirect_url(
         self, mock_initialize: MagicMock, mock_current_step: MagicMock
     ) -> None:
@@ -107,8 +42,12 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert response.data["redirectUrl"].startswith("https://accounts.google.com/")
         mock_initialize.assert_called_once()
 
-    @patch("sentry.api.endpoints.organization_monitoring_providers.IdentityPipeline.current_step")
-    @patch("sentry.api.endpoints.organization_monitoring_providers.IdentityPipeline.initialize")
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+    )
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+    )
     def test_connect_gcp_creates_identity_provider(
         self, mock_initialize: MagicMock, mock_current_step: MagicMock
     ) -> None:
@@ -121,10 +60,14 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
 
         assert IdentityProvider.objects.filter(type="gcp").exists()
 
-    @patch("sentry.api.endpoints.organization_monitoring_providers.IdentityPipeline.current_step")
-    @patch("sentry.api.endpoints.organization_monitoring_providers.IdentityPipeline.initialize")
     @patch(
-        "sentry.api.endpoints.organization_monitoring_providers.IdentityPipeline.__init__",
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+    )
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+    )
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
         return_value=None,
     )
     def test_connect_datadog_does_not_create_identity_provider(
@@ -154,6 +97,34 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
             response = self.get_response(self.organization.slug, "unknown")
 
         assert response.status_code == 400
+
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.current_step"
+    )
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.initialize"
+    )
+    @patch(
+        "sentry.api.endpoints.organization_monitoring_provider_details.IdentityPipeline.__init__",
+        return_value=None,
+    )
+    def test_connect_allowed_for_org_read_member(
+        self, mock_init: MagicMock, mock_initialize: MagicMock, mock_current_step: MagicMock
+    ) -> None:
+        mock_current_step.return_value = HttpResponseRedirect(
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"
+        )
+
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+        self.login_as(member_user)
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_success_response(
+                self.organization.slug, "datadog", site="datadoghq.com"
+            )
+
+        assert "redirectUrl" in response.data
 
 
 @control_silo_test
@@ -235,3 +206,23 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
             response = self.get_response(self.organization.slug, "gcp")
 
         assert response.status_code == 404
+
+    def test_disconnect_allowed_for_org_read_member(self) -> None:
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+
+        idp = self.create_identity_provider(type="datadog", external_id="dd-org-789")
+        self.create_identity(
+            user=member_user,
+            identity_provider=idp,
+            external_id="dd-user-789",
+            data={"access_token": "token"},
+        )
+
+        self.login_as(member_user)
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_response(self.organization.slug, "datadog")
+
+        assert response.status_code == 204
+        assert not Identity.objects.filter(idp=idp, user=member_user).exists()

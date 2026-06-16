@@ -10,68 +10,17 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import (
-    ControlSiloOrganizationEndpoint,
-    OrganizationPermission,
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
+from sentry.api.endpoints.organization_monitoring_provider_index import (
+    MONITORING_PROVIDERS,
+    MonitoringProviderPermission,
 )
+from sentry.identity import default_manager as identity_manager
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import Identity, IdentityProvider
 
 logger = logging.getLogger(__name__)
-
-MONITORING_PROVIDERS: dict[str, dict[str, str]] = {
-    "datadog": {"name": "Datadog"},
-    "gcp": {"name": "Google Cloud Platform"},
-}
-
-MONITORING_PROVIDER_FEATURE = "organizations:seer-infra-telemetry"
-
-
-class MonitoringProviderPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:write", "org:admin"],
-        "DELETE": ["org:write", "org:admin"],
-    }
-
-
-@control_silo_endpoint
-class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.CODING_WORKFLOWS
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-    permission_classes = (MonitoringProviderPermission,)
-
-    def get(self, request: Request, organization: RpcOrganization, **kwargs: object) -> Response:
-        if not features.has(MONITORING_PROVIDER_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
-        user_id = request.user.id
-        if user_id is None:
-            return Response(status=401)
-
-        connected_identities = {
-            identity.idp.type: identity
-            for identity in Identity.objects.filter(
-                idp__type__in=MONITORING_PROVIDERS.keys(),
-                user_id=user_id,
-            ).select_related("idp")
-        }
-
-        providers = []
-        for key, meta in MONITORING_PROVIDERS.items():
-            identity = connected_identities.get(key)
-            providers.append(
-                {
-                    "provider": key,
-                    "name": meta["name"],
-                    "connected": identity is not None,
-                }
-            )
-
-        return Response({"providers": providers})
 
 
 @control_silo_endpoint
@@ -86,28 +35,20 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     def post(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
-        if not features.has(MONITORING_PROVIDER_FEATURE, organization, actor=request.user):
+        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
-
-        if request.user.id is None:
-            return Response(status=401)
 
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
 
-        config: dict[str, str] = {}
-        if provider_key == "datadog":
-            site = request.data.get("site")
-            if not site:
-                return Response(
-                    {"detail": "Datadog requires a 'site' parameter (e.g. 'datadoghq.com')."},
-                    status=400,
-                )
-            config["site"] = site
+        provider_type = identity_manager.get(provider_key)
+        try:
+            config = provider_type.get_pipeline_config(request.data)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=400)
 
-        # Datadog: the IdentityProvider is auto-created during the pipeline
         idp: IdentityProvider | None = None
-        if provider_key != "datadog":
+        if not provider_type.auto_create_provider_model:
             idp, _ = IdentityProvider.objects.get_or_create(type=provider_key, external_id="")
 
         pipeline = IdentityPipeline(
@@ -133,12 +74,8 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
     def delete(
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
-        if not features.has(MONITORING_PROVIDER_FEATURE, organization, actor=request.user):
+        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
             return Response(status=404)
-
-        user_id = request.user.id
-        if user_id is None:
-            return Response(status=401)
 
         if provider_key not in MONITORING_PROVIDERS:
             return Response({"detail": "Unknown monitoring provider."}, status=400)
@@ -146,7 +83,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         identities = list(
             Identity.objects.filter(
                 idp__type=provider_key,
-                user_id=user_id,
+                user_id=request.user.id,  # type: ignore[misc]
             )
         )
 

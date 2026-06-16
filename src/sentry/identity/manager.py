@@ -1,7 +1,7 @@
 __all__ = ["IdentityManager"]
 
-
 from sentry.exceptions import NotRegistered
+from sentry.identity.base import Provider
 
 
 class IdentityManager:
@@ -18,7 +18,7 @@ class IdentityManager:
             if provider.is_configured():
                 yield provider
 
-    def get(self, key, **kwargs):
+    def get(self, key: str, **kwargs) -> Provider:
         try:
             cls = self.__values[key]
         except KeyError:
