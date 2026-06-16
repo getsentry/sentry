@@ -59,6 +59,9 @@ from sentry.seer.agent.utils import (
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    BaselineTagDistributionEntry,
+    BaselineTagDistributionResponse,
+    ComparativeAttributeDistributionsResponse,
     EAPTrace,
     EmptyResponse,
     EventDetailsResponse,
@@ -2123,7 +2126,7 @@ def get_baseline_tag_distribution(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> dict[str, Any] | None:
+) -> BaselineTagDistributionResponse:
     """
     Get baseline tag distribution for suspect attributes analysis.
 
@@ -2158,7 +2161,7 @@ def get_baseline_tag_distribution(
     )
 
     if not tag_keys:
-        return {"baseline_tag_distribution": []}
+        return BaselineTagDistributionResponse(baseline_tag_distribution=[])
 
     # Use first/last seen if date params are not provided.
     start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
@@ -2226,15 +2229,11 @@ def get_baseline_tag_distribution(
             combined_counts[key] = combined_counts.get(key, 0) + result["count"]
 
     baseline_distribution = [
-        {
-            "tag_key": tag_key,
-            "tag_value": tag_value,
-            "count": count,
-        }
+        BaselineTagDistributionEntry(tag_key=tag_key, tag_value=tag_value, count=count)
         for (tag_key, tag_value), count in combined_counts.items()
     ]
 
-    return {"baseline_tag_distribution": baseline_distribution}
+    return BaselineTagDistributionResponse(baseline_tag_distribution=baseline_distribution)
 
 
 def get_comparative_attribute_distributions(
@@ -2251,7 +2250,7 @@ def get_comparative_attribute_distributions(
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-) -> dict[str, Any] | None:
+) -> ComparativeAttributeDistributionsResponse:
     """
     Fetch span attribute distributions for a selected time range (minute precision) compared to a baseline (defined by start/end/stats_period params).
     The selected range should be smaller and within the larger range. This is not validated.
@@ -2320,13 +2319,13 @@ def get_comparative_attribute_distributions(
         query_2=query_2,
     )
 
-    return {
-        "baseline_distribution": distributions_result["cohort_2_distribution"],
-        "total_baseline": distributions_result["total_cohort_2"],
-        "outliers_distribution": distributions_result["cohort_1_distribution"],
-        "total_outliers": distributions_result["total_cohort_1"],
-        "outliers_function_value": distributions_result["cohort_1_function_value"],
-    }
+    return ComparativeAttributeDistributionsResponse(
+        baseline_distribution=distributions_result["cohort_2_distribution"],
+        total_baseline=distributions_result["total_cohort_2"],
+        outliers_distribution=distributions_result["cohort_1_distribution"],
+        total_outliers=distributions_result["total_cohort_1"],
+        outliers_function_value=distributions_result["cohort_1_function_value"],
+    )
 
 
 def get_dsn(

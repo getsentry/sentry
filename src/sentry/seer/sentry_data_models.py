@@ -435,6 +435,7 @@ class ExecuteQueryErrorResponse(BaseModel):
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
+<<<<<<< HEAD
 
 
 class _DictProxyMixin(BaseModel):
@@ -563,3 +564,81 @@ class UpdatePrMetricsErrorResponse(BaseModel):
 
     success: Literal[False] = False
     error: str
+
+
+class BaselineTagDistributionEntry(BaseModel):
+    tag_key: str
+    tag_value: str
+    count: int
+
+    # Inline dict-proxy: lets test sites and seer callers read entries with
+    # `entry["tag_key"]` until they're migrated to attribute access.
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class BaselineTagDistributionResponse(BaseModel):
+    """`get_baseline_tag_distribution` returns
+    `{"baseline_tag_distribution": [{tag_key, tag_value, count}, ...]}`."""
+
+    baseline_tag_distribution: list[BaselineTagDistributionEntry]
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class ComparativeAttributeDistributionsResponse(BaseModel):
+    """`get_comparative_attribute_distributions` returns a baseline vs outliers
+    pair of attribute-value distributions. Each distribution is a list of
+    `(attribute_name, label, value)` triples passed through from the spans
+    frequency-stats endpoint (`query_attribute_distributions`)."""
+
+    baseline_distribution: list[tuple[str, str, float]]
+    total_baseline: int
+    outliers_distribution: list[tuple[str, str, float]]
+    total_outliers: int
+    outliers_function_value: float | None
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class IssuesStatsResponse(BaseModel):
+    """`get_issues_stats` returns the issues-stats API response verbatim — a list
+    of dicts with `id, count, userCount, firstSeen, lastSeen, stats, lifetime`.
+    Items are passed through since the issues-stats shape is wider than the
+    documented contract and the seer caller treats it as a record stream."""
+
+    __root__: list[dict[str, Any]]
+
+    def dict(self, **kwargs: Any) -> Any:
+        # Unwrap to the bare list the dispatcher previously returned.
+        return list(self.__root__)
+
+    # List-like proxy so callers can treat the response like the list it
+    # serializes to.
+    def __iter__(self) -> Any:
+        return iter(self.__root__)
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+    def __getitem__(self, idx: int) -> Any:
+        return self.__root__[idx]
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, list):
+            return list(self.__root__) == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
