@@ -299,7 +299,6 @@ export function AutofixRepositoriesItem({
                         {t('Add Override')}
                       </Button>
                     </Flex>
-
                   </Stack>
                 )}
               </form.AppField>
