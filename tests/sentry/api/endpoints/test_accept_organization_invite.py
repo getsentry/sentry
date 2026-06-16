@@ -332,7 +332,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         self.login_as(user)
         Factories.create_member(user=user, organization=self.organization, role="member")
 
-        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_MONOLITH_REGION):
+        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_FALLBACK_CELL):
             other_organization = self.create_organization(
                 owner=self.create_user("otherowner@example.com")
             )
