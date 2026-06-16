@@ -116,7 +116,7 @@ def compare_rebalanced_projects_with_cache(
             "dynamic_sampling.per_org.project_balancing_comparison",
             extra={
                 "org_id": config.organization.id,
-                "dynamic_sampling_project_id": project_id,
+                "ds_proj_id": project_id,
                 "generic_metrics_sample_rate": generic_metrics_sample_rate,
                 "eap_sample_rate": eap_sample_rate,
                 "relative_deviation": get_relative_deviation(
@@ -148,7 +148,7 @@ def _emit_project_balancing_debug_metrics(
     eap_volume: float,
     eap_volume_without_extrapolation: float | None,
 ) -> None:
-    tags = {"org_id": str(org_id), "dynamic_sampling_project_id": str(project_id)}
+    tags = {"org_id": str(org_id), "ds_proj_id": str(project_id)}
     metrics.distribution(
         f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_sample_rate",
         eap_sample_rate,
@@ -294,7 +294,7 @@ def compare_rebalanced_transactions_with_cache(
             "dynamic_sampling.per_org.transaction_balancing_implicit_comparison",
             extra={
                 "org_id": config.organization.id,
-                "dynamic_sampling_project_id": project_id,
+                "ds_proj_id": project_id,
                 "generic_metrics_implicit_rate": generic_metrics_implicit_rate,
                 "eap_implicit_rate": eap_implicit_rate,
                 "relative_deviation": get_relative_deviation(
@@ -315,7 +315,7 @@ def compare_rebalanced_transactions_with_cache(
                 "dynamic_sampling.per_org.transaction_balancing_comparison",
                 extra={
                     "org_id": config.organization.id,
-                    "dynamic_sampling_project_id": project_id,
+                    "ds_proj_id": project_id,
                     "transaction": transaction,
                     "generic_metrics_sample_rate": generic_metrics_rate,
                     "eap_sample_rate": item.new_sample_rate,
