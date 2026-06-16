@@ -132,14 +132,16 @@ table.insert(latency_table, {"redirect_step_latency_ms", redirect_end_time_ms - 
 
 local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
 local ingested_byte_count = tonumber(redis.call("get", ingested_byte_count_key) or 0)
+local child_ibc_table = {}
 
 for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     local span_id = ARGV[i]
     if span_id ~= parent_span_id then
         local child_set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
         local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
-        local child_ibc = tonumber(redis.call("get", child_ibc_key) or 0)
-        byte_count = byte_count + child_ibc
+        local child_ibc = redis.call("get", child_ibc_key)
+        byte_count = byte_count + tonumber(child_ibc or 0)
+        child_ibc_table[i] = child_ibc
     end
 end
 
@@ -181,7 +183,9 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
         end
 
         local child_ibc_key = string.format("span-buf:ibc:%s", child_set_key)
-        local child_ibc = redis.call("get", child_ibc_key)
+        -- The child_ibc_table variable has the same order as our loop allowing us to index into
+        -- the array.
+        local child_ibc = child_ibc_table[i]
         if child_ibc then
             -- byte_count already holds the child's byte count, so we don't need to add again
             redis.call("del", child_ibc_key)
