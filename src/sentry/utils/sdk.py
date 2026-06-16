@@ -380,7 +380,7 @@ def configure_sdk():
             self._capture_anything("capture_event", event)
 
         def _capture_anything(self, method_name, *args, **kwargs):
-            if transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+            if transport:
                 # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
@@ -389,16 +389,15 @@ def configure_sdk():
                     relay_envelope.items = envelope.items.copy()
                     args = (relay_envelope, *args_list[1:])
 
-                if transport:
-                    if is_current_event_safe():
-                        metrics.incr("internal.captured.events.relay")
-                        getattr(transport, method_name)(*args, **kwargs)
-                    else:
-                        metrics.incr(
-                            "internal.uncaptured.events.relay",
-                            skip_internal=False,
-                            tags={"reason": "unsafe"},
-                        )
+                if is_current_event_safe():
+                    metrics.incr("internal.captured.events.relay")
+                    getattr(transport, method_name)(*args, **kwargs)
+                else:
+                    metrics.incr(
+                        "internal.uncaptured.events.relay",
+                        skip_internal=False,
+                        tags={"reason": "unsafe"},
+                    )
 
         def record_lost_event(self, *args, **kwargs):
             if transport:
