@@ -307,9 +307,19 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             feedback=None,
         )
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_pr_iteration_requires_feature_flag(self, mock_trigger_explorer):
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_requires_feature_flag(self, mock_client_class):
         group = self.create_group()
+        mock_client = mock_client_class.return_value
+        # Run state with no ``pr_iteration_enabled`` metadata so, with the flag
+        # off, trigger_autofix_agent raises PrIterationNotEnabledException.
+        mock_client.get_run.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            metadata={"group_id": group.id},
+        )
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -319,7 +329,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 403, response.data
-        mock_trigger_explorer.assert_not_called()
+        mock_client.continue_run.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
