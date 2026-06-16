@@ -87,6 +87,7 @@ def _configure_test_env_cells() -> None:
 
     settings.SENTRY_LOCAL_CELL = cell_name
     settings.SENTRY_MONOLITH_REGION = cell_name
+    settings.SENTRY_FALLBACK_CELL = cell_name
 
     # This not only populates the environment with the default cell, but also
     # ensures that a TestEnvCellDirectory instance is injected into global state.
