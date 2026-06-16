@@ -455,12 +455,12 @@ class Release(Model):
         return release
 
     @classmethod
-    def get_or_create(cls, project, version, date_added=None):
+    def get_or_create(cls, project, version, date_added=None, *, create=True):
         with metrics.timer("models.release.get_or_create") as metric_tags:
-            return cls._get_or_create_impl(project, version, date_added, metric_tags)
+            return cls._get_or_create_impl(project, version, date_added, metric_tags, create)
 
     @classmethod
-    def _get_or_create_impl(cls, project, version, date_added, metric_tags):
+    def _get_or_create_impl(cls, project, version, date_added, metric_tags, create=True):
         from sentry.models.project import Project
 
         if date_added is None:
@@ -488,6 +488,11 @@ class Release(Model):
                 except IndexError:
                     release = releases[0]
                 metric_tags["created"] = "false"
+            elif not create:
+                # Auto-creation is disabled and no release exists yet. Don't cache the
+                # miss so a release created later (e.g. via the CLI) is found next time.
+                metric_tags["created"] = "false"
+                return None
             else:
                 try:
                     with atomic_transaction(using=router.db_for_write(cls)):
