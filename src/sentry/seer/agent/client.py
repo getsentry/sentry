@@ -12,6 +12,7 @@ from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
 from rest_framework.request import Request
+from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
@@ -28,12 +29,14 @@ from sentry.models.project import Project
 from sentry.seer.agent.client_models import AgentRun, AgentRunWithPrs, SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
+    AgentReposRequest,
     AgentRunsRequest,
     AgentUpdateRequest,
     collect_user_org_context,
     fetch_run_status,
     get_proxy_headers,
     make_agent_chat_request,
+    make_agent_repos_request,
     make_agent_runs_request,
     make_agent_update_request,
     poll_until_done,
@@ -770,6 +773,13 @@ class SeerAgentClient:
         Model = AgentRunWithPrs if expand == "prs" else AgentRun
         runs = [Model(**run) for run in result.get("data", [])]
         return runs
+
+    def get_repos(self, run_id: int) -> BaseHTTPResponse:
+        body = AgentReposRequest(
+            run_id=run_id,
+            organization_id=self.organization.id,
+        )
+        return make_agent_repos_request(body, viewer_context=self.viewer_context)
 
     def push_changes(
         self,
