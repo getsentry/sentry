@@ -2,9 +2,10 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, TypedDict
+from typing import Any
 
 import sentry_sdk
+from pydantic import BaseModel
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import EventSerializer
@@ -27,7 +28,7 @@ class NoProjectsForRepoError(Exception):
     """Raised when a repo exists but has no Sentry projects via code mappings."""
 
 
-class SeerResponseError(TypedDict):
+class SeerResponseError(BaseModel):
     error: str
 
 
@@ -59,7 +60,7 @@ class RepoProjects(RepoInfo):
     projects: list[Project]
 
 
-class SeerResponse(TypedDict):
+class SeerResponse(BaseModel):
     issues: list[int]
     issues_full: list[dict[str, Any]]
 
@@ -148,10 +149,7 @@ def bulk_serialize_for_seer(groups: list[Group]) -> SeerResponse:
     issue_ids = [issue["id"] for issue in issues_full]
     for issue in issues_full:
         issue["id"] = str(issue["id"])
-    return {
-        "issues": issue_ids,
-        "issues_full": issues_full,
-    }
+    return SeerResponse(issues=issue_ids, issues_full=issues_full)
 
 
 def _group_by_short_id(short_id: str, organization_id: int) -> Group | None:

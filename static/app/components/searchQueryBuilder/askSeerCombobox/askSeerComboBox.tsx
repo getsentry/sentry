@@ -140,7 +140,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     ...props.askSeerMutationOptions,
     onError: (error, variables, onMutateResult, context) => {
       props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
-      addErrorMessage(t('Seer was unable to process your search. Please try again.'));
+      addErrorMessage(t('Seer failed to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,

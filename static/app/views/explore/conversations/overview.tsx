@@ -29,6 +29,7 @@ import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {useExploreSchemaHintsRemoval} from 'sentry/views/explore/useExploreSchemaHintsRemoval';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
@@ -91,6 +92,8 @@ function ConversationsOverviewPage() {
     [searchQuery, setSearchQuery, unsetCursor]
   );
 
+  const schemaHintsRemoval = useExploreSchemaHintsRemoval();
+
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
@@ -120,7 +123,7 @@ function ConversationsOverviewPage() {
                 </Flex>
               )}
             </Flex>
-            {!showOnboarding && !isOnboardingLoading && (
+            {!showOnboarding && !schemaHintsRemoval && !isOnboardingLoading && (
               <SchemaHintsList
                 supportedAggregates={DISABLE_AGGREGATES}
                 booleanTags={booleanTags}

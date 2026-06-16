@@ -8,14 +8,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -670,7 +663,9 @@ describe('IssueList', () => {
         initialRouterConfig,
       });
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
     };
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async () => {
