@@ -7,12 +7,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.helpers.deprecation import deprecated
-from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
-from sentry.seer.agent.client_utils import AgentReposRequest, make_agent_repos_request
 from sentry.seer.models import SeerApiError, SeerPermissionError
 
 
@@ -23,7 +20,6 @@ class GroupAutofixReposEndpoint(GroupAiEndpoint):
     }
     owner = ApiOwner.ML_AI
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix-repos"])
     def get(self, request: Request, group: Group) -> Response:
         try:
             client = SeerAgentClient(
@@ -44,13 +40,8 @@ class GroupAutofixReposEndpoint(GroupAiEndpoint):
 
         run_id = runs[0].run_id
 
-        body = AgentReposRequest(
-            run_id=run_id,
-            organization_id=group.organization.id,
-        )
-
         try:
-            response = make_agent_repos_request(body)
+            response = client.get_repos(run_id)
         except Exception:
             return Response(
                 {"detail": "Failed to reach Seer"},
