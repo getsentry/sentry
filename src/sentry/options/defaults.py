@@ -3680,13 +3680,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When True, publish_action writes to the GroupActionLogEntry table.
-register(
-    "issues.action-log.write-to-db",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
 register(

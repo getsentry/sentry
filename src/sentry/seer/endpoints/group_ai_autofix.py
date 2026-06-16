@@ -354,8 +354,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     TriggerAutofixAction(),
                     source=resolve_action_source(request),
                     group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
+                    project=group.project,
                     actor=resolve_action_actor(request),
                 )
                 # Kickoff returns only the numeric id; fetch the mirror for its UUID.
