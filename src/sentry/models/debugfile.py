@@ -41,7 +41,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
-from sentry.models.files.utils import MAX_FILE_SIZE, clear_cached_files
+from sentry.models.files.utils import clear_cached_files
 from sentry.objectstore import get_debug_files_session
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -58,7 +58,7 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
-OBJECTSTORE_MULTIPART_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
+OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
 
 
 class BadDif(Exception):
@@ -414,7 +414,7 @@ def _upload_dif_to_objectstore(
     upload = session.initiate_multipart_upload(content_type=content_type)
 
     lock = threading.Lock()
-    num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_PART_SIZE))
+    num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE))
 
     def put_part_with_retry(
         upload: MultipartUpload, chunk: bytes, part_number: int
@@ -429,10 +429,10 @@ def _upload_dif_to_objectstore(
         raise AssertionError("unreachable")
 
     def read_and_put_part(part_number: int) -> CompletePart | None:
-        offset = (part_number - 1) * OBJECTSTORE_MULTIPART_PART_SIZE
+        offset = (part_number - 1) * OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE
         with lock:
             fileobj.seek(offset)
-            chunk = fileobj.read(OBJECTSTORE_MULTIPART_PART_SIZE)
+            chunk = fileobj.read(OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE)
         if not chunk:
             return None
         return put_part_with_retry(upload, chunk, part_number)
@@ -447,25 +447,14 @@ def _upload_dif_to_objectstore(
         storage_path = upload.complete(parts)
         return storage_path
     except Exception:
-        try:
-            upload.abort()
-        except (RequestError, HTTPError):
-            logger.warning("debugfile.objectstore_multipart_abort_failed")
+        logger.exception("Failed to upload debug file to Objectstore")
         raise
-
-
-def _delete_source_file_if_unreferenced(file: File) -> None:
-    """Deletes the File model instance, silently ignoring if it's still referenced by another row."""
-    try:
-        file.delete()
-    except ProtectedError:
-        pass
 
 
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
-    fileobj: IO[bytes] | None = None,
+    fileobj: BinaryIO | None = None,
     file: File | None = None,
 ) -> tuple[ProjectDebugFile, bool]:
     """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
@@ -478,7 +467,7 @@ def create_dif_from_id(
     a `storage_path` exists, and set the `ContentType` according to the provided :class:DifMeta`.
 
     It can be passed either an existing `File` model, or an actual stream of bytes, depending on
-    whether the a `File` already exists.
+    whether the `File` already exists.
 
     Returns a tuple of `(dif, created)` where `dif` is the `ProjectDebugFile` instance and
     `created` is a bool.
@@ -508,8 +497,8 @@ def create_dif_from_id(
         file_size = file.size
         checksum = file.checksum
     elif fileobj is not None:
-        h = hashlib.sha1()
         file_size = 0
+        h = hashlib.sha1()
         while True:
             chunk = fileobj.read(16384)
             if not chunk:
@@ -520,9 +509,6 @@ def create_dif_from_id(
         fileobj.seek(0, 0)
     else:
         raise RuntimeError("missing file object")
-
-    if checksum is None:
-        raise RuntimeError("missing file checksum")
 
     dif = (
         ProjectDebugFile.objects.select_related("file")
@@ -539,15 +525,10 @@ def create_dif_from_id(
     content_type = DIF_MIMETYPES[meta.file_format]
 
     if features.has("organizations:objectstore-debugfiles-write", project.organization):
-        if file_size is not None and file_size > MAX_FILE_SIZE:
-            raise BadDif(f"Object exceeds maximum size ({file_size} > {MAX_FILE_SIZE})")
-
         session = get_debug_files_session(project.organization_id, project.id)
         if file is not None:
-            with file.getfile() as source_fileobj:
-                storage_path = _upload_dif_to_objectstore(
-                    session, source_fileobj, content_type, file_size
-                )
+            with file.getfile() as source:
+                storage_path = _upload_dif_to_objectstore(session, source, content_type, file_size)
         elif fileobj is not None:
             storage_path = _upload_dif_to_objectstore(session, fileobj, content_type, file_size)
         else:
@@ -574,9 +555,6 @@ def create_dif_from_id(
             project_id=project.id,
             data=meta.data,
         )
-
-        if file is not None:
-            _delete_source_file_if_unreferenced(file)
 
         # The DIF we've just created might actually be removed here again. But since
         # this can happen at any time in near or distant future, we don't care and
