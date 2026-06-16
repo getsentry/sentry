@@ -1,5 +1,5 @@
-import {Fragment} from 'react';
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import {Fragment, useCallback} from 'react';
+import {useInfiniteQuery, useQuery, type InfiniteData} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -20,7 +20,7 @@ import {IconBranch} from 'sentry/icons/iconBranch';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {useFetchAllPages, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSelectProjectOptions';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
@@ -35,7 +35,10 @@ import {
   PROJECT_STOPPING_POINT_OPTIONS,
   useOrgDefaultStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
-import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
+import type {
+  AutofixAgentSelectOption,
+  SeerProjectSettingResponse,
+} from 'sentry/utils/seer/types';
 import {
   AutofixSettingsPartialSaveError,
   useMutateAutofixProject,
@@ -388,17 +391,20 @@ function useUnconfiguredProjects({projects}: {projects: Project[]}) {
         per_page: 100,
       },
     }),
-    select: ({pages}) => {
-      const configuredProjects = Array.from(
-        new Set(
-          pages
-            .flatMap(page => page.json)
-            .filter(setting => setting.reposCount > 0)
-            .map(setting => String(setting.projectId))
-        )
-      );
-      return projects.filter(p => !configuredProjects.includes(String(p.id)));
-    },
+    select: useCallback(
+      ({pages}: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>>) => {
+        const configuredProjects = Array.from(
+          new Set(
+            pages
+              .flatMap(page => page.json)
+              .filter(setting => setting.reposCount > 0)
+              .map(setting => String(setting.projectId))
+          )
+        );
+        return projects.filter(p => !configuredProjects.includes(String(p.id)));
+      },
+      [projects]
+    ),
   });
   useFetchAllPages({result});
   return result;
