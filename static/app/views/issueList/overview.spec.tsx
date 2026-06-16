@@ -983,4 +983,38 @@ describe('IssueList', () => {
       expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
     });
   });
+
+  describe('sort fallback notice', () => {
+    const routerConfig = {
+      location: {pathname: '/organizations/org-slug/issues/', query: {}},
+    };
+
+    it('shows a notice when the response signals a sort fallback', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+          'X-Sentry-Sort-Fallback': 'recommended_v2',
+        },
+      });
+
+      render(<IssueListOverview initialQuery="is:unresolved" />, {
+        organization,
+        initialRouterConfig: routerConfig,
+      });
+
+      expect(await screen.findByText(/simplified ranking/)).toBeInTheDocument();
+    });
+
+    it('shows no notice when the sort was applied normally', async () => {
+      render(<IssueListOverview initialQuery="is:unresolved" />, {
+        organization,
+        initialRouterConfig: routerConfig,
+      });
+
+      expect(await screen.findByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
+      expect(screen.queryByText(/simplified ranking/)).not.toBeInTheDocument();
+    });
+  });
 });

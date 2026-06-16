@@ -10,6 +10,7 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
@@ -154,6 +155,9 @@ function IssueListOverviewInner({
   const [pageLinks, setPageLinks] = useState('');
   const [queryCount, setQueryCount] = useState(0);
   const [queryMaxCount, setQueryMaxCount] = useState(0);
+  // The requested sort the backend couldn't fully honor (too many issues to rank);
+  // results fell back to a simplified ranking. Null when the sort was applied normally.
+  const [sortFallback, setSortFallback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
@@ -465,6 +469,7 @@ function IssueListOverviewInner({
       setIssuesSuccessfullyLoaded(true);
       setQueryCount(newQueryCount);
       setQueryMaxCount(newQueryMaxCount);
+      setSortFallback(resp.getResponseHeader('X-Sentry-Sort-Fallback'));
       setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
       // AI query analytics
@@ -968,6 +973,13 @@ function IssueListOverviewInner({
               onSortChange={onSortChange}
               onSearch={onSearch}
             />
+            {sortFallback && !issuesLoading && (
+              <Alert variant="info">
+                {t(
+                  'This search matched too many issues to fully sort. Showing a simplified ranking — narrow your search to sort them all.'
+                )}
+              </Alert>
+            )}
             <IssueListTable
               selection={selection}
               query={query}
