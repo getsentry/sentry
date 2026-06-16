@@ -300,34 +300,35 @@ export function AutofixRepositoriesItem({
                       </Button>
                     </Flex>
 
-                    {includeInstructions && (
-                      <AutoSaveForm
-                        name="instructions"
-                        schema={repoSchema}
-                        initialValue={repository.instructions}
-                        mutationOptions={mutationOptions}
-                      >
-                        {field => (
-                          <Stack gap="sm" borderTop="primary" paddingTop="lg">
-                            <Heading as="h4">{t('Context for Seer')}</Heading>
-                            <field.TextArea
-                              size="sm"
-                              rows={3}
-                              disabled={!canWrite}
-                              placeholder={t(
-                                'Add any general context or instructions to help Seer understand this repository...'
-                              )}
-                              value={field.state.value ?? ''}
-                              onChange={field.handleChange}
-                            />
-                          </Stack>
-                        )}
-                      </AutoSaveForm>
-                    )}
                   </Stack>
                 )}
               </form.AppField>
             </form.AppForm>
+
+            {includeInstructions && (
+              <AutoSaveForm
+                name="instructions"
+                schema={repoSchema}
+                initialValue={repository.instructions}
+                mutationOptions={mutationOptions}
+              >
+                {field => (
+                  <Stack gap="sm" borderTop="primary" paddingTop="lg">
+                    <Heading as="h4">{t('Context for Seer')}</Heading>
+                    <field.TextArea
+                      size="sm"
+                      rows={3}
+                      disabled={!canWrite}
+                      placeholder={t(
+                        'Add any general context or instructions to help Seer understand this repository...'
+                      )}
+                      value={field.state.value ?? ''}
+                      onChange={field.handleChange}
+                    />
+                  </Stack>
+                )}
+              </AutoSaveForm>
+            )}
           </Stack>
         </Container>
       )}
