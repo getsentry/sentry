@@ -13,6 +13,7 @@ import {
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -80,8 +81,72 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
   return markdownText;
 }
 
+// Mirror Seer's breadcrumb handling: only the most recent crumbs are kept, any
+// crumb whose message or data contains redacted (`[Filtered]`) content is
+// skipped, and both the per-crumb and total output sizes are capped the same
+// way so a pathological breadcrumb can't bloat the clipboard.
+const MAX_BREADCRUMBS = 10;
+const MAX_SINGLE_BREADCRUMB_CHARS = 500;
+const MAX_BREADCRUMBS_CHARS = 5000;
+
+function truncate(value: string, maxChars: number, suffix = '...'): string {
+  return value.length > maxChars ? `${value.slice(0, maxChars)}${suffix}` : value;
+}
+
+function formatBreadcrumbsToMarkdown(crumbs: RawCrumb[]): string {
+  const entries: string[] = [];
+
+  crumbs.slice(-MAX_BREADCRUMBS).forEach(crumb => {
+    const message = crumb.message ?? '';
+
+    // Drop empty values, matching Seer's `{k: v for k, v in data if v}`.
+    const data = crumb.data
+      ? Object.fromEntries(Object.entries(crumb.data).filter(([, value]) => value))
+      : null;
+    const dataStr = data && Object.keys(data).length > 0 ? JSON.stringify(data) : '';
+
+    if (message.includes('[Filtered]') || dataStr.includes('[Filtered]')) {
+      return;
+    }
+
+    const type = crumb.type || 'default';
+    const category = crumb.category ? ` \`${crumb.category}\`` : '';
+    const level = crumb.level ? ` [${crumb.level}]` : '';
+
+    // Seer caps the combined message + data per breadcrumb. Indent it under the
+    // header line so multi-line content stays within the markdown list item.
+    const content = truncate(
+      [message, dataStr].filter(Boolean).join('\n'),
+      MAX_SINGLE_BREADCRUMB_CHARS
+    );
+
+    const body = content
+      ? content
+          .split('\n')
+          .map(line => `\n  ${line}`)
+          .join('')
+      : '';
+    entries.push(`- **${type}**${category}${level}${body}`);
+  });
+
+  if (entries.length === 0) {
+    return '';
+  }
+
+  const section = truncate(
+    entries.join('\n'),
+    MAX_BREADCRUMBS_CHARS,
+    `\n... (breadcrumbs truncated to first ${MAX_BREADCRUMBS_CHARS.toLocaleString('en-US')} characters)`
+  );
+
+  return `\n## Breadcrumbs\n\n${section}\n`;
+}
+
 function formatEventToMarkdown(event: Event, activeThreadId: number | undefined): string {
   let markdownText = '';
+  // Collected separately so breadcrumbs always render after the exception /
+  // thread sections, regardless of the order entries appear in the event.
+  let breadcrumbsText = '';
 
   // Add tags
   if (event && Array.isArray(event.tags) && event.tags.length > 0) {
@@ -133,8 +198,12 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
         markdownText += '\n\n';
         markdownText += formatStacktraceToMarkdown(activeThread.stacktrace);
       }
+    } else if (entry.type === EntryType.BREADCRUMBS && entry.data.values) {
+      breadcrumbsText += formatBreadcrumbsToMarkdown(entry.data.values);
     }
   });
+
+  markdownText += breadcrumbsText;
 
   return markdownText;
 }
