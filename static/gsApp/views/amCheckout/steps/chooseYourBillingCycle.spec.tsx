@@ -104,7 +104,6 @@ describe('ChooseYourBillingCycle', () => {
       <AMCheckout
         {...RouteComponentPropsFixture()}
         api={api}
-        checkoutTier={PlanTier.AM3}
         location={location}
         navigate={jest.fn()}
       />,
