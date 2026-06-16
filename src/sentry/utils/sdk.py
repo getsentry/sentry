@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import copy
 import logging
 import sys
 import typing
@@ -27,7 +26,6 @@ from sentry_sdk.utils import logger as sdk_logger
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
-from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
 from sentry.viewer_context import set_viewer_context_organization
@@ -289,20 +287,6 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
     return None
 
 
-# Patches transport functions to add metrics to improve resolution around events sent to our ingest.
-# Leaving this in to keep a permanent measurement of sdk requests vs ingest.
-def patch_transport_for_instrumentation(transport, transport_name):
-    _send_request = transport._send_request
-    if _send_request:
-
-        def patched_send_request(*args, **kwargs):
-            metrics.incr(f"internal.sent_requests.{transport_name}.events")
-            return _send_request(*args, **kwargs)
-
-        transport._send_request = patched_send_request
-    return transport
-
-
 def _get_sdk_options() -> tuple[SdkConfig, str | None]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
@@ -333,19 +317,6 @@ def configure_sdk():
             settings.SPOTLIGHT_ENV_VAR if settings.SPOTLIGHT_ENV_VAR.startswith("http") else True
         )
 
-    internal_project_key = get_project_key()
-
-    if dsn:
-        transport = make_transport(get_options(dsn=dsn, **sdk_options))
-        transport = patch_transport_for_instrumentation(transport, "relay")
-    elif settings.IS_DEV and not settings.SENTRY_USE_RELAY:
-        transport = None
-    elif internal_project_key and internal_project_key.dsn_private:
-        transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
-        transport = patch_transport_for_instrumentation(transport, "relay")
-    else:
-        transport = None
-
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
         sdk_options["profile_session_sample_rate"] = float(
             settings.SENTRY_PROFILES_SAMPLE_RATE or 0
@@ -354,77 +325,6 @@ def configure_sdk():
     elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
-
-    class CustomTransport(sentry_sdk.transport.Transport):
-        def capture_envelope(self, envelope):
-            # Temporarily capture envelope counts to compare to ingested
-            # transactions.
-            metrics.incr("internal.captured.events.envelopes")
-            transaction = envelope.get_transaction_event()
-
-            if transaction:
-                metrics.incr("internal.captured.events.transactions")
-
-            # Assume only transactions get sent via envelopes
-            if options.get("transaction-events.force-disable-internal-project"):
-                return
-
-            self._capture_anything("capture_envelope", envelope)
-
-        def capture_event(self, event):
-            if event.get("type") == "transaction" and options.get(
-                "transaction-events.force-disable-internal-project"
-            ):
-                return
-
-            self._capture_anything("capture_event", event)
-
-        def _capture_anything(self, method_name, *args, **kwargs):
-            if not transport:
-                return
-
-            # If this is an envelope ensure envelope and its items are distinct references
-            if method_name == "capture_envelope":
-                args_list = list(args)
-                envelope = args_list[0]
-                relay_envelope = copy.copy(envelope)
-                relay_envelope.items = envelope.items.copy()
-                args = (relay_envelope, *args_list[1:])
-
-            if is_current_event_safe():
-                metrics.incr("internal.captured.events.relay")
-                getattr(transport, method_name)(*args, **kwargs)
-            else:
-                metrics.incr(
-                    "internal.uncaptured.events.relay",
-                    skip_internal=False,
-                    tags={"reason": "unsafe"},
-                )
-
-        def record_lost_event(self, *args, **kwargs):
-            if not transport:
-                return
-
-            record = getattr(transport, "record_lost_event", None)
-            if record:
-                record(*args, **kwargs)
-
-        def is_healthy(self):
-            if not transport:
-                return True
-
-            if not transport.is_healthy():
-                return False
-
-        def flush(
-            self,
-            timeout,
-            callback=None,
-        ):
-            if not transport:
-                return
-
-            getattr(transport, "flush")(timeout, callback)
 
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
@@ -456,7 +356,6 @@ def configure_sdk():
 
     sentry_sdk.init(
         dsn=dsn,
-        transport=CustomTransport,
         integrations=integrations,
         disabled_integrations=disabled_integrations,
         **sdk_options,
@@ -713,7 +612,6 @@ __all__ = (
     "isolation_scope",
     "make_transport",
     "merge_context_into_scope",
-    "patch_transport_for_instrumentation",
     "isolation_scope",
     "set_current_event_project",
     "traces_sampler",
