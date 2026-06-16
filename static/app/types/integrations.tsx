@@ -267,8 +267,7 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
-  // Each entry is a "Header-Name: value" line. Values are masked by the API for
-  // viewers without elevated access.
+  // Each entry is a "Header-Name: value" line. Saved values are masked by the API
   webhookHeaders?: string[];
 };
 
