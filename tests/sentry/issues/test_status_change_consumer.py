@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.action_log import ActionSource
 from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints
 from sentry.models.activity import Activity
@@ -240,6 +241,38 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             PriorityLevel.MEDIUM,
             group_inbox_reason=GroupInboxReason.ONGOING,
         )
+
+    @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
+    def test_valid_payload_regressed(self, mock_kick_off_status_syncs: MagicMock) -> None:
+        message = get_test_message_status_change(
+            self.project.id,
+            fingerprint=self.fingerprint,
+            new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.REGRESSED,
+        )
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as action_logs:
+            result = _process_message(message)
+        assert result is not None
+
+        self._assert_statuses_set(
+            GroupStatus.UNRESOLVED,
+            GroupSubStatus.REGRESSED,
+            GroupHistoryStatus.REGRESSED,
+            ActivityType.SET_REGRESSION,
+            group_inbox_reason=GroupInboxReason.REGRESSION,
+        )
+
+        # update_group_status publishes the regression via ACTIVITY_TYPE_TO_GROUP_ACTION,
+        # within the consumer's system action context.
+        records = [
+            r
+            for r in action_logs.records
+            if r.message == "group.action_log"
+            and getattr(r, "group_id") == str(self.group.id)
+            and getattr(r, "action") == "regressed"
+        ]
+        assert len(records) == 1
+        assert getattr(records[0], "source") == ActionSource.SYSTEM
 
 
 class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):

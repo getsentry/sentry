@@ -89,6 +89,8 @@ from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.action_log import ActionSource, publish_action
+from sentry.issues.action_log.types import RegressedAction
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -1843,6 +1845,12 @@ def _handle_regression(
             group,
             ActivityType.SET_REGRESSION,
             data=activity_data,
+        )
+        publish_action(
+            RegressedAction(),
+            source=ActionSource.SYSTEM,
+            group_id=group.id,
+            project=group.project,
         )
         record_group_history(group, GroupHistoryStatus.REGRESSED, actor=None, release=release)
 

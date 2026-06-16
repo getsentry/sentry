@@ -80,6 +80,8 @@ class GroupActionType(IntEnum):
     CREATE_PLATFORM_EXTERNAL_ISSUE = 21
     LINK_PLATFORM_EXTERNAL_ISSUE = 22
     UNLINK_PLATFORM_EXTERNAL_ISSUE = 23
+    # 24 is ESCALATING (in-flight in #117852)
+    REGRESSED = 25
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -112,6 +114,12 @@ class UnresolveAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNRESOLVE
+
+
+class RegressedAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.REGRESSED
 
 
 class ArchiveAction(GroupAction):

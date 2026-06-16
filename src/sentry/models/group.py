@@ -41,6 +41,7 @@ from sentry.issues.action_log import publish_action_from_context
 from sentry.issues.action_log.types import (
     ArchiveAction,
     GroupAction,
+    RegressedAction,
     ResolveAction,
     UnresolveAction,
 )
@@ -252,6 +253,7 @@ ACTIVITY_TYPE_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
     ActivityType.SET_RESOLVED_IN_RELEASE.value: ResolveAction,
     ActivityType.SET_IGNORED.value: ArchiveAction,
     ActivityType.SET_UNRESOLVED.value: UnresolveAction,
+    ActivityType.SET_REGRESSION.value: RegressedAction,
 }
 
 

@@ -46,6 +46,8 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import ActionSource
+from sentry.issues.action_log.types import RegressedAction
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceNPlusOneGroupType,
@@ -622,10 +624,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
+    @mock.patch("sentry.event_manager.publish_action")
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     @mock.patch("sentry.models.groupopenperiod.get_group_type_by_type_id")
     def test_unresolves_group(
-        self, mock_get_group_type: mock.MagicMock, send_robust: mock.MagicMock
+        self,
+        mock_get_group_type: mock.MagicMock,
+        send_robust: mock.MagicMock,
+        mock_publish_action: mock.MagicMock,
     ) -> None:
         mock_get_group_type.return_value = MetricIssue
         ts = before_now(minutes=5).isoformat()
@@ -680,6 +686,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
+
+        # The regression is recorded in the action log as a system action.
+        regression_publishes = [
+            call
+            for call in mock_publish_action.call_args_list
+            if call.args and isinstance(call.args[0], RegressedAction)
+        ]
+        assert len(regression_publishes) == 1
+        assert regression_publishes[0].kwargs["source"] == ActionSource.SYSTEM
+        assert regression_publishes[0].kwargs["group_id"] == group.id
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
