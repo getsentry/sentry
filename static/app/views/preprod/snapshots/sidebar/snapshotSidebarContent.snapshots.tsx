@@ -45,6 +45,7 @@ const statusCounts: Record<DiffStatus, number> = {
   [DiffStatus.REMOVED]: 0,
   [DiffStatus.RENAMED]: 0,
   [DiffStatus.UNCHANGED]: 2,
+  [DiffStatus.ERRORED]: 0,
   [DiffStatus.SKIPPED]: 0,
 };
 
@@ -70,6 +71,7 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
@@ -89,6 +91,7 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
@@ -107,6 +110,7 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
@@ -125,6 +129,7 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),

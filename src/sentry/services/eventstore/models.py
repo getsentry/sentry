@@ -56,6 +56,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
     Event backed by nodestore and Snuba.
     """
 
+    group: Group | None
+    group_id: int | None
+
     def __init__(
         self,
         project_id: int,
@@ -66,7 +69,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self.event_id = event_id
         self._snuba_data = snuba_data or {}
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         # do not pickle cached info.  We want to fetch this on demand
         # again.
@@ -84,7 +87,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @data.setter
     @abc.abstractmethod
-    def data(self, value: NodeData | Mapping[str, Any]):
+    def data(self, value: NodeData | Mapping[str, Any] | None) -> None:
         pass
 
     @property
@@ -482,7 +485,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         subject_template = self.project.get_option("mail:subject_template")
         if subject_template:
             template = EventSubjectTemplate(subject_template)
-        elif self.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
+        elif self.group and self.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
             template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
@@ -591,7 +594,7 @@ class Event(BaseEvent):
         self.groups = groups
         self.data = data
 
-    def __getstate__(self) -> Mapping[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = super().__getstate__()
         state.pop("_group_cache", None)
         state.pop("_groups_cache", None)
@@ -607,7 +610,7 @@ class Event(BaseEvent):
         return self._data
 
     @data.setter
-    def data(self, value: Mapping[str, Any]) -> None:
+    def data(self, value: Mapping[str, Any] | None) -> None:
         node_id = Event.generate_node_id(self.project_id, self.event_id)
         self._data = NodeData(
             node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
@@ -645,11 +648,15 @@ class Event(BaseEvent):
         return self._group_cache
 
     @group.setter
-    def group(self, group: Group) -> None:
-        self.group_id = group.id
-        self._group_cache = group
+    def group(self, group: Group | None) -> None:
+        if group is None:
+            self.group_id = None
+            self.__dict__.pop("_group_cache", None)
+        else:
+            self.group_id = group.id
+            self._group_cache = group
 
-    _groups_cache: Sequence[Group]
+    _groups_cache: Sequence[Group] | None
 
     @property
     def groups(self) -> Sequence[Group]:
@@ -680,7 +687,7 @@ class Event(BaseEvent):
         return groups
 
     @groups.setter
-    def groups(self, values: Sequence[Group] | None):
+    def groups(self, values: Sequence[Group] | None) -> None:
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
@@ -689,6 +696,8 @@ class Event(BaseEvent):
 
 
 class GroupEvent(BaseEvent):
+    group: Group
+
     def __init__(
         self,
         project_id: int,
@@ -703,12 +712,12 @@ class GroupEvent(BaseEvent):
         self.data = data
         self._occurrence = occurrence
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, GroupEvent):
             return False
         return other.event_id == self.event_id and other.group_id == self.group_id
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.group_id, self.event_id))
 
     @property
@@ -719,13 +728,21 @@ class GroupEvent(BaseEvent):
         # the whole codebase at once.
         return self.group.id
 
+    @group_id.setter
+    def group_id(self, value: int | None) -> None:
+        pass
+
     @property
     def data(self) -> NodeData:
         return self._data
 
     @data.setter
-    def data(self, value: NodeData) -> None:
-        self._data = value
+    def data(self, value: NodeData | Mapping[str, Any] | None) -> None:
+        if isinstance(value, NodeData):
+            self._data = value
+        else:
+            node_id = GroupEvent.generate_node_id(self.project_id, self.event_id)
+            self._data = NodeData(node_id, data=value)
 
     @classmethod
     def from_event(cls, event: Event, group: Group) -> GroupEvent:
@@ -759,7 +776,7 @@ class GroupEvent(BaseEvent):
     @property
     def occurrence_id(self) -> str | None:
         if self._occurrence:
-            return self.occurrence.id
+            return self._occurrence.id
 
         column = self._get_column_name(Columns.OCCURRENCE_ID)
         if column in self._snuba_data:
@@ -790,10 +807,11 @@ class EventSubjectTemplate(string.Template):
     idpattern = r"(tag:)?[_a-z][_a-z0-9]*"
 
 
-class EventSubjectTemplateData:
+class EventSubjectTemplateData(dict[str, str]):
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
-    def __init__(self, event: Event):
+    def __init__(self, event: BaseEvent):
+        super().__init__()
         self.event = event
 
     def __getitem__(self, name: str) -> str:
@@ -815,13 +833,15 @@ class EventSubjectTemplateData:
         elif name == "orgID":
             return self.event.organization.slug
         elif name == "title":
-            if getattr(self.event, "occurrence", None):
-                return self.event.occurrence.issue_title
+            occurrence = getattr(self.event, "occurrence", None)
+            if occurrence:
+                return occurrence.issue_title
             else:
                 return self.event.title
 
         elif name == "issueType":
-            return self.event.group.issue_type.description
+            if self.event.group:
+                return self.event.group.issue_type.description
         raise KeyError
 
 

@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -15,7 +15,7 @@ export function AskSeerFeedback() {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const {setDisplayAskSeerFeedback, askSeerNLQueryRef, askSeerSuggestedQueryRef} =
-    useSearchQueryBuilder();
+    useSearchQueryBuilderAI();
 
   const handleClick = (type: 'positive' | 'negative') => {
     trackAnalytics('ai_query.feedback', {

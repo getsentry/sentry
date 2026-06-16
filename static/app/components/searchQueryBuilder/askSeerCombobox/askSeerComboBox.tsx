@@ -28,11 +28,12 @@ import {
   generateQueryTokensString,
   isNoneOfTheseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -126,7 +127,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     autoSubmitSeer,
     setAutoSubmitSeer,
     enableAISearch,
-  } = useSearchQueryBuilder();
+  } = useSearchQueryBuilderAI();
 
   const analyticsArea = useAnalyticsArea();
 
@@ -139,11 +140,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     ...props.askSeerMutationOptions,
     onError: (error, variables, onMutateResult, context) => {
       props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
-      addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
+      addErrorMessage(t('Seer failed to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,
         natural_language_query: searchQuery,
+        status_code: error instanceof RequestError ? error.status : undefined,
       });
     },
   });
@@ -247,6 +249,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             start={item?.start}
             end={item?.end}
             visualizations={item?.visualizations}
+            expandedProjectIds={item?.expandedProjectIds}
+            interval={item?.interval}
           />
         </Item>
       );

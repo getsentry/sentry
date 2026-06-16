@@ -25,6 +25,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
@@ -34,7 +35,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
+    DetectorSerializer,
+    DetectorSerializerResponse,
+)
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
@@ -67,7 +71,9 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
         raise ResourceDoesNotExist
 
 
-def remove_detector(request: Request, organization: Organization, detector: Detector) -> Response:
+def remove_detector(
+    request: Request, organization: Organization, detector: Detector
+) -> Response[None]:
     """
     Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
     for backwards compatibility and can be moved back under DELETE after API deprecation.
@@ -170,7 +176,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.GET_DETECTOR,
     )
-    def get(self, request: Request, organization: Organization, detector: Detector) -> Response:
+    def get(
+        self, request: Request, organization: Organization, detector: Detector
+    ) -> Response[DetectorSerializerResponse]:
         """
         Return details on an individual monitor
         """
@@ -199,7 +207,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.UPDATE_DETECTOR,
     )
-    def put(self, request: Request, organization: Organization, detector: Detector) -> Response:
+    def put(
+        self, request: Request, organization: Organization, detector: Detector
+    ) -> Response[DetectorSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update an existing monitor
         """
@@ -214,11 +224,12 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         )
 
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
 
         updated_detector = validator.save()
 
-        return Response(serialize(updated_detector, request.user), status=status.HTTP_200_OK)
+        body: DetectorSerializerResponse = serialize(updated_detector, request.user)
+        return Response(body, status=status.HTTP_200_OK)
 
     @extend_schema(
         operation_id="Delete a Monitor",
@@ -232,7 +243,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, detector: Detector) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, detector: Detector
+    ) -> Response[None]:
         """
         Delete a monitor
         """

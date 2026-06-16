@@ -65,6 +65,10 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
 
       - name: Run snapshot tests
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
         run: pnpm run snapshots
 
       - name: Compute merge base SHA
@@ -78,7 +82,7 @@ jobs:
 
       - name: Install sentry-cli
         if: ${{ !cancelled() }}
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.4.0 sh
+        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.5.0 sh
 
       - name: Upload snapshots
         id: upload
@@ -89,7 +93,7 @@ jobs:
         run: |
           sentry-cli \
             --log-level=debug \
-            build snapshots "$SNAPSHOT_OUTPUT_DIR" \
+            snapshots upload "$SNAPSHOT_OUTPUT_DIR" \
             --app-id sentry-frontend \
             --project sentry-frontend \
             ${BASE_SHA:+--base-sha "$BASE_SHA"}

@@ -11,8 +11,12 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.models.activity import Activity
+from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import EmailMetricAlertHandler
+from sentry.notifications.notification_action.metric_alert_registry.handlers.email_metric_alert_handler import (
+    get_target,
+)
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_detector_serializer,
 )
@@ -38,6 +42,29 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         self.handler = EmailMetricAlertHandler()
+
+    def test_get_target_team_in_org(self) -> None:
+        organization = self.detector.project.organization
+        team = self.create_team(organization=organization)
+        notification_context = NotificationContext(
+            id=self.action.id,
+            target_identifier=str(team.id),
+            target_type=ActionTarget.TEAM,
+        )
+        assert get_target(organization, notification_context) == team
+
+    def test_get_target_team_foreign_org(self) -> None:
+        organization = self.detector.project.organization
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        notification_context = NotificationContext(
+            id=self.action.id,
+            target_identifier=str(other_team.id),
+            target_type=ActionTarget.TEAM,
+        )
+        assert get_target(organization, notification_context) is None
+        # The foreign team still exists; it simply isn't reachable cross-org.
+        assert Team.objects.filter(id=other_team.id).exists()
 
     @mock.patch(
         "sentry.notifications.notification_action.metric_alert_registry.handlers.email_metric_alert_handler.email_users"

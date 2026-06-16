@@ -54,7 +54,9 @@ class ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint(ProjectEndpoint):
         },
         examples=PreprodExamples.GET_SIZE_STATUS_CHECK_RULES,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[ProjectSizeStatusCheckRulesResponseDict]:
         r"""
         Retrieve the current Size Analysis status check rules configured for a project.
 

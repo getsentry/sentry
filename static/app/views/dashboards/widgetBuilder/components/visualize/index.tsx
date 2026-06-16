@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css, useTheme} from '@emotion/react';
@@ -8,17 +8,18 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import {
   DEPRECATED_FIELDS,
   generateFieldAsString,
@@ -54,6 +55,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import type {TraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
@@ -279,17 +281,11 @@ export function parseAggregateFromValueKey(value: string) {
 
 interface VisualizeProps {
   error?: Record<string, any>;
-  isEquationMode?: boolean;
-  onSetEquationMode?: (isEquationMode: boolean) => void;
   setError?: (error: Record<string, any>) => void;
+  traceMetricsVisualizeMode?: TraceMetricsVisualizeModeState;
 }
 
-export function Visualize({
-  error,
-  setError,
-  isEquationMode,
-  onSetEquationMode,
-}: VisualizeProps) {
+export function Visualize({error, setError, traceMetricsVisualizeMode}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const theme = useTheme();
@@ -308,6 +304,13 @@ export function Visualize({
   const canShowTraceMetricEquations =
     state.dataset === WidgetType.TRACEMETRICS &&
     canUseMetricsEquationsInDashboards(organization);
+
+  const {isEquationMode, handleModeToggle, equationSnapshot} =
+    traceMetricsVisualizeMode ?? {
+      isEquationMode: false,
+      handleModeToggle: () => {},
+      equationSnapshot: {current: null},
+    };
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -616,18 +619,26 @@ export function Visualize({
     tableFieldOptions,
   ]);
 
-  const handleEquationRemoved = useCallback(() => {
-    onSetEquationMode?.(false);
-  }, [onSetEquationMode]);
-
   return (
     <Fragment>
       <SectionHeader
         title={isTableWidget ? t('Columns') : t('Visualize')}
         tooltipText={tooltipText}
       />
+      {canShowTraceMetricEquations && (
+        <Container paddingBottom="md">
+          <SegmentedControl
+            value={isEquationMode ? 'equation' : 'series'}
+            onChange={value => handleModeToggle(value === 'equation')}
+            size="sm"
+          >
+            <SegmentedControl.Item key="series">{t('Series')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="equation">{t('Equation')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Container>
+      )}
       {isEquationMode && canShowTraceMetricEquations ? (
-        <MetricsEquationVisualize onEquationRemoved={handleEquationRemoved} />
+        <MetricsEquationVisualize equationSnapshot={equationSnapshot} />
       ) : (
         <Fragment>
           <StyledFieldGroup
@@ -1102,15 +1113,13 @@ export function Visualize({
                     ? t('+ Add Field')
                     : t('+ Add Column')}
               </AddButton>
-              {(datasetConfig.enableEquations || canShowTraceMetricEquations) && (
-                <AddButton
-                  variant="link"
-                  disabled={disableTransactionWidget}
-                  aria-label={t('Add Equation')}
-                  onClick={() => {
-                    if (canShowTraceMetricEquations) {
-                      onSetEquationMode?.(true);
-                    } else {
+              {datasetConfig.enableEquations &&
+                state.dataset !== WidgetType.TRACEMETRICS && (
+                  <AddButton
+                    variant="link"
+                    disabled={disableTransactionWidget}
+                    aria-label={t('Add Equation')}
+                    onClick={() => {
                       dispatch({
                         type: updateAction,
                         payload: [
@@ -1118,22 +1127,21 @@ export function Visualize({
                           {kind: FieldValueKind.EQUATION, field: ''},
                         ],
                       });
-                    }
 
-                    trackAnalytics('dashboards_views.widget_builder.change', {
-                      builder_version: WidgetBuilderVersion.SLIDEOUT,
-                      field: 'visualize.addEquation',
-                      from: source,
-                      new_widget: !isEditing,
-                      value: '',
-                      widget_type: state.dataset ?? '',
-                      organization,
-                    });
-                  }}
-                >
-                  {t('+ Add Equation')}
-                </AddButton>
-              )}
+                      trackAnalytics('dashboards_views.widget_builder.change', {
+                        builder_version: WidgetBuilderVersion.SLIDEOUT,
+                        field: 'visualize.addEquation',
+                        from: source,
+                        new_widget: !isEditing,
+                        value: '',
+                        widget_type: state.dataset ?? '',
+                        organization,
+                      });
+                    }}
+                  >
+                    {t('+ Add Equation')}
+                  </AddButton>
+                )}
             </AddButtons>
           )}
         </Fragment>

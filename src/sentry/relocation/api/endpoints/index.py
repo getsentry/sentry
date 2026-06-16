@@ -3,6 +3,7 @@ import re
 from datetime import timedelta
 from functools import reduce
 from string import Template
+from typing import Any
 
 from django.db import router
 from django.db.models import Q
@@ -22,7 +23,6 @@ from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.files.file import File
-from sentry.options import get
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.serializers.relocation import RelocationSerializer
 from sentry.relocation.models.relocation import Relocation, RelocationFile
@@ -53,7 +53,7 @@ RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
 RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2
 
 
-def get_relocation_size_category(size) -> str:
+def get_relocation_size_category(size: int) -> str:
     if size < RELOCATION_FILE_SIZE_SMALL:
         return "small"
     elif size < RELOCATION_FILE_SIZE_MEDIUM:
@@ -74,14 +74,14 @@ def should_throttle_relocation(relocation_bucket_size: str) -> bool:
         recent_relocation_files,
         0,
     )
-    if num_recent_same_size_relocation_files < get(
+    if num_recent_same_size_relocation_files < options.get(
         f"relocation.daily-limit.{relocation_bucket_size}"
     ):
         return False
     return True
 
 
-class RelocationsPostSerializer(serializers.Serializer):
+class RelocationsPostSerializer(serializers.Serializer[dict[str, Any]]):
     file = serializers.FileField(required=True)
     orgs = serializers.CharField(required=True, allow_blank=False, allow_null=False)
     owner = serializers.CharField(

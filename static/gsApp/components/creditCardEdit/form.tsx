@@ -1,4 +1,4 @@
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 import {PaymentIntentForm} from 'getsentry/components/creditCardEdit/intentForms/paymentIntentForm';
 import {SetupIntentForm} from 'getsentry/components/creditCardEdit/intentForms/setupIntentForm';

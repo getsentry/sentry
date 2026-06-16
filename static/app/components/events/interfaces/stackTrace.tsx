@@ -7,7 +7,8 @@ import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 
 import {StackTraceContent} from './crashContent/stackTrace';
 import {NoStackTraceMessage} from './noStackTraceMessage';

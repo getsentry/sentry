@@ -3,11 +3,13 @@ from __future__ import annotations
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -15,7 +17,19 @@ from sentry.api.helpers.environments import get_environment
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.api.utils import get_auth_api_token_type
+from sentry.apidocs.constants import (
+    RESPONSE_ALREADY_REPORTED,
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.release_examples import ReleaseExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
@@ -27,30 +41,41 @@ from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context
 
 
+@extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
-    def get(self, request: Request, project) -> Response:
+    @extend_schema(
+        operation_id="List a Project's Releases",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            GlobalParams.ENVIRONMENT,
+            ReleaseParams.QUERY,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListProjectReleasesResponse", list[ReleaseSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ReleaseExamples.LIST_PROJECT_RELEASES,
+    )
+    def get(self, request: Request, project) -> Response[list[ReleaseSerializerResponse]]:
         """
-        List a Project's Releases
-        `````````````````````````
-
         Retrieve a list of releases for a given project.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to list the
-                                     releases of.
-        :qparam string query: this parameter can be used to create a
-                              "starts with" filter for the version.
         """
         query = request.GET.get("query")
         try:
@@ -82,37 +107,35 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             ),
         )
 
-    def post(self, request: Request, project) -> Response:
+    @extend_schema(
+        operation_id="Create a New Release for a Project",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        request=ReleaseWithVersionSerializer,
+        responses={
+            201: inline_sentry_response_serializer(
+                "CreateProjectReleaseResponse", ReleaseSerializerResponse
+            ),
+            208: RESPONSE_ALREADY_REPORTED,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=ReleaseExamples.CREATE_RELEASE,
+    )
+    def post(
+        self, request: Request, project
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
-        Create a New Release for a Project
-        ``````````````````````````````````
+        Create a new release and/or associate a project with a release. Releases are used by
+        Sentry to improve error reporting by correlating first-seen events with the release
+        that may have introduced them, and are required for source maps and other debug
+        features.
 
-        Create a new release and/or associate a project with a release.
-        Release versions that are the same across multiple projects
-        within an Organization will be treated as the same release in Sentry.
-
-        Releases are used by Sentry to improve its error reporting abilities
-        by correlating first seen events with the release that might have
-        introduced the problem.
-
-        Releases are also necessary for sourcemaps and other debug features
-        that require manual upload for functioning well.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to create a
-                                     release for.
-        :param string version: a version identifier for this release.  Can
-                               be a version number, a commit hash etc.
-        :param string ref: an optional commit reference.  This is useful if
-                           a tagged version has been provided.
-        :param url url: a URL that points to the release.  This can be the
-                        path to an online interface to the sourcecode
-                        for instance.
-        :param datetime dateReleased: an optional date that indicates when
-                                      the release went live.  If not provided
-                                      the current time is assumed.
-        :auth: required
+        Release versions that are the same across multiple projects within an organization
+        are treated as the same release in Sentry.
         """
         bind_organization_context(project.organization)
         serializer = ReleaseWithVersionSerializer(
@@ -208,9 +231,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
             # Disable snuba here as it often causes 429s when overloaded and
             # a freshly created release won't have health data anyways.
-            return Response(
-                serialize(release, request.user, no_snuba_for_release_creation=True),
-                status=status,
+            data: ReleaseSerializerResponse = serialize(
+                release, request.user, no_snuba_for_release_creation=True
             )
+            return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
-        return Response(serializer.errors, status=400)
+        return Response(as_validation_errors(serializer), status=400)

@@ -1,14 +1,17 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const ASSET_DESCRIPTION_WIDGET: Widget = {
+const ASSET_DESCRIPTION_WIDGET: PrebuiltWidget = {
   id: 'domain-widget',
   title: t('Example Asset'),
   displayType: DisplayType.DETAILS,
@@ -229,7 +232,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   3
 );
 
-const ASSETS_TABLE_WIDGET: Widget = {
+const ASSETS_TABLE_WIDGET: PrebuiltWidget = {
   id: 'assets-table-widget',
   title: t('Pages Containing This Asset'),
   displayType: DisplayType.TABLE,

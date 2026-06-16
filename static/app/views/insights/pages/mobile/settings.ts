@@ -1,6 +1,6 @@
 import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {ValidSort} from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {ModuleName} from 'sentry/views/insights/types';

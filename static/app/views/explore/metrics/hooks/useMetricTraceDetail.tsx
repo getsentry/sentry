@@ -6,11 +6,13 @@ export function useMetricTraceDetail(props: {
   projectId: string;
   traceId: string;
   enabled?: boolean;
+  timestamp?: number;
 }) {
   return useTraceItemDetails({
     traceItemId: String(props.metricId),
     projectId: props.projectId,
     traceId: props.traceId,
+    timestamp: props.timestamp,
     traceItemType: TraceItemDataset.TRACEMETRICS,
     referrer: 'api.explore.metric-trace-detail',
     enabled: props.enabled,

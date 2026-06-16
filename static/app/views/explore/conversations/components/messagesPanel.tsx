@@ -1,11 +1,14 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -125,17 +128,26 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   onSelectNode={onSelectNode}
                 />
               )}
-              <StyledClippedBox
-                clipHeight={200}
-                buttonProps={{variant: 'secondary', size: 'xs'}}
-                collapsible
-              >
-                <Container padding="md">
-                  <MessageText size="sm" align="left">
-                    <AIContentRenderer text={message.content} inline />
-                  </MessageText>
-                </Container>
-              </StyledClippedBox>
+              {isAssistant && message.reasoning && (
+                <ReasoningSection reasoning={message.reasoning} />
+              )}
+              {message.content !== '' && (
+                <StyledClippedBox
+                  clipHeight={200}
+                  buttonProps={{variant: 'secondary', size: 'xs'}}
+                  collapsible
+                >
+                  <Container padding="md">
+                    <MessageText size="sm" align="left">
+                      <AIContentRenderer
+                        text={message.content}
+                        inline
+                        autoCollapseLimit={10}
+                      />
+                    </MessageText>
+                  </Container>
+                </StyledClippedBox>
+              )}
             </MessageBubble>
           );
         })}
@@ -154,17 +166,17 @@ const MessageHeader = styled('div')<{role: 'user' | 'assistant'}>`
 
   ${p =>
     p.role === 'assistant' &&
-    `
-    position: relative;
-    &::after {
-      content: '';
-      position: absolute;
-      left: ${p.theme.space.md};
-      right: ${p.theme.space.md};
-      bottom: 0;
-      border-bottom: 1px solid ${p.theme.tokens.border.primary};
-    }
-  `}
+    css`
+      position: relative;
+      &::after {
+        content: '';
+        position: absolute;
+        left: ${p.theme.space.md};
+        right: ${p.theme.space.md};
+        bottom: 0;
+        border-bottom: 1px solid ${p.theme.tokens.border.primary};
+      }
+    `}
 `;
 
 const MessageText = styled(Text)`
@@ -185,42 +197,78 @@ const MessageBubble = styled('div')<{
 
   ${p =>
     p.role === 'assistant'
-      ? `
-    background-color: ${p.theme.tokens.background.primary};
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: 1px solid ${p.theme.tokens.border.primary};
-      border-radius: inherit;
-      box-sizing: border-box;
-      z-index: 1;
-      pointer-events: none;
-    }
-  `
+      ? css`
+          background-color: ${p.theme.tokens.background.primary};
+          &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 1px solid ${p.theme.tokens.border.primary};
+            border-radius: inherit;
+            box-sizing: border-box;
+            z-index: 1;
+            pointer-events: none;
+          }
+        `
       : ''}
 
   ${p =>
     p.isClickable &&
-    `
-    cursor: pointer;
-    &:hover::after {
-      border-color: ${p.theme.tokens.border.accent.moderate};
-      border-width: 2px;
-    }
-  `}
+    css`
+      cursor: pointer;
+      &:hover::after {
+        border-color: ${p.theme.tokens.border.accent.moderate};
+        border-width: 2px;
+      }
+    `}
   ${p =>
     p.isSelected &&
-    `
-    &::after {
-      border-color: ${p.theme.tokens.focus.default};
-      border-width: 2px;
-    }
-    &:hover::after {
-      border-color: ${p.theme.tokens.focus.default};
-    }
-  `}
+    css`
+      &::after {
+        border-color: ${p.theme.tokens.focus.default};
+        border-width: 2px;
+      }
+      &:hover::after {
+        border-color: ${p.theme.tokens.focus.default};
+      }
+    `}
 `;
+
+function ReasoningSection({reasoning}: {reasoning: string}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <Fragment>
+      <Button
+        size="zero"
+        variant="link"
+        onClick={e => {
+          e.stopPropagation();
+          setIsExpanded(prev => !prev);
+        }}
+        aria-expanded={isExpanded}
+      >
+        <Flex align="center" gap="xs" padding="sm md 0" width="100%" justify="start">
+          <Text size="xs" variant="muted" monospace italic>
+            {t('Thinking...')}
+          </Text>
+          <IconChevron
+            direction={isExpanded ? 'down' : 'right'}
+            size="xs"
+            variant="muted"
+          />
+        </Flex>
+      </Button>
+      {isExpanded && (
+        <Container padding="md">
+          <MessageText size="sm" align="left" variant="muted" monospace italic>
+            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+          </MessageText>
+        </Container>
+      )}
+    </Fragment>
+  );
+}
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;

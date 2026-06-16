@@ -21,6 +21,14 @@ describe('javascript-tanstackstart-react onboarding docs', () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
+  it('initializes Sentry from a dedicated instrument.client.ts file imported in the client entry', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/import "\.\/instrument\.client"/))
+    ).toBeInTheDocument();
+  });
+
   it('displays sample rates when performance and replay are selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [

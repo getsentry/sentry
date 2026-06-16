@@ -18,7 +18,7 @@ export const docs: Docs = {
   }),
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/tanstackstart-react',
-    clientConfigFileName: 'src/router.tsx',
+    clientConfigFileName: 'src/instrument.client.ts',
     serverConfigFileName: 'app/ssr.tsx',
   }),
   logsOnboarding: logsFullStack({

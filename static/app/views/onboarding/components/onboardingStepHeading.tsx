@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -20,7 +21,7 @@ export const OnboardingStepHeading = styled(
 
   ${p =>
     p.step !== undefined &&
-    `
+    css`
       margin-left: calc(-${p.theme.space.xl} - 30px);
       display: inline-grid;
       grid-template-columns: max-content auto;

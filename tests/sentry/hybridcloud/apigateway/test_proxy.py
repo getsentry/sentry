@@ -1,10 +1,20 @@
+from collections.abc import Generator
+from typing import NoReturn
+from unittest.mock import Mock
 from urllib.parse import urlencode
 
 import httpx
+import pytest
+import responses
 from asgiref.sync import async_to_sync
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import JsonResponse
 from django.test.client import RequestFactory
+from requests import PreparedRequest
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import ConnectTimeout
 
+from sentry.hybridcloud.apigateway import proxy as sync_proxy
 from sentry.hybridcloud.apigateway_async.proxy import proxy_request as _proxy_request
 from sentry.silo.util import (
     INVALID_OUTBOUND_HEADERS,
@@ -17,16 +27,96 @@ from sentry.testutils.helpers.apigateway import (
     verify_request_body,
     verify_request_headers,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils import json
 
 proxy_request = async_to_sync(_proxy_request)
 url_name = "sentry-api-0-projets"
 
 
+@pytest.fixture(autouse=True)
+def close_sync_proxy_connection() -> Generator[None]:
+    # The proxy reuses a thread-local requests.Session for connection pooling.
+    # Reset it between tests so pooled connections and cookie state don't leak.
+    yield
+    connection = sync_proxy._connection
+    if hasattr(connection, "session"):
+        connection.session.close()
+        del connection.session
+
+
+def test_sync_response_closes_upstream_after_streaming() -> None:
+    response = Mock()
+    response.headers = {"Content-Type": "application/json"}
+    response.iter_content.return_value = iter([b'{"proxy": true}'])
+    response.status_code = 200
+
+    streaming_response = sync_proxy._parse_response(response, "http://us.internal.sentry.io/test")
+    assert close_streaming_response(streaming_response) == b'{"proxy": true}'
+    response.close.assert_called_once_with()
+
+
 @control_silo_test(cells=[ApiGatewayTestCase.CELL], include_monolith_run=True)
 class ProxyTestCase(ApiGatewayTestCase):
+    @responses.activate
+    def test_sync_pooling_does_not_persist_response_cookies(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/sets-cookie",
+            body=json.dumps({"proxy": True}),
+            content_type="application/json",
+            headers={"Set-Cookie": "cell_session=leaked; Path=/"},
+        )
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert "cell_session=leaked" not in request.headers.get("Cookie", "")
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.GET,
+            "http://us.internal.sentry.io/without-cookie",
+            callback=request_callback,
+        )
+
+        with override_options({"hybridcloud.apigateway.use_pooling.rate": 1.0}):
+            first_request = RequestFactory().get("http://sentry.io/sets-cookie")
+            first_response = sync_proxy.proxy_request(
+                first_request, self.organization.slug, url_name
+            )
+            assert first_response.status_code == 200
+            assert first_response["Set-Cookie"] == "cell_session=leaked; Path=/"
+            close_streaming_response(first_response)
+
+            second_request = RequestFactory().get("http://sentry.io/without-cookie")
+            second_response = sync_proxy.proxy_request(
+                second_request, self.organization.slug, url_name
+            )
+            assert second_response.status_code == 200
+            close_streaming_response(second_response)
+
+    @responses.activate
+    def test_sync_pooling_preserves_incoming_request_cookies(self) -> None:
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert request.headers.get("Cookie") == "original=1"
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.GET,
+            "http://us.internal.sentry.io/with-cookie",
+            callback=request_callback,
+        )
+
+        with override_options({"hybridcloud.apigateway.use_pooling.rate": 1.0}):
+            request = RequestFactory().get(
+                "http://sentry.io/with-cookie", headers={"Cookie": "original=1"}
+            )
+            response = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+            assert response.status_code == 200
+            close_streaming_response(response)
+
     def test_simple(self) -> None:
         request = RequestFactory().get("http://sentry.io/get")
         resp = proxy_request(request, self.organization.slug, url_name)
@@ -250,3 +340,87 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         resp = proxy_request(request, self.organization.slug, url_name)
         assert not any([header in resp for header in INVALID_OUTBOUND_HEADERS])
+
+    @responses.activate
+    def test_sync_connect_timeout_returns_500(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/unreachable",
+            body=ConnectTimeout("connection timed out"),
+        )
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Proxied request timed out"
+
+    @responses.activate
+    def test_sync_connection_error_returns_500(self) -> None:
+        responses.add(
+            responses.GET,
+            "http://us.internal.sentry.io/unreachable",
+            body=RequestsConnectionError("connection refused"),
+        )
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
+
+    def test_async_timeout_returns_500(self) -> None:
+        def raise_timeout(request: httpx.Request) -> NoReturn:
+            raise httpx.ConnectTimeout("connection timed out", request=request)
+
+        self.httpx_router.add_callback(
+            "GET", "http://us.internal.sentry.io/unreachable", raise_timeout
+        )
+
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Proxied request timed out"
+
+    def test_async_connection_error_returns_500(self) -> None:
+        def raise_connect_error(request: httpx.Request) -> NoReturn:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        self.httpx_router.add_callback(
+            "GET", "http://us.internal.sentry.io/unreachable", raise_connect_error
+        )
+
+        request = RequestFactory().get("http://sentry.io/unreachable")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        assert isinstance(resp, JsonResponse)
+        assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
+
+
+api_gateway_address_cell = Cell(
+    name="us",
+    snowflake_id=1,
+    address="http://sentry-rpc:8999",
+    api_gateway_address="http://sentry-api-gateway-rpc:8999",
+    category=RegionCategory.MULTI_TENANT,
+)
+
+
+@control_silo_test(cells=[api_gateway_address_cell], include_monolith_run=True)
+class ApiGatewayAddressProxyTestCase(ApiGatewayTestCase):
+    @responses.activate
+    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
+    def test_sync_post(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://sentry-api-gateway-rpc:8999/post",
+            body=json.dumps({"test": "header"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        resp_json = json.loads(close_streaming_response(resp))
+
+        assert resp.status_code == 200
+        assert resp_json["test"]
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)

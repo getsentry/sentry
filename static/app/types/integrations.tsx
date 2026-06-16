@@ -12,25 +12,16 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
-import type {ParsedOwnershipRule} from './group';
-import type {PlatformKey} from './project';
+import type {ParsedOwnershipRule} from './ownership';
+import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
-export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
-
-export type Permissions = {
-  Event: PermissionValue;
-  Member: PermissionValue;
-  Organization: PermissionValue;
-  Project: PermissionValue;
-  Release: PermissionValue;
-  Team: PermissionValue;
-  Alerts?: PermissionValue;
-  Distribution?: PermissionValue;
-};
-
-export type PermissionResource = keyof Permissions;
+export type {
+  PermissionValue,
+  Permissions,
+  PermissionResource,
+} from 'sentry/types/permissions';
 
 export type ExternalActorMapping = {
   externalName: string;
@@ -153,10 +144,13 @@ export type CommitFile = {
 };
 
 export type PullRequest = {
+  dateCreated: string;
   externalUrl: string;
   id: string;
+  message: string | null;
   repository: Repository;
-  title: string;
+  title: string | null;
+  author?: CommitAuthor;
 };
 
 /**
@@ -389,7 +383,6 @@ export interface IntegrationProvider extends BaseIntegrationProvider {
     noun: string;
     source_url: string;
   };
-  setupDialog: {height: number; url: string; width: number};
 }
 
 interface OrganizationIntegrationProvider extends BaseIntegrationProvider {

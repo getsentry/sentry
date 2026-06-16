@@ -1,266 +1,218 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import type {Location} from 'history';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token} from 'sentry/components/searchSyntax/parser';
-import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+import type {
+  AskSeerSearchQuery,
+  SeerRawResponse,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {
+  buildSeerMutationResult,
+  mapSeerResponseItem,
+  transformSeerResponse,
+  useInitialSeerQuery,
+  useSelectedProjectIds,
+  useSelectedProjectIdsForMutation,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {DateString} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
-import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import type {WritableAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {
+  LOGS_AGGREGATE_CURSOR_KEY,
+  LOGS_CURSOR_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_AGGREGATE_SORT_BYS_KEY,
+  LOGS_SORT_BYS_KEY,
+} from 'sentry/views/explore/contexts/logs/sortBys';
+import {
+  defaultVisualizes,
+  LOGS_AGGREGATE_FIELD_KEY,
+} from 'sentry/views/explore/logs/logsQueryParams';
+import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  getSeerExploreQuery,
+  getSeerWritableAggregateFields,
+} from 'sentry/views/explore/seerQuery';
 
-interface AskSeerSearchQuery {
-  end: string | null;
-  groupBys: string[];
-  mode: string;
-  query: string;
-  sort: string;
-  start: string | null;
-  statsPeriod: string;
+interface LogsSeerLocationQueryResult {
+  query: Location['query'];
+  seerQuery: ReturnType<typeof getSeerExploreQuery>;
 }
 
-interface LogsAskSeerTranslateResponse {
-  responses: Array<{
-    end: string | null;
-    group_by: string[];
-    mode: string;
-    query: string;
-    sort: string;
-    start: string | null;
-    stats_period: string;
-  }>;
-  unsupported_reason: string | null;
+export function getLogsSeerLocationQuery({
+  currentAggregateFields,
+  currentLocation,
+  pageDatetime,
+  result,
+}: {
+  currentAggregateFields: readonly AggregateField[];
+  currentLocation: Location;
+  pageDatetime: PageFilters['datetime'];
+  result: AskSeerSearchQuery;
+}): LogsSeerLocationQueryResult {
+  const seerQuery = getSeerExploreQuery({pageDatetime, result});
+  const targetLocation: Location = {
+    ...currentLocation,
+    query: {...currentLocation.query},
+  };
+
+  if (result.expandedProjectIds?.length) {
+    targetLocation.query.project = result.expandedProjectIds.map(String);
+  }
+
+  updateNullableLocation(targetLocation, LOGS_QUERY_KEY, seerQuery.query);
+  updateNullableLocation(targetLocation, 'mode', seerQuery.mode);
+  updateNullableLocation(
+    targetLocation,
+    'start',
+    seerQuery.datetime.start?.toString() ?? null
+  );
+  updateNullableLocation(
+    targetLocation,
+    'end',
+    seerQuery.datetime.end?.toString() ?? null
+  );
+  updateNullableLocation(targetLocation, 'statsPeriod', seerQuery.datetime.period);
+  updateNullableLocation(
+    targetLocation,
+    'utc',
+    seerQuery.datetime.utc?.toString() ?? null
+  );
+  // Only override the interval when Seer suggested one, otherwise leave
+  // the user's current interval untouched.
+  if (seerQuery.interval) {
+    targetLocation.query.interval = seerQuery.interval;
+  }
+  delete targetLocation.query[LOGS_CURSOR_KEY];
+  delete targetLocation.query[LOGS_AGGREGATE_CURSOR_KEY];
+
+  if (seerQuery.mode === Mode.AGGREGATE) {
+    const aggregateFields = getSeerWritableAggregateFields({
+      currentAggregateFields,
+      groupBys: seerQuery.groupBys,
+      visualizes: seerQuery.visualizes,
+      fallbackVisualizes: defaultVisualizes(true).map(visualize => visualize.serialize()),
+    });
+    targetLocation.query[LOGS_AGGREGATE_FIELD_KEY] = aggregateFields.map(field =>
+      JSON.stringify(field)
+    );
+    if (seerQuery.sort) {
+      targetLocation.query[LOGS_AGGREGATE_SORT_BYS_KEY] = [seerQuery.sort];
+    }
+    delete targetLocation.query[LOGS_SORT_BYS_KEY];
+  } else {
+    if (seerQuery.sort) {
+      targetLocation.query[LOGS_SORT_BYS_KEY] = [seerQuery.sort];
+    }
+    delete targetLocation.query[LOGS_AGGREGATE_SORT_BYS_KEY];
+    delete targetLocation.query[LOGS_AGGREGATE_FIELD_KEY];
+  }
+
+  return {
+    query: targetLocation.query,
+    seerQuery,
+  };
 }
 
 export function LogsTabSeerComboBox() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useQueryParams();
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
-  const {
-    currentInputValueRef,
-    query,
-    committedQuery,
-    askSeerSuggestedQueryRef,
-    enableAISearch,
-  } = useSearchQueryBuilder();
+  const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
-  let initialSeerQuery = '';
-  const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
-    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
-    return {parsedQuery, queryToUse};
-  }, [committedQuery, query]);
-
-  const inputValue = currentInputValueRef.current.trim();
-
-  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
-  const filteredCommittedQuery = queryDetails?.parsedQuery
-    ?.filter(
-      token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
-    )
-    ?.map(token => stringifyToken(token))
-    ?.join(' ')
-    ?.trim();
-
-  // Use filteredCommittedQuery if it has content.
-  // Only fall back to queryToUse when there's no inputValue to filter by.
-  // This prevents duplication when the entire query is free text matching inputValue.
-  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
-    initialSeerQuery = filteredCommittedQuery;
-  } else if (!inputValue && queryDetails?.queryToUse) {
-    initialSeerQuery = queryDetails.queryToUse;
-  }
-
-  if (inputValue) {
-    initialSeerQuery =
-      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
-  }
+  const initialSeerQuery = useInitialSeerQuery();
+  const selectedProjectIds = useSelectedProjectIds();
+  const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
 
   const logsTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
-      const selectedProjects =
-        pageFilters.selection.projects?.length > 0 &&
-        pageFilters.selection.projects?.[0] !== -1
-          ? pageFilters.selection.projects
-          : projects.filter(p => p.isMember).map(p => p.id);
-
       const user = ConfigStore.get('user');
-      const data = await fetchMutation<LogsAskSeerTranslateResponse>({
+      const data = await fetchMutation<SeerRawResponse>({
         url: `/organizations/${organization.slug}/search-agent/translate/`,
         method: 'POST',
         data: {
           org_id: organization.id,
           org_slug: organization.slug,
           natural_language_query: queryToSubmit,
-          project_ids: selectedProjects,
+          project_ids: selectedProjectIdsForMutation,
           strategy: 'Logs',
           user_email: user?.email,
         },
       });
 
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-          mode: r?.mode ?? 'samples',
-        })),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, response =>
+        mapSeerResponseItem(response)
+      );
     },
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: AskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number | string) => {
       if (!result) {
         return;
       }
-      const {
-        query: queryToUse,
-        groupBys,
-        statsPeriod,
-        start: resultStart,
-        end: resultEnd,
-      } = result;
+      const locationQuery = getLogsSeerLocationQuery({
+        result,
+        currentLocation: location,
+        currentAggregateFields: queryParams.aggregateFields,
+        pageDatetime: {
+          start: pageFilters.selection.datetime.start,
+          end: pageFilters.selection.datetime.end,
+          period: pageFilters.selection.datetime.period,
+          utc: pageFilters.selection.datetime.utc,
+        },
+      });
 
-      let start: DateString = null;
-      let end: DateString = null;
-
-      if (resultStart && resultEnd) {
-        // Strip 'Z' suffix to treat UTC dates as local time
-        const startLocal = resultStart.endsWith('Z')
-          ? resultStart.slice(0, -1)
-          : resultStart;
-        const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
-        start = new Date(startLocal).toISOString();
-        end = new Date(endLocal).toISOString();
-      } else {
-        start = pageFilters.selection.datetime.start;
-        end = pageFilters.selection.datetime.end;
-      }
-
-      // Update mode based on groupBys or response mode (matches Trace Explorer logic)
-      const mode =
-        groupBys.length > 0
-          ? Mode.AGGREGATE
-          : result.mode === 'aggregates'
-            ? Mode.AGGREGATE
-            : Mode.SAMPLES;
-
-      // Build aggregateFields array (similar to useSetQueryParamsGroupBys logic)
-      // This combines groupBys with existing visualizations
-      let seenVisualizes = false;
-      let groupByAfterVisualizes = false;
-
-      for (const aggregateField of queryParams.aggregateFields) {
-        if (isGroupBy(aggregateField) && seenVisualizes) {
-          groupByAfterVisualizes = true;
-          break;
-        } else if (isVisualize(aggregateField)) {
-          seenVisualizes = true;
-        }
-      }
-
-      const aggregateFields: WritableAggregateField[] = [];
-      const iter = groupBys[Symbol.iterator]();
-
-      for (const aggregateField of queryParams.aggregateFields) {
-        if (isVisualize(aggregateField)) {
-          if (!groupByAfterVisualizes) {
-            // Insert group bys before visualizes
-            for (const groupBy of iter) {
-              aggregateFields.push({groupBy});
-            }
-          }
-          aggregateFields.push(aggregateField.serialize());
-        } else if (isGroupBy(aggregateField)) {
-          const {value: groupBy, done} = iter.next();
-          if (!done) {
-            aggregateFields.push({groupBy});
-          }
-        }
-      }
-
-      // Add any remaining group bys
-      for (const groupBy of iter) {
-        aggregateFields.push({groupBy});
-      }
-
-      // Build datetime selection similar to Trace Explorer
       const selection = {
         ...pageFilters.selection,
-        datetime: {
-          start,
-          end,
-          utc: pageFilters.selection.datetime.utc,
-          period:
-            resultStart && resultEnd
-              ? null
-              : statsPeriod || pageFilters.selection.datetime.period,
-        },
-      };
-
-      // Build complete URL with all params (query, mode, aggregateFields, datetime)
-      // This matches the Trace Explorer pattern of single navigation
-      const newQuery = {
-        ...location.query,
-        [LOGS_QUERY_KEY]: queryToUse,
-        mode,
-        [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
-        // Datetime params from selection
-        start: selection.datetime.start,
-        end: selection.datetime.end,
-        statsPeriod: selection.datetime.period,
-        utc: selection.datetime.utc,
+        datetime: locationQuery.seerQuery.datetime,
       };
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
-        query: queryToUse,
-        groupBys,
-        mode,
+        query: locationQuery.seerQuery.query,
+        visualize: locationQuery.seerQuery.visualizes,
+        groupBys: locationQuery.seerQuery.groupBys,
+        sort: locationQuery.seerQuery.sort,
+        mode: locationQuery.seerQuery.mode,
+        interval: locationQuery.seerQuery.interval,
       });
+      const visualizeCount = result.visualizations?.length ?? 0;
 
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
-        query: queryToUse,
-        group_by_count: groupBys.length,
+        query: locationQuery.seerQuery.query,
+        group_by_count: locationQuery.seerQuery.groupBys.length,
+        visualize_count: visualizeCount,
       });
 
       if (runId !== undefined) {
         setRunId(runId);
       }
 
-      // Single navigation with all params (matches Trace Explorer pattern)
-      navigate({...location, query: newQuery}, {replace: true, preventScrollReset: true});
+      navigate(
+        {...location, query: locationQuery.query},
+        {replace: true, preventScrollReset: true}
+      );
     },
     [
       analyticsArea,
@@ -274,47 +226,14 @@ export function LogsTabSeerComboBox() {
     ]
   );
 
-  // Get selected project IDs for the polling variant
-  const selectedProjectIds = useMemo(() => {
-    if (
-      pageFilters.selection.projects?.length > 0 &&
-      pageFilters.selection.projects?.[0] !== -1
-    ) {
-      return pageFilters.selection.projects;
-    }
-    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
-  }, [pageFilters.selection.projects, projects]);
-
-  // Transform the final_response from Seer to match the expected format
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
-      const seerResponse = response as unknown as {
-        responses?: Array<{
-          end: string | null;
-          group_by: string[];
-          mode: string;
-          query: string;
-          sort: string;
-          start: string | null;
-          stats_period: string;
-        }>;
-      };
-
-      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
-        return seerResponse.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-          mode: r?.mode ?? 'samples',
-        }));
-      }
-
-      return [response];
-    },
-    []
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(
+        response,
+        responseItem => mapSeerResponseItem(responseItem),
+        selectedProjectIds
+      ),
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {

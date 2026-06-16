@@ -1,7 +1,6 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
-import orjson
 import pytest
 
 from sentry.constants import (
@@ -19,19 +18,15 @@ from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixStoppingPoint,
-    AutofixTriggerSource,
     AutomationCodingAgent,
     CodingAgentProviderType,
     CodingAgentStatus,
     add_seer_project_repos,
     bulk_read_preferences_from_sentry_db,
-    bulk_update_seer_project_settings,
     bulk_write_preferences_to_sentry_db,
     clear_preference_automation_handoff,
     deduplicate_repositories,
     extract_api_error_message,
-    get_autofix_prompt,
-    get_coding_agent_prompt,
     get_org_default_seer_automation_handoff,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
@@ -43,7 +38,6 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
-    SeerApiError,
     SeerAutomationHandoffConfiguration,
     SeerProjectPreference,
     SeerRepoDefinition,
@@ -54,216 +48,6 @@ from sentry.seer.models.project_repository import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
-
-
-class TestGetAutofixPrompt(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.run_id = 12345
-        self.mock_response_data = {
-            "run_id": self.run_id,
-            "prompt": "Test prompt content",
-            "has_root_cause": True,
-            "has_solution": True,
-        }
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_root_cause_params(self, mock_make_request):
-        """Test get_autofix_prompt sends correct params for root cause."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = orjson.dumps(self.mock_response_data)
-        mock_make_request.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, True, False)
-
-        assert result == "Test prompt content"
-
-        mock_make_request.assert_called_once()
-        call = mock_make_request.call_args
-        # Positional args: (connection_pool, path)
-        assert call.args[0] is not None
-        assert call.args[1] == "/v1/automation/autofix/prompt"
-
-        # Keyword args
-        expected_body = {
-            "run_id": self.run_id,
-            "include_root_cause": True,
-            "include_solution": False,
-        }
-        actual_body = orjson.loads(call.kwargs["body"])  # bytes -> dict
-        assert actual_body == expected_body
-        assert call.kwargs["timeout"] == 15
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_solution_params(self, mock_make_request):
-        """Test get_autofix_prompt sends correct params for solution."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = orjson.dumps(self.mock_response_data)
-        mock_make_request.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, True, True)
-
-        assert result == "Test prompt content"
-
-        call = mock_make_request.call_args
-        expected_body = {
-            "run_id": self.run_id,
-            "include_root_cause": True,
-            "include_solution": True,
-        }
-        actual_body = orjson.loads(call.kwargs["body"])  # bytes -> dict
-        assert actual_body == expected_body
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_http_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt raises on HTTP error status."""
-        mock_response = Mock()
-        mock_response.status = 404
-        mock_response.data = orjson.dumps({})
-        mock_make_request.return_value = mock_response
-
-        with pytest.raises(SeerApiError):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_timeout_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates timeout errors."""
-        mock_make_request.side_effect = Exception("Request timed out")
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_connection_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates connection errors."""
-        mock_make_request.side_effect = Exception("Connection failed")
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_json_decode_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates JSON decode errors."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = b"invalid orjson"
-        mock_make_request.return_value = mock_response
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-
-class TestGetCodingAgentPrompt(TestCase):
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_success(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with successful autofix prompt."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION)
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_root_cause_trigger(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with root_cause trigger."""
-        mock_get_autofix_prompt.return_value = "Root cause analysis prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.ROOT_CAUSE)
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nRoot cause analysis prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, False)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with custom instruction."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345, AutofixTriggerSource.SOLUTION, "Use TypeScript instead of JavaScript"
-        )
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nUse TypeScript instead of JavaScript\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_blank_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with blank instruction is ignored."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, "   ")
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_empty_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with empty instruction is ignored."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, "")
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt includes Fixes line when short_id is provided."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345, AutofixTriggerSource.SOLUTION, None, short_id="AIML-2301"
-        )
-
-        assert "Fixes AIML-2301" in result
-        assert "Include 'Fixes AIML-2301' in the commit message" in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_without_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt does not include Fixes line when short_id is None."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id=None)
-
-        assert "Fixes" not in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_short_id_and_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt includes both Fixes line and instruction."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345,
-            AutofixTriggerSource.SOLUTION,
-            "Be careful with backwards compatibility",
-            short_id="PROJ-1234",
-        )
-
-        assert "Fixes PROJ-1234" in result
-        assert "Be careful with backwards compatibility" in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_empty_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt does not include Fixes line when short_id is empty string."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id="")
-
-        assert "Fixes" not in result
-        assert "Please fix the following issue" in result
 
 
 class TestAutofixStateParsing(TestCase):
@@ -1040,9 +824,19 @@ class TestClearPreferenceAutomationHandoff(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
-    def test_clears_all_four_handoff_options(self) -> None:
+    def test_clears_handoff_options(self) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+
+        clear_preference_automation_handoff(self.project)
+
+        self._assert_handoff_options_cleared()
+
+    def test_preserves_auto_create_pr(self) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
@@ -1053,6 +847,7 @@ class TestClearPreferenceAutomationHandoff(TestCase):
         clear_preference_automation_handoff(self.project)
 
         self._assert_handoff_options_cleared()
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
     def test_preserves_unrelated_preference_fields(self) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
@@ -1609,188 +1404,134 @@ class TestExtractApiErrorMessage:
 class TestUpdateSeerProjectSettings(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.project = self.create_project(organization=self.organization)
+        self.project1 = self.create_project(organization=self.organization)
+        self.project2 = self.create_project(organization=self.organization)
+
+    def test_updates_settings(self) -> None:
+        """All fields should be written to the correct project options."""
+        update_seer_project_settings(
+            [self.project1.id],
+            {
+                "agent": AutomationCodingAgent.SEER,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES,
+                "automation_tuning": AutofixAutomationTuningSettings.MEDIUM,
+                "scanner_automation": False,
+            },
+        )
+
+        assert (
+            self.project1.get_option("sentry:seer_automated_run_stopping_point")
+            == AutofixStoppingPoint.CODE_CHANGES
+        )
+        assert (
+            self.project1.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.MEDIUM
+        )
+        assert self.project1.get_option("sentry:seer_scanner_automation") is False
+        assert self.project1.get_option("sentry:seer_automation_handoff_target") is None
+
+    def test_mixed_sets_and_clears_settings(self) -> None:
+        """New and existing fields are upserted. Fields set to their defaults are cleared."""
+        self.project1.update_option(
+            "sentry:seer_automation_handoff_target",
+            CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+        )
+        self.project1.update_option(
+            "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
+        )
+        self.project1.update_option("sentry:seer_automation_handoff_integration_id", 42)
+
+        update_seer_project_settings(
+            [self.project1.id],
+            {"agent": AutomationCodingAgent.SEER, "scanner_automation": False},
+        )
+
+        assert self.project1.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project1.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project1.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project1.get_option("sentry:seer_scanner_automation") is False
+
+        assert not ProjectOption.objects.filter(
+            project=self.project1, key="sentry:seer_automation_handoff_target"
+        ).exists()
 
     def test_agent_seer_clears_handoff_options(self) -> None:
         """Setting agent=seer should delete all handoff-related project options."""
-        self.project.update_option(
+        self.project1.update_option(
             "sentry:seer_automation_handoff_target",
             CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
         )
-        self.project.update_option(
+        self.project1.update_option(
             "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
         )
-        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project1.update_option("sentry:seer_automation_handoff_integration_id", 42)
 
-        update_seer_project_settings(self.project, {"agent": AutomationCodingAgent.SEER})
+        update_seer_project_settings([self.project1.id], {"agent": AutomationCodingAgent.SEER})
 
-        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project1.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project1.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project1.get_option("sentry:seer_automation_handoff_integration_id") is None
 
     def test_agent_external_sets_handoff_options(self) -> None:
-        """Setting agent=cursor with integrationId should set handoff target, point, and integration ID."""
+        """Setting agent=cursor with integration_id should set handoff target, point, and integration ID."""
         update_seer_project_settings(
-            self.project, {"agent": AutomationCodingAgent.CURSOR, "integrationId": 99}
+            [self.project1.id],
+            {"agent": AutomationCodingAgent.CURSOR, "integration_id": 99},
         )
 
         assert (
-            self.project.get_option("sentry:seer_automation_handoff_target")
+            self.project1.get_option("sentry:seer_automation_handoff_target")
             == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
         )
         assert (
-            self.project.get_option("sentry:seer_automation_handoff_point")
+            self.project1.get_option("sentry:seer_automation_handoff_point")
             == AutofixHandoffPoint.ROOT_CAUSE
         )
-        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") == 99
+        assert self.project1.get_option("sentry:seer_automation_handoff_integration_id") == 99
 
     def test_agent_external_requires_integration_id(self) -> None:
-        """Setting an external agent without integrationId should raise ValueError."""
+        """Setting an external agent without integration_id should raise ValueError."""
         with pytest.raises(ValueError):
-            update_seer_project_settings(self.project, {"agent": AutomationCodingAgent.CURSOR})
+            update_seer_project_settings(
+                [self.project1.id], {"agent": AutomationCodingAgent.CURSOR}
+            )
 
-    def test_agent_external_with_open_pr_sets_auto_create_pr(self) -> None:
-        """External agent + stoppingPoint=open_pr should set auto_create_pr=True."""
-        update_seer_project_settings(
-            self.project,
-            {
-                "agent": AutomationCodingAgent.CURSOR,
-                "integrationId": 99,
-                "stoppingPoint": AutofixStoppingPoint.OPEN_PR,
-            },
-        )
+    def test_stopping_point_omitted_preserves_existing(self) -> None:
+        """Omitting stopping_point should leave stopping point and auto_create_pr unchanged."""
+        self.project1.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        self.project1.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
+        update_seer_project_settings([self.project1.id], {"scanner_automation": False})
 
-    def test_agent_external_with_non_open_pr_does_not_set_auto_create_pr(self) -> None:
-        """External agent + stoppingPoint!=open_pr should not set auto_create_pr."""
-        update_seer_project_settings(
-            self.project,
-            {
-                "agent": AutomationCodingAgent.CURSOR,
-                "integrationId": 99,
-                "stoppingPoint": AutofixStoppingPoint.CODE_CHANGES,
-            },
-        )
+        assert self.project1.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert self.project1.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
-
-    def test_stopping_point_off_sets_tuning_off(self) -> None:
-        """stoppingPoint=off should set tuning to OFF and preserve stopping point and auto_create_pr."""
-        self.project.update_option(
+    def test_automation_tuning_omitted_preserves_existing(self) -> None:
+        """Omitting automation_tuning should leave the existing value unchanged."""
+        self.project1.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
-        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        update_seer_project_settings(self.project, {"stoppingPoint": "off"})
+        update_seer_project_settings([self.project1.id], {"scanner_automation": False})
 
         assert (
-            self.project.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.OFF
-        )
-        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
-
-    def test_stopping_point_sets_tuning_medium_and_stores_value(self) -> None:
-        """A non-off stoppingPoint should set tuning to MEDIUM and store the value."""
-        update_seer_project_settings(
-            self.project, {"stoppingPoint": AutofixStoppingPoint.ROOT_CAUSE}
-        )
-
-        assert (
-            self.project.get_option("sentry:autofix_automation_tuning")
+            self.project1.get_option("sentry:autofix_automation_tuning")
             == AutofixAutomationTuningSettings.MEDIUM
         )
-        assert (
-            self.project.get_option("sentry:seer_automated_run_stopping_point")
-            == AutofixStoppingPoint.ROOT_CAUSE
-        )
 
-    def test_stopping_point_omitted_preserves_existing_options(self) -> None:
-        """Omitting stoppingPoint from data should leave tuning, stopping point, and auto_create_pr unchanged."""
-        self.project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
-        )
-        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-
-        update_seer_project_settings(self.project, {"scannerAutomation": False})
-
-        assert (
-            self.project.get_option("sentry:autofix_automation_tuning")
-            == AutofixAutomationTuningSettings.MEDIUM
-        )
-        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
-
-    def test_stopping_point_non_open_pr_clears_auto_create_pr(self) -> None:
-        """Changing stoppingPoint away from open_pr should clear auto_create_pr."""
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-        self.project.update_option(
-            "sentry:seer_automation_handoff_target",
-            CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
-        )
-
+    def test_bulk_updates_settings(self) -> None:
+        """The provided settings fields should be applied to every project."""
         update_seer_project_settings(
-            self.project, {"stoppingPoint": AutofixStoppingPoint.CODE_CHANGES}
-        )
-
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
-        assert not ProjectOption.objects.filter(
-            project=self.project, key="sentry:seer_automation_handoff_auto_create_pr"
-        ).exists()
-
-    def test_stopping_point_open_pr_sets_auto_create_pr(self) -> None:
-        """stoppingPoint=open_pr should set auto_create_pr, even if no handoff is configured."""
-        update_seer_project_settings(self.project, {"stoppingPoint": AutofixStoppingPoint.OPEN_PR})
-
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
-
-    def test_scanner_automation_false(self) -> None:
-        """scannerAutomation=false should update the project option."""
-        update_seer_project_settings(self.project, {"scannerAutomation": False})
-
-        assert self.project.get_option("sentry:seer_scanner_automation") is False
-
-    def test_deletes_option_when_value_is_default(self) -> None:
-        """Setting a value equal to its registered default should delete the ProjectOption row."""
-        self.project.update_option("sentry:seer_scanner_automation", False)
-        assert ProjectOption.objects.filter(
-            project=self.project, key="sentry:seer_scanner_automation"
-        ).exists()
-
-        update_seer_project_settings(self.project, {"scannerAutomation": True})
-
-        assert not ProjectOption.objects.filter(
-            project=self.project, key="sentry:seer_scanner_automation"
-        ).exists()
-
-
-class TestBulkUpdateSeerProjectSettings(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.project_a = self.create_project(organization=self.organization)
-        self.project_b = self.create_project(organization=self.organization)
-        self.projects = [self.project_a, self.project_b]
-
-    def test_empty_projects(self) -> None:
-        """Empty project list should be a no-op without errors."""
-        bulk_update_seer_project_settings([], {"scannerAutomation": False})
-
-    def test_sets_options(self) -> None:
-        """All provided settings fields should be applied to every project."""
-        bulk_update_seer_project_settings(
-            self.projects,
+            [self.project1.id, self.project2.id],
             {
                 "agent": AutomationCodingAgent.CURSOR,
-                "integrationId": 99,
-                "stoppingPoint": AutofixStoppingPoint.OPEN_PR,
-                "scannerAutomation": False,
+                "integration_id": 99,
+                "stopping_point": AutofixStoppingPoint.OPEN_PR,
+                "scanner_automation": False,
             },
         )
 
-        for project in self.projects:
+        for project in [self.project1, self.project2]:
             assert (
                 project.get_option("sentry:seer_automation_handoff_target")
                 == AutomationCodingAgent.CURSOR
@@ -1801,112 +1542,44 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
             )
             assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
             assert (
-                project.get_option("sentry:autofix_automation_tuning")
-                == AutofixAutomationTuningSettings.MEDIUM
-            )
-            assert (
                 project.get_option("sentry:seer_automated_run_stopping_point")
                 == AutofixStoppingPoint.OPEN_PR
             )
-            assert project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
             assert project.get_option("sentry:seer_scanner_automation") is False
 
-    def test_agent_seer_clears_handoff_options(self) -> None:
-        """Switching to seer agent should delete handoff options across all projects."""
-        for project in self.projects:
-            project.update_option(
-                "sentry:seer_automation_handoff_target",
-                CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
-            )
-            project.update_option(
-                "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
-            )
-            project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+    def test_empty_projects(self) -> None:
+        """Empty project list should be a no-op without errors."""
+        update_seer_project_settings([], {"scanner_automation": False})
 
-        bulk_update_seer_project_settings(self.projects, {"agent": AutomationCodingAgent.SEER})
-
-        for project in self.projects:
-            assert project.get_option("sentry:seer_automation_handoff_target") is None
-            assert project.get_option("sentry:seer_automation_handoff_point") is None
-            assert project.get_option("sentry:seer_automation_handoff_integration_id") is None
-
-    def test_upserts_existing_options(self) -> None:
-        """Existing options should be overwritten, not duplicated."""
-        for project in self.projects:
-            project.update_option("sentry:seer_scanner_automation", True)
-
-        bulk_update_seer_project_settings(self.projects, {"scannerAutomation": False})
-
-        for project in self.projects:
-            assert project.get_option("sentry:seer_scanner_automation") is False
-            assert (
-                ProjectOption.objects.filter(
-                    project=project, key="sentry:seer_scanner_automation"
-                ).count()
-                == 1
-            )
-
-    def test_clears_option_when_value_is_default(self) -> None:
-        """Setting a value equal to its registered default should delete the ProjectOption row."""
-        for project in self.projects:
-            project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
-
-        bulk_update_seer_project_settings(
-            self.projects,
-            {"stoppingPoint": AutofixStoppingPoint(SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT)},
+    def test_does_not_modify_excluded_projects(self) -> None:
+        """Projects not included in the update list should be completely unaffected."""
+        self.project1.update_option(
+            "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.OPEN_PR
+        )
+        self.project2.update_option(
+            "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.OPEN_PR
         )
 
-        for project in self.projects:
-            assert (
-                project.get_option("sentry:seer_automated_run_stopping_point")
-                == SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-            )
-            assert not ProjectOption.objects.filter(
-                project=project, key="sentry:seer_automated_run_stopping_point"
-            ).exists()
-
-    def test_stopping_point_off_sets_tuning_off(self) -> None:
-        """stoppingPoint='off' should set tuning to OFF and preserve existing stopping point."""
-        for project in self.projects:
-            project.update_option(
-                "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.OPEN_PR
-            )
-            project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-
-        bulk_update_seer_project_settings(self.projects, {"stoppingPoint": "off"})
-
-        for project in self.projects:
-            assert (
-                project.get_option("sentry:autofix_automation_tuning")
-                == AutofixAutomationTuningSettings.OFF
-            )
-
-    def test_mixed_sets_and_clears_options(self) -> None:
-        """Test that sets new options and deletes existing ones."""
-        for project in self.projects:
-            project.update_option(
-                "sentry:seer_automation_handoff_target",
-                CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
-            )
-            project.update_option(
-                "sentry:seer_automation_handoff_point", AutofixHandoffPoint.ROOT_CAUSE
-            )
-            project.update_option("sentry:seer_automation_handoff_integration_id", 42)
-
-        bulk_update_seer_project_settings(
-            self.projects,
-            {"agent": AutomationCodingAgent.SEER, "scannerAutomation": False},
+        update_seer_project_settings(
+            [self.project1.id],
+            {
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES,
+                "agent": AutomationCodingAgent.SEER,
+            },
         )
 
-        for project in self.projects:
-            assert project.get_option("sentry:seer_automation_handoff_target") is None
-            assert project.get_option("sentry:seer_automation_handoff_point") is None
-            assert project.get_option("sentry:seer_automation_handoff_integration_id") is None
-            assert project.get_option("sentry:seer_scanner_automation") is False
+        assert (
+            self.project1.get_option("sentry:seer_automated_run_stopping_point")
+            == AutofixStoppingPoint.CODE_CHANGES
+        )
+        assert (
+            self.project2.get_option("sentry:seer_automated_run_stopping_point")
+            == AutofixStoppingPoint.OPEN_PR
+        )
 
-    def test_omitted_fields_preserve_existing_options(self) -> None:
-        """Updating one field should not clobber unrelated existing options."""
-        for project in self.projects:
+    def test_bulk_omitted_fields_preserve_existing_options(self) -> None:
+        """Updating one field should not clobber unrelated existing options across multiple projects."""
+        for project in [self.project1, self.project2]:
             project.update_option(
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
@@ -1915,9 +1588,12 @@ class TestBulkUpdateSeerProjectSettings(TestCase):
             )
             project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        bulk_update_seer_project_settings(self.projects, {"scannerAutomation": False})
+        update_seer_project_settings(
+            [self.project1.id, self.project2.id],
+            {"scanner_automation": False},
+        )
 
-        for project in self.projects:
+        for project in [self.project1, self.project2]:
             assert (
                 project.get_option("sentry:autofix_automation_tuning")
                 == AutofixAutomationTuningSettings.MEDIUM

@@ -27,7 +27,7 @@ describe('FeedbackActivitySection', () => {
     });
   });
 
-  it('renders feedback activity with the streamlined activity feed', async () => {
+  it('renders feedback activity with the issue details activity feed', async () => {
     const feedbackItem = GroupFixture({
       id: '1337',
       activity: [

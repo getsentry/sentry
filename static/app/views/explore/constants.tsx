@@ -63,6 +63,10 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanFields.USER_IP,
   SpanFields.USER_EMAIL,
   SpanFields.USER_USERNAME,
+  SpanFields.GEN_AI_CONVERSATION_ID,
+  SpanFields.GEN_AI_INPUT_MESSAGES,
+  SpanFields.GEN_AI_OUTPUT_MESSAGES,
+  SpanFields.GEN_AI_RESPONSE_MODEL,
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];

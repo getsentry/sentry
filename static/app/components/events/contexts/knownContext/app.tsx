@@ -24,6 +24,8 @@ enum AppContextKeys {
   // XXX: From https://github.com/getsentry/sentry/issues/87238, not in the schema yet.
   FREE_MEMORY = 'free_memory',
   ARCHITECTURE = 'app_arch',
+  IS_SPLIT_APKS = 'is_split_apks',
+  PERMISSIONS = 'permissions',
 }
 
 export interface AppContext {
@@ -43,6 +45,8 @@ export interface AppContext {
   [AppContextKeys.VIEW_NAMES]?: string[];
   [AppContextKeys.FREE_MEMORY]?: number;
   [AppContextKeys.ARCHITECTURE]?: string;
+  [AppContextKeys.IS_SPLIT_APKS]?: boolean;
+  [AppContextKeys.PERMISSIONS]?: Record<string, string>;
 }
 
 // https://github.com/getsentry/relay/blob/24.10.0/relay-event-schema/src/protocol/contexts/app.rs#L37
@@ -150,6 +154,18 @@ export function getAppContextData({
           key: ctxKey,
           subject: t('Architecture'),
           value: data.app_arch,
+        };
+      case AppContextKeys.IS_SPLIT_APKS:
+        return {
+          key: ctxKey,
+          subject: t('Split APKs'),
+          value: data.is_split_apks,
+        };
+      case AppContextKeys.PERMISSIONS:
+        return {
+          key: ctxKey,
+          subject: t('Permissions'),
+          value: data.permissions,
         };
       default:
         return {

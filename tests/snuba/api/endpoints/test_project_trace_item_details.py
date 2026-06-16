@@ -14,6 +14,7 @@ from sentry.testutils.cases import (
     TraceAttachmentTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
 class ProjectTraceItemDetailsEndpointTest(
@@ -313,76 +314,6 @@ class ProjectTraceItemDetailsEndpointTest(
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
-    def test_simple_using_spans_item_type_with_sentry_conventions(self) -> None:
-        span_1 = self.create_span(
-            {"description": "foo", "sentry_tags": {"status": "success"}},
-            measurements={
-                "code.lineno": {"value": 420},
-                "http.response_content_length": {"value": 100},
-                "http.response.body.size": {"value": 100},
-            },
-            start_ts=self.one_min_ago,
-        )
-        span_1["trace_id"] = self.trace_uuid
-        item_id = span_1["span_id"]
-
-        self.store_span(span_1)
-
-        trace_details_response = self.do_request(
-            "spans",
-            item_id,
-            features={
-                "organizations:discover-basic": True,
-                "organizations:performance-sentry-conventions-fields": True,
-            },
-        )
-        assert trace_details_response.status_code == 200, trace_details_response.content
-        assert trace_details_response.data["attributes"] == [
-            {"name": "is_transaction", "type": "bool", "value": False},
-            {"name": "code.lineno", "type": "float", "value": 420.0},
-            {"name": "http.response.body.size", "type": "float", "value": 100.0},
-            {
-                "name": "precise.finish_ts",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {
-                "name": "precise.start_ts",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {
-                "name": "received",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {"name": "span.self_time", "type": "float", "value": 1000.0},
-            {"name": "project_id", "type": "int", "value": str(self.project.id)},
-            {"name": "span.duration", "type": "int", "value": "1000"},
-            {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
-            {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
-            {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
-            {"name": "sdk.version", "type": "str", "value": "1.0"},
-            {
-                "name": "sentry.segment.id",
-                "type": "str",
-                "value": span_1["segment_id"],
-            },
-            {"name": "span.description", "type": "str", "value": "foo"},
-            {"name": "span.status", "type": "str", "value": "success"},
-            {"name": "trace", "type": "str", "value": self.trace_uuid},
-            {
-                "name": "transaction.event_id",
-                "type": "str",
-                "value": span_1["event_id"],
-            },
-        ]
-        assert trace_details_response.data["itemId"] == item_id
-        assert (
-            trace_details_response.data["timestamp"]
-            == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
-        )
-
     def test_logs_with_a_meta_key(self) -> None:
         log = self.create_ourlog(
             {
@@ -644,6 +575,48 @@ class ProjectTraceItemDetailsEndpointTest(
             "timestamp": mock.ANY,
         }
 
+    def test_debug_param_as_superuser(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(user=superuser, organization=self.organization)
+        self.login_as(user=superuser, superuser=True)
+
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id, extra_data={"debug": "true"})
+        assert response.status_code == 200, response.content
+        assert "debug_info" in response.data["meta"]
+        assert "raw_response" in response.data["meta"]["debug_info"]
+        assert "raw_request" in response.data["meta"]["debug_info"]
+        assert "itemId" in response.data
+        assert "attributes" in response.data
+
+        raw_attrs = {
+            a["name"]: a["value"]
+            for a in response.data["meta"]["debug_info"]["raw_response"]["attributes"]
+        }
+        assert raw_attrs["sentry.body"] == {"valStr": "debug test"}
+
+    def test_debug_param_as_regular_user(self) -> None:
+        regular_user = self.create_user(is_superuser=False)
+        self.create_member(user=regular_user, organization=self.organization)
+        self.login_as(user=regular_user)
+
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id, extra_data={"debug": "true"})
+        assert response.status_code == 200, response.content
+        assert "debug_info" not in response.data.get("meta", {})
+
     def test_with_timestamp(self) -> None:
         log = self.create_ourlog(
             {
@@ -764,3 +737,17 @@ class ProjectTraceItemDetailsEndpointTest(
             trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
 
             assert trace_details_response.status_code == 400, trace_details_response.content
+
+    @mock.patch("sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc")
+    def test_snuba_rate_limit_error_makes_429(self, mock_trace_item_details_rpc):
+        mock_trace_item_details_rpc.side_effect = SnubaRPCRateLimitExceeded("too much traffic")
+        log = self.create_ourlog(
+            {"body": "debug test", "trace_id": self.trace_uuid},
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id)
+        assert response.status_code == 429
+        assert b"Rate limit exceeded" in response.content

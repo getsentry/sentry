@@ -117,6 +117,25 @@ options_mapper = {
     # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
+    "system.base-hostname": "SENTRY_BASE_HOSTNAME",
+    "system.organization-base-hostname": "SENTRY_ORGANIZATION_BASE_HOSTNAME",
+    "system.organization-url-template": "SENTRY_ORGANIZATION_URL_TEMPLATE",
+    "system.region-api-url-template": "SENTRY_REGION_API_URL_TEMPLATE",
+    "intercom.sentry-api-secret": "SENTRY_INTERCOM_API_SECRET",
+    "relay.static_auth": "SENTRY_RELAY_STATIC_AUTH",
+    "objectstore.config": "SENTRY_OBJECTSTORE_CONFIG",
+    "viewer-context.enabled": "SENTRY_VIEWER_CONTEXT_ENABLED",
+    "analytics.backend": "SENTRY_ANALYTICS_BACKEND",
+    "analytics.options": "SENTRY_ANALYTICS_OPTIONS",
+    "mail.list-namespace": "SENTRY_MAIL_LIST_NAMESPACE",
+    "filestore.backend": "SENTRY_FILE_STORAGE_BACKEND",
+    "filestore.options": "SENTRY_FILE_STORAGE_CONFIG",
+    "filestore.relocation-backend": "SENTRY_RELOCATION_FILE_STORAGE_BACKEND",
+    "filestore.relocation-options": "SENTRY_RELOCATION_FILE_STORAGE_CONFIG",
+    "filestore.profiles-backend": "SENTRY_PROFILES_FILE_STORAGE_BACKEND",
+    "filestore.profiles-options": "SENTRY_PROFILES_FILE_STORAGE_CONFIG",
+    "filestore.control.backend": "SENTRY_CONTROL_FILE_STORAGE_BACKEND",
+    "filestore.control.options": "SENTRY_CONTROL_FILE_STORAGE_CONFIG",
     "mail.backend": "EMAIL_BACKEND",
     "mail.host": "EMAIL_HOST",
     "mail.port": "EMAIL_PORT",
@@ -210,7 +229,6 @@ def configure_structlog() -> None:
     import structlog
     from django.conf import settings
 
-    from sentry import options
     from sentry.logging import LoggingFormat
 
     kwargs: dict[str, Any] = {
@@ -223,11 +241,7 @@ def configure_structlog() -> None:
         ],
     }
 
-    fmt_from_env = os.environ.get("SENTRY_LOG_FORMAT")
-    if fmt_from_env:
-        settings.SENTRY_OPTIONS["system.logging-format"] = fmt_from_env.lower()
-
-    fmt = options.get("system.logging-format")
+    fmt = settings.SENTRY_LOGGING_FORMAT
 
     if fmt == LoggingFormat.HUMAN:
         from sentry.logging.handlers import HumanRenderer
@@ -297,6 +311,12 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         )
 
     bootstrap_options(settings, config["options"])
+
+    # The SENTRY_LOG_FORMAT env var (e.g. the `--logformat` CLI flag) overrides
+    # the SENTRY_LOGGING_FORMAT setting from server.py.
+    fmt_from_env = os.environ.get("SENTRY_LOG_FORMAT")
+    if fmt_from_env:
+        settings.SENTRY_LOGGING_FORMAT = fmt_from_env.lower()
 
     logging.raiseExceptions = settings.DEBUG
 
@@ -531,7 +551,14 @@ def apply_legacy_settings(settings: Any) -> None:
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
-            settings.SENTRY_OPTIONS[new] = getattr(settings, old)
+            value = getattr(settings, old)
+            settings.SENTRY_OPTIONS[new] = value
+            # bootstrap_options already ran and promoted these option keys into their
+            # Django settings, so writing SENTRY_OPTIONS here is too late for any key
+            # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
+            # Re-promote the legacy value so the override actually takes effect.
+            if new in options_mapper:
+                setattr(settings, options_mapper[new], value)
 
     if hasattr(settings, "SENTRY_REDIS_OPTIONS"):
         if "redis.clusters" in settings.SENTRY_OPTIONS:

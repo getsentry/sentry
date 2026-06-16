@@ -1,5 +1,6 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export const TOP_N = 5;

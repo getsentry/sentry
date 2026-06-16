@@ -30,7 +30,8 @@ import type {Integration} from 'sentry/types/integrations';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -125,7 +126,7 @@ function ContextPickerContent({
         selectedOrgSlug && needProject
           ? {organizationIdOrSlug: selectedOrgSlug}
           : skipToken,
-      query: {collapse: ['latestDeploys', 'unusedFeatures']},
+      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: Infinity,
     })
   );

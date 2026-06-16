@@ -11,7 +11,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {Placeholder} from 'sentry/components/placeholder';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -30,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsDrawer} from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
+  CONVERSATIONS_INCLUDES_KEYS,
   getSchemaHintsListOrder,
   onlyShowSchemaHintsKeys,
   removeHiddenSchemaHintsKeys,
@@ -113,6 +117,8 @@ export function addFilterToQuery(
   if (tag.kind === FieldKind.FUNCTION) {
     const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue ?? '';
     filterQuery.addFilterValue(`${tag.key}(${defaultFunctionParam})`, '>0');
+  } else if (CONVERSATIONS_INCLUDES_KEYS.has(tag.key)) {
+    filterQuery.addContainsFilterValue(tag.key, '');
   } else {
     const isBoolean = fieldDefinition?.valueType === FieldValueType.BOOLEAN;
     filterQuery.addFilterValue(
@@ -154,6 +160,9 @@ function formatHintOperator(hint: Tag) {
   if (hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION) {
     return '>';
   }
+  if (CONVERSATIONS_INCLUDES_KEYS.has(hint.key)) {
+    return 'contains';
+  }
   return 'is';
 }
 
@@ -171,7 +180,8 @@ export function SchemaHintsList({
   const organization = useOrganization();
   const {openDrawer, panelRef} = useDrawer();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const {dispatch, query, wrapperRef: searchBarWrapperRef} = useSearchQueryBuilder();
+  const {dispatch, query} = useSearchQueryBuilderState();
+  const {wrapperRef: searchBarWrapperRef} = useSearchQueryBuilderLayout();
 
   // Create a ref to hold the latest query for the drawer
   const queryRef = useRef(query);

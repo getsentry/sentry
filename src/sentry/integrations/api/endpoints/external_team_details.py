@@ -14,11 +14,15 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalTeamSerializer,
 )
-from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
+from sentry.integrations.api.serializers.models.external_actor import (
+    ExternalActorResponse,
+    ExternalActorSerializer,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.team import Team
 
@@ -66,7 +70,9 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         },
         examples=IntegrationExamples.EXTERNAL_TEAM_CREATE,
     )
-    def put(self, request: Request, team: Team, external_team: ExternalActor) -> Response:
+    def put(
+        self, request: Request, team: Team, external_team: ExternalActor
+    ) -> Response[ExternalActorResponse] | Response[ValidationErrorResponse]:
         """
         Update a team in an external provider that is currently linked to a Sentry team.
         """
@@ -82,13 +88,16 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
             context={"organization": team.organization},
         )
         if serializer.is_valid():
-            updated_external_team = serializer.save()
+            updated_external_team: ExternalActor = serializer.save()
 
             return Response(
-                serialize(updated_external_team, request.user), status=status.HTTP_200_OK
+                serialize(
+                    updated_external_team, request.user, serializer=ExternalActorSerializer()
+                ),
+                status=status.HTTP_200_OK,
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         operation_id="Delete an External Team",
@@ -104,7 +113,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
             403: RESPONSE_FORBIDDEN,
         },
     )
-    def delete(self, request: Request, team: Team, external_team: ExternalActor) -> Response:
+    def delete(self, request: Request, team: Team, external_team: ExternalActor) -> Response[None]:
         """
         Delete the link between a team from an external provider and a Sentry team.
         """

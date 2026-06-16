@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from django.conf import settings
@@ -18,9 +18,11 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import ObjectStatus
@@ -50,9 +52,14 @@ LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
         "description": "Set to '1' or 'true' to strip image metadata to display_name, image_file_name, group, description",
     },
     "project": {
-        "type": "integer",
+        "type": "integer|string",
         "required": False,
-        "description": "Project ID to scope the lookup; recommended since app_id may not be unique across projects",
+        "description": "Project ID or slug to scope the lookup when app_id is not unique across projects or project inference is unavailable.",
+    },
+    "projectSlug": {
+        "type": "string",
+        "required": False,
+        "description": "Project slug to scope the lookup. Use either projectSlug or project when app_id is not unique across projects or project inference is unavailable.",
     },
 }
 
@@ -86,10 +93,10 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             ),
             OpenApiParameter(
                 name="project",
-                type=int,
+                type=PROJECT_ID_OR_SLUG_SCHEMA,
                 location="query",
                 required=False,
-                description="Project ID to scope the lookup.",
+                description="Project ID or slug to scope the lookup.",
             ),
             OpenApiParameter(
                 name="compact_metadata",
@@ -114,7 +121,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-    ) -> Response:
+    ) -> Response[LatestBaseSnapshotResponseDict] | Response[DetailResponse]:
         """
         Retrieve the most recent base snapshot for a given app.
 
@@ -141,10 +148,9 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         branch = request.GET.get("branch")
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
-        try:
-            project_id = int(request.GET["project"]) if "project" in request.GET else None
-        except (ValueError, TypeError):
-            return Response({"detail": "Invalid project parameter"}, status=400)
+        project_filter = self.get_single_project_id_or_slug_from_request(
+            request, error_detail="Invalid project parameter"
+        )
 
         qs = (
             PreprodArtifact.objects.filter(
@@ -164,8 +170,11 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         if not is_active_staff(request) and not request.access.has_global_access:
             qs = qs.filter(project_id__in=request.access.accessible_project_ids)
 
-        if project_id is not None:
-            qs = qs.filter(project_id=project_id)
+        if project_filter is not None:
+            if project_filter.project_id is not None:
+                qs = qs.filter(project_id=project_filter.project_id)
+            if project_filter.project_slug is not None:
+                qs = qs.filter(project__slug=project_filter.project_slug)
         if branch:
             qs = qs.filter(commit_comparison__head_ref=branch)
 
@@ -229,4 +238,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
                 for img in response_data["images"]
             ]
 
-        return Response(response_data)
+        # cast() sanctioned: response_data is a hand-built dict[str, Any] whose
+        # shape mirrors LatestBaseSnapshotResponseDict. The TypedDict and the
+        # builder are kept in sync by hand at the source of truth.
+        body = cast(LatestBaseSnapshotResponseDict, response_data)
+        return Response(body)

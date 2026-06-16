@@ -60,13 +60,11 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "organizations:relay-new-error-processing",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
-    "organizations:relay-default-trace-id",
     "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
@@ -74,7 +72,6 @@ EXPOSABLE_FEATURES = [
     "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
-    "projects:relay-measurements-smart-conversion",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -229,6 +226,7 @@ def get_project_config(
     """
     with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
+        scope.set_attribute("project", project.id)
         with (
             sentry_sdk.start_transaction(name="get_project_config"),
             metrics.timer("relay.config.get_project_config.duration"),

@@ -1,13 +1,27 @@
 import mimetypes
+from datetime import datetime
+from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 
 
+class EventAttachmentSerializerResponse(TypedDict):
+    id: str
+    event_id: str
+    type: str
+    name: str
+    mimetype: str | None
+    dateCreated: datetime
+    size: int
+    headers: dict[str, str | None]
+    sha1: str | None
+
+
 @register(EventAttachment)
-class EventAttachmentSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+class EventAttachmentSerializer(Serializer[EventAttachmentSerializerResponse]):
+    def serialize(self, obj, attrs, user, **kwargs) -> EventAttachmentSerializerResponse:
         content_type = obj.content_type
         size = obj.size or 0
         sha1 = obj.sha1

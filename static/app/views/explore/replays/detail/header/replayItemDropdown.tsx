@@ -1,13 +1,15 @@
 import * as Sentry from '@sentry/react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconDelete, IconDownload, IconEllipsis, IconUpload} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {ExternalLink} from 'sentry/components/links/externalLink';
+import {IconBug, IconDelete, IconDownload, IconEllipsis, IconUpload} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useDeleteReplay} from 'sentry/utils/replays/hooks/useDeleteReplay';
@@ -74,7 +76,8 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
           label: (
             <Flex align="center" gap="md">
               <IconDownload />
-              {t('Download Replay Record (superuser)')}
+              {t('Download Replay Record')}
+              <FeatureBadge type="debug" />
             </Flex>
           ),
           onAction: () => {
@@ -87,6 +90,41 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
             } catch (error) {
               Sentry.captureException(error);
               addErrorMessage('Could not export replay record. Please wait or try again');
+            }
+          },
+          disabled: !canDownload,
+        }
+      : null,
+    canSeeEmployeeLinks
+      ? {
+          key: 'open-in-replay-debugger',
+          label: (
+            <Flex align="center" gap="md">
+              <IconBug />
+              <span>
+                {tct('Debug in [link]', {
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/replay-debugger/releases">
+                      {t('Sentry Replay Debugger')}
+                    </ExternalLink>
+                  ),
+                })}
+              </span>
+              <FeatureBadge type="debug" />
+            </Flex>
+          ),
+          onAction: async () => {
+            try {
+              if (!replay) {
+                addErrorMessage(t('Replay not found'));
+                return;
+              }
+              const json = JSON.stringify(replay.getRRWebFrames());
+              await navigator.clipboard.writeText(json);
+              window.location.href = 'sentry-replay-debugger://open';
+            } catch (error) {
+              Sentry.captureException(error);
+              addErrorMessage(t('Could not open replay debugger. Please try again.'));
             }
           },
           disabled: !canDownload,

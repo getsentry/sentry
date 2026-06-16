@@ -710,13 +710,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             is_out_of_order = result["scheduled_check_time_ms"] != expected_next_ms
 
             if is_out_of_order:
-                if features.has("organizations:uptime-backlog-retry", organization):
-                    self.queue_result_for_retry(subscription, result, metric_tags, cluster)
-                    return
-
-                create_backfill_misses(
-                    detector, subscription, result, last_update_ms, metric_tags, cluster
-                )
+                self.queue_result_for_retry(subscription, result, metric_tags, cluster)
+                return
 
         process_result_internal(
             detector, subscription, result, metric_tags, cluster, subscription_regions

@@ -6,10 +6,11 @@ from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features, options, roles
 from sentry import ratelimits as ratelimiter
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -23,8 +24,9 @@ from sentry.api.serializers.models.organization import (
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.user_examples import UserExamples
-from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
+from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.demo_mode.utils import is_demo_user
@@ -92,6 +94,9 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
             locality = get_locality_by_name(value)
         except CellResolutionError:
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
+        if "request" in self.context and is_active_staff(self.context["request"]):
+            # Staff users are allowed to create orgs in hidden cells/localities.
+            return value
         if locality.category != RegionCategory.MULTI_TENANT or not locality.visible:
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
         return value
@@ -126,6 +131,7 @@ class OrganizationIndexEndpoint(Endpoint):
             CursorQueryParam,
             OrganizationParams.QUERY,
             OrganizationParams.SORT_BY,
+            VisibilityParams.PER_PAGE,
         ],
         request=None,
         responses={
@@ -138,7 +144,7 @@ class OrganizationIndexEndpoint(Endpoint):
         },
         examples=UserExamples.LIST_ORGANIZATIONS,
     )
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> Response[list[OrganizationSummarySerializerResponse]]:
         """
         Return a list of organizations available to the authenticated session in a region.
         This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
@@ -253,11 +259,14 @@ class OrganizationIndexEndpoint(Endpoint):
 
         owner_only = request.GET.get("owner") in ("1", "true")
 
+        # owner=1 (used by the account-close flow) means "orgs I own", which is
+        # defined by the user's membership. A userless token (org auth token or
+        # DSN) passes the permission check but has no membership to resolve, so
+        # reject it rather than falling through to the general token-scoped listing.
         if owner_only:
-            return Response(
-                {"detail": "The control-silo organizations endpoint does not support owner=1."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if not request.user.is_authenticated:
+                raise PermissionDenied
+            return self._get_owned_from_control(request)
 
         queryset = OrganizationMapping.objects.distinct()
 
@@ -357,6 +366,50 @@ class OrganizationIndexEndpoint(Endpoint):
                 serializer=ControlSiloOrganizationMappingSerializer(),
             ),
             paginator_cls=paginator_cls,
+        )
+
+    def _get_owned_from_control(self, request: Request) -> Response:
+        assert request.user.id is not None
+        owner_role = roles.get_top_dog().id
+
+        owner_org_ids = OrganizationMemberMapping.objects.filter(
+            user_id=request.user.id,
+            role=owner_role,
+        ).values_list("organization_id", flat=True)
+
+        org_mappings = list(
+            OrganizationMapping.objects.filter(
+                organization_id__in=owner_org_ids,
+                status=OrganizationStatus.ACTIVE,
+            ).order_by("name")
+        )
+
+        owner_counts = (
+            OrganizationMemberMapping.objects.filter(
+                organization_id__in=[m.organization_id for m in org_mappings],
+                role=owner_role,
+                user_id__isnull=False,
+                user__is_active=True,
+            )
+            .values("organization_id")
+            .annotate(count=Count("id"))
+        )
+        single_owner_org_ids = {row["organization_id"] for row in owner_counts if row["count"] == 1}
+
+        serialized = serialize(
+            org_mappings,
+            request.user,
+            serializer=ControlSiloOrganizationMappingSerializer(),
+        )
+
+        return Response(
+            [
+                {
+                    "organization": data,
+                    "singleOwner": mapping.organization_id in single_owner_org_ids,
+                }
+                for mapping, data in zip(org_mappings, serialized)
+            ]
         )
 
     def post(self, request: Request) -> Response:

@@ -2,8 +2,8 @@ import {queryOptions, useQuery} from '@tanstack/react-query';
 
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

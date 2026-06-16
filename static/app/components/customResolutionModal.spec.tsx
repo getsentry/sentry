@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
@@ -189,5 +189,56 @@ describe('CustomResolutionModal', () => {
       name: /sentry-android-shop.*3\.0\.0/i,
     });
     expect(matches).toHaveLength(1);
+  });
+
+  it('keeps showing a selected exact-match release after search is cleared', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/releases/${encodeURIComponent('ancient-release')}/`,
+      body: ReleaseFixture({
+        version: 'ancient-release',
+        versionInfo: {
+          buildHash: null,
+          description: 'ancient-release',
+          package: '',
+          version: {
+            raw: 'ancient-release',
+          },
+        },
+      }),
+    });
+
+    render(
+      <CustomResolutionModal
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
+        projectSlug="project-slug"
+        onSelected={jest.fn()}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
+      />
+    );
+
+    const trigger = screen.getByRole('button', {name: /version/i});
+    await userEvent.click(trigger);
+    const searchInput = await screen.findByRole('textbox');
+    await userEvent.click(searchInput);
+    await userEvent.paste('ancient-release');
+
+    expect(
+      await screen.findByRole('option', {name: /ancient-release/})
+    ).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+
+    await waitFor(
+      () =>
+        expect(screen.getByRole('button', {name: /version/i})).toHaveTextContent(
+          'ancient-release'
+        ),
+      {timeout: 600}
+    );
   });
 });

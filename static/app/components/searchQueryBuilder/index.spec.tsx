@@ -19,7 +19,8 @@ import {
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {
   QueryInterfaceType,
@@ -144,6 +145,15 @@ function getLastInput() {
   return input!;
 }
 
+function makeDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(next => {
+    resolve = next;
+  });
+
+  return {promise, resolve};
+}
+
 describe('SearchQueryBuilder', () => {
   beforeEach(() => {
     // `useDimensions` is used to hide things when the component is too small, so we need to mock a large width
@@ -179,6 +189,48 @@ describe('SearchQueryBuilder', () => {
   it('displays a placeholder when empty', async () => {
     render(<SearchQueryBuilder {...defaultProps} placeholder="foo" />);
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
+  });
+
+  it('syncs external initial query changes while disabled', async () => {
+    function ExternalProviderSearchQueryBuilder({
+      disabled,
+      initialQuery,
+    }: {
+      disabled: boolean;
+      initialQuery: string;
+    }) {
+      return (
+        <SearchQueryBuilderProvider
+          {...defaultProps}
+          disabled={disabled}
+          initialQuery={initialQuery}
+        >
+          <SearchQueryBuilder
+            {...defaultProps}
+            disabled={disabled}
+            initialQuery={initialQuery}
+          />
+        </SearchQueryBuilderProvider>
+      );
+    }
+
+    const {rerender} = render(
+      <ExternalProviderSearchQueryBuilder disabled initialQuery="" />
+    );
+
+    rerender(
+      <ExternalProviderSearchQueryBuilder disabled initialQuery="browser.name:Firefox" />
+    );
+    rerender(
+      <ExternalProviderSearchQueryBuilder
+        disabled={false}
+        initialQuery="browser.name:Firefox"
+      />
+    );
+
+    expect(
+      await screen.findByRole('row', {name: 'browser.name:Firefox'})
+    ).toBeInTheDocument();
   });
 
   describe('rendering search query builder', () => {
@@ -757,6 +809,8 @@ describe('SearchQueryBuilder', () => {
           body: [
             // Level is not a valid filter key
             {query: 'assigned:me level:error'},
+            // Prototype keys should be treated as invalid filter keys
+            {query: '__proto__:a'},
           ],
         });
 
@@ -2340,6 +2394,27 @@ describe('SearchQueryBuilder', () => {
       expect(
         await screen.findByRole('row', {name: 'custom_tag_name:tag_value_one'})
       ).toBeInTheDocument();
+    });
+
+    it('shows value counts in the dropdown when the response includes them', async () => {
+      const mockGetTagValues = jest
+        .fn()
+        .mockResolvedValue([{value: 'tag_value_one', count: 1234}]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+
+      const option = await screen.findByRole('option', {name: /tag_value_one/});
+
+      expect(within(option).getByText('1.2K')).toBeInTheDocument();
     });
 
     it('unescapes asterisks before fetching tag value suggestions', async () => {
@@ -5170,6 +5245,62 @@ describe('SearchQueryBuilder', () => {
       expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
     });
 
+    it('uses the explicit string tag key when selecting a pretty tag option', async () => {
+      render(<SearchQueryBuilder {...builderProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo');
+      await userEvent.click(screen.getByRole('option', {name: 'foo'}));
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('normalizes typed pretty tag keys to the explicit string tag key', async () => {
+      render(<SearchQueryBuilder {...builderProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo:');
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('normalizes edited pretty tag keys to the explicit string tag key', async () => {
+      render(
+        <SearchQueryBuilder {...builderProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
+      await userEvent.clear(input);
+      await userEvent.keyboard('foo{Enter}{Escape}');
+
+      expect(
+        screen.getByRole('row', {name: 'tags[foo,string]:firefox'})
+      ).toBeInTheDocument();
+    });
+
+    it('uses the explicit string tag key when selecting a pretty has value', async () => {
+      render(<SearchQueryBuilder {...builderProps} initialQuery="has:custom_tag_name" />);
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+      await userEvent.keyboard('foo');
+      await userEvent.click(screen.getByRole('option', {name: 'foo'}));
+
+      expect(screen.getByRole('row', {name: 'has:tags[foo,string]'})).toBeInTheDocument();
+    });
+
     it('renders explicit number tag filter', async () => {
       render(
         <SearchQueryBuilder {...builderProps} initialQuery="tags[bar,number]:<=100" />
@@ -5807,7 +5938,8 @@ describe('SearchQueryBuilder', () => {
         });
 
         function AskSeerTestComponent({children}: {children: React.ReactNode}) {
-          const {displayAskSeer, query} = useSearchQueryBuilder();
+          const {displayAskSeer} = useSearchQueryBuilderAI();
+          const {query} = useSearchQueryBuilderState();
           return displayAskSeer ? (
             <AskSeerComboBox
               initialQuery={query}
@@ -6548,6 +6680,98 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('row', {name: /async_tag_one/})).toBeInTheDocument();
     });
 
+    it('uses async key metadata to create measurement filters', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {
+          key: 'app.vitals.start.warm.value',
+          name: 'app.vitals.start.warm.value',
+          kind: FieldKind.MEASUREMENT,
+        },
+      ]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          getTagKeys={mockGetTagKeys}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('app.vitals');
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'app.vitals.start.warm.value'})
+      );
+
+      expect(
+        await screen.findByRole('row', {name: 'app.vitals.start.warm.value:>100'})
+      ).toBeInTheDocument();
+    });
+
+    it('scopes in-flight async key responses to the active registry query key', async () => {
+      const staleRequest = makeDeferred<typeof asyncTags>();
+      const staleGetTagKeys = jest.fn(() => staleRequest.promise);
+      const currentGetTagKeys = jest.fn().mockResolvedValue([]);
+
+      const {rerender} = render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          asyncFilterKeyRegistryQueryKey={['filter-key-registry', 'old-scope']}
+          getTagKeys={staleGetTagKeys}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      await waitFor(() => {
+        expect(staleGetTagKeys).toHaveBeenCalledWith('async');
+      });
+
+      rerender(
+        <SearchQueryBuilder
+          {...defaultProps}
+          asyncFilterKeyRegistryQueryKey={['filter-key-registry', 'new-scope']}
+          getTagKeys={currentGetTagKeys}
+        />
+      );
+
+      await waitFor(() => {
+        expect(currentGetTagKeys).toHaveBeenCalledWith('async');
+      });
+
+      await act(async () => {
+        staleRequest.resolve(asyncTags);
+        await staleRequest.promise;
+      });
+
+      expect(
+        screen.queryByRole('option', {name: 'async_tag_one'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'async_tag_two'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('normalizes typed pretty tag keys using loaded async explicit keys', async () => {
+      const mockGetTagKeys = jest
+        .fn()
+        .mockResolvedValue([{key: 'tags[foo,string]', name: 'foo', kind: FieldKind.TAG}]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo');
+      expect(await screen.findByRole('option', {name: 'foo'})).toBeInTheDocument();
+      await userEvent.keyboard(':');
+
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[foo,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
     it('shows async keys when editing an existing filter key', async () => {
       const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
       render(
@@ -6581,6 +6805,71 @@ describe('SearchQueryBuilder', () => {
 
       await waitFor(() => {
         expect(mockGetTagKeys).toHaveBeenCalledWith('some_query');
+      });
+    });
+
+    it('uses getTagKeys for has value suggestions and deduplicates static keys', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: 'custom_tag_name', name: 'Custom Tag Name', kind: FieldKind.TAG},
+        {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},
+      ]);
+      const mockGetTagValues = jest.fn().mockResolvedValue([]);
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          getTagValues={mockGetTagValues}
+          initialQuery="has:custom_tag_name"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.type(input, 'tag');
+
+      await waitFor(() => {
+        expect(mockGetTagKeys).toHaveBeenCalledWith('tag');
+      });
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+      expect(screen.getAllByRole('option', {name: 'custom_tag_name'})).toHaveLength(1);
+      expect(mockGetTagValues).not.toHaveBeenCalled();
+    });
+
+    it('saves the selected async has suggestion as the returned key', async () => {
+      const mockGetTagKeys = jest
+        .fn()
+        .mockResolvedValue([
+          {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},
+        ]);
+      const mockOnChange = jest.fn();
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          initialQuery="has:custom_tag_name"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.type(input, 'async');
+      await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenLastCalledWith(
+          'has:async_tag_one',
+          expect.anything()
+        );
       });
     });
   });

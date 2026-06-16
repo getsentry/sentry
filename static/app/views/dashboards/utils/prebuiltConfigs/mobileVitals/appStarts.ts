@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   COLD_START_CONDITION,
@@ -14,7 +14,7 @@ import {APP_STARTS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuilt
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: Widget = {
+const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'avg-cold-starts-big-number',
   title: t('Average Cold Start'),
   description: '',
@@ -41,7 +41,7 @@ const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
+const TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'total-cold-start-count-big-number',
   title: t('Cold Start Count'),
   description: '',
@@ -68,7 +68,7 @@ const TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: Widget = {
+const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'avg-warm-starts-big-number',
   title: t('Average Warm Start'),
   description: '',
@@ -95,7 +95,7 @@ const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
+const TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   id: 'total-warm-start-count-big-number',
   title: t('Warm Start Count'),
   description: '',
@@ -122,7 +122,7 @@ const TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
   },
 };
 
-const AVG_COLD_START_LINE_WIDGET: Widget = {
+const AVG_COLD_START_LINE_WIDGET: PrebuiltWidget = {
   id: 'avg-cold-start-line',
   title: t('Average Cold Start'),
   description: '',
@@ -150,7 +150,7 @@ const AVG_COLD_START_LINE_WIDGET: Widget = {
   },
 };
 
-const AVG_WARM_START_LINE_WIDGET: Widget = {
+const AVG_WARM_START_LINE_WIDGET: PrebuiltWidget = {
   id: 'avg-warm-start-line',
   title: t('Average Warm Start'),
   description: '',
@@ -178,7 +178,7 @@ const AVG_WARM_START_LINE_WIDGET: Widget = {
   },
 };
 
-const COLD_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
+const COLD_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
   id: 'cold-start-device-distribution-bar',
   title: t('Cold Start Device Distribution'),
   description: '',
@@ -205,7 +205,7 @@ const COLD_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
   },
 };
 
-const WARM_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
+const WARM_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
   id: 'warm-start-device-distribution-bar',
   title: t('Warm Start Device Distribution'),
   description: '',
@@ -232,7 +232,7 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
   },
 };
 
-const COLD_OPERATIONS_TABLE: Widget = {
+const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
   id: 'cold-operations-table',
   title: t('Cold Start Operations'),
   description: '',
@@ -270,7 +270,7 @@ const COLD_OPERATIONS_TABLE: Widget = {
   },
 };
 
-const WARM_OPERATIONS_TABLE: Widget = {
+const WARM_OPERATIONS_TABLE: PrebuiltWidget = {
   id: 'warm-operations-table',
   title: t('Warm Start Operations'),
   description: '',
@@ -308,19 +308,19 @@ const WARM_OPERATIONS_TABLE: Widget = {
   },
 };
 
-const HEADER_ROW_WIDGETS: Widget[] = [
+const HEADER_ROW_WIDGETS: PrebuiltWidget[] = [
   AVG_COLD_STARTS_BIG_NUMBER_WIDGET,
   AVG_WARM_STARTS_BIG_NUMBER_WIDGET,
   TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET,
   TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET,
 ];
 
-const FIRST_ROW_WIDGETS: Widget[] = [
+const FIRST_ROW_WIDGETS: PrebuiltWidget[] = [
   AVG_COLD_START_LINE_WIDGET,
   AVG_WARM_START_LINE_WIDGET,
 ];
 
-const SECOND_ROW_WIDGETS: Widget[] = [
+const SECOND_ROW_WIDGETS: PrebuiltWidget[] = [
   COLD_START_DEVICE_DISTRIBUTION_WIDGET,
   WARM_START_DEVICE_DISTRIBUTION_WIDGET,
 ];

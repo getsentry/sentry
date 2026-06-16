@@ -14,6 +14,7 @@ class AIMessage(TypedDict):
 
 class AIOutputResult(TypedDict):
     response_text: str | None
+    reasoning_text: str | None
     response_object: str | None
     tool_calls: str | None
 
@@ -28,6 +29,7 @@ class RawMessage(TypedDict, total=False):
 class PartBuckets(TypedDict):
     has_renderable_text_part: bool
     text_parts: list[str]
+    reasoning_parts: list[str]
     object_parts: list[Any]
     tool_calls: list[Any]
     tool_responses: list[dict[str, Any]]
@@ -65,7 +67,12 @@ def stringify_message_content(content: Any) -> str | None:
 
 
 def _empty_output() -> AIOutputResult:
-    return {"response_text": None, "response_object": None, "tool_calls": None}
+    return {
+        "response_text": None,
+        "reasoning_text": None,
+        "response_object": None,
+        "tool_calls": None,
+    }
 
 
 def _normalize_raw_messages(raw_messages: list[RawMessage], default_role: str) -> list[AIMessage]:
@@ -81,12 +88,14 @@ def _normalize_raw_messages(raw_messages: list[RawMessage], default_role: str) -
 
 def _output_from_messages(messages: list[RawMessage]) -> AIOutputResult:
     text_parts: list[str] = []
+    reasoning_parts: list[str] = []
     tool_call_parts: list[Any] = []
     object_parts: list[Any] = []
     for msg in messages:
         _append_output_from_message(
             msg,
             text_parts=text_parts,
+            reasoning_parts=reasoning_parts,
             tool_call_parts=tool_call_parts,
             object_parts=object_parts,
         )
@@ -97,6 +106,7 @@ def _output_from_messages(messages: list[RawMessage]) -> AIOutputResult:
 
     return {
         "response_text": "\n".join(text_parts) if text_parts else None,
+        "reasoning_text": "\n".join(reasoning_parts) if reasoning_parts else None,
         "response_object": response_object,
         "tool_calls": json.dumps(tool_call_parts) if tool_call_parts else None,
     }
@@ -264,6 +274,7 @@ def _bucket_parts(parts: list[Any]) -> PartBuckets:
     buckets: PartBuckets = {
         "has_renderable_text_part": False,
         "text_parts": [],
+        "reasoning_parts": [],
         "object_parts": [],
         "tool_calls": [],
         "tool_responses": [],
@@ -283,6 +294,11 @@ def _bucket_parts(parts: list[Any]) -> PartBuckets:
             text = _text_from_part(part, strip=True)
             if text:
                 buckets["text_parts"].append(text)
+            continue
+        if part_type == "reasoning":
+            text = _text_from_part(part, strip=True)
+            if text:
+                buckets["reasoning_parts"].append(text)
             continue
         if not part_type:
             text = _text_from_part(part, strip=True)
@@ -312,6 +328,7 @@ def _append_output_from_message(
     msg: RawMessage,
     *,
     text_parts: list[str],
+    reasoning_parts: list[str],
     tool_call_parts: list[Any],
     object_parts: list[Any],
 ) -> None:
@@ -319,6 +336,7 @@ def _append_output_from_message(
         _append_output_from_parts(
             msg["parts"],
             text_parts=text_parts,
+            reasoning_parts=reasoning_parts,
             tool_call_parts=tool_call_parts,
             object_parts=object_parts,
         )
@@ -341,6 +359,7 @@ def _append_output_from_parts(
     parts: list[Any],
     *,
     text_parts: list[str],
+    reasoning_parts: list[str],
     tool_call_parts: list[Any],
     object_parts: list[Any],
 ) -> None:
@@ -353,6 +372,11 @@ def _append_output_from_parts(
             text = part.get("content") or part.get("text")
             if isinstance(text, str) and text:
                 text_parts.append(text)
+            continue
+        if part_type == "reasoning":
+            text = part.get("content") or part.get("text")
+            if isinstance(text, str) and text:
+                reasoning_parts.append(text)
             continue
         if part_type == "tool_call":
             tool_call_parts.append(part)

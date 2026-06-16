@@ -1846,7 +1846,6 @@ tests/js/instrumentedEnv/userEventIntegration.ts
 tests/js/jest-pegjs-transform.js
 tests/js/setup.ts
 tests/js/setupFramework.ts
-tests/js/test-balancer/index.js
 tests/sentry/__init__.py
 tests/sentry/analytics/__init__.py
 tests/sentry/analytics/test_base.py
@@ -1893,7 +1892,7 @@ tests/sentry/core/endpoints/test_organization_member_invite_details.py
 tests/sentry/core/endpoints/test_organization_member_invite_index.py
 tests/sentry/core/endpoints/test_organization_member_team_details.py
 tests/sentry/core/endpoints/test_organization_projects.py
-tests/sentry/core/endpoints/test_organization_projects_experiment.py
+tests/sentry/core/endpoints/test_organization_projects_create.py
 tests/sentry/core/endpoints/test_organization_request_project_creation.py
 tests/sentry/core/endpoints/test_organization_teams.py
 tests/sentry/core/endpoints/test_organization_user_details.py

@@ -66,7 +66,9 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ActionHandlerSerializerResponse]]:
         """
         Returns a list of available actions for a given org
         """

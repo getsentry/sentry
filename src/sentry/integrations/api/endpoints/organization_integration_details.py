@@ -73,7 +73,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         organization_context: RpcUserOrganizationContext,
         integration_id: int,
         **kwds: Any,
-    ) -> Response:
+    ) -> Response[OrganizationIntegrationResponse]:
         org_integration = self.get_organization_integration(
             organization_context.organization.id, integration_id
         )
@@ -100,7 +100,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         organization_context: RpcUserOrganizationContext,
         integration_id: int,
         **kwds: Any,
-    ) -> Response:
+    ) -> Response[None]:
         # Removing the integration removes the organization
         # integrations and all linked issues.
 
@@ -153,7 +153,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             installation.update_organization_config(request.data)
         except (IntegrationError, ApiError) as e:
             sentry_sdk.capture_exception(e)
-            return self.respond({"detail": [str(e)]}, status=400)
+            return self.respond({"detail": str(e)}, status=400)
 
         self.create_audit_entry(
             request=request,

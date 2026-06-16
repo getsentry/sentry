@@ -5,6 +5,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
@@ -39,6 +40,7 @@ from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.strings import truncatechars
 
@@ -520,6 +522,120 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        repo = Repository.objects.create(
+            organization_id=org.id, name="test/repo", provider="integrations:github"
+        )
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message="fixes %s" % (group.qualified_short_id),
+            key="alksdflskdfjsldkfajsflkslk",
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider="github",
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_without_repository_records_no_provider(
+        self, mock_record: MagicMock
+    ) -> None:
+        """A commit with no repository configured (as uploaded manually via the API)
+        still resolves the referenced issue; the auto-created repo has no provider,
+        so the IssueResolvedEvent records provider=None."""
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": "a" * 40, "message": "fixes %s" % (group.qualified_short_id)}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        commit = Commit.objects.get(organization_id=org.id, key="a" * 40)
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider=None,
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_via_pull_request_records_merge_commit(self, mock_record: MagicMock) -> None:
+        """A group resolved by a pull request records the PR's merge commit id on
+        the IssueResolvedEvent, resolved through the release's matching commit."""
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        repo = Repository.objects.create(
+            organization_id=org.id, name="test/repo", provider="integrations:github"
+        )
+        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="b" * 40)
+        pull_request = self.create_pull_request(repository_id=repo.id, organization_id=org.id)
+        pull_request.update(merge_commit_sha=commit.key)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pull_request.id,
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider="github",
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @receivers_raise_on_send()

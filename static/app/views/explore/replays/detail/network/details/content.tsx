@@ -6,14 +6,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
-import {
-  getOutputType,
-  Output,
-} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
+import {getOutputType} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
 import {
   Setup,
   UnsupportedOp,
 } from 'sentry/views/explore/replays/detail/network/details/onboarding';
+import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
 import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
 import {
   GeneralSection,
@@ -55,6 +53,11 @@ export function NetworkDetailsContent(props: Props) {
           {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
             <Setup showSnippet={output} {...props} />
           )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>
+              {t('No response body was captured for this request.')}
+            </ParseError>
+          )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
         </OverflowFluidHeight>
       );
@@ -68,6 +71,11 @@ export function NetworkDetailsContent(props: Props) {
           )}
           {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
             <Setup showSnippet={output} {...props} />
+          )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>
+              {t('No response body was captured for this request.')}
+            </ParseError>
           )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
           {output === Output.BODY_PARSE_ERROR && (
@@ -100,6 +108,9 @@ export function NetworkDetailsContent(props: Props) {
           </SectionList>
           {[Output.SETUP, Output.URL_SKIPPED, Output.DATA].includes(output) && (
             <Setup showSnippet={output} {...props} />
+          )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>{t('No headers were captured for this request.')}</ParseError>
           )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="headers" />}
         </OverflowFluidHeight>

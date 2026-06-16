@@ -31,21 +31,27 @@ class WorkflowTest(BaseWorkflowTest):
         assert not Workflow.objects.filter(id=self.workflow.id).exists()
 
     def test_evaluate_trigger_conditions__condition_new_event__True(self) -> None:
-        evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
+        evaluation, _ = self.workflow.evaluate_trigger_conditions(
+            self.event_data, group=self.data_condition_group
+        )
         assert evaluation.triggered is True
 
     def test_evaluate_trigger_conditions__condition_new_event__False(self) -> None:
         # Update event to have been seen before
         self.group_event.group.times_seen = 5
 
-        evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
+        evaluation, _ = self.workflow.evaluate_trigger_conditions(
+            self.event_data, group=self.data_condition_group
+        )
         assert evaluation.triggered is False
 
     def test_evaluate_trigger_conditions__no_conditions(self) -> None:
         self.workflow.when_condition_group = None
         self.workflow.save()
 
-        evaluation, _ = self.workflow.evaluate_trigger_conditions(self.event_data)
+        evaluation, _ = self.workflow.evaluate_trigger_conditions(
+            self.event_data, group=self.data_condition_group
+        )
         assert evaluation.triggered is True
 
     def test_evaluate_trigger_conditions__slow_condition(self) -> None:
@@ -57,7 +63,7 @@ class WorkflowTest(BaseWorkflowTest):
         )
         self.data_condition_group.conditions.add(slow_condition)
         evaluation, remaining_conditions = self.workflow.evaluate_trigger_conditions(
-            self.event_data
+            self.event_data, group=self.data_condition_group
         )
 
         assert evaluation.triggered is True

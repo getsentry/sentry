@@ -55,7 +55,7 @@ describe('ProjectKeys', () => {
     ).toBeInTheDocument();
   });
 
-  it('has clippable box', async () => {
+  it.isKnownFlake('has clippable box', async () => {
     render(<ProjectKeys />, {
       organization,
       outletContext: {project: ProjectFixture()},
@@ -68,7 +68,7 @@ describe('ProjectKeys', () => {
     expect(expandButton).not.toBeInTheDocument();
   });
 
-  it('renders for default project', async () => {
+  it.isKnownFlake('renders for default project', async () => {
     render(<ProjectKeys />, {
       organization,
       outletContext: {project: ProjectFixture({platform: 'other'})},

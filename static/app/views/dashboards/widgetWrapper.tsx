@@ -33,5 +33,5 @@ export const WidgetWrapper = styled(motion.div, {
           grid-area: span 2 / span 2;
         `;
     }
-  }};
+  }}
 `;

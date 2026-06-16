@@ -84,7 +84,7 @@ jobs:
         run: node .github/workflows/scripts/format-type-coverage-comment.ts
 
       - name: Find existing comment
-        if: steps.merge_base.outputs.skip != 'true' && steps.comment.outputs.body
+        if: steps.merge_base.outputs.skip != 'true'
         uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
         id: fc
         with:
@@ -99,4 +99,21 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: ${{ steps.comment.outputs.body }}
+          edit-mode: replace
+
+      - name: Update existing comment when clean
+        if: >
+          steps.merge_base.outputs.skip != 'true' &&
+          steps.comment.outputs.body == '' &&
+          steps.fc.outputs.comment-id != '' &&
+          steps.fc.outputs.comment-id != '0'
+        uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            <!-- TYPE_COVERAGE_DIFF -->
+            ## 📊 Type Coverage Diff
+
+            ✅ no issues found
           edit-mode: replace

@@ -1,7 +1,5 @@
 from collections.abc import Callable
 
-import pytest
-
 from sentry.scm.private.rate_limit import DynamicRateLimiter
 
 
@@ -68,11 +66,10 @@ class TestIsRateLimited:
         limiter, _ = make_limiter(get_and_set_return=(10, 11))
         assert limiter.is_rate_limited("shared") is True
 
-    def test_unregistered_referrer_raises(self) -> None:
-        """A referrer not in the allocation pool must not be passed."""
-        limiter, _ = make_limiter(get_and_set_return=(10, 10))
-        with pytest.raises(AssertionError):
-            limiter.is_rate_limited("other")
+    def test_unknown_referrer_exhausted_shared_quota(self) -> None:
+        """Shared referrer at quota limit is rate limited."""
+        limiter, _ = make_limiter(get_and_set_return=(10, 11))
+        assert limiter.is_rate_limited("abc") is True
 
     def test_fails_open_when_limit_not_set(self) -> None:
         """Rate limit fails open if no limit is cached."""

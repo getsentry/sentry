@@ -40,7 +40,9 @@ from sentry.integrations.source_code_management.status_check import StatusCheckC
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.net.http import SafeSession
 from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
+from sentry.shared_integrations.client.base import SessionSettings
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
@@ -1135,6 +1137,10 @@ GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
 GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
 GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
 
+# Requests to this resource do not count against GitHub's primary rate limit, so our
+# internal rate limiter ignores them. https://docs.github.com/en/rest/rate-limit
+GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
+
 
 class GitHubApiClient(GitHubBaseClient):
     """
@@ -1190,7 +1196,15 @@ class GitHubApiClient(GitHubBaseClient):
         finally:
             self.__referrer = prev
 
-    def _do_send(self, *args, **kwargs) -> Response:
+    def _do_send(
+        self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
+    ) -> Response:
+        # The rate-limit resource is not itself rate limited by GitHub, so we skip the internal
+        # rate limiter entirely. Counting these requests would both consume quota we don't owe and
+        # pollute the recorded capacity with the rate-limit resource's own (unrelated) headers.
+        if request.path_url.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
+            return super()._do_send(session, request, session_settings)
+
         is_rate_limited = False
         try:
             if self.__rate_limiter.is_rate_limited(self.__referrer):
@@ -1202,7 +1216,7 @@ class GitHubApiClient(GitHubBaseClient):
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
             sentry_sdk.capture_exception(e)
 
-        response = super()._do_send(*args, **kwargs)
+        response = super()._do_send(session, request, session_settings)
 
         try:
             capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])

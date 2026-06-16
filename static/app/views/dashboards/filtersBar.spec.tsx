@@ -5,12 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
@@ -63,9 +58,8 @@ describe('FiltersBar', () => {
       },
     });
     renderFilterBar({location: newLocation});
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
-      screen.getByRole('button', {name: /browser\.name.*Chrome/i})
+      await screen.findByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
   });
 
@@ -80,8 +74,7 @@ describe('FiltersBar', () => {
       },
     });
     renderFilterBar({location: newLocation, hasUnsavedChanges: true});
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Save'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 
@@ -98,9 +91,8 @@ describe('FiltersBar', () => {
     });
 
     renderFilterBar({location: newLocation});
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
-      screen.getByRole('button', {name: /browser\.name.*Chrome/i})
+      await screen.findByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
@@ -215,9 +207,8 @@ describe('FiltersBar', () => {
       hasUnsavedChanges: true,
       prebuiltDashboardId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
     });
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
-      screen.getByRole('button', {name: /browser\.name.*Chrome/i})
+      await screen.findByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save for Everyone'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();

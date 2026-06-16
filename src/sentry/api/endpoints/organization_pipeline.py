@@ -127,6 +127,7 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
             return Response({"detail": "Pipeline does not support API mode."}, status=400)
 
         pipeline.set_api_mode()
+        pipeline.bind_state("user_id", request.user.id)
 
         metrics.incr(
             "integrations.pipeline_api.initialize",

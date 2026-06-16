@@ -5,13 +5,11 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.dashboards.endpoints.organization_dashboard_details import (
-    REVISIONS_FEATURE,
     OrganizationDashboardBase,
 )
 from sentry.models.dashboard import Dashboard, DashboardRevision
@@ -61,9 +59,6 @@ class OrganizationDashboardRevisionDetailsEndpoint(OrganizationDashboardBase):
         """
         Return the dashboard snapshot for a specific revision.
         """
-        if not features.has(REVISIONS_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         if revision.snapshot_schema_version != DashboardRevision.SNAPSHOT_SCHEMA_VERSION:
             return Response(
                 {"detail": "This revision requires migration before it can be previewed."},

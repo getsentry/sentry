@@ -3,7 +3,6 @@ import * as qs from 'query-string';
 import {
   IconAsana,
   IconBitbucket,
-  IconCodecov,
   IconGeneric,
   IconGithub,
   IconGitlab,
@@ -230,8 +229,6 @@ export const getIntegrationIcon = (
       return <IconPerforce size={iconSize} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
-    case 'codecov':
-      return <IconCodecov size={iconSize} />;
     default:
       return <IconGeneric size={iconSize} />;
   }
@@ -257,8 +254,6 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
       return 'Perforce';
     case 'vsts':
       return 'Azure DevOps';
-    case 'codecov':
-      return 'Codeov';
     default:
       return '';
   }

@@ -387,10 +387,11 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert len(responses.calls) == 1
         request_body = responses.calls[0].request.body
 
-        # The update should include issues_events, merge_requests_events, and push_events
+        # The update should include issues_events, merge_requests_events, push_events, and note_events
         assert b"merge_requests_events" in request_body
         assert b"push_events" in request_body
         assert b"issues_events" in request_body
+        assert b"note_events" in request_body
 
         # Verify SLO metrics were recorded
         assert_slo_metric(mock_record_event)
