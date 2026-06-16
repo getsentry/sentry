@@ -824,6 +824,24 @@ class PostSentryAppsTest(SentryAppsTest):
         )
         assert "webhookHeaders" in response.data
 
+    def test_create_integration_with_too_many_webhook_headers(self) -> None:
+        headers = [f"X-Header-{i}: value" for i in range(21)]
+        response = self.get_error_response(**self.get_data(webhookHeaders=headers), status_code=400)
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_invalid_header_name_chars(self) -> None:
+        # Control characters in header names are not valid RFC 7230 tokens.
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["X-Evil\x01Header: value"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_space_in_header_name(self) -> None:
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["X Bad Name: value"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
     def test_members_cant_create(self) -> None:
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")

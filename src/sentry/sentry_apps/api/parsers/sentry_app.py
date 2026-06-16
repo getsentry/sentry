@@ -1,4 +1,5 @@
 import logging
+import re
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
@@ -18,6 +19,10 @@ from sentry.utils.display_name_filter import is_spam_display_name
 # Custom webhook headers are intentionally limited to application-level metadata
 # and common custom-header names. Names are compared case-insensitively.
 ALLOWED_WEBHOOK_HEADERS = frozenset({"authorization", "user-agent", "accept", "date", "prefer"})
+
+# RFC 7230 §3.2.6 — header field names are "tokens": letters, digits, and
+# the limited punctuation set below. Excludes separators and control chars.
+_HTTP_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~A-Za-z0-9]+$")
 
 # Headers Sentry owns, or transport/proxy identity headers that must not be
 # user-controlled. The "sentry-hook" prefix is also blocked.
@@ -226,6 +231,8 @@ class SentryAppParser(Serializer):
         return value
 
     def validate_webhookHeaders(self, value):
+        if len(value) > 20:
+            raise ValidationError("Cannot configure more than 20 custom webhook headers.")
         seen_names = set()
         for header in value:
             # Reject CR/LF to prevent header injection / request splitting.
@@ -236,6 +243,11 @@ class SentryAppParser(Serializer):
             if not separator or not name:
                 raise ValidationError(
                     f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
+                )
+            if not _HTTP_TOKEN_RE.match(name):
+                raise ValidationError(
+                    f"'{name}' contains invalid characters. Header names must only use "
+                    "letters, digits, and the punctuation characters !#$%&'*+-.^_`|~"
                 )
             normalized = name.lower()
             if normalized in RESERVED_WEBHOOK_HEADERS or normalized.startswith(
