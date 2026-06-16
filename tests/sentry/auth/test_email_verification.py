@@ -2,6 +2,7 @@ import time
 from unittest import mock
 
 import pytest
+from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 from django.test import RequestFactory
 
@@ -13,7 +14,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import sign
 
-TEST_SALT = "test-salt"
+SALT = settings.SIGNUP_VERIFICATION_EMAIL_SALT
 
 
 @control_silo_test
@@ -90,44 +91,38 @@ class UnsignSignupVerificationTest(TestCase):
         session.session_key = "s1"
         self.request.session = session
 
-    @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_valid_signature(self, mock_salt: mock.MagicMock) -> None:
+    def test_valid_signature(self) -> None:
         exp = time.time() + 300
-        signed = sign(salt=TEST_SALT, email="a@b.com", session_id="s1", expires_at=exp)
+        signed = sign(salt=SALT, email="a@b.com", session_id="s1", expires_at=exp)
         result = unsign_signup_verification(signed, self.request)
         assert result["email"] == "a@b.com"
         assert result["session_id"] == "s1"
 
-    @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_expired_link(self, mock_salt: mock.MagicMock) -> None:
+    def test_expired_link(self) -> None:
         exp = time.time() - 1
-        signed = sign(salt=TEST_SALT, email="a@b.com", session_id="s1", expires_at=exp)
+        signed = sign(salt=SALT, email="a@b.com", session_id="s1", expires_at=exp)
         with pytest.raises(SignatureExpired):
             unsign_signup_verification(signed, self.request)
 
-    @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_tampered_signature(self, mock_salt: mock.MagicMock) -> None:
+    def test_tampered_signature(self) -> None:
         exp = time.time() + 300
-        signed = sign(salt=TEST_SALT, email="a@b.com", session_id="s1", expires_at=exp)
+        signed = sign(salt=SALT, email="a@b.com", session_id="s1", expires_at=exp)
         tampered = signed[:-1] + ("A" if signed[-1] != "A" else "B")
         with pytest.raises(BadSignature):
             unsign_signup_verification(tampered, self.request)
 
-    @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_malformed_link_throws_bad_sig(self, mock_salt: mock.MagicMock) -> None:
+    def test_malformed_link_throws_bad_sig(self) -> None:
         with pytest.raises(BadSignature):
             unsign_signup_verification("not-valid-base64-!!!", self.request)
 
-    @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_wrong_salt(self, mock_salt: mock.MagicMock) -> None:
+    def test_wrong_salt(self) -> None:
         exp = time.time() + 300
         signed = sign(salt="wrong-salt", email="a@b.com", session_id="s1", expires_at=exp)
         with pytest.raises(BadSignature):
             unsign_signup_verification(signed, self.request)
 
-    @mock.patch("sentry.auth.email_verification._get_salt", return_value=TEST_SALT)
-    def test_session_mismatch(self, mock_salt: mock.MagicMock) -> None:
+    def test_session_mismatch(self) -> None:
         exp = time.time() + 300
-        signed = sign(salt=TEST_SALT, email="a@b.com", session_id="else", expires_at=exp)
+        signed = sign(salt=SALT, email="a@b.com", session_id="else", expires_at=exp)
         with pytest.raises(ValueError, match="Session mismatch"):
             unsign_signup_verification(signed, self.request)
