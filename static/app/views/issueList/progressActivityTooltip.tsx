@@ -43,6 +43,7 @@ const MAX_ITEMS = 3;
 function getProgressActivities(activities: GroupActivity[]): GroupActivity[] {
   // `activities` is ordered newest-first. Collect the most recent matching
   // items, then reverse so the newest activity is rendered at the bottom.
+  // Falls back to the most recent items if no progress-specific ones exist.
   const result: GroupActivity[] = [];
   for (const activity of activities) {
     if (PROGRESS_ACTIVITY_TYPES.has(activity.type)) {
@@ -52,7 +53,10 @@ function getProgressActivities(activities: GroupActivity[]): GroupActivity[] {
       }
     }
   }
-  return result.toReversed();
+  if (result.length > 0) {
+    return result.toReversed();
+  }
+  return activities.slice(0, MAX_ITEMS).toReversed();
 }
 
 function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}) {
