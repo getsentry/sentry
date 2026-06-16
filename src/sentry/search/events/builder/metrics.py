@@ -804,7 +804,13 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             if value:
                 values.append(self._resolve_environment_filter_value(value))
             else:
-                values.append("")
+                # The "no environment" environment. Metrics tag values are
+                # integer-indexed (`tags.value` is UInt64), and an absent tag
+                # resolves to 0, so the sentinel must be the integer 0. Appending
+                # the string "" instead makes ClickHouse fail converting '' to
+                # UInt64 (it was dropped here when the tag_values_are_strings
+                # option was removed).
+                values.append(0)
         values.sort()
         environment = self.column("environment")
         if len(values) == 1:

@@ -189,6 +189,19 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_empty_environment_filter_resolves_to_integer_sentinel(self) -> None:
+        # The "no environment" filter (`environment:""`) must compare the
+        # integer-indexed `tags[environment]` UInt64 column to the integer 0, not
+        # the string "". Comparing to "" makes ClickHouse fail converting '' to
+        # UInt64 and breaks crash-rate alert subscriptions on the metrics dataset.
+        query = MetricsQueryBuilder(
+            self.params,
+            query='environment:""',
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p50(transaction.duration)"],
+        )
+        assert Condition(query.column("environment"), Op.EQ, 0) in query.where
+
     def test_simple_aggregates(self) -> None:
         query = MetricsQueryBuilder(
             self.params,
