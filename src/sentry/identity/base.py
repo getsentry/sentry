@@ -24,14 +24,6 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
         self.config = config
         self.logger = logging.getLogger(f"sentry.identity.{self.key}")
 
-    def get_pipeline_config(self, data: dict[str, Any]) -> dict[str, str]:
-        """
-        Extract and validate provider-specific configuration from request data.
-
-        Raises ValueError if required configuration is missing or invalid.
-        """
-        return {}
-
     def build_identity(self, state):
         """
         Return a mapping containing the identity information.
