@@ -89,7 +89,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     status: 'active',
     totalProjects: 0,
     trialPlan: null,
-    trialTier: null,
     onDemandPeriodStart: '2018-09-25',
     trialEnd: null,
     countryCode: null,
