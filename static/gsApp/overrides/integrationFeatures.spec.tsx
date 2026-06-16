@@ -22,7 +22,7 @@ describe('hookIntegrationFeatures', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
-      query: {tier: 'am2'},
+      query: {tier: 'upsell'},
       body: BillingConfigFixture(PlanTier.AM2),
     });
   });
@@ -114,7 +114,7 @@ describe('hookIntegrationFeatures', () => {
       organization.features = ['integrations-issue-basic'];
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/billing-config/`,
-        query: {tier: 'am2'},
+        query: {tier: 'upsell'},
         body: BillingConfigFixture(PlanTier.AM2),
       });
     });
@@ -235,7 +235,7 @@ describe('hookIntegrationFeatures', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/billing-config/`,
-        query: {tier: 'am2'},
+        query: {tier: 'upsell'},
         body: BillingConfigFixture(PlanTier.AM2),
       });
     });

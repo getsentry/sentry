@@ -19,8 +19,10 @@ from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
-from sentry.api.endpoints.organization_monitoring_providers import (
+from sentry.api.endpoints.organization_monitoring_provider_details import (
     OrganizationMonitoringProviderDetailsEndpoint,
+)
+from sentry.api.endpoints.organization_monitoring_provider_index import (
     OrganizationMonitoringProviderIndexEndpoint,
 )
 from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint

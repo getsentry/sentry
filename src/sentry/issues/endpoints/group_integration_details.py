@@ -245,8 +245,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             ),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=group.project_id,
+            project=group.project,
             actor=resolve_action_actor(request),
         )
 
@@ -360,8 +359,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             ),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=group.project_id,
+            project=group.project,
             actor=resolve_action_actor(request),
         )
 
@@ -432,8 +430,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 ),
                 source=resolve_action_source(request),
                 group_id=group.id,
-                organization_id=organization_id,
-                project_id=group.project_id,
+                project=group.project,
                 actor=resolve_action_actor(request),
             )
 

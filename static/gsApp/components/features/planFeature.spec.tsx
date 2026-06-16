@@ -16,7 +16,7 @@ describe('PlanFeature', () => {
     SubscriptionStore.init();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
-      query: {tier: 'am2'},
+      query: {tier: 'upsell'},
       body: BillingConfigFixture(PlanTier.AM2),
     });
   });
@@ -125,7 +125,7 @@ describe('PlanFeature', () => {
     const mockFn = jest.fn(() => null);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
-      query: {tier: 'am3'},
+      query: {tier: 'upsell'},
       body: BillingConfigFixture(PlanTier.AM3),
     });
 

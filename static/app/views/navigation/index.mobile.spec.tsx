@@ -159,6 +159,36 @@ describe('mobile navigation', () => {
     });
   });
 
+  it('keeps page-frame nav open when interacting with org dropdown overlay', async () => {
+    const pageFrameContext = navigationContext({
+      organization: {features: [...ALL_AVAILABLE_FEATURES, 'page-frame']},
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      pageFrameContext
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+    expect(
+      screen.getByRole('navigation', {name: 'Primary Navigation'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    // The org dropdown menu is portaled to document.body, so clicking it
+    // triggers click-outside on the nav panel. The nav should stay open.
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Organization Settings'})
+    );
+
+    expect(
+      screen.getByRole('navigation', {name: 'Primary Navigation'})
+    ).toBeInTheDocument();
+  });
+
   describe('secondary nav route inference', () => {
     it('opens secondary navigation by default when on a sub-view', async () => {
       render(

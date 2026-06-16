@@ -5,6 +5,7 @@ from sentry.seer.assisted_query.metrics_tools import (
     _build_or_query,
     get_metric_metadata,
 )
+from sentry.seer.sentry_data_models import MetricMetadataSuccessResponse
 from sentry.testutils.cases import (
     APITransactionTestCase,
     SnubaTestCase,
@@ -66,13 +67,13 @@ class TestGetMetricMetadata(TestCase):
             limit=10,
         )
 
-        assert result["has_more"] is False
-        assert len(result["candidates"]) == 2
-        dist = result["candidates"][0]
-        assert dist["name"] == "http.request.duration"
-        assert dist["type"] == "distribution"
-        assert dist["unit"] == "millisecond"
-        assert dist["count"] == 1200
+        assert result.has_more is False
+        assert len(result.candidates) == 2
+        dist = result.candidates[0]
+        assert dist.name == "http.request.duration"
+        assert dist.type == "distribution"
+        assert dist.unit == "millisecond"
+        assert dist.count == 1200
 
         # Assert query params carry the expected shape.
         _args, kwargs = mock_client.get.call_args
@@ -97,7 +98,7 @@ class TestGetMetricMetadata(TestCase):
             project_ids=[self.project.id],
             name_substrings=[],
         )
-        assert result == {"candidates": [], "has_more": False}
+        assert result.dict() == {"candidates": [], "has_more": False}
         mock_client.get.assert_not_called()
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
@@ -124,8 +125,8 @@ class TestGetMetricMetadata(TestCase):
             name_substrings=["m"],
             limit=2,
         )
-        assert result["has_more"] is True
-        assert len(result["candidates"]) == 2
+        assert result.has_more is True
+        assert len(result.candidates) == 2
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_has_more_uses_raw_row_count_not_filtered_count(
@@ -167,8 +168,8 @@ class TestGetMetricMetadata(TestCase):
             limit=2,
         )
 
-        assert result["has_more"] is True
-        assert len(result["candidates"]) == 2
+        assert result.has_more is True
+        assert len(result.candidates) == 2
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_skips_rows_missing_name_or_type(self, mock_client_cls: MagicMock) -> None:
@@ -193,8 +194,8 @@ class TestGetMetricMetadata(TestCase):
             project_ids=[self.project.id],
             name_substrings=["x"],
         )
-        assert len(result["candidates"]) == 1
-        assert result["candidates"][0]["name"] == "good"
+        assert len(result.candidates) == 1
+        assert result.candidates[0].name == "good"
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_missing_unit_defaults_to_none(self, mock_client_cls: MagicMock) -> None:
@@ -217,7 +218,7 @@ class TestGetMetricMetadata(TestCase):
             project_ids=[self.project.id],
             name_substrings=["foo"],
         )
-        assert result["candidates"][0]["unit"] == "none"
+        assert result.candidates[0].unit == "none"
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_organization_not_found_returns_error(self, mock_client_cls: MagicMock) -> None:
@@ -232,7 +233,7 @@ class TestGetMetricMetadata(TestCase):
             name_substrings=["foo"],
         )
 
-        assert result == {
+        assert result.dict() == {
             "candidates": [],
             "has_more": False,
             "error": "organization_not_found",
@@ -253,7 +254,7 @@ class TestGetMetricMetadata(TestCase):
             name_substrings=["foo"],
         )
 
-        assert result == {
+        assert result.dict() == {
             "candidates": [],
             "has_more": False,
             "error": "events_query_failed",
@@ -307,12 +308,12 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
         )
 
         # A broken aggregate would short-circuit into events_query_failed.
-        assert "error" not in result, result
-        names = {c["name"] for c in result["candidates"]}
+        assert isinstance(result, MetricMetadataSuccessResponse), result
+        names = {c.name for c in result.candidates}
         assert "http.request.duration" in names
         assert "api.request.count" not in names
 
-        http_row = next(c for c in result["candidates"] if c["name"] == "http.request.duration")
-        assert http_row["type"] == "distribution"
-        assert http_row["unit"] == "millisecond"
-        assert http_row["count"] == 2
+        http_row = next(c for c in result.candidates if c.name == "http.request.duration")
+        assert http_row.type == "distribution"
+        assert http_row.unit == "millisecond"
+        assert http_row.count == 2

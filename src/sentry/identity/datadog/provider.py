@@ -273,6 +273,12 @@ class DatadogIdentityProvider(OAuth2Provider):
         "monitors_read",
     )
 
+    def get_pipeline_config(self, data: dict[str, Any]) -> dict[str, str]:
+        site = data.get("site")
+        if not site:
+            raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
+        return {"site": site}
+
     def _get_mcp_base_url(self) -> str:
         site = self._get_oauth_parameter("site")
         if site not in DATADOG_VALID_SITES:

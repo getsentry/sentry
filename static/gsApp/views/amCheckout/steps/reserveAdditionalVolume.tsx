@@ -19,17 +19,11 @@ export function ReserveAdditionalVolume({
   organization,
   subscription,
   activePlan,
-  checkoutTier,
   formData,
   onUpdate,
 }: Pick<
   StepProps,
-  | 'organization'
-  | 'subscription'
-  | 'activePlan'
-  | 'checkoutTier'
-  | 'formData'
-  | 'onUpdate'
+  'organization' | 'subscription' | 'activePlan' | 'formData' | 'onUpdate'
 >) {
   // if the customer has any reserved volume above platform already, auto-show the sliders
   const [showSliders, setShowSliders] = useState(
@@ -134,7 +128,6 @@ export function ReserveAdditionalVolume({
         <Stack direction="column" borderTop="primary">
           <Flex borderTop="primary" width="100%" />
           <VolumeSliders
-            checkoutTier={checkoutTier}
             activePlan={activePlan}
             organization={organization}
             onUpdate={onUpdate}
