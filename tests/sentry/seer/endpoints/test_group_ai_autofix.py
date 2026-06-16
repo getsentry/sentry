@@ -311,8 +311,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_pr_iteration_requires_feature_flag(self, mock_client_class):
         group = self.create_group()
         mock_client = mock_client_class.return_value
-        # Run state with no ``pr_iteration_enabled`` metadata so, with the flag
-        # off, trigger_autofix_agent raises PrIterationNotEnabledException.
+        # With the flag off, trigger_autofix_agent raises PrIterationNotEnabledException.
         mock_client.get_run.return_value = SeerRunState(
             run_id=123,
             blocks=[],

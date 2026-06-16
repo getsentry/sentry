@@ -10,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -459,8 +460,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     "coding_agents": {
                         agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
-                    "pr_iteration_enabled": bool(
-                        state.metadata.get("pr_iteration_enabled") if state.metadata else False
+                    "pr_iteration_enabled": features.has(
+                        "organizations:autofix-pr-iteration", group.organization
                     ),
                 }
             }
