@@ -89,7 +89,7 @@ class CellDirectoryTest(TestCase):
             "eu",
             2,
             "http://eu.testserver",
-            "http://eu-gateway.testserver",
+            api_gateway_address="http://eu-gateway.testserver",
         ),
         Cell("acme", 3, "http://acme.testserver"),
     )
