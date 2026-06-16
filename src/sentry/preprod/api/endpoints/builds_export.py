@@ -33,8 +33,6 @@ def _escape_csv_value(value: object) -> str:
     if value is None:
         return ""
     text = str(value)
-    # Prefix a quote if the first non-whitespace character is a formula trigger; several
-    # spreadsheet apps strip leading whitespace/tab/CR before evaluating the cell.
     stripped = text.lstrip()
     if stripped and stripped[0] in _FORMULA_PREFIXES:
         return "'" + text
@@ -43,10 +41,6 @@ def _escape_csv_value(value: object) -> str:
 
 class BuildsCsvResponder(CsvResponder[PreprodArtifact]):
     def get_header(self) -> tuple[str, ...]:
-        # Mirrors the original Emerge report (app_name, artifact_id, app_id,
-        # build_configuration, version, platform, upload_date, download_count) with the
-        # Sentry-only project_slug inserted after app_name and install_groups before
-        # upload_date.
         return (
             "app_name",
             "project_slug",
@@ -63,15 +57,10 @@ class BuildsCsvResponder(CsvResponder[PreprodArtifact]):
     def get_row(self, item: PreprodArtifact) -> tuple[str, ...]:
         mobile_app_info = item.get_mobile_app_info()
         platform = item.platform
-        # The "build_configuration" column is the configuration name (e.g. "Debug"/
-        # "Release"); the FK is nullable, so guard it like the build-details transform.
         build_configuration = item.build_configuration
-        # Raw download sum from the annotation. The export only includes installable
-        # builds (see get()), so unlike the /builds/ list API there is no count to gate
-        # to 0 for non-installable builds.
         download_count = getattr(item, "download_count", 0)
-        # Emit install_groups as a JSON array so it round-trips; csv.writer quotes
-        # the embedded commas.
+
+        # Emit install_groups as a JSON array
         raw_install_groups = (item.extras or {}).get("install_groups")
         install_groups = json.dumps(
             raw_install_groups if isinstance(raw_install_groups, list) else []
@@ -126,9 +115,7 @@ class BuildsExportEndpoint(OrganizationEndpoint):
 
         query = request.GET.get("query", "").strip()
 
-        # This export is build-distribution-specific (its columns are distribution stats),
-        # so it always uses the distribution row set (non-snapshot builds), ignoring any
-        # `display` param the request may carry.
+        # We force display="distribution" because the logic is really only for build distribution info.
         with handle_query_errors():
             queryset = filtered_builds_queryset(
                 organization=organization,
@@ -139,18 +126,11 @@ class BuildsExportEndpoint(OrganizationEndpoint):
                 end=params["end"],
             )
 
-        # Per product, the export only includes installable builds. The SQL predicate
-        # below (an installable file must exist) is a cheap superset that narrows the
-        # set and keeps the row-count limit accurate; the precise per-build check —
-        # is_installable_artifact(), the same one the /builds/ list uses for its
-        # `is_installable` flag — is applied while streaming so the export matches what
-        # the UI labels installable. This filtering stays here rather than in the shared
-        # filtered_builds_queryset() because the list endpoint keeps non-installable
-        # builds and reports a 0 download count.
+        # Filter out non-installable builds since they aren't really relevant for distribution info.
         queryset = queryset.filter(installable_app_file_id__isnull=False)
 
-        # Reject oversized exports rather than silently truncating. Counting the SQL
-        # superset is a safe, slightly conservative bound on the streamed rows.
+        # Reject oversized exports rather than silently truncating. The SQL limit is conseratively
+        # correct, but could lead to false-negatives in some edge cases, which we're ignoring.
         row_count = queryset.count()
         if row_count > CSV_EXPORT_ROW_LIMIT:
             raise serializers.ValidationError(
