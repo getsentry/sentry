@@ -1,5 +1,6 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionField} from 'sentry/types/sessions';
 import type {

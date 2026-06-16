@@ -3,7 +3,7 @@ import {useCallback, useMemo, useState} from 'react';
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
 import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {useProjects} from 'sentry/utils/useProjects';
 

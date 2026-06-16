@@ -1,3 +1,8 @@
+import contextlib
+from collections.abc import Callable, Generator
+from types import FrameType
+from unittest import mock
+
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )
@@ -5,6 +10,16 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
+
+
+@contextlib.contextmanager
+def _noop_timeout_alarm(
+    seconds: float, handler: Callable[[int, FrameType | None], None]
+) -> Generator[None]:
+    # The install/uninstall webhooks fire from the live-server request thread, where
+    # SIGALRM-based timeout_alarm raises (signals only work in the main thread). We don't
+    # exercise webhook delivery here, so stub it out.
+    yield
 
 
 @no_silo_test
@@ -19,6 +34,10 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
             name="Super Awesome App",
         )
         self.login_as(self.user)
+
+        patcher = mock.patch("sentry.utils.sentry_apps.webhooks.timeout_alarm", _noop_timeout_alarm)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def load_page(self, slug: str) -> None:
         url = f"/settings/{self.organization.slug}/sentry-apps/{slug}/"

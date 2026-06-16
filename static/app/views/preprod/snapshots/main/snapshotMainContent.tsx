@@ -12,12 +12,17 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  DiffStatus,
+  getImageName,
+  getSnapshotImageUrl,
+  isPairSidebarItem,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-import {CardHeader, DarkAware} from './snapshotCards';
+import {CardHeader, DarkAware, ErroredBanner} from './snapshotCards';
 import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
 import {
   buildSnapshotLink,
@@ -113,10 +118,7 @@ export function SnapshotMainContent({
     let total = 0;
     for (const item of listItems) {
       offsets.push(total);
-      const count =
-        item.type === 'changed' || item.type === 'renamed'
-          ? item.pairs.length
-          : item.images.length;
+      const count = isPairSidebarItem(item) ? item.pairs.length : item.images.length;
       total += count;
     }
     return {cardOffsets: offsets, totalCards: total};
@@ -262,12 +264,13 @@ export function SnapshotMainContent({
 
   const groupName = isItemUngrouped(selectedItem) ? null : selectedItem.name;
 
-  if (selectedItem.type === 'changed') {
+  if (selectedItem.type === 'changed' || selectedItem.type === 'errored') {
     const currentPair = selectedItem.pairs[variantIndex];
     if (!currentPair) {
       return null;
     }
     const image = currentPair.head_image;
+    const isChanged = selectedItem.type === 'changed';
     return (
       <SingleViewLayout
         isDark={isDark}
@@ -285,7 +288,7 @@ export function SnapshotMainContent({
           displayName: image.display_name,
           fileName: image.image_file_name,
           tags: image.tags,
-          status: DiffStatus.CHANGED,
+          status: isChanged ? DiffStatus.CHANGED : DiffStatus.ERRORED,
           diffPercent: currentPair.diff,
           copyData: currentPair,
           copyUrl: buildSnapshotLink(image.image_file_name),
@@ -293,22 +296,23 @@ export function SnapshotMainContent({
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
               organization,
-              diff_status: 'changed',
+              diff_status: selectedItem.type,
             }),
           onCopyMetadata: () =>
             trackAnalytics('preprod.snapshots.details.image_metadata_copied', {
               organization,
-              diff_status: 'changed',
+              diff_status: selectedItem.type,
             }),
         }}
-        diffControls={diffControls}
+        diffControls={isChanged ? diffControls : undefined}
+        banner={isChanged ? undefined : <ErroredBanner />}
         body={
           <DiffImageDisplay
             pair={currentPair}
             imageBaseUrl={imageBaseUrl}
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
-            diffMode={diffMode}
+            diffMode={isChanged ? diffMode : 'split'}
             headLabel={headBranch ?? t('Head')}
           />
         }
@@ -322,7 +326,7 @@ export function SnapshotMainContent({
       return null;
     }
     const image = currentPair.head_image;
-    const imageUrl = `${imageBaseUrl}${image.key}/`;
+    const imageUrl = getSnapshotImageUrl(imageBaseUrl, image);
     return (
       <SingleViewLayout
         isDark={isDark}
@@ -364,7 +368,7 @@ export function SnapshotMainContent({
   if (!currentImage) {
     return null;
   }
-  const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
+  const imageUrl = getSnapshotImageUrl(imageBaseUrl, currentImage);
   let status: DiffStatus | null;
   switch (selectedItem.type) {
     case 'solo':
@@ -434,6 +438,7 @@ function SingleViewLayout({
   navButtonRefs,
   headerProps,
   body,
+  banner,
   diffControls,
 }: {
   body: React.ReactNode;
@@ -449,6 +454,7 @@ function SingleViewLayout({
   soloDiffToggle: React.ReactNode;
   sortDropdown: React.ReactNode;
   toggle: React.ReactNode;
+  banner?: React.ReactNode;
   diffControls?: React.ReactNode;
 }) {
   const wheelCooldownRef = useRef(false);
@@ -517,6 +523,7 @@ function SingleViewLayout({
         onToggleDark={onToggleDark}
         showBottomBorder={false}
       />
+      {banner}
       <Flex direction="column" flex="1" minHeight="0">
         {body}
       </Flex>

@@ -12,17 +12,20 @@ class RepositorySettingsSerializerResponse(TypedDict):
     codeReviewTriggers: list[str]
 
 
-class RepositorySerializerResponse(TypedDict, total=False):
-    id: str
-    name: str
+class RepositorySerializerResponseOptional(TypedDict, total=False):
     url: str | None
     provider: dict[str, str]
     status: str
-    dateCreated: datetime
     integrationId: str | None
     externalSlug: str | None
     externalId: str | None
     settings: RepositorySettingsSerializerResponse | None
+
+
+class RepositorySerializerResponse(RepositorySerializerResponseOptional):
+    id: str
+    name: str
+    dateCreated: datetime
 
 
 @register(RepositorySettings)

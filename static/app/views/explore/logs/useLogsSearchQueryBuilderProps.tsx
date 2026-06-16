@@ -18,6 +18,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
 export function useLogsSearchQueryBuilderProps({
+  attributeQuery,
   booleanAttributes,
   booleanSecondaryAliases,
   numberAttributes,
@@ -31,6 +32,7 @@ export function useLogsSearchQueryBuilderProps({
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  attributeQuery?: string;
 }) {
   const logsSearch = useQueryParamsSearch();
   const oldLogsSearch = usePrevious(logsSearch);
@@ -83,8 +85,10 @@ export function useLogsSearchQueryBuilderProps({
       replaceRawSearchKeys: ['message'],
       matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
       hiddenAttributeKeys: HiddenLogSearchFields,
+      attributeQuery,
     }),
     [
+      attributeQuery,
       booleanAttributes,
       booleanSecondaryAliases,
       caseInsensitive,

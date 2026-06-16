@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 /**
  * Field configuration returned by the backend's `get_organization_config()`.

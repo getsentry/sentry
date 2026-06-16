@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,20 +14,20 @@ import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {
+  getPipelineDefinition,
+  type ProvidersByType,
+} from 'sentry/components/pipeline/registry';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
+import {generateOrgSlugUrl} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
-import {
-  getIntegrationFeatureGate,
-  isScmProvider,
-  trackIntegrationAnalytics,
-} from 'sentry/utils/integrationUtil';
+import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -36,36 +37,6 @@ import {RouteError} from 'sentry/views/routeError';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 import {GitHubInstallationCallout} from './gitHubInstallationCallout';
-
-function trackExternalAnalytics({
-  eventName,
-  startSession,
-  organization,
-  provider,
-}: {
-  eventName: 'integrations.installation_start';
-  organization: Organization | null;
-  provider: IntegrationProvider | null;
-  startSession?: boolean;
-}) {
-  if (!organization || !provider) {
-    return;
-  }
-
-  trackIntegrationAnalytics(
-    eventName,
-    {
-      integration_type: 'first_party',
-      integration: provider.key,
-      is_scm: isScmProvider(provider),
-      // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
-      already_installed: false,
-      view: 'external_install',
-      organization,
-    },
-    {startSession: !!startSession}
-  );
-}
 
 /**
  * Landing page that completes an integration install initiated from a
@@ -96,9 +67,20 @@ function trackExternalAnalytics({
  *    `/extensions/jira/configure/`). Drives the pipeline with
  *    `jiraParams`.
  *
- *  - Anything else
- *    falls through to {@link finishLegacyInstallation}, which bounces to the
- *    legacy `/extensions/<slug>/configure/` backend endpoint.
+ *  - Vercel
+ *    `/extensions/vercel/link/...` (redirected from
+ *    `/extensions/vercel/configure/`). Drives the pipeline with
+ *    `vercelParams`.
+ *
+ *  - Azure DevOps (VSTS Marketplace)
+ *    `/extensions/vsts/link/?targetId=...` (redirected from
+ *    `/extensions/vsts/configure/`). Drives the `vsts` pipeline with
+ *    `vstsParams`.
+ *
+ * Every install routes through the API-driven pipeline modal. Providers without
+ * provider-supplied params just start the flow with no `urlParams`. A provider
+ * with no registered pipeline is treated as an invalid flow: the error is
+ * reported to Sentry and an inline error is shown instead of an install button.
  */
 export default function IntegrationOrganizationLink() {
   const location = useLocation();
@@ -256,58 +238,115 @@ export default function IntegrationOrganizationLink() {
     return {signedParams};
   }, [integrationSlug, location.query]);
 
-  // Legacy install path. Redirects to `/extensions/<slug>/configure/`, which
-  // runs the Django-rendered `IntegrationExtensionConfigurationView` to drive
-  // the install server-side via the legacy pipeline. Used by every provider
-  // that hasn't been migrated to the API pipeline modal yet.
-  const finishLegacyInstallation = useCallback(() => {
-    // add the selected org to the query parameters and then redirect back to configure
-    const query = {orgSlug: selectedOrgSlug, ...location.query};
-    trackExternalAnalytics({
-      eventName: 'integrations.installation_start',
-      organization,
-      provider,
-    });
-    // need to send to control silo to finish the installation
-    window.location.assign(
-      `${organization?.links.organizationUrl || ''}/extensions/${
-        integrationSlug
-      }/configure/?${urlEncode(query)}`
-    );
-  }, [integrationSlug, location.query, organization, provider, selectedOrgSlug]);
+  // Vercel marketplace installs arrive here (forwarded from
+  // `/extensions/vercel/configure/`) with the OAuth `code` Vercel already
+  // granted. The install pipeline exchanges that code, so we forward it as
+  // initialData for the modal -- no second authorize round-trip.
+  const vercelParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'vercel') {
+      return null;
+    }
+    const code = location.query.code;
+    if (typeof code !== 'string') {
+      return null;
+    }
+    return {code};
+  }, [integrationSlug, location.query]);
+
+  // Azure DevOps Marketplace installs arrive here with `targetId` in the URL
+  // query (forwarded from `/extensions/vsts/configure/`). It identifies the
+  // Azure DevOps organization to install; the `vsts` pipeline treats it as a
+  // pre-selected account (verified against the user's memberships) and
+  // auto-advances past account selection.
+  const vstsParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'vsts') {
+      return null;
+    }
+    const targetId = location.query.targetId;
+    if (typeof targetId !== 'string') {
+      return null;
+    }
+    return {targetId};
+  }, [integrationSlug, location.query]);
+
+  // A flow is invalid when the resolved provider has no pipeline registered for
+  // it. Every first-party provider should have one, so this only happens for an
+  // unsupported provider landing on this page -- we surface it instead of
+  // rendering a dead install button.
+  const isInvalidFlow = useMemo(() => {
+    if (!provider) {
+      return false;
+    }
+    try {
+      // `provider.key` is an unconstrained string; an unsupported provider has
+      // no registered pipeline and `getPipelineDefinition` throws for it.
+      getPipelineDefinition(
+        'integration',
+        provider.key as ProvidersByType['integration']
+      );
+      return false;
+    } catch {
+      return true;
+    }
+  }, [provider]);
+
+  useEffect(() => {
+    if (provider && isInvalidFlow) {
+      Sentry.captureException(
+        new Error(`No integration pipeline registered for ${provider.key}`)
+      );
+    }
+  }, [provider, isInvalidFlow]);
 
   const handleInstallClick = useCallback(() => {
-    if (!provider || !organization) {
+    if (!provider || !organization || isInvalidFlow) {
       return;
     }
 
     // Each provider-initiated entry point contributes its own params bag.
-    // Whichever one is non-null routes through the API pipeline modal;
-    // otherwise we fall back to the legacy server-driven install flow.
+    // Whichever one is non-null is forwarded to the API pipeline modal as
+    // initial data; otherwise the flow starts with no provider-supplied params.
     const urlParams =
-      gitHubAppListingParams ?? discordAppDirectoryParams ?? msTeamsParams ?? jiraParams;
-    if (urlParams) {
-      startFlow({provider, organization, onInstall, urlParams});
-      return;
-    }
+      gitHubAppListingParams ??
+      discordAppDirectoryParams ??
+      msTeamsParams ??
+      jiraParams ??
+      vercelParams ??
+      vstsParams ??
+      undefined;
 
-    finishLegacyInstallation();
+    startFlow({provider, organization, onInstall, urlParams});
   }, [
     provider,
     organization,
+    isInvalidFlow,
     gitHubAppListingParams,
     discordAppDirectoryParams,
     msTeamsParams,
     jiraParams,
+    vercelParams,
+    vstsParams,
     startFlow,
     onInstall,
-    finishLegacyInstallation,
   ]);
 
   const renderAddButton = useMemo(() => {
     if (!provider || !organization) {
       return null;
     }
+
+    if (isInvalidFlow) {
+      return (
+        <Alert.Container>
+          <Alert variant="danger">
+            {tct('Sentry does not support installing [provider] from this page.', {
+              provider: <strong>{provider.name}</strong>,
+            })}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+
     const {features} = provider.metadata;
 
     // Prepare the features list
@@ -338,7 +377,7 @@ export default function IntegrationOrganizationLink() {
         )}
       </IntegrationFeatures>
     );
-  }, [provider, organization, hasAccess, handleInstallClick]);
+  }, [provider, organization, hasAccess, handleInstallClick, isInvalidFlow]);
 
   const renderBottom = useMemo(() => {
     const {FeatureList} = getIntegrationFeatureGate();

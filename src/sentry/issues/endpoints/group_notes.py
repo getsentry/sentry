@@ -13,6 +13,12 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import (
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import CommentAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -80,6 +86,15 @@ class GroupNotesEndpoint(GroupEndpoint):
 
         activity = Activity.objects.create_group_activity(
             group=group, type=ActivityType.NOTE, user_id=request.user.id, data=data
+        )
+
+        publish_action(
+            CommentAction(comment_id=activity.id),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            organization_id=group.organization.id,
+            project_id=group.project_id,
+            actor=GroupActionActor.user(request.user.id),
         )
 
         self.create_external_comment(request, group, activity)

@@ -66,3 +66,11 @@ class SharedGroupDetailsTest(TestCase):
         response = self.client.get(f"/share/issue/{share.uuid}/", HTTP_HOST=self.org_domain)
         assert response.status_code == 200
         self.assert_group_metadata_present(response)
+
+    def test_get_org_prefixed_path_no_subdomain(self) -> None:
+        share = self.share_group()
+        response = self.client.get(
+            f"/organizations/{self.organization.slug}/share/issue/{share.uuid}/"
+        )
+        assert response.status_code == 200
+        self.assert_group_metadata_present(response)

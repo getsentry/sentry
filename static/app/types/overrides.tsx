@@ -19,9 +19,9 @@ import type {
   useMaxPickableDays,
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSection';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
-import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -100,10 +100,6 @@ type ReplayOnboardingAlertProps = {children: React.ReactNode};
 type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
 type ProductUnavailableCTAProps = {organization: Organization};
 
-type ProfilingBetaAlertBannerProps = {
-  organization: Organization;
-};
-
 type ContinuousProfilingBillingRequirementBannerProps = {
   project: Project;
 };
@@ -145,6 +141,7 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 type AttemptCloseAttemptProps = {
   handleRemoveAccount: () => void;
   organizationSlugs: string[];
+  userEmail: string;
 };
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
@@ -212,7 +209,6 @@ type ComponentOverrides = {
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
-  'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:replay-init': React.ComponentType;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;

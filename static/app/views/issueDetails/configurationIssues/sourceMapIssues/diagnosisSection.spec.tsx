@@ -26,7 +26,7 @@ function TestWrapper() {
 
 describe('DiagnosisSection', () => {
   const organization = OrganizationFixture();
-  const apiUrl = `/projects/${organization.slug}/${PROJECT_SLUG}/events/${EVENT_ID}/source-map-debug-blue-thunder-edition/`;
+  const apiUrl = `/projects/${organization.slug}/${PROJECT_SLUG}/events/${EVENT_ID}/source-map-debug/`;
 
   it('shows error state when the API call fails', async () => {
     MockApiClient.addMockResponse({url: apiUrl, statusCode: 500, body: {}});

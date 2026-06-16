@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -28,6 +29,27 @@ interface CodeChangesCardProps {
   section: AutofixSection;
 }
 
+/**
+ * When the coding step finishes without producing any patches, the agent often
+ * still leaves a final assistant message explaining why — e.g. the real fix is a
+ * database migration / infra change, or the relevant files aren't in the
+ * connected repo. Surface that explanation instead of a generic "this one is on
+ * us" message so the user knows a plain re-run won't help.
+ */
+function getFinalExplanation(section: AutofixSection): string | null {
+  for (let i = section.blocks.length - 1; i >= 0; i--) {
+    const block = section.blocks[i];
+    if (!block) {
+      continue;
+    }
+    const message = block.message;
+    if (message.role === 'assistant' && message.content?.trim()) {
+      return message.content.trim();
+    }
+  }
+  return null;
+}
+
 export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
@@ -48,6 +70,8 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
     });
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
+
+  const explanation = useMemo(() => getFinalExplanation(section), [section]);
 
   const summary = useMemo(() => {
     const reposChanged = patchesByRepo.size;
@@ -119,6 +143,33 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
             </ArtifactDetails>
           ))}
         </Fragment>
+      ) : explanation ? (
+        <ArtifactDetails>
+          {shouldShowReset ? (
+            <AutofixResetPrompt
+              onClosePrompt={() => setShouldShowReset(false)}
+              onReset={handleReset}
+              placeholder={t(
+                'Add context that could unblock the change, e.g. the repo or files to edit.'
+              )}
+              prompt={t('What additional context should Seer use?')}
+            />
+          ) : null}
+          <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
+          <Markdown raw={explanation} />
+          {shouldShowReset ? null : (
+            <div>
+              <Button
+                variant="primary"
+                icon={<IconRefresh />}
+                disabled={!canReset}
+                onClick={() => setShouldShowReset(true)}
+              >
+                {t('Add context & retry')}
+              </Button>
+            </div>
+          )}
+        </ArtifactDetails>
       ) : (
         <ArtifactDetails>
           <Text>

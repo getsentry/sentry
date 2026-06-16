@@ -16,6 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.ingest import inbound_filters
 from sentry.ingest.inbound_filters import FilterStatKeys, _LegacyBrowserFilterSerializer
 
@@ -43,7 +44,9 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         },
         examples=None,
     )
-    def put(self, request: Request, project, filter_id) -> Response:
+    def put(
+        self, request: Request, project, filter_id
+    ) -> Response[None] | Response[ValidationErrorResponse]:
         """
         Update various inbound data filters for a project.
         """
@@ -57,7 +60,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         serializer = current_filter.serializer_cls(data=request.data, partial=True)
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         current_state = inbound_filters.get_filter_state(filter_id, project)
         if isinstance(current_state, list):

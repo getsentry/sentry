@@ -9,7 +9,7 @@ import {
 import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
 type SelectionKeyHandlerProps = {

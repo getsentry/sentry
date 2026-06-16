@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Sequence
 from functools import cached_property
 
@@ -8,7 +9,6 @@ from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from sentry import options
 from sentry.identity.base import Provider
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import IntegrationProviderSlug
@@ -25,6 +25,8 @@ from sentry.utils import metrics
 
 from . import default_manager
 
+logger = logging.getLogger(__name__)
+
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
 
@@ -35,8 +37,6 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
     def _get_provider(self, provider_key: str, organization: RpcOrganization | None) -> Provider:
         if provider_key == IntegrationProviderSlug.AZURE_DEVOPS.value:
             provider_key = "vsts_new"
-        if provider_key == "vsts_login" and options.get("vsts.social-auth-migration"):
-            provider_key = "vsts_login_new"
 
         return default_manager.get(provider_key)
 
@@ -63,6 +63,14 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
             identity = self.provider.build_identity(self.state.data)
 
             assert self.request.user.is_authenticated
+
+            if self.provider_model is None and self.provider.auto_create_provider_model:
+                self.provider_model, _ = IdentityProvider.objects.get_or_create(
+                    type=identity["type"],
+                    external_id=identity["idp_external_id"],
+                    defaults={"config": identity.get("idp_config", {})},
+                )
+
             assert self.provider_model is not None
 
             Identity.objects.link_identity(
@@ -75,6 +83,16 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                     "data": identity.get("data", {}),
                 },
             )
+
+            # Let providers react to a freshly linked identity (e.g. backfilling
+            # derived mappings). Best-effort: never let it break the link flow.
+            try:
+                self.provider.post_link_identity(identity, self.request.user.id)
+            except Exception:
+                logger.exception(
+                    "identity.post_link_identity.failed",
+                    extra={"provider": self.provider.key},
+                )
 
             messages.add_message(
                 self.request,

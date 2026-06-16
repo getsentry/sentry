@@ -16,7 +16,7 @@ import type {SpanFrame} from 'sentry/utils/replays/types';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
-import {Output} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
+import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
 import type {TabKey} from 'sentry/views/explore/replays/detail/network/details/tabs';
 
 export const useDismissReqRespBodiesAlert = () => {

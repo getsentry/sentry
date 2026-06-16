@@ -16,7 +16,7 @@ from sentry.tsdb.base import TSDBModel
 @cell_silo_endpoint
 class GroupStatsEndpoint(GroupEndpoint, StatsMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-stats"])

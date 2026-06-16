@@ -1229,11 +1229,10 @@ def _apply_cache_and_build_results(
 
 
 def _is_rejected_query(body: Any) -> bool:
-    return (
+    return bool(
         "quota_allowance" in body
         and "summary" in body["quota_allowance"]
-        and "rejected_by" in body["quota_allowance"]["summary"]
-        and body["quota_allowance"]["summary"]["rejected_by"] is not None
+        and body["quota_allowance"]["summary"].get("rejected_by")
     )
 
 

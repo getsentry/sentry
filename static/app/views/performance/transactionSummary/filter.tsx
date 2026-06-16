@@ -1,16 +1,7 @@
 import type {Theme} from '@emotion/react';
-import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {IconFilter} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import {SpanOpBreakdown} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -35,68 +26,6 @@ export const SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD: Partial<
   [SpanOperationBreakdownFilter.RESOURCE]: SpanOpBreakdown.SPANS_RESOURCE,
   [SpanOperationBreakdownFilter.UI]: SpanOpBreakdown.SPANS_UI,
 };
-
-const OPTIONS: SpanOperationBreakdownFilter[] = [
-  SpanOperationBreakdownFilter.HTTP,
-  SpanOperationBreakdownFilter.DB,
-  SpanOperationBreakdownFilter.BROWSER,
-  SpanOperationBreakdownFilter.RESOURCE,
-  SpanOperationBreakdownFilter.UI,
-];
-
-type Props = {
-  currentFilter: SpanOperationBreakdownFilter;
-  onChangeFilter: (newFilter: SpanOperationBreakdownFilter | undefined) => void;
-  organization: OrganizationSummary;
-};
-
-export function Filter(props: Props) {
-  const theme = useTheme();
-  const {currentFilter, onChangeFilter} = props;
-  const menuOptions = OPTIONS.map(operationName => ({
-    value: operationName,
-    label: operationName,
-    leadingItems: <OperationDot backgroundColor={pickBarColor(operationName, theme)} />,
-  }));
-
-  return (
-    <GuideAnchor target="span_op_breakdowns_filter" position="top">
-      <CompactSelect
-        clearable
-        menuTitle={t('Filter by operation')}
-        options={menuOptions}
-        value={currentFilter}
-        onChange={opt => onChangeFilter(opt?.value)}
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            icon={<IconFilter />}
-            aria-label={t('Filter by operation')}
-          >
-            {currentFilter === SpanOperationBreakdownFilter.NONE
-              ? t('Filter')
-              : currentFilter}
-          </OverlayTrigger.Button>
-        )}
-      />
-    </GuideAnchor>
-  );
-}
-
-function OperationDot({backgroundColor}: {backgroundColor: string}) {
-  const theme = useTheme();
-  return (
-    <Container
-      width={theme.space.md}
-      height={theme.space.md}
-      alignSelf="center"
-      style={{
-        borderRadius: theme.radius.full,
-        backgroundColor,
-      }}
-    />
-  );
-}
 
 export function filterToField(option: SpanOperationBreakdownFilter) {
   switch (option) {

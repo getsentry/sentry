@@ -1,12 +1,10 @@
 import type {InfiniteData} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {initializeLogsTest, LogFixture} from 'sentry-fixture/log';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {
   LOGS_AUTO_REFRESH_KEY,
   type AutoRefreshState,
@@ -22,9 +20,6 @@ import {
   updateVirtualStreamingTimestamp,
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
-
-jest.mock('sentry/utils/useLocation');
-const mockUseLocation = jest.mocked(useLocation);
 
 describe('useVirtualStreaming', () => {
   let requestAnimationFrameSpy: jest.SpyInstance<number, [FrameRequestCallback]>;
@@ -50,23 +45,24 @@ describe('useVirtualStreaming', () => {
     cancelAnimationFrameSpy.mockRestore();
   });
 
-  const createWrapper = ({autoRefresh = 'idle'}: {autoRefresh?: AutoRefreshState}) => {
-    return function ({children}: {children: React.ReactNode}) {
-      mockUseLocation.mockReturnValue(
-        LocationFixture({
-          query: {[LOGS_AUTO_REFRESH_KEY]: autoRefresh},
-        })
-      );
-      return (
-        <LogsQueryParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          source="location"
-        >
-          {children}
-        </LogsQueryParamsProvider>
-      );
+  const additionalWrapper = ({children}: {children: React.ReactNode}) => (
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
+      {children}
+    </LogsQueryParamsProvider>
+  );
+
+  function getRouterConfig(autoRefresh: AutoRefreshState) {
+    return {
+      location: {
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {[LOGS_AUTO_REFRESH_KEY]: autoRefresh},
+      },
+      route: '/organizations/:orgId/explore/logs/',
     };
-  };
+  }
 
   it('should initialize virtual timestamp to the latest timestamp before the ingest delay', async () => {
     const now = Date.now();
@@ -104,7 +100,11 @@ describe('useVirtualStreaming', () => {
 
     const {result} = renderHookWithProviders(
       () => useVirtualStreaming({data: mockData}),
-      {additionalWrapper: createWrapper({autoRefresh: 'enabled'}), organization}
+      {
+        additionalWrapper,
+        organization,
+        initialRouterConfig: getRouterConfig('enabled'),
+      }
     );
 
     await waitFor(() => {
@@ -117,7 +117,7 @@ describe('useVirtualStreaming', () => {
     expect(result.current.virtualStreamedTimestamp).toBe(now - 46000);
   });
 
-  it('should not initialize when auto refresh is disabled', () => {
+  it('should reset virtual timestamp when auto refresh transitions from enabled to idle', async () => {
     const mockData = createMockData([
       LogFixture({
         [OurLogKnownFieldKey.ID]: '1',
@@ -127,12 +127,27 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHookWithProviders(
+    const {result, router} = renderHookWithProviders(
       () => useVirtualStreaming({data: mockData}),
-      {additionalWrapper: createWrapper({autoRefresh: 'idle'}), organization}
+      {
+        additionalWrapper,
+        organization,
+        initialRouterConfig: getRouterConfig('enabled'),
+      }
     );
 
-    expect(result.current.virtualStreamedTimestamp).toBeUndefined();
+    await waitFor(() => {
+      expect(result.current.virtualStreamedTimestamp).toBeDefined();
+    });
+
+    router.navigate({
+      pathname: `/organizations/${organization.slug}/explore/logs/`,
+      search: `?${LOGS_AUTO_REFRESH_KEY}=idle`,
+    });
+
+    await waitFor(() => {
+      expect(result.current.virtualStreamedTimestamp).toBeUndefined();
+    });
   });
 
   it('should start RAF when auto refresh is enabled', async () => {
@@ -146,8 +161,9 @@ describe('useVirtualStreaming', () => {
     ]);
 
     renderHookWithProviders(() => useVirtualStreaming({data: mockData}), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper,
       organization,
+      initialRouterConfig: getRouterConfig('enabled'),
     });
 
     await waitFor(() => {
@@ -165,21 +181,22 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {unmount} = renderHookWithProviders(
+    const {router} = renderHookWithProviders(
       () => useVirtualStreaming({data: mockData}),
-      {additionalWrapper: createWrapper({autoRefresh: 'enabled'})}
+      {
+        additionalWrapper,
+        organization,
+        initialRouterConfig: getRouterConfig('enabled'),
+      }
     );
 
     await waitFor(() => {
       expect(requestAnimationFrameSpy).toHaveBeenCalled();
     });
 
-    unmount();
-
-    // Re-render with disabled autorefresh
-    renderHookWithProviders(() => useVirtualStreaming({data: mockData}), {
-      additionalWrapper: createWrapper({autoRefresh: 'idle'}),
-      organization,
+    router.navigate({
+      pathname: `/organizations/${organization.slug}/explore/logs/`,
+      search: `?${LOGS_AUTO_REFRESH_KEY}=idle`,
     });
 
     await waitFor(() => {

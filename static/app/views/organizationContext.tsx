@@ -1,4 +1,4 @@
-import {createContext, useEffect, useRef, type ReactNode} from 'react';
+import {useEffect, useRef, type ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -16,19 +16,14 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {shutdownIntercom} from 'sentry/utils/intercom';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useParams} from 'sentry/utils/useParams';
 
 interface Props {
   children: ReactNode;
 }
-
-/**
- * Holds the current organization if loaded.
- */
-export const OrganizationContext = createContext<Organization | null>(null);
 
 /**
  * Record if the organization was bootstrapped in the last 10 minutes

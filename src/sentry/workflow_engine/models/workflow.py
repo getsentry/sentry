@@ -125,7 +125,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         }
 
     def evaluate_trigger_conditions(
-        self, event_data: WorkflowEventData, when_data_conditions: list[DataCondition] | None = None
+        self,
+        event_data: WorkflowEventData,
+        when_data_conditions: list[DataCondition] | None = None,
+        group: DataConditionGroup | None = None,
     ) -> tuple[TriggerResult, list[DataCondition]]:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
@@ -140,16 +143,28 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             return TriggerResult.TRUE, []
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
-        try:
-            group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
-        except DataConditionGroup.DoesNotExist:
-            # This isn't expected under normal conditions, but weird things can happen in the
-            # midst of deletions and migrations.
-            logger.exception(
-                "DataConditionGroup does not exist",
-                extra={"id": self.when_condition_group_id},
+
+        if group is None:
+            # Callers may pass the group in (e.g. when it's been fetched as a batch to avoid an N+1),
+            # but fall back to fetching it ourselves when it isn't provided.
+            try:
+                group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
+            except DataConditionGroup.DoesNotExist:
+                # This isn't expected under normal conditions, but weird things can happen in the
+                # midst of deletions and migrations.
+                logger.exception(
+                    "DataConditionGroup does not exist",
+                    extra={"id": self.when_condition_group_id},
+                )
+                return (
+                    TriggerResult(False, ConditionError(msg="DataConditionGroup does not exist")),
+                    [],
+                )
+        else:
+            assert group.id == self.when_condition_group_id, (
+                "Provided group does not match the workflow's when_condition_group_id"
             )
-            return TriggerResult(False, ConditionError(msg="DataConditionGroup does not exist")), []
+
         group_evaluation, remaining_conditions = process_data_condition_group(
             group, workflow_event_data, when_data_conditions
         )

@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import cached_property
 from snuba_sdk import (
     AliasedExpression,
@@ -81,6 +82,7 @@ from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 class MetricsQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = True
+    organization_id: int
 
     duration_fields = {"transaction.duration"}
     organization_column: str = "organization_id"
@@ -202,7 +204,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         try:
             environment = None
             if self.params.environments:
-                environment = self.params.environments[0].name
+                first_env = self.params.environments[0]
+                if first_env is not None:
+                    environment = first_env.name
 
             if not self.builder_config.on_demand_metrics_type:
                 raise InvalidSearchQuery(
@@ -212,7 +216,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             metric_spec = fetch_on_demand_metric_spec(
                 self.organization_id,
                 field=field,
-                query=self.query,
+                query=self.query or "",
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
@@ -361,9 +365,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         if self._is_spans_metrics_query_cache is not None:
             return self._is_spans_metrics_query_cache
         if self.query is not None:
-            tags = parse_query(
-                self.params.projects, self.query, self.params.user, self.params.environments
-            )["tags"]
+            environments = [e for e in self.params.environments if e is not None]
+            user = self.params.user or AnonymousUser()
+            tags = parse_query(self.params.projects, self.query, user, environments)["tags"]
             for tag in tags:
                 if tag in constants.SPANS_METRICS_TAGS:
                     self._is_spans_metrics_query_cache = True
@@ -405,7 +409,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         selected_columns: list[str] | None = None,
         groupby_columns: list[str] | None = None,
         equations: list[str] | None = None,
-        orderby: list[str] | None = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         # Resolutions that we always must perform, irrespectively of on demand.
         with sentry_sdk.start_span(op="QueryBuilder", name="resolve_time_conditions"):
@@ -439,7 +443,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             # On demand still needs to call resolve since resolving columns has a side_effect
             # of adding their alias to the function_alias_map, which is required to convert snuba
             # aliases back to their original functions.
-            for column in selected_columns:
+            for column in selected_columns or []:
                 try:
                     self.resolve_select([column], [])
                 except (IncompatibleMetricsQuery, InvalidSearchQuery):
@@ -625,12 +629,17 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def resolve_snql_function(
         self,
-        snql_function: fields.MetricsFunction,
+        snql_function: fields.SnQLFunction,
         arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-        prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
+        if not isinstance(snql_function, fields.MetricsFunction):
+            return super().resolve_snql_function(snql_function, arguments, alias, resolve_only)
+        column_arg = arguments.get("column")
+        prefix = self._get_metric_prefix(
+            snql_function, column_arg if isinstance(column_arg, str) else None
+        )
         # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
         nullable = arguments.get("metric_id") == 0
         if nullable:
@@ -1522,7 +1531,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             self.interval = constants.METRICS_GRANULARITIES[-1]
             max_granularity = self.interval
 
-        optimal_granularity = optimal_granularity_for_date_range(self.start, self.end)
+        start = self.start or self.params.start_date
+        end = self.end or self.params.end_date
+        optimal_granularity = optimal_granularity_for_date_range(start, end)
 
         # get the minimum granularity between the optimal granularity and the max granularity
         granularity = min(optimal_granularity, max_granularity)
@@ -1780,9 +1791,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
             return {}
 
         return {
-            col: self._get_on_demand_metric_spec(col)
+            col: spec
             for col in self.timeseries_columns
-            if self._get_on_demand_metric_spec(col)
+            if (spec := self._get_on_demand_metric_spec(col)) is not None
         }
 
     def resolve_top_event_conditions(
@@ -1804,7 +1815,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
                 value = event.get(field)
                 # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
-                if field in {"project_id", "project.id"}:
+                if field in {"project_id", "project.id"} and value is not None:
                     value = int(value)
                 if field == constants.PROJECT_ALIAS:
                     # These will be strings so lets turn them back to ints

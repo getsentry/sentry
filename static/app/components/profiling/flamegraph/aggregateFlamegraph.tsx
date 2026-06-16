@@ -10,11 +10,11 @@ import {ContinuousFlamegraphContextMenu} from 'sentry/components/profiling/flame
 import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import type {
   AggregateProfileSource,
   ProfileSource,
 } from 'sentry/utils/analytics/profilingAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import type {
   CanvasPoolManager,
   CanvasScheduler,

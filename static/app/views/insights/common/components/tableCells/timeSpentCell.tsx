@@ -4,7 +4,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatSpanOperation} from 'sentry/utils/formatters';

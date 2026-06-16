@@ -1,7 +1,8 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';

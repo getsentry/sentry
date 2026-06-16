@@ -4,7 +4,8 @@ from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.utils import timezone
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +14,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.ratelimits.config import RateLimitConfig
@@ -26,14 +35,23 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 SALT = "sentry-project-transfer"
 
 
+class ProjectTransferSerializer(serializers.Serializer):
+    email = serializers.EmailField(
+        required=True,
+        help_text="The email of the organization owner to transfer the project to. "
+        "Must be an owner of a different organization.",
+    )
+
+
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {"POST": ["org:admin"]}
 
 
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectTransferEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (RelaxedProjectPermission,)
 
@@ -52,19 +70,25 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             },
         )
 
+    @extend_schema(
+        operation_id="Transfer a Project",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=ProjectTransferSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @sudo_required
     def post(self, request: Request, project) -> Response:
         """
-        Transfer a Project
-        ````````````````
+        Schedule a project for transfer to a new organization.
 
-        Schedules a project for transfer to a new organization.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          project belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to delete.
-        :param string email: email of new owner. must be an organization owner
-        :auth: required
+        An email is sent to the target organization owner with a link to accept the
+        transfer.
         """
         if project.is_internal_project():
             return Response(

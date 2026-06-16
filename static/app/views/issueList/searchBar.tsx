@@ -158,11 +158,12 @@ export function useIssueListSearchBarDataProvider(
           : undefined,
         statsPeriod: pageFilters.datetime.period,
       };
+      const tagKey = key === FieldKey.FIRST_RELEASE ? 'release' : key;
 
       const fetchTagValuesPayload = {
         api,
         orgSlug: organization.slug,
-        tagKey: key,
+        tagKey,
         search,
         projectIds,
         endpointParams,
@@ -175,28 +176,6 @@ export function useIssueListSearchBarDataProvider(
           ...fetchTagValuesPayload,
           organization,
         });
-      }
-
-      if (key === FieldKey.FIRST_RELEASE) {
-        const includeLatest = 'latest'.startsWith(search.toLowerCase());
-        return [
-          ...(includeLatest
-            ? [
-                {
-                  count: 1,
-                  firstSeen: '2021-01-01',
-                  lastSeen: '2021-01-01',
-                  name: 'latest',
-                  value: 'latest',
-                } as TagValue,
-              ]
-            : []),
-          ...(await fetchTagValues({
-            ...fetchTagValuesPayload,
-            tagKey: 'release',
-            dataset: Dataset.ERRORS,
-          })),
-        ];
       }
 
       const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([

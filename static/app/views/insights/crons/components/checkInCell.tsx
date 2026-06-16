@@ -18,7 +18,7 @@ import {
 } from 'sentry/components/statusIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';

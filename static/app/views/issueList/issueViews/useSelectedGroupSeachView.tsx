@@ -1,7 +1,7 @@
 import {useQueryClient} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';

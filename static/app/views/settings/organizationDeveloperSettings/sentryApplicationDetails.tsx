@@ -47,13 +47,9 @@ import type {
 } from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';

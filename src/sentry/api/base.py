@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, TypedDict
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -23,7 +23,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, options, tsdb
+from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -31,6 +31,7 @@ from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
+from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.middleware import is_frontend_request
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
@@ -67,9 +68,6 @@ from .permissions import (
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
-
-if TYPE_CHECKING:
-    from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 
 __all__ = [
     "Endpoint",
@@ -177,7 +175,7 @@ def apply_cors_headers(
     # If the requesting origin is a subdomain of
     # the application's base-hostname we should allow cookies
     # to be sent.
-    basehost = options.get("system.base-hostname")
+    basehost = settings.SENTRY_BASE_HOSTNAME
     if basehost and origin:
         if "," not in origin and (
             origin.endswith(("://" + basehost, "." + basehost))
@@ -385,6 +383,9 @@ class Endpoint(APIView):
 
         if request.META.get("HTTP_REFERER"):
             sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER"))
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "http.referer", request.META.get("HTTP_REFERER", "")
+            )
 
         start_time = time.time()
 

@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/form/automationBuilderNumberInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {
   COMPARISON_INTERVAL_CHOICES,
   INTERVAL_CHOICES,

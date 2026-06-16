@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
   ref?: RefObject<HTMLDivElement | null>;

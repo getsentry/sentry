@@ -40,8 +40,8 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   parseFunction,

@@ -9,6 +9,12 @@ import {
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {
+  getRenderableTraceIssues,
+  getTraceIconGroupWidth,
+  getTraceIssueTimestamp,
+  TRACE_ICON_WIDTH,
+} from 'sentry/views/performance/newTraceDetails/traceIssueUtils';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
@@ -18,6 +24,14 @@ import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRend
 import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
+
+type TraceIconEdge = 'start' | 'end' | null;
+
+interface TraceIconPlacement {
+  anchorTimestamp: number;
+  bounds: [number, number];
+  edge: TraceIconEdge;
+}
 
 function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
@@ -937,23 +951,32 @@ export class VirtualizedViewManager {
     );
   }
 
+  private getConfigSpacePerPx(): number {
+    if (this.view.trace_physical_space.width === 0) {
+      return this.span_to_px[0] || 1;
+    }
+
+    return this.view.trace_view.width / this.view.trace_physical_space.width;
+  }
+
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
+    const config_space_per_px = this.getConfigSpacePerPx();
     const scale = space[1] / this.view.trace_view.width;
     this.span_matrix[0] = Math.max(
       scale,
-      this.span_to_px[0] / this.view.trace_view.width
+      config_space_per_px / this.view.trace_view.width
     );
     this.span_matrix[4] =
-      (space[0] - this.view.to_origin) / this.span_to_px[0] -
-      this.view.trace_view.x / this.span_to_px[0];
+      (space[0] - this.view.to_origin) / config_space_per_px -
+      this.view.trace_view.x / config_space_per_px;
 
     // if span ends less than 1px before the end of the view, we move it back by 1px and prevent it from being clipped
     if (
       space[0] - this.view.to_origin > this.view.trace_space.width / 2 &&
       (this.view.to_origin + this.view.trace_space.width - space[0] - space[1]) /
-        this.span_to_px[0] <=
+        config_space_per_px <=
         1
     ) {
       // 1px for the span and 1px for the border
@@ -963,8 +986,9 @@ export class VirtualizedViewManager {
   }
 
   transformXFromTimestamp(timestamp: number): number {
+    const config_space_per_px = this.getConfigSpacePerPx();
     return (
-      (timestamp - this.view.to_origin - this.view.trace_view.x) / this.span_to_px[0]
+      (timestamp - this.view.to_origin - this.view.trace_view.x) / config_space_per_px
     );
   }
 
@@ -1140,6 +1164,80 @@ export class VirtualizedViewManager {
     return (timestamp - entire_space[0]) / entire_space[1];
   }
 
+  computeTraceIconPlacement(
+    timestamp: number,
+    iconWidthPx: number,
+    span_space: [number, number]
+  ): TraceIconPlacement {
+    const span_start = span_space[0];
+    const span_end = span_space[0] + span_space[1];
+    const clamped_timestamp = clamp(timestamp, span_start, span_end);
+    const edge = this.computeTraceIconEdge(clamped_timestamp, iconWidthPx);
+    const anchorTimestamp = clamp(
+      this.computeTraceIconAnchorTimestamp(clamped_timestamp, edge),
+      span_start,
+      span_end
+    );
+    const icon_width_config_space = iconWidthPx * this.getConfigSpacePerPx();
+
+    if (edge === 'start') {
+      return {
+        edge,
+        anchorTimestamp,
+        bounds: [anchorTimestamp, anchorTimestamp + icon_width_config_space],
+      };
+    }
+
+    if (edge === 'end') {
+      return {
+        edge,
+        anchorTimestamp,
+        bounds: [anchorTimestamp - icon_width_config_space, anchorTimestamp],
+      };
+    }
+
+    const half_icon_width_config_space = icon_width_config_space / 2;
+
+    return {
+      edge,
+      anchorTimestamp,
+      bounds: [
+        anchorTimestamp - half_icon_width_config_space,
+        anchorTimestamp + half_icon_width_config_space,
+      ],
+    };
+  }
+
+  private computeTraceIconEdge(timestamp: number, iconWidthPx: number): TraceIconEdge {
+    const halfIconWidthPx = iconWidthPx / 2;
+    const x = this.transformXFromTimestamp(timestamp);
+
+    if (x - halfIconWidthPx <= 0) {
+      return 'start';
+    }
+
+    if (x + halfIconWidthPx >= this.view.trace_physical_space.width) {
+      return 'end';
+    }
+
+    return null;
+  }
+
+  private computeTraceIconAnchorTimestamp(
+    timestamp: number,
+    edge: TraceIconEdge
+  ): number {
+    if (edge === 'start') {
+      return this.view.to_origin + this.view.trace_view.x;
+    }
+
+    if (edge === 'end') {
+      return this.view.to_origin + this.view.trace_view.x + this.view.trace_view.width;
+    }
+
+    return timestamp;
+  }
+
   recomputeTimelineIntervals() {
     if (this.view.trace_view.width === 0) {
       this.intervals[0] = 0;
@@ -1174,13 +1272,18 @@ export class VirtualizedViewManager {
   ): [number, number] {
     const TEXT_PADDING = 3;
 
-    const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
     const text_anchor_left =
       span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
     const text_width = this.text_measurer.measure(text);
     const text_width_ceil = Math.ceil(text_width);
 
-    const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
+    const timestamps = getIconTimestamps(
+      node,
+      span_space,
+      value => this.text_measurer.measure(value),
+      (timestamp, iconWidthPx) =>
+        this.computeTraceIconPlacement(timestamp, iconWidthPx, span_space)
+    );
     const text_left = Math.min(span_space[0], timestamps[0]!);
     const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]!);
 
@@ -1233,7 +1336,8 @@ export class VirtualizedViewManager {
       return text_anchor_left ? [1, window_left] : [1, window_right];
     }
 
-    const full_span_px_width = span_space[1] / this.span_to_px[0];
+    const config_space_per_px = this.getConfigSpacePerPx();
+    const full_span_px_width = span_space[1] / config_space_per_px;
 
     if (text_anchor_left) {
       // While we have space on the left, place the text there
@@ -1242,7 +1346,7 @@ export class VirtualizedViewManager {
       }
 
       const distance = span_right - this.view.trace_view.left;
-      const visible_width = distance / this.span_to_px[0] - TEXT_PADDING;
+      const visible_width = distance / config_space_per_px - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
@@ -1268,7 +1372,7 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.view.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < text_width_ceil
+        space_right / config_space_per_px < text_width_ceil
       ) {
         if (full_span_px_width > text_width_ceil) {
           return [1, right_inside];
@@ -1282,7 +1386,7 @@ export class VirtualizedViewManager {
     if (full_span_px_width > text_width_ceil) {
       const distance = span_right - this.view.trace_view.right;
       const visible_width =
-        (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
+        (span_space[1] - distance) / config_space_per_px - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
@@ -1312,7 +1416,7 @@ export class VirtualizedViewManager {
     });
 
     // 60px error margin. ~52px is roughly the width of 500.00ms, we add a bit more, to be safe.
-    const error_margin = 60 * this.span_to_px[0];
+    const error_margin = 60 * this.getConfigSpacePerPx();
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       const span = this.span_bars[i];
@@ -1730,7 +1834,8 @@ export class VirtualizedViewManager {
 function getIconTimestamps(
   node: BaseNode,
   span_space: [number, number],
-  icon_width: number
+  measureText: (text: string) => number,
+  getTraceIconPlacement: (timestamp: number, iconWidthPx: number) => TraceIconPlacement
 ) {
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
@@ -1739,39 +1844,39 @@ function getIconTimestamps(
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const occurrence of node.occurrences) {
-    // Occurences render icons at the start timestamp
-    const start_timestamp =
-      'start_timestamp' in occurrence ? occurrence.start_timestamp : occurrence.start;
-    if (typeof start_timestamp === 'number') {
-      min_icon_timestamp = Math.min(
-        min_icon_timestamp,
-        start_timestamp * 1e3 - icon_width
-      );
-      max_icon_timestamp = Math.max(
-        max_icon_timestamp,
-        start_timestamp * 1e3 + icon_width
-      );
-    }
-  }
+  let max_icon_width_config_space = 0;
 
-  for (const err of node.errors) {
-    const timestamp = 'start_timestamp' in err ? err.start_timestamp : err.timestamp;
-    if (typeof timestamp === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);
-    }
+  for (const {issue, additionalIssueCount} of getRenderableTraceIssues(
+    node,
+    node.errors,
+    node.occurrences,
+    span_space
+  )) {
+    const icon_width_px =
+      additionalIssueCount === undefined
+        ? TRACE_ICON_WIDTH
+        : getTraceIconGroupWidth(additionalIssueCount, measureText);
+    const timestamp = getTraceIssueTimestamp(issue, span_space);
+    const {bounds} = getTraceIconPlacement(timestamp, icon_width_px);
+    const [icon_left, icon_right] = bounds;
+
+    min_icon_timestamp = Math.min(min_icon_timestamp, icon_left);
+    max_icon_timestamp = Math.max(max_icon_timestamp, icon_right);
+    max_icon_width_config_space = Math.max(
+      max_icon_width_config_space,
+      icon_right - icon_left
+    );
   }
 
   min_icon_timestamp = clamp(
     min_icon_timestamp,
-    span_space[0] - icon_width,
-    span_space[0] + span_space[1] + icon_width
+    span_space[0] - max_icon_width_config_space,
+    span_space[0] + span_space[1] + max_icon_width_config_space
   );
   max_icon_timestamp = clamp(
     max_icon_timestamp,
-    span_space[0] - icon_width,
-    span_space[0] + span_space[1] + icon_width
+    span_space[0] - max_icon_width_config_space,
+    span_space[0] + span_space[1] + max_icon_width_config_space
   );
 
   return [min_icon_timestamp, max_icon_timestamp];

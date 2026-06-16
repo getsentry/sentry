@@ -16,7 +16,7 @@ import {
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useReplayPageview} from 'sentry/utils/replays/hooks/useReplayPageview';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';

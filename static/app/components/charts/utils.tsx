@@ -6,14 +6,15 @@ import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {ECharts, ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined, escape} from 'sentry/utils';
+import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
@@ -458,4 +459,25 @@ export function isEmptySeries(series: Series) {
 export function isChartHovered(chartRef: ReactEchartsRef | null) {
   const hoveredEchartElement = document.querySelector('.echarts-for-react:hover');
   return hoveredEchartElement === chartRef?.ele;
+}
+
+/**
+ * Chart event when *any* rendering+animation finishes.
+ *
+ * Auto-activates the toolbox area-zoom cursor so users can drag-to-select a range
+ * without first clicking the (hidden) toolbox icon.
+ */
+export function activateZoomAreaSelect(chart: ECharts) {
+  const toolboxView = (chart as any)._componentsViews?.find((view: any) =>
+    view._features?.get?.('dataZoom')
+  );
+  const dataZoomFeature = toolboxView?._features.get('dataZoom');
+  if (dataZoomFeature && !dataZoomFeature._isZoomActive) {
+    // Calling dispatchAction will re-trigger handleChartFinished
+    chart.dispatchAction({
+      type: 'takeGlobalCursor',
+      key: 'dataZoomSelect',
+      dataZoomSelectActive: true,
+    });
+  }
 }

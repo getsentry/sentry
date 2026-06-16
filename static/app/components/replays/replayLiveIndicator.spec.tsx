@@ -6,11 +6,11 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {
   replayAttachmentsApiOptions,
   replayRecordApiOptions,
 } from 'sentry/utils/replays/hooks/useReplayData';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useLiveBadge, useLiveRefresh} from './replayLiveIndicator';
 

@@ -1,95 +1,36 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  createMakeStepProps,
-  dispatchPipelineMessage,
-  setupMockPopup,
-} from 'sentry/components/pipeline/testUtils';
+import {createMakeStepProps} from 'sentry/components/pipeline/testUtils';
 
 import {vercelIntegrationPipeline} from '.';
 
-const VercelOAuthLoginStep = vercelIntegrationPipeline.steps[0].component;
+const VercelInstallStep = vercelIntegrationPipeline.steps[0].component;
 
 const makeStepProps = createMakeStepProps({totalSteps: 1});
 
-let mockPopup: Window;
-
-beforeEach(() => {
-  mockPopup = setupMockPopup();
-});
-
-afterEach(() => {
-  jest.restoreAllMocks();
-});
-
-describe('VercelOAuthLoginStep', () => {
-  it('renders the OAuth login step for Vercel', () => {
-    render(
-      <VercelOAuthLoginStep
-        {...makeStepProps({
-          stepData: {oauthUrl: 'https://vercel.com/oauth/authorize'},
-        })}
-      />
-    );
-
-    expect(screen.getByRole('button', {name: 'Authorize Vercel'})).toBeInTheDocument();
-  });
-
-  it('calls advance with code and state on OAuth callback', async () => {
+describe('VercelInstallStep', () => {
+  it('auto-advances with the pipeline state and shows a finishing message', () => {
     const advance = jest.fn();
     render(
-      <VercelOAuthLoginStep
+      <VercelInstallStep
         {...makeStepProps({
-          stepData: {oauthUrl: 'https://vercel.com/oauth/authorize'},
+          stepData: {state: 'pipeline-sig'},
           advance,
         })}
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Authorize Vercel'}));
-
-    dispatchPipelineMessage({
-      source: mockPopup,
-      data: {
-        _pipeline_source: 'sentry-pipeline',
-        code: 'auth-code-123',
-        state: 'state-xyz',
-      },
-    });
-
-    expect(advance).toHaveBeenCalledWith({
-      code: 'auth-code-123',
-      state: 'state-xyz',
-    });
+    expect(advance).toHaveBeenCalledWith({state: 'pipeline-sig'});
+    expect(advance).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByText('Finishing up Vercel integration installation...')
+    ).toBeInTheDocument();
   });
 
-  it('shows busy state when isAdvancing is true', () => {
-    render(
-      <VercelOAuthLoginStep
-        {...makeStepProps({
-          stepData: {oauthUrl: 'https://vercel.com/oauth/authorize'},
-          isAdvancing: true,
-        })}
-      />
-    );
+  it('does not advance until stepData is available', () => {
+    const advance = jest.fn();
+    render(<VercelInstallStep {...makeStepProps({stepData: null, advance})} />);
 
-    expect(screen.getByRole('button', {name: 'Authorize Vercel'})).toHaveAttribute(
-      'aria-busy',
-      'true'
-    );
-  });
-
-  it('disables authorize button when oauthUrl is not provided', () => {
-    render(<VercelOAuthLoginStep {...makeStepProps({stepData: {}})} />);
-
-    expect(screen.getByRole('button', {name: 'Authorize Vercel'})).toBeDisabled();
-  });
-
-  it('disables authorize button when isInitializing', () => {
-    render(
-      <VercelOAuthLoginStep {...makeStepProps({stepData: null, isInitializing: true})} />
-    );
-
-    expect(screen.getByRole('button', {name: 'Authorize Vercel'})).toBeDisabled();
+    expect(advance).not.toHaveBeenCalled();
   });
 });

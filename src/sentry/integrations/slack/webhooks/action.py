@@ -48,6 +48,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
@@ -114,7 +115,8 @@ def update_group(
             status_code=403, body="The user does not have access to the organization."
         )
 
-    resp = update_groups(request=request, groups=[group], user=user, data=data)
+    with action_context_scope(source=ActionSource.SLACK, actor=GroupActionActor.user(user.id)):
+        resp = update_groups(request=request, groups=[group], user=user, data=data)
     if resp.status_code != 200:
         _logger.warning(
             "slack.action.update-group-error",
