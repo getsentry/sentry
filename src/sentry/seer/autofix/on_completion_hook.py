@@ -21,7 +21,6 @@ from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
     get_latest_iteration_index,
-    is_pr_iteration_enabled,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -243,14 +242,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if current_step is not None and not is_pr_created:
             referrer = current_referrer.value if current_referrer is not None else None
             iteration_index = get_latest_iteration_index(state)
-            pr_iteration_enabled = is_pr_iteration_enabled(state)
             metrics.incr(
                 "autofix.explorer.complete",
                 tags={
                     "step": current_step.value,
                     "referrer": referrer,
                     "iteration_index": iteration_index,
-                    "pr_iteration_enabled": pr_iteration_enabled,
                 },
             )
             completed_event_cls = STEP_CONFIGS[current_step].completed_event
@@ -263,7 +260,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         referrer=referrer,
                         run_id=run_id,
                         iteration_index=iteration_index,
-                        pr_iteration_enabled=pr_iteration_enabled,
                     )
                 )
 
@@ -390,7 +386,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     if current_step == AutofixStep.PR_ITERATION
                     else None
                 )
-                pr_iteration_enabled = is_pr_iteration_enabled(state)
                 analytics.record(
                     AiAutofixIntrospectionEvent(
                         organization_id=organization.id,
@@ -402,7 +397,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         action=decision.action.value,
                         reached_stopping_point=reached_stopping_point,
                         iteration_index=iteration_index,
-                        pr_iteration_enabled=pr_iteration_enabled,
                     )
                 )
                 logger.info(
@@ -417,7 +411,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         "reason": decision.reason,
                         "reached_stopping_point": reached_stopping_point,
                         "iteration_index": iteration_index,
-                        "pr_iteration_enabled": pr_iteration_enabled,
                     },
                 )
 
@@ -473,7 +466,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "next_step": next_step,
                 "stopping_point": stopping_point,
                 "iteration_index": get_latest_iteration_index(state),
-                "pr_iteration_enabled": is_pr_iteration_enabled(state),
             },
         )
         trigger_autofix_agent(

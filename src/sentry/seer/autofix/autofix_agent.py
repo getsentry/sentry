@@ -257,10 +257,6 @@ def get_latest_iteration_index(state: SeerRunState) -> int:
     return 0
 
 
-def is_pr_iteration_enabled(state: SeerRunState) -> bool:
-    return bool(state.metadata.get("pr_iteration_enabled") if state.metadata else False)
-
-
 def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
     block = state.blocks[insert_index]
     metadata = block.message.metadata or {}
@@ -394,9 +390,6 @@ def trigger_autofix_agent(
     if run_id is not None:
         run_state = _get_group_run_state(client, group, run_id)
 
-    if run_state is not None and run_state.metadata:
-        pr_iteration_enabled = run_state.metadata.get("pr_iteration_enabled", pr_iteration_enabled)
-
     iteration_index: int | None = None
     if step == AutofixStep.PR_ITERATION:
         if not pr_iteration_enabled:
@@ -434,7 +427,6 @@ def trigger_autofix_agent(
         metadata: dict[str, Any] = {
             "group_id": group.id,
             "referrer": referrer.value,
-            "pr_iteration_enabled": pr_iteration_enabled,  # value of the option since we're creating a new one
         }
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
@@ -471,7 +463,6 @@ def trigger_autofix_agent(
                 referrer=referrer.value,
                 run_id=run_id,
                 iteration_index=iteration_index,
-                pr_iteration_enabled=pr_iteration_enabled,
             )
         )
 
@@ -520,7 +511,6 @@ def trigger_autofix_agent(
                 "run_id": run_id,
                 "group_id": group.id,
                 "iteration_index": iteration_index,
-                "pr_iteration_enabled": pr_iteration_enabled,
             },
         )
 
@@ -530,7 +520,6 @@ def trigger_autofix_agent(
             "step": step.value,
             "referrer": referrer.value,
             "iteration_index": iteration_index,
-            "pr_iteration_enabled": pr_iteration_enabled,
         },
     )
 
