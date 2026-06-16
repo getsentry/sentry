@@ -98,7 +98,7 @@ class TestGetMetricMetadata(TestCase):
             project_ids=[self.project.id],
             name_substrings=[],
         )
-        assert result.dict() == {"candidates": [], "has_more": False, "error": None}
+        assert result.dict() == {"candidates": [], "has_more": False}
         mock_client.get.assert_not_called()
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
