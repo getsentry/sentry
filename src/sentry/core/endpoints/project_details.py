@@ -279,7 +279,10 @@ E.g. `['release', 'environment']`""",
     )
     secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     scrapeJavaScript = serializers.BooleanField(required=False)
-    enableAutoReleaseCreation = serializers.BooleanField(required=False)
+    enableAutoReleaseCreation = serializers.BooleanField(
+        required=False,
+        help_text="Automatically create releases from ingested events. When disabled, releases must be created manually (e.g. via the Sentry CLI).",
+    )
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
     copy_from_project = serializers.IntegerField(required=False)
