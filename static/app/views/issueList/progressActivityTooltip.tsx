@@ -24,6 +24,7 @@ import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/gr
 // Only include activity items that describe issue progress changes. Other
 // activity types can be useful in the full activity feed, but are noise here.
 const PROGRESS_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.NOTE,
   GroupActivityType.FIRST_SEEN,
   GroupActivityType.SEER_RCA_COMPLETED,
   GroupActivityType.SEER_PR_CREATED,
@@ -75,8 +76,10 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const Icon = iconMapping?.componentFunction
-    ? iconMapping.componentFunction({
+  const componentFunction =
+    item.type === GroupActivityType.NOTE ? undefined : iconMapping?.componentFunction;
+  const Icon = componentFunction
+    ? componentFunction({
         data: item.data,
         user: item.user,
         sentry_app: item.sentry_app,

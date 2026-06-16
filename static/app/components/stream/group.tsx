@@ -738,7 +738,7 @@ export function StreamGroup({
                   </ProgressActivityTooltip>
                 </Container>
               ) : (
-                <Placeholder height="18px" width="80px" />
+                <Placeholder height="18px" />
               )}
             </ProgressWrapper>
           )}
