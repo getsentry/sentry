@@ -16,7 +16,7 @@ from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import PERFORMANCE_ISSUE_CATEGORIES, GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
@@ -773,10 +773,15 @@ def project_past_resolved_issues(
         error_group_ids = [
             g.id for g in candidates if g.type is None or g.issue_category == GroupCategory.ERROR
         ]
+        # Using GroupCategory.PERFORMANCE for legacy performance groups
         perf_group_ids = [
             g.id
             for g in candidates
-            if g.type is not None and g.issue_category == GroupCategory.PERFORMANCE
+            if g.type is not None
+            and (
+                g.issue_category == GroupCategory.PERFORMANCE
+                or g.issue_category in PERFORMANCE_ISSUE_CATEGORIES
+            )
         ]
 
         event_counts: dict[int, int] = {}
@@ -891,6 +896,7 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
         GroupLink.objects.filter(
             group_id__in=all_group_ids,
             linked_type__in=[GroupLink.LinkedType.commit, GroupLink.LinkedType.pull_request],
+            relationship=GroupLink.Relationship.resolves,
         ).values_list("group_id", flat=True)
     )
 
