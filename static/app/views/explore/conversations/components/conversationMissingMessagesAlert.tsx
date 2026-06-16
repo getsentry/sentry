@@ -7,6 +7,21 @@ import {t, tct} from 'sentry/locale';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
+const CAPTURE_MESSAGES_PROMPT = `
+> Sentry AI agent monitoring is already instrumented in this app, but the conversation input and output messages are not being recorded, so the Sentry Conversations view is empty.
+> Update the existing Sentry configuration to capture gen_ai message content (prompts and responses): in Python set \`send_default_pii=True\` in \`sentry_sdk.init(...)\`, and in JavaScript/Node set \`sendDefaultPii: true\` in \`Sentry.init(...)\`.
+> If the app has multi-turn chats, also set a conversation ID per chat so Sentry receives the gen_ai.conversation.id attribute.
+
+# Capture Sentry AI Agent Conversation Messages
+
+Use these skills as the source of truth:
+
+## Skill References
+
+- Source repository: https://github.com/getsentry/sentry-for-ai
+- Agent-monitoring skill: https://skills.sentry.dev/sentry-setup-ai-monitoring/SKILL.md
+`;
+
 export function ConversationMissingMessagesAlert() {
   return (
     <Alert.Container>
@@ -32,7 +47,7 @@ export function ConversationMissingMessagesAlert() {
             )}
           </Prose>
           <Stack direction="row" paddingTop="xs" justify="start">
-            <CopyLLMPromptButton />
+            <CopyLLMPromptButton prompt={CAPTURE_MESSAGES_PROMPT} />
           </Stack>
         </Stack>
       </Alert>
