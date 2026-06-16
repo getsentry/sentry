@@ -2642,12 +2642,12 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["organization_id"] == self.organization.id
-        assert result["integration_id"] == "123"
-        assert result["provider"] == "integrations:github"
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "seer"
-        assert result["external_id"] == "12345678"
+        assert result.organization_id == self.organization.id
+        assert result.integration_id == "123"
+        assert result.provider == "integrations:github"
+        assert result.owner == "getsentry"
+        assert result.name == "seer"
+        assert result.external_id == "12345678"
 
     def test_get_repository_definition_invalid_format(self) -> None:
         """Test that invalid repo name format returns None"""
@@ -2721,7 +2721,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["integration_id"] is None
+        assert result.integration_id is None
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
@@ -2760,7 +2760,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["provider"] == "integrations:github_enterprise"
+        assert result.provider == "integrations:github_enterprise"
 
     def test_get_repository_definition_multiple_providers(self) -> None:
         """Test that when multiple repos with different supported providers exist, first one is returned"""
@@ -2790,12 +2790,12 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is not None
         # Should return the first matching repo (in this case, GitHub)
-        assert result["provider"] in [
+        assert result.provider in [
             "integrations:github",
             "integrations:github_enterprise",
         ]
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "seer"
+        assert result.owner == "getsentry"
+        assert result.name == "seer"
 
     def test_get_repository_definition_filters_unsupported_with_supported(self) -> None:
         """Test that unsupported providers are ignored even when a supported one exists"""
@@ -2825,8 +2825,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         # Should return the GitHub repo, not GitLab
         assert result is not None
-        assert result["provider"] == "integrations:github"
-        assert result["external_id"] == "12345678"
+        assert result.provider == "integrations:github"
+        assert result.external_id == "12345678"
 
     def test_get_repository_definition_multipart_name(self) -> None:
         """Test repository with multi-part name (e.g., owner/project/repo)"""
@@ -2845,8 +2845,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "project/seer"
+        assert result.owner == "getsentry"
+        assert result.name == "project/seer"
 
     def test_get_repository_definition_by_external_id(self) -> None:
         """Test lookup by external_id when repo has been renamed."""
@@ -2868,8 +2868,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is not None
         # Should return the CURRENT name from the database
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "new-name"
+        assert result.owner == "getsentry"
+        assert result.name == "new-name"
 
 
 class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
@@ -4083,13 +4083,13 @@ class TestGetDsn(APITestCase):
         result = get_dsn(organization_id=self.organization.id, project_slug="wordcraft")
 
         assert result is not None
-        assert result == {
+        assert result.dict() == {
             "project_slug": "wordcraft",
             "platform": project.platform,
-            "dsn_public": result["dsn_public"],
+            "dsn_public": result.dsn_public,
         }
-        assert result["dsn_public"].startswith("http")
-        assert result["dsn_public"].endswith(f"/{project.id}")
+        assert result.dsn_public.startswith("http")
+        assert result.dsn_public.endswith(f"/{project.id}")
 
     def test_returns_none_for_unknown_slug(self) -> None:
         self.create_project(organization=self.organization, slug="wordcraft")

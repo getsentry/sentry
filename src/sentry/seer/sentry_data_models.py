@@ -238,3 +238,18 @@ class MetricMetadataErrorResponse(BaseModel):
     candidates: list[MetricMetadataRow]
     has_more: bool
     error: str
+
+
+class GetDsnResponse(BaseModel):
+    project_slug: str
+    platform: str | None
+    dsn_public: str
+
+
+class RepositoryDefinitionResponse(BaseModel):
+    organization_id: int
+    integration_id: str | None
+    provider: str | None
+    owner: str
+    name: str
+    external_id: str | None
