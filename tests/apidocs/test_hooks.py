@@ -50,40 +50,38 @@ class EndpointServersTest(TestCase):
         assert "servers" not in processed["paths"]["/api/0/other/endpoint/"]["get"]
 
 
-class SummaryUniquenessTest(TestCase):
-    def setUp(self) -> None:
-        _ENDPOINT_SERVERS.clear()
+def _operation(summary: str) -> dict[str, Any]:
+    return {
+        "tags": ["Events"],
+        "description": "An endpoint",
+        "operationId": summary.lower().replace(" ", "-"),
+        "summary": summary,
+        "parameters": [],
+    }
 
-    def _op(self, summary: str) -> dict[str, Any]:
-        return {
-            "tags": ["Events"],
-            "description": "An endpoint",
-            "operationId": summary.lower().replace(" ", "-"),
-            "summary": summary,
-            "parameters": [],
-        }
 
-    def test_duplicate_summary_raises(self) -> None:
-        result = {
-            "components": {"schemas": {}},
-            "paths": {
-                "/api/0/foo/": {"get": self._op("List Foos")},
-                "/api/0/bar/": {"get": self._op("List Foos")},
-            },
-        }
-        with pytest.raises(SentryApiBuildError):
-            custom_postprocessing_hook(result, None)
-
-    def test_unique_summaries_pass(self) -> None:
-        result = {
-            "components": {"schemas": {}},
-            "paths": {
-                "/api/0/foo/": {"get": self._op("List Foos")},
-                "/api/0/bar/": {"get": self._op("List Bars")},
-            },
-        }
-        # Should not raise.
+def test_duplicate_summary_raises() -> None:
+    result = {
+        "components": {"schemas": {}},
+        "paths": {
+            "/api/0/foo/": {"get": _operation("List Foos")},
+            "/api/0/bar/": {"get": _operation("List Foos")},
+        },
+    }
+    with pytest.raises(SentryApiBuildError):
         custom_postprocessing_hook(result, None)
+
+
+def test_unique_summaries_pass() -> None:
+    result = {
+        "components": {"schemas": {}},
+        "paths": {
+            "/api/0/foo/": {"get": _operation("List Foos")},
+            "/api/0/bar/": {"get": _operation("List Bars")},
+        },
+    }
+    # Should not raise.
+    custom_postprocessing_hook(result, None)
 
 
 class FixIssueRoutesTest(TestCase):

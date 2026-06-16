@@ -12,11 +12,11 @@ it covers every ``@extend_schema`` regardless of publish status.
 
 from __future__ import annotations
 
-import os
 import re
 from collections import defaultdict
+from pathlib import Path
 
-SENTRY_SRC = os.path.join(os.path.dirname(__file__), "..", "..", "src", "sentry")
+SENTRY_SRC = Path(__file__).resolve().parents[2] / "src" / "sentry"
 
 # operation_id="..." appears only as an @extend_schema kwarg, so a literal scan is safe.
 # Match either quote style so apostrophes inside double-quoted, sentence-style values
@@ -26,17 +26,13 @@ _OPERATION_ID = re.compile(r"""operation_id=(?:"([^"]*)"|'([^']*)')""")
 
 def test_operation_ids_are_unique() -> None:
     locations: dict[str, list[str]] = defaultdict(list)
-    for root, _dirs, files in os.walk(SENTRY_SRC):
-        for name in files:
-            if not name.endswith(".py"):
-                continue
-            path = os.path.join(root, name)
-            with open(path, encoding="utf-8") as f:
-                for lineno, line in enumerate(f, start=1):
-                    for double, single in _OPERATION_ID.findall(line):
-                        value = double or single
-                        rel = os.path.relpath(path, SENTRY_SRC)
-                        locations[value].append(f"src/sentry/{rel}:{lineno}")
+    for path in SENTRY_SRC.rglob("*.py"):
+        with path.open(encoding="utf-8") as f:
+            for lineno, line in enumerate(f, start=1):
+                for double, single in _OPERATION_ID.findall(line):
+                    value = double or single
+                    rel = path.relative_to(SENTRY_SRC)
+                    locations[value].append(f"src/sentry/{rel}:{lineno}")
 
     dups = {value: locs for value, locs in locations.items() if len(locs) > 1}
     assert not dups, "Duplicate @extend_schema operation_id values:\n" + "\n".join(
