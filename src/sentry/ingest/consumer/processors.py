@@ -91,7 +91,9 @@ def process_event(
     attachments = message.get("attachments") or ()
 
     sentry_sdk.set_extra("event_id", event_id)
+    sentry_sdk.set_attribute("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
+    sentry_sdk.set_attribute("len_attachments", len(attachments))
 
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
@@ -152,6 +154,7 @@ def process_event(
         processing_store = event_processing_store
 
     sentry_sdk.set_extra("event_type", data.get("type"))
+    sentry_sdk.set_attribute("event_type", data.get("type"))
 
     with sentry_sdk.start_span(
         op="killswitch_matches_context", name="store.load-shed-parsed-pipeline-projects"
