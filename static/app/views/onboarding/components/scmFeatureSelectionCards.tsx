@@ -30,9 +30,7 @@ export function ScmFeatureSelectionCards({
   return (
     <Stack gap="xl" width="100%" justify="center">
       <Flex justify="between" align="center">
-        <Heading as="h3" size="xl">
-          {t('What do you want to instrument?')}
-        </Heading>
+        <Heading as="h3">{t('What do you want to instrument?')}</Heading>
         {availableFeatures.length > 1 ? (
           <Text size="sm" variant="secondary">
             {t('Choose one or more')}

@@ -36,7 +36,7 @@ export function ScmFeatureInfoCards({
     <Stack gap="xl" width="100%" justify="center">
       <Stack gap="md">
         {platformName ? (
-          <Heading as="h3" size="xl">
+          <Heading as="h3">
             {tct('Available with [platformName]', {
               platformName: (
                 <Text as="span" bold variant="accent">
@@ -46,7 +46,7 @@ export function ScmFeatureInfoCards({
             })}
           </Heading>
         ) : null}
-        <Text size="lg" variant="secondary" density="comfortable">
+        <Text size="md" variant="secondary" density="comfortable">
           {t('In the next step, run our setup wizard to choose what to instrument')}
         </Text>
       </Stack>

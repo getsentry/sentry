@@ -70,7 +70,7 @@ export function ScmProjectDetailsCore({
         <Flex gap="md" align="center">
           <IconProject size="md" variant="secondary" />
           <Container>
-            <Text bold size="lg" density="comfortable">
+            <Text bold size="md" density="comfortable">
               {t('Give your project a name')}
             </Text>
           </Container>
@@ -89,7 +89,7 @@ export function ScmProjectDetailsCore({
           <Flex gap="md" align="center">
             <IconGroup size="md" />
             <Container>
-              <Text bold size="lg" density="comfortable">
+              <Text bold size="md" density="comfortable">
                 {t('Assign a team')}
               </Text>
             </Container>
@@ -111,13 +111,13 @@ export function ScmProjectDetailsCore({
         <Flex gap="md" align="center">
           <IconSiren size="md" />
           <Container>
-            <Text bold size="lg" density="comfortable">
+            <Text bold size="md" density="comfortable">
               {t('Alert frequency')}
             </Text>
           </Container>
         </Flex>
         <Container>
-          <Text variant="muted" size="lg" density="comfortable">
+          <Text variant="muted" density="comfortable">
             {t('Get notified when things go wrong')}
           </Text>
         </Container>
