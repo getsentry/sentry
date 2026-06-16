@@ -644,9 +644,14 @@ class ProfileFlamegraphMetadata(BaseModel):
     profile_id: str
     project_id: int
     is_continuous: bool
-    start_ts: int | None
-    end_ts: int | None
-    thread_id: int | None
+    # `start_ts`/`end_ts` are float seconds from `min(precise.start_ts)` /
+    # `max(precise.finish_ts)` aggregates — Pydantic v1 truncates `float → int`
+    # silently, so type as float to preserve sub-second precision on the wire.
+    start_ts: float | None
+    end_ts: float | None
+    # `selected_thread_id` is the dict key from a `dict[str, int]` count map in
+    # `_convert_profile_to_execution_tree` — always a string.
+    thread_id: str | None
 
 
 class ProfileFlamegraphSuccessResponse(BaseModel):
