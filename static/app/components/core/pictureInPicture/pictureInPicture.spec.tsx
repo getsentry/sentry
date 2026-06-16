@@ -43,6 +43,24 @@ function stubDocumentPictureInPicture(pip: FakePipWindow) {
   return requestWindow;
 }
 
+// jsdom doesn't populate `CSSStyleSheet.ownerNode` (real browsers do), which
+// `copyStyles` relies on to detect emotion styles. Backfill it so tests exercise
+// the same code path as production.
+function appendStyle(css: string, attributes: Record<string, string> = {}) {
+  const style = document.createElement('style');
+  for (const [name, value] of Object.entries(attributes)) {
+    style.setAttribute(name, value);
+  }
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  if (style.sheet && !style.sheet.ownerNode) {
+    Object.defineProperty(style.sheet, 'ownerNode', {value: style, configurable: true});
+  }
+
+  return style;
+}
+
 describe('usePictureInPicture', () => {
   afterEach(() => {
     // @ts-expect-error - cleaning up the stub
@@ -67,9 +85,7 @@ describe('usePictureInPicture', () => {
   });
 
   it('opens a window and copies stylesheets into it', async () => {
-    const style = document.createElement('style');
-    style.textContent = '.pip-test{color:red;}';
-    document.head.appendChild(style);
+    const style = appendStyle('.pip-test{color:red;}');
 
     const pip = createFakePipWindow();
     const requestWindow = stubDocumentPictureInPicture(pip);
@@ -94,10 +110,9 @@ describe('usePictureInPicture', () => {
   });
 
   it('does not copy emotion style tags (they are re-injected by the portal)', async () => {
-    const emotionStyle = document.createElement('style');
-    emotionStyle.setAttribute('data-emotion', 'app');
-    emotionStyle.textContent = '.emotion-skip{color:blue;}';
-    document.head.appendChild(emotionStyle);
+    const emotionStyle = appendStyle('.emotion-skip{color:blue;}', {
+      'data-emotion': 'app',
+    });
 
     const pip = createFakePipWindow();
     stubDocumentPictureInPicture(pip);

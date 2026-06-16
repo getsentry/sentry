@@ -44,14 +44,16 @@ interface PictureInPictureContextValue {
 const PictureInPictureContext = createContext<PictureInPictureContextValue | null>(null);
 
 /**
- * Copies the document's static stylesheets into the picture-in-picture window so
- * its content renders with the same styles.
+ * Copies the document's stylesheets into the picture-in-picture window so its
+ * content renders with the same styles.
  *
- * Styles must be applied *synchronously* — content that measures itself on mount
- * (e.g. autosizing textareas reading `getComputedStyle`) would otherwise compute
- * the wrong size before async styles load. So linked stylesheets are inlined
- * rule-by-rule rather than cloned (a cloned `<link>` fetches asynchronously);
- * `<style>` tags are cloned since their text is already present.
+ * Each sheet's rules are read from the CSSOM (`sheet.cssRules`) and inlined into
+ * a `<style>` tag so they apply *synchronously* — content that measures itself on
+ * mount (e.g. autosizing textareas reading `getComputedStyle`) would otherwise
+ * compute the wrong size before styles load. Reading the CSSOM also captures
+ * rules inserted at runtime via `insertRule` (which leave the source `<style>`
+ * empty), which cloning the node would miss. Cross-origin sheets throw on
+ * `cssRules` access — those fall back to cloning the owning node (loads async).
  *
  * Emotion's own style tags are skipped because `PictureInPicturePortal`
  * re-injects them via a PiP-scoped cache. Copying them here would duplicate a
@@ -59,32 +61,27 @@ const PictureInPictureContext = createContext<PictureInPictureContextValue | nul
  * builds, where every styled component emits its own tag).
  */
 function copyStyles(source: Document, target: Window) {
-  const nodes = source.querySelectorAll<HTMLLinkElement | HTMLStyleElement>(
-    'link[rel="stylesheet"], style'
-  );
-  for (const node of nodes) {
+  for (const sheet of Array.from(source.styleSheets)) {
+    const owner = sheet.ownerNode;
+
     // Emotion styles are re-injected via the PiP-scoped emotion cache.
-    if (node instanceof HTMLStyleElement && node.dataset.emotion) {
+    if (owner instanceof HTMLStyleElement && owner.dataset.emotion) {
       continue;
     }
 
-    // Inline linked stylesheets so they apply immediately. Cross-origin sheets
-    // throw on `cssRules` access — fall back to cloning the <link> for those.
-    if (node instanceof HTMLLinkElement) {
-      try {
-        const cssText = Array.from(node.sheet?.cssRules ?? [])
-          .map(rule => rule.cssText)
-          .join('');
-        const style = target.document.createElement('style');
-        style.textContent = cssText;
-        target.document.head.appendChild(style);
-        continue;
-      } catch {
-        // Cross-origin stylesheet — clone the <link> (loads asynchronously).
+    try {
+      const cssText = Array.from(sheet.cssRules)
+        .map(rule => rule.cssText)
+        .join('');
+      const style = target.document.createElement('style');
+      style.textContent = cssText;
+      target.document.head.appendChild(style);
+    } catch {
+      // Cross-origin stylesheet — clone the owning node (loads asynchronously).
+      if (owner) {
+        target.document.head.appendChild(owner.cloneNode(true));
       }
     }
-
-    target.document.head.appendChild(node.cloneNode(true));
   }
 }
 
