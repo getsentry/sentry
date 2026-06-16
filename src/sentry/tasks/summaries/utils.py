@@ -760,7 +760,7 @@ def project_past_resolved_issues(
                 project_id=project.id,
                 status=GroupStatus.RESOLVED,
                 resolved_at__gte=ctx.start,
-                resolved_at__lt=ctx.end,
+                resolved_at__lt=ctx.end + timedelta(days=1),
             ).order_by("-times_seen")[:_PAST_ISSUES_CANDIDATE_LIMIT]
         )
 
