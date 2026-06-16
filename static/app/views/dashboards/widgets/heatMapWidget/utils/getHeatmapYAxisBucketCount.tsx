@@ -1,4 +1,4 @@
-import {PIXELS_PER_BUCKET} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/constants';
+import {PIXELS_PER_BUCKET} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 
 /**
  * Computes the number of Y-axis buckets for the heatmap API. The X-axis

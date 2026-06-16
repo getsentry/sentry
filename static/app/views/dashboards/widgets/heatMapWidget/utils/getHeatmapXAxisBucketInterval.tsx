@@ -2,7 +2,7 @@ import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import {millisecondsToClosestInterval} from 'sentry/utils/duration/millisecondsToInterval';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
-import {PIXELS_PER_BUCKET} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/constants';
+import {PIXELS_PER_BUCKET} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 
 /**
  * Computes the X-axis (time) bucket interval for the heatmap API. We target
