@@ -11,6 +11,8 @@ from sentry.search.events.types import SAMPLING_MODES, EventsMeta
 
 
 def sampling_tier_name(tier: int) -> str:
+    if tier not in DownsampledStorageMeta.SelectedTier.DESCRIPTOR.values_by_number:
+        return str(tier)
     return DownsampledStorageMeta.SelectedTier.Name(
         DownsampledStorageMeta.SelectedTier.ValueType(tier)
     )
