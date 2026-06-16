@@ -6,6 +6,7 @@ import {
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {
   fireEvent,
   renderGlobalModal,
@@ -20,7 +21,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
 
 describe('provisionSubscriptionAction', () => {
   const onSuccess = jest.fn();

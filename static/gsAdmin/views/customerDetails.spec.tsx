@@ -14,6 +14,7 @@ import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -35,7 +36,7 @@ import type {StatsGroup} from 'admin/components/customers/customerStats';
 import {populateChartData, useSeries} from 'admin/components/customers/customerStats';
 import {CustomerDetails} from 'admin/views/customerDetails';
 import type {Subscription} from 'getsentry/types';
-import {BillingType, PlanTier} from 'getsentry/types';
+import {BillingType} from 'getsentry/types';
 
 const theme = ThemeFixture();
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
