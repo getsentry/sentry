@@ -24,7 +24,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
 from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_override_for_project
+from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
 from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
@@ -76,9 +76,13 @@ def apply_project_sample_rate_overrides(
     so the override is surfaced in the pipeline. The result feeds the cached project
     sample rates and the downstream transaction balancing.
     """
+    overrides = get_sample_rate_overrides()
+    if not overrides:
+        return rebalanced_projects
+
     return [
-        replace(item, new_sample_rate=override)
-        if (override := get_sample_rate_override_for_project(int(item.id))) is not None
+        replace(item, new_sample_rate=overrides[int(item.id)])
+        if int(item.id) in overrides
         else item
         for item in rebalanced_projects
     ]
