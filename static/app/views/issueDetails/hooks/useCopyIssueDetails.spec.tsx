@@ -343,6 +343,207 @@ describe('useCopyIssueDetails', () => {
       expect(result).not.toContain('mainFunction');
     });
 
+    it('includes breadcrumbs when present in event', () => {
+      const eventWithBreadcrumbs = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [
+                {
+                  type: 'http',
+                  category: 'fetch',
+                  level: 'error',
+                  message: 'GET /api/users',
+                  data: {url: '/api/users', status_code: 500},
+                },
+                {
+                  type: 'navigation',
+                  category: 'ui.click',
+                  level: 'info',
+                  message: 'User clicked submit',
+                  data: null,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBreadcrumbs,
+        organization,
+      });
+
+      expect(result).toContain('## Breadcrumbs');
+      expect(result).toContain('- **http** `fetch` [error]');
+      expect(result).toContain('  GET /api/users');
+      expect(result).toContain('  {"url":"/api/users","status_code":500}');
+      expect(result).toContain('- **navigation** `ui.click` [info]');
+      expect(result).toContain('  User clicked submit');
+    });
+
+    it('truncates a single breadcrumb to the per-crumb character limit', () => {
+      const longMessage = 'x'.repeat(600);
+      const eventWithLongBreadcrumb = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [{type: 'default', level: 'info', message: longMessage}],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithLongBreadcrumb,
+        organization,
+      });
+
+      // Kept the first 500 chars plus an ellipsis, dropped the rest.
+      expect(result).toContain(`${'x'.repeat(500)}...`);
+      expect(result).not.toContain('x'.repeat(501));
+    });
+
+    it('truncates the breadcrumbs section to the total character limit', () => {
+      // 10 crumbs near the per-crumb cap (~490 chars each) overflow the 5000
+      // total. The first crumb's content survives; the last crumb's tail (well
+      // past the 5000th char) is cut off.
+      const values = Array.from({length: 10}, (_, i) => {
+        if (i === 0) {
+          return {type: 'default', level: 'info', message: `FIRSTHEAD${'a'.repeat(481)}`};
+        }
+        if (i === 9) {
+          return {
+            type: 'default',
+            level: 'info',
+            message: `LASTHEAD${'a'.repeat(470)}LASTTAIL`,
+          };
+        }
+        return {type: 'default', level: 'info', message: 'a'.repeat(490)};
+      });
+      const eventWithManyLargeBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithManyLargeBreadcrumbs,
+        organization,
+      });
+
+      expect(result).toContain('... (breadcrumbs truncated to first 5,000 characters)');
+      expect(result).toContain('FIRSTHEAD');
+      expect(result).not.toContain('LASTTAIL');
+    });
+
+    it('renders breadcrumbs after exceptions', () => {
+      const eventWithBoth = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [{type: 'default', level: 'info', message: 'crumb'}],
+            },
+          },
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [{type: 'TypeError', value: 'boom'}],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBoth,
+        organization,
+      });
+
+      expect(result.indexOf('## Exception')).toBeLessThan(
+        result.indexOf('## Breadcrumbs')
+      );
+    });
+
+    it('limits breadcrumbs to the most recent 10', () => {
+      const values = Array.from({length: 15}, (_, i) => ({
+        type: 'default',
+        level: 'info',
+        message: `crumb ${i}`,
+      }));
+      const eventWithManyBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithManyBreadcrumbs,
+        organization,
+      });
+
+      // The oldest 5 are dropped, the most recent 10 are kept.
+      expect(result).not.toContain('crumb 4');
+      expect(result).toContain('crumb 5');
+      expect(result).toContain('crumb 14');
+    });
+
+    it('skips breadcrumbs with filtered content', () => {
+      const eventWithFiltered = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [
+                {type: 'http', level: 'info', message: 'token: [Filtered]'},
+                {
+                  type: 'http',
+                  level: 'info',
+                  message: 'visible',
+                  data: {secret: '[Filtered]'},
+                },
+                {type: 'default', level: 'info', message: 'kept crumb'},
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithFiltered,
+        organization,
+      });
+
+      expect(result).toContain('kept crumb');
+      expect(result).not.toContain('[Filtered]');
+      expect(result).not.toContain('visible');
+    });
+
+    it('does not include a breadcrumbs section when there are none', () => {
+      const eventWithEmptyBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values: []}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithEmptyBreadcrumbs,
+        organization,
+      });
+
+      expect(result).not.toContain('## Breadcrumbs');
+    });
+
     // 1006 is the occurrence type for N+1 DB Queries. Spans mirror the classic
     // cache-miss → DB-read shape: each offender is a cache.get with a distinct
     // key followed by an identical parameterized query.

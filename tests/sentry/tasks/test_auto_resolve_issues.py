@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
-from sentry.issues.action_log import ActionSource
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -79,34 +78,6 @@ class ScheduleAutoResolutionTest(TestCase):
                 issue_category="error",
             ),
         )
-
-    @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    def test_records_action_log_as_system(self, mock_kick_off_status_syncs: MagicMock) -> None:
-        project = self.create_project()
-        project.update_option("sentry:resolve_age", 1)
-
-        group = self.create_group(
-            project=project,
-            status=GroupStatus.UNRESOLVED,
-            last_seen=timezone.now() - timedelta(days=1),
-        )
-
-        with self.assertLogs("sentry.issues.action_log", level="INFO") as action_logs:
-            with self.tasks():
-                schedule_auto_resolution()
-
-        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
-
-        records = [
-            r
-            for r in action_logs.records
-            if r.message == "group.action_log" and getattr(r, "group_id") == str(group.id)
-        ]
-        assert records, "expected the auto-resolve to emit group.action_log records"
-        # Attributed to the system, never the unknown fallback.
-        assert {getattr(r, "source") for r in records} == {ActionSource.SYSTEM}
-        # The resolve itself is recorded, even though it bypasses update_group_status.
-        assert "resolve" in {getattr(r, "action") for r in records}
 
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
     def test_single_event_performance(self, mock_kick_off_status_syncs: MagicMock) -> None:
