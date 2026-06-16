@@ -53,6 +53,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["session"]["run_id"] == 123
         assert response.data["session"]["status"] == "completed"
+        # No mirror row exists for this numeric run id, so there's no UUID to surface.
+        assert response.data["sentry_run_id"] is None
         mock_client.get_run.assert_called_once_with(run_id=123)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
@@ -207,6 +209,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.get(f"{self.url}{run.uuid}/")
 
         assert response.status_code == 200
+        assert response.data["sentry_run_id"] == str(run.uuid)
         mock_client.get_run.assert_called_once_with(run_id=555)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")

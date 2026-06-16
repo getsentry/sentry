@@ -21,7 +21,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {showIntercom} from 'sentry/utils/intercom';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -31,11 +31,12 @@ import {withApi} from 'sentry/utils/withApi';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {
   ANNUAL,
+  BillingConfigTier,
   MONTHLY,
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode, PlanName} from 'getsentry/types';
 import type {
   BillingConfig,
   CheckoutAddOns,
@@ -74,7 +75,6 @@ import {
 
 type Props = {
   api: Client;
-  checkoutTier: PlanTier;
   isError: boolean;
   isLoading: boolean;
   location: Location;
@@ -98,8 +98,7 @@ export type State = {
 
 function AMCheckout(props: Props) {
   const organization = useOrganization();
-  const {api, checkoutTier, isLoading, location, navigate, subscription, promotionData} =
-    props;
+  const {api, isLoading, location, navigate, subscription, promotionData} = props;
 
   const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -259,7 +258,7 @@ function AMCheckout(props: Props) {
 
       // find equivalent current plan for legacy
       const legacyInitialPlan =
-        subscription.planTier !== checkoutTier &&
+        subscription.planTier !== config.id &&
         planList.find(
           ({name, contractInterval}) =>
             name === subscription?.planDetails?.name &&
@@ -276,7 +275,6 @@ function AMCheckout(props: Props) {
       subscription.planDetails.name,
       subscription.planDetails?.contractInterval,
       subscription.planTier,
-      checkoutTier,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
@@ -323,7 +321,7 @@ function AMCheckout(props: Props) {
 
       if (
         hasOnDemandBudgetsFeature(organization, subscription) ||
-        checkoutTier === PlanTier.AM3
+        plan.categories.includes(DataCategory.SPANS)
       ) {
         newOnDemandBudget =
           onDemandBudget && onDemandSupported
@@ -344,7 +342,7 @@ function AMCheckout(props: Props) {
         addOns,
       };
     },
-    [organization, subscription, checkoutTier]
+    [organization, subscription]
   );
 
   /**
@@ -453,7 +451,9 @@ function AMCheckout(props: Props) {
     try {
       const config = await api.requestPromise(endpoint, {
         method: 'GET',
-        data: {tier: checkoutTier},
+        // The endpoint resolves the concrete checkout tier server-side (it
+        // mirrors the selection in `decideCheckout`).
+        data: {tier: BillingConfigTier.CHECKOUT},
       });
 
       const planList = getPlans(config);
@@ -472,14 +472,7 @@ function AMCheckout(props: Props) {
     }
 
     setLoading(false);
-  }, [
-    api,
-    organization.slug,
-    checkoutTier,
-    getPlans,
-    getInitialData,
-    getFormDataForPreview,
-  ]);
+  }, [api, organization.slug, getPlans, getInitialData, getFormDataForPreview]);
 
   const scrollToStep = useCallback(() => {
     const hash = location?.hash;
@@ -600,7 +593,6 @@ function AMCheckout(props: Props) {
       onUpdate: handleUpdate,
       organization,
       subscription,
-      checkoutTier,
     };
 
     return checkoutSteps.map((CheckoutStep, idx) => {
@@ -621,7 +613,6 @@ function AMCheckout(props: Props) {
     handleUpdate,
     organization,
     subscription,
-    checkoutTier,
     checkoutSteps,
     referrer,
   ]);

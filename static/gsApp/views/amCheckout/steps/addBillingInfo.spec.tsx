@@ -71,12 +71,7 @@ describe('AddBillingInformation', () => {
       body: BillingDetailsFixture(),
     });
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
       {organization}
     );
 
@@ -94,12 +89,7 @@ describe('AddBillingInformation', () => {
   it('renders heading with partial billing info', async () => {
     // subscription has payment source
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
       {organization}
     );
 
@@ -123,12 +113,7 @@ describe('AddBillingInformation', () => {
     SubscriptionStore.set(organization.slug, newSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
       {organization}
     );
 
