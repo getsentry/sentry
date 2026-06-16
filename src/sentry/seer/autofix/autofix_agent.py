@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from django.utils import timezone
 from pydantic import BaseModel
@@ -71,6 +71,9 @@ class UserUIFeedbackSource(TypedDict):
     # use the same stable key (`user_id`) that `GroupSeen` uses to track which
     # users have viewed an issue.
     user_id: int
+    # The serialized user, resolved at write time so the read path doesn't have
+    # to hydrate it. ``None`` if the user could not be serialized.
+    user: NotRequired[Any]
 
 
 # Discriminated on ``type``. Add new TypedDict variants to this union as more

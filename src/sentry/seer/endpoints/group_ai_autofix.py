@@ -70,7 +70,6 @@ from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -89,41 +88,6 @@ def _parse_autofix_referrer(raw: str | None) -> AutofixReferrer:
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
-
-
-def _hydrate_feedback_users(blocks: list[dict[str, Any]], request_user: Any) -> None:
-    parsed_by_index: dict[int, dict[str, Any]] = {}
-    user_ids: set[int] = set()
-    for index, block in enumerate(blocks):
-        metadata = (block.get("message") or {}).get("metadata") or {}
-        raw = metadata.get("feedback")
-        if not raw:
-            continue
-        try:
-            feedback = json.loads(raw)
-        except (ValueError, TypeError):
-            continue
-        user_id = (feedback.get("source") or {}).get("user_id")
-        if not isinstance(user_id, int):
-            continue
-        parsed_by_index[index] = feedback
-        user_ids.add(user_id)
-
-    if not user_ids:
-        return
-
-    users = {
-        u["id"]: u
-        for u in user_service.serialize_many(
-            filter={"user_ids": list(user_ids)},
-            as_user=serialize_generic_user(request_user),
-        )
-    }
-
-    for index, feedback in parsed_by_index.items():
-        user_id = feedback["source"]["user_id"]
-        feedback["source"]["user"] = users.get(user_id)
-        blocks[index]["message"]["metadata"]["feedback"] = json.dumps(feedback)
 
 
 class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
@@ -360,11 +324,18 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             and request.user
             and request.user.is_authenticated
         ):
+            # Serialize the user here on write so the read path (GET) doesn't have
+            # to hydrate it from the stored user_id on every fetch.
+            serialized_users = user_service.serialize_many(
+                filter={"user_ids": [request.user.id]},
+                as_user=serialize_generic_user(request.user),
+            )
             feedback = Feedback(
                 message=user_context,
                 source={
                     "type": "user-ui",
                     "user_id": request.user.id,
+                    "user": serialized_users[0] if serialized_users else None,
                 },
             )
         try:
@@ -469,7 +440,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
-        _hydrate_feedback_users(blocks, request.user)
         return Response(
             {
                 "autofix": {
