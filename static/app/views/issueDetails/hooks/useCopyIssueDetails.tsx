@@ -203,6 +203,12 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
           if (exception.type) {
             markdownText += `**Type:** ${exception.type}\n`;
           }
+          // Mirror Seer's `is_exception_handled`: an unhandled exception crashed
+          // the program, a handled one was caught. Only emit it when known.
+          const handled = exception.mechanism?.handled;
+          if (handled !== null && handled !== undefined) {
+            markdownText += `**Handled:** ${handled ? 'Yes' : 'No'}\n`;
+          }
           if (exception.value) {
             markdownText += `**Value:** ${exception.value}\n\n`;
           }

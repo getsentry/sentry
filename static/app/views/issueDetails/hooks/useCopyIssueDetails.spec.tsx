@@ -206,6 +206,64 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('**Type:** TypeError');
       expect(result).toContain('**Value:** Cannot read property of undefined');
       expect(result).toContain('#### Stacktrace');
+      // No mechanism on this exception, so no handled line.
+      expect(result).not.toContain('**Handled:**');
+    });
+
+    it('marks an unhandled exception', () => {
+      const eventWithUnhandled = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'TypeError',
+                  value: 'boom',
+                  mechanism: {type: 'onerror', handled: false},
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithUnhandled,
+        organization,
+      });
+
+      expect(result).toContain('**Handled:** No');
+    });
+
+    it('marks a handled exception', () => {
+      const eventWithHandled = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'ValueError',
+                  value: 'caught',
+                  mechanism: {type: 'generic', handled: true},
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithHandled,
+        organization,
+      });
+
+      expect(result).toContain('**Handled:** Yes');
     });
 
     it('includes thread stacktrace when activeThreadId matches', () => {
