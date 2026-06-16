@@ -12,14 +12,21 @@ from sentry.utils import json
 
 EXPECTED_HEADER = [
     "app_name",
+    "project_slug",
     "artifact_id",
     "app_id",
+    "build_configuration",
     "version",
     "platform",
     "install_groups",
     "upload_date",
     "download_count",
 ]
+
+
+def _col(row: list[str], name: str) -> str:
+    """Look up a cell by column name so assertions don't hard-code column positions."""
+    return row[EXPECTED_HEADER.index(name)]
 
 
 class BuildsExportEndpointTest(APITestCase):
@@ -46,6 +53,14 @@ class BuildsExportEndpointTest(APITestCase):
         assert response["Content-Type"] == "text/csv"
         content = b"".join(response.streaming_content).decode("utf-8")
         return list(csv.reader(io.StringIO(content)))
+
+    def _create_installable_build(self, **kwargs) -> PreprodArtifact:
+        # Installable per is_installable_artifact(): an installable file plus a
+        # build_number (default APK, so no iOS signature check applies). Tests that want
+        # a non-installable build call create_preprod_artifact directly.
+        kwargs.setdefault("installable_app_file_id", 1)
+        kwargs.setdefault("build_number", 1)
+        return self.create_preprod_artifact(**kwargs)
 
     # --- auth ---------------------------------------------------------------
 
@@ -99,8 +114,10 @@ class BuildsExportEndpointTest(APITestCase):
         assert len(rows) == 2
         (
             app_name,
+            project_slug,
             artifact_id,
             app_id,
+            build_configuration,
             version,
             platform,
             install_groups,
@@ -110,127 +127,163 @@ class BuildsExportEndpointTest(APITestCase):
         assert app_name == "My App"
         assert artifact_id == str(artifact.id)
         assert app_id == "com.example.app"
+        assert build_configuration == ""  # none set -> blank
         assert version == "1.2.3"
         assert platform == "android"
         assert install_groups == "[]"  # none set -> empty JSON array
         assert upload_date  # ISO timestamp present
         assert download_count == "15"
+        assert project_slug == self.project.slug
+
+    def test_build_configuration_and_project_slug(self) -> None:
+        # build_configuration sources from the (nullable) PreprodBuildConfiguration name;
+        # project_slug from the build's project.
+        config = self.create_preprod_build_configuration(name="Release")
+        self._create_installable_build(app_id="com.example.cfg", build_configuration=config)
+        row = self._csv_rows(self._request({}))[1]
+        assert _col(row, "project_slug") == self.project.slug
+        assert _col(row, "build_configuration") == "Release"
 
     def test_platform_apple(self) -> None:
-        self.create_preprod_artifact(
+        self._create_installable_build(
             app_id="com.example.ios",
             artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            extras={"is_code_signature_valid": True},  # iOS needs this to count as installable
         )
         rows = self._csv_rows(self._request({}))
         assert len(rows) == 2
-        assert rows[1][4] == "apple"
+        assert _col(rows[1], "platform") == "apple"
 
-    def test_missing_mobile_app_info_blank_cells(self) -> None:
-        # No app_name/version/build_number -> no mobile_app_info; those cells are blank.
-        self.create_preprod_artifact(app_id="com.example.bare")
+    def test_blank_optional_cells(self) -> None:
+        # An installable build (file + build_number) with no app_name/build_version and
+        # no build_configuration leaves those cells blank.
+        self._create_installable_build(app_id="com.example.bare")
         rows = self._csv_rows(self._request({}))
         assert len(rows) == 2
-        assert rows[1][0] == ""  # app_name
-        assert rows[1][2] == "com.example.bare"  # app_id
-        assert rows[1][3] == ""  # version
-        assert rows[1][5] == "[]"  # install_groups
-        assert rows[1][7] == "0"  # download_count
+        assert _col(rows[1], "app_name") == ""
+        assert _col(rows[1], "app_id") == "com.example.bare"
+        assert _col(rows[1], "version") == ""
+        assert _col(rows[1], "build_configuration") == ""  # no PreprodBuildConfiguration
+        assert _col(rows[1], "install_groups") == "[]"
+        assert _col(rows[1], "download_count") == "0"
+        assert _col(rows[1], "project_slug") == self.project.slug
 
     def test_formula_injection_escaped(self) -> None:
-        self.create_preprod_artifact(app_id="com.example.evil", app_name="=HYPERLINK(1)")
+        self._create_installable_build(app_id="com.example.evil", app_name="=HYPERLINK(1)")
         rows = self._csv_rows(self._request({}))
-        assert rows[1][0] == "'=HYPERLINK(1)"
+        assert _col(rows[1], "app_name") == "'=HYPERLINK(1)"
 
     def test_install_groups_json_encoded(self) -> None:
-        self.create_preprod_artifact(
+        self._create_installable_build(
             app_id="com.example.groups",
             extras={"install_groups": ["qa", "beta"]},
         )
         rows = self._csv_rows(self._request({}))
         # Emitted as a compact JSON array string, order preserved.
-        assert rows[1][5] == '["qa","beta"]'
+        assert _col(rows[1], "install_groups") == '["qa","beta"]'
         # ...and round-trips back to the original list.
-        assert json.loads(rows[1][5]) == ["qa", "beta"]
+        assert json.loads(_col(rows[1], "install_groups")) == ["qa", "beta"]
 
-    # --- download count semantics -------------------------------------------
+    # --- installability -----------------------------------------------------
 
-    def test_download_count_is_raw_sum(self) -> None:
-        # Even when the build is not installable, the export reports the raw sum of
-        # download counts (unlike the list API which forces 0 for non-installable).
-        # NOTE: this behavior is under review (see EME-1035 follow-up).
-        artifact = self.create_preprod_artifact(app_id="com.example.noinstall")
-        self.create_installable_preprod_artifact(artifact, download_count=7)
+    def test_excludes_non_installable_builds(self) -> None:
+        # Matches the list/UI is_installable_artifact() definition: a build needs an
+        # installable file AND a build_number (iOS also needs a valid, non-app-store
+        # signature). Builds failing any of these are omitted, even with downloads.
+        installable = self._create_installable_build(app_id="com.example.installable")
+        self.create_installable_preprod_artifact(installable, download_count=3)
+
+        # No installable file at all.
+        no_file = self.create_preprod_artifact(app_id="com.example.nofile")
+        self.create_installable_preprod_artifact(no_file, download_count=7)
+
+        # Has an installable file but no build_number.
+        no_build_number = self.create_preprod_artifact(
+            app_id="com.example.nobuildnum", installable_app_file_id=2
+        )
+        self.create_installable_preprod_artifact(no_build_number, download_count=11)
+
+        # iOS build with file + build_number but an invalid code signature.
+        bad_signature = self._create_installable_build(
+            app_id="com.example.badsig",
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            extras={"is_code_signature_valid": False},
+        )
+        self.create_installable_preprod_artifact(bad_signature, download_count=13)
+
         rows = self._csv_rows(self._request({}))
-        assert rows[1][7] == "7"
+        assert len(rows) == 2  # header + only the fully-installable build
+        assert _col(rows[1], "app_id") == "com.example.installable"
+        assert _col(rows[1], "download_count") == "3"
 
     # --- filtering parity with the list endpoint ----------------------------
 
     def test_filter_by_query_app_id(self) -> None:
-        self.create_preprod_artifact(app_id="foo")
-        self.create_preprod_artifact(app_id="bar")
+        self._create_installable_build(app_id="foo")
+        self._create_installable_build(app_id="bar")
         rows = self._csv_rows(self._request({"query": "app_id:foo"}))
         assert len(rows) == 2
-        assert rows[1][2] == "foo"
+        assert _col(rows[1], "app_id") == "foo"
 
     def test_invalid_query_returns_400(self) -> None:
-        self.create_preprod_artifact(app_id="foo")
+        self._create_installable_build(app_id="foo")
         response = self._request({"query": "no_such_key:foo"})
         assert response.status_code == 400
         assert response.json() == {"detail": "Invalid key for this search: no_such_key"}
 
     def test_bad_project(self) -> None:
-        self.create_preprod_artifact()
+        self._create_installable_build()
         response = self._request({"project": [1]})
         assert response.status_code == 403
 
     def test_build_in_another_project_excluded(self) -> None:
         another_project = self.create_project(name="Baz", slug="baz")
-        self.create_preprod_artifact(project=another_project)
+        self._create_installable_build(project=another_project)
         rows = self._csv_rows(self._request({"project": [self.project.id]}))
         assert rows == [EXPECTED_HEADER]
 
     def test_display_distribution_excludes_snapshot_builds(self) -> None:
-        self.create_preprod_artifact(app_id="com.regular.app")
-        snapshot_artifact = self.create_preprod_artifact(app_id="com.snapshot.app")
+        self._create_installable_build(app_id="com.regular.app")
+        snapshot_artifact = self._create_installable_build(app_id="com.snapshot.app")
         self.create_preprod_snapshot_metrics(preprod_artifact=snapshot_artifact, image_count=5)
 
         rows = self._csv_rows(self._request({"display": "distribution"}))
         assert len(rows) == 2
-        assert rows[1][2] == "com.regular.app"
+        assert _col(rows[1], "app_id") == "com.regular.app"
 
     def test_start_end_respected(self) -> None:
-        self.create_preprod_artifact(app_id="old.app", date_added=before_now(days=5))
-        middle = self.create_preprod_artifact(app_id="mid.app", date_added=before_now(days=3))
-        self.create_preprod_artifact(app_id="new.app", date_added=before_now(days=1))
+        self._create_installable_build(app_id="old.app", date_added=before_now(days=5))
+        middle = self._create_installable_build(app_id="mid.app", date_added=before_now(days=3))
+        self._create_installable_build(app_id="new.app", date_added=before_now(days=1))
 
         rows = self._csv_rows(
             self._request({"start": before_now(days=4), "end": before_now(days=2)})
         )
         assert len(rows) == 2
-        assert rows[1][1] == str(middle.id)
+        assert _col(rows[1], "artifact_id") == str(middle.id)
 
     @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
     def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
         mock_cutoff.return_value = before_now(days=30)
-        self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))
-        self.create_preprod_artifact(app_id="expired.app", date_added=before_now(days=60))
+        self._create_installable_build(app_id="recent.app", date_added=before_now(days=10))
+        self._create_installable_build(app_id="expired.app", date_added=before_now(days=60))
 
         rows = self._csv_rows(self._request({}))
         assert len(rows) == 2
-        assert rows[1][2] == "recent.app"
+        assert _col(rows[1], "app_id") == "recent.app"
 
     def test_results_ordered_newest_first(self) -> None:
-        self.create_preprod_artifact(app_id="oldest.app", date_added=before_now(days=5))
-        self.create_preprod_artifact(app_id="newest.app", date_added=before_now(days=1))
+        self._create_installable_build(app_id="oldest.app", date_added=before_now(days=5))
+        self._create_installable_build(app_id="newest.app", date_added=before_now(days=1))
         rows = self._csv_rows(self._request({}))
-        assert [r[2] for r in rows[1:]] == ["newest.app", "oldest.app"]
+        assert [_col(r, "app_id") for r in rows[1:]] == ["newest.app", "oldest.app"]
 
     # --- row limit ----------------------------------------------------------
 
     @patch("sentry.preprod.api.endpoints.builds_export.CSV_EXPORT_ROW_LIMIT", 2)
     def test_rejects_when_too_many_rows(self) -> None:
         for i in range(3):
-            self.create_preprod_artifact(app_id=f"com.example.app{i}")
+            self._create_installable_build(app_id=f"com.example.app{i}")
         response = self._request({})
         assert response.status_code == 400
         # ValidationError serializes to a list of messages; both count and limit appear.
@@ -241,6 +294,6 @@ class BuildsExportEndpointTest(APITestCase):
     @patch("sentry.preprod.api.endpoints.builds_export.CSV_EXPORT_ROW_LIMIT", 2)
     def test_allows_count_at_limit(self) -> None:
         for i in range(2):
-            self.create_preprod_artifact(app_id=f"com.example.app{i}")
+            self._create_installable_build(app_id=f"com.example.app{i}")
         rows = self._csv_rows(self._request({}))
         assert len(rows) == 3  # header + 2 builds

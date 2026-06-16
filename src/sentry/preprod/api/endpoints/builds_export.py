@@ -13,6 +13,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.builds_query import filtered_builds_queryset
 from sentry.preprod.models import PreprodArtifact
 from sentry.ratelimits.config import RateLimitConfig
@@ -39,10 +40,16 @@ def _escape_csv_value(value: object) -> str:
 
 class BuildsCsvResponder(CsvResponder[PreprodArtifact]):
     def get_header(self) -> tuple[str, ...]:
+        # Mirrors the original Emerge report (app_name, artifact_id, app_id,
+        # build_configuration, version, platform, upload_date, download_count) with the
+        # Sentry-only project_slug inserted after app_name and install_groups before
+        # upload_date.
         return (
             "app_name",
+            "project_slug",
             "artifact_id",
             "app_id",
+            "build_configuration",
             "version",
             "platform",
             "install_groups",
@@ -53,8 +60,12 @@ class BuildsCsvResponder(CsvResponder[PreprodArtifact]):
     def get_row(self, item: PreprodArtifact) -> tuple[str, ...]:
         mobile_app_info = item.get_mobile_app_info()
         platform = item.platform
-        # Raw annotated download sum; unlike the /builds/ list API this is not gated
-        # on installability (pending product confirmation).
+        # The "build_configuration" column is the configuration name (e.g. "Debug"/
+        # "Release"); the FK is nullable, so guard it like the build-details transform.
+        build_configuration = item.build_configuration
+        # Raw download sum from the annotation. The export only includes installable
+        # builds (see get()), so unlike the /builds/ list API there is no count to gate
+        # to 0 for non-installable builds.
         download_count = getattr(item, "download_count", 0)
         # Emit install_groups as a JSON array so it round-trips; csv.writer quotes
         # the embedded commas.
@@ -64,8 +75,10 @@ class BuildsCsvResponder(CsvResponder[PreprodArtifact]):
         )
         return (
             _escape_csv_value(mobile_app_info.app_name if mobile_app_info else None),
+            _escape_csv_value(item.project.slug),
             _escape_csv_value(item.id),
             _escape_csv_value(item.app_id),
+            _escape_csv_value(build_configuration.name if build_configuration else None),
             _escape_csv_value(mobile_app_info.build_version if mobile_app_info else None),
             _escape_csv_value(platform.value if platform else None),
             install_groups,
@@ -120,7 +133,18 @@ class BuildsExportEndpoint(OrganizationEndpoint):
                 end=params["end"],
             )
 
-        # Reject oversized exports rather than silently truncating.
+        # Per product, the export only includes installable builds. The SQL predicate
+        # below (an installable file must exist) is a cheap superset that narrows the
+        # set and keeps the row-count limit accurate; the precise per-build check —
+        # is_installable_artifact(), the same one the /builds/ list uses for its
+        # `is_installable` flag — is applied while streaming so the export matches what
+        # the UI labels installable. This filtering stays here rather than in the shared
+        # filtered_builds_queryset() because the list endpoint keeps non-installable
+        # builds and reports a 0 download count.
+        queryset = queryset.filter(installable_app_file_id__isnull=False)
+
+        # Reject oversized exports rather than silently truncating. Counting the SQL
+        # superset is a safe, slightly conservative bound on the streamed rows.
         row_count = queryset.count()
         if row_count > CSV_EXPORT_ROW_LIMIT:
             raise serializers.ValidationError(
@@ -130,5 +154,10 @@ class BuildsExportEndpoint(OrganizationEndpoint):
                 }
             )
 
-        queryset = queryset.select_related("mobile_app_info").order_by("-date_added")
-        return BuildsCsvResponder().respond(queryset.iterator(), filename)
+        queryset = queryset.select_related(
+            "mobile_app_info", "project", "build_configuration"
+        ).order_by("-date_added")
+        installable_builds = (
+            artifact for artifact in queryset.iterator() if is_installable_artifact(artifact)
+        )
+        return BuildsCsvResponder().respond(installable_builds, filename)
