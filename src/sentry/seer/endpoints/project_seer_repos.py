@@ -270,7 +270,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
                             for override in data["branch_overrides"]
                         ],
                         update_conflicts=True,
-                        update_fields=["branch_name"],
+                        update_fields=["branch_name", "date_updated"],
                         unique_fields=["seer_project_repository", "tag_name", "tag_value"],
                     )
 

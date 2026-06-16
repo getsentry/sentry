@@ -767,7 +767,7 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
         seer_project_repos = SeerProjectRepository.objects.bulk_create(
             seer_project_repos_to_add,
             update_conflicts=True,
-            update_fields=["branch_name", "instructions"],
+            update_fields=["branch_name", "instructions", "date_updated"],
             unique_fields=["project_repository"],
         )
 
@@ -795,7 +795,7 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
             SeerProjectRepositoryBranchOverride.objects.bulk_create(
                 branch_overrides_to_create,
                 update_conflicts=True,
-                update_fields=["branch_name"],
+                update_fields=["branch_name", "date_updated"],
                 unique_fields=["seer_project_repository", "tag_name", "tag_value"],
             )
 
