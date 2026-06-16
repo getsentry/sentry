@@ -63,6 +63,8 @@ from sentry.seer.sentry_data_models import (
     EmptyResponse,
     GetDsnResponse,
     RepositoryDefinitionResponse,
+    TraceItemAttributesResponse,
+    TraceItemEventsResponse,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -1766,7 +1768,7 @@ def get_trace_item_attributes(
     trace_id: str,
     item_id: str,
     item_type: str,
-) -> dict[str, Any]:
+) -> TraceItemAttributesResponse:
     """
     Fetch all attributes for a given trace item (span, metric, log, etc.).
 
@@ -1789,7 +1791,7 @@ def get_trace_item_attributes(
             "get_trace_item_attributes: Organization not found",
             extra={"org_id": org_id},
         )
-        return {"attributes": []}
+        return TraceItemAttributesResponse(attributes=[])
 
     try:
         project = Project.objects.get(id=project_id, organization=organization)
@@ -1798,7 +1800,7 @@ def get_trace_item_attributes(
             "get_trace_item_attributes: Project not found",
             extra={"org_id": org_id, "project_id": project_id},
         )
-        return {"attributes": []}
+        return TraceItemAttributesResponse(attributes=[])
 
     params = {
         "item_type": item_type,
@@ -1813,7 +1815,7 @@ def get_trace_item_attributes(
         params=params,
     )
 
-    return {"attributes": resp.data["attributes"]}
+    return TraceItemAttributesResponse(attributes=resp.data["attributes"])
 
 
 def _make_get_trace_request(
@@ -1950,7 +1952,7 @@ def get_log_attributes_for_trace(
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
-) -> dict[str, Any] | None:
+) -> TraceItemEventsResponse | None:
     """
     Get all attributes for all logs in a trace. You can optionally filter by message substring and/or project slugs.
 
@@ -1998,7 +2000,7 @@ def get_log_attributes_for_trace(
     )
 
     if not message_substring:
-        return {"data": items}
+        return TraceItemEventsResponse(data=items)
 
     # Filter on message substring.
     filtered_items: list[dict[str, Any]] = []
@@ -2012,7 +2014,7 @@ def get_log_attributes_for_trace(
         ):
             filtered_items.append(item)
 
-    return {"data": filtered_items}
+    return TraceItemEventsResponse(data=filtered_items)
 
 
 def get_metric_attributes_for_trace(
@@ -2026,7 +2028,7 @@ def get_metric_attributes_for_trace(
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
-) -> dict[str, Any] | None:
+) -> TraceItemEventsResponse | None:
     """
     Get all attributes for all metrics in a trace. You can optionally filter by metric name and/or project slugs.
     The metric name is a case-insensitive exact match.
@@ -2075,7 +2077,7 @@ def get_metric_attributes_for_trace(
     )
 
     if not metric_name:
-        return {"data": items}
+        return TraceItemEventsResponse(data=items)
 
     # Filter on metric name (exact case-insensitive match).
     filtered_items: list[dict[str, Any]] = []
@@ -2087,7 +2089,7 @@ def get_metric_attributes_for_trace(
         if metric_name.lower() == item_metric_name.lower():
             filtered_items.append(item)
 
-    return {"data": filtered_items}
+    return TraceItemEventsResponse(data=filtered_items)
 
 
 def get_baseline_tag_distribution(

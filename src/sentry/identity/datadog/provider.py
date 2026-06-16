@@ -28,6 +28,19 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
+DATADOG_VALID_SITES = frozenset(
+    {
+        "datadoghq.com",
+        "us3.datadoghq.com",
+        "us5.datadoghq.com",
+        "datadoghq.eu",
+        "ddog-gov.com",
+        "us2.ddog-gov.com",
+        "ap1.datadoghq.com",
+        "ap2.datadoghq.com",
+    }
+)
+
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
 MCP_TOKEN_PATH = "/api/unstable/mcp-server/token"
@@ -38,9 +51,9 @@ def _basic_auth_header(client_id: str, client_secret: str) -> str:
     return "Basic " + base64.b64encode(f"{client_id}:{client_secret}".encode()).decode("ascii")
 
 
-def get_user_info(access_token: str, site: str) -> dict[str, Any]:
+def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
     """Fetch the current Datadog user via the MCP ``datadog://mcp/whoami`` resource."""
-    url = f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
+    url = f"{mcp_base_url}{MCP_ENDPOINT_PATH}"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     init_resp = safe_urlopen(
@@ -264,10 +277,15 @@ class DatadogIdentityProvider(OAuth2Provider):
         site = data.get("site")
         if not site:
             raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
+        elif site not in DATADOG_VALID_SITES:
+            raise ValueError(f"Invalid Datadog site: {site}")
         return {"site": site}
 
     def _get_mcp_base_url(self) -> str:
-        return f"https://mcp.{self._get_oauth_parameter('site')}"
+        site = self._get_oauth_parameter("site")
+        if site not in DATADOG_VALID_SITES:
+            raise ValueError(f"Invalid Datadog site: {site}")
+        return f"https://mcp.{site}"
 
     def get_oauth_authorize_url(self) -> str:
         return self._get_mcp_base_url() + MCP_AUTHORIZE_PATH
@@ -302,14 +320,13 @@ class DatadogIdentityProvider(OAuth2Provider):
         if not access_token:
             raise ValueError("Datadog token exchange did not return an access_token")
 
-        site = self._get_oauth_parameter("site")
-        user = get_user_info(access_token, site)
-
+        user = get_user_info(access_token, self._get_mcp_base_url())
         if "user_uuid" not in user or "org_uuid" not in user:
             raise IdentityNotValid(
                 "User info response missing required fields (user_uuid, org_uuid)"
             )
 
+        site = self._get_oauth_parameter("site")
         oauth_data = self.get_oauth_data(token_data)
 
         # Persist DCR credentials and site so refresh_identity can access them outside a pipeline context.
@@ -356,6 +373,8 @@ class DatadogIdentityProvider(OAuth2Provider):
         site = identity.data.get("site")
         if not site:
             raise IdentityNotValid("Missing Datadog site")
+        elif site not in DATADOG_VALID_SITES:
+            raise IdentityNotValid(f"Invalid Datadog site: {site}")
         self.config["site"] = site
 
         client_id = identity.data.get("client_id")

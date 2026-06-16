@@ -122,6 +122,7 @@ EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
 # Tests that should always be run even if not explicitly selected.
 ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/taskworker/test_config.py",
+    "tests/sentry/management/commands/test_generate_controlsilo_urls.py",
 }
 
 
