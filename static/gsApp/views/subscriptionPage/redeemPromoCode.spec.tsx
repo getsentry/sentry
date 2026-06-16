@@ -1,10 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import RedeemPromoCode from 'getsentry/views/redeemPromoCode';
 
 describe('Redeem promo code', () => {

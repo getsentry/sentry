@@ -7,6 +7,7 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
@@ -15,7 +16,6 @@ import {DataCategory} from 'sentry/types/core';
 
 import {triggerChangePlanAction} from 'admin/components/changePlanAction';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 
 describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});

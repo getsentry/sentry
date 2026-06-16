@@ -6,6 +6,7 @@ import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {InvoicePreviewFixture} from 'getsentry-test/fixtures/invoicePreview';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -18,12 +19,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {
-  AddOnCategory,
-  OnDemandBudgetMode,
-  PlanTier,
-  type Subscription,
-} from 'getsentry/types';
+import {AddOnCategory, OnDemandBudgetMode, type Subscription} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';

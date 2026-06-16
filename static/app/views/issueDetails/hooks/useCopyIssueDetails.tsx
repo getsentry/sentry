@@ -14,7 +14,7 @@ import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
-import {EntryType, type Event} from 'sentry/types/event';
+import {EntryType, type Event, type EntryRequest} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -142,11 +142,45 @@ function formatBreadcrumbsToMarkdown(crumbs: RawCrumb[]): string {
   return `\n## Breadcrumbs\n\n${section}\n`;
 }
 
+// Mirror Seer's request formatting: only the method, URL, and body are included
+// (Seer deliberately omits cookies, headers, env, and query params), and the
+// body is capped to keep an oversized payload off the clipboard. Scrubbed
+// (`[Filtered]`) values are left in place — they're already redacted by Sentry
+// and dropping the whole section would lose the method and URL.
+const MAX_REQUEST_CHARS = 2000;
+
+function formatRequestToMarkdown(data: EntryRequest['data']): string {
+  const requestLine = [data.method, data.url].filter(Boolean).join(' ');
+
+  const body = data.data;
+  const hasBody = body !== null && body !== undefined && body !== '';
+  const bodyStr = hasBody
+    ? typeof body === 'string'
+      ? body
+      : JSON.stringify(body, null, 2)
+    : '';
+
+  if (!requestLine && !bodyStr) {
+    return '';
+  }
+
+  let markdownText = '\n## Request\n\n';
+  if (requestLine) {
+    markdownText += `${requestLine}\n`;
+  }
+  if (bodyStr) {
+    markdownText += `\nBody:\n\`\`\`\n${truncate(bodyStr, MAX_REQUEST_CHARS)}\n\`\`\`\n`;
+  }
+
+  return markdownText;
+}
+
 function formatEventToMarkdown(event: Event, activeThreadId: number | undefined): string {
   let markdownText = '';
-  // Collected separately so breadcrumbs always render after the exception /
-  // thread sections, regardless of the order entries appear in the event.
+  // Collected separately so breadcrumbs and the request always render after the
+  // exception / thread sections, regardless of the order entries appear in.
   let breadcrumbsText = '';
+  let requestText = '';
 
   // Add tags
   if (event && Array.isArray(event.tags) && event.tags.length > 0) {
@@ -200,10 +234,13 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
       }
     } else if (entry.type === EntryType.BREADCRUMBS && entry.data.values) {
       breadcrumbsText += formatBreadcrumbsToMarkdown(entry.data.values);
+    } else if (entry.type === EntryType.REQUEST && entry.data) {
+      requestText += formatRequestToMarkdown(entry.data);
     }
   });
 
   markdownText += breadcrumbsText;
+  markdownText += requestText;
 
   return markdownText;
 }

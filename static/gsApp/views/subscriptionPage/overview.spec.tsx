@@ -4,13 +4,13 @@ import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import Overview from 'getsentry/views/subscriptionPage/overview';
 
 describe('Subscription > Overview', () => {
