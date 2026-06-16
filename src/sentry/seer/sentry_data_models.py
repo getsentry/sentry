@@ -102,6 +102,16 @@ class TransactionIssues(BaseModel):
 # `public_org_seer_method_registry`, or `public_project_seer_method_registry`.
 
 
+class EmptyResponse(BaseModel):
+    """Sentinel for RPC methods whose pre-typed not-found shape was `{}`.
+
+    `EmptyResponse().dict()` is `{}`, so a return of `SomeModel | EmptyResponse`
+    preserves the original wire bytes for the empty path while still satisfying
+    the typed-registry contract. Use this instead of `| None` when the
+    pre-migration code returned `{}` to indicate the no-data case.
+    """
+
+
 class OrganizationSlugResponse(BaseModel):
     slug: str
 
