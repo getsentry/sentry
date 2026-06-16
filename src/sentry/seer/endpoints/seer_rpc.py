@@ -1048,6 +1048,14 @@ def record_pr_attribution(
     return PrAttributionResponse(attribution_id=attribution.id)
 
 
+class ValidateLlmProxyKeyResponse(BaseModel):
+    valid: bool
+
+
+def validate_llm_proxy_key(api_key: str) -> ValidateLlmProxyKeyResponse:
+    return ValidateLlmProxyKeyResponse(valid=True)
+
+
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
 # a union of `BaseModel` subclasses, optionally with `None`). Two complementary
 # guards enforce this:
@@ -1137,6 +1145,9 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     #
     # Monitoring provider tokens (MCP)
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
+    #
+    # LLM Proxy
+    "validate_llm_proxy_key": seer_rpc(validate_llm_proxy_key),
 }
 
 
