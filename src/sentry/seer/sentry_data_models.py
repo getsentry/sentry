@@ -249,7 +249,7 @@ class GetDsnResponse(BaseModel):
 class RepositoryDefinitionResponse(BaseModel):
     organization_id: int
     integration_id: str | None
-    provider: str
+    provider: str | None
     owner: str
     name: str
     external_id: str | None
