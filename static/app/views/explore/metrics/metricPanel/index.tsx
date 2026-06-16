@@ -52,7 +52,6 @@ import {
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
-import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -171,8 +170,17 @@ export function MetricPanel({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
-  const xBucketInterval = getHeatmapXAxisBucketInterval(selection, chartContainerWidth);
-  const yBuckets = getHeatmapYAxisBucketCount(STACKED_GRAPH_HEIGHT);
+  const xBucketInterval = getHeatmapXAxisBucketInterval(
+    selection,
+    interval,
+    chartContainerWidth,
+    intervalOptions
+  );
+  const yBuckets = getHeatmapYAxisBucketCount(
+    selection,
+    xBucketInterval,
+    chartContainerWidth
+  );
 
   const heatmapApiOptions = metricHeatmapApiOptions({
     traceMetric,
