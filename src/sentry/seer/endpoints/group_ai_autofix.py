@@ -47,7 +47,6 @@ from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
     get_autofix_agent_state,
-    get_autofix_run_state,
     is_pr_iteration_enabled,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -306,17 +305,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             if resolved_run_id is None:
                 return Response(
                     {"detail": "run_id is required for pr_iteration"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            try:
-                state = get_autofix_run_state(group, resolved_run_id)
-            except SeerPermissionError as e:
-                if _is_unknown_run_id_error(e):
-                    return Response(status=status.HTTP_404_NOT_FOUND)
-                raise PermissionDenied(SEER_PERMISSION_DENIED)
-            if not state.repo_pr_states:
-                return Response(
-                    {"detail": "Cannot iterate on a PR before one has been created"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 

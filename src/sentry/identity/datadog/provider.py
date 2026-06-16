@@ -246,6 +246,7 @@ class DatadogOAuth2CallbackView(OAuth2CallbackView):
 class DatadogIdentityProvider(OAuth2Provider):
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
+    auto_create_provider_model = True
 
     oauth_scopes: tuple[str, ...] = (
         "mcp_read",

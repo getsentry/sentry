@@ -12,9 +12,7 @@ from sentry.notifications.notification_action.group_type_notification_registry i
 )
 from sentry.notifications.notification_action.issue_alert_registry import (
     PagerDutyIssueAlertHandler,
-    PluginIssueAlertHandler,
 )
-from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -103,20 +101,12 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             f"[{self.issue_stream_detector.name}]:"
         )
 
-    @mock.patch.object(NotifyEventAction, "after")
     @mock.patch(
-        "sentry.notifications.notification_action.registry.group_type_notification_registry.get",
-        return_value=IssueAlertRegistryHandler,
-    )
-    @mock.patch(
-        "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get",
-        return_value=PluginIssueAlertHandler,
+        "sentry.notifications.notification_action.action_handler_registry.plugin_handler.send_legacy_webhooks_for_invocation"
     )
     def test_plugin_notify_event_action(
         self,
-        mock_get_issue_alert_handler: mock.MagicMock,
-        mock_get_group_type_handler: mock.MagicMock,
-        mock_after: mock.MagicMock,
+        mock_send: mock.MagicMock,
     ) -> None:
         """Test a Plugin action (NotifyEventAction)"""
         action_data = [
@@ -129,7 +119,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
         response = self.get_success_response(self.organization.slug, actions=action_data)
         assert response.status_code == 200
-        assert mock_after.called
+        assert mock_send.called
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")

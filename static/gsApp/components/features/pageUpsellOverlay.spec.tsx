@@ -19,7 +19,7 @@ describe('PageUpsellOverlay', () => {
 
   const org = OrganizationFixture({access: ['org:billing']});
   MockApiClient.addMockResponse({
-    url: `/customers/${org.slug}/billing-config/?tier=am2`,
+    url: `/customers/${org.slug}/billing-config/?tier=upsell`,
     body: BillingConfigFixture(PlanTier.AM2),
   });
 

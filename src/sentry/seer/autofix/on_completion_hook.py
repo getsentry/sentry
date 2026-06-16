@@ -385,7 +385,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 group,
             )
             if decision is not None:
-                iteration_index = get_latest_iteration_index(state)
+                iteration_index = (
+                    get_latest_iteration_index(state)
+                    if current_step == AutofixStep.PR_ITERATION
+                    else None
+                )
                 pr_iteration_enabled = is_pr_iteration_enabled(state)
                 analytics.record(
                     AiAutofixIntrospectionEvent(

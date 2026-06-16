@@ -17,7 +17,7 @@ describe('useScmFeatureMeta', () => {
     const organization = OrganizationFixture();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
-      query: {tier: 'am3'},
+      query: {tier: 'default'},
       body: BillingConfigFixture(PlanTier.AM3),
     });
 
@@ -45,7 +45,7 @@ describe('useScmFeatureMeta', () => {
     const organization = OrganizationFixture();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
-      query: {tier: 'am3'},
+      query: {tier: 'default'},
       statusCode: 404,
       body: {detail: 'Not Found'},
     });
