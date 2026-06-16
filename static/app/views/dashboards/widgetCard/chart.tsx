@@ -22,6 +22,7 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
+  explodeField,
   isAggregateField,
   parseFunction,
   prettifyParsedFunction,
@@ -43,6 +44,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
@@ -61,6 +63,7 @@ import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detail
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
+import {HEATMAP_SCALE} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -73,6 +76,7 @@ import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWid
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {getExploreUrl as buildExploreUrl} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
@@ -462,7 +466,37 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 }
 
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
-  const {heatmapResults, loading} = props;
+  const {heatmapResults, loading, widget} = props;
+  const organization = useOrganization();
+
+  // The selected Visualize aggregate encodes the metric; the heat map tooltip
+  // uses it to link each cell back to the metric in Explore.
+  const query = widget.queries[0];
+  const traceMetric = React.useMemo(() => {
+    const selectedIndex = getSelectedAggregateIndex(
+      query?.selectedAggregate,
+      query?.aggregates.length ?? 0
+    );
+    const aggregate = query?.aggregates?.[selectedIndex];
+    return aggregate
+      ? extractTraceMetricFromColumn(explodeField({field: aggregate}))
+      : undefined;
+  }, [query]);
+
+  const makeExploreUrl = React.useCallback(
+    (cellQuery: string, filteredSelection: PageFilters) => {
+      if (!traceMetric) {
+        return '';
+      }
+      const combinedQuery = [query?.conditions, cellQuery].filter(Boolean).join(' ');
+      return buildExploreUrl({
+        organization,
+        selection: filteredSelection,
+        crossEvents: [{type: 'metrics', metric: traceMetric, query: combinedQuery}],
+      });
+    },
+    [organization, traceMetric, query?.conditions]
+  );
 
   if (loading || !heatmapResults) {
     return <LoadingPlaceholder />;
@@ -480,7 +514,8 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
     <ChartWrapper autoHeightResize>
       <HeatMapWidgetVisualization
         plottables={[new HeatMap(heatmapResults)]}
-        scale="log"
+        scale={HEATMAP_SCALE}
+        {...(traceMetric ? {makeExploreUrl} : {})}
       />
     </ChartWrapper>
   );
