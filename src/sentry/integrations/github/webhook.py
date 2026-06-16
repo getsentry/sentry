@@ -48,7 +48,7 @@ from sentry.integrations.types import (
     IntegrationProviderSlug,
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
-from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
@@ -1245,7 +1245,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return self.handle(request)
 
     def handle(self, request: HttpRequest) -> HttpResponse:
-        clear_tags_and_context()
+        clear_organization_info()
         secret = self.get_secret()
 
         if secret is None:
