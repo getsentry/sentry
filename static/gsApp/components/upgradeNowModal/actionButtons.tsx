@@ -18,7 +18,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Plan, PreviewData, Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -92,13 +91,10 @@ export function ActionButtons({
   };
 
   const onEmailOwner = async () => {
-    const currentPlanName =
-      subscription.planTier === PlanTier.AM2 ? 'am2-non-beta' : 'am1-non-beta';
-
     await sendReplayOnboardRequest({
       api,
       orgSlug: organization.slug,
-      currentPlan: currentPlanName,
+      currentPlan: 'am1-non-beta',
       onSuccess: () => {
         onComplete?.();
         closeModal();

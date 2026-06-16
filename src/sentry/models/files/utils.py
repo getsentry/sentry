@@ -79,10 +79,8 @@ def get_storage(config=None):
         backend = config["backend"]
         options = config["options"]
     else:
-        from sentry import options as options_store
-
-        backend = options_store.get("filestore.backend")
-        options = options_store.get("filestore.options")
+        backend = settings.SENTRY_FILE_STORAGE_BACKEND
+        options = settings.SENTRY_FILE_STORAGE_CONFIG
 
     try:
         backend = settings.SENTRY_FILESTORE_ALIASES[backend]
@@ -94,10 +92,8 @@ def get_storage(config=None):
 
 
 def get_relocation_storage(config=None) -> Storage:
-    from sentry import options as options_store
-
-    backend = options_store.get("filestore.relocation-backend")
-    relocation = options_store.get("filestore.relocation-options")
+    backend = settings.SENTRY_RELOCATION_FILE_STORAGE_BACKEND
+    relocation = settings.SENTRY_RELOCATION_FILE_STORAGE_CONFIG
 
     try:
         backend = settings.SENTRY_FILESTORE_ALIASES[backend]
@@ -109,10 +105,8 @@ def get_relocation_storage(config=None) -> Storage:
 
 
 def get_profiles_storage(config=None) -> Storage:
-    from sentry import options as options_store
-
-    backend = options_store.get("filestore.profiles-backend")
-    profiles = options_store.get("filestore.profiles-options")
+    backend = settings.SENTRY_PROFILES_FILE_STORAGE_BACKEND
+    profiles = settings.SENTRY_PROFILES_FILE_STORAGE_CONFIG
 
     try:
         backend = settings.SENTRY_FILESTORE_ALIASES[backend]

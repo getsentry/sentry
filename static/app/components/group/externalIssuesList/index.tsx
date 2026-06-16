@@ -21,6 +21,10 @@ interface ExternalIssueListProps {
   group: Group;
 }
 
+interface ExternalIssueListContentProps extends GroupIntegrationIssueResult {
+  showInlineIssueTrackerActions?: boolean;
+}
+
 export function ExternalIssueList({group, event}: ExternalIssueListProps) {
   const externalIssueData = useGroupExternalIssues({
     group,
@@ -32,6 +36,7 @@ export function ExternalIssueList({group, event}: ExternalIssueListProps) {
       integrations={externalIssueData.integrations}
       isLoading={externalIssueData.isLoading}
       linkedIssues={externalIssueData.linkedIssues}
+      showInlineIssueTrackerActions
     />
   );
 }
@@ -40,7 +45,8 @@ export function ExternalIssueListContent({
   integrations,
   isLoading,
   linkedIssues,
-}: GroupIntegrationIssueResult) {
+  showInlineIssueTrackerActions,
+}: ExternalIssueListContentProps) {
   const organization = useOrganization();
   const hasLinkedPullRequestsFeature = organization.features.includes(
     'issue-details-linked-pull-requests'
@@ -64,7 +70,8 @@ export function ExternalIssueListContent({
   }
 
   const showIssueTrackerActions =
-    !hasLinkedPullRequestsFeature && integrations.length > 0;
+    (showInlineIssueTrackerActions ?? !hasLinkedPullRequestsFeature) &&
+    integrations.length > 0;
 
   return (
     <Fragment>

@@ -1,10 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
-
-import {PlanTier} from 'getsentry/types';
 
 import {OnDemandDisabled} from './ondemandDisabled';
 
