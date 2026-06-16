@@ -475,12 +475,13 @@ class TestTriggerAutofixAgent(TestCase):
         )
         mock_client.continue_run.return_value = 67890
 
-        trigger_autofix_agent(
-            group=self.group,
-            step=AutofixStep.PR_ITERATION,
-            referrer=AutofixReferrer.UNKNOWN,
-            run_id=67890,
-        )
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
 
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
@@ -493,7 +494,10 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = _state_with_blocks([], group_id=self.group.id)
 
-        with pytest.raises(PrIterationNoPullRequestException):
+        with (
+            self.feature("organizations:autofix-pr-iteration"),
+            pytest.raises(PrIterationNoPullRequestException),
+        ):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
