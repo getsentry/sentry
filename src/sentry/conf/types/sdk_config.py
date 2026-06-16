@@ -36,5 +36,4 @@ class SdkConfig(TypedDict):
 
 class ServerSdkConfig(SdkConfig):
     # these get popped before sending along to the sdk
-    dsn: NotRequired[str]
-    relay_dsn: NotRequired[str]
+    sentry_mirror_dsn: NotRequired[str]
