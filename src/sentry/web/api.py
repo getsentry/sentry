@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.http import HttpResponse
+from django.utils.cache import patch_cache_control
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView
 from rest_framework.request import Request
@@ -145,7 +146,9 @@ AGENT_SKILLS_INDEX: dict[str, list[object]] = {"skills": []}
 
 def _saas_only_json_response(request, payload, content_type="application/json"):
     if settings.SENTRY_MODE != SentryMode.SAAS or request.subdomain:
-        return HttpResponse(status=404)
+        response = HttpResponse(status=404)
+        patch_cache_control(response, no_store=True)
+        return response
     response = HttpResponse(json.dumps(payload), content_type=content_type)
     response["Access-Control-Allow-Origin"] = "*"
     return response

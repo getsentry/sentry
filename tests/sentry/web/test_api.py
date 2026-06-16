@@ -726,10 +726,12 @@ class ApiCatalogTest(TestCase):
         with override_settings(SENTRY_MODE="self_hosted"):
             response = self.client.get("/.well-known/api-catalog")
         assert response.status_code == 404
+        assert "no-store" in response.get("Cache-Control", "")
 
         with override_settings(SENTRY_MODE="single_tenant"):
             response = self.client.get("/.well-known/api-catalog")
         assert response.status_code == 404
+        assert "no-store" in response.get("Cache-Control", "")
 
     def test_subdomain_returns_404(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
