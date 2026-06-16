@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from typing import Any
 
 import sentry_sdk
@@ -164,10 +165,19 @@ def fetch_events_from_eventstore(
     conditions = []
     eap_conditions: TraceItemFilter | None = build_group_id_in_filter(group_ids)
     if last_event_id and last_event_timestamp:
+        # Snuba's legacy SnQL parser (snuba_sdk.legacy.parse_datetime) only recognizes a
+        # condition value as a datetime when it has no tz offset; Event.timestamp is a
+        # tz-aware isoformat, so strip the offset to naive UTC for the legacy conditions.
+        naive_timestamp = (
+            datetime.fromisoformat(last_event_timestamp)
+            .astimezone(timezone.utc)
+            .replace(tzinfo=None)
+            .isoformat()
+        )
         conditions.extend(
             [
-                ["timestamp", "<=", last_event_timestamp],
-                [["timestamp", "<", last_event_timestamp], ["event_id", "<", last_event_id]],
+                ["timestamp", "<=", naive_timestamp],
+                [["timestamp", "<", naive_timestamp], ["event_id", "<", last_event_id]],
             ]
         )
         eap_conditions = and_trace_item_filters(

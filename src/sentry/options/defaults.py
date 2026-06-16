@@ -957,6 +957,19 @@ register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+register(
+    "store.ingest-events-raw-task.inline-save-event",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "store.ingest-events-raw-task.inline-save-event-transaction",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Enable sending the flag to the microservice to tell it to purposefully take longer than our
 # timeout, to see the effect on the overall error event processing backlog
@@ -1541,6 +1554,21 @@ register(
 # Used when a deprecation doesn't have a custom key defined.
 register(
     "api.deprecation.brownout-duration",
+    type=Int,
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Brownout schedule for the deprecated alerts API endpoints.
+# 1 minute blackout 6 times a day (every 4 hours, on the hour, UTC).
+register(
+    "api.deprecation.alerts-cron",
+    default="0 */4 * * *",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "api.deprecation.alerts-duration",
     type=Int,
     default=60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2859,13 +2887,6 @@ register(
     default=0.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Skip the script_exists check in ensure_script and trust the cached SHA.
-register(
-    "spans.buffer.ensure-script.skip-exists-check",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Timeout for stale segments without a root span to be flushed.
 register(
     "spans.buffer.timeout",
@@ -2999,6 +3020,11 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.use-msgspec-decoder",
+    default=0.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Segments consumer
 register(
@@ -3709,14 +3735,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TODO(cells): Fully rolled out and no longer read anywhere. Unregister once the
-# value is removed from sentry-options-automator.
-register(
-    "cells.use-control-org-listing",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # SCM
 
@@ -3788,6 +3806,14 @@ register(
 # Rolls out the new TaskProducer to calls of produce_snapshot_to_kafka from within taskworkers
 register(
     "tasks.producer.snapshots.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to profiling tasks
+register(
+    "tasks.producer.profiles.rollout",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

@@ -45,6 +45,8 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
     SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
     SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
+    SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
+    SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
 
 logger = logging.getLogger(__name__)
@@ -585,6 +587,16 @@ def _create_seer_activity(
         pull_requests = event_payload.get("pull_requests", [])
         if pull_requests:
             activity_data["pull_requests"] = pull_requests
+    elif event_type == SentryAppEventType.SEER_ITERATION_COMPLETED:
+        pull_requests = event_payload.get("pull_requests", [])
+        if pull_requests:
+            activity_data["pull_requests"] = pull_requests
+        code_changes = event_payload.get("code_changes")
+        if code_changes:
+            activity_data["code_changes"] = code_changes
+        iteration_index = event_payload.get("iteration_index")
+        if iteration_index is not None:
+            activity_data["iteration_index"] = iteration_index
 
     Activity.objects.create_group_activity(
         group,
