@@ -1755,7 +1755,9 @@ function buildRoutes(): RouteObject[] {
       moduleBaseURL
         ? {
             path: `${moduleBaseURL}/*`,
-            redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`,
+            redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(
+              moduleUrlToModule[moduleBaseURL]!
+            )}${moduleBaseURL}/:splat`,
           }
         : null
     )
@@ -2547,11 +2549,15 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`,
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`,
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${
+        TabPaths[Tab.DISTRIBUTIONS]
+      }`,
     },
     {
       path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`,
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${
+        TabPaths[Tab.DISTRIBUTIONS]
+      }:tagKey/`,
     },
     {
       path: ':groupId/',
@@ -2837,10 +2843,6 @@ function buildRoutes(): RouteObject[] {
           {
             path: 'tags/',
             redirectTo: '/settings/projects/:orgId/projects/:projectId/tags/',
-          },
-          {
-            path: 'issue-tracking/',
-            redirectTo: '/settings/:orgId/projects/:projectId/issue-tracking/',
           },
           {
             path: 'release-tracking/',
