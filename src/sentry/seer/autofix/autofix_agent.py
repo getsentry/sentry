@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from django.utils import timezone
 from pydantic import BaseModel
@@ -71,6 +71,13 @@ class UserUIFeedbackSource(TypedDict):
     # use the same stable key (`user_id`) that `GroupSeen` uses to track which
     # users have viewed an issue.
     user_id: int
+    # The publicly serialized user, resolved at write time so the read path
+    # doesn't have to hydrate it. ``None`` if the user could not be serialized.
+    # This is serialized as an anonymous viewer (never as the requester) so the
+    # payload never includes the user's full email list, options, or flags: it
+    # is embedded in Seer prompt metadata and round-tripped back to any org
+    # member with group-read access.
+    user: NotRequired[Any]
 
 
 # Discriminated on ``type``. Add new TypedDict variants to this union as more
@@ -84,6 +91,14 @@ class Feedback(BaseModel):
 
 
 class NoSeerQuotaException(Exception):
+    pass
+
+
+class PrIterationNoPullRequestException(Exception):
+    pass
+
+
+class PrIterationNotEnabledException(Exception):
     pass
 
 
@@ -274,6 +289,11 @@ def get_autofix_agent_client(
     )
 
 
+def get_autofix_run_state(group: Group, run_id: int) -> SeerRunState:
+    client = get_autofix_agent_client(group)
+    return _get_group_run_state(client, group, run_id)
+
+
 def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
     group_id = state.metadata.get("group_id") if state.metadata else None
     if group_id != group.id:
@@ -374,7 +394,11 @@ def trigger_autofix_agent(
         pr_iteration_enabled = run_state.metadata.get("pr_iteration_enabled", pr_iteration_enabled)
 
     iteration_index: int | None = None
-    if step == AutofixStep.PR_ITERATION and run_state is not None:
+    if step == AutofixStep.PR_ITERATION:
+        if not pr_iteration_enabled:
+            raise PrIterationNotEnabledException()
+        if run_state is None or not run_state.repo_pr_states:
+            raise PrIterationNoPullRequestException()
         if insert_index is not None:
             iteration_index = get_iteration_for_insert_index(run_state, insert_index)
         else:

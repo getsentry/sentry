@@ -167,7 +167,7 @@ export function ProjectAddRepoModal({
               <form.AppField name="project">
                 {field => (
                   <Flex minWidth={0}>
-                    <Flex gap="sm" align="center" flexGrow={1} minWidth={0}>
+                    <Flex gap="sm" align="start" flexGrow={1} minWidth={0}>
                       <CompactSelect
                         style={{width: '100%'}}
                         trigger={triggerProps => {

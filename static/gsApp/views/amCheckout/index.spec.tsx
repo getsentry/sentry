@@ -92,7 +92,7 @@ describe('Legacy Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am2'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -116,7 +116,7 @@ describe('Legacy Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am1'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -156,7 +156,7 @@ describe('Legacy Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am2'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -216,7 +216,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -246,7 +246,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -291,7 +291,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -344,7 +344,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -393,7 +393,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -441,7 +441,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -476,7 +476,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -531,7 +531,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -590,7 +590,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -668,7 +668,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -736,7 +736,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
@@ -814,7 +814,7 @@ describe('Default Tier Checkout', () => {
         `/customers/${organization.slug}/billing-config/`,
         expect.objectContaining({
           method: 'GET',
-          data: {tier: 'am3'},
+          data: {tier: 'checkout'},
         })
       );
     });
