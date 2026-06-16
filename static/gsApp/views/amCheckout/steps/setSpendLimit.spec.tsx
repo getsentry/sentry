@@ -57,12 +57,7 @@ describe('SetSpendLimit', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture({})}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture({})} api={api} navigate={jest.fn()} />,
       {organization}
     );
 
@@ -95,12 +90,7 @@ describe('SetSpendLimit', () => {
     });
     SubscriptionStore.set(preAm3Organization.slug, sub);
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-        navigate={jest.fn()}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
       {organization: preAm3Organization}
     );
 

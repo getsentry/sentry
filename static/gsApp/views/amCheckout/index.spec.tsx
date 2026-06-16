@@ -78,12 +78,7 @@ describe('Legacy Tier Checkout', () => {
 
   it('renders for AM2', async () => {
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        checkoutTier={PlanTier.AM2}
-        navigate={jest.fn()}
-        api={api}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -102,12 +97,7 @@ describe('Legacy Tier Checkout', () => {
 
   it('renders for AM1', async () => {
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        checkoutTier={PlanTier.AM1}
-        navigate={jest.fn()}
-        api={api}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -142,12 +132,7 @@ describe('Legacy Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, am2BizSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM2}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -202,12 +187,7 @@ describe('Default Tier Checkout', () => {
 
   it('renders', async () => {
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        checkoutTier={PlanTier.AM3}
-        navigate={jest.fn()}
-        api={api}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -232,12 +212,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -277,12 +252,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -330,12 +300,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -379,12 +344,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -427,12 +387,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -462,12 +417,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -517,12 +467,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -576,12 +521,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -654,12 +594,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -722,12 +657,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -800,12 +730,7 @@ describe('Default Tier Checkout', () => {
     SubscriptionStore.set(organization.slug, trialSub);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
