@@ -303,7 +303,7 @@ def patch_transport_for_instrumentation(transport, transport_name):
     return transport
 
 
-def _get_sdk_options() -> SdkConfig:
+def _get_sdk_options() -> tuple[SdkConfig, str | None]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
     sdk_options["traces_sampler"] = traces_sampler
@@ -318,14 +318,16 @@ def _get_sdk_options() -> SdkConfig:
         transport_http2=options.get("sdk_http2_experiment.enabled"),
     )
 
-    return sdk_options
+    dsn = sdk_options.pop("sentry_mirror_dsn")
+
+    return sdk_options, dsn
 
 
 def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
-    sdk_options = _get_sdk_options()
+    sdk_options, dsn = _get_sdk_options()
     if settings.SPOTLIGHT:
         sdk_options["spotlight"] = (
             settings.SPOTLIGHT_ENV_VAR if settings.SPOTLIGHT_ENV_VAR.startswith("http") else True
@@ -333,7 +335,6 @@ def configure_sdk():
 
     internal_project_key = get_project_key()
 
-    dsn = sdk_options.get("sentry_mirror_dsn")
     if dsn:
         transport = make_transport(get_options(dsn=dsn, **sdk_options))
         transport = patch_transport_for_instrumentation(transport, "relay")

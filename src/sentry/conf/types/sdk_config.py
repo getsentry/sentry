@@ -7,8 +7,6 @@ from sentry_sdk.types import Event, Hint, Log
 
 
 class SdkConfig(TypedDict):
-    sentry_mirror_dsn: NotRequired[str]
-
     release: str | None
     environment: str
     project_root: str
@@ -34,3 +32,7 @@ class SdkConfig(TypedDict):
     enable_http_request_source: NotRequired[bool]
     db_query_source_threshold_ms: NotRequired[int]
     _experiments: NotRequired[Any]  # TODO
+
+
+class ServerSdkConfig(SdkConfig):
+    sentry_mirror_dsn: NotRequired[str]
