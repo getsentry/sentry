@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0018_backfill_seer_agent_run_group_id
 
-sentry: 1116_add_project_custom_inbound_filter
+sentry: 1117_drop_organizationmapping_codecov_access_delete
 
 social_auth: 0003_social_auth_json_field
 
