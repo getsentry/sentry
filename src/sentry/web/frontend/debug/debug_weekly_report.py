@@ -51,7 +51,6 @@ def make_debug_group(
         type=group_type.type_id,
         data={"type": event_type, "metadata": {"title": title, "value": message}},
     )
-    group.get_type_display = lambda: group_type.description
     return group
 
 
