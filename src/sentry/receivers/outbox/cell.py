@@ -238,12 +238,15 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     match run_type:
         case SeerRunType.EXPLORER:
             if run.user_id is not None:
-                organization = Organization.objects.get_from_cache(id=run.organization_id)
-                monitoring_provider_connections = get_monitoring_provider_connections(
-                    organization, run.user_id
-                )
-                if monitoring_provider_connections is not None:
-                    body["monitoring_providers"] = monitoring_provider_connections
+                try:
+                    organization = Organization.objects.get_from_cache(id=run.organization_id)
+                    monitoring_provider_connections = get_monitoring_provider_connections(
+                        organization, run.user_id
+                    )
+                    if monitoring_provider_connections is not None:
+                        body["monitoring_providers"] = monitoring_provider_connections
+                except Organization.DoesNotExist:
+                    pass
             response = make_agent_chat_request(
                 cast(AgentChatRequest, body), viewer_context=viewer_context
             )
