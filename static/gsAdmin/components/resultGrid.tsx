@@ -214,6 +214,18 @@ interface ResultGridProps {
    */
   panelTitle?: string;
   /**
+   * When a region-scoped search returns no results, probe every other data
+   * region for matches and surface a hint pointing the user to them.
+   *
+   * This is opt-in because most regional/cell-scoped grids (e.g. invoice or
+   * relocation search) have no meaningful notion of "the same record in another
+   * region". Only enable it where cross-region presence is useful, such as
+   * customer search.
+   *
+   * @default false
+   */
+  probeAcrossRegions?: boolean;
+  /**
    * Translates the data object from the request into rows
    */
   rowsFromData?: (data: any, cell: Cell | undefined) => any[];
@@ -273,6 +285,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     hasPagination: true,
     isCellScoped: false,
     isRegional: false,
+    probeAcrossRegions: false,
     useQueryString: true,
   };
 
@@ -409,7 +422,6 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
 
         // When a region-scoped search comes up empty, check whether the org
         // lives in another data region so we can point the user there.
-        const needsRegion = this.props.isRegional || this.props.isCellScoped;
         const isEmpty = !Array.isArray(rows) || rows.length === 0;
         // The query lives in the URL when useQueryString is on, otherwise in
         // component state — fall back so probes always carry the search term.
@@ -418,7 +430,12 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         // not mean the current region has no matches — it has results on earlier
         // pages — so probing there would falsely report "no results in <region>".
         const isFirstPage = !extractQuery(queryParams.cursor);
-        if (needsRegion && isEmpty && isFirstPage && hasSearchQuery(query)) {
+        if (
+          this.props.probeAcrossRegions &&
+          isEmpty &&
+          isFirstPage &&
+          hasSearchQuery(query)
+        ) {
           this.probeOtherRegions({...queryParams, query});
         }
       },
@@ -561,9 +578,8 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   }
 
   renderRegionHint() {
-    const needsRegion = this.props.isRegional || this.props.isCellScoped;
     if (
-      !needsRegion ||
+      !this.props.probeAcrossRegions ||
       this.state.loading ||
       this.state.error ||
       this.state.rows.length > 0

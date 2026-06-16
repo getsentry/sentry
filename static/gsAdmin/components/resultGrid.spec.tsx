@@ -19,6 +19,7 @@ function renderGrid(query?: string, extraQuery: Record<string, string> = {}) {
     <ResultGrid
       inPanel
       isCellScoped
+      probeAcrossRegions
       hasSearch
       endpoint="/customers/"
       path="/_admin/customers/"
