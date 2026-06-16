@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from django.db.models import Q
+
+from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestActivity, PullRequestActivityType
 
 
 def iso_or_none(value: datetime | None) -> str | None:
@@ -31,15 +34,93 @@ DELEGATED_AGENT_AUTHOR_LOGINS: dict[str, str] = {
 }
 
 
+def _commit_shas_from_activity(pull_request: PullRequest) -> set[str]:
+    """SHAs reachable from SYNCHRONIZED activity, stopping at any force push.
+
+    Walks the SYNCHRONIZED chain newest→oldest. A force push is detected
+    when an event's after_sha doesn't continue from the expected point;
+    traversal stops there. Returns an empty set when there are no events.
+
+    Known limitation — undetectable squash force-push:
+    A squash-and-force-push of the most recent commits produces a
+    ``synchronize`` event with ``before=<previous_head>`` and
+    ``after=<new_squashed_commit>``.  Because ``before`` equals the previous
+    HEAD, the chain appears unbroken and the old (now-squashed) SHAs are
+    included in the result alongside the new squashed SHA.  This cannot be
+    detected from the webhook payload alone; distinguishing a squash from a
+    regular push would require commit-graph data (e.g. verifying that
+    ``after`` is a descendant of ``before``).
+
+    By contrast, a force-push that *removes intermediate commits* (i.e. the
+    new ``before`` jumps back past the previous HEAD) creates a gap in the
+    chain that IS correctly detected and halts traversal.
+    """
+    payloads = list(
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request,
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+        )
+        .order_by("-date_added", "-id")
+        .values_list("payload", flat=True)
+    )
+
+    if not payloads:
+        return set()
+
+    first_sha = payloads[0].get("after_sha") or ""
+    first_expected = payloads[0].get("before_sha") or ""
+    if len(payloads) == 1:
+        return {first_sha} if first_sha else set()
+
+    shas: set[str] = {first_sha}
+    expected_after: str | None = first_expected
+
+    for payload in payloads[1:]:  # newest → oldest
+        after_sha = payload.get("after_sha") or ""
+        before_sha = payload.get("before_sha") or ""
+        if not after_sha:
+            break
+        elif after_sha != expected_after:
+            # Gap in chain — force push rewrote history before this point.
+            break
+        else:
+            shas.add(after_sha)
+        if not before_sha:
+            # Can't verify further without a before_sha.
+            expected_after = None
+            break
+        expected_after = before_sha
+
+    return shas
+
+
 def resolved_group_ids(pull_request: PullRequest) -> list[int]:
     """Group IDs this PR resolves, from the resolving GroupLink rows.
 
+    Includes groups linked directly to the PR and groups linked to commits
+    reachable from SYNCHRONIZED activity (stopping at any force push). Both
+    lookup paths are merged into a single GroupLink query.
+
     Sorted for a deterministic ordering; empty when the PR resolves no issues.
     """
-    return sorted(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=pull_request.id,
-        ).values_list("group_id", flat=True)
+    pr_filter = Q(
+        linked_type=GroupLink.LinkedType.pull_request,
+        relationship=GroupLink.Relationship.resolves,
+        linked_id=pull_request.id,
     )
+
+    shas = _commit_shas_from_activity(pull_request)
+    if shas:
+        commit_ids = Commit.objects.filter(
+            repository_id=pull_request.repository_id,
+            key__in=shas,
+        ).values("id")
+        combined = pr_filter | Q(
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id__in=commit_ids,
+        )
+    else:
+        combined = pr_filter
+
+    return sorted(GroupLink.objects.filter(combined).values_list("group_id", flat=True).distinct())
