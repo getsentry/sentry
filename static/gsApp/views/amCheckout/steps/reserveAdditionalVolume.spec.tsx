@@ -300,7 +300,6 @@ describe('ReserveAdditionalVolume', () => {
       const trialSub = SubscriptionFixture({
         organization,
         plan: 'am3_t',
-        planTier: PlanTier.AM3,
         isTrial: true, // This is true for both subscription trials and plan trials
         categories: {
           // These are high trial volumes that should NOT be used in checkout

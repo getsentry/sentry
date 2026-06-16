@@ -113,7 +113,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     totalLicenses: 1,
     billingPeriodStart: '2018-09-25',
     suspensionReason: null,
-    planTier: 'am1',
     accountBalance: -10000,
     companyName: null,
     isSuspended: false,
@@ -326,13 +325,12 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
 }
 
 export function InvoicedSubscriptionFixture(props: Props): TSubscription {
-  const planData = {plan: 'am2_business_ent_auf', planTier: 'am2', ...props};
+  const planData = {plan: 'am2_business_ent_auf', ...props};
   const planDetails = PlanDetailsLookupFixture(planData.plan as PlanIds);
   const subscription = SubscriptionFixture({
     ...props,
     planDetails,
     plan: planDetails?.id,
-    planTier: planData.planTier,
     canSelfServe: false,
     type: BillingType.INVOICED,
     channel: 'sales',

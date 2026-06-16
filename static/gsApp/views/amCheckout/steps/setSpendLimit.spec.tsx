@@ -53,7 +53,6 @@ describe('SetSpendLimit', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: PlanTier.AM3,
     });
     SubscriptionStore.set(organization.slug, sub);
     render(
@@ -86,7 +85,6 @@ describe('SetSpendLimit', () => {
     const sub = SubscriptionFixture({
       organization: preAm3Organization,
       plan: 'am2_team',
-      planTier: PlanTier.AM2,
     });
     SubscriptionStore.set(preAm3Organization.slug, sub);
     render(
