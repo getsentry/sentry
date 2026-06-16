@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {NoteBody} from 'sentry/components/activity/note/body';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Timeline} from 'sentry/components/timeline';
@@ -98,7 +99,9 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
         )
       }
     >
-      {message ? (
+      {typeof message === 'string' ? (
+        <NoteBody text={message} />
+      ) : message ? (
         <Text as="div" size="sm">
           {message}
         </Text>
