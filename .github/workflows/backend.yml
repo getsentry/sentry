@@ -365,7 +365,11 @@ jobs:
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=150s" make test-python-ci
+          ret=0
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=150s" make test-python-ci || ret=$?
+          # Exit code 5 means no tests were collected — not a failure.
+          if [ "$ret" -eq 5 ]; then exit 0; fi
+          exit "$ret"
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
