@@ -1258,6 +1258,17 @@ class TestGetMonitoringProviders(TestCase):
 
         assert get_monitoring_providers(self.user.id) is None
 
+    def test_skips_identity_missing_site(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token"},
+        )
+
+        assert get_monitoring_providers(self.user.id) is None
+
     def test_ignores_non_monitoring_provider_identities(self) -> None:
         idp = self.create_identity_provider(type="slack", external_id="slack-team")
         self.create_identity(

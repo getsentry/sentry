@@ -113,7 +113,10 @@ def _has_context_engine(
 def _get_mcp_url(provider_type: str, identity_data: dict[str, Any]) -> str | None:
     """Build the MCP server URL for a monitoring provider identity."""
     if provider_type == IntegrationProviderSlug.DATADOG:
-        return f"https://mcp.{identity_data['site']}{MCP_ENDPOINT_PATH}"
+        site = identity_data.get("site")
+        if not site:
+            return None
+        return f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
     return None
 
 
