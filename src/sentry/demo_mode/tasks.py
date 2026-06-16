@@ -269,7 +269,7 @@ def _sync_project_debug_file(
                 data=source_project_debug_file.data,
                 date_accessed=source_project_debug_file.date_accessed,
             )
-    except IntegrityError as e:
+    except Exception as e:
         sentry_sdk.capture_exception(e)
         return None
 
