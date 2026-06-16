@@ -146,7 +146,7 @@ MCP_SERVER_CARD = {
     },
 }
 
-AGENT_SKILLS_INDEX = {"skills": []}
+AGENT_SKILLS_INDEX: dict[str, list[object]] = {"skills": []}
 
 
 def _saas_only_json_response(request, payload, content_type="application/json"):
