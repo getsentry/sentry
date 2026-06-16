@@ -12,6 +12,7 @@ import {
   type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {
   decodeInteger,
   decodeList,
@@ -43,6 +44,7 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -536,11 +538,29 @@ export function useWidgetBuilderState(): {
             setLegendAlias([], options);
             // Columns are ignored because there is no grouping
             let nextFields = [...aggregatesWithoutAlias, ...(yAxisWithoutAlias ?? [])];
-            // Heat maps don't support equations, so drop any equation fields.
             if (action.payload === DisplayType.HEATMAP) {
-              nextFields = nextFields.filter(
-                field => field.kind !== FieldValueKind.EQUATION
-              );
+              // Heat maps always count() the metric's value (the Z axis); the
+              // Visualize only selects the metric (the Y axis). Mirror Explore by
+              // dropping equations and normalizing each aggregate's function to
+              // count() while preserving the metric (the function args).
+              nextFields = nextFields
+                .filter(field => field.kind !== FieldValueKind.EQUATION)
+                .map(field => {
+                  if (
+                    field.kind === FieldValueKind.FUNCTION &&
+                    extractTraceMetricFromColumn(field)
+                  ) {
+                    return {
+                      ...field,
+                      function: [
+                        AggregationKey.COUNT,
+                        field.function[1],
+                        ...field.function.slice(2),
+                      ],
+                    };
+                  }
+                  return field;
+                });
               // If stripping equations left nothing, fall back to the default.
               if (nextFields.length === 0) {
                 nextFields.push({...currentDatasetConfig.defaultField, alias: undefined});

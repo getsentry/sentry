@@ -647,6 +647,37 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
+    it('normalizes the aggregate to count() when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['sum(value,test_metric,distribution,none)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // The metric is preserved but the function becomes count() — heat maps
+      // always count the metric's value, so the chosen function is irrelevant.
+      expect(result.current.state.fields).toEqual([
+        {
+          kind: 'function',
+          function: ['count', 'value', 'test_metric', 'distribution', 'none'],
+          alias: undefined,
+        },
+      ]);
+    });
+
     it('selects the first filter when switching to heat map', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
