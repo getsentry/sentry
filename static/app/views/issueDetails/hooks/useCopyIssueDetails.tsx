@@ -120,14 +120,13 @@ function formatBreadcrumbsToMarkdown(crumbs: RawCrumb[]): string {
       MAX_SINGLE_BREADCRUMB_CHARS
     );
 
-    let entry = `- **${type}**${category}${level}`;
-    if (content) {
-      entry += content
-        .split('\n')
-        .map(line => `\n  ${line}`)
-        .join('');
-    }
-    entries.push(entry);
+    const body = content
+      ? content
+          .split('\n')
+          .map(line => `\n  ${line}`)
+          .join('')
+      : '';
+    entries.push(`- **${type}**${category}${level}${body}`);
   });
 
   if (entries.length === 0) {
