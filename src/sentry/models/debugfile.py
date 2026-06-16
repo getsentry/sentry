@@ -19,6 +19,7 @@ from django.db import models
 from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
 from django.utils import timezone
+from objectstore_client import RequestError
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
@@ -318,8 +319,8 @@ class ProjectDebugFile(Model):
             # Objectstore-backed files cannot be referenced by multiple debug file rows.
             try:
                 self._get_objectstore_session().delete(self.storage_path)
-            except Project.DoesNotExist:
-                logger.info("Project already deleted, object will be cleaned up by TTI")
+            except (Project.DoesNotExist, RequestError):
+                logger.info("Failed to delete ProjectDebugFile, will be cleaned up by TTI")
         elif self.file is not None:
             # If another debug file row still references this File, keep the File.
             # Concurrent last-reference deletes can still leave an unreferenced File
