@@ -444,7 +444,7 @@
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
       {% if a.group_substatus and a.group_substatus_color %}
-      <span style="background-color: {{a.group_substatus_color}}; border: 1px solid {{a.group_substatus_border_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; width: 100px; flex-shrink: 0; box-sizing: border-box; text-align: center; white-space: nowrap;">{{a.group_substatus}}</span>
+      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border: 1px solid {{a.group_substatus_border_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; width: 100px; flex-shrink: 0; box-sizing: border-box; text-align: center; white-space: nowrap;">{{a.group_substatus}}</span>
       {% else %}
       <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; width: 100px; flex-shrink: 0; box-sizing: border-box; text-align: center; white-space: nowrap;">{{a.status}}</span>
       {% endif %}
@@ -467,7 +467,7 @@
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
       {% if a.group_substatus and a.group_substatus_color %}
-      <span style="background-color: {{a.group_substatus_color}}; border: 1px solid {{a.group_substatus_border_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; width: 100px; flex-shrink: 0; box-sizing: border-box; text-align: center; white-space: nowrap;">{{a.group_substatus}}</span>
+      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border: 1px solid {{a.group_substatus_border_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; width: 100px; flex-shrink: 0; box-sizing: border-box; text-align: center; white-space: nowrap;">{{a.group_substatus}}</span>
       {% else %}
       <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; width: 100px; flex-shrink: 0; box-sizing: border-box; text-align: center; white-space: nowrap;">{{a.status}}</span>
       {% endif %}
