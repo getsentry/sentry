@@ -41,10 +41,10 @@ describe('ProgressActivityTooltip', () => {
   });
 
   it('filters out non-progress activity', async () => {
-    const noteActivity: GroupActivity = {
+    const mergeActivity: GroupActivity = {
       id: 'activity-2',
-      type: GroupActivityType.NOTE,
-      data: {text: 'Hidden note activity'},
+      type: GroupActivityType.MERGE,
+      data: {issues: [{id: '99'}]},
       dateCreated: '2024-01-02T00:00:00.000Z',
       user: null,
     };
@@ -52,7 +52,7 @@ describe('ProgressActivityTooltip', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/activities/',
-      body: {activity: [noteActivity, activity]},
+      body: {activity: [mergeActivity, activity]},
     });
 
     render(
@@ -64,14 +64,14 @@ describe('ProgressActivityTooltip', () => {
     await userEvent.hover(screen.getByRole('button', {name: 'Progress'}));
 
     expect(await screen.findByText('Unresolved')).toBeInTheDocument();
-    expect(screen.queryByText('Hidden note activity')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Merge/)).not.toBeInTheDocument();
   });
 
   it('falls back to recent activities when none match progress types', async () => {
-    const noteActivity: GroupActivity = {
+    const mergeActivity: GroupActivity = {
       id: 'activity-3',
-      type: GroupActivityType.NOTE,
-      data: {text: 'A comment'},
+      type: GroupActivityType.MERGE,
+      data: {issues: [{id: '99'}]},
       dateCreated: '2024-01-03T00:00:00.000Z',
       user: null,
     };
@@ -79,7 +79,7 @@ describe('ProgressActivityTooltip', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/activities/',
-      body: {activity: [noteActivity]},
+      body: {activity: [mergeActivity]},
     });
 
     render(
@@ -90,6 +90,6 @@ describe('ProgressActivityTooltip', () => {
 
     await userEvent.hover(screen.getByRole('button', {name: 'Progress'}));
 
-    expect(await screen.findByText('A comment')).toBeInTheDocument();
+    expect(await screen.findByText(/Merge/)).toBeInTheDocument();
   });
 });
