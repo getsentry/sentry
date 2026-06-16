@@ -2,10 +2,12 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+from cryptography.fernet import Fernet
+from django.test import override_settings
 from django.utils import timezone
 from pydantic import BaseModel
 
-from sentry.seer.agent.client import SeerAgentClient, get_monitoring_providers
+from sentry.seer.agent.client import SeerAgentClient, get_monitoring_provider_connections
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     FilePatch,
@@ -18,6 +20,8 @@ from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
+
+TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
 
 class TestSeerAgentClient(TestCase):
@@ -1194,14 +1198,15 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_dispatch.assert_not_called()
 
 
-class TestGetMonitoringProviders(TestCase):
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+class TestGetMonitoringProviderConnections(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
     def test_returns_none_when_no_identities(self) -> None:
-        assert get_monitoring_providers(self.user.id) is None
+        assert get_monitoring_provider_connections(self.user.id) is None
 
     def test_returns_connection(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
@@ -1218,16 +1223,19 @@ class TestGetMonitoringProviders(TestCase):
             },
         )
 
-        result = get_monitoring_providers(self.user.id)
+        result = get_monitoring_provider_connections(self.user.id)
 
         assert result is not None
         assert len(result) == 1
-        assert result[0] == {
-            "provider_key": "datadog",
-            "url": "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp",
-            "access_token": "access-token",
-            "identity_id": identity.id,
-        }
+        connection = result[0]
+        assert connection["provider_key"] == "datadog"
+        assert connection["url"] == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        assert connection["identity_id"] == identity.id
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        decrypted_access_token = fernet.decrypt(
+            connection["encrypted_access_token"].encode("utf-8")
+        ).decode("utf-8")
+        assert decrypted_access_token == "access-token"
 
     def test_returns_multiple_connections(self) -> None:
         for site, ext_id in [("datadoghq.com", "org-1"), ("datadoghq.eu", "org-2")]:
@@ -1239,7 +1247,7 @@ class TestGetMonitoringProviders(TestCase):
                 data={"access_token": "access-token", "site": site},
             )
 
-        result = get_monitoring_providers(self.user.id)
+        result = get_monitoring_provider_connections(self.user.id)
 
         assert result is not None
         assert len(result) == 2
@@ -1256,7 +1264,7 @@ class TestGetMonitoringProviders(TestCase):
             data={"site": "datadoghq.com"},
         )
 
-        assert get_monitoring_providers(self.user.id) is None
+        assert get_monitoring_provider_connections(self.user.id) is None
 
     def test_skips_identity_missing_site(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
@@ -1267,7 +1275,7 @@ class TestGetMonitoringProviders(TestCase):
             data={"access_token": "access-token"},
         )
 
-        assert get_monitoring_providers(self.user.id) is None
+        assert get_monitoring_provider_connections(self.user.id) is None
 
     def test_ignores_non_monitoring_provider_identities(self) -> None:
         idp = self.create_identity_provider(type="slack", external_id="slack-team")
@@ -1278,4 +1286,16 @@ class TestGetMonitoringProviders(TestCase):
             data={"access_token": "access-token"},
         )
 
-        assert get_monitoring_providers(self.user.id) is None
+        assert get_monitoring_provider_connections(self.user.id) is None
+
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_skips_identity_when_encryption_unavailable(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+
+        assert get_monitoring_provider_connections(self.user.id) is None

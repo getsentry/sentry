@@ -52,6 +52,7 @@ from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefini
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
@@ -120,7 +121,7 @@ def _get_mcp_url(provider_type: str, identity_data: dict[str, Any]) -> str | Non
     return None
 
 
-def get_monitoring_providers(user_id: int) -> list[dict[str, Any]] | None:
+def get_monitoring_provider_connections(user_id: int) -> list[dict[str, Any]] | None:
     """Fetch the user's monitoring provider identities and build connection dicts for Seer.
 
     Returns None if the user has no connected monitoring providers.
@@ -137,11 +138,14 @@ def get_monitoring_providers(user_id: int) -> list[dict[str, Any]] | None:
             url = _get_mcp_url(provider_type, identity.data)
             if not url:
                 continue
+            encrypted_access_token = encrypt_access_token_for_seer(access_token)
+            if not encrypted_access_token:
+                continue
             connections.append(
                 {
                     "provider_key": provider_type,
                     "url": url,
-                    "access_token": access_token,
+                    "encrypted_access_token": encrypted_access_token,
                     "identity_id": identity.id,
                 }
             )
@@ -626,9 +630,9 @@ class SeerAgentClient:
             chat_body["ui_tools"] = ui_tools
 
         if self.user and not isinstance(self.user, AnonymousUser):
-            monitoring_providers = get_monitoring_providers(self.user.id)
-            if monitoring_providers is not None:
-                chat_body["monitoring_providers"] = monitoring_providers
+            monitoring_provider_connections = get_monitoring_provider_connections(self.user.id)
+            if monitoring_provider_connections is not None:
+                chat_body["monitoring_providers"] = monitoring_provider_connections
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
