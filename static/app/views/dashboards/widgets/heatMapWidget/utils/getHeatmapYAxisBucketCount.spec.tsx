@@ -1,12 +1,9 @@
-import type {PageFilters} from 'sentry/types/core';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+
 import {getHeatmapYAxisBucketCount} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYAxisBucketCount';
 
-function makeSelection(period: string): PageFilters {
-  return {
-    projects: [],
-    environments: [],
-    datetime: {period, start: null, end: null, utc: null},
-  };
+function makeSelection(period: string) {
+  return PageFiltersFixture({datetime: {period, start: null, end: null, utc: null}});
 }
 
 describe('getHeatmapYAxisBucketCount()', () => {

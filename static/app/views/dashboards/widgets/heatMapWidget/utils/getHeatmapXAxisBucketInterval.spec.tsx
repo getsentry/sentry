@@ -1,12 +1,9 @@
-import type {PageFilters} from 'sentry/types/core';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+
 import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
 
-function makeSelection(period: string): PageFilters {
-  return {
-    projects: [],
-    environments: [],
-    datetime: {period, start: null, end: null, utc: null},
-  };
+function makeSelection(period: string) {
+  return PageFiltersFixture({datetime: {period, start: null, end: null, utc: null}});
 }
 
 const INTERVAL_OPTIONS = [
