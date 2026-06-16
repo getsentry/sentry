@@ -64,7 +64,15 @@ def service_worker(request):
     (served from the CDN under `_static/dist`), so we proxy it from disk here at
     a root-scoped path so it can register with `scope: '/'`.
     """
-    path = get_frontend_app_asset_module_path("entrypoints/serviceWorker.js")
+    try:
+        path = get_frontend_app_asset_module_path("entrypoints/serviceWorker.js")
+    except KeyError:
+        # The entrypoint may be absent from `frontend-versions.json` during a
+        # deploy window where the backend ships before the frontend config is
+        # updated. The worker is non-critical (client registration silently
+        # ignores failures), so degrade to a 404 rather than a 500.
+        return HttpResponseNotFound("", content_type="text/plain")
+
     response = static_media(request, module="sentry", path=f"dist/{path}")
 
     # Allow the worker to control the root scope and force revalidation so a new
