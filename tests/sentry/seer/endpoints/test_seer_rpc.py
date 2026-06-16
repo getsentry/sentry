@@ -1688,6 +1688,7 @@ class TestGetOrganizationFeatures(APITestCase):
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@cell_silo_test
 class TestRefreshMonitoringProviderToken(APITestCase):
     def setUp(self) -> None:
         super().setUp()
