@@ -24,7 +24,11 @@ class TestEnvCellDirectory(CellDirectory):
                 Locality(
                     name=c.name,
                     cells=frozenset([c.name]),
-                    category=RegionCategory.MULTI_TENANT,
+                    # TODO(cells): Honor the deprecated Cell.category while
+                    # getsentry still sets it. Once getsentry passes explicit
+                    # localities (or stops setting category), drop the fallback
+                    # and always default to MULTI_TENANT.
+                    category=c.category or RegionCategory.MULTI_TENANT,
                     visible=c.visible,
                     new_org_cell=c.name,
                 )
