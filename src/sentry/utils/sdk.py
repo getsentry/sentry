@@ -318,7 +318,7 @@ def _get_sdk_options() -> tuple[SdkConfig, str | None]:
         transport_http2=options.get("sdk_http2_experiment.enabled"),
     )
 
-    dsn = sdk_options.pop("sentry_mirror_dsn")
+    dsn = sdk_options.pop("sentry_mirror_dsn", None)
 
     return sdk_options, dsn
 
