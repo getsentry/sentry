@@ -86,6 +86,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.sdk import bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -491,9 +492,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     (
                         filter_params["start"]
                         if filter_params["start"]
-                        else datetime.utcnow() - timedelta(days=90)
+                        else deprecated_utcnow() - timedelta(days=90)
                     ),
-                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                    filter_params["end"] if filter_params["end"] else deprecated_utcnow(),
                 )
                 valid_versions = [
                     rv for rv in release_versions if rv not in releases_with_session_data
@@ -669,9 +670,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     (
                         filter_params["start"]
                         if filter_params["start"]
-                        else datetime.utcnow() - timedelta(days=90)
+                        else deprecated_utcnow() - timedelta(days=90)
                     ),
-                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                    filter_params["end"] if filter_params["end"] else deprecated_utcnow(),
                 )
                 valid_versions = [
                     rv for rv in release_versions if rv not in releases_with_session_data

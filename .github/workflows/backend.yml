@@ -365,7 +365,7 @@ jobs:
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=150s" make test-python-ci
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}

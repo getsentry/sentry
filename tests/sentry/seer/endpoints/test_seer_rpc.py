@@ -184,11 +184,11 @@ class TestSeerRpcMethods(APITestCase):
                 span_id="deadbeefdeadbeef",
             )
 
-        assert len(result["attributes"]) == 1
-        attribute = result["attributes"][0]
-        assert attribute["type"] == "str"
-        assert attribute["value"] == "example"
-        assert attribute["name"] in {"span.description", "tags[span.description,string]"}
+        assert len(result.attributes) == 1
+        span_attribute = result.attributes[0]
+        assert span_attribute.type == "str"
+        assert span_attribute.value == "example"
+        assert span_attribute.name in {"span.description", "tags[span.description,string]"}
         mock_rpc.assert_called_once()
 
     def test_get_trace_item_attributes_metric(self) -> None:
@@ -1067,7 +1067,7 @@ class TestSeerRpcMethods(APITestCase):
             owner="nonexistent",
             name="nonexistent",
         )
-        assert result == {"has_code_mappings": False, "project_slug_to_id": {}}
+        assert result.dict() == {"has_code_mappings": False, "project_slug_to_id": {}}
 
     def test_has_repo_code_mappings_no_mappings(self) -> None:
         """Test when repository exists but has no code mappings"""
@@ -1086,7 +1086,7 @@ class TestSeerRpcMethods(APITestCase):
             owner="test",
             name="repo",
         )
-        assert result == {"has_code_mappings": False, "project_slug_to_id": {}}
+        assert result.dict() == {"has_code_mappings": False, "project_slug_to_id": {}}
 
     def test_has_repo_code_mappings_with_mappings(self) -> None:
         """Test when repository exists and has code mappings"""
@@ -1126,7 +1126,7 @@ class TestSeerRpcMethods(APITestCase):
             owner="test",
             name="repo",
         )
-        assert result == {
+        assert result.dict() == {
             "has_code_mappings": True,
             "project_slug_to_id": {project.slug: project.id},
         }
@@ -1154,7 +1154,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": True, "integration_id": integration.id}
+        assert result.dict() == {"valid": True, "integration_id": integration.id}
 
     def test_validate_repo_valid_with_integrations_prefix(self) -> None:
         """Test when provider is passed with integrations: prefix"""
@@ -1179,7 +1179,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": True, "integration_id": integration.id}
+        assert result.dict() == {"valid": True, "integration_id": integration.id}
 
     def test_validate_repo_not_found(self) -> None:
         """Test when repository does not exist"""
@@ -1191,7 +1191,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": False, "reason": "repository_not_found"}
+        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
 
     def test_validate_repo_wrong_org_id(self) -> None:
         """Test that wrong organization_id returns not found (IDOR prevention)"""
@@ -1217,7 +1217,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": False, "reason": "repository_not_found"}
+        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
 
     def test_validate_repo_wrong_owner(self) -> None:
         """Test that wrong owner returns not found"""
@@ -1242,7 +1242,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": False, "reason": "repository_not_found"}
+        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
 
     def test_validate_repo_wrong_name(self) -> None:
         """Test that wrong name returns not found"""
@@ -1267,7 +1267,7 @@ class TestSeerRpcMethods(APITestCase):
             name="wrong-name",
         )
 
-        assert result == {"valid": False, "reason": "repository_not_found"}
+        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
 
     def test_validate_repo_wrong_external_id(self) -> None:
         """Test that wrong external_id returns not found"""
@@ -1292,7 +1292,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": False, "reason": "repository_not_found"}
+        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
 
     def test_validate_repo_inactive(self) -> None:
         """Test that inactive repository returns not found"""
@@ -1317,7 +1317,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": False, "reason": "repository_not_found"}
+        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
 
     def test_validate_repo_unsupported_provider(self) -> None:
         """Test that unsupported provider returns appropriate error"""
@@ -1342,7 +1342,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": False, "reason": "unsupported_provider"}
+        assert result.dict() == {"valid": False, "reason": "unsupported_provider"}
 
     def test_validate_repo_no_integration_id(self) -> None:
         """Test when repository has no integration_id set"""
@@ -1363,7 +1363,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"valid": True, "integration_id": None}
+        assert result.dict() == {"valid": True, "integration_id": None}
 
     def test_validate_repo_github_enterprise(self) -> None:
         """Test that github_enterprise provider works correctly"""
@@ -1388,7 +1388,7 @@ class TestSeerRpcMethods(APITestCase):
             name="internal-repo",
         )
 
-        assert result == {"valid": True, "integration_id": integration.id}
+        assert result.dict() == {"valid": True, "integration_id": integration.id}
 
     def test_get_repo_installation_id_github(self) -> None:
         """Test returns external_id as installation_id for GitHub repos"""
@@ -1413,7 +1413,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"installation_id": "12345", "permissions": None}
+        assert result.dict() == {"installation_id": "12345", "permissions": None}
 
     def test_get_repo_installation_id_github_with_permissions(self) -> None:
         """Test returns permissions from integration metadata"""
@@ -1442,7 +1442,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"installation_id": "12345", "permissions": permissions}
+        assert result.dict() == {"installation_id": "12345", "permissions": permissions}
 
     def test_get_repo_installation_id_github_enterprise(self) -> None:
         """Test returns metadata installation_id for GitHub Enterprise repos"""
@@ -1470,7 +1470,7 @@ class TestSeerRpcMethods(APITestCase):
             name="internal-repo",
         )
 
-        assert result == {"installation_id": "99999", "permissions": None}
+        assert result.dict() == {"installation_id": "99999", "permissions": None}
 
     def test_get_repo_installation_id_not_found(self) -> None:
         """Test returns error when repository does not exist"""
@@ -1482,7 +1482,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"error": "repository_not_found"}
+        assert result.dict() == {"error": "repository_not_found"}
 
     def test_get_repo_installation_id_unsupported_provider(self) -> None:
         """Test returns error for unsupported provider"""
@@ -1507,7 +1507,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"error": "unsupported_provider"}
+        assert result.dict() == {"error": "unsupported_provider"}
 
     def test_get_repo_installation_id_no_integration(self) -> None:
         """Test returns error when repo has no integration_id"""
@@ -1528,7 +1528,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"error": "no_integration"}
+        assert result.dict() == {"error": "no_integration"}
 
     def test_get_repo_installation_id_integration_not_found(self) -> None:
         """Test returns error when integration record doesn't exist"""
@@ -1549,7 +1549,7 @@ class TestSeerRpcMethods(APITestCase):
             name="sentry",
         )
 
-        assert result == {"error": "integration_not_found"}
+        assert result.dict() == {"error": "integration_not_found"}
 
     def test_get_project_preferences_returns_preference(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -1566,24 +1566,22 @@ class TestSeerRpcMethods(APITestCase):
             project_id=project.id,
         )
 
-        assert result is not None
-        assert result["project_id"] == project.id
-        assert result["organization_id"] == self.organization.id
-        assert len(result["repositories"]) == 1
-        assert result["repositories"][0]["external_id"] == "123"
-        assert result["repositories"][0]["name"] == "sentry"
+        assert result.project_id == project.id
+        assert result.organization_id == self.organization.id
+        assert len(result.repositories) == 1
+        assert result.repositories[0].external_id == "123"
+        assert result.repositories[0].name == "sentry"
 
     def test_get_project_preferences_returns_default_when_no_preference(self) -> None:
         project = self.create_project(organization=self.organization)
         result = get_project_preferences(
             organization_id=self.organization.id, project_id=project.id
         )
-        assert result is not None
-        assert result["project_id"] == project.id
-        assert result["organization_id"] == self.organization.id
-        assert result["repositories"] == []
-        assert result["automated_run_stopping_point"] == "code_changes"
-        assert result["automation_handoff"] is None
+        assert result.project_id == project.id
+        assert result.organization_id == self.organization.id
+        assert result.repositories == []
+        assert result.automated_run_stopping_point == "code_changes"
+        assert result.automation_handoff is None
 
     def test_get_project_preferences_raises_for_nonexistent_project(self) -> None:
         with pytest.raises(Project.DoesNotExist):

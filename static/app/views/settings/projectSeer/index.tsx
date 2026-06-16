@@ -29,8 +29,8 @@ import {ExternalLink} from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {AutofixRepositories} from 'sentry/components/seer/legacy/autofixRepositories';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
+import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -548,7 +548,7 @@ function ProjectSeer({
       <CursorIntegrationCta project={project} />
       <ClaudeCodeIntegrationCta project={project} />
       <GithubCopilotIntegrationCta />
-      <AutofixRepositories project={project} />
+      <AutofixRepositoriesList canWrite includeInstructions project={project} />
       <Flex justify="center" marginTop="lg">
         <LinkButton
           to={`/settings/${organization.slug}/seer/onboarding/`}

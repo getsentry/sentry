@@ -79,7 +79,6 @@ describe('ReserveAdditionalVolume', () => {
     const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf');
 
     const stepProps = {
-      checkoutTier: PlanTier.AM2,
       subscription,
       isActive: true,
       stepNumber: 2,
@@ -208,7 +207,6 @@ describe('ReserveAdditionalVolume', () => {
     const bizPlanMonthly = PlanDetailsLookupFixture('am3_business');
 
     const stepProps: any = {
-      checkoutTier: PlanTier.AM3,
       isActive: true,
       stepNumber: 2,
       onUpdate: jest.fn(),
