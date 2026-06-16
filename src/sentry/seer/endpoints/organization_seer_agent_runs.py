@@ -14,11 +14,16 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import AgentRun
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun
 
 logger = logging.getLogger(__name__)
+
+
+class AgentRunWithUuid(AgentRun):
+    sentry_run_id: str | None
 
 
 class OrganizationSeerAgentRunsPermission(OrganizationPermission):
@@ -82,7 +87,9 @@ class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
             }
             return {
                 "data": [
-                    {**run.dict(), "sentry_run_id": uuid_by_state_id.get(run.run_id)}
+                    AgentRunWithUuid(
+                        **run.dict(), sentry_run_id=uuid_by_state_id.get(run.run_id)
+                    ).dict()
                     for run in runs
                 ]
             }
