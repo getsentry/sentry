@@ -219,10 +219,13 @@ def get_timezone_choices() -> list[tuple[str, str]]:
 
 def deprecated_utcnow() -> datetime:
     """
-    Returns a naive UTC timestamp. This is wrong and should be replaced with a timezone
-    aware timestamp. Calling `deprecated_utcnow()` pollutes the logs with deprecation
-    warnings. Replacing it with this function suppresses those warnings and still
-    preserves its deprecation state in an obvious way.
+    Returns a naive UTC timestamp.
+
+    Using this function is wrong and it should be replaced with a timezone aware
+    timestamp. This function exists to replace `utcnow` which is deprecated.
+    `utcnow` logs deprecation notices which are polluting the log stream. This
+    function signals that its obviously deprecated without being annoying for people
+    trying to debug things other than timezone issue.
 
     If you see this function being called in your code please replace it with a timezone
     aware datetime.
