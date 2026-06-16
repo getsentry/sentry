@@ -238,7 +238,7 @@ def _sync_project_debug_file(
                 return None
 
             if source_project_debug_file.storage_path is not None:
-                source_fileobj = source_project_debug_file.getfile()
+                source_fileobj = source_project_debug_file.get_file()
                 try:
                     target_storage_path = get_debug_files_session(
                         target_org.id, target_project.id

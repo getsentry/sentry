@@ -838,7 +838,7 @@ def _clone_proguard_debug_file_for_reupload(
     if debug_file.file is not None:
         dif, created = create_dif_from_id(project, meta, file=debug_file.file)
     if debug_file.storage_path is not None:
-        source_fileobj = debug_file.getfile()
+        source_fileobj = debug_file.get_file()
         try:
             # Spool into a temporary file to get a seekable stream.
             with tempfile.SpooledTemporaryFile(max_size=5 * 1024 * 1024) as tmp:

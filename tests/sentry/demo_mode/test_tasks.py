@@ -286,11 +286,11 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_project_debug_file.content_type == content_type
         assert target_project_debug_file.file_size == len(content)
         assert target_project_debug_file.date_created == date_created
-        assert target_project_debug_file.getfile().read() == content
+        assert target_project_debug_file.get_file().read() == content
 
         target_project_debug_file.delete()
         source_project_debug_file.refresh_from_db()
-        assert source_project_debug_file.getfile().read() == content
+        assert source_project_debug_file.get_file().read() == content
 
         with pytest.raises(ProjectDebugFile.DoesNotExist):
             target_project_debug_file.refresh_from_db()

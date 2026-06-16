@@ -379,7 +379,7 @@ class CreateDebugFileTest(APITestCase):
         assert dif.storage_path is not None
         assert dif.content_type == "application/x-mach-binary"
         assert not File.objects.filter(id=file.id).exists()
-        assert dif.getfile().read() == content
+        assert dif.get_file().read() == content
 
     @requires_objectstore
     def test_objectstore_backed_create_dif(self) -> None:
@@ -396,7 +396,7 @@ class CreateDebugFileTest(APITestCase):
         assert dif.file_size == len(content)
         assert dif.checksum == checksum
         assert dif.get_file_size() == len(content)
-        assert dif.getfile().read() == content
+        assert dif.get_file().read() == content
 
     def test_keep_disjoint_difs(self) -> None:
         file = self.create_file(
