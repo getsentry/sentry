@@ -58,7 +58,14 @@ from sentry.seer.agent.utils import (
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.seer_setup import get_supported_scm_providers
-from sentry.seer.sentry_data_models import EAPTrace
+from sentry.seer.sentry_data_models import (
+    EAPTrace,
+    EmptyResponse,
+    GetDsnResponse,
+    RepositoryDefinitionResponse,
+    TraceItemAttributesResponse,
+    TraceItemEventsResponse,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.ourlogs import OurLogs
@@ -606,13 +613,18 @@ def rpc_get_trace_waterfall(
     organization_id: int,
     additional_attributes: list[str] | None = None,
     referrer: str | None = None,
-) -> dict[str, Any]:
+) -> EAPTrace | EmptyResponse:
+    """Surface the underlying typed `EAPTrace` directly.
+
+    The not-found path returns `EmptyResponse`, which serializes to `{}` via
+    `.dict()` — byte-identical to the prior wire shape.
+    """
     try:
         referrer_enum = Referrer(referrer) if referrer else Referrer.SEER_EXPLORER_TOOLS
     except ValueError:
         referrer_enum = Referrer.SEER_EXPLORER_TOOLS
     trace = get_trace_waterfall(trace_id, organization_id, additional_attributes, referrer_enum)
-    return trace.dict() if trace else {}
+    return trace if trace else EmptyResponse()
 
 
 def rpc_get_profile_flamegraph(
@@ -828,7 +840,7 @@ def get_repository_definition(
     organization_id: int,
     repo_full_name: str,
     external_id: str | None = None,
-) -> dict | None:
+) -> RepositoryDefinitionResponse | None:
     """
     Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
@@ -895,14 +907,14 @@ def get_repository_definition(
     owner = repo_name_parts[0]
     name = "/".join(repo_name_parts[1:])
 
-    return {
-        "organization_id": organization_id,
-        "integration_id": str(repo.integration_id) if repo.integration_id is not None else None,
-        "provider": repo.provider,
-        "owner": owner,
-        "name": name,
-        "external_id": repo.external_id,
-    }
+    return RepositoryDefinitionResponse(
+        organization_id=organization_id,
+        integration_id=str(repo.integration_id) if repo.integration_id is not None else None,
+        provider=repo.provider,
+        owner=owner,
+        name=name,
+        external_id=repo.external_id,
+    )
 
 
 # Tuples of (total period, interval) (both in sentry stats period format).
@@ -1756,7 +1768,7 @@ def get_trace_item_attributes(
     trace_id: str,
     item_id: str,
     item_type: str,
-) -> dict[str, Any]:
+) -> TraceItemAttributesResponse:
     """
     Fetch all attributes for a given trace item (span, metric, log, etc.).
 
@@ -1779,7 +1791,7 @@ def get_trace_item_attributes(
             "get_trace_item_attributes: Organization not found",
             extra={"org_id": org_id},
         )
-        return {"attributes": []}
+        return TraceItemAttributesResponse(attributes=[])
 
     try:
         project = Project.objects.get(id=project_id, organization=organization)
@@ -1788,7 +1800,7 @@ def get_trace_item_attributes(
             "get_trace_item_attributes: Project not found",
             extra={"org_id": org_id, "project_id": project_id},
         )
-        return {"attributes": []}
+        return TraceItemAttributesResponse(attributes=[])
 
     params = {
         "item_type": item_type,
@@ -1803,7 +1815,7 @@ def get_trace_item_attributes(
         params=params,
     )
 
-    return {"attributes": resp.data["attributes"]}
+    return TraceItemAttributesResponse(attributes=resp.data["attributes"])
 
 
 def _make_get_trace_request(
@@ -1940,7 +1952,7 @@ def get_log_attributes_for_trace(
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
-) -> dict[str, Any] | None:
+) -> TraceItemEventsResponse | None:
     """
     Get all attributes for all logs in a trace. You can optionally filter by message substring and/or project slugs.
 
@@ -1988,7 +2000,7 @@ def get_log_attributes_for_trace(
     )
 
     if not message_substring:
-        return {"data": items}
+        return TraceItemEventsResponse(data=items)
 
     # Filter on message substring.
     filtered_items: list[dict[str, Any]] = []
@@ -2002,7 +2014,7 @@ def get_log_attributes_for_trace(
         ):
             filtered_items.append(item)
 
-    return {"data": filtered_items}
+    return TraceItemEventsResponse(data=filtered_items)
 
 
 def get_metric_attributes_for_trace(
@@ -2016,7 +2028,7 @@ def get_metric_attributes_for_trace(
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     limit: int | None = 50,
-) -> dict[str, Any] | None:
+) -> TraceItemEventsResponse | None:
     """
     Get all attributes for all metrics in a trace. You can optionally filter by metric name and/or project slugs.
     The metric name is a case-insensitive exact match.
@@ -2065,7 +2077,7 @@ def get_metric_attributes_for_trace(
     )
 
     if not metric_name:
-        return {"data": items}
+        return TraceItemEventsResponse(data=items)
 
     # Filter on metric name (exact case-insensitive match).
     filtered_items: list[dict[str, Any]] = []
@@ -2077,7 +2089,7 @@ def get_metric_attributes_for_trace(
         if metric_name.lower() == item_metric_name.lower():
             filtered_items.append(item)
 
-    return {"data": filtered_items}
+    return TraceItemEventsResponse(data=filtered_items)
 
 
 def get_baseline_tag_distribution(
@@ -2299,12 +2311,12 @@ def get_dsn(
     *,
     organization_id: int,
     project_slug: str,
-) -> dict[str, Any] | None:
+) -> GetDsnResponse | None:
     """
     Get the public DSN for a single project in an organization.
 
-    Returns a dict with project_slug, platform, and dsn_public, or None if the
-    organization/project does not exist or the project has no active client key.
+    Returns the project's public DSN, or None if the organization/project does
+    not exist or the project has no active client key.
     """
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -2337,8 +2349,8 @@ def get_dsn(
     if key is None:
         return None
 
-    return {
-        "project_slug": project.slug,
-        "platform": project.platform,
-        "dsn_public": key.dsn_public,
-    }
+    return GetDsnResponse(
+        project_slug=project.slug,
+        platform=project.platform,
+        dsn_public=key.dsn_public,
+    )

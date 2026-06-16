@@ -28,6 +28,7 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.post_process import locks
 from sentry.utils import metrics
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
 
@@ -171,7 +172,7 @@ def update_threshold(
     client = get_redis_client()
     with client.pipeline() as p:
         p.set(threshold_key, threshold, ex=ttl)
-        p.set(stale_date_key, str(datetime.utcnow()), ex=ttl)
+        p.set(stale_date_key, str(deprecated_utcnow()), ex=ttl)
         p.execute()
     metrics.incr("issues.update_new_escalation_threshold", tags={"useFallback": False})
     return threshold
@@ -189,7 +190,7 @@ def fallback_to_stale_or_zero(
     ttl = FALLBACK_TTL
     # current datetime - the amount of time a threshold is valid for + how much time to wait before trying to query Snuba for the threshold again
     stale_date = (
-        datetime.utcnow()
+        deprecated_utcnow()
         - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
         + timedelta(seconds=FALLBACK_TTL)
     )
@@ -229,7 +230,7 @@ def get_latest_threshold(project: Project) -> float:
     stale_date = None
     if cache_results[1] is not None:
         stale_date = datetime.fromisoformat(cache_results[1])
-    now = datetime.utcnow()
+    now = deprecated_utcnow()
     if (
         stale_date is None
         or threshold is None

@@ -130,7 +130,7 @@ const PriorityLabel = styled(IssueStreamHeaderLabel)`
 `;
 
 const ProgressLabel = styled(IssueStreamHeaderLabel)`
-  width: 90px;
+  width: 124px;
 `;
 
 const AssigneeLabel = styled(IssueStreamHeaderLabel)`
