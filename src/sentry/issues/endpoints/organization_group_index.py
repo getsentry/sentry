@@ -470,6 +470,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         self.add_cursor_headers(request, response, cursor_result)
 
+        # The requested sort exceeded its candidate limit and results were ranked by a
+        # fallback strategy; let the client surface that the ranking was simplified.
+        if cursor_result.sort_fallback is not None:
+            response["X-Sentry-Sort-Fallback"] = cursor_result.sort_fallback
+
         # TODO(jess): add metrics that are similar to project endpoint here
         return response
 

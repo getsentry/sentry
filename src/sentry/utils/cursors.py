@@ -100,6 +100,10 @@ class CursorResult(Sequence[T]):
         self.prev = prev
         self.hits = hits
         self.max_hits = max_hits
+        # Set when the requested sort couldn't be honored and results were ranked by a
+        # fallback strategy instead (e.g. a Postgres sort that exceeded its candidate
+        # limit). Holds the originally-requested sort key, else None.
+        self.sort_fallback: str | None = None
 
     def __len__(self) -> int:
         return len(self.results)

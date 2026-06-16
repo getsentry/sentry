@@ -1299,6 +1299,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         pg_overflow_fallback = False
+        # The originally-requested sort when an overflow fallback occurs, surfaced to the
+        # client so the UI can tell the user their ranking was simplified.
+        sort_fallback_from: str | None = None
         pg_strategy = self.postgres_sort_strategies.get(sort_by)
         if pg_strategy is not None:
             pg_result = self._execute_postgres_sort(
@@ -1331,6 +1334,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # `date` shortcut below. If this sort has no Snuba-only equivalent, fall back
             # to `date`.
             pg_overflow_fallback = True
+            sort_fallback_from = sort_by
             # Keep the original sort only if it maps to a real Snuba aggregation for the
             # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
             # sorts like "inbox"), have no aggregation and must fall back to `date` instead
@@ -1571,6 +1575,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             tags={"postgres_only": False},
         )
 
+        paginator_results.sort_fallback = sort_fallback_from
         return paginator_results
 
     def calculate_hits(

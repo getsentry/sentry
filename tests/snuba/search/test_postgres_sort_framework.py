@@ -377,6 +377,23 @@ class TestFallbackBehavior(PostgresSortTestBase):
         results = list(self.make_query("date"))
         assert len(results) == 3
 
+    def test_overflow_sets_sort_fallback_on_result(self):
+        # On overflow the requested sort is surfaced on the result via `sort_fallback` so
+        # the endpoint can tell the client its ranking was simplified; a non-overflowing
+        # query leaves it unset.
+        with (
+            _patch_pg_strategies({"test_sort": _ts_strategy()}),
+            mock.patch.object(
+                PostgresSnubaQueryExecutor,
+                "snuba_search",
+                return_value=([(g.id, 1) for g in self.groups], len(self.groups)),
+            ),
+        ):
+            with override_options({"snuba.search.max-pre-snuba-candidates": 0}):
+                assert self.make_query("test_sort").sort_fallback == "test_sort"
+            with override_options({"snuba.search.max-pre-snuba-candidates": 1000}):
+                assert self.make_query("test_sort").sort_fallback is None
+
 
 class TestRecommendedV2Sort(PostgresSortTestBase):
     """recommended_v2: Snuba recommended base score plus additive boosts for viewer
