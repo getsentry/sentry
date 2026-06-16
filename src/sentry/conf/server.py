@@ -27,7 +27,7 @@ from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
-from sentry.conf.types.sdk_config import ServerSdkConfig
+from sentry.conf.types.sdk_config import SdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.uptime import UptimeRegionConfig
@@ -2272,7 +2272,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 
 CLAUDE_CODE_CLIENT_CLASS: str | None = None
 
-SENTRY_SDK_CONFIG: ServerSdkConfig = {
+SENTRY_SDK_CONFIG: SdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
     "project_root": "/usr/src",
