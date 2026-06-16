@@ -620,7 +620,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    expect(screen.getByText('Team Plan (am3)')).toBeInTheDocument();
+    expect(screen.getByText('Team Plan (am3_team)')).toBeInTheDocument();
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       const definition = term.nextElementSibling;

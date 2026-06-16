@@ -36,7 +36,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am2_team'),
-        tierChange: 'am2',
       });
     });
   });
@@ -56,7 +55,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am2_business'),
-        tierChange: 'am2',
       });
     });
   });
@@ -74,7 +72,7 @@ describe('PlanFeature', () => {
     );
 
     await waitFor(() => {
-      expect(mockFn).toHaveBeenCalledWith({plan: null, tierChange: null});
+      expect(mockFn).toHaveBeenCalledWith({plan: null});
     });
   });
 
@@ -96,27 +94,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am2_business'),
-        tierChange: 'am2',
-      });
-    });
-  });
-
-  it('reports tier change as null when no tier change is required', async () => {
-    const mockFn = jest.fn(() => null);
-
-    const sub = SubscriptionFixture({organization, planTier: 'am2'});
-    SubscriptionStore.set(organization.slug, sub);
-
-    render(
-      <PlanFeature organization={organization} features={['discard-groups']}>
-        {mockFn}
-      </PlanFeature>
-    );
-
-    await waitFor(() => {
-      expect(mockFn).toHaveBeenCalledWith({
-        plan: PlanDetailsLookupFixture('am2_business'),
-        tierChange: null,
       });
     });
   });
@@ -141,7 +118,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am3_business'),
-        tierChange: 'am3',
       });
     });
   });
@@ -165,7 +141,6 @@ describe('PlanFeature', () => {
     await waitFor(() => {
       expect(mockFn).toHaveBeenCalledWith({
         plan: PlanDetailsLookupFixture('am2_business'),
-        tierChange: 'am2',
       });
     });
   });
