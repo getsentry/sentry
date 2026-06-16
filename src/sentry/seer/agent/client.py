@@ -114,8 +114,8 @@ def _has_context_engine(
     ) or features.has("organizations:seer-added", organization, actor=user)
 
 
-def _get_mcp_url(provider_type: str, identity_data: dict[str, Any]) -> str | None:
-    """Build the MCP server URL for a monitoring provider identity."""
+def _get_monitoring_provider_url(provider_type: str, identity_data: dict[str, Any]) -> str | None:
+    """Build the URL for a monitoring provider identity."""
     if provider_type == IntegrationProviderSlug.DATADOG:
         site = identity_data.get("site")
         if not site:
@@ -148,7 +148,7 @@ def get_monitoring_provider_connections(
             access_token = identity.data.get("access_token")
             if not access_token:
                 continue
-            url = _get_mcp_url(provider_type, identity.data)
+            url = _get_monitoring_provider_url(provider_type, identity.data)
             if not url:
                 continue
             encrypted_access_token = encrypt_access_token_for_seer(access_token)
