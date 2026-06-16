@@ -21,10 +21,6 @@ logger = logging.getLogger("sentry.auth.email_verification")
 DEFAULT_MAX_AGE_MINUTES = 120
 
 
-def _get_salt() -> str:
-    return options.get("auth.signup-verification-email-salt")
-
-
 def send_signup_verification_email(
     request: HttpRequest,
     email: str,
