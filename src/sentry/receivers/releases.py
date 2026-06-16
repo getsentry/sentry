@@ -86,6 +86,10 @@ def _find_pull_request_author_user(author: CommitAuthor, organization_id: int) -
     if users:
         return users[0]
 
+    # Commit resolution generally has a real commit author email, so find_users()
+    # can match an org member by verified email. PR webhooks can create authors
+    # from a GitHub actor with a placeholder email, so use the same ExternalActor
+    # fallback that serializes PR authors.
     # Keep this lazy; receivers are imported during process initialization.
     from sentry.api.serializers.models.release import get_author_users_by_external_actors
 
