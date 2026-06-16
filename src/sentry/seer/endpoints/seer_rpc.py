@@ -150,7 +150,7 @@ from sentry.seer.sentry_data_models import (
     ValidateRepoErrorResponse,
     ValidateRepoSuccessResponse,
 )
-from sentry.seer.utils import filter_repo_by_provider
+from sentry.seer.utils import encrypt_seer_credential, filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
@@ -953,8 +953,12 @@ def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
     if not access_token:
         return {"error": "identity_not_valid"}
 
+    encrypted_access_token = encrypt_seer_credential(access_token)
+    if not encrypted_access_token:
+        return {"error": "encryption_failed"}
+
     return {
-        "access_token": access_token,
+        "encrypted_access_token": encrypted_access_token,
         "expires": identity.data.get("expires"),
     }
 

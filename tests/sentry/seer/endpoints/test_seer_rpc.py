@@ -1710,6 +1710,7 @@ class TestRefreshMonitoringProviderToken(APITestCase):
             self.identity.save()
 
     @responses.activate
+    @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     def test_success(self) -> None:
         responses.add(
             responses.POST,
@@ -1723,9 +1724,31 @@ class TestRefreshMonitoringProviderToken(APITestCase):
 
         result = refresh_monitoring_provider_token(identity_id=self.identity.id)
 
-        assert result["access_token"] == "new-access-token"
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        decrypted_access_token = fernet.decrypt(
+            result["encrypted_access_token"].encode("utf-8")
+        ).decode("utf-8")
+
+        assert decrypted_access_token == "new-access-token"
         assert result["expires"] is not None
         assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_encryption_failed(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/token",
+            json={
+                "access_token": "new-access-token",
+                "refresh_token": "refresh-token",
+                "expires_in": 3600,
+            },
+        )
+
+        result = refresh_monitoring_provider_token(identity_id=self.identity.id)
+
+        assert result == {"error": "encryption_failed"}
 
     def test_identity_not_found(self) -> None:
         result = refresh_monitoring_provider_token(identity_id=999999)
