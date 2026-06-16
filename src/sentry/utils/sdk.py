@@ -777,9 +777,9 @@ def get_trace_id():
 def set_span_attribute(data_name, value):
     span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
     if span_streaming:
-        span = sentry_sdk.traces.get_current_span()
-        if span is not None:
-            span.set_attribute(data_name, value)
+        streamed_span = sentry_sdk.traces.get_current_span()
+        if streamed_span is not None:
+            streamed_span.set_attribute(data_name, value)
         return
 
     span = sentry_sdk.get_current_span()
