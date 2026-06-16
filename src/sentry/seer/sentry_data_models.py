@@ -5,9 +5,12 @@ These should be kept in sync with the models in Seer.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from collections.abc import Callable
+from typing import Any, Literal, ParamSpec
 
 from pydantic import BaseModel, Field
+
+_P = ParamSpec("_P")
 
 
 class Transaction(BaseModel):
@@ -110,6 +113,95 @@ class EmptyResponse(BaseModel):
     the typed-registry contract. Use this instead of `| None` when the
     pre-migration code returned `{}` to indicate the no-data case.
     """
+
+
+class OpaqueDictResponse(BaseModel):
+    """Passthrough wrapper for RPC methods whose return is a `dict[str, Any]`
+    with no explicit declared schema.
+
+    Construct via `OpaqueDictResponse(__root__=data)` (or `.parse_obj(data)`);
+    `.dict()` returns the underlying dict verbatim. Wire-no-op against the
+    pre-typed `dict[str, Any]` return shape.
+
+    Exposes dict-like read access (`__getitem__`, `get`, `__contains__`) so
+    in-process callers that previously held a `dict` can keep using subscript
+    + `.get()` without an explicit unwrap. Long-term, replace this with an
+    explicit `BaseModel` subclass once the actual fields are known.
+    """
+
+    __root__: dict[str, Any]
+
+    def dict(self, **kwargs: Any) -> dict[str, Any]:
+        return self.__root__
+
+    def __getitem__(self, key: str) -> Any:
+        return self.__root__[key]
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.__root__.get(key, default)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.__root__
+
+
+def as_opaque_dict_response(
+    fn: Callable[_P, dict[str, Any] | None],
+) -> Callable[_P, OpaqueDictResponse | None]:
+    """Adapter for RPC methods whose internal return is a `dict[str, Any] | None`.
+
+    Returns a callable that wraps the underlying dict in `OpaqueDictResponse`
+    (preserving wire bytes) so the registered method satisfies the typed
+    registry contract without changing the function body. Long-term, replace
+    with an explicit `BaseModel` subclass on the underlying function.
+    """
+
+    def opaque_dict_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> OpaqueDictResponse | None:
+        result = fn(*args, **kwargs)
+        if result is None:
+            return None
+        return OpaqueDictResponse(__root__=result)
+
+    return opaque_dict_wrapper
+
+
+class OpaqueListResponse(BaseModel):
+    """Passthrough wrapper for RPC methods whose return is a top-level
+    `list[Any]` with no explicit declared schema.
+
+    `.dict()` returns the underlying list verbatim (overriding pydantic's
+    dict shape), preserving the bare-array wire bytes for callers whose
+    pre-typed return was a JSON array. As with `OpaqueDictResponse`, this is
+    transitional — replace with an explicit `BaseModel` once the actual
+    element shape is known.
+    """
+
+    __root__: list[Any]
+
+    def dict(self, **kwargs: Any) -> list[Any]:  # type: ignore[override]
+        return self.__root__
+
+    def __getitem__(self, idx: int) -> Any:
+        return self.__root__[idx]
+
+    def __iter__(self) -> Any:
+        return iter(self.__root__)
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+
+def as_opaque_list_response(
+    fn: Callable[_P, list[Any] | None],
+) -> Callable[_P, OpaqueListResponse | None]:
+    """Adapter for RPC methods whose internal return is `list[Any] | None`."""
+
+    def opaque_list_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> OpaqueListResponse | None:
+        result = fn(*args, **kwargs)
+        if result is None:
+            return None
+        return OpaqueListResponse(__root__=result)
+
+    return opaque_list_wrapper
 
 
 class OrganizationSlugResponse(BaseModel):

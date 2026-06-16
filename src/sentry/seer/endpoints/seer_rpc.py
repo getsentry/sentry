@@ -143,6 +143,8 @@ from sentry.seer.sentry_data_models import (
     SpanAttributesResponse,
     ValidateRepoErrorResponse,
     ValidateRepoSuccessResponse,
+    as_opaque_dict_response,
+    as_opaque_list_response,
 )
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -1023,7 +1025,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
     "get_project_preferences": get_project_preferences,
-    "bulk_get_project_preferences": bulk_get_project_preferences,
+    "bulk_get_project_preferences": as_opaque_dict_response(bulk_get_project_preferences),
     #
     # Bug prediction
     "has_repo_code_mappings": has_repo_code_mappings,
@@ -1034,51 +1036,55 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # Assisted query
     "get_attribute_names": get_attribute_names,
-    "get_attribute_values_with_substring": get_attribute_values_with_substring,
+    "get_attribute_values_with_substring": as_opaque_dict_response(
+        get_attribute_values_with_substring
+    ),
     "get_attributes_and_values": get_attributes_and_values,
     "get_metric_metadata": get_metric_metadata,
-    "get_issue_filter_keys": get_issue_filter_keys,
-    "get_filter_key_values": get_filter_key_values,
-    "get_issues_stats": get_issues_stats,
-    "get_event_filter_keys": get_event_filter_keys,
-    "get_event_filter_key_values": get_event_filter_key_values,
+    "get_issue_filter_keys": as_opaque_dict_response(get_issue_filter_keys),
+    "get_filter_key_values": as_opaque_list_response(get_filter_key_values),
+    "get_issues_stats": as_opaque_list_response(get_issues_stats),
+    "get_event_filter_keys": as_opaque_dict_response(get_event_filter_keys),
+    "get_event_filter_key_values": as_opaque_list_response(get_event_filter_key_values),
     #
     # Agent
-    "get_transactions_for_project": rpc_get_transactions_for_project,
-    "get_trace_for_transaction": rpc_get_trace_for_transaction,
-    "get_profiles_for_trace": rpc_get_profiles_for_trace,
-    "get_issues_for_transaction": rpc_get_issues_for_transaction,
+    "get_transactions_for_project": as_opaque_dict_response(rpc_get_transactions_for_project),
+    "get_trace_for_transaction": as_opaque_dict_response(rpc_get_trace_for_transaction),
+    "get_profiles_for_trace": as_opaque_dict_response(rpc_get_profiles_for_trace),
+    "get_issues_for_transaction": as_opaque_dict_response(rpc_get_issues_for_transaction),
     "get_trace_waterfall": rpc_get_trace_waterfall,
-    "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
-    "get_issue_details": get_issue_details,
-    "get_event_details": get_event_details,
-    "get_profile_flamegraph": rpc_get_profile_flamegraph,
-    "execute_table_query": execute_table_query,
-    "execute_timeseries_query": execute_timeseries_query,
+    "get_issue_and_event_details_v2": as_opaque_dict_response(get_issue_and_event_details_v2),
+    "get_issue_details": as_opaque_dict_response(get_issue_details),
+    "get_event_details": as_opaque_dict_response(get_event_details),
+    "get_profile_flamegraph": as_opaque_dict_response(rpc_get_profile_flamegraph),
+    "execute_table_query": as_opaque_dict_response(execute_table_query),
+    "execute_timeseries_query": as_opaque_dict_response(execute_timeseries_query),
     "execute_trace_table_query": execute_trace_table_query,
-    "execute_replays_query": execute_replays_query,
+    "execute_replays_query": as_opaque_dict_response(execute_replays_query),
     "execute_issues_query": execute_issues_query,
-    "get_trace_item_attributes": get_trace_item_attributes,
-    "get_repository_definition": get_repository_definition,
+    "get_trace_item_attributes": as_opaque_dict_response(get_trace_item_attributes),
+    "get_repository_definition": as_opaque_dict_response(get_repository_definition),
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
     "deliver_feature_result": deliver_feature_result,
-    "record_pr_attribution": record_pr_attribution,
-    "get_log_attributes_for_trace": get_log_attributes_for_trace,
-    "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
-    "get_baseline_tag_distribution": get_baseline_tag_distribution,
-    "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
-    "get_dsn": get_dsn,
+    "record_pr_attribution": as_opaque_dict_response(record_pr_attribution),
+    "get_log_attributes_for_trace": as_opaque_dict_response(get_log_attributes_for_trace),
+    "get_metric_attributes_for_trace": as_opaque_dict_response(get_metric_attributes_for_trace),
+    "get_baseline_tag_distribution": as_opaque_dict_response(get_baseline_tag_distribution),
+    "get_comparative_attribute_distributions": as_opaque_dict_response(
+        get_comparative_attribute_distributions
+    ),
+    "get_dsn": as_opaque_dict_response(get_dsn),
     #
     # Replays
-    "get_replay_summary_logs": rpc_get_replay_summary_logs,
-    "get_replay_metadata": get_replay_metadata,
+    "get_replay_summary_logs": as_opaque_dict_response(rpc_get_replay_summary_logs),
+    "get_replay_metadata": as_opaque_dict_response(get_replay_metadata),
     #
     # Issue Detection
-    "create_issue_occurrence": create_issue_occurrence,
+    "create_issue_occurrence": as_opaque_dict_response(create_issue_occurrence),
     #
     # PR metrics (judge path)
-    "update_pr_metrics": update_pr_metrics,
+    "update_pr_metrics": as_opaque_dict_response(update_pr_metrics),
 }
 
 

@@ -73,6 +73,7 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.seer.sentry_data_models import as_opaque_dict_response, as_opaque_list_response
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
@@ -102,32 +103,42 @@ public_org_seer_method_registry: dict[str, Callable] = {
     #
     # Assisted query (cross-project)
     "get_attribute_names": map_org_id_param(get_attribute_names),
-    "get_attribute_values_with_substring": map_org_id_param(get_attribute_values_with_substring),
+    "get_attribute_values_with_substring": as_opaque_dict_response(
+        map_org_id_param(get_attribute_values_with_substring)
+    ),
     "get_attributes_and_values": map_org_id_param(get_attributes_and_values),
     "get_metric_metadata": map_org_id_param(get_metric_metadata),
-    "get_event_filter_keys": map_org_id_param(get_event_filter_keys),
-    "get_event_filter_key_values": map_org_id_param(get_event_filter_key_values),
-    "get_issue_filter_keys": map_org_id_param(get_issue_filter_keys),
-    "get_filter_key_values": map_org_id_param(get_filter_key_values),
+    "get_event_filter_keys": as_opaque_dict_response(map_org_id_param(get_event_filter_keys)),
+    "get_event_filter_key_values": as_opaque_list_response(
+        map_org_id_param(get_event_filter_key_values)
+    ),
+    "get_issue_filter_keys": as_opaque_dict_response(map_org_id_param(get_issue_filter_keys)),
+    "get_filter_key_values": as_opaque_list_response(map_org_id_param(get_filter_key_values)),
     #
     # Agent (cross-project)
     "get_trace_waterfall": rpc_get_trace_waterfall,
-    "get_repository_definition": get_repository_definition,
-    "execute_table_query": map_org_id_param(execute_table_query),
-    "execute_timeseries_query": map_org_id_param(execute_timeseries_query),
+    "get_repository_definition": as_opaque_dict_response(get_repository_definition),
+    "execute_table_query": as_opaque_dict_response(map_org_id_param(execute_table_query)),
+    "execute_timeseries_query": as_opaque_dict_response(map_org_id_param(execute_timeseries_query)),
     "execute_trace_table_query": execute_trace_table_query,
     "execute_issues_query": map_org_id_param(execute_issues_query),
-    "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
-    "get_issue_details": get_issue_details,
-    "get_event_details": get_event_details,
-    "get_profile_flamegraph": rpc_get_profile_flamegraph,
-    "get_replay_metadata": get_replay_metadata,
-    "get_log_attributes_for_trace": map_org_id_param(get_log_attributes_for_trace),
-    "get_metric_attributes_for_trace": map_org_id_param(get_metric_attributes_for_trace),
-    "get_issues_stats": map_org_id_param(get_issues_stats),
-    "get_baseline_tag_distribution": get_baseline_tag_distribution,
-    "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
-    "get_dsn": get_dsn,
+    "get_issue_and_event_details_v2": as_opaque_dict_response(get_issue_and_event_details_v2),
+    "get_issue_details": as_opaque_dict_response(get_issue_details),
+    "get_event_details": as_opaque_dict_response(get_event_details),
+    "get_profile_flamegraph": as_opaque_dict_response(rpc_get_profile_flamegraph),
+    "get_replay_metadata": as_opaque_dict_response(get_replay_metadata),
+    "get_log_attributes_for_trace": as_opaque_dict_response(
+        map_org_id_param(get_log_attributes_for_trace)
+    ),
+    "get_metric_attributes_for_trace": as_opaque_dict_response(
+        map_org_id_param(get_metric_attributes_for_trace)
+    ),
+    "get_issues_stats": as_opaque_list_response(map_org_id_param(get_issues_stats)),
+    "get_baseline_tag_distribution": as_opaque_dict_response(get_baseline_tag_distribution),
+    "get_comparative_attribute_distributions": as_opaque_dict_response(
+        get_comparative_attribute_distributions
+    ),
+    "get_dsn": as_opaque_dict_response(get_dsn),
     #
     # Agent eval tooling
     "export_explorer_indexes": map_org_id_param(export_agent_indexes),
@@ -142,17 +153,29 @@ public_org_seer_method_registry: dict[str, Callable] = {
 # - `project_id` (int): Project ID, must be provided in request args and validated
 public_project_seer_method_registry: dict[str, Callable] = {
     # Agent - project-scoped methods
-    "get_transactions_for_project": accept_organization_id_param(rpc_get_transactions_for_project),
-    "get_trace_for_transaction": accept_organization_id_param(rpc_get_trace_for_transaction),
-    "get_profiles_for_trace": accept_organization_id_param(rpc_get_profiles_for_trace),
-    "get_issues_for_transaction": accept_organization_id_param(rpc_get_issues_for_transaction),
+    "get_transactions_for_project": as_opaque_dict_response(
+        accept_organization_id_param(rpc_get_transactions_for_project)
+    ),
+    "get_trace_for_transaction": as_opaque_dict_response(
+        accept_organization_id_param(rpc_get_trace_for_transaction)
+    ),
+    "get_profiles_for_trace": as_opaque_dict_response(
+        accept_organization_id_param(rpc_get_profiles_for_trace)
+    ),
+    "get_issues_for_transaction": as_opaque_dict_response(
+        accept_organization_id_param(rpc_get_issues_for_transaction)
+    ),
     # Autofix - project-scoped methods
     "get_error_event_details": accept_organization_id_param(get_error_event_details),
     "get_profile_details": get_profile_details,
     "get_attributes_for_span": map_org_id_param(get_attributes_for_span),
-    "get_trace_item_attributes": map_org_id_param(get_trace_item_attributes),
+    "get_trace_item_attributes": as_opaque_dict_response(
+        map_org_id_param(get_trace_item_attributes)
+    ),
     # Replays - project-scoped methods
-    "get_replay_summary_logs": accept_organization_id_param(rpc_get_replay_summary_logs),
+    "get_replay_summary_logs": as_opaque_dict_response(
+        accept_organization_id_param(rpc_get_replay_summary_logs)
+    ),
 }
 
 
