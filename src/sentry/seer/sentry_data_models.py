@@ -398,3 +398,40 @@ class TraceItemEventsResponse(BaseModel):
     `{"data": [{"id", "timestamp", "attributes"}, ...]}` — the EAP GetTrace output."""
 
     data: list[dict[str, Any]]
+
+
+class ExecuteQuerySuccessResponse(BaseModel):
+    """Success shape for `execute_table_query`, `execute_trace_table_query`, and
+    `execute_replays_query`: `{"data": [...], "meta": {...}}`. `meta` is omitted
+    from the wire when the upstream call didn't return one (e.g. the no-projects
+    short-circuit in `execute_replays_query`), which is why we lean on
+    `exclude_unset` instead of emitting `"meta": None`."""
+
+    data: list[dict[str, Any]]
+    meta: dict[str, Any] | None = None
+
+    def dict(self, **kwargs: Any) -> Any:
+        kwargs.setdefault("exclude_unset", True)
+        return super().dict(**kwargs)
+
+    # Dict-like proxy so tests that read `result["data"]` / `"meta" in result`
+    # keep working — wire shape lives in `.dict()`.
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+
+class ExecuteQueryErrorResponse(BaseModel):
+    """Error shape returned by the execute_* family on a 400 / validation failure:
+    `{"error": <detail>}`. Discriminated against `ExecuteQuerySuccessResponse` by
+    the presence of `error` vs `data`."""
+
+    error: str
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]

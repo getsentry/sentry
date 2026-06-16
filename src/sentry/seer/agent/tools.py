@@ -61,6 +61,8 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     EAPTrace,
     EmptyResponse,
+    ExecuteQueryErrorResponse,
+    ExecuteQuerySuccessResponse,
     GetDsnResponse,
     RepositoryDefinitionResponse,
     TraceItemAttributesResponse,
@@ -147,7 +149,7 @@ def execute_table_query(
     span_query: list[str] | None = None,
     log_query: list[str] | None = None,
     metric_query: list[str] | None = None,
-) -> dict[str, Any] | None:
+) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a query to get table data by calling the events endpoint.
 
@@ -220,16 +222,17 @@ def execute_table_query(
             path=f"/organizations/{organization.slug}/events/",
             params=params,
         )
-        return {
-            "data": resp.data["data"],
-            **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
-        }
+        if resp.data.get("meta"):
+            return ExecuteQuerySuccessResponse(data=resp.data["data"], meta=resp.data["meta"])
+        return ExecuteQuerySuccessResponse(data=resp.data["data"])
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
             logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+            return ExecuteQueryErrorResponse(
+                error=str(error_detail) if error_detail is not None else str(e.body)
+            )
         raise
 
 
@@ -363,7 +366,7 @@ def execute_trace_table_query(
     end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     case_insensitive: bool | None = None,
-):
+) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a query to get trace samples by passing through the OrganizationTracesEndpoint.
     This endpoint does not support any kind of aggregation.
@@ -374,7 +377,14 @@ def execute_trace_table_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
         Start/end params take precedence over stats_period. Default time range is the last 24 hours.
     """
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "execute_trace_table_query: Organization not found",
+            extra={"org_id": organization_id},
+        )
+        return None
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
 
@@ -406,10 +416,9 @@ def execute_trace_table_query(
             path=f"/organizations/{organization.slug}/traces/",
             params=params,
         )
-        return {
-            "data": resp.data["data"],
-            **({"meta": resp.data["meta"]} if resp.data.get("meta") else {}),
-        }
+        if resp.data.get("meta"):
+            return ExecuteQuerySuccessResponse(data=resp.data["data"], meta=resp.data["meta"])
+        return ExecuteQuerySuccessResponse(data=resp.data["data"])
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
@@ -417,7 +426,9 @@ def execute_trace_table_query(
                 "execute_trace_table_query: bad request", extra={"org_id": organization_id}
             )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {"error": str(error_detail) if error_detail is not None else str(e.body)}
+            return ExecuteQueryErrorResponse(
+                error=str(error_detail) if error_detail is not None else str(e.body)
+            )
         raise
 
 
@@ -450,7 +461,7 @@ def execute_replays_query(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> dict[str, Any] | None:
+) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a session replay search using the dedicated Replay collection query.
 
@@ -469,10 +480,14 @@ def execute_replays_query(
         return None
 
     if not features.has("organizations:session-replay", organization):
-        return {"error": "Session Replay is not enabled for this organization."}
+        return ExecuteQueryErrorResponse(
+            error="Session Replay is not enabled for this organization."
+        )
 
     if project_ids and project_slugs:
-        return {"error": "Pass either project_ids or project_slugs, not both."}
+        return ExecuteQueryErrorResponse(
+            error="Pass either project_ids or project_slugs, not both."
+        )
 
     project_filter: dict[str, Any] = {}
     if project_ids:
@@ -488,12 +503,14 @@ def execute_replays_query(
         ).values_list("id", flat=True)
     )
     if not resolved_project_ids:
-        return {"data": []}
+        return ExecuteQuerySuccessResponse(data=[])
 
     requested_fields = fields or DEFAULT_REPLAY_SEARCH_FIELDS
     invalid_fields = sorted(set(requested_fields) - set(REPLAY_VALID_FIELD_SET))
     if invalid_fields:
-        return {"error": f"Invalid replay field(s): {', '.join(invalid_fields)}"}
+        return ExecuteQueryErrorResponse(
+            error=f"Invalid replay field(s): {', '.join(invalid_fields)}"
+        )
 
     date_params: dict[str, Any] = {}
     if start and end:
@@ -530,18 +547,20 @@ def execute_replays_query(
                 "field": e.args[0] if e.args else None,
             },
         )
-        return {"error": f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"}
+        return ExecuteQueryErrorResponse(
+            error=f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
+        )
     except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
         logger.exception(
             "execute_replays_query: bad request",
             extra={"org_id": organization_id, "query": query},
         )
-        return {"error": str(e)}
+        return ExecuteQueryErrorResponse(error=str(e))
 
-    return {
-        "data": processed_response,
-        "meta": {"source": response.source, "has_more": response.has_more},
-    }
+    return ExecuteQuerySuccessResponse(
+        data=processed_response,
+        meta={"source": response.source, "has_more": response.has_more},
+    )
 
 
 def get_trace_waterfall(
@@ -1126,11 +1145,11 @@ def _get_recommended_event(
                 )
                 return fallback_event or get_latest_event()
 
-            if result and result.get("data"):
+            if isinstance(result, ExecuteQuerySuccessResponse) and result.data:
                 # Return the first event with a span count greater than 0.
                 traces_with_spans = {
                     item["trace"]
-                    for item in result["data"]
+                    for item in result.data
                     if item.get("trace") and item.get(count_field, 0) > 0
                 }
 
