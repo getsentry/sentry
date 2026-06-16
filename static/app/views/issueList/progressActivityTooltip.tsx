@@ -20,6 +20,8 @@ import {ActivityMarker} from 'sentry/views/issueDetails/activitySection/activity
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
 
+// Only include activity items that describe issue progress changes. Other
+// activity types can be useful in the full activity feed, but are noise here.
 const PROGRESS_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.FIRST_SEEN,
   GroupActivityType.SEER_RCA_COMPLETED,
