@@ -35,6 +35,7 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
   Block,
+  SeerExplorerRunId,
   ToolCall,
   ToolLink,
   ToolResult,
@@ -53,7 +54,7 @@ type ToolFormatter = (
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId: number | null
+  runId: SeerExplorerRunId | null
 ): ApiQueryKey => [
   runId
     ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
@@ -1067,7 +1068,7 @@ export function useSeerExplorerDeepLink({
   callback,
   enabled = true,
 }: {
-  callback: (runId: number) => void;
+  callback: (runId: SeerExplorerRunId) => void;
   enabled?: boolean;
 }) {
   const location = useLocation();
@@ -1083,12 +1084,10 @@ export function useSeerExplorerDeepLink({
       return;
     }
 
-    const parsedRunId = Number(paramValue);
-    if (!Number.isNaN(parsedRunId)) {
-      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
-      navigate({...location, query: restQuery}, {replace: true});
-      callback(parsedRunId);
-    }
+    const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+    navigate({...location, query: restQuery}, {replace: true});
+    const numericRunId = Number(paramValue);
+    callback(Number.isNaN(numericRunId) ? paramValue : numericRunId);
   }, [location, navigate, callback, enabled]);
 }
 
@@ -1105,7 +1104,9 @@ export function getLangfuseUrl(runId: number | string): string {
   return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
 }
 
-export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOptions {
+export function getExplorerFeedbackOptions(
+  runId: SeerExplorerRunId | null
+): UseFeedbackOptions {
   return {
     formTitle: 'Seer Agent Feedback',
     messagePlaceholder: 'How can we make Seer better for you?',

@@ -20,6 +20,7 @@ import type {
   Block,
   RepoPRState,
   SeerExplorerResponse,
+  SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -30,6 +31,7 @@ import {
 type SeerExplorerChatResponse = {
   message: Block;
   run_id: number;
+  sentry_run_id?: string | null;
 };
 
 type SeerExplorerUpdateResponse = {
@@ -170,7 +172,7 @@ export const useSeerExplorer = () => {
       overrideCtxEngEnable: boolean;
       pageName: string;
       query: string;
-      runId: number | null;
+      runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
     }
   >({
@@ -209,8 +211,11 @@ export const useSeerExplorer = () => {
     },
     onSuccess: (response, params) => {
       if (params.runId === null) {
-        // set run ID if this is a new session
-        dispatch({type: 'set run id', payload: response.run_id});
+        // Prefer the UUID; fall back to the numeric run_id for legacy runs.
+        dispatch({
+          type: 'set run id',
+          payload: response.sentry_run_id ?? response.run_id,
+        });
       } else {
         // invalidate the query so fresh data is fetched
         queryClient.invalidateQueries({
@@ -243,7 +248,7 @@ export const useSeerExplorer = () => {
     {
       inputId: string;
       orgSlug: string;
-      runId: number | null;
+      runId: SeerExplorerRunId | null;
       responseData?: Record<string, any>;
     }
   >({
@@ -309,7 +314,7 @@ export const useSeerExplorer = () => {
   const {mutate: createPRMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
-    {orgSlug: string; runId: number | null; repoName?: string}
+    {orgSlug: string; runId: SeerExplorerRunId | null; repoName?: string}
   >({
     mutationFn: async params => {
       setHasSentInterrupt(false);
@@ -367,7 +372,7 @@ export const useSeerExplorer = () => {
     RequestError,
     {
       orgSlug: string;
-      runId: number | null;
+      runId: SeerExplorerRunId | null;
     }
   >({
     mutationFn: async params => {
@@ -405,7 +410,7 @@ export const useSeerExplorer = () => {
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
-    (newRunId: number | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
+    (newRunId: SeerExplorerRunId | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
       if (newRunId === runId) {
         return;
       }
@@ -436,7 +441,11 @@ export const useSeerExplorer = () => {
   );
 
   const sendMessage = useCallback(
-    (query: string, explicitInsertIndex?: number, explicitRunId?: number | null) => {
+    (
+      query: string,
+      explicitInsertIndex?: number,
+      explicitRunId?: SeerExplorerRunId | null
+    ) => {
       if (!orgSlug) {
         return;
       }
@@ -643,7 +652,6 @@ export const useSeerExplorer = () => {
     ];
 
     const baseSession = rawSessionData ?? {
-      run_id: runId ?? undefined,
       blocks: [],
       status: 'processing' as const,
       updated_at: new Date().toISOString(),

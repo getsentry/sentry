@@ -142,6 +142,8 @@ export type PendingUserInput = {
   input_type: 'file_change_approval' | 'ask_user_question';
 };
 
+export type SeerExplorerRunId = number | string;
+
 export type SeerExplorerResponse = {
   session: {
     blocks: Block[];
@@ -152,4 +154,5 @@ export type SeerExplorerResponse = {
     repo_pr_states?: Record<string, RepoPRState>;
     run_id?: number;
   } | null;
+  sentry_run_id?: string | null;
 };

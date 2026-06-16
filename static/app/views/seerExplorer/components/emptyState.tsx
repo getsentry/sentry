@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 const SUGGESTED_QUESTIONS = [
   t('Which of my open issues are getting worse, not better?'),
@@ -19,7 +20,7 @@ interface EmptyStateProps {
   isError?: boolean;
   isLoading?: boolean;
   onSuggestionClick?: (question: string) => void;
-  runId?: number | null;
+  runId?: SeerExplorerRunId | null;
 }
 
 export function EmptyState({

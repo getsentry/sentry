@@ -19,6 +19,7 @@ import {
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
@@ -152,7 +153,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   // Deep link effect while drawer closed (drawer content handles when open)
   const deepLinkCallback = useCallback(
-    (_runId: number) => openSeerExplorerDrawer({runId: _runId}),
+    (_runId: SeerExplorerRunId) => openSeerExplorerDrawer({runId: _runId}),
     [openSeerExplorerDrawer]
   );
 
