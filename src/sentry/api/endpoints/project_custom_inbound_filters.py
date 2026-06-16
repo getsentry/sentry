@@ -160,6 +160,7 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
     permission_classes = (ProjectSettingPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(
@@ -190,19 +191,6 @@ class CustomInboundFiltersEndpoint(ProjectEndpoint):
             ],
         )
 
-
-@cell_silo_endpoint
-@extend_schema(tags=["Projects"])
-class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
-    permission_classes = (ProjectSettingPermission,)
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
-    }
-
     @extend_schema(
         operation_id="Create a Custom Inbound Filter",
         parameters=[
@@ -217,7 +205,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, project: Project, filter_id: str) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         if denied := feature_access_denied(request, project):
             return denied
 
@@ -244,6 +232,18 @@ class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
         )
 
         return Response(serialize_project_custom_inbound_filter(custom_filter), status=201)
+
+
+@cell_silo_endpoint
+@extend_schema(tags=["Projects"])
+class CustomInboundFilterDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.UNOWNED
+    permission_classes = (ProjectSettingPermission,)
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
 
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",
