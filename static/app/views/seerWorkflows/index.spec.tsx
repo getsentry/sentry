@@ -475,4 +475,100 @@ describe('SeerWorkflows', () => {
       screen.queryByRole('option', {name: 'Feedback summary'})
     ).not.toBeInTheDocument();
   });
+
+  it('does not linkify the result for a failed run with an agent_run_id', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: 'No Seer quota available',
+          extras: {agent_run_id: 42},
+          issues: [],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    expect(await screen.findByText('Run failed')).toBeInTheDocument();
+    // Even with an agent_run_id present, a failed result must not become a link.
+    expect(screen.queryByRole('link', {name: /Run failed/})).not.toBeInTheDocument();
+  });
+
+  it('Status filter offers only Succeeded and Failed', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: /Status/}));
+
+    expect(screen.getByRole('option', {name: 'Succeeded'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Failed'})).toBeInTheDocument();
+    // toWorkflowRow never produces these statuses, so they aren't offered.
+    expect(screen.queryByRole('option', {name: 'Skipped'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Running'})).not.toBeInTheDocument();
+  });
+
+  it('expandLatest auto-expands the latest run visible under active filters', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        // Newest run overall, but failed — hidden by the status=succeeded filter.
+        {
+          id: 'newer-failed',
+          dateAdded: '2026-04-21T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: 'No Seer quota available',
+          extras: {},
+          issues: [],
+        },
+        // Older, succeeded run — the latest *visible* one once failures are hidden.
+        {
+          id: 'older-succeeded',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              action: 'autofix_triggered',
+              seerRunId: 'seer-1',
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/autofix/',
+          query: {expandLatest: 'agentic_triage', status: 'succeeded'},
+        },
+      },
+    });
+
+    // The newest run is filtered out, so the older succeeded run auto-expands
+    // (rather than nothing) — its issue drill-down shows without a click.
+    expect(await screen.findByText('Autofix queued')).toBeInTheDocument();
+  });
 });

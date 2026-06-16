@@ -198,11 +198,13 @@ function SeerWorkflows() {
     if (
       !expandLatest ||
       autoExpandedForRef.current === expandLatest ||
-      rows.length === 0
+      filteredRows.length === 0
     ) {
       return;
     }
-    const candidates = rows.filter(row => row.kind === expandLatest);
+    // Only auto-expand a run that's actually visible under the current filters,
+    // otherwise we'd set expansion state on a row hidden by status/period/etc.
+    const candidates = filteredRows.filter(row => row.kind === expandLatest);
     if (candidates.length === 0) {
       return;
     }
@@ -215,7 +217,7 @@ function SeerWorkflows() {
       return next;
     });
     autoExpandedForRef.current = expandLatest;
-  }, [expandLatest, rows]);
+  }, [expandLatest, filteredRows]);
 
   return (
     <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
@@ -463,11 +465,11 @@ function SourceIcon({source}: {source: string | undefined}) {
   );
 }
 
+// toWorkflowRow only ever derives 'succeeded' or 'failed' from a run, so only
+// offer those as filter choices — 'skipped'/'running' would never match.
 const STATUS_FILTER_OPTIONS: Array<{label: string; value: RunStatus}> = [
   {value: 'succeeded', label: 'Succeeded'},
   {value: 'failed', label: 'Failed'},
-  {value: 'skipped', label: 'Skipped'},
-  {value: 'running', label: 'Running'},
 ];
 
 const PERIOD_FILTER_OPTIONS: Array<{label: string; value: string}> = [
@@ -520,7 +522,9 @@ function ResultCell({
   row: WorkflowRow;
 }) {
   const content = getResultContent(row);
-  if (explorerRunId === null) {
+  // A failed run shows "Run failed" — don't turn that into a Seer Explorer link
+  // even if the run happens to carry an agent_run_id.
+  if (explorerRunId === null || row.status === 'failed') {
     return content;
   }
   return (
