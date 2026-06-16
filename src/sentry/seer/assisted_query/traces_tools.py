@@ -5,6 +5,7 @@ from sentry.api.client import ApiClient
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.sentry_data_models import AttributeNamesResponse, BuiltInField
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ def get_attribute_names(
     start: str | None = None,
     end: str | None = None,
     item_type: str = "spans",
-) -> dict:
+) -> AttributeNamesResponse:
     """
     Get attribute names for trace items by calling the public API endpoint.
 
@@ -160,9 +161,9 @@ def get_attribute_names(
 
         fields[attr_type] = [item["name"] for item in resp.data]
 
-    built_in_fields = _get_built_in_fields(item_type)
+    built_in_fields = [BuiltInField(**f) for f in _get_built_in_fields(item_type)]
 
-    return {"fields": fields, "built_in_fields": built_in_fields}
+    return AttributeNamesResponse(fields=fields, built_in_fields=built_in_fields)
 
 
 def get_attribute_values_with_substring(

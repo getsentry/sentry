@@ -201,3 +201,40 @@ class SpanAttribute(BaseModel):
 
 class SpanAttributesResponse(BaseModel):
     attributes: list[SpanAttribute]
+
+
+class BuiltInField(BaseModel):
+    key: str
+    type: str
+
+
+class AttributeNamesResponse(BaseModel):
+    fields: dict[str, list[str]]
+    built_in_fields: list[BuiltInField]
+
+
+class AttributeBucket(BaseModel):
+    value: str
+    count: float
+
+
+class AttributesAndValuesResponse(BaseModel):
+    attributes_and_values: dict[str, list[AttributeBucket]]
+
+
+class MetricMetadataRow(BaseModel):
+    name: str
+    type: str
+    unit: str
+    count: int
+
+
+class MetricMetadataSuccessResponse(BaseModel):
+    candidates: list[MetricMetadataRow]
+    has_more: bool
+
+
+class MetricMetadataErrorResponse(BaseModel):
+    candidates: list[MetricMetadataRow]
+    has_more: bool
+    error: str
