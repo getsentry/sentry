@@ -2,6 +2,7 @@ from sentry.models.group import Group
 from sentry.seer.fetch_issues import utils
 from sentry.seer.fetch_issues.by_error_type import _fetch_issues_from_repo_projects, fetch_issues
 from sentry.seer.fetch_issues.utils import get_repo_and_projects
+from sentry.seer.sentry_data_models import IssueDetails
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -76,7 +77,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
         # Assert latest event is returned
         issue_details = utils.get_latest_issue_event(group.id, self.organization.id)
-        assert issue_details is not None
+        assert isinstance(issue_details, IssueDetails)
         assert issue_details.id == group.id
         assert issue_details.title == "KeyError: This a bad error"
         assert len(issue_details.events) == 1
@@ -174,7 +175,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
         # Assert latest event is returned
         issue_details = utils.get_latest_issue_event(group_1.id, self.organization.id)
-        assert issue_details is not None
+        assert isinstance(issue_details, IssueDetails)
         assert issue_details.id == group_1.id
         assert issue_details.title == "KeyError: This a bad error"
         assert len(issue_details.events) == 1
@@ -239,7 +240,7 @@ class TestFetchIssuesByErrorType(APITestCase, SnubaTestCase):
 
         # Assert latest event is returned
         issue_details = utils.get_latest_issue_event(group.id, self.organization.id)
-        assert issue_details is not None
+        assert isinstance(issue_details, IssueDetails)
         assert issue_details.id == group.id
         assert issue_details.title == "KeyError: This a bad error"
         assert len(issue_details.events) == 1
