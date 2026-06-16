@@ -270,10 +270,13 @@ class EventFilterKeysResponse(BaseModel):
 class EventFilterKeyValue(BaseModel):
     # Subset of TagValueSerializerResponse — `get_event_filter_key_values` filters
     # the upstream dict to these four keys, so the wire shape only carries them.
+    # `lastSeen`/`firstSeen` arrive from the tags API as `datetime` objects and
+    # are stringified by DRF's JSON renderer at the dispatcher edge — typed as
+    # `Any` here so Pydantic doesn't reject the pre-render value.
     value: str
     count: int | None = None
-    lastSeen: str | None = None
-    firstSeen: str | None = None
+    lastSeen: Any = None
+    firstSeen: Any = None
 
 
 class EventFilterKeyValuesResponse(BaseModel):
@@ -309,12 +312,14 @@ class TagFilterKeyValue(BaseModel):
     # Full TagValueSerializerResponse shape. Built-in static results may only carry
     # `value`; tag/feature-flag merges fill in the rest. Field-declaration order
     # mirrors `TagValueSerializerResponse` so the wire byte order is preserved.
+    # `lastSeen`/`firstSeen` arrive as `datetime` objects pre-render — see
+    # `EventFilterKeyValue` for the rationale on `Any`.
     key: str | None = None
     name: str | None = None
     value: str
     count: int | None = None
-    lastSeen: str | None = None
-    firstSeen: str | None = None
+    lastSeen: Any = None
+    firstSeen: Any = None
     query: str | None = None
 
 
