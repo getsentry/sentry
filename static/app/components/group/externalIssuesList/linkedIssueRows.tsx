@@ -49,11 +49,7 @@ export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
 
 function LinkedIssueRow({linkedIssue}: LinkedIssueRowProps) {
   const title = linkedIssue.title || linkedIssue.displayName;
-  const displayTitle =
-    linkedIssue.displayName &&
-    !title.toLocaleLowerCase().includes(linkedIssue.displayName.toLocaleLowerCase())
-      ? linkedIssue.displayName
-      : title;
+  const displayTitle = linkedIssue.displayName || title;
   const hasHiddenTitle = displayTitle !== title;
 
   return (
