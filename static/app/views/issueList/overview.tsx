@@ -695,7 +695,9 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
+    if (hasRecommendedSort) {
+      setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
+    }
     transitionTo({sort: newSort});
   };
 
