@@ -2063,12 +2063,12 @@ def test_record_segment_loss_metrics_records_dropped_spans() -> None:
         ),
     )
 
-    mock_project = mock.Mock(organization_id=100)
+    mock_project = mock.Mock(id=1, organization_id=100)
     with (
         mock.patch("sentry.spans.buffer.Project") as project_model,
         mock.patch("sentry.spans.buffer.track_outcome") as track_outcome,
     ):
-        project_model.objects.get_from_cache.return_value = mock_project
+        project_model.objects.get_many_from_cache.return_value = [mock_project]
         buffer._record_segment_loss_metrics(
             [loaded_segment],
             now=0,
@@ -2121,7 +2121,11 @@ def test_record_segment_loss_metrics_records_empty_expired_segments(
     )
 
     with (
-        mock.patch.object(buffer.store, "get_current_queue_deadline", return_value=deadline),
+        mock.patch.object(
+            buffer.store,
+            "get_current_queue_deadlines",
+            return_value={segment_key: deadline},
+        ),
         mock.patch("sentry.spans.buffer.metrics.incr") as metrics_incr,
     ):
         buffer._record_segment_loss_metrics(

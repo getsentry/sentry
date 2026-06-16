@@ -153,6 +153,7 @@ def _make_rpc_requests(
 
     if referrers:
         sentry_sdk.set_tag("query.referrer", referrers[0])
+        sentry_sdk.set_attribute("query.referrer", referrers[0])
 
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(

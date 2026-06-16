@@ -32,7 +32,6 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    spans_indexed,
     spans_metrics,
     transactions,
 )
@@ -180,7 +179,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        spans_indexed,
                         spans_metrics,
                         Spans,
                         OurLogs,
@@ -198,6 +196,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+            sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
 
         try:
             use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
@@ -451,6 +450,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     if has_errors and has_other_data and not using_metrics:
                         # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                         sentry_sdk.set_tag("third_split_query", True)
+                        sentry_sdk.set_attribute("third_split_query", True)
                         transactions_only_query = f"({query}) AND event.type:transaction"
                         transaction_results = _get_event_stats(
                             discover,

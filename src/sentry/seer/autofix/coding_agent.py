@@ -24,6 +24,8 @@ from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
+from sentry.models.pullrequest import PullRequestAttributionSignalType
+from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.utils import (
     AutofixState,
     CodingAgentProviderType,
@@ -145,10 +147,19 @@ def poll_github_copilot_agents(
     autofix_state: AutofixState | None = None,
     user_id: int = 0,
     coding_agents: dict[str, Any] | None = None,
+    organization_id: int = 0,
+    run_id: int | None = None,
 ) -> None:
     agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
     if not agents:
         return
+
+    # Mirror poll_claude_code_agents: fall back to the run's org when a caller
+    # passes autofix_state without an explicit organization_id.
+    organization_id = organization_id or (
+        autofix_state.request.organization_id if autofix_state else 0
+    )
+    run_id = run_id if run_id is not None else (autofix_state.run_id if autofix_state else None)
 
     user_access_token: str | None = None
 
@@ -184,10 +195,17 @@ def poll_github_copilot_agents(
             client = GithubCopilotAgentClient(user_access_token)
             task_status = client.get_task_status(owner, repo, task_id)
 
-            # Find PR in artifacts - look for artifact with data.type == 'pull'
+            # Find PR and branch artifacts
             pr_artifact = next(
                 (a for a in (task_status.artifacts or []) if a.data and a.data.type == "pull"),
                 None,
+            )
+            branch_artifact = next(
+                (a for a in (task_status.artifacts or []) if a.type == "branch"),
+                None,
+            )
+            branch_name = (
+                branch_artifact.data.head_ref if branch_artifact and branch_artifact.data else None
             )
 
             if pr_artifact and pr_artifact.data and pr_artifact.data.global_id:
@@ -202,6 +220,7 @@ def poll_github_copilot_agents(
                         repo_provider="github",
                         repo_full_name=f"{owner}/{repo}",
                         pr_url=pr_url,
+                        branch_name=branch_name,
                     )
 
                     # The Copilot API uses `state` (not `status`) for task lifecycle.
@@ -215,6 +234,23 @@ def poll_github_copilot_agents(
                         status=new_status,
                         result=result,
                     )
+
+                    if is_task_done and pr_url:
+                        try:
+                            attribute_delegated_agent_pull_request(
+                                organization_id=organization_id,
+                                signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
+                                repo_full_name=f"{owner}/{repo}",
+                                repo_provider="github",
+                                pr_url=pr_url,
+                                agent_id=agent_id,
+                                run_id=run_id,
+                            )
+                        except Exception:
+                            logger.exception(
+                                "coding_agent.github_copilot.pr_attribution_failed",
+                                extra={"agent_id": agent_id, "pr_url": pr_url},
+                            )
 
                     logger.info(
                         "coding_agent.github_copilot.pr_update",
@@ -247,6 +283,7 @@ def poll_claude_code_agents(
     autofix_state: AutofixState | None = None,
     organization_id: int | None = None,
     coding_agents: dict[str, Any] | None = None,
+    run_id: int | None = None,
 ) -> None:
     """
     Poll Claude Code Agent sessions for status updates.
@@ -274,11 +311,15 @@ def poll_claude_code_agents(
         logger.warning("coding_agent.claude_code.no_client_class_configured")
         return
 
+    run_id = run_id if run_id is not None else (autofix_state.run_id if autofix_state else None)
+
     for agent_id, agent_state in agents.items():
-        poll_claude_agent(clients, agent_id, org_id, agent_state)
+        poll_claude_agent(clients, agent_id, org_id, agent_state, run_id=run_id)
 
 
-def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) -> None:
+def poll_claude_agent(
+    clients, agent_id, org_id, agent_state: CodingAgentState, run_id: int | None = None
+) -> None:
     if agent_state.provider != CodingAgentProviderType.CLAUDE_CODE_AGENT:
         return
 
@@ -314,6 +355,23 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
                 status=new_status,
                 result=result,
             )
+
+            if new_status == CodingAgentStatus.COMPLETED and result is not None and result.pr_url:
+                try:
+                    attribute_delegated_agent_pull_request(
+                        organization_id=org_id,
+                        signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+                        repo_full_name=result.repo_full_name,
+                        repo_provider=result.repo_provider,
+                        pr_url=result.pr_url,
+                        agent_id=agent_id,
+                        run_id=run_id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "coding_agent.claude_code.pr_attribution_failed",
+                        extra={"agent_id": agent_id, "pr_url": result.pr_url},
+                    )
 
         logger.info(
             "coding_agent.claude_code.poll_update",
@@ -379,15 +437,18 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
     return client
 
 
-def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | None, str | None]:
+def extract_result_from_events(
+    events: list[ClaudeSessionEvent],
+) -> tuple[str | None, str | None, str | None]:
     """Extract a GitHub PR or branch URL and its surrounding text block from session events.
 
     Returns:
-        Tuple of (url, text_block). text_block is the full text content of the agent
-        event block that contained the URL, suitable for display as a result description.
+        Tuple of (url, text_block, branch_name). branch_name is populated when the agent
+        returned a branch URL instead of a PR URL (i.e. auto_create_pr=False).
+        text_block is the full text content of the agent event block that contained the URL.
     """
     pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
-    branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
+    branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/([-\w./]*[-\w])")
 
     for event in reversed(events):
         if event.type != "agent.message":
@@ -397,12 +458,12 @@ def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | 
                 text = block.get("text", "")
                 pr_match = pr_pattern.search(text)
                 if pr_match:
-                    return pr_match.group(0), text
+                    return pr_match.group(0), text, None
                 branch_match = branch_pattern.search(text)
                 if branch_match:
-                    return branch_match.group(0), text
+                    return branch_match.group(0), text, branch_match.group(1)
 
-    return None, None
+    return None, None, None
 
 
 def build_result_from_events(
@@ -414,9 +475,10 @@ def build_result_from_events(
 ) -> tuple[Any | None, CodingAgentStatus]:
     result = None
     pr_url = None
+    branch_name = None
     description: str | None = None
     if new_status == CodingAgentStatus.COMPLETED:
-        pr_url, description = extract_result_from_events(events)
+        pr_url, description, branch_name = extract_result_from_events(events)
         if not pr_url:
             logger.warning(
                 "coding_agent.claude_code.no_result_url_in_response",
@@ -431,6 +493,7 @@ def build_result_from_events(
         )
         if result:
             result.description = description or ""
+            result.branch_name = branch_name
     except Exception:
         logger.exception(
             "coding_agent.claude_code.build_result_error",

@@ -23,7 +23,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, options, tsdb
+from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -175,7 +175,7 @@ def apply_cors_headers(
     # If the requesting origin is a subdomain of
     # the application's base-hostname we should allow cookies
     # to be sent.
-    basehost = options.get("system.base-hostname")
+    basehost = settings.SENTRY_BASE_HOSTNAME
     if basehost and origin:
         if "," not in origin and (
             origin.endswith(("://" + basehost, "." + basehost))
@@ -383,6 +383,9 @@ class Endpoint(APIView):
 
         if request.META.get("HTTP_REFERER"):
             sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER"))
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "http.referer", request.META.get("HTTP_REFERER", "")
+            )
 
         start_time = time.time()
 

@@ -147,6 +147,7 @@ class CodingAgentResult(BaseModel):
     repo_provider: str
     repo_full_name: str
     pr_url: str | None = None
+    branch_name: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
@@ -1029,9 +1030,10 @@ def update_coding_agent_state(
     status: CodingAgentStatus,
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
-) -> None:
+) -> bool:
     """Send coding agent state update to Seer.
 
+    Returns True if Seer accepted the update (2xx), False otherwise.
     Errors are logged and swallowed so that callers iterating over
     multiple agents are never interrupted by a single failed update.
     """
@@ -1053,7 +1055,7 @@ def update_coding_agent_state(
             "coding_agent.state_update_error",
             extra={"agent_id": agent_id},
         )
-        return
+        return False
 
     if response.status >= 400:
         logger.error(
@@ -1064,3 +1066,6 @@ def update_coding_agent_state(
                 "response": response.data.decode("utf-8"),
             },
         )
+        return False
+
+    return True

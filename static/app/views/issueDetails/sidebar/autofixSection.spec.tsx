@@ -19,7 +19,7 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 
 import {AutofixSection} from './autofixSection';
 
-jest.mock('sentry/utils/regions');
+jest.mock('sentry/utils/cells');
 
 describe('AutofixSection', () => {
   const mockEvent = EventFixture({
