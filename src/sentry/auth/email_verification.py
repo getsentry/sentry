@@ -8,7 +8,6 @@ from typing import Any
 
 from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpRequest
 from django.urls import reverse
 
 from sentry import options
@@ -23,22 +22,18 @@ DEFAULT_MAX_AGE_MINUTES = 120
 
 
 def send_signup_verification_email(
-    request: HttpRequest,
     email: str,
     max_age_minutes: int = DEFAULT_MAX_AGE_MINUTES,
 ) -> None:
     """
     Send a verification email for signup flows.
 
-    Signs {email, session_id, expires_at} into a URL-safe blob.
-    The recipient clicks the link to prove email ownership.
+    Signs {email, expires_at} into a URL-safe blob and emails the link.
+    Pure send function — callers are responsible for session state
+    (setting request.session[PENDING_VERIFICATION_SESSION_KEY])
     """
-    if not request.session.session_key:
-        request.session.create()
-
     payload = {
         "email": email,
-        "session_id": request.session.session_key,
         "expires_at": time.time() + (max_age_minutes * 60),
     }
     signed_data = sign(salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, **payload)
@@ -67,24 +62,25 @@ def send_signup_verification_email(
     )
 
 
-def unsign_signup_verification(signed_data: str, request: HttpRequest) -> dict[str, Any]:
+def unsign_signup_verification(signed_data: str) -> dict[str, Any]:
     """
     Verify and decode a signup verification link.
 
-    Returns the decoded payload dict with keys: email, session_id, expires_at.
+    Returns the decoded payload dict with keys: email, expires_at.
 
-    Because expiration varies, the send side embeds expires_at in the signed payload.
-    We unsign without checking expiration so we can use the value from the payload.
+    Because expiration varies by signup method, the send side embeds
+    expires_at in the signed payload and we check it here rather than
+    using TimestampSigner's max_age.
 
-    Raises BadSignature, SignatureExpired, ValueError on failure.
+    Session binding is the caller's responsibility — compare
+    payload["email"] against request.session[PENDING_VERIFICATION_SESSION_KEY].
+
+    Raises BadSignature if tampered, SignatureExpired if past expires_at.
     """
     try:
         payload = unsign(signed_data, salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, max_age=None)
     except binascii.Error as e:
-        # A malformed link is just an invalid signature to us.
         raise BadSignature("Malformed verification link") from e
     if time.time() > payload["expires_at"]:
         raise SignatureExpired("Verification link expired")
-    if payload["session_id"] != request.session.session_key:
-        raise ValueError("Session mismatch")
     return payload
