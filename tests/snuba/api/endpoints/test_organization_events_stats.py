@@ -198,6 +198,30 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    def test_errors_platform(self) -> None:
+        """Platform on errors should resolve to the column not the tag"""
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "timestamp": (self.day_ago + timedelta(minutes=1)).isoformat(),
+                "fingerprint": ["group1"],
+                "platform": "cocoa",
+            },
+            project_id=self.project.id,
+        )
+        response = self.do_request(
+            {
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "interval": "1h",
+                "dataset": "errors",
+                "query": "platform:cocoa",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 0}]]
+
     def test_errors_dataset_with_environment(self) -> None:
         environment = self.create_environment(project=self.project)
         self.store_event(
