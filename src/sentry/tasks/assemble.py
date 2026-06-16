@@ -278,7 +278,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
                 return
 
-            delete_file = False
+            # If `dif.file` is `None`, then this dif is Objectstore-backed, so we can clean up `file`.
+            delete_file = dif.file is None
 
             if created:
                 record_last_upload(project)
