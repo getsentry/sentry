@@ -20,30 +20,6 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
       featureList: FeatureListFixture(),
     };
   }
-  if (tier === PlanTier.MM1) {
-    return {
-      id: PlanTier.MM1,
-      freePlan: 'f1',
-      defaultPlan: 'm1',
-      defaultReserved: {errors: 1000000},
-      annualDiscount: 0.1,
-      planList: Object.values(MM1_PLANS),
-      featureList: FeatureListFixture(),
-    };
-  }
-
-  if (tier === PlanTier.MM2) {
-    return {
-      id: PlanTier.MM2,
-      freePlan: 'mm2_f',
-      defaultPlan: 'mm2_a_100k',
-      defaultReserved: {errors: 100000},
-      annualDiscount: 0.1,
-      planList: Object.values(MM2_PLANS),
-      featureList: FeatureListFixture(),
-    };
-  }
-
   if (tier === PlanTier.AM2) {
     return {
       id: PlanTier.AM2,

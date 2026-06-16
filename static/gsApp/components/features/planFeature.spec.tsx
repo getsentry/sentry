@@ -24,7 +24,7 @@ describe('PlanFeature', () => {
   it('provides the plan required for a feature', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -44,7 +44,7 @@ describe('PlanFeature', () => {
   it('provides the business plan', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -64,7 +64,7 @@ describe('PlanFeature', () => {
   it('provides no plan if the feature is not on a plan', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({organization, planTier: PlanTier.MM2});
+    const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
     render(
@@ -84,7 +84,6 @@ describe('PlanFeature', () => {
     const sub = SubscriptionFixture({
       organization,
       contractInterval: 'annual',
-      planTier: PlanTier.MM2,
     });
     SubscriptionStore.set(organization.slug, sub);
 

@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -32,7 +32,6 @@ import {
   getSlot,
   hasPartnerMigrationFeature,
   hasSomeBillingDetails,
-  isAm3Plan,
   isBizPlanFamily,
   isTeamPlanFamily,
   isTrialPlan,
@@ -721,7 +720,7 @@ export function getContentForPlan(plan: Plan): PlanContent {
         discover: t('Advanced analytics with Discover'),
         enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
         dashboard: t('Unlimited custom dashboards'),
-        ...(isAm3Plan(plan.id) && {
+        ...(plan.categories.includes(DataCategory.SPANS) && {
           application_insights: t('Application Insights'),
         }),
         advanced_filtering: t('Advanced server-side filtering'),

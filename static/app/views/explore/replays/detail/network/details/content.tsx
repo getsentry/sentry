@@ -53,6 +53,11 @@ export function NetworkDetailsContent(props: Props) {
           {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
             <Setup showSnippet={output} {...props} />
           )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>
+              {t('No response body was captured for this request.')}
+            </ParseError>
+          )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
         </OverflowFluidHeight>
       );
@@ -66,6 +71,11 @@ export function NetworkDetailsContent(props: Props) {
           )}
           {[Output.SETUP, Output.URL_SKIPPED, Output.BODY_SKIPPED].includes(output) && (
             <Setup showSnippet={output} {...props} />
+          )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>
+              {t('No response body was captured for this request.')}
+            </ParseError>
           )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="bodies" />}
           {output === Output.BODY_PARSE_ERROR && (
@@ -98,6 +108,9 @@ export function NetworkDetailsContent(props: Props) {
           </SectionList>
           {[Output.SETUP, Output.URL_SKIPPED, Output.DATA].includes(output) && (
             <Setup showSnippet={output} {...props} />
+          )}
+          {output === Output.INCOMPLETE && (
+            <ParseError>{t('No headers were captured for this request.')}</ParseError>
           )}
           {output === Output.UNSUPPORTED && <UnsupportedOp type="headers" />}
         </OverflowFluidHeight>

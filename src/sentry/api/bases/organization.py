@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, NotRequired, TypedDict, overload
+from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
 from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
-from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.exceptions import ParseError, PermissionDenied, ValidationError
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -16,12 +16,16 @@ from rest_framework.views import APIView
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.projects import ParsedProjectIdOrSlugParams, parse_id_or_slug_params
+from sentry.api.helpers.projects import (
+    ParsedProjectIdOrSlugParams,
+    ProjectIdOrSlugField,
+    parse_id_or_slug_params,
+)
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
@@ -45,6 +49,23 @@ from sentry.utils.sdk import bind_organization_context, set_span_attribute
 
 class NoProjects(Exception):
     pass
+
+
+class SingleProjectIdOrSlug(NamedTuple):
+    project_id: int | None
+    project_slug: str | None
+
+    @property
+    def project_ids(self) -> set[int] | None:
+        if self.project_id is None:
+            return None
+        return {self.project_id}
+
+    @property
+    def project_slugs(self) -> set[str] | None:
+        if self.project_slug is None:
+            return None
+        return {self.project_slug}
 
 
 class OrganizationPermission(DemoSafePermission):
@@ -532,6 +553,54 @@ class OrganizationEndpoint(Endpoint):
         if project_slug_params:
             query_params.pop("project", None)
         return query_params
+
+    def get_single_project_id_or_slug(
+        self,
+        project_id_or_slug: object,
+        *,
+        error_detail: str = "Invalid project",
+    ) -> SingleProjectIdOrSlug | None:
+        """
+        Parse one project ID-or-slug value for single-project endpoints.
+
+        Unlike get_projects(), this rejects all-project sentinels because callers
+        use the result to scope a lookup to exactly one project.
+        """
+        if project_id_or_slug is None or project_id_or_slug == "":
+            return None
+
+        try:
+            project = ProjectIdOrSlugField().run_validation(project_id_or_slug)
+        except ValidationError:
+            raise ParseError(detail=error_detail)
+
+        if project in (ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG):
+            raise ParseError(detail=error_detail)
+        if isinstance(project, int):
+            return SingleProjectIdOrSlug(project_id=project, project_slug=None)
+        return SingleProjectIdOrSlug(project_id=None, project_slug=project)
+
+    def get_single_project_id_or_slug_from_request(
+        self,
+        request: HttpRequest,
+        *,
+        error_detail: str = "Invalid project",
+    ) -> SingleProjectIdOrSlug | None:
+        """
+        Parse single-project filters from projectSlug or project query params.
+
+        projectSlug keeps its legacy precedence over project. Empty filters are
+        treated as absent, matching get_query_params_with_project_slug_precedence().
+        """
+        project_slug = request.GET.get("projectSlug")
+        if project_slug:
+            if project_slug in (str(ALL_ACCESS_PROJECT_ID), ALL_ACCESS_PROJECTS_SLUG):
+                raise ParseError(detail=error_detail)
+            return SingleProjectIdOrSlug(project_id=None, project_slug=project_slug)
+
+        return self.get_single_project_id_or_slug(
+            request.GET.get("project"), error_detail=error_detail
+        )
 
     def get_environments(
         self, request: Request, organization: Organization | RpcOrganization

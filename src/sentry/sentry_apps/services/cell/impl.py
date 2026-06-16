@@ -243,15 +243,20 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
 
         try:
-            external_issue = ExternalIssueCreator(
+            external_issue_creator = ExternalIssueCreator(
                 install=installation,
                 group=group,
                 web_url=web_url,
                 project=project,
                 identifier=identifier,
-            ).run()
+                user_id=user.id if user is not None else None,
+            )
+            external_issue, created = external_issue_creator.run()
         except SentryAppSentryError as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
+
+        if created:
+            external_issue_creator.create_issue_activity(external_issue)
 
         publish_action(
             CreatePlatformExternalIssueAction(

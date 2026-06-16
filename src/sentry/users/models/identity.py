@@ -111,15 +111,19 @@ class IdentityManager(BaseManager["Identity"]):
                 raise
             return self.reattach(idp, external_id, user, defaults)
 
-        analytics.record(
-            SlackIntegrationIdentityLinked(
-                provider=IntegrationProviderSlug.SLACK.value,
-                # Note that prior to circa March 2023 this was user.actor_id. It changed
-                # when actor ids were no longer stable between cells for the same user
-                actor_id=user.id,
-                actor_type="user",
+        if idp.type in (
+            IntegrationProviderSlug.SLACK.value,
+            IntegrationProviderSlug.SLACK_STAGING.value,
+        ):
+            analytics.record(
+                SlackIntegrationIdentityLinked(
+                    provider=IntegrationProviderSlug.SLACK.value,
+                    # Note that prior to circa March 2023 this was user.actor_id. It changed
+                    # when actor ids were no longer stable between cells for the same user
+                    actor_id=user.id,
+                    actor_type="user",
+                )
             )
-        )
         return identity
 
     def delete_identity(
