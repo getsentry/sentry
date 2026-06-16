@@ -26,4 +26,4 @@ export const PIXELS_PER_BUCKET = 10;
  * Scale used for the heat map's Z axis (the cell color). A logarithmic scale
  * handles the wide range of counts better than a linear one.
  */
-export const HEATMAP_SCALE = 'log' as const;
+export const HEATMAP_Z_AXIS_SCALE = 'log' as const;

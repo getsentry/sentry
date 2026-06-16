@@ -63,7 +63,7 @@ import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detail
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
-import {HEATMAP_SCALE} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
+import {HEATMAP_Z_AXIS_SCALE} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -514,7 +514,7 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
     <ChartWrapper autoHeightResize>
       <HeatMapWidgetVisualization
         plottables={[new HeatMap(heatmapResults)]}
-        scale={HEATMAP_SCALE}
+        scale={HEATMAP_Z_AXIS_SCALE}
         {...(traceMetric ? {makeExploreUrl} : {})}
       />
     </ChartWrapper>

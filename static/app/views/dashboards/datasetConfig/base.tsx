@@ -125,11 +125,22 @@ export type WidgetQueryParams = {
 };
 
 /**
- * Parameters for the heat map query hook. Heat maps reuse `widgetInterval`
- * for the X-axis time granularity and additionally need `yBuckets` — the
- * Y-axis bucket count derived from the rendered chart height.
+ * Parameters for the heat map query hook. Only includes the subset of
+ * `WidgetQueryParams` that applies to heat maps — they don't support sampling
+ * modes, MEP settings, limits, pagination, etc. Heat maps reuse `widgetInterval`
+ * for the X-axis time granularity and add `yBuckets`, the Y-axis bucket count
+ * derived from the rendered chart height.
  */
-export type HeatmapWidgetQueryParams = WidgetQueryParams & {
+export type HeatmapWidgetQueryParams = Pick<
+  WidgetQueryParams,
+  | 'enabled'
+  | 'organization'
+  | 'pageFilters'
+  | 'widget'
+  | 'dashboardFilters'
+  | 'skipDashboardFilterParens'
+  | 'widgetInterval'
+> & {
   yBuckets?: number;
 };
 

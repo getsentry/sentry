@@ -325,7 +325,7 @@ describe('useTraceMetricsHeatmapQuery', () => {
     PageFiltersStore.onInitializeUrlState(pageFilters);
   });
 
-  it('does not fetch until the chart is measured (yBuckets > 0)', () => {
+  it('does not fetch until the chart is measured, but reports loading', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-heatmap/',
       body: heatmapResponse,
@@ -342,8 +342,11 @@ describe('useTraceMetricsHeatmapQuery', () => {
       })
     );
 
+    // The query stays disabled until the chart is measured, but the hook still
+    // reports loading (like the series/table hooks) so the chart container
+    // doesn't need a heat-map-specific loading branch.
     expect(mockRequest).not.toHaveBeenCalled();
-    expect(result.current.loading).toBe(false);
+    expect(result.current.loading).toBe(true);
     expect(result.current.heatmapResults).toBeUndefined();
   });
 

@@ -476,7 +476,7 @@ export function useTraceMetricsHeatmapQuery(
   // gate on having the rendered dimensions needed to size the request.
   const heatmapEnabled = enabled && yBuckets > 0 && Boolean(widgetInterval);
 
-  const {data, isFetching, error} = useQuery(
+  const {data, error} = useQuery(
     metricHeatmapApiOptions({
       traceMetric: traceMetric ?? {name: '', type: '', unit: NONE_UNIT},
       enabled: heatmapEnabled,
@@ -502,15 +502,14 @@ export function useTraceMetricsHeatmapQuery(
     [data, traceMetric?.unit]
   );
 
-  if (!heatmapEnabled) {
-    return {loading: false, rawData: EMPTY_ARRAY};
-  }
-
   if (error) {
     return {loading: false, errorMessage: error.message, rawData: EMPTY_ARRAY};
   }
 
-  if (isFetching || !data) {
+  // No data yet: the request is in flight, or the chart hasn't been measured
+  // (so the query is still disabled). Report loading like the series/table
+  // hooks do, so the chart container needs no heat-map-specific loading branch.
+  if (!data) {
     return {loading: true, rawData: EMPTY_ARRAY};
   }
 

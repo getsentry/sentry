@@ -7,6 +7,9 @@ import {mapMetricUnitToFieldType} from 'sentry/views/explore/metrics/utils';
  * response meta carries no metric unit. Patch the Y axis with the selected
  * metric's unit/type so the chart formats values correctly (e.g. durations,
  * sizes) instead of rendering raw numbers.
+ *
+ * Ideally the backend would return the metric's unit in the response meta and
+ * this client-side patch wouldn't be needed.
  */
 export function mergeMetricUnit(
   series: HeatMapSeries,

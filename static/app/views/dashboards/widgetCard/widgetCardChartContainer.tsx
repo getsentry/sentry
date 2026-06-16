@@ -180,11 +180,7 @@ export function WidgetCardChartContainer({
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
 
-        // The heat map query can't fire until the container has been measured,
-        // so treat it as loading until then to avoid a "No data found" flash.
-        const isLoading = loading || (isHeatmap && (!yBuckets || yBuckets <= 0));
-
-        const errorOrEmptyMessage = isLoading
+        const errorOrEmptyMessage = loading
           ? errorMessage
           : getErrorOrEmptyMessage(
               errorMessage,
@@ -214,7 +210,7 @@ export function WidgetCardChartContainer({
               tableResults={tableResults}
               heatmapResults={heatmapResults}
               errorMessage={errorOrEmptyMessage}
-              loading={isLoading}
+              loading={loading}
               widget={widget}
               selection={selection}
               isMobile={isMobile}
