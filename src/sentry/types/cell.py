@@ -96,9 +96,6 @@ class Cell:
     and `system.region-api-url-template`
     """
 
-    # TODO(cells): Remove once getsentry updated to no longer pass this
-    category: RegionCategory | None = None
-
     api_gateway_address: str | None = None
     """optional address for API gateway traffic."""
 
