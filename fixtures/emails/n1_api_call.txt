@@ -24,6 +24,7 @@ Tags
 * effectiveConnectionType = 4g
 * environment = production
 * hardwareConcurrency = 10
+* interface_type = spans
 * lcp.element = body &gt; div#__next &gt; h1
 * lcp.size = 5738
 * level = info
