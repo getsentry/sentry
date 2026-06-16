@@ -44,7 +44,7 @@ def test_parse_timestamp_error() -> None:
 class TestFormatDuration:
     FLOOR_DURATION_CASES = [
         (0, "0 seconds"),
-        (0.5, "0 seconds"),
+        (0.5, "30 seconds"),
         (1, "1 minute"),
         (59, "59 minutes"),
         (60, "1 hour"),
@@ -61,6 +61,7 @@ class TestFormatDuration:
         assert format_duration(minutes) == expected
 
     EXACT_DURATION_CASES = [
+        (0.5, "0 minutes"),
         (1, "1 minute"),
         (10, "10 minutes"),
         (60, "1 hour"),

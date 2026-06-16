@@ -37,7 +37,8 @@ def format_duration(minutes: int | float, floor_to_largest_unit: bool = True) ->
     and any remainder is dropped. (90 -> "1 hour", 1500 -> "1 day")
 
     floor_to_largest_unit=False: duration is rendered exactly, only promoted to hours
-    when it divides evenly, otherwise it stays in minutes. (90 -> "90 minutes", 120 -> "2 hours")
+    when it divides evenly, otherwise it stays in MINUTES (does not have seconds resolution).
+    (90 -> "90 minutes", 120 -> "2 hours", 0.5 -> "0 minutes")
     """
     if not floor_to_largest_unit:
         if minutes >= 60 and minutes % 60 == 0:
@@ -55,7 +56,7 @@ def format_duration(minutes: int | float, floor_to_largest_unit: bool = True) ->
     if minutes >= 1:
         minutes = int(minutes)
         return f"{minutes:d} minute{pluralize(minutes)}"
-    seconds = int(minutes // 60)
+    seconds = int(minutes * 60)
     return f"{seconds:d} second{pluralize(seconds)}"
 
 
