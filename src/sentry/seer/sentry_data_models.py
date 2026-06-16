@@ -253,3 +253,113 @@ class RepositoryDefinitionResponse(BaseModel):
     owner: str
     name: str
     external_id: str | None
+
+
+class EventFilterKeyEntry(BaseModel):
+    type: str
+
+
+class EventFilterKeysResponse(BaseModel):
+    __root__: dict[str, EventFilterKeyEntry]
+
+    def dict(self, **kwargs: Any) -> Any:
+        # Unwrap to the bare `{key: {...}}` map the seer caller expects.
+        return {k: v.dict(**kwargs) for k, v in self.__root__.items()}
+
+
+class EventFilterKeyValue(BaseModel):
+    # Subset of TagValueSerializerResponse — `get_event_filter_key_values` filters
+    # the upstream dict to these four keys, so the wire shape only carries them.
+    # `value` matches `TagValueSerializerResponse.value` (`str | None`); the
+    # tag-values endpoint can return `value: null` and the pre-typed code passed
+    # those rows through verbatim. `lastSeen`/`firstSeen` arrive from the tags
+    # API as `datetime` objects and are stringified by DRF's JSON renderer at the
+    # dispatcher edge — typed as `Any` so Pydantic doesn't reject the pre-render
+    # value.
+    value: str | None
+    count: int | None = None
+    lastSeen: Any = None
+    firstSeen: Any = None
+
+
+class EventFilterKeyValuesResponse(BaseModel):
+    __root__: list[EventFilterKeyValue]
+
+    def dict(self, **kwargs: Any) -> Any:
+        # Built-in / static paths return `[{"value": x}]` — `exclude_unset` keeps the
+        # output minimal so count/lastSeen/firstSeen don't appear as None.
+        kwargs.setdefault("exclude_unset", True)
+        return [v.dict(**kwargs) for v in self.__root__]
+
+    # List-like proxy: callers iterate the response as if it were the underlying
+    # `list[dict]` it serializes to. The wire shape lives in `.dict()`.
+    def __iter__(self) -> Any:
+        return iter(self.dict())
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+    def __getitem__(self, idx: int) -> Any:
+        return self.dict()[idx]
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, list):
+            return self.dict() == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
+
+
+class TagFilterKeyValue(BaseModel):
+    # Full TagValueSerializerResponse shape. Built-in static results may only carry
+    # `value`; tag/feature-flag merges fill in the rest. Field-declaration order
+    # mirrors `TagValueSerializerResponse` so the wire byte order is preserved.
+    # `lastSeen`/`firstSeen` arrive as `datetime` objects pre-render — see
+    # `EventFilterKeyValue` for the rationale on `Any`.
+    key: str | None = None
+    name: str | None = None
+    value: str
+    count: int | None = None
+    lastSeen: Any = None
+    firstSeen: Any = None
+    query: str | None = None
+
+
+class FilterKeyValuesResponse(BaseModel):
+    __root__: list[TagFilterKeyValue]
+
+    def dict(self, **kwargs: Any) -> Any:
+        kwargs.setdefault("exclude_unset", True)
+        return [v.dict(**kwargs) for v in self.__root__]
+
+    def __iter__(self) -> Any:
+        return iter(self.dict())
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+    def __getitem__(self, idx: int) -> Any:
+        return self.dict()[idx]
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, list):
+            return self.dict() == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
+
+
+class IssueFilterBuiltInField(BaseModel):
+    key: str
+    values: list[str]
+
+
+class IssueFilterKeysResponse(BaseModel):
+    # `tags`/`feature_flags` items are the `TagKeySerializerResponse` shape passed
+    # through verbatim from the tags API. Top-level field names are typed for SDK
+    # consumers; item shape stays opaque to preserve the upstream wire bytes.
+    tags: list[dict[str, Any]]
+    feature_flags: list[dict[str, Any]]
+    built_in_fields: list[IssueFilterBuiltInField]
