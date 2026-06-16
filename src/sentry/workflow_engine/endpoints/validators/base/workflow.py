@@ -198,14 +198,14 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         validator = BaseDataConditionGroupValidator(context=self.context)
 
         condition_group_id = condition_group_data.get("id")
-        if instance and condition_group_id and condition_group_id != str(instance.id):
+        if instance and condition_group_id and condition_group_id != instance.id:
             raise serializers.ValidationError(
                 f"Invalid Condition Group ID {condition_group_data.get('id')}"
             )
 
         # If an instance is provided but no id in the data, use the instance's id to ensure we update the existing condition group
         if instance and not condition_group_id:
-            condition_group_data["id"] = str(instance.id)
+            condition_group_data["id"] = instance.id
 
         actions = condition_group_data.pop("actions", None)
         condition_group = self._update_or_create(
