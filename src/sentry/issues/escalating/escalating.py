@@ -27,6 +27,8 @@ from snuba_sdk import (
 )
 
 from sentry import options
+from sentry.issues.action_log import ActionSource, publish_action
+from sentry.issues.action_log.types import EscalatingAction, UnresolveAction
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
@@ -564,6 +566,12 @@ def manage_issue_states(
             Activity.objects.create_group_activity(
                 group=group, type=ActivityType.SET_ESCALATING, data=data
             )
+            publish_action(
+                EscalatingAction(),
+                source=ActionSource.SYSTEM,
+                group_id=group.id,
+                project=group.project,
+            )
             auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
@@ -585,6 +593,12 @@ def manage_issue_states(
 
             Activity.objects.create_group_activity(
                 group=group, type=ActivityType.SET_UNRESOLVED, data=data, send_notification=False
+            )
+            publish_action(
+                UnresolveAction(),
+                source=ActionSource.SYSTEM,
+                group_id=group.id,
+                project=group.project,
             )
 
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:

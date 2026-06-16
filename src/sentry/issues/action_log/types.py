@@ -80,6 +80,7 @@ class GroupActionType(IntEnum):
     CREATE_PLATFORM_EXTERNAL_ISSUE = 21
     LINK_PLATFORM_EXTERNAL_ISSUE = 22
     UNLINK_PLATFORM_EXTERNAL_ISSUE = 23
+    ESCALATING = 24
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -112,6 +113,12 @@ class UnresolveAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNRESOLVE
+
+
+class EscalatingAction(GroupAction):
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.ESCALATING
 
 
 class ArchiveAction(GroupAction):

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.issues.action_log import ActionSource
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _query_groups_past_counts_eap,
@@ -16,12 +17,13 @@ from sentry.issues.escalating.escalating import (
     get_group_hourly_count_eap,
     get_group_hourly_count_snuba,
     is_escalating,
+    manage_issue_states,
     query_groups_past_counts,
 )
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupinbox import GroupInbox
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
     PerformanceIssueTestCase,
@@ -439,3 +441,37 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         # return exactly one bucket with count 2.
         assert len(snuba_results) == len(eap_results) == 1
         assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 2
+
+
+class TestManageIssueStatesActionLog(TestCase):
+    def _action_records(self, logs: Any, group: Group) -> list[Any]:
+        return [
+            r
+            for r in logs.records
+            if r.message == "group.action_log" and getattr(r, "group_id") == str(group.id)
+        ]
+
+    def test_escalating_records_escalate_action(self) -> None:
+        group = self.create_group(status=GroupStatus.IGNORED)
+
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            manage_issue_states(group, GroupInboxReason.ESCALATING)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        records = self._action_records(logs, group)
+        assert "escalating" in {getattr(r, "action") for r in records}
+        # Attributed to the system, never the unknown fallback.
+        assert {getattr(r, "source") for r in records} == {ActionSource.SYSTEM}
+
+    def test_ongoing_records_unresolve_action(self) -> None:
+        group = self.create_group(status=GroupStatus.IGNORED)
+
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            manage_issue_states(group, GroupInboxReason.ONGOING)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        records = self._action_records(logs, group)
+        assert {getattr(r, "action") for r in records} == {"unresolve"}
+        assert {getattr(r, "source") for r in records} == {ActionSource.SYSTEM}
