@@ -53,9 +53,6 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_custominboundfilter",
-                "indexes": [
-                    models.Index(fields=["project", "id"], name="sentry_cif_project_id_idx")
-                ],
             },
         ),
     ]

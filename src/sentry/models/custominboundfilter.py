@@ -20,8 +20,5 @@ class CustomInboundFilter(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_custominboundfilter"
-        indexes = [
-            models.Index(fields=["project", "id"], name="sentry_cif_project_id_idx"),
-        ]
 
     __repr__ = sane_repr("project_id", "name")
