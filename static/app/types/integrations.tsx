@@ -489,10 +489,10 @@ export type IntegrationIssueConfig = {
 
 /**
  * Project Plugins
+ * Deprecated: legacy plugin system is being removed.
  */
 export type PluginNoProject = {
   canDisable: boolean;
-  // TODO(ts)
   contexts: any[];
   doc: string;
   featureDescriptions: IntegrationFeature[];
@@ -515,7 +515,6 @@ export type PluginNoProject = {
   firstPartyAlternative?: string;
   issue?: {
     issue_id: string;
-    // TODO(TS): Label can be an object, unknown shape
     label: string | any;
     url: string;
   };
@@ -540,11 +539,7 @@ export type PluginWithProjectList = PluginNoProject & {
   projectList: PluginProjectItem[];
 };
 
-export type AppOrProviderOrPlugin =
-  | SentryApp
-  | IntegrationProvider
-  | PluginWithProjectList
-  | DocIntegration;
+export type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | DocIntegration;
 
 export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 
