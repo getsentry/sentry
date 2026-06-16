@@ -10,6 +10,7 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
+import sentry_sdk.client
 from django.conf import settings
 from django.db.utils import OperationalError
 from rest_framework.request import Request
@@ -20,6 +21,9 @@ from sentry_sdk import Scope, capture_exception, capture_message, isolation_scop
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
+from sentry_sdk.traces import NoOpStreamedSpan, StreamedSpan
+from sentry_sdk.tracing import NoOpSpan, Span, Transaction
+from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
 from sentry_sdk.utils import logger as sdk_logger
@@ -34,6 +38,8 @@ from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
+    from sentry_sdk.tracing import TransactionKwargs
+
     from sentry.models.organization import Organization
     from sentry.organizations.services.organization import RpcOrganization
 
@@ -694,7 +700,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", name="bind_organization_context"):
+    with start_span(op="other", name="bind_organization_context"):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -769,6 +775,13 @@ def get_trace_id():
 
 
 def set_span_attribute(data_name, value):
+    span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
+    if span_streaming:
+        span = sentry_sdk.traces.get_current_span()
+        if span is not None:
+            span.set_attribute(data_name, value)
+        return
+
     span = sentry_sdk.get_current_span()
     if span is not None:
         span.set_data(data_name, value)
@@ -784,6 +797,72 @@ def merge_context_into_scope(
 
     existing_context = scope._contexts.setdefault(context_name, {})
     existing_context.update(context_data)
+
+
+def start_span(
+    *,
+    name: str,
+    op: str | None = None,
+    sampled: bool | None = None,
+    transaction: bool = False,
+) -> Transaction | NoOpSpan | StreamedSpan | Span:
+    """
+    Starts and returns a streamed span if the streaming trace lifecycle is enabled. Otherwise, starts and returns a transaction or child span.
+
+    Accepts the minimum set of arguments currently used by this repo's `sentry_sdk.start_span()` and `sentry_sdk.start_transaction()` call sites.
+    """
+    span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
+    if span_streaming and sampled is not False and transaction:
+        return sentry_sdk.traces.start_span(
+            name=name,
+            attributes={} if op is None else {"sentry.op": op},
+            parent_span=None,
+        )
+    elif span_streaming and sampled is not False:
+        return sentry_sdk.traces.start_span(
+            name=name,
+            attributes={} if op is None else {"sentry.op": op},
+        )
+    elif span_streaming:
+        return NoOpStreamedSpan(
+            scope=sentry_sdk.get_current_scope(),
+            unsampled_reason="sample_rate",
+        )
+
+    if transaction:
+        kwargs: TransactionKwargs = {"name": name}
+        if op is not None:
+            kwargs["op"] = op
+
+        if sampled is not None:
+            kwargs["sampled"] = sampled
+
+        return sentry_sdk.start_transaction(**kwargs)
+
+    return sentry_sdk.start_span(
+        name=name,
+        op=op,
+    )
+
+
+def set_span_tag(span: Span | StreamedSpan, key: str, value: Any) -> None:
+    """
+    Sets an attribute on a span if the streaming trace lifecycle is enabled. Otherwise, sets a tag on the span.
+    """
+    if isinstance(span, StreamedSpan):
+        span.set_attribute(key, value)
+    else:
+        span.set_tag(key, value)
+
+
+def set_span_data(span: Span | StreamedSpan, key: str, value: Any) -> None:
+    """
+    Sets an attribute on a span if the streaming trace lifecycle is enabled. Otherwise, sets data on the span.
+    """
+    if isinstance(span, StreamedSpan):
+        span.set_attribute(key, value)
+    else:
+        span.set_data(key, value)
 
 
 __all__ = (
