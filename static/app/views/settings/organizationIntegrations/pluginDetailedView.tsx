@@ -377,10 +377,7 @@ function PluginDetailedView() {
   const organization = useOrganization();
   const location = useLocation();
 
-  if (
-    integrationSlug === 'webhooks' &&
-    organization.features.includes('legacy-webhook-ui')
-  ) {
+  if (integrationSlug === 'webhooks') {
     return (
       <Redirect
         to={

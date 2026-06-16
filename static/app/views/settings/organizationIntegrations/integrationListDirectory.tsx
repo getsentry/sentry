@@ -156,15 +156,11 @@ function useIntegrationList() {
     isError: isDocIntegrationsError,
   } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
-  const hasLegacyWebhookUI = organization.features.includes('legacy-webhook-ui');
   const {
     data: legacyWebhooks,
     isPending: isLegacyWebhooksPending,
     isError: isLegacyWebhooksError,
-  } = useQuery({
-    ...legacyWebhooksQueryOptions(organization),
-    enabled: hasLegacyWebhookUI,
-  });
+  } = useQuery(legacyWebhooksQueryOptions(organization));
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
   const extraAppQuery = useQuery(sentryAppApiOptions({appSlug: extraAppSlug}));
@@ -181,7 +177,7 @@ function useIntegrationList() {
     isPluginsPending ||
     isDocIntegrationsPending ||
     isExtraAppPending ||
-    (hasLegacyWebhookUI && isLegacyWebhooksPending);
+    isLegacyWebhooksPending;
 
   const anyError =
     isConfigError ||
@@ -192,7 +188,7 @@ function useIntegrationList() {
     isPluginsError ||
     isDocIntegrationsError ||
     isExtraAppError ||
-    (hasLegacyWebhookUI && isLegacyWebhooksError);
+    isLegacyWebhooksError;
 
   const sentryAppList = useMemo(() => {
     const list = orgOwnedApps ?? [];
@@ -206,9 +202,6 @@ function useIntegrationList() {
   }, [orgOwnedApps, extraApp, publishedApps]);
 
   const filteredPlugins = useMemo(() => {
-    if (!hasLegacyWebhookUI) {
-      return plugins;
-    }
     const webhookEntry: PluginWithProjectList = {
       ...LEGACY_WEBHOOK_PLUGIN,
       projectList:
@@ -222,7 +215,7 @@ function useIntegrationList() {
         })) ?? [],
     };
     return [...plugins.filter(p => p.slug !== 'webhooks'), webhookEntry];
-  }, [plugins, hasLegacyWebhookUI, legacyWebhooks]);
+  }, [plugins, legacyWebhooks]);
 
   const list = useMemo(() => {
     return [
@@ -245,7 +238,6 @@ function useIntegrationList() {
     plugins: filteredPlugins,
     publishedApps,
     list,
-    hasLegacyWebhookUI,
   };
 }
 
@@ -254,16 +246,8 @@ export default function IntegrationListDirectory() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const {
-    appInstalls,
-    anyPending,
-    integrations,
-    list,
-    anyError,
-    publishedApps,
-    plugins,
-    hasLegacyWebhookUI,
-  } = useIntegrationList();
+  const {appInstalls, anyPending, integrations, list, anyError, publishedApps, plugins} =
+    useIntegrationList();
 
   const category = decodeScalar(location.query.category) ?? '';
   const search = decodeScalar(location.query.search) ?? '';
@@ -477,11 +461,7 @@ export default function IntegrationListDirectory() {
 
   const renderIntegration = useCallback(
     (integration: AppOrProviderOrPlugin) => {
-      if (
-        hasLegacyWebhookUI &&
-        isPlugin(integration) &&
-        integration.slug === 'webhooks'
-      ) {
+      if (isPlugin(integration) && integration.slug === 'webhooks') {
         return (
           <IntegrationRow
             key="row-legacy-webhooks"
@@ -509,14 +489,7 @@ export default function IntegrationListDirectory() {
       }
       return renderProvider(integration);
     },
-    [
-      renderSentryApp,
-      renderPlugin,
-      renderDocIntegration,
-      renderProvider,
-      hasLegacyWebhookUI,
-      organization,
-    ]
+    [renderSentryApp, renderPlugin, renderDocIntegration, renderProvider, organization]
   );
 
   if (anyPending) {
