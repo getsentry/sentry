@@ -366,7 +366,7 @@ def execute_trace_table_query(
     end: str | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
     case_insensitive: bool | None = None,
-) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse:
+) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a query to get trace samples by passing through the OrganizationTracesEndpoint.
     This endpoint does not support any kind of aggregation.
@@ -377,7 +377,14 @@ def execute_trace_table_query(
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
         Start/end params take precedence over stats_period. Default time range is the last 24 hours.
     """
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "execute_trace_table_query: Organization not found",
+            extra={"org_id": organization_id},
+        )
+        return None
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
 
