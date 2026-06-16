@@ -150,7 +150,7 @@ AGENT_SKILLS_INDEX: dict[str, list[object]] = {"skills": []}
 
 
 def _saas_only_json_response(request, payload, content_type="application/json"):
-    if settings.SENTRY_MODE == SentryMode.SELF_HOSTED or request.subdomain:
+    if settings.SENTRY_MODE != SentryMode.SAAS or request.subdomain:
         return HttpResponse(status=404)
     response = HttpResponse(json.dumps(payload), content_type=content_type)
     response["Access-Control-Allow-Origin"] = "*"

@@ -717,8 +717,12 @@ class ApiCatalogTest(TestCase):
         data = json.loads(response.content)
         assert "linkset" in data
 
-    def test_self_hosted_mode(self) -> None:
+    def test_non_saas_mode_returns_404(self) -> None:
         with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/api-catalog")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
             response = self.client.get("/.well-known/api-catalog")
         assert response.status_code == 404
 
@@ -747,8 +751,12 @@ class OauthAuthorizationServerTest(TestCase):
         assert isinstance(data["scopes_supported"], list)
         assert "org:read" in data["scopes_supported"]
 
-    def test_self_hosted_mode(self) -> None:
+    def test_non_saas_mode_returns_404(self) -> None:
         with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/oauth-authorization-server")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
             response = self.client.get("/.well-known/oauth-authorization-server")
         assert response.status_code == 404
 
@@ -775,8 +783,12 @@ class OauthProtectedResourceTest(TestCase):
         assert isinstance(data["scopes_supported"], list)
         assert "org:read" in data["scopes_supported"]
 
-    def test_self_hosted_mode(self) -> None:
+    def test_non_saas_mode_returns_404(self) -> None:
         with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/oauth-protected-resource")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
             response = self.client.get("/.well-known/oauth-protected-resource")
         assert response.status_code == 404
 
@@ -802,8 +814,12 @@ class McpServerCardTest(TestCase):
         assert data["name"] == "Sentry"
         assert data["url"] == "https://mcp.sentry.dev/mcp"
 
-    def test_self_hosted_mode(self) -> None:
+    def test_non_saas_mode_returns_404(self) -> None:
         with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/mcp/server-card.json")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
             response = self.client.get("/.well-known/mcp/server-card.json")
         assert response.status_code == 404
 
@@ -828,8 +844,12 @@ class AgentSkillsIndexTest(TestCase):
         data = json.loads(response.content)
         assert data == {"skills": []}
 
-    def test_self_hosted_mode(self) -> None:
+    def test_non_saas_mode_returns_404(self) -> None:
         with override_settings(SENTRY_MODE="self_hosted"):
+            response = self.client.get("/.well-known/agent-skills/index.json")
+        assert response.status_code == 404
+
+        with override_settings(SENTRY_MODE="single_tenant"):
             response = self.client.get("/.well-known/agent-skills/index.json")
         assert response.status_code == 404
 
@@ -855,8 +875,11 @@ class AgentDiscoveryMiddlewareTest(TestCase):
 
         assert "api-catalog" not in response.get("Link", "")
 
-    def test_self_hosted_no_link_header(self) -> None:
+    def test_non_saas_no_link_header(self) -> None:
         with override_settings(SENTRY_MODE="self_hosted"):
             response = self.client.get("/")
+        assert "api-catalog" not in response.get("Link", "")
 
+        with override_settings(SENTRY_MODE="single_tenant"):
+            response = self.client.get("/")
         assert "api-catalog" not in response.get("Link", "")
