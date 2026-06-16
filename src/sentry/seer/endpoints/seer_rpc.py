@@ -933,6 +933,10 @@ def deliver_feature_result(
 
 def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
     """Refresh the access token for a monitoring provider identity."""
+    if not settings.SEER_GHE_ENCRYPT_KEY:
+        logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
+        return {"error": "encryption_failed"}
+
     identity = identity_service.get_identity(filter={"id": identity_id})
     if identity is None:
         return {"error": "identity_not_found"}
