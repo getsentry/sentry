@@ -29,7 +29,6 @@ from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -638,13 +637,7 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
-    group_ids = list(
-        GroupLink.objects.filter(
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=pr.id,
-        ).values_list("group_id", flat=True)
-    )
+    group_ids = resolved_group_ids(pr)
     if not group_ids:
         return
 
