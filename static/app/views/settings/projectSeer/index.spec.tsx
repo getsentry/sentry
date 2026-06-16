@@ -250,6 +250,7 @@ describe('ProjectSeer', () => {
     // Find input field and type a branch name (auto-saves via debounce)
     const branchInput = screen.getByPlaceholderText('Default branch');
     await userEvent.type(branchInput, 'develop');
+    await userEvent.tab(); // blur triggers AutoSaveForm submit
 
     await waitFor(() => {
       expect(seerRepoPutRequest).toHaveBeenCalledWith(
