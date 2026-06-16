@@ -32,9 +32,6 @@ export function useSentryAppExternalIssues({
   });
   const sentryAppComponents = useSentryAppComponentsStore({componentType: 'issue-link'});
   const sentryAppInstallations = useLegacyStore(SentryAppInstallationStore);
-  const hasLinkedPullRequestsFeature = organization.features.includes(
-    'issue-details-linked-pull-requests'
-  );
 
   const result: GroupIntegrationIssueResult = {
     integrations: [],
@@ -60,16 +57,16 @@ export function useSentryAppExternalIssues({
       <SentryAppComponentIcon sentryAppComponent={component} size={14} />
     );
     if (externalIssue) {
-      const title =
-        hasLinkedPullRequestsFeature || externalIssue.displayName.includes(appDisplayName)
-          ? externalIssue.displayName
-          : `${appDisplayName}: ${externalIssue.displayName}`;
-
       result.linkedIssues.push({
         key: `sentryapp-linked-${externalIssue.id}`,
         displayName: externalIssue.displayName,
         url: externalIssue.webUrl,
-        title,
+        // Some display names look like PROJ#1234
+        // Others look like ClickUp: Title
+        // Add the integration name if it's not already included
+        title: externalIssue.displayName.includes(appDisplayName)
+          ? externalIssue.displayName
+          : `${appDisplayName}: ${externalIssue.displayName}`,
         displayIcon,
         onUnlink: () => {
           deleteExternalIssue(api, organization.slug, group.id, externalIssue.id)
