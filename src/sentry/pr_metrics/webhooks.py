@@ -627,7 +627,7 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
     provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
     # Our candidates are PRs from delegated agents
     # That explicitly address a Sentry issue
-    if provider_hint is not None and resolved_group_ids(pr):
+    if provider_hint is not None and resolved_group_ids(pr, include_groups_from_commits=True):
         # TODO: Fire-and-forget request to Seer when the match endpoint exists.
         # We will send: provider_hint, github_login, head_ref
         sentry_sdk.metrics.count(
