@@ -16,6 +16,7 @@ from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
 from sentry.constants import DataCategory
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
@@ -768,8 +769,15 @@ def project_past_resolved_issues(
 
         group_id_to_group = {g.id: g for g in candidates}
 
-        error_group_ids = [g.id for g in candidates if g.type is None or g.type < 1000]
-        perf_group_ids = [g.id for g in candidates if g.type is not None and 1000 <= g.type < 2000]
+        # Legacy groups may have a None .type which crashes issue_category and treat as error group
+        error_group_ids = [
+            g.id for g in candidates if g.type is None or g.issue_category == GroupCategory.ERROR
+        ]
+        perf_group_ids = [
+            g.id
+            for g in candidates
+            if g.type is not None and g.issue_category == GroupCategory.PERFORMANCE
+        ]
 
         event_counts: dict[int, int] = {}
 
