@@ -111,6 +111,24 @@ describe('ProjectSeer', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      method: 'GET',
+      body: [
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          agent: 'seer',
+          integrationId: null,
+          stoppingPoint: 'root_cause',
+          autoCreatePr: null,
+          automationTuning: 'off',
+          scannerAutomation: false,
+          reposCount: 1,
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
       body: {
@@ -436,6 +454,7 @@ describe('ProjectSeer', () => {
           data: {
             agent: 'seer',
             stoppingPoint: 'code_changes',
+            automationTuning: 'medium',
           },
         })
       );
@@ -546,9 +565,10 @@ describe('ProjectSeer', () => {
         expect.objectContaining({
           data: {
             agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            integrationId: 123,
+            integrationId: '123',
             stoppingPoint: 'root_cause',
             autoCreatePr: false,
+            automationTuning: 'medium',
           },
         })
       );
@@ -652,9 +672,10 @@ describe('ProjectSeer', () => {
         expect.objectContaining({
           data: {
             agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
-            integrationId: 456,
+            integrationId: '456',
             stoppingPoint: 'root_cause',
             autoCreatePr: false,
+            automationTuning: 'medium',
           },
         })
       );
@@ -694,6 +715,24 @@ describe('ProjectSeer', () => {
 
     it('renders and loads initial value when cursor_handoff is selected', async () => {
       MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: true,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
 
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
@@ -783,6 +822,24 @@ describe('ProjectSeer', () => {
 
     it('calls update mutation when toggled', async () => {
       MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
 
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
@@ -899,6 +956,24 @@ describe('ProjectSeer', () => {
     it('shows integration selector when multiple cursor integrations exist', async () => {
       MockApiClient.clearMockResponses();
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
       });
@@ -998,6 +1073,24 @@ describe('ProjectSeer', () => {
 
     it('calls update mutation when switching integration', async () => {
       MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
 
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
@@ -1119,7 +1212,7 @@ describe('ProjectSeer', () => {
           expect.anything(),
           expect.objectContaining({
             data: expect.objectContaining({
-              integrationId: 456,
+              integrationId: '456',
             }),
           })
         );
@@ -1128,6 +1221,24 @@ describe('ProjectSeer', () => {
 
     it('only shows same-provider integrations in selector when both cursor and claude exist', async () => {
       MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
 
       const initialProject: DetailedProject = {
         ...project,
@@ -1216,6 +1327,24 @@ describe('ProjectSeer', () => {
 
     it('does not show integration selector with single cursor integration', async () => {
       MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
 
       const orgWithCursorFeature = OrganizationFixture({
         features: [],

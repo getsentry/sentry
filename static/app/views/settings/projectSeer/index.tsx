@@ -1,7 +1,12 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {
+  infiniteQueryOptions,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -11,7 +16,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClaudeCodeIntegrationCta} from 'sentry/components/events/autofix/claudeCodeIntegrationCta';
 import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {GithubCopilotIntegrationCta} from 'sentry/components/events/autofix/githubCopilotIntegrationCta';
-import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {
   CodingAgentProvider,
   type ProjectSeerPreferences,
@@ -28,6 +32,7 @@ import {ExternalLink} from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -38,7 +43,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {useUpdateSeerSettings} from 'sentry/utils/seer/useUpdateSeerSettings';
+import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
+import {
+  getInfiniteSeerProjectsSettingsQueryOptions,
+  getMutateSeerProjectSettingsOptions,
+} from 'sentry/utils/seer/seerProjectSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -186,9 +195,53 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
-  const {data} = useProjectSeerPreferences(project);
-  const preference = data?.preference;
-  const {mutate: updateSeerSettings} = useUpdateSeerSettings(project);
+  const {data: projectSettings} = useInfiniteQuery(
+    infiniteQueryOptions({
+      ...getInfiniteSeerProjectsSettingsQueryOptions({
+        organization,
+        query: {query: new MutableSearch(`id:${project.id}`)},
+      }),
+      select: ({pages}) => pages.flatMap(page => page.json),
+    })
+  );
+  const setting = projectSettings?.find(s => s.projectSlug === project.slug);
+
+  // Reshape the org-wide settings response into the per-project preferences
+  // shape the form below was originally written against.
+  const preference = useMemo((): ProjectSeerPreferences | undefined => {
+    if (!setting) {
+      return;
+    }
+    if (setting.agent === 'seer') {
+      return {
+        repositories: [],
+        ...(setting.stoppingPoint !== 'off' && {
+          automated_run_stopping_point: setting.stoppingPoint,
+        }),
+      };
+    }
+    return {
+      repositories: [],
+      automation_handoff: {
+        handoff_point: 'root_cause',
+        target: setting.agent,
+        integration_id: Number(setting.integrationId),
+        auto_create_pr: setting.autoCreatePr ?? false,
+      },
+    };
+  }, [setting]);
+
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
+  const {mutate: updateSeerSettings} = useMutation(
+    getMutateSeerProjectSettingsOptions({
+      organization,
+      project,
+      queryClient,
+      knownAgents,
+    })
+  );
   const {data: codingAgentIntegrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)
   );
@@ -251,8 +304,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           user_id: user.id,
         });
         updateSeerSettings({
-          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-          integrationId: parseInt(cursorIntegration.id, 10),
+          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::${cursorIntegration.id}`,
           stoppingPoint: 'root_cause',
           autoCreatePr: false,
         });
@@ -268,14 +320,13 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           user_id: user.id,
         });
         updateSeerSettings({
-          agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
-          integrationId: parseInt(claudeIntegration.id, 10),
+          agentOption: `${CodingAgentProvider.CLAUDE_CODE_AGENT}::${claudeIntegration.id}`,
           stoppingPoint: 'root_cause',
           autoCreatePr: false,
         });
       } else {
         updateSeerSettings({
-          agent: 'seer',
+          agentOption: 'seer',
           stoppingPoint: value,
         });
       }
@@ -298,8 +349,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         return;
       }
       updateSeerSettings({
-        agent: preference.automation_handoff.target,
-        integrationId: preference.automation_handoff.integration_id,
+        agentOption: `${preference.automation_handoff.target}::${preference.automation_handoff.integration_id}`,
         autoCreatePr: value,
       });
     },
@@ -313,8 +363,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         return;
       }
       updateSeerSettings({
-        agent: preference.automation_handoff.target,
-        integrationId,
+        agentOption: `${preference.automation_handoff.target}::${integrationId}`,
         autoCreatePr: preference.automation_handoff.auto_create_pr ?? false,
       });
     },
