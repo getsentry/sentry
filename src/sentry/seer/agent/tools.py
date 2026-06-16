@@ -58,7 +58,12 @@ from sentry.seer.agent.utils import (
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.seer_setup import get_supported_scm_providers
-from sentry.seer.sentry_data_models import EAPTrace, EmptyResponse
+from sentry.seer.sentry_data_models import (
+    EAPTrace,
+    EmptyResponse,
+    GetDsnResponse,
+    RepositoryDefinitionResponse,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.ourlogs import OurLogs
@@ -833,7 +838,7 @@ def get_repository_definition(
     organization_id: int,
     repo_full_name: str,
     external_id: str | None = None,
-) -> dict | None:
+) -> RepositoryDefinitionResponse | None:
     """
     Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
@@ -900,14 +905,14 @@ def get_repository_definition(
     owner = repo_name_parts[0]
     name = "/".join(repo_name_parts[1:])
 
-    return {
-        "organization_id": organization_id,
-        "integration_id": str(repo.integration_id) if repo.integration_id is not None else None,
-        "provider": repo.provider,
-        "owner": owner,
-        "name": name,
-        "external_id": repo.external_id,
-    }
+    return RepositoryDefinitionResponse(
+        organization_id=organization_id,
+        integration_id=str(repo.integration_id) if repo.integration_id is not None else None,
+        provider=repo.provider,
+        owner=owner,
+        name=name,
+        external_id=repo.external_id,
+    )
 
 
 # Tuples of (total period, interval) (both in sentry stats period format).
@@ -2304,12 +2309,12 @@ def get_dsn(
     *,
     organization_id: int,
     project_slug: str,
-) -> dict[str, Any] | None:
+) -> GetDsnResponse | None:
     """
     Get the public DSN for a single project in an organization.
 
-    Returns a dict with project_slug, platform, and dsn_public, or None if the
-    organization/project does not exist or the project has no active client key.
+    Returns the project's public DSN, or None if the organization/project does
+    not exist or the project has no active client key.
     """
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -2342,8 +2347,8 @@ def get_dsn(
     if key is None:
         return None
 
-    return {
-        "project_slug": project.slug,
-        "platform": project.platform,
-        "dsn_public": key.dsn_public,
-    }
+    return GetDsnResponse(
+        project_slug=project.slug,
+        platform=project.platform,
+        dsn_public=key.dsn_public,
+    )
