@@ -214,9 +214,9 @@ class TestSeerRpcMethods(APITestCase):
                 item_type="tracemetrics",
             )
 
-        assert len(result["attributes"]) == 2
+        assert len(result.attributes) == 2
         # Check that we have both types (order may vary)
-        types = {attr["type"] for attr in result["attributes"]}
+        types = {attr["type"] for attr in result.attributes}
         assert types == {"str", "float"}
         mock_get.assert_called_once()
 

@@ -363,3 +363,38 @@ class IssueFilterKeysResponse(BaseModel):
     tags: list[dict[str, Any]]
     feature_flags: list[dict[str, Any]]
     built_in_fields: list[IssueFilterBuiltInField]
+
+
+class AttributeValuesResponse(BaseModel):
+    """Bare `{field: [value, ...]}` map returned by `get_attribute_values_with_substring`."""
+
+    __root__: dict[str, list[str]]
+
+    def dict(self, **kwargs: Any) -> Any:
+        # Pre-typed code returned `{field: sorted_list, ...}` directly — unwrap so
+        # the dispatcher and downstream consumers see the bare map.
+        return dict(self.__root__)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, dict):
+            return self.dict() == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
+
+
+class TraceItemAttributesResponse(BaseModel):
+    """`get_trace_item_attributes` returns `{"attributes": [...]}` for a single trace item.
+
+    Items in `attributes` are the raw attribute dicts from the trace-items API —
+    passed through verbatim to preserve the upstream wire shape."""
+
+    attributes: list[dict[str, Any]]
+
+
+class TraceItemEventsResponse(BaseModel):
+    """`get_log_attributes_for_trace` and `get_metric_attributes_for_trace` return
+    `{"data": [{"id", "timestamp", "attributes"}, ...]}` — the EAP GetTrace output."""
+
+    data: list[dict[str, Any]]

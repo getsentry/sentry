@@ -3516,11 +3516,11 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 3
+        assert len(result.data) == 3
 
         auth_log_expected = self.logs[0]
         auth_log = None
-        for item in result["data"]:
+        for item in result.data:
             if item["id"] == self.get_id_str(auth_log_expected):
                 auth_log = item
 
@@ -3549,8 +3549,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             substring_case_sensitive=False,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.logs[2]) in ids
         assert self.get_id_str(self.logs[3]) in ids
 
@@ -3562,8 +3562,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             substring_case_sensitive=True,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == self.get_id_str(self.logs[3])
+        assert len(result.data) == 1
+        assert result.data[0]["id"] == self.get_id_str(self.logs[3])
 
     def test_get_log_attributes_for_trace_limit_no_filter(self) -> None:
         result = get_log_attributes_for_trace(
@@ -3573,8 +3573,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             limit=1,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] in [
+        assert len(result.data) == 1
+        assert result.data[0]["id"] in [
             self.get_id_str(self.logs[0]),
             self.get_id_str(self.logs[2]),
             self.get_id_str(self.logs[3]),
@@ -3590,8 +3590,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             limit=2,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.logs[2]) in ids
         assert self.get_id_str(self.logs[3]) in ids
 
@@ -3665,12 +3665,12 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 3
+        assert len(result.data) == 3
 
         # Find the first http.request.duration metric
         http_metric_expected = self.metrics[0]
         http_metric = None
-        for item in result["data"]:
+        for item in result.data:
             if item["id"] == self.get_id_str(http_metric_expected):
                 http_metric = item
 
@@ -3702,7 +3702,7 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             metric_name="http.",
         )
         assert result is not None
-        assert len(result["data"]) == 0
+        assert len(result.data) == 0
 
         # Test an exact match (case-insensitive)
         result = get_metric_attributes_for_trace(
@@ -3712,8 +3712,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             metric_name="Cache.hit.rate",
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == self.get_id_str(self.metrics[3])
+        assert len(result.data) == 1
+        assert result.data[0]["id"] == self.get_id_str(self.metrics[3])
 
     def test_get_metric_attributes_for_trace_limit_no_filter(self) -> None:
         result = get_metric_attributes_for_trace(
@@ -3723,8 +3723,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             limit=1,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] in [
+        assert len(result.data) == 1
+        assert result.data[0]["id"] in [
             self.get_id_str(self.metrics[0]),
             self.get_id_str(self.metrics[2]),
             self.get_id_str(self.metrics[3]),
@@ -3739,8 +3739,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             limit=2,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.metrics[0]) in ids
         assert self.get_id_str(self.metrics[2]) in ids
 
