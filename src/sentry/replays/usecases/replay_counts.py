@@ -21,7 +21,7 @@ MAX_REPLAY_COUNT = 51
 
 # In buffer mode we'll often set IDs for replays that are never sent to Sentry -
 # load a lot of extra IDs to compensate.
-SPANS_DATASET_ID_QUERY_LIMIT = 51 * 10
+SPANS_DATASET_ID_QUERY_LIMIT = MAX_REPLAY_COUNT * 10
 
 MAX_VALS_PROVIDED = {
     "issue.id": 25,
