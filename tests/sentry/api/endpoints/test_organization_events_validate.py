@@ -445,3 +445,76 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert response.data["query"] == [
             {"error": None, "name": "my.custom.tag", "valid": True, "attrType": "string"},
         ]
+
+    def test_invalid_field_in_fields_and_query(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["hello", "hello"],
+                "query": "hello:world hello:world",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["field"] == [
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+        assert response.data["query"] == [
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+
+    def test_multiple_invalid_issues(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["hello", "hello"],
+                "query": "hello:world hello:world",
+                "orderby": ["world", "-world"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["field"] == [
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+        assert response.data["query"] == [
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+        assert response.data["orderby"] == [
+            {
+                "error": "Orderby must also be a selected field",
+                "name": "world",
+                "valid": False,
+                "attrType": None,
+            },
+            {
+                "error": "Orderby must also be a selected field",
+                "name": "-world",
+                "valid": False,
+                "attrType": None,
+            },
+        ]

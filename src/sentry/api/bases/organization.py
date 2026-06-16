@@ -51,7 +51,7 @@ class NoProjects(Exception):
     pass
 
 
-class UnknownEnvironments(ParseError):
+class UnknownEnvironments(ResourceDoesNotExist):
     pass
 
 

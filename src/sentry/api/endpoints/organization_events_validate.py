@@ -232,6 +232,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
         query_string = request.GET.get("query", "")
         query_validity: list[AttributeValidation] = []
         query_attributes_to_lookup: dict[AttributeKey.Type.ValueType, list[ResolvedAttribute]] = {}
+        query_columns = []
         try:
             # While resolve_query also runs parse_search_query, we don't need the resolved_query just want to dry-run it
             # to get any errors
@@ -253,6 +254,8 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             query_attributes_to_lookup.copy()
         )
         for attribute_type, attributes in field_attributes_to_lookup.items():
+            if attribute_type not in attributes_to_lookup:
+                attributes_to_lookup[attribute_type] = []
             attributes_to_lookup[attribute_type].extend(attributes)
 
         if any(len(attributes) > 0 for attributes in attributes_to_lookup.values()):
@@ -278,9 +281,15 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                                 name=resolved.public_alias,
                                 valid=False,
                             )
-                        if resolved.public_alias in selected_columns:
+                        if (
+                            resolved.public_alias in selected_columns
+                            and validity not in column_validity
+                        ):
                             column_validity.append(validity)
-                        if resolved.public_alias in query_columns:
+                        if (
+                            resolved.public_alias in query_columns
+                            and validity not in query_validity
+                        ):
                             query_validity.append(validity)
 
         response.field.extend(column_validity)
