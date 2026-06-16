@@ -16,7 +16,11 @@ from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import PERFORMANCE_ISSUE_CATEGORIES, GroupCategory
+from sentry.issues.grouptype import (
+    PERFORMANCE_ISSUE_CATEGORIES,
+    GroupCategory,
+    InvalidGroupTypeError,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
@@ -767,16 +771,29 @@ def project_past_resolved_issues(
         if not candidates:
             return []
 
-        group_id_to_group = {g.id: g for g in candidates}
+        # Filter out groups with unregistered type IDs (deprecated/removed issue types)
+        valid_candidates = []
+        for g in candidates:
+            if g.type is None:
+                valid_candidates.append(g)
+                continue
+            try:
+                g.issue_category
+            except InvalidGroupTypeError:
+                continue
+            valid_candidates.append(g)
 
-        # Legacy groups may have a None .type which crashes issue_category and treat as error group
+        group_id_to_group = {g.id: g for g in valid_candidates}
+
+        # Legacy groups may have a None .type which crashes issue_category; treat as error group
         error_group_ids = [
-            g.id for g in candidates if g.type is None or g.issue_category == GroupCategory.ERROR
+            g.id
+            for g in valid_candidates
+            if g.type is None or g.issue_category == GroupCategory.ERROR
         ]
-        # Using GroupCategory.PERFORMANCE for legacy performance groups
         perf_group_ids = [
             g.id
-            for g in candidates
+            for g in valid_candidates
             if g.type is not None
             and (
                 g.issue_category == GroupCategory.PERFORMANCE
