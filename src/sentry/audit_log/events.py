@@ -230,6 +230,13 @@ def _custom_inbound_filter_display(audit_log_entry: AuditLogEntry) -> str:
     return f'custom inbound filter "{filter_name}" for project {project_slug}'
 
 
+_CUSTOM_INBOUND_FILTER_OPERATION_VERBS = {
+    "add": "added",
+    "edit": "edited",
+    "remove": "removed",
+}
+
+
 class CustomInboundFilterAuditLogEvent(AuditLogEvent):
     """A single audit log event covering all custom inbound filter operations.
 
@@ -246,15 +253,12 @@ class CustomInboundFilterAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         target = _custom_inbound_filter_display(audit_log_entry)
         operation = audit_log_entry.data.get("operation")
-        if operation == "add":
-            return f"added {target}"
-        if operation == "remove":
-            return f"removed {target}"
+        verb = _CUSTOM_INBOUND_FILTER_OPERATION_VERBS.get(operation, "updated")
         if operation == "edit":
             changes = audit_log_entry.data.get("changes", {})
             changed_fields = ", ".join(sorted(changes)) if changes else "unknown fields"
-            return f"edited {target}: {changed_fields}"
-        return f"updated {target}"
+            return f"{verb} {target}: {changed_fields}"
+        return f"{verb} {target}"
 
 
 class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
