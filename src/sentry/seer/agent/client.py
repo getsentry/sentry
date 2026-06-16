@@ -121,6 +121,10 @@ def _get_mcp_url(provider_type: str, identity_data: dict[str, Any]) -> str | Non
         if not site:
             return None
         return f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
+    elif provider_type == IntegrationProviderSlug.GCP:
+        # TODO(seer-infra-telemetry): build the GCP MCP server URL once GCP
+        # monitoring provider support is implemented.
+        pass
     return None
 
 
