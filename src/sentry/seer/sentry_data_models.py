@@ -102,6 +102,16 @@ class TransactionIssues(BaseModel):
 # `public_org_seer_method_registry`, or `public_project_seer_method_registry`.
 
 
+class EmptyResponse(BaseModel):
+    """Sentinel for RPC methods whose pre-typed not-found shape was `{}`.
+
+    `EmptyResponse().dict()` is `{}`, so a return of `SomeModel | EmptyResponse`
+    preserves the original wire bytes for the empty path while still satisfying
+    the typed-registry contract. Use this instead of `| None` when the
+    pre-migration code returned `{}` to indicate the no-data case.
+    """
+
+
 class OrganizationSlugResponse(BaseModel):
     slug: str
 
@@ -176,3 +186,70 @@ class GetRepoInstallationIdSuccessResponse(BaseModel):
 
 class GetRepoInstallationIdErrorResponse(BaseModel):
     error: str
+
+
+class ProfileDetailsResponse(BaseModel):
+    profile_matches_issue: Literal[True] = True
+    execution_tree: list[ExecutionTreeNode]
+
+
+class SpanAttribute(BaseModel):
+    name: str
+    type: str
+    value: str | int | float | bool | list[str | int | float | bool] | None
+
+
+class SpanAttributesResponse(BaseModel):
+    attributes: list[SpanAttribute]
+
+
+class BuiltInField(BaseModel):
+    key: str
+    type: str
+
+
+class AttributeNamesResponse(BaseModel):
+    fields: dict[str, list[str]]
+    built_in_fields: list[BuiltInField]
+
+
+class AttributeBucket(BaseModel):
+    value: str
+    count: float
+
+
+class AttributesAndValuesResponse(BaseModel):
+    attributes_and_values: dict[str, list[AttributeBucket]]
+
+
+class MetricMetadataRow(BaseModel):
+    name: str
+    type: str
+    unit: str
+    count: int
+
+
+class MetricMetadataSuccessResponse(BaseModel):
+    candidates: list[MetricMetadataRow]
+    has_more: bool
+
+
+class MetricMetadataErrorResponse(BaseModel):
+    candidates: list[MetricMetadataRow]
+    has_more: bool
+    error: str
+
+
+class GetDsnResponse(BaseModel):
+    project_slug: str
+    platform: str | None
+    dsn_public: str
+
+
+class RepositoryDefinitionResponse(BaseModel):
+    organization_id: int
+    integration_id: str | None
+    provider: str | None
+    owner: str
+    name: str
+    external_id: str | None

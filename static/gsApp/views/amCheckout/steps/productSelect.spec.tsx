@@ -67,12 +67,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, freeSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -97,12 +92,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, unavailableSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -112,12 +102,7 @@ describe('ProductSelect', () => {
 
   it('renders with correct monthly price and credits for products', async () => {
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -134,12 +119,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, annualSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -153,12 +133,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, seerSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 
@@ -172,12 +147,7 @@ describe('ProductSelect', () => {
     SubscriptionStore.set(organization.slug, trialSubscription);
 
     render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        navigate={jest.fn()}
-        api={api}
-        checkoutTier={PlanTier.AM3}
-      />,
+      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
       {organization}
     );
 

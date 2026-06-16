@@ -63,7 +63,11 @@ import {
   DISCOVER_EXCLUSION_FIELDS,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
-import {formatProgressState} from 'sentry/views/issueList/utils/progress';
+import {
+  formatProgressState,
+  getProgressIcon,
+  ProgressState,
+} from 'sentry/views/issueList/utils/progress';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 const COLUMNS: GroupListColumn[] = [
@@ -84,7 +88,7 @@ type Props = {
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
-  progressState?: string | null;
+  progressState?: ProgressState | null;
   query?: string;
   queryFilterDescription?: string;
   showLastTriggered?: boolean;
@@ -725,7 +729,10 @@ export function StreamGroup({
           {withColumns.includes('progress') && (
             <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
               {progressState ? (
-                <Text>{formatProgressState(progressState)}</Text>
+                <Stack direction="row" align="center" gap="sm">
+                  {getProgressIcon(progressState)}
+                  <Text>{formatProgressState(progressState)}</Text>
+                </Stack>
               ) : (
                 <Placeholder height="18px" width="80px" />
               )}
@@ -981,7 +988,7 @@ const PriorityWrapper = styled('div')<{breakpoint: string}>`
 `;
 
 const ProgressWrapper = styled('div')<{breakpoint: string}>`
-  width: 90px;
+  width: 124px;
   padding-right: ${p => p.theme.space.xl};
   margin-right: ${p => p.theme.space.xl};
   align-self: center;

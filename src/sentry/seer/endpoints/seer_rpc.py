@@ -7,7 +7,6 @@ from collections.abc import Callable
 from typing import Any, TypedDict
 
 import sentry_sdk
-from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -15,6 +14,7 @@ from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from pydantic import BaseModel
+from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -43,11 +43,14 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.identity import default_manager as identity_manager
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -123,8 +126,11 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofi
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
+from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    AttributeBucket,
+    AttributesAndValuesResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -138,12 +144,15 @@ from sentry.seer.sentry_data_models import (
     RepositoryIntegrationsStatusResponse,
     SendSeerWebhookErrorResponse,
     SendSeerWebhookSuccessResponse,
+    SpanAttribute,
+    SpanAttributesResponse,
     ValidateRepoErrorResponse,
     ValidateRepoSuccessResponse,
 )
-from sentry.seer.utils import filter_repo_by_provider
+from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
@@ -272,9 +281,11 @@ class SeerRpcServiceEndpoint(Endpoint):
     @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
+        sentry_sdk.set_attribute("rpc.method", method_name)
         seer_referrer = request.headers.get("X-Seer-Referrer")
         if seer_referrer is not None:
             sentry_sdk.set_tag("rpc.referrer", seer_referrer)
+            sentry_sdk.set_attribute("rpc.referrer", seer_referrer)
 
         # Observe whether the caller (seer) propagated X-Viewer-Context for this
         # method. ViewerContextMiddleware has already decoded the header into the
@@ -408,7 +419,7 @@ def get_attributes_and_values(
     max_attributes: int = 1000,
     sampled: bool = True,
     attributes_ignored: list[str] | None = None,
-) -> dict:
+) -> AttributesAndValuesResponse:
     """
     Fetches all string attributes and the corresponding values with counts for a given period.
     """
@@ -478,7 +489,7 @@ def get_attributes_and_values(
         definitions=SPAN_DEFINITIONS,
     )
 
-    attributes_and_values: dict[str, list[dict[str, Any]]] = {}
+    attributes_and_values: dict[str, list[AttributeBucket]] = {}
     for result in rpc_response.results:
         for attribute in result.attribute_distributions.attributes:
             try:
@@ -491,16 +502,11 @@ def get_attributes_and_values(
                 if attribute_name not in attributes_and_values:
                     attributes_and_values[attribute_name] = []
                 attributes_and_values[attribute_name].extend(
-                    [
-                        {
-                            "value": value.label,
-                            "count": value.value,
-                        }
-                        for value in attribute.buckets
-                    ]
+                    AttributeBucket(value=value.label, count=value.value)
+                    for value in attribute.buckets
                 )
 
-    return {"attributes_and_values": attributes_and_values}
+    return AttributesAndValuesResponse(attributes_and_values=attributes_and_values)
 
 
 def get_attributes_for_span(
@@ -509,7 +515,7 @@ def get_attributes_for_span(
     project_id: int,
     trace_id: str,
     span_id: str,
-) -> dict[str, Any]:
+) -> SpanAttributesResponse:
     """
     Fetch all attributes for a given span.
     """
@@ -550,9 +556,7 @@ def get_attributes_for_span(
         include_internal=False,
     )
 
-    return {
-        "attributes": attributes,
-    }
+    return SpanAttributesResponse(attributes=[SpanAttribute(**a) for a in attributes])
 
 
 def get_github_enterprise_integration_config(
@@ -589,11 +593,8 @@ def get_github_enterprise_integration_config(
         logger.error("No access token found for integration %s", integration.id)
         return GitHubEnterpriseConfigErrorResponse()
 
-    try:
-        fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
-        encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
-    except Exception:
-        logger.exception("Failed to encrypt access token")
+    encrypted_access_token = encrypt_access_token_for_seer(access_token)
+    if not encrypted_access_token:
         return GitHubEnterpriseConfigErrorResponse()
 
     return GitHubEnterpriseConfigSuccessResponse(
@@ -883,7 +884,7 @@ def check_repository_integrations_status(
     return RepositoryIntegrationsStatusResponse(integration_ids=integration_ids)
 
 
-def get_project_preferences(*, organization_id: int, project_id: int) -> dict:
+def get_project_preferences(*, organization_id: int, project_id: int) -> SeerProjectPreference:
     """Get Seer project preferences for a single project.
 
     Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
@@ -892,7 +893,7 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict:
     if project.organization_id != organization_id:
         raise Project.DoesNotExist
 
-    return read_preference_from_sentry_db(project).dict()
+    return read_preference_from_sentry_db(project)
 
 
 def bulk_get_project_preferences(
@@ -924,6 +925,42 @@ def deliver_feature_result(
         return
 
     handler(organization_id, run_uuid, status, result, error)
+
+
+def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
+    """Refresh the access token for a monitoring provider identity."""
+    if not settings.SEER_GHE_ENCRYPT_KEY:
+        logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
+        return {"error": "encryption_failed"}
+
+    identity = identity_service.get_identity(filter={"id": identity_id})
+    if identity is None:
+        return {"error": "identity_not_found"}
+
+    idp = identity_service.get_provider(provider_id=identity.idp_id)
+    if idp is None:
+        return {"error": "identity_not_found"}
+
+    try:
+        provider = identity_manager.get(idp.type)
+        provider.refresh_identity(identity)
+    except IdentityNotValid:
+        return {"error": "identity_not_valid"}
+    except (ApiError, KeyError, RequestException):
+        return {"error": "refresh_failed"}
+
+    access_token = identity.data.get("access_token")
+    if not access_token:
+        return {"error": "identity_not_valid"}
+
+    encrypted_access_token = encrypt_access_token_for_seer(access_token)
+    if not encrypted_access_token:
+        return {"error": "encryption_failed"}
+
+    return {
+        "encrypted_access_token": encrypted_access_token,
+        "expires": identity.data.get("expires"),
+    }
 
 
 def record_pr_attribution(
@@ -1076,6 +1113,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # PR metrics (judge path)
     "update_pr_metrics": update_pr_metrics,
+    #
+    # Monitoring provider tokens (MCP)
+    "refresh_monitoring_provider_token": refresh_monitoring_provider_token,
 }
 
 
