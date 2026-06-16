@@ -159,6 +159,19 @@ class TestRuleParentDirs:
         result = _rule_parent_dirs(rule, {}, {}, content, {})
         assert result == {""}
 
+    def test_match_content_is_case_sensitive(self) -> None:
+        # Mirror the registry's case-sensitive re.search: a case-sensitive pattern
+        # (no inline (?i)) must NOT match differently-cased content.
+        rule: DetectorRule = {"match_ext": ".csproj", "match_content": r"Microsoft\.Maui"}
+        content = {"myapp.csproj": "...<microsoft.maui...>"}  # lowercase — must not fire
+        assert _rule_parent_dirs(rule, {}, {}, content, {}) == set()
+
+    def test_match_content_honors_inline_ignorecase_flag(self) -> None:
+        # Patterns that want case-insensitivity embed (?i) themselves.
+        rule: DetectorRule = {"path": "requirements.txt", "match_content": r"(?i)\bdjango\b"}
+        content = {"requirements.txt": "DJANGO==4.2\n"}
+        assert _rule_parent_dirs(rule, {}, {}, content, {}) == {""}
+
     def test_match_content_no_path_or_ext_filter_scans_all_files(self) -> None:
         # A bare match_content rule (no path/match_ext) should match any fetched file
         # whose content satisfies the pattern and collect all their parent dirs.

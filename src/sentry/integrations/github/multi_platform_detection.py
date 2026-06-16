@@ -379,7 +379,9 @@ def _rule_parent_dirs(
                 continue
             if ext_filter and not basename.endswith(ext_filter):
                 continue
-            if re.search(pattern, content, re.IGNORECASE):
+            # Match case-sensitively to mirror the registry's _rule_matches;
+            # patterns that want case-insensitivity embed an inline (?i) flag.
+            if re.search(pattern, content):
                 result.add(_parent_dir(full_path))
         return result
 
