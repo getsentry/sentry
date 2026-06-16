@@ -75,13 +75,8 @@ def format_snapshot_pr_comment(
         elif comparison.state == PreprodSnapshotComparison.State.FAILED:
             table_rows.append(f"| {name_cell} | - | - | - | - | - | - | ❌ Comparison failed |")
         else:
-            base_artifact = base_artifact_map.get(artifact.id)
-            artifact_url = (
-                get_preprod_artifact_comparison_url(
-                    artifact, base_artifact, comparison_type="snapshots"
-                )
-                if base_artifact
-                else get_preprod_artifact_url(artifact, view_type="snapshots")
+            name_cell = _name_cell(
+                artifact, snapshot_metrics_map, base_artifact_map, comparison=comparison
             )
 
             has_changes = changes_map.get(artifact.id, False)
@@ -95,12 +90,12 @@ def format_snapshot_pr_comment(
 
             table_rows.append(
                 f"| {name_cell}"
-                f" | {_section_cell(comparison.images_added, 'added', artifact_url)}"
-                f" | {_section_cell(comparison.images_removed, 'removed', artifact_url)}"
-                f" | {_section_cell(comparison.images_changed, 'changed', artifact_url)}"
-                f" | {_section_cell(comparison.images_renamed, 'renamed', artifact_url)}"
-                f" | {_section_cell(comparison.images_unchanged, 'unchanged', artifact_url)}"
-                f" | {_section_cell(comparison.images_skipped, 'skipped', artifact_url)}"
+                f" | {comparison.images_added}"
+                f" | {comparison.images_removed}"
+                f" | {comparison.images_changed}"
+                f" | {comparison.images_renamed}"
+                f" | {comparison.images_unchanged}"
+                f" | {comparison.images_skipped}"
                 f" | {status} |"
             )
             total_errored += comparison.images_errored
@@ -118,6 +113,7 @@ def _name_cell(
     artifact: PreprodArtifact,
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     base_artifact_map: dict[int, PreprodArtifact],
+    comparison: PreprodSnapshotComparison | None = None,
 ) -> str:
     app_display, app_id = _app_display_info(artifact)
     metrics = snapshot_metrics_map.get(artifact.id)
@@ -129,6 +125,9 @@ def _name_cell(
         )
     else:
         artifact_url = get_preprod_artifact_url(artifact, view_type="snapshots")
+
+    if comparison is not None:
+        artifact_url += _selected_types_query(comparison)
 
     return _format_name_cell(app_display, app_id, artifact_url)
 
@@ -147,10 +146,17 @@ def _format_name_cell(app_display: str, app_id: str, url: str) -> str:
     return f"[{app_display}]({url})"
 
 
-def _section_cell(count: int, section: str, artifact_url: str) -> str:
-    if count > 0:
-        return f"[{count}]({artifact_url}?selectedTypes={section})"
-    return str(count)
+def _selected_types_query(comparison: PreprodSnapshotComparison) -> str:
+    counts = (
+        ("added", comparison.images_added),
+        ("removed", comparison.images_removed),
+        ("changed", comparison.images_changed),
+        ("renamed", comparison.images_renamed),
+    )
+    selected = [name for name, count in counts if count > 0]
+    if not selected:
+        return ""
+    return f"?selectedTypes={','.join(selected)}"
 
 
 def _format_settings_link(project: Project) -> str:
