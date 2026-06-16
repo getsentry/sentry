@@ -60,9 +60,10 @@ export function ProjectAddRepoModal({
   const projectsById = useProjectsById();
   const repositoriesById = useRepositoriesById();
 
-  const unconfiguredProjects = useUnconfiguredProjects();
+  const {projects} = useProjects();
+  const unconfiguredProjects = useUnconfiguredProjects({projects});
   const projectOptions = useCompactSelectProjectOptions({
-    projects: unconfiguredProjects.data ?? [],
+    projects: unconfiguredProjects.data ?? projects,
   });
   const repositoryOptions = useCompactSelectRepositoryOptions();
   const {data: agentOptions = []} = useQuery(
@@ -378,9 +379,8 @@ export function ProjectAddRepoModal({
   );
 }
 
-function useUnconfiguredProjects() {
+function useUnconfiguredProjects({projects}: {projects: Project[]}) {
   const organization = useOrganization();
-  const {projects} = useProjects();
   const result = useInfiniteQuery({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
