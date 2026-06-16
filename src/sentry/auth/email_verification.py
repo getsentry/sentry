@@ -6,6 +6,7 @@ import logging
 import time
 from typing import Any
 
+from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpRequest
 from django.urls import reverse
@@ -19,10 +20,6 @@ from sentry.utils.signing import sign, unsign
 logger = logging.getLogger("sentry.auth.email_verification")
 
 DEFAULT_MAX_AGE_MINUTES = 120
-
-
-def _get_salt() -> str:
-    return options.get("auth.signup-verification-email-salt")
 
 
 def send_signup_verification_email(
@@ -44,7 +41,7 @@ def send_signup_verification_email(
         "session_id": request.session.session_key,
         "expires_at": time.time() + (max_age_minutes * 60),
     }
-    signed_data = sign(salt=_get_salt(), **payload)
+    signed_data = sign(salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, **payload)
 
     url = absolute_uri(reverse("sentry-signup-verify-email", args=[signed_data]))
 
@@ -82,7 +79,7 @@ def unsign_signup_verification(signed_data: str, request: HttpRequest) -> dict[s
     Raises BadSignature, SignatureExpired, ValueError on failure.
     """
     try:
-        payload = unsign(signed_data, salt=_get_salt(), max_age=None)
+        payload = unsign(signed_data, salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, max_age=None)
     except binascii.Error as e:
         # A malformed link is just an invalid signature to us.
         raise BadSignature("Malformed verification link") from e
