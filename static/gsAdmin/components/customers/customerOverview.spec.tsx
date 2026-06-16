@@ -8,6 +8,7 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {
   render,
   screen,
@@ -20,7 +21,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {CustomerOverview} from 'admin/components/customers/customerOverview';
-import {AddOnCategory, PlanTier} from 'getsentry/types';
+import {AddOnCategory} from 'getsentry/types';
 
 describe('CustomerOverview', () => {
   it('renders DetailLabels for SubscriptionSummary section', () => {

@@ -926,32 +926,6 @@ export type RecurringCredit =
   | RecurringPercentDiscount
   | RecurringEventCredit;
 
-export enum PlanTier {
-  /**
-   * Performance plans with continuous profiling
-   * and dynamic sampling for spans.
-   */
-  AM3 = 'am3',
-  /**
-   * Performance plans with continuous profiling
-   * and dynamic sampling for transactions.
-   */
-  AM2 = 'am2',
-  /**
-   * First generation of application monitoring plans.
-   * Includes performance features.
-   */
-  AM1 = 'am1',
-  /**
-   * No specified tier
-   */
-  ALL = 'all',
-  /**
-   * Test plans
-   */
-  TEST = 'test',
-}
-
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/
 export type PaymentCreateResponse = {
   amount: string;

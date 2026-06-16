@@ -5,6 +5,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -13,7 +14,7 @@ import {DataCategory} from 'sentry/types/core';
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
 import {GIGABYTE, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import UsageHistory from 'getsentry/views/subscriptionPage/usageHistory';
 
 describe('Subscription > UsageHistory', () => {
