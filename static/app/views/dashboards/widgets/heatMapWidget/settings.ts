@@ -20,7 +20,7 @@ export const HEATMAP_COLORS = [
  * X-axis (time) interval and the Y-axis bucket count are chosen so that cells
  * are roughly this size, keeping them approximately square.
  */
-export const PIXELS_PER_BUCKET = 10;
+export const PIXELS_PER_BUCKET = 15;
 
 /**
  * Scale used for the heat map's Z axis (the cell color). A logarithmic scale
