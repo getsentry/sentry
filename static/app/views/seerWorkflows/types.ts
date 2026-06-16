@@ -1,4 +1,4 @@
-export type SeerNightShiftRunIssue = {
+type SeerNightShiftRunIssue = {
   action: string;
   dateAdded: string;
   groupId: string;
@@ -6,7 +6,7 @@ export type SeerNightShiftRunIssue = {
   seerRunId: string | null;
 };
 
-export type SeerNightShiftRunOptions = {
+type SeerNightShiftRunOptions = {
   dry_run?: boolean;
   extra_triage_instructions?: string;
   intelligence_level?: 'low' | 'medium' | 'high';
@@ -15,7 +15,7 @@ export type SeerNightShiftRunOptions = {
   source?: string;
 };
 
-export type SeerNightShiftRunExtras = {
+type SeerNightShiftRunExtras = {
   agent_run_id?: number | string;
   options?: SeerNightShiftRunOptions;
   target_project_ids?: number[];
@@ -31,31 +31,13 @@ export type SeerNightShiftRun = {
   triageStrategy: string;
 };
 
-export type WorkflowKind =
-  | 'agentic_triage'
-  | 'feedback_summary'
-  | 'autofix_followup'
-  | 'release_regression_scout'
-  | 'performance_regression_scout'
-  | 'replay_friction_finder'
-  | 'alert_tuning_advisor'
-  | 'cron_monitor_doctor'
-  | 'duplicate_issue_merger'
-  | 'ownership_suggester';
+export type WorkflowKind = 'agentic_triage';
 
 export type StrategyVisibility = 'configurable' | 'internal';
 export type StrategyCategory = 'issues' | 'reliability' | 'user_experience';
 export type RunStatus = 'succeeded' | 'failed' | 'skipped' | 'running';
 
-export type FeedbackTheme = {
-  description: string;
-  feedbackGroupIds: number[];
-  title: string;
-};
-
 export type Frequency = 'hourly' | 'daily' | 'weekly';
-
-export type NotificationChannel = 'slack' | 'email' | 'none';
 
 export type OutputId =
   | 'autofix_runs'
@@ -69,14 +51,6 @@ export type OutputId =
   | 'ownership_suggestion'
   | 'notification';
 
-export type ConfiguredWorkflow = {
-  frequency: Frequency;
-  id: string;
-  notification: NotificationChannel;
-  strategy: WorkflowKind;
-  lastRunAt?: string;
-};
-
 export type WorkflowRow = {
   dateAdded: string;
   id: string;
@@ -84,13 +58,6 @@ export type WorkflowRow = {
   runId: string;
   status: RunStatus;
   errorMessage?: string | null;
-  feedback?: {
-    numFeedbacksAnalyzed: number;
-    summary: string;
-    themes: FeedbackTheme[];
-    agentRunId?: number | string;
-    reason?: 'insufficient_feedbacks';
-  };
   options?: SeerNightShiftRunOptions;
   resultText?: string;
   source?: string;

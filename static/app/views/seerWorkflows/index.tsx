@@ -548,58 +548,27 @@ function getResultContent(row: WorkflowRow) {
     );
   }
   // Caller-supplied result text wins, for strategies that don't have
-  // specialized count rendering yet (everything except triage and
-  // feedback_summary).
+  // specialized count rendering yet (everything except triage).
   if (row.resultText) {
     return <Text size="sm">{row.resultText}</Text>;
   }
-  if (row.kind === 'agentic_triage') {
-    const triage = row.triage;
-    if (triage?.dryRun) {
-      return (
-        <Text variant="muted" size="sm">
-          {t('dry run')}
-        </Text>
-      );
-    }
-    const issueCount = triage?.issues.length ?? 0;
-    if (issueCount === 0) {
-      return (
-        <Text variant="muted" size="sm">
-          {t('No issues processed')}
-        </Text>
-      );
-    }
-    return <Text size="sm">{tn('%s issue', '%s issues', issueCount)}</Text>;
-  }
-  if (row.kind === 'feedback_summary') {
-    const feedback = row.feedback;
-    if (row.status === 'skipped') {
-      return (
-        <Text variant="muted" size="sm">
-          {feedback?.reason === 'insufficient_feedbacks'
-            ? t('Skipped — too few feedbacks')
-            : t('Skipped')}
-        </Text>
-      );
-    }
-    const themeCount = feedback?.themes.length ?? 0;
-    const feedbackCount = feedback?.numFeedbacksAnalyzed ?? 0;
+  const triage = row.triage;
+  if (triage?.dryRun) {
     return (
-      <Text size="sm">
-        {tn('%s theme', '%s themes', themeCount)}
-        {' · '}
-        {tn('%s feedback', '%s feedbacks', feedbackCount)}
+      <Text variant="muted" size="sm">
+        {t('dry run')}
       </Text>
     );
   }
-  // Unknown kind without resultText — render an em dash so we never silently
-  // fall into a wrong-strategy template.
-  return (
-    <Text variant="muted" size="sm">
-      —
-    </Text>
-  );
+  const issueCount = triage?.issues.length ?? 0;
+  if (issueCount === 0) {
+    return (
+      <Text variant="muted" size="sm">
+        {t('No issues processed')}
+      </Text>
+    );
+  }
+  return <Text size="sm">{tn('%s issue', '%s issues', issueCount)}</Text>;
 }
 
 function RunDetail({
@@ -653,11 +622,7 @@ function UserSection({
           {row.summary}
         </Text>
       ) : null}
-      {row.kind === 'agentic_triage' ? (
-        <TriageIssuesUserPanel row={row} organizationSlug={organizationSlug} />
-      ) : row.kind === 'feedback_summary' ? (
-        <FeedbackSummaryUserPanel row={row} organizationSlug={organizationSlug} />
-      ) : null}
+      <TriageIssuesUserPanel row={row} organizationSlug={organizationSlug} />
     </Flex>
   );
 }
@@ -733,12 +698,7 @@ function DebugSection({
           {row.errorMessage}
         </Text>
       ) : null}
-      {row.kind === 'agentic_triage' ? (
-        <TriageIssuesDebugAddendum row={row} organizationSlug={organizationSlug} />
-      ) : null}
-      {row.kind === 'feedback_summary' ? (
-        <FeedbackSummaryDebugAddendum row={row} />
-      ) : null}
+      <TriageIssuesDebugAddendum row={row} organizationSlug={organizationSlug} />
     </Flex>
   );
 }
@@ -860,126 +820,6 @@ function TriageIssuesDebugAddendum({
   );
 }
 
-function FeedbackSummaryUserPanel({
-  row,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  row: WorkflowRow;
-}) {
-  const feedback = row.feedback;
-
-  if (row.status === 'skipped') {
-    return (
-      <Container background="primary" border="muted" radius="md" padding="md">
-        <Text variant="muted" size="sm">
-          {feedback?.reason === 'insufficient_feedbacks'
-            ? t(
-                'Skipped — fewer than 10 user feedbacks were received in the last 24 hours (saw %s).',
-                feedback.numFeedbacksAnalyzed
-              )
-            : t('Skipped.')}
-        </Text>
-      </Container>
-    );
-  }
-
-  if (row.status === 'failed' || !feedback) {
-    return null;
-  }
-
-  return (
-    <Flex direction="column" gap="md">
-      <Flex direction="column" gap="sm">
-        <Text bold size="xs" variant="muted" uppercase>
-          {t('Themes (%s)', feedback.themes.length)}
-        </Text>
-        <Grid columns={{xs: '1fr', md: 'repeat(2, 1fr)'}} gap="md">
-          {feedback.themes.map((theme, idx) => (
-            <Container
-              key={idx}
-              background="primary"
-              border="muted"
-              radius="md"
-              padding="sm md"
-            >
-              <Flex direction="column" gap="xs">
-                <Heading as="h4" size="sm">
-                  {theme.title}
-                </Heading>
-                <Text variant="muted" size="sm">
-                  {theme.description}
-                </Text>
-                {theme.feedbackGroupIds.length > 0 ? (
-                  <Flex gap="xs" align="center" wrap="wrap">
-                    <Text size="xs" variant="muted">
-                      {t('Feedback:')}
-                    </Text>
-                    {theme.feedbackGroupIds.map(groupId => (
-                      <Container
-                        key={groupId}
-                        display="inline-block"
-                        border="muted"
-                        radius="sm"
-                        padding="2xs xs"
-                      >
-                        <Link
-                          to={`/organizations/${organizationSlug}/issues/${groupId}/`}
-                        >
-                          <Text size="xs">{groupId}</Text>
-                        </Link>
-                      </Container>
-                    ))}
-                  </Flex>
-                ) : null}
-              </Flex>
-            </Container>
-          ))}
-        </Grid>
-      </Flex>
-
-      <Text size="xs" variant="muted">
-        {t('Analyzed %s feedback entries.', feedback.numFeedbacksAnalyzed)}
-      </Text>
-    </Flex>
-  );
-}
-
-function FeedbackSummaryDebugAddendum({row}: {row: WorkflowRow}) {
-  const feedback = row.feedback;
-  if (!feedback) {
-    return null;
-  }
-  return (
-    <Grid columns="max-content 1fr" gap="sm xl" align="start">
-      {feedback.agentRunId === undefined ? null : (
-        <Fragment>
-          <Text bold size="xs" variant="muted">
-            {t('Agent run ID')}
-          </Text>
-          <Text size="sm" monospace>
-            {feedback.agentRunId}
-          </Text>
-        </Fragment>
-      )}
-      {feedback.reason === undefined ? null : (
-        <Fragment>
-          <Text bold size="xs" variant="muted">
-            {t('Skip reason')}
-          </Text>
-          <Text size="sm" monospace>
-            {feedback.reason}
-          </Text>
-        </Fragment>
-      )}
-      <Text bold size="xs" variant="muted">
-        {t('Analyzed count')}
-      </Text>
-      <Text size="sm">{feedback.numFeedbacksAnalyzed}</Text>
-    </Grid>
-  );
-}
-
 const RunsTable = styled(SimpleTable)`
   grid-template-columns: min-content max-content 1fr 2fr min-content;
 `;
@@ -1009,8 +849,7 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
 }
 
 function getExplorerRunId(row: WorkflowRow): number | string | null {
-  const agentRunId =
-    row.kind === 'agentic_triage' ? row.triage?.agentRunId : row.feedback?.agentRunId;
+  const agentRunId = row.triage?.agentRunId;
   if (typeof agentRunId === 'number' || typeof agentRunId === 'string') {
     return agentRunId;
   }
