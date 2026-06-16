@@ -1661,3 +1661,185 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         )
         assert release_stage_field is not None
         assert release_stage_field["values"] == ["adopted", "low_adoption", "replaced"]
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestOrganizationNameTagFilter(APITestCase, SnubaTestCase):
+    """
+    Regression evals for the 'Organization filter not found' scenario (issues dataset).
+
+    Bug: when a user asks the AI search agent to filter issues by an organizationName-style
+    custom tag, the agent received an empty filter-key response and fell back to embedding
+    the raw org name ("mtk_agent_workshop") directly in the query string instead of using
+    a proper tag filter (e.g., organizationName:mtk_agent_workshop).
+
+    These tests verify the issues-dataset tool layer behaves correctly:
+      1. get_issue_filter_keys surfaces custom tags like organizationName when events carry them.
+      2. get_filter_key_values returns the expected values for organizationName.
+      3. execute_issues_query accepts an organizationName tag filter and returns matching issues.
+      4. get_filter_key_values returns an *empty list* (not None) when the tag is absent —
+         the agent must treat [] as "filter unavailable" rather than fall back to raw text search.
+    """
+
+    databases = {"default", "control"}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.min_ago = before_now(minutes=1)
+
+    def test_get_issue_filter_keys_includes_organization_name_tag(self) -> None:
+        """get_issue_filter_keys surfaces organizationName when events carry that tag."""
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Test error",
+                "tags": {"organizationName": "acme_corp"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issue_filter_keys(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            stats_period="7d",
+        )
+
+        assert result is not None
+        assert "tags" in result
+        tag_keys = {tag["key"] for tag in result["tags"]}
+        assert "organizationName" in tag_keys, (
+            "organizationName tag must appear in filter keys when events carry it; "
+            "the agent needs this to generate 'organizationName:acme_corp' instead of "
+            "embedding 'acme_corp' as raw text in the query"
+        )
+
+    def test_get_filter_key_values_returns_organization_name_values(self) -> None:
+        """get_filter_key_values returns tag values for organizationName from the issues dataset."""
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Org A error",
+                "fingerprint": ["org-a-error"],
+                "tags": {"organizationName": "acme_corp"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Org A error duplicate",
+                "fingerprint": ["org-a-error"],
+                "tags": {"organizationName": "acme_corp"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "Org B error",
+                "fingerprint": ["org-b-error"],
+                "tags": {"organizationName": "other_org"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="organizationName",
+            stats_period="7d",
+        )
+
+        assert result is not None, (
+            "get_filter_key_values must not return None for a custom tag present in events"
+        )
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        values = {item["value"] for item in result}
+        assert "acme_corp" in values, (
+            "acme_corp must be surfaced so the agent can generate 'organizationName:acme_corp' "
+            "rather than using 'acme_corp' as free-text"
+        )
+        assert "other_org" in values
+
+    def test_execute_issues_query_with_organization_name_tag_filter(self) -> None:
+        """execute_issues_query accepts and filters by an organizationName tag."""
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Acme corp error",
+                "level": "error",
+                "fingerprint": ["acme-corp-error"],
+                "tags": {"organizationName": "acme_corp"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Other org error",
+                "level": "error",
+                "fingerprint": ["other-org-error"],
+                "tags": {"organizationName": "other_org"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = execute_issues_query(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            query="organizationName:acme_corp",
+            stats_period="24h",
+        )
+
+        # A tag-based query must be accepted and return matching issues, not an error dict.
+        # If this fails with isinstance(result, dict) the issues API rejected the tag filter —
+        # meaning the agent's only option was the raw-text fallback that caused this bug.
+        assert result is not None, result
+        assert isinstance(result, list), (
+            f"Expected list of issues, got: {result!r}. "
+            "A tag-based query 'organizationName:acme_corp' must be accepted by the issues API."
+        )
+        assert len(result) > 0, (
+            "organizationName:acme_corp filter must return at least one matching issue"
+        )
+
+    def test_get_filter_key_values_returns_empty_list_when_tag_absent(self) -> None:
+        """
+        When no events carry organizationName, get_filter_key_values returns [] not None.
+
+        Returning [] (not None) is the signal the agent must use to decide "this tag has no
+        known values" vs "this is not a field at all". Returning None causes the agent to skip
+        tag resolution entirely and embed the raw org name as free text — the root cause of
+        the 'Organization filter not found' regression.
+        """
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Error without org tag",
+                "tags": {"environment": "production"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            attribute_key="organizationName",
+            stats_period="7d",
+        )
+
+        assert result is not None, (
+            "get_filter_key_values must return [] (not None) when the tag is absent from events; "
+            "None would cause the agent to bypass tag resolution and embed the raw value as text"
+        )
+        assert isinstance(result, list)
+        assert len(result) == 0
