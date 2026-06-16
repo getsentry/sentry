@@ -1,0 +1,69 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import type {GroupActivity} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
+import {ProgressActivityTooltip} from 'sentry/views/issueList/progressActivityTooltip';
+
+describe('ProgressActivityTooltip', () => {
+  const group = GroupFixture({id: '1337'});
+  const activity: GroupActivity = {
+    id: 'activity-1',
+    type: GroupActivityType.SET_UNRESOLVED,
+    data: {},
+    dateCreated: '2024-01-01T00:00:00.000Z',
+    user: null,
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/activities/',
+      body: {activity: [activity]},
+    });
+  });
+
+  it('shows progress activity in a hovercard', async () => {
+    render(
+      <ProgressActivityTooltip group={group}>
+        <button>Progress</button>
+      </ProgressActivityTooltip>
+    );
+
+    expect(screen.getByRole('button', {name: 'Progress'})).toHaveStyle({
+      textDecoration: 'underline',
+    });
+
+    await userEvent.hover(screen.getByRole('button', {name: 'Progress'}));
+
+    expect(await screen.findByText('Unresolved')).toBeInTheDocument();
+  });
+
+  it('filters out non-progress activity', async () => {
+    const noteActivity: GroupActivity = {
+      id: 'activity-2',
+      type: GroupActivityType.NOTE,
+      data: {text: 'Hidden note activity'},
+      dateCreated: '2024-01-02T00:00:00.000Z',
+      user: null,
+    };
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/activities/',
+      body: {activity: [noteActivity, activity]},
+    });
+
+    render(
+      <ProgressActivityTooltip group={group}>
+        <button>Progress</button>
+      </ProgressActivityTooltip>
+    );
+
+    await userEvent.hover(screen.getByRole('button', {name: 'Progress'}));
+
+    expect(await screen.findByText('Unresolved')).toBeInTheDocument();
+    expect(screen.queryByText('Hidden note activity')).not.toBeInTheDocument();
+  });
+});
