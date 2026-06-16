@@ -108,22 +108,6 @@ export const EventNavigator = styled('div')`
   );
 `;
 
-export const EventStickyControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  position: sticky;
-  top: -${p => p.theme.space.xl};
-  margin-block: -${p => p.theme.space.xl};
-  padding-block: ${p => p.theme.space.xl};
-  background: ${p => p.theme.tokens.background.primary};
-  z-index: 1; /* Just below EventNavigator */
-
-  /* Make this full-width inside DrawerBody */
-  margin-inline: -24px;
-  padding-inline: 24px;
-`;
-
 export const EventDrawerBody = styled(DrawerBody)`
   overflow: auto;
   overscroll-behavior: contain;
