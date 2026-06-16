@@ -114,6 +114,37 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('## Plan');
     });
 
+    it('includes the message when it differs from the title', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError'}),
+        event: EventFixture({...event, message: 'Connection to database timed out'}),
+        organization,
+      });
+
+      expect(result).toContain('## Message');
+      expect(result).toContain('Connection to database timed out');
+    });
+
+    it('omits the message when it is already part of the title', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError: connection failed'}),
+        event: EventFixture({...event, message: 'connection failed'}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
+    it('omits the message when it is empty', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError'}),
+        event: EventFixture({...event, message: '   '}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
     it('includes tags when present in event', () => {
       const eventWithTags = {
         ...event,
