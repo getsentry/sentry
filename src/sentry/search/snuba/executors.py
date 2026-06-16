@@ -24,6 +24,7 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.progress import IssueProgressState, get_group_progress_states
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -986,6 +987,54 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
     )
 
 
+# Numeric rank for the "progress" sort: higher means further along the fix cycle, so it
+# sorts towards the top. Every state has a rank so issues without seer activity (the
+# identified/triaged base states) still order correctly relative to progressed issues.
+PROGRESS_STATE_SORT_RANK: dict[IssueProgressState, int] = {
+    IssueProgressState.IDENTIFIED: 1,
+    IssueProgressState.TRIAGED: 2,
+    IssueProgressState.DIAGNOSED: 3,
+    IssueProgressState.FIX_PROPOSED: 4,
+    IssueProgressState.FIX_APPLIED: 5,
+}
+
+# last_seen comes back from Snuba as epoch milliseconds (< 1e13 until the year 2286), so
+# dividing by this collapses it into a [0, 1) recency fraction. The score is then
+# `rank + fraction`: rank stays the primary (integer) key and last_seen only breaks ties.
+LAST_SEEN_TIEBREAK_DIVISOR = 10**13
+
+
+def resolve_progress_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, int]:
+    """Progress-cycle rank per group (identified=1 .. fix_applied=5), derived from the same
+    Activity records as the ``issue.progress`` filter. Every group gets a rank."""
+    states = get_group_progress_states(group_ids)
+    return {
+        group_id: PROGRESS_STATE_SORT_RANK[IssueProgressState(state)]
+        for group_id, state in states.items()
+    }
+
+
+def progress_strategy() -> PostgresSortStrategy:
+    """Progress sort: primary by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
+    triaged > identified), secondary by last_seen. The secondary key stands in for
+    ``issue.last_progressed_at`` until that field exists; for now most-recently-active issues
+    rank highest within a tier."""
+
+    def score_fn(data: dict[str, Any]) -> float:
+        rank = data.get("progress_rank") or 0
+        last_seen = data.get("last_seen") or 0
+        return rank + last_seen / LAST_SEEN_TIEBREAK_DIVISOR
+
+    return PostgresSortStrategy(
+        postgres_fields={},
+        snuba_aggregations=["last_seen"],
+        signal_resolvers={"progress_rank": resolve_progress_signal},
+        score_fn=score_fn,
+    )
+
+
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
@@ -1006,6 +1055,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # Snuba path can take over when there are too many candidates to score in memory.
         "recommended_v2": "recommended",
         "user": "user_count",
+        # Postgres-data sort; mapped to last_seen so the chunked Snuba path can take over
+        # (degrading to a plain last_seen sort) when there are too many candidates to score
+        # the progress rank in memory.
+        "progress": "last_seen",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
         "inbox": "",
@@ -1030,7 +1083,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     @property
     def postgres_sort_strategies(self) -> dict[str, PostgresSortStrategy]:
-        return {"recommended_v2": recommended_v2_strategy()}
+        return {
+            "recommended_v2": recommended_v2_strategy(),
+            "progress": progress_strategy(),
+        }
 
     def _apply_type_visibility_filter(
         self,

@@ -31,6 +31,7 @@ import {withApi} from 'sentry/utils/withApi';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {
   ANNUAL,
+  BillingConfigTier,
   MONTHLY,
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
@@ -453,7 +454,9 @@ function AMCheckout(props: Props) {
     try {
       const config = await api.requestPromise(endpoint, {
         method: 'GET',
-        data: {tier: checkoutTier},
+        // The endpoint resolves the concrete checkout tier server-side (it
+        // mirrors the selection in `decideCheckout`).
+        data: {tier: BillingConfigTier.CHECKOUT},
       });
 
       const planList = getPlans(config);
@@ -472,14 +475,7 @@ function AMCheckout(props: Props) {
     }
 
     setLoading(false);
-  }, [
-    api,
-    organization.slug,
-    checkoutTier,
-    getPlans,
-    getInitialData,
-    getFormDataForPreview,
-  ]);
+  }, [api, organization.slug, getPlans, getInitialData, getFormDataForPreview]);
 
   const scrollToStep = useCallback(() => {
     const hash = location?.hash;

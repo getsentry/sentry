@@ -5,7 +5,7 @@ These should be kept in sync with the models in Seer.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -95,3 +95,109 @@ class TransactionIssues(BaseModel):
     transaction_name: str
     project_id: int
     issues: list[IssueDetails]
+
+
+# ── Seer RPC response models ────────────────────────────────────────────────
+# Pydantic response shapes for functions registered in `seer_method_registry`,
+# `public_org_seer_method_registry`, or `public_project_seer_method_registry`.
+
+
+class EmptyResponse(BaseModel):
+    """Sentinel for RPC methods whose pre-typed not-found shape was `{}`.
+
+    `EmptyResponse().dict()` is `{}`, so a return of `SomeModel | EmptyResponse`
+    preserves the original wire bytes for the empty path while still satisfying
+    the typed-registry contract. Use this instead of `| None` when the
+    pre-migration code returned `{}` to indicate the no-data case.
+    """
+
+
+class OrganizationSlugResponse(BaseModel):
+    slug: str
+
+
+class OrganizationProject(BaseModel):
+    id: int
+    slug: str
+
+
+class OrganizationProjectIdsResponse(BaseModel):
+    projects: list[OrganizationProject]
+
+
+class OrganizationFeaturesResponse(BaseModel):
+    features: list[str]
+
+
+class OrganizationAutofixConsentResponse(BaseModel):
+    consent: bool
+
+
+class GitHubEnterpriseConfigSuccessResponse(BaseModel):
+    success: Literal[True] = True
+    base_url: str
+    verify_ssl: bool
+    encrypted_access_token: str
+    permissions: dict[str, Any]
+
+
+class GitHubEnterpriseConfigErrorResponse(BaseModel):
+    success: Literal[False] = False
+
+
+class SendSeerWebhookSuccessResponse(BaseModel):
+    success: Literal[True] = True
+
+
+class SendSeerWebhookErrorResponse(BaseModel):
+    success: Literal[False] = False
+    error: str
+
+
+class RepositoryIntegrationsStatusResponse(BaseModel):
+    integration_ids: list[int | None]
+
+
+class HasRepoCodeMappingsResponse(BaseModel):
+    has_code_mappings: bool
+    project_slug_to_id: dict[str, int]
+
+
+class ValidateRepoSuccessResponse(BaseModel):
+    valid: Literal[True] = True
+    integration_id: int | None
+
+
+class ValidateRepoErrorResponse(BaseModel):
+    valid: Literal[False] = False
+    reason: str
+
+
+class GetRepoInstallationIdSuccessResponse(BaseModel):
+    installation_id: int | str
+    permissions: dict[str, Any] | None
+
+    class Config:
+        # GitHub returns the installation_id as a str; GitHub Enterprise stores
+        # it as an int in metadata. smart_union preserves the runtime type
+        # instead of coercing through the first matching union arm.
+        smart_union = True
+
+
+class GetRepoInstallationIdErrorResponse(BaseModel):
+    error: str
+
+
+class ProfileDetailsResponse(BaseModel):
+    profile_matches_issue: Literal[True] = True
+    execution_tree: list[ExecutionTreeNode]
+
+
+class SpanAttribute(BaseModel):
+    name: str
+    type: str
+    value: str | int | float | bool | list[str | int | float | bool] | None
+
+
+class SpanAttributesResponse(BaseModel):
+    attributes: list[SpanAttribute]

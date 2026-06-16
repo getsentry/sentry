@@ -812,6 +812,7 @@ SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", No
 # This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
+SENTRY_FALLBACK_CELL: str = "--monolith--"
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
 SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
@@ -2240,7 +2241,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.2"
+SELF_HOSTED_STABLE_VERSION = "26.6.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3325,6 +3326,7 @@ if SILO_DEVSERVER:
     ]
 
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
+    SENTRY_FALLBACK_CELL = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [

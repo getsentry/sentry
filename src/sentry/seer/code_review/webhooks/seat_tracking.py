@@ -18,7 +18,7 @@ mechanics:
   dispatches each payload once per installed organization; both can otherwise
   cause ``num_actions`` to be incremented multiple times for a single MR-open.
 
-Gated by ``organizations:seer-code-review-gitlab`` — the same cohort flag
+Gated by ``organizations:seer-gitlab-support`` — the same cohort flag
 ``handle_merge_request_event`` uses — so seeding only happens for orgs that
 are already opted in to GitLab code review. The downstream call to
 ``should_increment_contributor_seat`` additionally requires
@@ -103,7 +103,7 @@ def track_gitlab_contributor_seat_processor(
 
     debug_log(logger, organization, "processor_started", base_extra)
 
-    if not features.has("organizations:seer-code-review-gitlab", organization):
+    if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     if object_attributes.get("action") != "open":

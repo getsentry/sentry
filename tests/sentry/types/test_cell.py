@@ -106,7 +106,7 @@ class CellDirectoryTest(TestCase):
             yield
 
     def test_cell_config_parsing_in_monolith(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
         assert directory.get_cell_by_name("nowhere") is None
@@ -120,21 +120,25 @@ class CellDirectoryTest(TestCase):
     def test_cell_config_parsing_in_control(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.CONTROL),
-            override_settings(SENTRY_MONOLITH_REGION="us"),
+            override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"),
         ):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us")
     def test_get_local_cell(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             assert get_local_cell() == self._EXPECTED_OUTPUTS[0]
 
     def test_get_generated_monolith_cell(self) -> None:
         with (
-            override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"),
+            override_settings(
+                SILO_MODE=SiloMode.MONOLITH,
+                SENTRY_MONOLITH_REGION="defaultland",
+                SENTRY_FALLBACK_CELL="defaultland",
+            ),
             self._in_global_state(load_from_config([], [])),
         ):
             local_cell = get_local_cell()
@@ -145,7 +149,7 @@ class CellDirectoryTest(TestCase):
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
     def test_get_cell_for_organization(self) -> None:
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             mapping.update(cell_name="az")
@@ -188,12 +192,14 @@ class CellDirectoryTest(TestCase):
 
     def test_invalid_historic_cell_setting(self) -> None:
         with pytest.raises(CellConfigurationError):
-            with override_settings(SENTRY_MONOLITH_REGION="nonexistent"):
+            with override_settings(
+                SENTRY_MONOLITH_REGION="nonexistent", SENTRY_FALLBACK_CELL="nonexistent"
+            ):
                 load_from_config(self._INPUTS, []).validate_all()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_user(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             organization = self.create_organization(name="test name", cell="us")
@@ -215,7 +221,7 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_sentry_app(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             us_org_1 = self.create_organization(name="us test name 1", cell="us")
@@ -248,7 +254,7 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_cell_names(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             result = find_all_cell_names()
@@ -256,7 +262,7 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_multitenant_cell_names(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, self._LOCALITY_INPUTS)
         with self._in_global_state(directory):
             result = find_all_multitenant_cell_names()
@@ -274,7 +280,7 @@ class CellDirectoryTest(TestCase):
             },
         ]
         locality_inputs: list[LocalityConfig] = self._LOCALITY_INPUTS
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(inputs, locality_inputs)
         with self._in_global_state(directory):
             result = find_all_multitenant_cell_names()
@@ -298,8 +304,9 @@ class CellDirectoryTest(TestCase):
             },
         ]
         rf = RequestFactory()
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(cells, localities)
+
         with self._in_global_state(directory):
             req = rf.get("/")
             setattr(req, "subdomain", "us")

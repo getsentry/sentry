@@ -58,7 +58,7 @@ from sentry.seer.agent.utils import (
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.seer_setup import get_supported_scm_providers
-from sentry.seer.sentry_data_models import EAPTrace
+from sentry.seer.sentry_data_models import EAPTrace, EmptyResponse
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.ourlogs import OurLogs
@@ -606,13 +606,18 @@ def rpc_get_trace_waterfall(
     organization_id: int,
     additional_attributes: list[str] | None = None,
     referrer: str | None = None,
-) -> dict[str, Any]:
+) -> EAPTrace | EmptyResponse:
+    """Surface the underlying typed `EAPTrace` directly.
+
+    The not-found path returns `EmptyResponse`, which serializes to `{}` via
+    `.dict()` — byte-identical to the prior wire shape.
+    """
     try:
         referrer_enum = Referrer(referrer) if referrer else Referrer.SEER_EXPLORER_TOOLS
     except ValueError:
         referrer_enum = Referrer.SEER_EXPLORER_TOOLS
     trace = get_trace_waterfall(trace_id, organization_id, additional_attributes, referrer_enum)
-    return trace.dict() if trace else {}
+    return trace if trace else EmptyResponse()
 
 
 def rpc_get_profile_flamegraph(

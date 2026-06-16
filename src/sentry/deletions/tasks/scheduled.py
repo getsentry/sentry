@@ -216,6 +216,9 @@ def _run_deletion(
                 "object_id": deletion.object_id,
             },
         )
+        sentry_sdk.set_attribute("deletion.id", deletion.id)
+        sentry_sdk.set_attribute("deletion.model", deletion.model_name)
+        sentry_sdk.set_attribute("deletion.object_id", deletion.object_id)
         sentry_sdk.capture_exception(err)
         if in_test_environment():
             raise

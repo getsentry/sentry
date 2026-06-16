@@ -63,6 +63,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -499,6 +500,11 @@ class ExhaustiveFixtures(Fixtures):
             sdk_version="2.41.0",
         )
         self.create_notification_action(organization=org, projects=[project])
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"custom-inbound-filter-{slug}",
+            conditions=[{"op": "eq", "name": "event.release", "value": ["1.0.0"]}],
+        )
 
         # Auth*
         self.create_exhaustive_organization_auth(owner, org, project)
