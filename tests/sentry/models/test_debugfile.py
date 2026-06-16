@@ -246,7 +246,7 @@ class DebugFileObjectstoreTest(TestCase):
     def _get_session(self):
         return get_debug_files_session(org=self.organization.id, project=self.project.id)
 
-    def _create_objectstore_dif(self, content=b"objectstore-content", **kwargs):
+    def _create_objectstore_dif(self, content=b"test-content", **kwargs):
         storage_path = self._get_session().put(content, compression="zstd")
         defaults = {
             "debug_id": "dfb8e43a-f242-3d73-a453-aeb6a777ef75",
@@ -280,7 +280,7 @@ class DebugFileObjectstoreTest(TestCase):
         assert dif.get_headers() == {"Content-Type": "text/x-proguard+plain"}
         assert dif.file_format == "proguard"
 
-    def test_metadata_coalescing_falls_back_to_file(self):
+    def test_metadata_reads_from_file_columns_when_file_set(self):
         dif = self._create_non_objectstore_dif()
 
         assert dif.get_content_type() == "application/x-mach-binary"
@@ -289,10 +289,10 @@ class DebugFileObjectstoreTest(TestCase):
         assert dif.get_headers() == {"Content-Type": "application/x-mach-binary"}
 
     @requires_objectstore
-    def test_getfile(self):
+    def test_get_file(self):
         dif = self._create_objectstore_dif()
 
-        assert dif.getfile().read() == b"objectstore-content"
+        assert dif.getfile().read() == b"test-content"
 
     @requires_objectstore
     def test_save_to(self):
