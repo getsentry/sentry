@@ -13,6 +13,7 @@ import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptio
 
 import {ScmAlertFrequency} from './scmAlertFrequency';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {ScmCollapsibleSection} from './scmCollapsibleSection';
 
 const STEP_VIEWED_EVENT = {
   onboarding: 'onboarding.scm_project_details_step_viewed',
@@ -59,9 +60,23 @@ export function ScmProjectDetailsCore({
 }: ScmProjectDetailsCoreProps) {
   const organization = useOrganization();
 
+  // Match the feature-selection section: the alert-frequency section folds away
+  // in project creation (one of several stacked config cards) but stays always
+  // expanded in onboarding.
+  const collapsible = analyticsFlow === 'project-creation';
+
   useEffect(() => {
     trackAnalytics(STEP_VIEWED_EVENT[analyticsFlow], {organization});
   }, [organization, analyticsFlow]);
+
+  const alertFrequencyBody = (
+    <Stack gap="md" width="100%">
+      <Text variant="muted" density="comfortable">
+        {t('Get notified when things go wrong')}
+      </Text>
+      <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
+    </Stack>
+  );
 
   return (
     <Stack gap="3xl" width="100%" maxWidth={contentMaxWidth}>
@@ -116,22 +131,27 @@ export function ScmProjectDetailsCore({
         )}
       </Grid>
 
-      <Stack gap="md">
-        <Stack gap="xs">
-          <Container>
-            <Text bold size="md" density="comfortable">
-              {t('Alert frequency')}
-            </Text>
-          </Container>
-          <Container>
-            <Text variant="muted" density="comfortable">
-              {t('Get notified when things go wrong')}
-            </Text>
-          </Container>
+      {collapsible ? (
+        <ScmCollapsibleSection title={t('Alert frequency')}>
+          {alertFrequencyBody}
+        </ScmCollapsibleSection>
+      ) : (
+        <Stack gap="md">
+          <Stack gap="xs">
+            <Container>
+              <Text bold size="md" density="comfortable">
+                {t('Alert frequency')}
+              </Text>
+            </Container>
+            <Container>
+              <Text variant="muted" density="comfortable">
+                {t('Get notified when things go wrong')}
+              </Text>
+            </Container>
+          </Stack>
+          <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
         </Stack>
-
-        <ScmAlertFrequency {...alertRuleConfig} onFieldChange={onAlertChange} />
-      </Stack>
+      )}
     </Stack>
   );
 }
