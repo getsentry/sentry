@@ -357,7 +357,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         <JsonForm
           {...jsonFormProps}
           title={t('Event Settings')}
-          fields={[fields.resolveAge]}
+          fields={[fields.resolveAge, fields.enableAutoReleaseCreation]}
         />
 
         <JsonForm

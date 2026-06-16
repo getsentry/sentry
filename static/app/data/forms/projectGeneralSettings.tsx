@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -166,6 +166,24 @@ export const fields = {
     setValue: (val, props) => props.organization?.[props.name] && val,
     label: t('Enable JavaScript source fetching'),
     help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+  },
+  enableAutoReleaseCreation: {
+    name: 'enableAutoReleaseCreation',
+    type: 'boolean',
+    // Only show when the org has the feature flag enabled.
+    visible: ({organization}) => organization.features.includes('auto-release-creation'),
+    label: t('Enable release auto-creation from telemetry'),
+    help: t(
+      'Automatically create releases when Sentry sees a new release in ingested events. When disabled, releases must be created manually (e.g. with the Sentry CLI).'
+    ),
+    confirm: {
+      false: tct(
+        'Turning this off means Sentry will no longer create releases from ingested events. You will need to create releases manually, for example with the [link:Sentry CLI]. Are you sure you want to disable this?',
+        {
+          link: <ExternalLink href="https://docs.sentry.io/cli/releases/" />,
+        }
+      ),
+    },
   },
   scmSourceContextEnabled: {
     name: 'scmSourceContextEnabled',

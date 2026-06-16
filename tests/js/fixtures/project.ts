@@ -59,6 +59,7 @@ export function DetailedProjectFixture(
     digestsMaxDelay: 0,
     digestsMinDelay: 0,
     dynamicSamplingBiases: null,
+    enableAutoReleaseCreation: true,
     fingerprintingRules: '',
     groupingConfig: '',
     groupingEnhancements: '',
