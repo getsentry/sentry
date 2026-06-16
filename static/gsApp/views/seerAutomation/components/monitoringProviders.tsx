@@ -6,6 +6,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -38,7 +39,9 @@ export function MonitoringProvidersSection() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const {data, isPending} = useQuery(monitoringProvidersQueryOptions(organization.slug));
+  const {data, isPending, isError, refetch} = useQuery(
+    monitoringProvidersQueryOptions(organization.slug)
+  );
 
   const connectMutation = useMutation({
     mutationFn: (params: {provider: string; site?: string}) =>
@@ -91,7 +94,7 @@ export function MonitoringProvidersSection() {
   function handleConnect(provider: MonitoringProvider) {
     const params: {provider: string; site?: string} = {provider: provider.provider};
     if (provider.provider === 'datadog') {
-      // TODO: just hardcoding this for now
+      // TODO(CW-1501): v0 only supports datadoghq.com; add site selection when per-site connections are supported
       params.site = 'datadoghq.com';
     }
     connectMutation.mutate(params);
@@ -106,6 +109,10 @@ export function MonitoringProvidersSection() {
 
   if (isPending) {
     return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
   const providers = data?.providers ?? [];
@@ -132,7 +139,10 @@ export function MonitoringProvidersSection() {
                 variant="danger"
                 size="sm"
                 onClick={() => handleDisconnect(provider)}
-                busy={disconnectMutation.isPending}
+                busy={
+                  disconnectMutation.isPending &&
+                  disconnectMutation.variables === provider.provider
+                }
               >
                 {t('Disconnect')}
               </Button>
@@ -141,7 +151,10 @@ export function MonitoringProvidersSection() {
                 variant="secondary"
                 size="sm"
                 onClick={() => handleConnect(provider)}
-                busy={connectMutation.isPending}
+                busy={
+                  connectMutation.isPending &&
+                  connectMutation.variables?.provider === provider.provider
+                }
               >
                 {t('Connect')}
               </Button>

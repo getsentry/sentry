@@ -132,4 +132,17 @@ describe('MonitoringProvidersSection', () => {
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalled());
   });
+
+  it('shows error state when fetch fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitoring-providers/`,
+      statusCode: 500,
+    });
+
+    render(<MonitoringProvidersSection />, {organization});
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+  });
 });
