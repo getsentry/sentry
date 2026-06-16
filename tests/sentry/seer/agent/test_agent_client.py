@@ -19,6 +19,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import make_request
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -1199,6 +1200,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@with_feature("organizations:seer-infra-telemetry")
 class TestGetMonitoringProviderConnections(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1206,7 +1208,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         self.organization = self.create_organization(owner=self.user)
 
     def test_returns_none_when_no_identities(self) -> None:
-        assert get_monitoring_provider_connections(self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
 
     def test_returns_connection(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
@@ -1223,7 +1225,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             },
         )
 
-        result = get_monitoring_provider_connections(self.user.id)
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
 
         assert result is not None
         assert len(result) == 1
@@ -1247,7 +1249,7 @@ class TestGetMonitoringProviderConnections(TestCase):
                 data={"access_token": "access-token", "site": site},
             )
 
-        result = get_monitoring_provider_connections(self.user.id)
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
 
         assert result is not None
         assert len(result) == 2
@@ -1264,7 +1266,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"site": "datadoghq.com"},
         )
 
-        assert get_monitoring_provider_connections(self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
 
     def test_skips_identity_missing_site(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
@@ -1275,7 +1277,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token"},
         )
 
-        assert get_monitoring_provider_connections(self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
 
     def test_ignores_non_monitoring_provider_identities(self) -> None:
         idp = self.create_identity_provider(type="slack", external_id="slack-team")
@@ -1286,7 +1288,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token"},
         )
 
-        assert get_monitoring_provider_connections(self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=None)
     def test_skips_identity_when_encryption_fails(self) -> None:
@@ -1298,4 +1300,16 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
 
-        assert get_monitoring_provider_connections(self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
+
+    @with_feature({"organizations:seer-infra-telemetry": False})
+    def test_returns_none_when_feature_disabled(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+
+        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
