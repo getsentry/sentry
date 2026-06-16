@@ -259,21 +259,18 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             Cell(
                 name="us",
                 snowflake_id=1,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.1",
                 visible=True,
             ),
             Cell(
                 name="us2",
                 snowflake_id=3,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.2",
                 visible=True,
             ),
             Cell(
                 name="de",
                 snowflake_id=4,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.4",
                 visible=True,
             ),
@@ -318,14 +315,12 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             Cell(
                 name="ja",
                 snowflake_id=3,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.2",
                 visible=False,
             ),
             Cell(
                 name="acme",
                 snowflake_id=4,
-                category=RegionCategory.SINGLE_TENANT,
                 address="10.0.0.4",
                 visible=True,
             ),
@@ -847,7 +842,9 @@ class OrganizationsCreateInCellTest(OrganizationIndexTest, HybridCloudTestMixin)
 class OrganizationsCreateInRegionTest(OrganizationIndexTest):
     method = "post"
 
-    @override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_LOCAL_CELL="de")
+    @override_settings(
+        SENTRY_MONOLITH_REGION="us", SENTRY_LOCAL_CELL="de", SENTRY_FALLBACK_CELL="us"
+    )
     def test_success(self) -> None:
         data = {"name": "hello world", "slug": "slug-world"}
         response = self.get_success_response(**data)

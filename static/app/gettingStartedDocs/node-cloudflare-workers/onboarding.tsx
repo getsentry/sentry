@@ -44,9 +44,12 @@ export default Sentry.withSentry(
         : ''
     }
 
-    // To disable sending user data and HTTP bodies, uncomment the line below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/cloudflare/configuration/options/#dataCollection
-    // dataCollection: { userInfo: false, httpBodies: [] },
+    dataCollection: {
+      // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+      // https://docs.sentry.io/platforms/javascript/guides/cloudflare/configuration/options/#dataCollection
+      // userInfo: false,
+      // httpBodies: [],
+    },
   }),
   {
     async fetch(request, env, ctx) {

@@ -154,11 +154,10 @@ describe('javascript-gatsby onboarding docs', () => {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          /\/\/ dataCollection: \{ userInfo: false, httpBodies: \[\] \}/
-        )
-      )
+      screen.getByText(textWithMarkupMatcher(/dataCollection: \{/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/\/\/ httpBodies: \[\]/))
     ).toBeInTheDocument();
   });
 

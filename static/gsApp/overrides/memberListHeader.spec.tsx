@@ -34,7 +34,7 @@ describe('MemberListHeader', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
-      query: {tier: 'am2'},
+      query: {tier: 'upsell'},
       body: BillingConfigFixture(PlanTier.AM2),
     });
   });

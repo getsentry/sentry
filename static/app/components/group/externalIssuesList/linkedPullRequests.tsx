@@ -16,7 +16,9 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {PullRequest} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
@@ -79,7 +81,14 @@ function getStatusLabel(status: LinkedPullRequestStatus) {
   }
 }
 
-function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
+function LinkedPullRequestRow({
+  group,
+  pullRequest,
+}: {
+  group: Group;
+  pullRequest: LinkedPullRequest;
+}) {
+  const organization = useOrganization();
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   const statusLabel = getStatusLabel(pullRequest.status);
 
@@ -93,6 +102,16 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
         pullRequest.repository.name
       )}
       href={pullRequest.externalUrl}
+      onClick={() =>
+        trackAnalytics('issue_details.external_issue_pull_request_clicked', {
+          organization,
+          pull_request_id: pullRequest.id,
+          pull_request_status: pullRequest.status,
+          repository_id: pullRequest.repository.id,
+          repository_provider: pullRequest.repository.provider.id,
+          ...getAnalyticsDataForGroup(group),
+        })
+      }
     >
       <Grid columns="max-content minmax(0, 1fr)" gap="sm" padding="sm">
         <Flex as="span" aria-hidden align="start" paddingTop="2xs">
@@ -185,7 +204,7 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
           borderTop={index === 0 ? undefined : 'primary'}
           style={{listStyle: 'none'}}
         >
-          <LinkedPullRequestRow pullRequest={pullRequest} />
+          <LinkedPullRequestRow group={group} pullRequest={pullRequest} />
         </Container>
       ))}
     </Flex>

@@ -1,5 +1,6 @@
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.seer.agent.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.sentry_data_models import ProfileDetailsResponse
 from sentry.services import eventstore
 
 
@@ -10,7 +11,7 @@ def get_profile_details(
     is_continuous: bool = False,
     precise_start_ts: float | None = None,
     precise_finish_ts: float | None = None,
-):
+) -> ProfileDetailsResponse | None:
     profile = fetch_profile_data(
         profile_id=profile_id,
         organization_id=organization_id,
@@ -20,16 +21,12 @@ def get_profile_details(
         is_continuous=is_continuous,
     )
 
-    if profile:
-        execution_tree, _ = _convert_profile_to_execution_tree(profile)
-        return (
-            None
-            if not execution_tree
-            else {
-                "profile_matches_issue": True,
-                "execution_tree": execution_tree,
-            }
-        )
+    if not profile:
+        return None
+    execution_tree, _ = _convert_profile_to_execution_tree(profile)
+    if not execution_tree:
+        return None
+    return ProfileDetailsResponse(execution_tree=execution_tree)
 
 
 def get_error_event_details(project_id: int, event_id: str):

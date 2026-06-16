@@ -37,7 +37,7 @@ type Props = {
  * particular set of features.
  */
 function PlanFeature({subscription, features, organization, children}: Props) {
-  const {data: billingConfig} = useBillingConfig({organization, subscription});
+  const {data: billingConfig} = useBillingConfig({organization});
 
   if (!billingConfig) {
     return null;
