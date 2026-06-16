@@ -17,7 +17,7 @@ from sentry.users.services.user.model import RpcUser
 logger = logging.getLogger(__name__)
 
 
-def encrypt_access_token_for_seer(access_token) -> str | None:
+def encrypt_access_token_for_seer(access_token: str) -> str | None:
     """Fernet-encrypt an access token for transport to Seer."""
     if not settings.SEER_GHE_ENCRYPT_KEY:
         logger.error("Cannot encrypt access token without SEER_GHE_ENCRYPT_KEY")

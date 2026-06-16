@@ -50,6 +50,11 @@ class IntegrationProviderSlug(StrEnum):
     GCP = "gcp"
 
 
+MONITORING_PROVIDERS: frozenset[str] = frozenset(
+    {IntegrationProviderSlug.DATADOG, IntegrationProviderSlug.GCP}
+)
+
+
 class DataForwarderProviderSlug(StrEnum):
     SEGMENT = "segment"
     SQS = "sqs"

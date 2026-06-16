@@ -121,8 +121,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                 ResolveAction(),
                 source=ActionSource.SYSTEM,
                 group_id=group.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
+                project=project,
             )
             activity = Activity.objects.create(
                 group=group,

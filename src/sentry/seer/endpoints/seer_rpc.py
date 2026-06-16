@@ -53,7 +53,7 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
@@ -938,7 +938,7 @@ def refresh_monitoring_provider_token(*, identity_id: int) -> dict:
         return {"error": "identity_not_found"}
 
     idp = identity_service.get_provider(provider_id=identity.idp_id)
-    if idp is None:
+    if idp is None or idp.type not in MONITORING_PROVIDERS:
         return {"error": "identity_not_found"}
 
     try:

@@ -283,9 +283,9 @@ describe('ExternalIssueSidebarList', () => {
     });
   });
 
-  it('should render linked issues as full-width rows', async () => {
-    const issueKey = 'DE#1275';
-    const issueTitle = 'Linear: DE#1275';
+  it('should render linked issues as single-line full-width rows', async () => {
+    const issueKey = 'getsentry/sentry#123';
+    const issueTitle = 'Fix repository sync';
     mockLinkedPullRequestsFeatureRequests([
       GitHubIntegrationFixture({
         status: 'active',
@@ -293,7 +293,7 @@ describe('ExternalIssueSidebarList', () => {
           {
             id: '321',
             key: issueKey,
-            url: 'https://linear.app/example/issue/DE-1275',
+            url: 'https://github.com/getsentry/sentry/issues/123',
             title: issueTitle,
             description: 'something else, sorry',
             displayName: '',
@@ -307,14 +307,13 @@ describe('ExternalIssueSidebarList', () => {
     });
 
     const linkedIssues = await screen.findByRole('list', {name: 'Linked issues'});
-    expect(within(linkedIssues).getByRole('link', {name: issueTitle})).toHaveAttribute(
+    expect(within(linkedIssues).getByRole('link', {name: issueKey})).toHaveAttribute(
       'href',
-      'https://linear.app/example/issue/DE-1275'
+      'https://github.com/getsentry/sentry/issues/123'
     );
-    expect(within(linkedIssues).queryByText(issueKey)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: issueKey})).not.toBeInTheDocument();
+    expect(within(linkedIssues).queryByText(issueTitle)).not.toBeInTheDocument();
     expect(
-      within(linkedIssues).getByRole('button', {name: `Unlink ${issueTitle}`})
+      within(linkedIssues).getByRole('button', {name: `Unlink ${issueKey}`})
     ).toBeInTheDocument();
   });
 
