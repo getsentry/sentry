@@ -1,7 +1,7 @@
 import logging
-from typing import Any, TypedDict
 
 from sentry.seer.models import SeerApiError
+from sentry.seer.sentry_data_models import AgentExportIndexesResponse
 from sentry.seer.signed_seer_api import (
     AgentExportIndexesRequest,
     SeerViewerContext,
@@ -10,12 +10,6 @@ from sentry.seer.signed_seer_api import (
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
-
-
-class AgentExportIndexesResponse(TypedDict):
-    org_id: int
-    version: int
-    tables: dict[str, list[dict[str, Any]]]
 
 
 def export_agent_indexes(*, org_id: int) -> AgentExportIndexesResponse:
@@ -31,7 +25,7 @@ def export_agent_indexes(*, org_id: int) -> AgentExportIndexesResponse:
         raise SeerApiError("Seer export-indexes request failed", response.status)
 
     try:
-        return response.json()
+        return AgentExportIndexesResponse(**response.json())
     except JSONDecodeError:
         logger.exception("Failed to parse Seer export-indexes response")
         raise SeerApiError("Seer returned invalid JSON response", response.status)

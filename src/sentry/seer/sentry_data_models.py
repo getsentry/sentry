@@ -435,7 +435,6 @@ class ExecuteQueryErrorResponse(BaseModel):
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
-<<<<<<< HEAD
 
 
 class _DictProxyMixin(BaseModel):
@@ -610,6 +609,102 @@ class ComparativeAttributeDistributionsResponse(BaseModel):
 
     def __contains__(self, key: object) -> bool:
         return key in self.dict()
+
+
+class AgentExportIndexesResponse(BaseModel):
+    """`export_explorer_indexes` returns the seer-side export of the explorer
+    index tables: `{"org_id", "version", "tables"}` where `tables` is a map of
+    table name → list of rows. Migrated from a TypedDict shape so the seer SDK
+    consumer sees the contract through the typed registry."""
+
+    org_id: int
+    version: int
+    tables: dict[str, list[dict[str, Any]]]
+
+
+class ReplayMetadataResponse(BaseModel):
+    """`get_replay_metadata` returns the aggregate replay-event response dict
+    plus an added `project_slug` field. The replay-events shape is the
+    `ReplayDetailsResponse` typedict-ish from the replays UI — wider than what
+    sentry-side can lock down — so the body is a dict passthrough."""
+
+    __root__: dict[str, Any]
+
+    def dict(self, **kwargs: Any) -> Any:
+        return dict(self.__root__)
+
+    def __getitem__(self, key: str) -> Any:
+        return self.__root__[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.__root__
+
+
+class ProfileFlamegraphMetadata(BaseModel):
+    profile_id: str
+    project_id: int
+    is_continuous: bool
+    start_ts: int | None
+    end_ts: int | None
+    thread_id: int | None
+
+
+class ProfileFlamegraphSuccessResponse(BaseModel):
+    """`rpc_get_profile_flamegraph` success: `{"execution_tree", "metadata"}`.
+    `execution_tree` items are dicts (not Pydantic models — the converter at
+    `_convert_profile_to_execution_tree` returns dicts) so they pass through."""
+
+    execution_tree: list[dict[str, Any]]
+    metadata: ProfileFlamegraphMetadata
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class ProfileFlamegraphErrorResponse(BaseModel):
+    """`rpc_get_profile_flamegraph` error: `{"error": <detail>}`. Discriminated
+    against the success shape by the presence of `error` vs `execution_tree`."""
+
+    error: str
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class ReplaySummaryLogsResponse(BaseModel):
+    """`rpc_get_replay_summary_logs` returns `{"logs": [<log_str>, ...]}`."""
+
+    logs: list[str]
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class ErrorEventDetailsResponse(BaseModel):
+    """`get_error_event_details` returns the bare `EventSerializer` output —
+    a `SentryEventData`-shaped dict the seer caller casts to its own typed
+    model. The shape is too wide for sentry-side to lock down here, so the
+    body is a dict passthrough."""
+
+    __root__: dict[str, Any]
+
+    def dict(self, **kwargs: Any) -> Any:
+        return dict(self.__root__)
+
+    def __getitem__(self, key: str) -> Any:
+        return self.__root__[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.__root__
 
 
 class IssuesStatsResponse(BaseModel):
