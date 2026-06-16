@@ -101,6 +101,20 @@ function SeerWorkflows() {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
 
+  const strategySections = useMemo(() => {
+    const present = new Set<WorkflowKind>();
+    for (const row of rows) {
+      present.add(row.kind);
+    }
+    return CATEGORY_ORDER.map(category => ({
+      key: category,
+      label: CATEGORY_LABELS[category],
+      options: Array.from(present)
+        .filter(kind => STRATEGY_META[kind]?.category === category)
+        .map(kind => ({value: kind, label: STRATEGY_META[kind].label})),
+    })).filter(section => section.options.length > 0);
+  }, [rows]);
+
   const filteredRows = useMemo(() => {
     return rows.filter(row => {
       if (strategyFilter.length && !strategyFilter.includes(row.kind)) {
@@ -234,7 +248,8 @@ function SeerWorkflows() {
                   <CompactSelect
                     multiple
                     value={strategyFilter}
-                    options={STRATEGY_FILTER_SECTIONS}
+                    options={strategySections}
+                    disabled={strategySections.length === 0}
                     onChange={selected =>
                       updateQuery({strategy: selected.map(o => String(o.value))})
                     }
@@ -444,14 +459,6 @@ function SourceIcon({source}: {source: string | undefined}) {
     </Tooltip>
   );
 }
-
-const STRATEGY_FILTER_SECTIONS = CATEGORY_ORDER.map(category => ({
-  key: category,
-  label: CATEGORY_LABELS[category],
-  options: (Object.keys(STRATEGY_META) as WorkflowKind[])
-    .filter(kind => STRATEGY_META[kind].category === category)
-    .map(kind => ({value: kind, label: STRATEGY_META[kind].label})),
-})).filter(section => section.options.length > 0);
 
 const STATUS_FILTER_OPTIONS: Array<{label: string; value: RunStatus}> = [
   {value: 'succeeded', label: 'Succeeded'},

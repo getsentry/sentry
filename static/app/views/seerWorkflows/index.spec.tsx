@@ -440,4 +440,39 @@ describe('SeerWorkflows', () => {
     // After clearing, the (previously hidden) succeeded row should re-appear.
     expect(await screen.findByText('1 issue')).toBeInTheDocument();
   });
+
+  it('Strategy filter lists only strategies present in the data', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              action: 'autofix_triggered',
+              seerRunId: 'seer-1',
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: /Strategy/}));
+
+    // Only the strategy that actually has runs is offered as a filter option.
+    expect(screen.getByRole('option', {name: 'Agentic triage'})).toBeInTheDocument();
+    // Catalog-only strategies with no runs are not offered.
+    expect(
+      screen.queryByRole('option', {name: 'Feedback summary'})
+    ).not.toBeInTheDocument();
+  });
 });
