@@ -1,10 +1,14 @@
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Prose} from '@sentry/scraps/text';
 
+import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
 const CAPTURE_MESSAGES_PROMPT = `
@@ -21,6 +25,26 @@ Use these skills as the source of truth:
 - Source repository: https://github.com/getsentry/sentry-for-ai
 - Agent-monitoring skill: https://skills.sentry.dev/sentry-setup-ai-monitoring/SKILL.md
 `;
+
+function CopyCaptureMessagesPromptButton() {
+  const {copy} = useCopyToClipboard();
+  const organization = useOrganization();
+
+  return (
+    <Button
+      size="sm"
+      icon={<IconCopy />}
+      onClick={() => {
+        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {organization});
+        copy(CAPTURE_MESSAGES_PROMPT, {
+          successMessage: t('Copied instrumentation prompt to clipboard'),
+        });
+      }}
+    >
+      {t('Copy Prompt for AI Agent')}
+    </Button>
+  );
+}
 
 export function ConversationMissingMessagesAlert() {
   return (
@@ -47,7 +71,7 @@ export function ConversationMissingMessagesAlert() {
             )}
           </Prose>
           <Stack direction="row" paddingTop="xs" justify="start">
-            <CopyLLMPromptButton prompt={CAPTURE_MESSAGES_PROMPT} />
+            <CopyCaptureMessagesPromptButton />
           </Stack>
         </Stack>
       </Alert>

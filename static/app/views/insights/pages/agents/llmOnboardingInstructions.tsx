@@ -39,9 +39,7 @@ export function ManualInstrumentationNote({docsLink}: {docsLink: React.ReactNode
 /**
  * @deprecated Will be removed when the `onboarding-copy-setup-instructions` feature flag GAs.
  */
-export function CopyLLMPromptButton({
-  prompt = LLM_ONBOARDING_COPY_MARKDOWN,
-}: {prompt?: string} = {}) {
+export function CopyLLMPromptButton() {
   const {copy} = useCopyToClipboard();
   const organization = useOrganization();
 
@@ -53,7 +51,7 @@ export function CopyLLMPromptButton({
         trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
           organization,
         });
-        copy(prompt, {
+        copy(LLM_ONBOARDING_COPY_MARKDOWN, {
           successMessage: t('Copied instrumentation prompt to clipboard'),
         });
       }}
