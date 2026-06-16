@@ -105,3 +105,41 @@ class GetSizeRetentionCutoffTest(TestCase):
         cutoff = get_size_retention_cutoff(self.organization)
         expected = timezone.now() - timedelta(days=30)
         assert abs((cutoff - expected).total_seconds()) < 2
+
+    @patch("sentry.preprod.quotas.quotas.backend.get_event_retention", return_value=None)
+    def test_uses_size_analysis_category(self, mock_retention):
+        from sentry.constants import DataCategory
+        from sentry.preprod.quotas import get_size_retention_cutoff
+
+        get_size_retention_cutoff(self.organization)
+        assert mock_retention.call_args.kwargs["category"] == DataCategory.SIZE_ANALYSIS
+
+
+class GetBuildDistributionRetentionCutoffTest(TestCase):
+    @patch("sentry.preprod.quotas.quotas.backend.get_event_retention", return_value=None)
+    def test_default_retention_when_none(self, mock_retention):
+        from django.utils import timezone
+
+        from sentry.preprod.quotas import get_build_distribution_retention_cutoff
+
+        cutoff = get_build_distribution_retention_cutoff(self.organization)
+        expected = timezone.now() - timedelta(days=90)
+        assert abs((cutoff - expected).total_seconds()) < 2
+
+    @patch("sentry.preprod.quotas.quotas.backend.get_event_retention", return_value=30)
+    def test_custom_retention(self, mock_retention):
+        from django.utils import timezone
+
+        from sentry.preprod.quotas import get_build_distribution_retention_cutoff
+
+        cutoff = get_build_distribution_retention_cutoff(self.organization)
+        expected = timezone.now() - timedelta(days=30)
+        assert abs((cutoff - expected).total_seconds()) < 2
+
+    @patch("sentry.preprod.quotas.quotas.backend.get_event_retention", return_value=None)
+    def test_uses_installable_build_category(self, mock_retention):
+        from sentry.constants import DataCategory
+        from sentry.preprod.quotas import get_build_distribution_retention_cutoff
+
+        get_build_distribution_retention_cutoff(self.organization)
+        assert mock_retention.call_args.kwargs["category"] == DataCategory.INSTALLABLE_BUILD

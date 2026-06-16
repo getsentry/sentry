@@ -864,11 +864,24 @@ class BuildsEndpointTest(APITestCase):
 
     @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
     def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
+        # No display defaults to the size view, so the size-analysis cutoff applies.
         mock_cutoff.return_value = before_now(days=30)
         self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))
         self.create_preprod_artifact(app_id="expired.app", date_added=before_now(days=60))
 
         response = self._request({})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "recent.app"
+
+    @patch("sentry.preprod.builds_query.get_build_distribution_retention_cutoff")
+    def test_distribution_display_uses_build_distribution_cutoff(self, mock_cutoff) -> None:
+        mock_cutoff.return_value = before_now(days=30)
+        self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))
+        self.create_preprod_artifact(app_id="expired.app", date_added=before_now(days=60))
+
+        response = self._request({"display": "distribution"})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1

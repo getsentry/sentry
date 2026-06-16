@@ -26,17 +26,23 @@ class PreprodFeature(Enum):
     BUILD_DISTRIBUTION = "build_distribution"
 
 
-DEFAULT_SIZE_RETENTION_DAYS = 90
+DEFAULT_PREPROD_RETENTION_DAYS = 90
+
+
+def _get_retention_cutoff(organization: Organization, category: DataCategory) -> datetime:
+    retention_days = (
+        quotas.backend.get_event_retention(organization=organization, category=category)
+        or DEFAULT_PREPROD_RETENTION_DAYS
+    )
+    return timezone.now() - timedelta(days=retention_days)
 
 
 def get_size_retention_cutoff(organization: Organization) -> datetime:
-    retention_days = (
-        quotas.backend.get_event_retention(
-            organization=organization, category=DataCategory.SIZE_ANALYSIS
-        )
-        or DEFAULT_SIZE_RETENTION_DAYS
-    )
-    return timezone.now() - timedelta(days=retention_days)
+    return _get_retention_cutoff(organization, DataCategory.SIZE_ANALYSIS)
+
+
+def get_build_distribution_retention_cutoff(organization: Organization) -> datetime:
+    return _get_retention_cutoff(organization, DataCategory.INSTALLABLE_BUILD)
 
 
 SIZE_ENABLED_KEY = "sentry:preprod_size_enabled_by_customer"
