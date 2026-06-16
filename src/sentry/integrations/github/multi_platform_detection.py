@@ -216,7 +216,6 @@ class _TreeIndex:
 
     def __init__(
         self,
-        dirs: set[str],
         files_full_paths_by_basename: dict[str, set[str]],
         dirs_full_paths_by_basename: dict[str, set[str]],
         full_repo_size_bytes: int,
@@ -224,10 +223,7 @@ class _TreeIndex:
         # basename → set of all non-ignored full file paths with that name.
         self.files_full_paths_by_basename = files_full_paths_by_basename
         # basename → set of all non-ignored full directory paths with that name.
-        # Kept alongside the fast-lookup basename set below.
         self.dirs_full_paths_by_basename = dirs_full_paths_by_basename
-        # Fast basename-only sets for O(1) existence checks.
-        self.dirs = dirs
         # Sum of ALL blobs including vendored/build dirs — the true tarball
         # weight.
         self.full_repo_size_bytes = full_repo_size_bytes
@@ -235,6 +231,10 @@ class _TreeIndex:
     @property
     def files(self) -> set[str]:
         return set(self.files_full_paths_by_basename.keys())
+
+    @property
+    def dirs(self) -> set[str]:
+        return set(self.dirs_full_paths_by_basename.keys())
 
 
 def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
@@ -245,7 +245,6 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
     ``node_modules/some-lib/package.json`` never contributes a false signal.
     ``full_repo_size_bytes`` is the sum of ``size`` across all blobs.
     """
-    dirs: set[str] = set()
     files_full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
     dirs_full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
     full_repo_size_bytes = 0
@@ -266,11 +265,9 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
         if entry_type == "blob":
             files_full_paths_by_basename[basename].add(path)
         elif entry_type == "tree":
-            dirs.add(basename)
             dirs_full_paths_by_basename[basename].add(path)
 
     return _TreeIndex(
-        dirs=dirs,
         files_full_paths_by_basename=dict(files_full_paths_by_basename),
         dirs_full_paths_by_basename=dict(dirs_full_paths_by_basename),
         full_repo_size_bytes=full_repo_size_bytes,
