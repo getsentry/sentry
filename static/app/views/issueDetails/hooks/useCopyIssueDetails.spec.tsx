@@ -544,6 +544,127 @@ describe('useCopyIssueDetails', () => {
       expect(result).not.toContain('## Breadcrumbs');
     });
 
+    it('includes the request method, url, and body when present', () => {
+      const eventWithRequest = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'POST',
+              url: 'https://example.com/api/checkout/',
+              data: {cart_id: 'abc123', total: 4200},
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithRequest,
+        organization,
+      });
+
+      expect(result).toContain('## Request');
+      expect(result).toContain('POST https://example.com/api/checkout/');
+      expect(result).toContain('Body:');
+      expect(result).toContain('"cart_id": "abc123"');
+    });
+
+    it('renders a string request body as-is', () => {
+      const eventWithStringBody = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'GET',
+              url: 'https://example.com/api/items/',
+              data: 'raw body payload',
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithStringBody,
+        organization,
+      });
+
+      expect(result).toContain('GET https://example.com/api/items/');
+      expect(result).toContain('raw body payload');
+    });
+
+    it('renders the request after breadcrumbs', () => {
+      const eventWithBoth = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {method: 'GET', url: 'https://example.com/', data: null},
+          },
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {values: [{type: 'default', level: 'info', message: 'crumb'}]},
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBoth,
+        organization,
+      });
+
+      expect(result.indexOf('## Breadcrumbs')).toBeLessThan(result.indexOf('## Request'));
+    });
+
+    it('truncates a large request body to the character limit', () => {
+      const eventWithLargeBody = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'POST',
+              url: 'https://example.com/api/upload/',
+              data: 'z'.repeat(2500),
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithLargeBody,
+        organization,
+      });
+
+      expect(result).toContain(`${'z'.repeat(2000)}...`);
+      expect(result).not.toContain('z'.repeat(2001));
+    });
+
+    it('does not include a request section when there is no request data', () => {
+      const eventWithEmptyRequest = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {method: null, url: '', data: null},
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithEmptyRequest,
+        organization,
+      });
+
+      expect(result).not.toContain('## Request');
+    });
+
     // 1006 is the occurrence type for N+1 DB Queries. Spans mirror the classic
     // cache-miss → DB-read shape: each offender is a cache.get with a distinct
     // key followed by an identical parameterized query.
