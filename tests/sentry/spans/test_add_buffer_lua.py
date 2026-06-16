@@ -161,6 +161,57 @@ def test_merges_existing_child_segment(
     }
 
 
+def test_compresses_redirect_chain_on_walk(
+    redis_client: StrictRedis[bytes] | RedisCluster[bytes],
+) -> None:
+    trace_id = "f" * 32
+    project_and_trace = f"1:{trace_id}"
+    root_span_id = "a" * 16
+    mid_span_id = "b" * 16
+    leaf_span_id = "c" * 16
+    grandchild_span_id = "d" * 16
+
+    # Build a two-hop chain leaf -> mid -> root without flattening it. Each
+    # call's walk starts at a parent that is not yet in the redirect table, so
+    # it breaks immediately at depth 0 and never traverses the chain.
+    eval_add_buffer_script(
+        redis_client,
+        project_and_trace=project_and_trace,
+        parent_span_id=mid_span_id,
+        span_ids=[leaf_span_id],
+        salt="salt-leaf",
+    )
+    eval_add_buffer_script(
+        redis_client,
+        project_and_trace=project_and_trace,
+        parent_span_id=root_span_id,
+        span_ids=[mid_span_id],
+        salt="salt-mid",
+    )
+    assert redis_client.hgetall(_redirect_key(1, trace_id)) == {
+        leaf_span_id.encode(): mid_span_id.encode(),
+        mid_span_id.encode(): root_span_id.encode(),
+    }
+
+    # A subsegment whose parent is the bottom of the chain forces a two-hop
+    # walk. Path compression repoints every traversed node straight at the root,
+    # so subsequent walks for this trace resolve in a single hop.
+    result = eval_add_buffer_script(
+        redis_client,
+        project_and_trace=project_and_trace,
+        parent_span_id=leaf_span_id,
+        span_ids=[grandchild_span_id],
+        salt="salt-grandchild",
+    )
+
+    assert _metrics_table(result)[b"redirect_depth"] == 2
+    assert redis_client.hgetall(_redirect_key(1, trace_id)) == {
+        leaf_span_id.encode(): root_span_id.encode(),
+        mid_span_id.encode(): root_span_id.encode(),
+        grandchild_span_id.encode(): root_span_id.encode(),
+    }
+
+
 def test_merges_large_child_member_key_set(
     redis_client: StrictRedis[bytes] | RedisCluster[bytes],
 ) -> None:

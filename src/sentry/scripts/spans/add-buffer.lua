@@ -88,6 +88,11 @@ local start_time_ms = get_time_ms()
 local set_span_id = parent_span_id
 local redirect_depth = 0
 
+-- Intermediate nodes traversed on the way up to the root. Once the root is
+-- resolved we repoint each of these directly at it (path compression), so
+-- later walks for this trace are O(1) instead of re-traversing the chain.
+local redirect_chain = {}
+
 local main_redirect_key = string.format("span-buf:ssr:{%s}", project_and_trace)
 
 -- Navigates the tree up to the highest level parent span we can find. Such
@@ -99,6 +104,8 @@ for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
         break
     end
 
+    -- set_span_id redirects further up, so it is an intermediate node to flatten.
+    table.insert(redirect_chain, set_span_id)
     set_span_id = new_set_span
 end
 
@@ -117,10 +124,19 @@ end
 
 local hset_args = {}
 
+-- The new spans are inserted to the hashset with their span-ids pointing to the best known
+-- root span-id.
 for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
-    local span_id = ARGV[i]
+    local new_span_id = ARGV[i]
+    table.insert(hset_args, new_span_id)
+    table.insert(hset_args, set_span_id)
+end
 
-    table.insert(hset_args, span_id)
+-- The old spans are updated with their span-ids pointing to the best known root span-id.
+-- Future spans targeting these span-ids will skip to the updated root rather than
+-- traversing the tree we just traversed above.
+for _, old_span_id in ipairs(redirect_chain) do
+    table.insert(hset_args, old_span_id)
     table.insert(hset_args, set_span_id)
 end
 
