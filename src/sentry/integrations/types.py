@@ -110,7 +110,6 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
 
-
 PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.EMAIL.value,
     ExternalProviderEnum.SLACK.value,
