@@ -1,5 +1,7 @@
 import logging
 
+from pydantic import ValidationError
+
 from sentry.seer.models import SeerApiError
 from sentry.seer.sentry_data_models import AgentExportIndexesResponse
 from sentry.seer.signed_seer_api import (
@@ -29,3 +31,9 @@ def export_agent_indexes(*, org_id: int) -> AgentExportIndexesResponse:
     except JSONDecodeError:
         logger.exception("Failed to parse Seer export-indexes response")
         raise SeerApiError("Seer returned invalid JSON response", response.status)
+    except ValidationError:
+        logger.exception("Seer export-indexes response failed schema validation")
+        raise SeerApiError(
+            "Seer returned a response that did not match the export-indexes schema",
+            response.status,
+        )
