@@ -124,6 +124,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         bind_organization_context(project.organization)
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("version", version)
+        scope.set_attribute("version", version)
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version

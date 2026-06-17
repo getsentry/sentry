@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
@@ -12,7 +20,6 @@ import {Link} from '@sentry/scraps/link';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MAX_REPOS_LIMIT} from 'sentry/components/seer/legacy/constants';
-import {SelectableRepoItem} from 'sentry/components/seer/legacy/selectableRepoItem';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
@@ -22,19 +29,28 @@ import {
 } from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {SelectableRepoItem} from './selectableRepoItem';
+
 type Props = ModalRenderProps & {
-  /**
-   * Callback function triggered when the modal is saved.
-   */
-  onSave: (repoIds: string[]) => void;
   /**
    * Repositories currently selected for Autofix in the parent component.
    */
-  selectedRepoIds: string[];
+  hiddenExternalIds: string[];
+
+  /**
+   * Callback function triggered when the modal is saved.
+   */
+  onSave: ({
+    selectedExternalIds,
+    selectedRepoIds,
+  }: {
+    selectedExternalIds: string[];
+    selectedRepoIds: string[];
+  }) => void;
 };
 
 export function AddAutofixRepoModal({
-  selectedRepoIds,
+  hiddenExternalIds,
   onSave,
   Header,
   Body,
@@ -49,53 +65,49 @@ export function AddAutofixRepoModal({
   });
   useFetchAllPages({result: repositoriesQuery});
   const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
+
   const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [selectedExternalIds, setSelectedExternalIds] = useState<string[]>([]);
   const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
-  const [modalSelectedRepoIds, setModalSelectedRepoIds] = useState(selectedRepoIds);
 
-  const newModalSelectedRepoIds = modalSelectedRepoIds.filter(
-    id => !selectedRepoIds.includes(id)
-  );
-
-  const unselectedRepositories = useMemo(() => {
+  const filteredRepositories = useMemo(() => {
     if (!repositories) {
       return [];
     }
-    return repositories.filter(repo => !selectedRepoIds.includes(repo.externalId));
-  }, [repositories, selectedRepoIds]);
-
-  const filteredModalRepositories = useMemo(() => {
-    let filtered = unselectedRepositories;
-    if (modalSearchQuery.trim()) {
-      const query = modalSearchQuery.toLowerCase();
-      filtered = unselectedRepositories.filter(repo =>
-        repo.name.toLowerCase().includes(query)
-      );
-    }
-
-    return filtered.filter(repo => repo.provider?.id && repo.provider.id !== 'unknown');
-  }, [unselectedRepositories, modalSearchQuery]);
-
-  const handleToggleRepository = useCallback((repoId: string) => {
-    setModalSelectedRepoIds(prev => {
-      if (prev.includes(repoId)) {
-        setShowMaxLimitAlert(false);
-        return prev.filter(id => id !== repoId);
+    const query = modalSearchQuery.trim().toLowerCase();
+    return repositories.filter(repo => {
+      if (hiddenExternalIds.includes(repo.externalId)) {
+        return false;
       }
-      if (prev.length >= MAX_REPOS_LIMIT) {
-        setShowMaxLimitAlert(true);
-        return prev;
+      if (query && !repo.name.toLowerCase().includes(query)) {
+        return false;
       }
-      setShowMaxLimitAlert(false);
-      return [...prev, repoId];
+      return true;
     });
-  }, []);
+  }, [repositories, hiddenExternalIds, modalSearchQuery]);
 
-  // Virtualizer setup (simplified based on docs)
+  const handleToggleRepository = useCallback(
+    (externalId: string) => {
+      setSelectedExternalIds(prev => {
+        if (prev.includes(externalId)) {
+          return prev.filter(id => id !== externalId);
+        }
+        return hiddenExternalIds.length + prev.length >= MAX_REPOS_LIMIT
+          ? prev
+          : [...prev, externalId];
+      });
+    },
+    [hiddenExternalIds.length]
+  );
+
+  useEffect(() => {
+    setShowMaxLimitAlert(selectedExternalIds.length >= MAX_REPOS_LIMIT);
+  }, [selectedExternalIds.length]);
+
   const parentRef = useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
-    count: filteredModalRepositories.length,
+    count: filteredRepositories.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 36,
     overscan: 20,
@@ -135,9 +147,9 @@ export function AddAutofixRepoModal({
             <StyledLoadingIndicator size={36} />
             <LoadingMessage>{t('Loading repositories...')}</LoadingMessage>
           </Stack>
-        ) : filteredModalRepositories.length === 0 ? (
+        ) : filteredRepositories.length === 0 ? (
           <EmptyMessage>
-            {modalSearchQuery.trim() && unselectedRepositories.length > 0
+            {modalSearchQuery.trim()
               ? t('No matching repositories found.')
               : t('All available repositories have been added.')}
           </EmptyMessage>
@@ -151,7 +163,7 @@ export function AddAutofixRepoModal({
               }}
             >
               {rowVirtualizer.getVirtualItems().map(virtualItem => {
-                const repo = filteredModalRepositories[virtualItem.index]!;
+                const repo = filteredRepositories[virtualItem.index]!;
                 return (
                   <div
                     key={virtualItem.key}
@@ -166,7 +178,7 @@ export function AddAutofixRepoModal({
                   >
                     <SelectableRepoItem
                       repo={repo}
-                      isSelected={modalSelectedRepoIds.includes(repo.externalId)}
+                      isSelected={selectedExternalIds.includes(repo.externalId)}
                       onToggle={handleToggleRepository}
                     />
                   </div>
@@ -191,16 +203,19 @@ export function AddAutofixRepoModal({
           <Button
             variant="primary"
             onClick={() => {
-              onSave(modalSelectedRepoIds);
+              const selectedRepoIds = selectedExternalIds
+                .map(
+                  externalId =>
+                    repositories?.find(repo => repo.externalId === externalId)?.id
+                )
+                .filter<string>(value => value !== undefined);
+
+              onSave({selectedExternalIds, selectedRepoIds});
               closeModal();
             }}
           >
-            {newModalSelectedRepoIds.length > 0
-              ? tn(
-                  'Add %s Repository',
-                  'Add %s Repositories',
-                  newModalSelectedRepoIds.length
-                )
+            {selectedExternalIds.length > 0
+              ? tn('Add %s Repository', 'Add %s Repositories', selectedExternalIds.length)
               : t('Done')}
           </Button>
         </Flex>

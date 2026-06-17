@@ -177,6 +177,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         project_id=group.project_id,
                         group_id=group.id,
                         referrer=None if current_referrer is None else current_referrer.value,
+                        run_id=run_id,
                     )
                 )
             else:
@@ -240,8 +241,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         if current_step is not None and not is_pr_created:
             referrer = current_referrer.value if current_referrer is not None else None
+            iteration_index = get_latest_iteration_index(state)
             metrics.incr(
-                "autofix.explorer.complete", tags={"step": current_step.value, "referrer": referrer}
+                "autofix.explorer.complete",
+                tags={
+                    "step": current_step.value,
+                    "referrer": referrer,
+                    "iteration_index": iteration_index,
+                },
             )
             completed_event_cls = STEP_CONFIGS[current_step].completed_event
             if completed_event_cls is not None:
@@ -251,6 +258,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         project_id=group.project_id,
                         group_id=group.id,
                         referrer=referrer,
+                        run_id=run_id,
+                        iteration_index=iteration_index,
                     )
                 )
 
@@ -372,12 +381,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 group,
             )
             if decision is not None:
-                iteration_index = get_latest_iteration_index(state)
+                iteration_index = (
+                    get_latest_iteration_index(state)
+                    if current_step == AutofixStep.PR_ITERATION
+                    else None
+                )
                 analytics.record(
                     AiAutofixIntrospectionEvent(
                         organization_id=organization.id,
                         project_id=group.project_id,
                         group_id=group.id,
+                        run_id=run_id,
                         referrer=referrer.value,
                         step=current_step.value,
                         action=decision.action.value,
@@ -396,6 +410,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         "action": decision.action.value,
                         "reason": decision.reason,
                         "reached_stopping_point": reached_stopping_point,
+                        "iteration_index": iteration_index,
                     },
                 )
 
@@ -450,6 +465,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "current_step": current_step,
                 "next_step": next_step,
                 "stopping_point": stopping_point,
+                "iteration_index": get_latest_iteration_index(state),
             },
         )
         trigger_autofix_agent(

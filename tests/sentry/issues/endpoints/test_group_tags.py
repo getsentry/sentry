@@ -88,7 +88,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 14
+        assert len(response.data) == 15
 
         data = sorted(response.data, key=lambda r: r["key"])
         assert data[0]["key"] == "biz"
@@ -99,14 +99,14 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert data[8]["key"] == "foo"
         assert len(data[8]["topValues"]) == 2
 
-        assert data[9]["key"] == "level"
-        assert len(data[9]["topValues"]) == 1
-
-        assert data[10]["key"] == "release"  # Formatted from sentry:release
+        assert data[10]["key"] == "level"
         assert len(data[10]["topValues"]) == 1
 
-        assert data[11]["key"] == "transaction"
+        assert data[11]["key"] == "release"  # Formatted from sentry:release
         assert len(data[11]["topValues"]) == 1
+
+        assert data[12]["key"] == "transaction"
+        assert len(data[12]["topValues"]) == 1
 
         # Use the key= queryparam to grab results for specific tags
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/?key=foo&key=sentry:release"
