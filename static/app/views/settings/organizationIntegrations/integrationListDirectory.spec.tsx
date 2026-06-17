@@ -46,6 +46,7 @@ describe('IntegrationListDirectory', () => {
           `/organizations/${organization.slug}/plugins/configs/`,
           PluginListConfigFixture(),
         ],
+        [`/organizations/${organization.slug}/legacy-webhooks/`, {projects: []}],
       ]);
     });
 
