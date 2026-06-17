@@ -40,24 +40,22 @@ def format_duration(minutes: int | float, floor_to_largest_unit: bool = True) ->
     when it divides evenly, otherwise it stays in MINUTES (does not have seconds resolution).
     (90 -> "90 minutes", 120 -> "2 hours", 0.5 -> "0 minutes")
     """
+
+    def unit(value: int, name: str) -> str:
+        return f"{value:d} {name}{pluralize(value)}"
+
     if not floor_to_largest_unit:
         if minutes >= 60 and minutes % 60 == 0:
-            hours = int(minutes // 60)
-            return f"{hours:d} hour{pluralize(hours)}"
-        minutes = int(minutes)
-        return f"{minutes:d} minute{pluralize(minutes)}"
+            return unit(int(minutes // 60), "hour")
+        return unit(int(minutes), "minute")
 
     if minutes >= 1440:
-        days = int(minutes // 1440)
-        return f"{days:d} day{pluralize(days)}"
+        return unit(int(minutes // 1440), "day")
     if minutes >= 60:
-        hours = int(minutes // 60)
-        return f"{hours:d} hour{pluralize(hours)}"
+        return unit(int(minutes // 60), "hour")
     if minutes >= 1:
-        minutes = int(minutes)
-        return f"{minutes:d} minute{pluralize(minutes)}"
-    seconds = int(minutes * 60)
-    return f"{seconds:d} second{pluralize(seconds)}"
+        return unit(int(minutes), "minute")
+    return unit(int(minutes * 60), "second")
 
 
 @overload
