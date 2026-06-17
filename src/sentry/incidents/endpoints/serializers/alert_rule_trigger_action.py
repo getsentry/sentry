@@ -87,7 +87,15 @@ def get_input_channel_id(action_type, target_identifier=None):
     """
     Don't pass an inputChannelId value unless the action is for Slack
     """
-    return target_identifier if action_type == AlertRuleTriggerAction.Type.SLACK.value else None
+    return (
+        target_identifier
+        if action_type
+        in (
+            AlertRuleTriggerAction.Type.SLACK.value,
+            AlertRuleTriggerAction.Type.SLACK_STAGING.value,
+        )
+        else None
+    )
 
 
 @register(AlertRuleTriggerAction)
