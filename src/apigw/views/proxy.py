@@ -65,6 +65,7 @@ proxy.route(
         "/api/0/organizations/<str:org>/integrations/<str:subp>/repo-sync",
         "/api/0/organizations/<str:org>/integrations/direct-enable(/<any:subp>)?",
         "/api/0/organizations/<str:org>/intercom-jwt",
+        "/api/0/organizations/<str:org>/monitoring-providers(/<any:subp>)?",
         "/api/0/organizations/<str:org>/org-auth-tokens(/<any:subp>)?",
         "/api/0/organizations/<str:org>/pipeline/<str:subp>",
         "/api/0/organizations/<str:org>/sentry-app-components",
