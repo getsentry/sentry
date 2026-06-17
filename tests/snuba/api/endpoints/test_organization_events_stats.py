@@ -1304,7 +1304,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                     "event_id": f"{i + 1}" * 32,
                     "timestamp": (self.day_ago + timedelta(minutes=i + 1)).isoformat(),
                     "fingerprint": ["platform-collision-group"],
-                    "tags": {"platform": "SJ1"},
+                    "platform": "cocoa",
+                    "tags": {"platform": "cocoa"},
                 },
                 project_id=self.project.id,
             )
@@ -1318,7 +1319,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
-                "query": f"issue:{group.qualified_short_id} platform:SJ1",
+                "query": f"issue:{group.qualified_short_id} platform:cocoa",
                 "dataset": "errors",
                 "yAxis": "count()",
             },
