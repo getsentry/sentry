@@ -6,6 +6,7 @@ import type {Tag} from 'sentry/types/group';
 
 export type SuggestionItem = {
   value: string;
+  count?: number;
   description?: ReactNode;
   label?: ReactNode;
   tag?: Tag;

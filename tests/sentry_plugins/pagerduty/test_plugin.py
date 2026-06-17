@@ -88,7 +88,7 @@ class PagerDutyPluginTest(PluginTestCase):
                 "culprit": group.culprit,
                 "platform": "python",
                 "event_id": event.event_id,
-                "tags": {"level": "warning"},
+                "tags": {"interface_type": "logentry", "level": "warning"},
                 "datetime": event.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             },
             "service_key": "abcdef",

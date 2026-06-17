@@ -45,7 +45,7 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.dates import outside_retention_with_modified_start
+from sentry.utils.dates import deprecated_utcnow, outside_retention_with_modified_start
 
 logger = logging.getLogger(__name__)
 
@@ -766,7 +766,7 @@ def _prepare_start_end(
     if not start:
         start = datetime(2008, 5, 8)
     if not end:
-        end = datetime.utcnow() + timedelta(seconds=1)
+        end = deprecated_utcnow() + timedelta(seconds=1)
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
@@ -914,7 +914,7 @@ class SnubaQueryParams:
         # This shows up in unittests: https://github.com/getsentry/sentry/pull/15939
         # We generally however require that the API user is aware of the exclusive
         # end.
-        self.end = end or datetime.utcnow() + timedelta(seconds=1)
+        self.end = end or deprecated_utcnow() + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []

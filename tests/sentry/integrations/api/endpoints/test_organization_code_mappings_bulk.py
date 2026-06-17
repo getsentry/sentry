@@ -72,6 +72,12 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             project=self.project1, repository=self.repo1
         ).exists()
 
+    def test_create_single_mapping_with_project_id(self) -> None:
+        response = self.make_post({"project": self.project1.id})
+
+        assert response.status_code == 200, response.content
+        assert response.data["created"] == 1
+
     def test_create_multiple_mappings(self) -> None:
         response = self.make_post(
             {
@@ -254,6 +260,16 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         response = self.make_post({"project": "nonexistent-project"})
         assert response.status_code == 404
         assert "Project not found" in response.data["detail"]
+
+    def test_all_project_id_sentinel_returns_400(self) -> None:
+        response = self.make_post({"project": "-1"})
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project"
+
+    def test_all_project_slug_sentinel_returns_400(self) -> None:
+        response = self.make_post({"project": "$all"})
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project"
 
     def test_unknown_repository_name(self) -> None:
         response = self.make_post({"repository": "nonexistent/repo"})
@@ -452,6 +468,12 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         other_org = self.create_organization(name="other-org", owner=self.user)
         other_project = self.create_project(organization=other_org, name="other-project")
         response = self.make_post({"project": other_project.slug})
+        assert response.status_code == 404
+
+    def test_project_id_from_other_org_returns_404(self) -> None:
+        other_org = self.create_organization(name="other-org", owner=self.user)
+        other_project = self.create_project(organization=other_org, name="other-project")
+        response = self.make_post({"project": other_project.id})
         assert response.status_code == 404
 
     def test_repo_from_other_org_returns_404(self) -> None:
