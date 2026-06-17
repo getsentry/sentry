@@ -429,30 +429,7 @@ class TestTriggerAutofixAgent(TestCase):
         assert call_kwargs["metadata"] == {
             "group_id": self.group.id,
             "referrer": "unknown",
-            "pr_iteration_enabled": False,
         }
-
-    @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_new_run_records_pr_iteration_enabled_in_metadata(
-        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
-    ):
-        """The pr_iteration feature flag value is persisted in the run metadata."""
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
-
-        with self.feature("organizations:autofix-pr-iteration"):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=AutofixReferrer.UNKNOWN,
-                run_id=None,
-            )
-
-        assert mock_client.start_run.call_args.kwargs["metadata"]["pr_iteration_enabled"] is True
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)

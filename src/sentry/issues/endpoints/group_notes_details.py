@@ -68,8 +68,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             CommentDeleteAction(comment_id=note_id_int),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=group.organization.id,
-            project_id=group.project_id,
+            project=group.project,
             actor=GroupActionActor.user(request.user.id),
         )
 
@@ -121,8 +120,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 CommentEditAction(comment_id=note.id),
                 source=resolve_action_source(request),
                 group_id=group.id,
-                organization_id=group.organization.id,
-                project_id=group.project_id,
+                project=group.project,
                 actor=GroupActionActor.user(request.user.id),
             )
 

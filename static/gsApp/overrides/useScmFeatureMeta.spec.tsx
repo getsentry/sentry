@@ -1,12 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
+import {PlanTier} from 'getsentry-test/planTier';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
-import {PlanTier} from 'getsentry/types';
 
 describe('useScmFeatureMeta', () => {
   beforeEach(() => {

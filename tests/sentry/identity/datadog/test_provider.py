@@ -493,7 +493,7 @@ class DatadogIdentityProviderTest(TestCase):
         assert result["data"]["client_id"] == "dcr-client-id"
         assert result["data"]["client_secret"] == "dcr-client-secret"
         assert result["data"]["site"] == "datadoghq.com"
-        mock_get_user_info.assert_called_once_with("token-abc", "datadoghq.com")
+        mock_get_user_info.assert_called_once_with("token-abc", "https://mcp.datadoghq.com")
 
     @patch("sentry.identity.datadog.provider.get_user_info")
     def test_build_identity_missing_access_token(self, mock_get_user_info: MagicMock) -> None:
@@ -636,6 +636,12 @@ class DatadogIdentityProviderTest(TestCase):
         with pytest.raises(IdentityNotValid, match="Missing Datadog site"):
             self.provider.refresh_identity(identity)
 
+    def test_refresh_identity_invalid_site(self) -> None:
+        identity = self._make_identity(site="evil.example.com")
+
+        with pytest.raises(IdentityNotValid, match="Invalid Datadog site"):
+            self.provider.refresh_identity(identity)
+
     def test_refresh_identity_missing_dcr_credentials(self) -> None:
         identity = self._make_identity(client_id=None, client_secret=None)
 
@@ -647,3 +653,9 @@ class DatadogIdentityProviderTest(TestCase):
 
         with pytest.raises(IdentityNotValid, match="Missing refresh token"):
             self.provider.refresh_identity(identity)
+
+    def test_invalid_site_rejected(self) -> None:
+        self.provider.config = {"site": "evil.example.com"}
+
+        with pytest.raises(ValueError, match="Invalid Datadog site"):
+            self.provider._get_mcp_base_url()

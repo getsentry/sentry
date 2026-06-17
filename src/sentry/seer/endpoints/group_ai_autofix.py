@@ -10,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -354,8 +355,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     TriggerAutofixAction(),
                     source=resolve_action_source(request),
                     group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
+                    project=group.project,
                     actor=resolve_action_actor(request),
                 )
                 # Kickoff returns only the numeric id; fetch the mirror for its UUID.
@@ -460,8 +460,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     "coding_agents": {
                         agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
-                    "pr_iteration_enabled": bool(
-                        state.metadata.get("pr_iteration_enabled") if state.metadata else False
+                    "pr_iteration_enabled": features.has(
+                        "organizations:autofix-pr-iteration", group.organization
                     ),
                 }
             }

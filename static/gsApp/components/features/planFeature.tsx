@@ -18,11 +18,6 @@ type RenderProps = {
    * user-selectable or if the users current plan is on a special tier.
    */
   plan: Plan | null;
-  /**
-   * If the feature requires changing plan tiers, this will report the required
-   * plan tier that is DIFFERENT from the users current subscription tier.
-   */
-  tierChange: string | null;
 };
 
 type Props = {
@@ -117,12 +112,7 @@ function PlanFeature({subscription, features, organization, children}: Props) {
     requiredPlan = plans.find(plan => plan.dashboardLimit === UNLIMITED_RESERVED);
   }
 
-  const tierChange =
-    requiredPlan !== undefined && subscription.planTier !== billingConfig.id
-      ? billingConfig.id
-      : null;
-
-  return <Fragment>{children({plan: requiredPlan ?? null, tierChange})}</Fragment>;
+  return <Fragment>{children({plan: requiredPlan ?? null})}</Fragment>;
 }
 
 export default withSubscription(PlanFeature, {noLoader: true});
