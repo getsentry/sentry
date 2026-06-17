@@ -5,9 +5,8 @@ import type {LocationDescriptor} from 'history';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -58,6 +57,7 @@ import {
   useOptionalIssueSelectionActions,
   useOptionalIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
+import {ProgressActivityTooltip} from 'sentry/views/issueList/progressActivityTooltip';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
@@ -729,12 +729,16 @@ export function StreamGroup({
           {withColumns.includes('progress') && (
             <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
               {progressState ? (
-                <Stack direction="row" align="center" gap="sm">
-                  {getProgressIcon(progressState)}
-                  <Text>{formatProgressState(progressState)}</Text>
-                </Stack>
+                <Container position="relative">
+                  <ProgressActivityTooltip group={group}>
+                    <Stack direction="row" align="center" gap="sm">
+                      {getProgressIcon(progressState)}
+                      {formatProgressState(progressState)}
+                    </Stack>
+                  </ProgressActivityTooltip>
+                </Container>
               ) : (
-                <Placeholder height="18px" width="80px" />
+                <Placeholder height="18px" />
               )}
             </ProgressWrapper>
           )}

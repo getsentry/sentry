@@ -39,6 +39,7 @@ const EMPTY_ALIASES: TagCollection = {};
 interface FilterProps {
   traceMetric: TraceMetric;
   environments?: string[];
+  portalTarget?: HTMLElement;
   projectIds?: number[];
   skipTraceMetricFilter?: boolean;
 }
@@ -66,6 +67,7 @@ export function Filter({
   skipTraceMetricFilter,
   projectIds,
   environments,
+  portalTarget,
 }: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
@@ -178,6 +180,7 @@ export function Filter({
         projects: projectIds,
         environments,
         disabled: isSearchBarDisabled,
+        portalTarget,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -195,6 +198,7 @@ export function Filter({
       projectIds,
       environments,
       isSearchBarDisabled,
+      portalTarget,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
