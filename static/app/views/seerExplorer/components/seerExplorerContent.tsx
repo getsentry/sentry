@@ -1,11 +1,14 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -21,7 +24,7 @@ import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerHeader';
+import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
@@ -35,10 +38,53 @@ import {
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 
+/**
+ * Wraps the shared header content with the surface's chrome. The drawer passes
+ * a `<DrawerHeader>` wrapper; when omitted, the sidebar shell is used (a plain
+ * `<header>` with its own close button). `onClose` docks back from a popped-out
+ * window or closes the surface.
+ */
+type RenderHeader = (args: {
+  children: ReactNode;
+  isPoppedOut: boolean;
+  onClose: () => void;
+}) => ReactNode;
+
+function SidebarHeaderShell({
+  children,
+  onClose,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <Flex
+      as="header"
+      align="center"
+      gap="md"
+      padding="md lg"
+      background="primary"
+      borderBottom="primary"
+      flexShrink={0}
+    >
+      <Button
+        icon={<IconClose />}
+        onClick={onClose}
+        variant="transparent"
+        size="xs"
+        aria-label={t('Close Seer')}
+        tooltipProps={{title: t('Close')}}
+      />
+      {children}
+    </Flex>
+  );
+}
+
 export function SeerExplorerContent({
   getPageReferrer,
   initialQuery,
   onClose,
+  renderHeader,
   sidebarPosition,
   onSidebarPositionChange,
 }: {
@@ -47,6 +93,8 @@ export function SeerExplorerContent({
   onClose: () => void;
   initialQuery?: string;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
+  /** Surface chrome for the header. Defaults to the sidebar shell. */
+  renderHeader?: RenderHeader;
   sidebarPosition?: SeerExplorerSidebarPosition;
 }) {
   const organization = useOrganization({allowNull: true});
@@ -416,6 +464,36 @@ export function SeerExplorerContent({
           ? 'completed'
           : 'disabled';
 
+  const headerContent = (
+    <SeerExplorerHeader
+      disableNewChatButton={runId === null}
+      onNewChatClick={() => {
+        startNewSession();
+        focusInput();
+      }}
+      onChangeSession={switchToRun}
+      onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
+      onCopyLinkClick={runId === null ? undefined : handleCopyLink}
+      overrideCtxEngEnable={overrideCtxEngEnable}
+      onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
+      showContextEngineToggle={
+        !!organization?.features.includes(
+          'seer-explorer-context-engine-fe-override-ui-flag'
+        )
+      }
+      showThinking={showThinking}
+      onShowThinkingToggle={() => setShowThinking(v => !v)}
+      showThinkingToggle={
+        !!organization?.features.includes('seer-explorer-thinking-blocks')
+      }
+      isPipSupported={isPipSupported}
+      isPoppedOut={isPoppedOut}
+      onTogglePictureInPicture={handleTogglePictureInPicture}
+      sidebarPosition={sidebarPosition}
+      onSidebarPositionChange={onSidebarPositionChange}
+    />
+  );
+
   return (
     <ContentContainer
       ref={rootRef}
@@ -427,34 +505,11 @@ export function SeerExplorerContent({
       overflow="hidden"
       contain="inline-size"
     >
-      <SeerExplorerHeader
-        disableNewChatButton={runId === null}
-        onNewChatClick={() => {
-          startNewSession();
-          focusInput();
-        }}
-        onChangeSession={switchToRun}
-        onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
-        onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-        overrideCtxEngEnable={overrideCtxEngEnable}
-        onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
-        showContextEngineToggle={
-          !!organization?.features.includes(
-            'seer-explorer-context-engine-fe-override-ui-flag'
-          )
-        }
-        showThinking={showThinking}
-        onShowThinkingToggle={() => setShowThinking(v => !v)}
-        showThinkingToggle={
-          !!organization?.features.includes('seer-explorer-thinking-blocks')
-        }
-        isPipSupported={isPipSupported}
-        isPoppedOut={isPoppedOut}
-        onTogglePictureInPicture={handleTogglePictureInPicture}
-        sidebarPosition={sidebarPosition}
-        onSidebarPositionChange={onSidebarPositionChange}
-        onClose={handleClose}
-      />
+      {renderHeader ? (
+        renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
+      ) : (
+        <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
+      )}
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (

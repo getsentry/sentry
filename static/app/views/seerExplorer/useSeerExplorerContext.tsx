@@ -29,7 +29,7 @@ import {
   SEER_EXPLORER_DRAWER_KEY,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerContent';
+import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {
   useSeerExplorerChatDispatch,

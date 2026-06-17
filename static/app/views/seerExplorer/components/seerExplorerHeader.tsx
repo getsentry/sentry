@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -17,7 +17,6 @@ import {
   IconAdd,
   IconCheckmark,
   IconClock,
-  IconClose,
   IconCopy,
   IconEllipsis,
   IconLink,
@@ -29,12 +28,17 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 
+/**
+ * The shared inner header content (title + action cluster) for Seer Explorer.
+ * Returns a fragment — the surface (drawer / sidebar) provides the outer
+ * `<header>` wrapper and the close affordance via a slot. The dock-position
+ * dropdown renders only when an `onSidebarPositionChange` handler is supplied
+ * (i.e. the sidebar surface) and the content isn't popped out.
+ */
 interface SeerExplorerHeaderProps {
   isPipSupported: boolean;
   isPoppedOut: boolean;
   onChangeSession: (runId: number) => void;
-  /** Closes the current surface (drawer / sidebar / popped-out window). */
-  onClose: () => void;
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
@@ -51,7 +55,6 @@ interface SeerExplorerHeaderProps {
 }
 
 export function SeerExplorerHeader({
-  onClose,
   onNewChatClick,
   onChangeSession,
   onCopySessionClick,
@@ -152,23 +155,7 @@ export function SeerExplorerHeader({
   ];
 
   return (
-    <Flex
-      as="header"
-      align="center"
-      gap="md"
-      padding="md lg"
-      background="primary"
-      borderBottom="primary"
-      flexShrink={0}
-    >
-      <Button
-        icon={<IconClose />}
-        onClick={onClose}
-        variant="transparent"
-        size="xs"
-        aria-label={t('Close Seer')}
-        tooltipProps={{title: t('Close')}}
-      />
+    <Fragment>
       <Flex align="center" gap="xs" height="100%">
         <Text wrap="nowrap" size="md">
           {t('Seer Agent')}
@@ -271,8 +258,9 @@ export function SeerExplorerHeader({
               }}
             />
           )}
-          {/* Dock position is meaningless for the floating popped-out window. */}
-          {!isPoppedOut && (
+          {/* Sidebar-only (an `onSidebarPositionChange` handler is supplied),
+              and meaningless for the floating popped-out window. */}
+          {!isPoppedOut && onSidebarPositionChange && (
             <DropdownMenu
               items={positionMenuItems}
               size="xs"
@@ -348,7 +336,7 @@ export function SeerExplorerHeader({
           </Button>
         </InlineActions>
       </Flex>
-    </Flex>
+    </Fragment>
   );
 }
 

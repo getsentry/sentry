@@ -1,4 +1,4 @@
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerContent';
+import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
