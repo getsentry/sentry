@@ -208,6 +208,21 @@ describe('SeerExplorerSidebarLayout', () => {
     );
   });
 
+  it('persists Seer size (constant width), not the content size', async () => {
+    // Right dock, available width 1200 (CONTAINER_SIZE). Seer should be sized to
+    // a fixed DEFAULT_SEER_WIDTH (420) — viewport-independent — rather than
+    // persisting the content pane width (780), which would change with the
+    // viewport and skew the ratio on resize.
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    await screen.findByTestId('seer-explorer-input');
+
+    await waitFor(() =>
+      expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('420')
+    );
+  });
+
   it('switches to the run when opened with a runId (deep link / session picker)', async () => {
     mockWideScreen(true);
     MockApiClient.addMockResponse({

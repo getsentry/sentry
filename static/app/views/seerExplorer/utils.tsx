@@ -1159,13 +1159,14 @@ export function useIsSeerExplorerSidebarEnabled(): boolean {
 }
 
 /**
- * `useResizableDrawer` localStorage keys for the sidebar's resizable split,
- * one per dock orientation. These persist the size of the *content* pane (the
- * sized pane); Seer is the remaining `1fr`.
+ * localStorage keys for Seer's persisted size in the sidebar split, one per dock
+ * orientation (width when docked right, height when docked bottom). We persist
+ * *Seer's* size — which is viewport-independent — rather than the content pane's,
+ * so Seer keeps a fixed size and the content area flexes as the viewport changes.
  */
-export const SEER_EXPLORER_SIDEBAR_SIZE_KEY = {
-  right: 'seer-explorer-sidebar-size:right',
-  bottom: 'seer-explorer-sidebar-size:bottom',
+export const SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY = {
+  right: 'seer-explorer-sidebar-seer-size:right',
+  bottom: 'seer-explorer-sidebar-seer-size:bottom',
 } as const;
 
 export type SeerExplorerSidebarOrientation = 'right' | 'bottom';

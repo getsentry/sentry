@@ -13,7 +13,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
-  SEER_EXPLORER_SIDEBAR_SIZE_KEY,
+  SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
   useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
 
@@ -45,24 +45,38 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
   // a planned follow-up. `useDimensions` is only used to size the SplitPanel.
   const orientation = useSeerExplorerSidebarOrientation(sidebarPosition);
 
-  // The SplitPanel stays mounted across open/close (so the app never remounts),
-  // which means it only reads its persisted size on first mount. Re-apply the
-  // persisted size whenever Seer (re-)opens or the orientation changes, so a
-  // size written while it was closed — e.g. by resizing the popped-out window —
-  // is adopted without remounting the content.
+  // Seer keeps a fixed size and the content area flexes with the viewport.
+  // `SplitPanel` sizes its first (content) pane, so we size it as
+  // `available - seerSize` and persist *Seer's* size ourselves (which is
+  // viewport-independent); Seer is the `1fr` remainder.
+  const isRight = orientation === 'right';
+  const available = isRight ? width : height;
+  const minContent = isRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT;
+  const minSeer = isRight ? MIN_SEER_WIDTH : MIN_SEER_HEIGHT;
+  const defaultSeerSize = isRight ? DEFAULT_SEER_WIDTH : DEFAULT_SEER_HEIGHT;
+  const seerSizeKey = SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY[orientation];
+
+  const storedSeerSize = parseInt(localStorage.getItem(seerSizeKey) ?? '', 10);
+  const seerSize = storedSeerSize > 0 ? storedSeerSize : defaultSeerSize;
+  // Content pane size for the current viewport + persisted Seer size, clamped so
+  // neither pane collapses.
+  const contentSize = Math.max(
+    minContent,
+    Math.min(available - seerSize, available - minSeer)
+  );
+
+  // The SplitPanel stays mounted across open/close (so the app never remounts)
+  // and only reads its size on mount. Push the recomputed content size whenever
+  // Seer (re)opens, the orientation changes, or the viewport resizes — so Seer
+  // stays a fixed size and the content area absorbs viewport changes (and a size
+  // written while closed — e.g. by resizing the popped-out window — is adopted).
   const splitPanelRef = useRef<SplitPanelHandle>(null);
   useLayoutEffect(() => {
     if (!isSidebarMode || !isOpen) {
       return;
     }
-    const stored = parseInt(
-      localStorage.getItem(SEER_EXPLORER_SIDEBAR_SIZE_KEY[orientation]) ?? '',
-      10
-    );
-    if (stored > 0) {
-      splitPanelRef.current?.setSize(stored);
-    }
-  }, [isSidebarMode, isOpen, orientation]);
+    splitPanelRef.current?.setSize(contentSize);
+  }, [isSidebarMode, isOpen, orientation, contentSize]);
 
   if (!isSidebarMode) {
     return children;
@@ -79,30 +93,25 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
     </Stack>
   );
 
-  const splitProps: SplitPanelProps =
-    orientation === 'right'
-      ? {
-          availableSize: width,
-          left: {
-            content: contentPane,
-            default: Math.max(width - DEFAULT_SEER_WIDTH, MIN_CONTENT_WIDTH),
-            min: MIN_CONTENT_WIDTH,
-            max: Math.max(width - MIN_SEER_WIDTH, MIN_CONTENT_WIDTH),
-          },
-          right: seerPanel,
-          sizeStorageKey: SEER_EXPLORER_SIDEBAR_SIZE_KEY.right,
-        }
-      : {
-          availableSize: height,
-          top: {
-            content: contentPane,
-            default: Math.max(height - DEFAULT_SEER_HEIGHT, MIN_CONTENT_HEIGHT),
-            min: MIN_CONTENT_HEIGHT,
-            max: Math.max(height - MIN_SEER_HEIGHT, MIN_CONTENT_HEIGHT),
-          },
-          bottom: seerPanel,
-          sizeStorageKey: SEER_EXPLORER_SIDEBAR_SIZE_KEY.bottom,
-        };
+  // Persist Seer's size from a divider drag (content shrinks → Seer grows).
+  const onContentResize = (contentPx: number) => {
+    const seer = Math.max(
+      minSeer,
+      Math.min(available - contentPx, available - minContent)
+    );
+    localStorage.setItem(seerSizeKey, String(Math.round(seer)));
+  };
+
+  const side = {
+    content: contentPane,
+    default: contentSize,
+    min: minContent,
+    max: Math.max(available - minSeer, minContent),
+  };
+
+  const splitProps: SplitPanelProps = isRight
+    ? {availableSize: available, left: side, right: seerPanel, onResize: onContentResize}
+    : {availableSize: available, top: side, bottom: seerPanel, onResize: onContentResize};
 
   // `contain="size"` decouples this element's size from its contents (like
   // `ViewportConstrainedPage`) so the flex algorithm sizes it to the remaining

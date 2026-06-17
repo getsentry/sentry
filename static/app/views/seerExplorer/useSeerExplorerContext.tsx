@@ -37,7 +37,7 @@ import {
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 import {
-  SEER_EXPLORER_SIDEBAR_SIZE_KEY,
+  SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
   type SeerExplorerSidebarOrientation,
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
@@ -113,10 +113,9 @@ function usePictureInPictureSize(pipWindow: Window): {height: number; width: num
  * when the content re-docks:
  *
  * - Drawer: the width as a percent of the viewport, under the drawer's width key.
- * - Sidebar: the size of the *content* pane (`available − pip`, since Seer is the
- *   `1fr` remainder) for the current dock orientation — width for `right`, height
- *   for `bottom`. The available size is read from the layout's measuring
- *   container via `containerRef`.
+ * - Sidebar: the popped-out dimension *is* Seer's size (width when docked right,
+ *   height when docked bottom), stored under the Seer-size key. The sidebar lays
+ *   the content area out around it, so no container measurement is needed.
  *
  * Rendered as a leaf component so size updates re-render only this (it returns
  * nothing), not the popped-out content.
@@ -125,9 +124,7 @@ function SyncSurfaceSizeFromPip({
   pipWindow,
   isSidebarMode,
   orientation,
-  containerRef,
 }: {
-  containerRef: RefObject<HTMLDivElement | null>;
   isSidebarMode: boolean;
   orientation: SeerExplorerSidebarOrientation;
   pipWindow: Window;
@@ -145,25 +142,22 @@ function SyncSurfaceSizeFromPip({
       return;
     }
 
-    const available = containerRef.current?.getBoundingClientRect();
-    if (!available) {
-      return;
-    }
-    // `useResizableDrawer` reads these keys as a plain integer of px.
+    // The popped-out dimension is Seer's size; the sidebar stores it as a plain
+    // integer of px and flexes the content area around it.
     if (orientation === 'bottom') {
-      if (pipHeight > 0 && available.height > 0) {
+      if (pipHeight > 0) {
         localStorage.setItem(
-          SEER_EXPLORER_SIDEBAR_SIZE_KEY.bottom,
-          String(Math.max(0, Math.round(available.height - pipHeight)))
+          SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY.bottom,
+          String(Math.round(pipHeight))
         );
       }
-    } else if (pipWidth > 0 && available.width > 0) {
+    } else if (pipWidth > 0) {
       localStorage.setItem(
-        SEER_EXPLORER_SIDEBAR_SIZE_KEY.right,
-        String(Math.max(0, Math.round(available.width - pipWidth)))
+        SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY.right,
+        String(Math.round(pipWidth))
       );
     }
-  }, [pipWidth, pipHeight, isSidebarMode, orientation, containerRef]);
+  }, [pipWidth, pipHeight, isSidebarMode, orientation]);
 
   return null;
 }
@@ -464,7 +458,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
             pipWindow={pipWindow}
             isSidebarMode={isSidebarMode}
             orientation={sidebarOrientation}
-            containerRef={sidebarContainerRef}
           />
           <PictureInPicturePortal pipWindow={pipWindow}>
             {/* Pop out the content of whichever surface is active: the decoupled
