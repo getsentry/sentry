@@ -78,6 +78,13 @@ DELEGATED_SIGNAL_TYPES = frozenset(
     }
 )
 
+# Signal types that qualify a PR for Seer judge forwarding.
+# Weaker heuristics (MCP issue views, bare issue references) do not warrant
+# the expensive judge call — only direct agent authorship does.
+JUDGE_ELIGIBLE_SIGNAL_TYPES = DELEGATED_SIGNAL_TYPES | frozenset(
+    {PullRequestAttributionSignalType.SENTRY_APP}
+)
+
 
 def record_attribution_signal(
     *,
