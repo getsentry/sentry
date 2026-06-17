@@ -30,7 +30,8 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
     }
 
     @extend_schema(
-        operation_id="List an Organization's Environments",
+        operation_id="listOrganizationEnvironments",
+        summary="List an Organization's Environments",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, EnvironmentParams.VISIBILITY],
         responses={
             200: inline_sentry_response_serializer(

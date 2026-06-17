@@ -9,6 +9,7 @@ from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.dynamic_sampling.per_org.calculations import (
+    apply_project_sample_rate_overrides,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
@@ -126,6 +127,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 
     if config.should_balance_projects:
         rebalanced_projects = run_project_balancing(config, project_volumes)
+        rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
         config.set_rebalanced_project_sample_rates(rebalanced_projects)
         cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
         compare_rebalanced_projects_with_cache(

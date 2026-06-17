@@ -725,9 +725,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app`"
-            f" | 0 | 0 | 0 | 0"
-            f" | [{15}]({artifact_url}?selectedTypes=unchanged)"
-            f" | 0"
+            f" | 0 | 0 | 0 | 0 | 15 | 0"
             f" | ✅ Unchanged |"
             f"\n\n{configure_link}"
         )
@@ -771,13 +769,8 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         expected = (
             "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-            f"| [My App]({artifact_url})<br>`com.example.app`"
-            f" | [{1}]({artifact_url}?selectedTypes=added)"
-            f" | [{2}]({artifact_url}?selectedTypes=removed)"
-            f" | [{3}]({artifact_url}?selectedTypes=changed)"
-            f" | [{1}]({artifact_url}?selectedTypes=renamed)"
-            f" | [{4}]({artifact_url}?selectedTypes=unchanged)"
-            f" | 0"
+            f"| [My App]({artifact_url}?selectedTypes=added,removed,changed,renamed)<br>`com.example.app`"
+            f" | 1 | 2 | 3 | 1 | 4 | 0"
             f" | ⏳ Needs approval |"
             f"\n\n{configure_link}"
         )
@@ -1143,13 +1136,8 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
         expected = (
             "| Name | Added | Removed | Changed | Renamed | Unchanged | Skipped | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-            f"| [My App]({artifact_url})<br>`com.example.app`"
-            f" | [{1}]({artifact_url}?selectedTypes=added)"
-            f" | [{2}]({artifact_url}?selectedTypes=removed)"
-            f" | [{3}]({artifact_url}?selectedTypes=changed)"
-            f" | [{1}]({artifact_url}?selectedTypes=renamed)"
-            f" | [{4}]({artifact_url}?selectedTypes=unchanged)"
-            f" | 0"
+            f"| [My App]({artifact_url}?selectedTypes=added,removed,changed,renamed)<br>`com.example.app`"
+            f" | 1 | 2 | 3 | 1 | 4 | 0"
             f" | ✅ Approved |"
             f"\n\n{configure_link}"
         )

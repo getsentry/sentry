@@ -17,7 +17,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 
 
 def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResponse:
@@ -34,8 +34,8 @@ class ExampleRequestParser(BaseRequestParser):
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
     region_config = [
-        Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
-        Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
+        Cell("us", 1, "https://us.testserver"),
+        Cell("eu", 2, "https://eu.testserver"),
     ]
     factory = RequestFactory()
 

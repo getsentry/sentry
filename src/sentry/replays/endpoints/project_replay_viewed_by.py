@@ -15,8 +15,9 @@ from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.query import query_replay_viewed_by_ids
-from sentry.replays.usecases.events import publish_replay_event, viewed_event
+from sentry.replays.usecases.events import viewed_event
 from sentry.replays.usecases.query import execute_query, make_full_aggregation_query
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -134,7 +135,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
             request.user.id,
             finished_at_ts,
         )
-        publish_replay_event(message, is_async=False)
+        publish_replay_event(message)
         return Response(status=204)
 
 

@@ -117,6 +117,27 @@ options_mapper = {
     # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
+    "mail.backend": "EMAIL_BACKEND",
+    "mail.host": "EMAIL_HOST",
+    "mail.port": "EMAIL_PORT",
+    "mail.username": "EMAIL_HOST_USER",
+    "mail.password": "EMAIL_HOST_PASSWORD",
+    "mail.use-tls": "EMAIL_USE_TLS",
+    "mail.use-ssl": "EMAIL_USE_SSL",
+    "mail.from": "SERVER_EMAIL",
+    "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
+    "github-login.client-id": "GITHUB_APP_ID",
+    "github-login.client-secret": "GITHUB_API_SECRET",
+    "github-login.require-verified-email": "GITHUB_REQUIRE_VERIFIED_EMAIL",
+    "github-login.base-domain": "GITHUB_BASE_DOMAIN",
+    "github-login.api-domain": "GITHUB_API_DOMAIN",
+    "github-login.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
+    "github-login.organization": "GITHUB_ORGANIZATION",
+}
+
+# Backward-compat promotion for self-hosted: config.yml keys that were migrated
+# to Django settings still work when SENTRY_SELF_HOSTED is True.
+self_hosted_options_mapper = {
     "system.base-hostname": "SENTRY_BASE_HOSTNAME",
     "system.organization-base-hostname": "SENTRY_ORGANIZATION_BASE_HOSTNAME",
     "system.organization-url-template": "SENTRY_ORGANIZATION_URL_TEMPLATE",
@@ -136,22 +157,6 @@ options_mapper = {
     "filestore.profiles-options": "SENTRY_PROFILES_FILE_STORAGE_CONFIG",
     "filestore.control.backend": "SENTRY_CONTROL_FILE_STORAGE_BACKEND",
     "filestore.control.options": "SENTRY_CONTROL_FILE_STORAGE_CONFIG",
-    "mail.backend": "EMAIL_BACKEND",
-    "mail.host": "EMAIL_HOST",
-    "mail.port": "EMAIL_PORT",
-    "mail.username": "EMAIL_HOST_USER",
-    "mail.password": "EMAIL_HOST_PASSWORD",
-    "mail.use-tls": "EMAIL_USE_TLS",
-    "mail.use-ssl": "EMAIL_USE_SSL",
-    "mail.from": "SERVER_EMAIL",
-    "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
-    "github-login.client-id": "GITHUB_APP_ID",
-    "github-login.client-secret": "GITHUB_API_SECRET",
-    "github-login.require-verified-email": "GITHUB_REQUIRE_VERIFIED_EMAIL",
-    "github-login.base-domain": "GITHUB_BASE_DOMAIN",
-    "github-login.api-domain": "GITHUB_API_DOMAIN",
-    "github-login.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
-    "github-login.organization": "GITHUB_ORGANIZATION",
 }
 
 
@@ -207,9 +212,14 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
+    effective_mapper = (
+        {**options_mapper, **self_hosted_options_mapper}
+        if settings.SENTRY_SELF_HOSTED
+        else options_mapper
+    )
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
         for k, v in o.items():
-            if k in options_mapper:
+            if k in effective_mapper:
                 # Map the mail.backend aliases to something Django understands
                 if k == "mail.backend":
                     try:
@@ -217,7 +227,7 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
                     except KeyError:
                         pass
                 # Escalate the few needed to actually get the app bootstrapped into settings
-                setattr(settings, options_mapper[k], v)
+                setattr(settings, effective_mapper[k], v)
 
 
 def configure_structlog() -> None:
@@ -453,7 +463,13 @@ def setup_services(validate: bool = True) -> None:
 def validate_options(settings: Any) -> None:
     from sentry.options import default_manager
 
-    default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
+    if settings.SENTRY_SELF_HOSTED:
+        opts = {
+            k: v for k, v in settings.SENTRY_OPTIONS.items() if k not in self_hosted_options_mapper
+        }
+    else:
+        opts = settings.SENTRY_OPTIONS
+    default_manager.validate(opts, warn=True)
 
 
 def validate_regions(settings: Any) -> None:
@@ -557,8 +573,13 @@ def apply_legacy_settings(settings: Any) -> None:
             # Django settings, so writing SENTRY_OPTIONS here is too late for any key
             # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
             # Re-promote the legacy value so the override actually takes effect.
-            if new in options_mapper:
-                setattr(settings, options_mapper[new], value)
+            effective_mapper = (
+                {**options_mapper, **self_hosted_options_mapper}
+                if settings.SENTRY_SELF_HOSTED
+                else options_mapper
+            )
+            if new in effective_mapper:
+                setattr(settings, effective_mapper[new], value)
 
     if hasattr(settings, "SENTRY_REDIS_OPTIONS"):
         if "redis.clusters" in settings.SENTRY_OPTIONS:

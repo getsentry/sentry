@@ -2,6 +2,7 @@ import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
 import {type LogsQueryInfo} from 'sentry/components/exports/dataExport';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -11,6 +12,11 @@ import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExpor
 import {LogsExportModal} from 'sentry/views/explore/logs/exports/logsExportModal';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {
+  useQueryParamsFields,
+  useQueryParamsSearch,
+  useQueryParamsSortBys,
+} from 'sentry/views/explore/queryParams/context';
 
 const GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON = {
   'backdrop-click': 'backdrop_click',
@@ -20,20 +26,40 @@ const GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON = {
 
 type LogsExportModalButtonProps = {
   isLoading: boolean;
-  queryInfo: LogsQueryInfo;
   tableData: OurLogsResponseItem[];
   error?: Error | null;
 };
 
+function useLogsQueryInfo(): LogsQueryInfo {
+  const {selection} = usePageFilters();
+  const logsSearch = useQueryParamsSearch();
+  const fields = useQueryParamsFields();
+  const sortBys = useQueryParamsSortBys();
+  const {start, end, period: statsPeriod} = selection.datetime;
+  const {environments, projects} = selection;
+
+  return {
+    dataset: 'logs',
+    field: [...fields],
+    query: logsSearch.formatString(),
+    project: projects,
+    sort: sortBys.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
+    start: start ? new Date(start).toISOString() : undefined,
+    end: end ? new Date(end).toISOString() : undefined,
+    statsPeriod: statsPeriod || undefined,
+    environment: environments,
+  };
+}
+
 export function LogsExportModalButton({
   error,
   isLoading,
-  queryInfo,
   tableData,
 }: LogsExportModalButtonProps) {
   const {openModal} = useModal();
 
   const organization = useOrganization();
+  const queryInfo = useLogsQueryInfo();
   const disabledTooltip = getExportDisabledTooltip({
     isDataEmpty: !tableData?.length,
     isDataError: error !== null,
