@@ -15,6 +15,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
@@ -2010,7 +2011,11 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
 
 class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
-    """Tests for get_issue_committers — suspect commit authors from ingested commit data."""
+    """Tests for get_issue_committers — likely code authors from ingested commit data.
+
+    Returns two signals: ``committers`` (frame-based blame of the failing files) and
+    ``suspect_commits`` (precomputed GroupOwner suspect commit).
+    """
 
     def _make_error_event(self):
         data = load_data("python", timestamp=before_now(minutes=5))
@@ -2034,7 +2039,45 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
         return commit
 
-    def test_returns_suspect_committers(self):
+    def _make_blame_event(self, author_email):
+        """Store an event whose stacktrace frames are blamed on a release commit."""
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        release = self.create_release(project=self.project, version="blame-v1")
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["stacktrace"] = {
+            "frames": [
+                {
+                    "function": "set_commits",
+                    "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                    "module": "sentry.models.release",
+                    "in_app": True,
+                    "lineno": 39,
+                    "filename": "sentry/models/release.py",
+                }
+            ]
+        }
+        data["tags"] = {"sentry:release": release.version}
+        event = self.store_event(data=data, project_id=self.project.id)
+        group = event.group
+        assert isinstance(group, Group)
+        GroupRelease.objects.create(
+            group_id=group.id, project_id=self.project.id, release_id=release.id
+        )
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": author_email,
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                }
+            ]
+        )
+        return group
+
+    def test_returns_suspect_commits(self):
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
@@ -2048,11 +2091,12 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert isinstance(result, dict)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
-        committers = result["committers"]
-        assert len(committers) == 1
-        assert committers[0]["author"]["email"] == self.user.email
-        assert committers[0]["commits"][0]["id"] == commit.key
-        assert committers[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
+        assert "committers" in result
+        suspect = result["suspect_commits"]
+        assert len(suspect) == 1
+        assert suspect[0]["author"]["email"] == self.user.email
+        assert suspect[0]["commits"][0]["id"] == commit.key
+        assert suspect[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
 
     def test_resolves_by_qualified_short_id(self):
         event = self._make_error_event()
@@ -2066,9 +2110,25 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
 
         assert isinstance(result, dict)
-        assert len(result["committers"]) == 1
+        assert len(result["suspect_commits"]) == 1
 
-    def test_no_suspect_commits_returns_empty_list(self):
+    def test_returns_file_committers_from_stacktrace_blame(self):
+        group = self._make_blame_event(self.user.email)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert isinstance(result, dict)
+        committers = result["committers"]
+        assert len(committers) >= 1
+        assert committers[0]["author"]["email"] == self.user.email
+        commit = committers[0]["commits"][0]
+        assert commit["id"] == "a" * 40
+        assert commit["score"] is not None
+
+    def test_no_commit_data_returns_empty_lists(self):
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
@@ -2080,6 +2140,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
 
         assert isinstance(result, dict)
         assert result["committers"] == []
+        assert result["suspect_commits"] == []
 
     def test_returns_none_when_project_slug_does_not_match(self):
         event = self._make_error_event()

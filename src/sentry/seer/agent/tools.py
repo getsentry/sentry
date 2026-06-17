@@ -21,6 +21,7 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.exceptions import BadRequest as SentryBadRequest
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
+from sentry.api.serializers.models.commit import CommitSerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
@@ -29,10 +30,12 @@ from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
+from sentry.models.commit import Commit
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
@@ -90,7 +93,11 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
-from sentry.utils.committers import get_serialized_committers
+from sentry.utils.committers import (
+    get_event_file_committers,
+    get_frame_paths,
+    get_serialized_committers,
+)
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
@@ -1465,6 +1472,27 @@ def get_issue_details(
     )
 
 
+def _serialize_file_committers(author_commits: Any) -> list[dict[str, Any]]:
+    """Serialize get_event_file_committers output (author + scored commits), best-first.
+
+    ``get_event_file_committers`` already serializes the author but leaves commits as
+    ``(Commit, score)`` tuples and orders authors weakest-first; we serialize the
+    commits and reverse so the strongest blame is first.
+    """
+    serialized: list[dict[str, Any]] = []
+    for entry in author_commits:
+        commits = [
+            {
+                **serialize(commit, serializer=CommitSerializer(exclude=["author"])),
+                "score": score,
+            }
+            for commit, score in entry.get("commits", [])
+        ]
+        serialized.append({"author": entry.get("author"), "commits": commits})
+    serialized.reverse()
+    return serialized
+
+
 def get_issue_committers(
     *,
     organization_id: int,
@@ -1472,12 +1500,17 @@ def get_issue_committers(
     project_slug: str | None = None,
 ) -> dict[str, Any] | None:
     """
-    Get the suspect committers for an issue from Sentry's ingested commit data.
+    Get the likely code authors for an issue from Sentry's ingested commit data.
 
-    This reads precomputed suspect commits (``GroupOwner`` of type SUSPECT_COMMIT)
-    and their associated ``Commit`` / ``CommitAuthor`` records. It does NOT call any
-    SCM provider (GitHub, etc.), so it works without SCM credentials and reflects the
-    same "suspect commit" signal shown in the Sentry UI.
+    Combines two signals, both computed from ingested commits with NO SCM/GitHub call
+    (so it works without SCM credentials):
+
+    - ``committers``: recent commit authors that touched the files in the issue's
+      stacktrace, scored by frame relevance. This is the *input* to Sentry's
+      suspect-commit feature (release-based blame of the failing frames) and is
+      available far more often than a single precomputed suspect commit.
+    - ``suspect_commits``: the precomputed suspect commit(s) from ``GroupOwner``, if
+      any (the same "Suspect Commit" shown in the Sentry UI).
 
     Args:
         organization_id: The ID of the organization.
@@ -1485,10 +1518,9 @@ def get_issue_committers(
         project_slug: The slug of the project (optional, used to improve numeric ID lookups).
 
     Returns:
-        Dict with ``committers`` (each entry has ``author`` {name, email, ...} and the
-        ``commits`` blamed for the failure), plus ``project_id``/``project_slug``.
-        ``committers`` is an empty list when Sentry has no suspect-commit data for the
-        issue. Returns None if the project/issue cannot be resolved.
+        Dict with ``committers``, ``suspect_commits``, ``project_id``, ``project_slug``.
+        Both lists may be empty (e.g. no release/commit data linked to the issue).
+        Returns None if the project/issue cannot be resolved.
     """
     organization = Organization.objects.get(id=organization_id)
 
@@ -1510,17 +1542,46 @@ def get_issue_committers(
             organization_id, issue_id, project_ids=project_ids
         )
 
+    # Precomputed suspect commit(s) from GroupOwner (often empty).
     try:
-        committers = get_serialized_committers(group.project, group.id)
+        suspect_commits = get_serialized_committers(group.project, group.id)
     except Exception:
         logger.exception(
-            "get_issue_committers: Failed to get suspect committers",
+            "get_issue_committers: Failed to get suspect commits",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        suspect_commits = []
+
+    # Frame-based blame: recent authors of the files in the stacktrace. This is the
+    # input to the suspect-commit feature and is available far more often.
+    committers: list[dict[str, Any]] = []
+    try:
+        event = _get_recommended_event(group, organization, None, None)
+        if isinstance(event, Event):
+            event = event.for_group(group)
+        if event is not None:
+            sdk_name = (event.data.get("sdk") or {}).get("name")
+            author_commits = get_event_file_committers(
+                group.project,
+                group.id,
+                get_frame_paths(event),
+                event.platform,
+                sdk_name=sdk_name,
+            )
+            committers = _serialize_file_committers(author_commits)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        # No release/commit data linked to this issue; frame blame isn't available.
+        committers = []
+    except Exception:
+        logger.exception(
+            "get_issue_committers: Failed to compute file committers",
             extra={"organization_id": organization_id, "issue_id": issue_id},
         )
         committers = []
 
     return {
         "committers": committers,
+        "suspect_commits": suspect_commits,
         "project_id": group.project_id,
         "project_slug": group.project.slug,
     }
