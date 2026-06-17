@@ -1,9 +1,10 @@
 from base64 import b64encode
 from io import BytesIO
 
+from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 
-from sentry import options as options_store
 from sentry.models.files import ControlFile, File
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -162,11 +163,9 @@ class UserAvatarTest(APITestCase):
         assert ControlFile.objects.filter(id=avatar.control_file_id).exists()
 
     def test_put_upload_saves_to_control_file_with_separate_storage(self) -> None:
-        with self.options(
-            {
-                "filestore.control.backend": options_store.get("filestore.backend"),
-                "filestore.control.options": options_store.get("filestore.options"),
-            }
+        with override_settings(
+            SENTRY_CONTROL_FILE_STORAGE_BACKEND=settings.SENTRY_FILE_STORAGE_BACKEND,
+            SENTRY_CONTROL_FILE_STORAGE_CONFIG=settings.SENTRY_FILE_STORAGE_CONFIG,
         ):
             user = self.create_user(email="a@example.com")
 

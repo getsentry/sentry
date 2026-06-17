@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
@@ -168,6 +168,10 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
                 DashboardWidgetDisplayTypes.BAR_CHART,
                 DashboardWidgetDisplayTypes.BIG_NUMBER,
                 DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
+                # HEATMAP is additionally gated behind the
+                # ``data-browsing-heat-map-widget`` feature flag in
+                # ``validate_display_type``.
+                DashboardWidgetDisplayTypes.HEATMAP,
             }
         )
     },
@@ -400,6 +404,15 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     def validate_display_type(self, display_type):
         display_type_id = DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
+        # Heat map widgets are only available to organizations with the feature
+        # flag. Without it, creating or updating a heat map widget is rejected.
+        if display_type_id == DashboardWidgetDisplayTypes.HEATMAP and not features.has(
+            "organizations:data-browsing-heat-map-widget", self.context["organization"]
+        ):
+            raise serializers.ValidationError(
+                f"Display type '{display_type}' is not available for this organization."
+            )
+
         widget_type_name = self.context.get("widget_type")
         if widget_type_name is not None and display_type_id is not None:
             widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
@@ -509,6 +522,25 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
+    def _validate_tracemetrics_equation_constraints(self, data) -> dict[str, Any]:
+        if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
+            return data
+
+        # Tracemetrics timeseries widgets only support a single equation per query
+        if data.get("display_type") in {
+            DashboardWidgetDisplayTypes.LINE_CHART,
+            DashboardWidgetDisplayTypes.AREA_CHART,
+            DashboardWidgetDisplayTypes.BAR_CHART,
+        }:
+            for query in data.get("queries"):
+                aggregates = query.get("aggregates") or []
+                if any(is_equation(aggregate) for aggregate in aggregates) and len(aggregates) > 1:
+                    raise serializers.ValidationError(
+                        {"queries": "Tracemetrics timeseries widgets support at most one equation."}
+                    )
+
+        return data
+
     def validate(self, data):
         self.query_warnings = {"queries": [], "columns": {}}
 
@@ -557,6 +589,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
 
         if data.get("queries"):
+            if data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
+                self._validate_tracemetrics_equation_constraints(data)
+
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
                 if len(query.get("columns", [])) > 0:

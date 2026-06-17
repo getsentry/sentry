@@ -53,13 +53,11 @@ describe('ScmCreateProject', () => {
   const organization = OrganizationFixture();
   const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
 
-  // Seed a persisted wizard advanced to the revealed/project-selected state, as
-  // if the user had created a project in this session.
-  function persistRevealedWizard(overrides: Partial<Record<string, unknown>> = {}) {
+  // Seed a persisted wizard for a project created in this session.
+  function persistWizardSession(overrides: Partial<Record<string, unknown>> = {}) {
     window.sessionStorage.setItem(
       WIZARD_KEY,
       JSON.stringify({
-        repoStepCompleted: true,
         selectedPlatform: pythonPlatform,
         createdProjectId: CREATED_PROJECT_ID,
         ...overrides,
@@ -100,26 +98,28 @@ describe('ScmCreateProject', () => {
     jest.clearAllMocks();
   });
 
-  it('keeps the Create CTA available (disabled) before any steps are revealed', async () => {
+  it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 
+    // All sections render up front (no progressive disclosure).
     expect(
-      screen.queryByRole('heading', {name: 'Project details'})
-    ).not.toBeInTheDocument();
-    const createButton = await screen.findByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
+      await screen.findByRole('heading', {name: 'Platform & features'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Project details'})).toBeInTheDocument();
+
+    // Nothing is filled in yet, so the primary action stays disabled.
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
 
-  it('resets a persisted wizard on a fresh visit (no return from getting-started)', async () => {
-    persistRevealedWizard();
+  it('drops a persisted wizard on a fresh visit (no return from getting-started)', async () => {
+    persistWizardSession({projectDetailsForm: {projectName: 'my-restored-name'}});
 
     // No referrer/project query: not a return, so the persisted state is dropped.
     render(<ScmCreateProject />, {organization});
 
     await screen.findByRole('button', {name: 'Create project'});
-    expect(
-      screen.queryByRole('heading', {name: 'Project details'})
-    ).not.toBeInTheDocument();
+    // The restored name is not applied; the field falls back to its default.
+    expect(screen.queryByDisplayValue('my-restored-name')).not.toBeInTheDocument();
   });
 
   it('restores the wizard on a valid return from getting-started', async () => {
@@ -127,7 +127,7 @@ describe('ScmCreateProject', () => {
       projectName: 'my-restored-name',
       teamSlug: adminTeam.slug,
     };
-    persistRevealedWizard({projectDetailsForm});
+    persistWizardSession({projectDetailsForm});
 
     render(<ScmCreateProject />, {
       organization,
@@ -145,7 +145,7 @@ describe('ScmCreateProject', () => {
       projectName: 'my-restored-name',
       teamSlug: adminTeam.slug,
     };
-    persistRevealedWizard({projectDetailsForm});
+    persistWizardSession({projectDetailsForm});
 
     // The back nav from getting-started can land here bare before its replace
     // navigation appends the referrer/project params (see ScmCreateProject).
@@ -157,23 +157,20 @@ describe('ScmCreateProject', () => {
     });
 
     await screen.findByRole('button', {name: 'Create project'});
-    expect(
-      screen.queryByRole('heading', {name: 'Project details'})
-    ).not.toBeInTheDocument();
+    // Not a return yet, so the persisted form is not restored.
+    expect(screen.queryByDisplayValue('my-restored-name')).not.toBeInTheDocument();
 
     router.navigate(
       `/organizations/org-slug/projects/new/?referrer=getting-started&project=${CREATED_PROJECT_ID}`,
       {replace: true}
     );
 
-    expect(
-      await screen.findByRole('heading', {name: 'Project details'})
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
+    // The late-arriving params remount the wizard and restore the form.
+    expect(await screen.findByDisplayValue('my-restored-name')).toBeInTheDocument();
   });
 
   it('navigates to the new project getting-started on creation', async () => {
-    persistRevealedWizard();
+    persistWizardSession();
 
     const createRequest = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
@@ -212,7 +209,7 @@ describe('ScmCreateProject', () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({slug: 'python', name: 'python', platform: 'python'}),
     ]);
-    persistRevealedWizard({
+    persistWizardSession({
       createdProjectSlug: 'python',
       projectDetailsForm: {
         projectName: 'python',

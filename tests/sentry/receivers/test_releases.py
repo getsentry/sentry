@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry.buffer.base import Buffer
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -13,6 +14,7 @@ from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
@@ -255,6 +257,126 @@ class ResolvedInCommitTest(TestCase):
         ).exists()
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
+
+
+class ResolvedInPullRequestTest(TestCase):
+    def _create_pull_request_author(
+        self, github_username: str, organization_id: int
+    ) -> CommitAuthor:
+        author = self.create_commit_author(
+            organization_id=organization_id,
+            email=f"{github_username}@localhost",
+        )
+        author.update(name=github_username, external_id=f"github:{github_username}")
+        return author
+
+    def _create_resolving_pull_request(
+        self, group: Group, repo: Repository, author: CommitAuthor
+    ) -> PullRequest:
+        return self.create_pull_request(
+            key="1",
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            title="very cool PR to fix the thing",
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+            author=author,
+        )
+
+    @receivers_raise_on_send()
+    def test_matching_external_actor_sets_activity_user(self) -> None:
+        group = self.create_group()
+        user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
+        self.create_member(organization=group.organization, user=user)
+        integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:1",
+            provider="github",
+        )
+        self.create_external_user(
+            user=user,
+            organization=group.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newdev",
+        )
+        repo = self.create_repo(
+            project=group.project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+        author = self._create_pull_request_author("newdev", group.organization.id)
+
+        pull_request = self._create_resolving_pull_request(group, repo, author)
+
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+        )
+        assert activity.user_id == user.id
+        assert activity.data == {"pull_request": pull_request.id}
+        assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
+
+    @receivers_raise_on_send()
+    def test_author_from_different_organization_does_not_set_activity_user(self) -> None:
+        group = self.create_group()
+        user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
+        other_organization = self.create_organization(owner=user)
+        self.create_member(organization=group.organization, user=user)
+        integration = self.create_integration(
+            organization=other_organization,
+            external_id="github:1",
+            provider="github",
+        )
+        self.create_external_user(
+            user=user,
+            organization=other_organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newdev",
+        )
+        repo = self.create_repo(project=group.project, provider="integrations:github")
+        author = self._create_pull_request_author("newdev", other_organization.id)
+
+        self._create_resolving_pull_request(group, repo, author)
+
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+        )
+        assert activity.user_id is None
+        assert not GroupAssignee.objects.filter(group=group).exists()
+
+    @receivers_raise_on_send()
+    def test_external_actor_user_must_be_organization_member(self) -> None:
+        group = self.create_group()
+        user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
+        integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:1",
+            provider="github",
+        )
+        self.create_external_user(
+            user=user,
+            organization=group.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newdev",
+        )
+        repo = self.create_repo(
+            project=group.project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+        author = self._create_pull_request_author("newdev", group.organization.id)
+
+        self._create_resolving_pull_request(group, repo, author)
+
+        activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+        )
+        assert activity.user_id is None
+        assert not GroupAssignee.objects.filter(group=group).exists()
 
 
 class ProjectHasReleasesReceiverTest(TestCase):
