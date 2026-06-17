@@ -54,8 +54,7 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
 
         aarta = attrs.get("aarta")
         priority: str | None = obj.data.get("priority")
-        type_value = ActionService.get_value(obj.type)
-        assert type_value is not None, f"Unknown ActionService for type {obj.type}"
+        type_value: int | None = ActionService.get_value(obj.type)
         target = attrs.get("target")
 
         target_type: int = obj.config.get("target_type")
@@ -84,12 +83,16 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
             "integrationId": obj.integration_id,
             "sentryAppId": sentry_app_id,
             "dateCreated": obj.date_added,
-            "desc": human_desc(
-                type_value,
-                target_identifier,
-                target,
-                target_display,
-                priority,
+            "desc": (
+                human_desc(
+                    type_value,
+                    target_identifier,
+                    target,
+                    target_display,
+                    priority,
+                )
+                if type_value is not None
+                else None
             ),
             "priority": priority,
         }
