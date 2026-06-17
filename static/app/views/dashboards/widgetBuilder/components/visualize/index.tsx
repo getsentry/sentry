@@ -984,7 +984,8 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                               compact={
                                 isTimeSeriesWidget ||
                                 isBigNumberWidget ||
-                                isCategoricalBarWidget
+                                isCategoricalBarWidget ||
+                                isHeatmapWidget
                               }
                             >
                               {canHaveAlias && (
