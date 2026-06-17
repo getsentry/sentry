@@ -41,7 +41,12 @@ from sentry.seer.agent.tools import (
     rpc_get_profile_flamegraph,
 )
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
-from sentry.seer.sentry_data_models import EAPTrace, IssueDetailsResponse
+from sentry.seer.sentry_data_models import (
+    EAPTrace,
+    ExecuteTimeseriesQueryErrorResponse,
+    ExecuteTimeseriesQuerySuccessResponse,
+    IssueDetailsResponse,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
     APITestCase,
@@ -565,7 +570,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
             group_by=["span.op"],
         )
 
-        assert result is not None
+        assert isinstance(result, ExecuteTimeseriesQuerySuccessResponse)
         # Grouped results have group values as top-level keys
         # Should have different span.op values like "db", "http.client", etc.
         assert len(result) > 0
@@ -1315,7 +1320,9 @@ class TestGetIssueAndEventDetailsV2(
     @patch("sentry.seer.agent.tools.execute_timeseries_query")
     def test_issue_event_timeseries_returns_none_on_query_error(self, mock_execute: Mock) -> None:
         """A _seer_error_detail payload from execute_timeseries_query is treated as no data."""
-        mock_execute.return_value = {"_seer_error_detail": "Invalid query: bad field"}
+        mock_execute.return_value = ExecuteTimeseriesQueryErrorResponse(
+            seer_error_detail="Invalid query: bad field"
+        )
         group = self.create_group(project=self.project)
 
         result = _get_issue_event_timeseries(group=group, organization=self.organization)
@@ -1336,14 +1343,14 @@ class TestGetIssueAndEventDetailsV2(
     def test_issue_event_timeseries_returns_data_on_success(self, mock_execute: Mock) -> None:
         """A normal timeseries payload flows through with the selected period and interval."""
         data: dict[str, Any] = {"count()": {"data": []}}
-        mock_execute.return_value = data
+        mock_execute.return_value = ExecuteTimeseriesQuerySuccessResponse(__root__=data)
         group = self.create_group(project=self.project)
 
         result = _get_issue_event_timeseries(group=group, organization=self.organization)
 
         assert result is not None
         returned_data, period, interval = result
-        assert returned_data is data
+        assert returned_data == data
         assert period
         assert interval
 

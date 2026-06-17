@@ -845,6 +845,8 @@ export type PreviewData = {
   newBalance: number;
   previewToken: string;
   proratedAmount: number;
+  /** Only set by the next-bill preview: the plan/period the bill covers is annual. */
+  isAnnual?: boolean;
   paymentIntent?: string;
   paymentSecret?: string;
 };

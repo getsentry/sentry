@@ -9,6 +9,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -44,6 +45,7 @@ interface IssueListTableProps {
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
+  onGroupClick?: (group: Group) => void;
   supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 }
@@ -70,6 +72,7 @@ export function IssueListTable({
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
   pageSize,
+  onGroupClick,
   supergroupLookup,
   withColumns,
 }: IssueListTableProps) {
@@ -142,6 +145,7 @@ export function IssueListTable({
                       pageSize={pageSize}
                       refetchGroups={refetchGroups}
                       onActionTaken={onActionTaken}
+                      onGroupClick={onGroupClick}
                       supergroupLookup={supergroupLookup}
                       withColumns={withColumns}
                     />

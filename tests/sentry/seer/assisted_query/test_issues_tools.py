@@ -12,6 +12,7 @@ from sentry.seer.assisted_query.issues_tools import (
     get_issues_stats,
 )
 from sentry.seer.sentry_data_models import (
+    ExecuteIssuesQuerySuccessResponse,
     FilterKeyValuesResponse,
     IssueFilterKeysResponse,
     IssuesStatsResponse,
@@ -544,7 +545,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         assert len(result) >= 2
 
         # Check structure of returned issues
@@ -576,7 +577,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         # Should have at least our error event
         assert len(result) >= 1
 
@@ -603,7 +604,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         assert len(result) >= 3
 
     def test_execute_issues_query_with_limit(self) -> None:
@@ -628,7 +629,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         # Should respect limit
         assert len(result) <= 2
 
@@ -672,7 +673,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
         # Should have issues from both projects
         assert len(result) >= 2
         project_ids = {issue["project"]["id"] for issue in result}
