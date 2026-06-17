@@ -24,7 +24,10 @@ class ProjectKeyTest(TestCase):
             self.options({"system.url-prefix": "http://example.com"}),
             override_settings(SENTRY_REGION_API_URL_TEMPLATE=""),
         ):
-            self.assertEqual(key.get_dsn(), f"http://public:secret@example.com/{self.project.id}")
+            self.assertEqual(
+                key.get_endpoint_urls().get_dsn(),
+                f"http://public:secret@example.com/{self.project.id}",
+            )
 
     def test_get_dsn_with_ssl(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
@@ -32,7 +35,10 @@ class ProjectKeyTest(TestCase):
             self.options({"system.url-prefix": "https://example.com"}),
             override_settings(SENTRY_REGION_API_URL_TEMPLATE=""),
         ):
-            self.assertEqual(key.get_dsn(), f"https://public:secret@example.com/{self.project.id}")
+            self.assertEqual(
+                key.get_endpoint_urls().get_dsn(),
+                f"https://public:secret@example.com/{self.project.id}",
+            )
 
     def test_get_dsn_with_port(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
@@ -41,20 +47,25 @@ class ProjectKeyTest(TestCase):
             override_settings(SENTRY_REGION_API_URL_TEMPLATE=""),
         ):
             self.assertEqual(
-                key.get_dsn(), f"http://public:secret@example.com:81/{self.project.id}"
+                key.get_endpoint_urls().get_dsn(),
+                f"http://public:secret@example.com:81/{self.project.id}",
             )
 
     def test_get_dsn_with_public_endpoint_setting(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.settings(SENTRY_ENDPOINT="http://endpoint.com"):
             self.assertEqual(
-                key.get_dsn(public=True), f"http://public@endpoint.com/{self.project.id}"
+                key.get_endpoint_urls().get_dsn(public=True),
+                f"http://public@endpoint.com/{self.project.id}",
             )
 
     def test_get_dsn_with_endpoint_setting(self) -> None:
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
         with self.settings(SENTRY_ENDPOINT="http://endpoint.com"):
-            self.assertEqual(key.get_dsn(), f"http://public:secret@endpoint.com/{self.project.id}")
+            self.assertEqual(
+                key.get_endpoint_urls().get_dsn(),
+                f"http://public:secret@endpoint.com/{self.project.id}",
+            )
 
     def test_key_is_created_for_project(self) -> None:
         self.create_user("admin@example.com")
@@ -96,22 +107,29 @@ class ProjectKeyTest(TestCase):
     def test_get_dsn(self) -> None:
         with override_settings(SENTRY_REGION_API_URL_TEMPLATE=""):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
-            assert key.dsn_private == f"http://abc:xyz@testserver/{self.project.id}"
-            assert key.dsn_public == f"http://abc@testserver/{self.project.id}"
+            endpoint_urls = key.get_endpoint_urls()
+
+            assert endpoint_urls.dsn_private == f"http://abc:xyz@testserver/{self.project.id}"
+            assert endpoint_urls.dsn_public == f"http://abc@testserver/{self.project.id}"
             assert (
-                key.csp_endpoint
+                endpoint_urls.csp_endpoint
                 == f"http://testserver/api/{self.project.id}/csp-report/?sentry_key=abc"
             )
             assert (
-                key.minidump_endpoint
+                endpoint_urls.minidump_endpoint
                 == f"http://testserver/api/{self.project.id}/minidump/?sentry_key=abc"
             )
-            assert key.unreal_endpoint == f"http://testserver/api/{self.project.id}/unreal/abc/"
             assert (
-                key.crons_endpoint
+                endpoint_urls.unreal_endpoint
+                == f"http://testserver/api/{self.project.id}/unreal/abc/"
+            )
+            assert (
+                endpoint_urls.crons_endpoint
                 == f"http://testserver/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
             )
-            assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
+            assert (
+                endpoint_urls.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
+            )
 
     def test_get_dsn_org_subdomain(self) -> None:
         with (
@@ -120,20 +138,23 @@ class ProjectKeyTest(TestCase):
         ):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest.testserver"
+            endpoint_urls = key.get_endpoint_urls()
 
-            assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
-            assert key.dsn_public == f"http://abc@{host}/{self.project.id}"
+            assert endpoint_urls.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
+            assert endpoint_urls.dsn_public == f"http://abc@{host}/{self.project.id}"
             assert (
-                key.csp_endpoint
+                endpoint_urls.csp_endpoint
                 == f"http://{host}/api/{self.project.id}/csp-report/?sentry_key=abc"
             )
             assert (
-                key.minidump_endpoint
+                endpoint_urls.minidump_endpoint
                 == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
             )
-            assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
             assert (
-                key.crons_endpoint
+                endpoint_urls.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+            )
+            assert (
+                endpoint_urls.crons_endpoint
                 == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
             )
 
@@ -141,16 +162,21 @@ class ProjectKeyTest(TestCase):
     def test_get_dsn_multiregion(self) -> None:
         key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
         host = "us.testserver" if SiloMode.get_current_mode() == SiloMode.CELL else "testserver"
+        endpoint_urls = key.get_endpoint_urls()
 
-        assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
-        assert key.dsn_public == f"http://abc@{host}/{self.project.id}"
-        assert key.csp_endpoint == f"http://{host}/api/{self.project.id}/csp-report/?sentry_key=abc"
+        assert endpoint_urls.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
+        assert endpoint_urls.dsn_public == f"http://abc@{host}/{self.project.id}"
         assert (
-            key.minidump_endpoint == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
+            endpoint_urls.csp_endpoint
+            == f"http://{host}/api/{self.project.id}/csp-report/?sentry_key=abc"
         )
-        assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
         assert (
-            key.crons_endpoint
+            endpoint_urls.minidump_endpoint
+            == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
+        )
+        assert endpoint_urls.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+        assert (
+            endpoint_urls.crons_endpoint
             == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
         )
 
@@ -161,20 +187,23 @@ class ProjectKeyTest(TestCase):
             host = f"o{key.project.organization_id}.ingest." + (
                 "us.testserver" if SiloMode.get_current_mode() == SiloMode.CELL else "testserver"
             )
+            endpoint_urls = key.get_endpoint_urls()
 
-            assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
-            assert key.dsn_public == f"http://abc@{host}/{self.project.id}"
+            assert endpoint_urls.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
+            assert endpoint_urls.dsn_public == f"http://abc@{host}/{self.project.id}"
             assert (
-                key.csp_endpoint
+                endpoint_urls.csp_endpoint
                 == f"http://{host}/api/{self.project.id}/csp-report/?sentry_key=abc"
             )
             assert (
-                key.minidump_endpoint
+                endpoint_urls.minidump_endpoint
                 == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
             )
-            assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
             assert (
-                key.crons_endpoint
+                endpoint_urls.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+            )
+            assert (
+                endpoint_urls.crons_endpoint
                 == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
             )
 

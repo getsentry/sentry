@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -29,10 +29,10 @@ describe('RelayWrapper', () => {
   }
 
   describe('ingestThroughTrustedRelaysOnly toggle', () => {
-    it('does not render the Data Authenticity section without the feature flag', () => {
+    it('does not render the Configuration section without configurable features', () => {
       renderComponent();
 
-      expect(screen.queryByText('Data Authenticity')).not.toBeInTheDocument();
+      expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('checkbox', {
           name: 'Ingest Through Trusted Relays Only',
@@ -48,7 +48,7 @@ describe('RelayWrapper', () => {
           name: 'Ingest Through Trusted Relays Only',
         })
       ).toBeInTheDocument();
-      expect(screen.getByText('Data Authenticity')).toBeInTheDocument();
+      expect(screen.getByText('Configuration')).toBeInTheDocument();
     });
 
     it('toggle is unchecked when ingestThroughTrustedRelaysOnly is disabled', async () => {
@@ -208,6 +208,90 @@ describe('RelayWrapper', () => {
           name: 'Ingest Through Trusted Relays Only',
         })
       ).toBeDisabled();
+    });
+  });
+
+  describe('relayDsnEndpoint input', () => {
+    it('renders in the same configuration section as the trusted relay toggle', async () => {
+      renderComponent({
+        features: ['ingest-through-trusted-relays-only', 'relay-dsn-endpoint-override'],
+        ingestThroughTrustedRelaysOnly: 'disabled',
+        relayDsnEndpoint: 'https://relay.example.com',
+      });
+
+      expect(screen.getAllByText('Configuration')).toHaveLength(1);
+      expect(
+        await screen.findByRole('checkbox', {
+          name: 'Ingest Through Trusted Relays Only',
+        })
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'DSN Endpoint Override'})).toHaveValue(
+        'https://relay.example.com'
+      );
+    });
+
+    it('submits relayDsnEndpoint when edited', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        method: 'PUT',
+        body: OrganizationFixture({relayDsnEndpoint: 'https://relay.example.com'}),
+      });
+
+      renderComponent({
+        features: ['relay-dsn-endpoint-override'],
+        relayDsnEndpoint: 'https://old-relay.example.com',
+      });
+
+      const input = screen.getByRole('textbox', {name: 'DSN Endpoint Override'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'https://relay.example.com');
+      await userEvent.tab();
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {relayDsnEndpoint: 'https://relay.example.com'},
+          })
+        )
+      );
+    });
+
+    it('submits an empty relayDsnEndpoint when cleared', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        method: 'PUT',
+        body: OrganizationFixture({relayDsnEndpoint: null}),
+      });
+
+      renderComponent({
+        features: ['relay-dsn-endpoint-override'],
+        relayDsnEndpoint: 'https://relay.example.com',
+      });
+
+      const input = screen.getByRole('textbox', {name: 'DSN Endpoint Override'});
+      await userEvent.clear(input);
+      await userEvent.tab();
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {relayDsnEndpoint: ''},
+          })
+        )
+      );
+    });
+
+    it('is disabled when user lacks org:write permission', () => {
+      renderComponent({
+        features: ['relay-dsn-endpoint-override'],
+        access: [],
+      });
+
+      expect(screen.getByRole('textbox', {name: 'DSN Endpoint Override'})).toBeDisabled();
     });
   });
 });

@@ -243,7 +243,8 @@ class JavaScriptSdkLoader(View):
         except TypeError:
             sdk_url = ""  # It fails if it cannot inject the version in the string
 
-        config: SdkConfig = {"dsn": key.dsn_public}
+        endpoint_urls = key.get_endpoint_urls()
+        config: SdkConfig = {"dsn": endpoint_urls.dsn_public}
 
         if loader_config["hasDebug"]:
             config["debug"] = True

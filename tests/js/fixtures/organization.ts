@@ -76,6 +76,7 @@ export function OrganizationFixture(params: Partial<Organization> = {}): Organiz
       maxRateInterval: null,
       projectLimit: null,
     },
+    relayDsnEndpoint: null,
     relayPiiConfig: null,
     require2FA: false,
     requiresSso: false,

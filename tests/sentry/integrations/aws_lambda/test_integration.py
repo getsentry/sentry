@@ -200,7 +200,11 @@ class AwsLambdaApiPipelineTest(APITestCase):
         ]
 
         with assume_test_silo_mode(SiloMode.CELL):
-            sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
+            sentry_project_dsn = (
+                ProjectKey.get_default(project=self.projectA)
+                .get_endpoint_urls()
+                .get_dsn(public=True)
+            )
 
         self._initialize_pipeline()
         self._advance_step({"projectId": self.projectA.id})

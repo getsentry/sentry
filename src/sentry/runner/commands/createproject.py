@@ -82,7 +82,7 @@ def createproject(
         )
 
     key = ProjectKey.get_default(project)
-    dsn = key.dsn_public if key else "(no DSN available)"
+    dsn = key.get_endpoint_urls().dsn_public if key else "(no DSN available)"
 
     click.echo("Created project:")
     click.echo(f"  ID: {project.id}")

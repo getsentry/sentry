@@ -123,7 +123,9 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         url = _make_url(project)
 
-        response = self.client.get(url, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}")
+        response = self.client.get(
+            url, HTTP_AUTHORIZATION=f"DSN {project_key.get_endpoint_urls().dsn_public}"
+        )
 
         assert response.status_code == 401, response.content
 
@@ -285,7 +287,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
+            HTTP_AUTHORIZATION=f"DSN {project_key.get_endpoint_urls().dsn_public}",
             data={
                 "event_id": self.event.event_id,
                 "email": "foo@example.com",
@@ -306,7 +308,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
+            HTTP_AUTHORIZATION=f"DSN {project_key.get_endpoint_urls().dsn_public}",
             data={
                 "event_id": uuid4().hex,
                 "email": "foo@example.com",

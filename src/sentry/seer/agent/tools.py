@@ -2383,5 +2383,5 @@ def get_dsn(
     return GetDsnResponse(
         project_slug=project.slug,
         platform=project.platform,
-        dsn_public=key.dsn_public,
+        dsn_public=key.get_endpoint_urls().dsn_public,
     )

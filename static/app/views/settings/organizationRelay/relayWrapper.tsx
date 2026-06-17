@@ -30,8 +30,12 @@ import {List} from './list';
 
 const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
-const relaySchema = z.object({
+const ingestThroughTrustedRelaysOnlySchema = z.object({
   ingestThroughTrustedRelaysOnly: z.boolean(),
+});
+
+const relayDsnEndpointSchema = z.object({
+  relayDsnEndpoint: z.string(),
 });
 
 export function RelayWrapper() {
@@ -42,6 +46,18 @@ export function RelayWrapper() {
   const [relays, setRelays] = useState(organization.trustedRelays ?? []);
 
   const disabled = !organization.access.includes('org:write');
+  const hasIngestThroughTrustedRelaysOnlyFeature = organization.features.includes(
+    'ingest-through-trusted-relays-only'
+  );
+  const hasRelayDsnEndpointOverrideFeature = organization.features.includes(
+    'relay-dsn-endpoint-override'
+  );
+  const hasRelayConfiguration =
+    hasIngestThroughTrustedRelaysOnlyFeature || hasRelayDsnEndpointOverrideFeature;
+
+  const handleOrganizationUpdate = (updatedOrg: Organization) => {
+    OrganizationStore.onUpdate(updatedOrg);
+  };
 
   const handleOpenAddDialog = () => {
     openModal(modalProps => (
@@ -84,50 +100,83 @@ export function RelayWrapper() {
         )}
       />
       <OrganizationPermissionAlert />
-      {organization.features.includes('ingest-through-trusted-relays-only') && (
-        <FieldGroup title={t('Data Authenticity')}>
-          <AutoSaveForm
-            name="ingestThroughTrustedRelaysOnly"
-            schema={relaySchema}
-            initialValue={organization.ingestThroughTrustedRelaysOnly === 'enabled'}
-            confirm={value =>
-              value
-                ? t(
-                    'Enabling this can lead to data being rejected for ALL projects, are you sure you want to continue?'
-                  )
-                : undefined
-            }
-            mutationOptions={{
-              mutationFn: data =>
-                fetchMutation<Organization>({
-                  url: `/organizations/${organization.slug}/`,
-                  method: 'PUT',
-                  data: {
-                    ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
-                      ? 'enabled'
-                      : 'disabled',
-                  },
-                }),
-              onSuccess: updatedOrg => {
-                OrganizationStore.onUpdate(updatedOrg);
-              },
-            }}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Ingest Through Trusted Relays Only')}
-                hintText={t(
-                  'Require events to be ingested only through trusted relays. Direct submissions from SDKs or other sources will be rejected unless signed by a registered relay.'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={disabled}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
+      {hasRelayConfiguration && (
+        <FieldGroup title={t('Configuration')}>
+          {hasIngestThroughTrustedRelaysOnlyFeature && (
+            <AutoSaveForm
+              name="ingestThroughTrustedRelaysOnly"
+              schema={ingestThroughTrustedRelaysOnlySchema}
+              initialValue={organization.ingestThroughTrustedRelaysOnly === 'enabled'}
+              confirm={value =>
+                value
+                  ? t(
+                      'Enabling this can lead to data being rejected for ALL projects, are you sure you want to continue?'
+                    )
+                  : undefined
+              }
+              mutationOptions={{
+                mutationFn: data =>
+                  fetchMutation<Organization>({
+                    url: `/organizations/${organization.slug}/`,
+                    method: 'PUT',
+                    data: {
+                      ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
+                        ? 'enabled'
+                        : 'disabled',
+                    },
+                  }),
+                onSuccess: handleOrganizationUpdate,
+              }}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Ingest Through Trusted Relays Only')}
+                  hintText={t(
+                    'Require events to be ingested only through trusted relays. Direct submissions from SDKs or other sources will be rejected unless signed by a registered relay.'
+                  )}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={disabled}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          )}
+          {hasRelayDsnEndpointOverrideFeature && (
+            <AutoSaveForm
+              name="relayDsnEndpoint"
+              schema={relayDsnEndpointSchema}
+              initialValue={organization.relayDsnEndpoint ?? ''}
+              mutationOptions={{
+                mutationFn: data =>
+                  fetchMutation<Organization>({
+                    url: `/organizations/${organization.slug}/`,
+                    method: 'PUT',
+                    data: {
+                      relayDsnEndpoint: data.relayDsnEndpoint,
+                    },
+                  }),
+                onSuccess: handleOrganizationUpdate,
+              }}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('DSN Endpoint Override')}
+                  hintText={t(
+                    "Use a Relay base URL when displaying Client Key DSNs. Leave blank to use Sentry's default ingest endpoint."
+                  )}
+                >
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={disabled}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          )}
         </FieldGroup>
       )}
       {relays.length === 0 ? (
