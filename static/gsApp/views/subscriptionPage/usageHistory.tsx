@@ -65,19 +65,13 @@ function usagePercentage(usage: number, prepaid: number | null): string {
 
 type DisplayProps = {
   metricHistory: BillingMetricHistory;
-  hadCustomDynamicSampling?: boolean;
   plan?: Plan;
 };
 
-function getCategoryDisplay({
-  plan,
-  metricHistory,
-  hadCustomDynamicSampling,
-}: DisplayProps): React.ReactNode {
+function getCategoryDisplay({plan, metricHistory}: DisplayProps): React.ReactNode {
   const displayName = getPlanCategoryName({
     plan,
     category: metricHistory.category,
-    hadCustomDynamicSampling,
   });
   const softCapName = getSoftCapType(metricHistory);
   return softCapName
@@ -296,10 +290,7 @@ function UsageHistoryRow({history}: RowProps) {
             <tbody>
               {sortedCategories
                 .filter(
-                  metricHistory =>
-                    metricHistory.category !== DataCategory.SPANS_INDEXED ||
-                    (metricHistory.category === DataCategory.SPANS_INDEXED &&
-                      history.hadCustomDynamicSampling)
+                  metricHistory => metricHistory.category !== DataCategory.SPANS_INDEXED
                 )
                 .map(metricHistory => (
                   <tr key={metricHistory.category}>
@@ -307,7 +298,6 @@ function UsageHistoryRow({history}: RowProps) {
                       {getCategoryDisplay({
                         plan: history.planDetails,
                         metricHistory,
-                        hadCustomDynamicSampling: history.hadCustomDynamicSampling,
                       })}
                     </td>
                     <td>

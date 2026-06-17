@@ -246,7 +246,6 @@ export function UsageTotalsTable({
       : getPlanCategoryName({
           plan: subscription.planDetails,
           category,
-          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
           title: true,
         });
 

@@ -126,7 +126,6 @@ function AddGiftBudgetModal({
                       plan: subscription.planDetails,
                       category: category as DataCategory,
                       capitalize: false,
-                      hadCustomDynamicSampling: true,
                     })
                   )
                   .join(', ') || 'None'}

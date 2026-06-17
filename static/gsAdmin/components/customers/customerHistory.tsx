@@ -47,15 +47,8 @@ export function CustomerHistory({orgId, ...props}: Props) {
           {};
         const reservedBudgetNameMapping: Record<string, string> = {};
 
-        // in _admin, always use DS names regardless of whether DS was actually used in the period
-        // if DS is available (ie. when stored spans are billed)
-        const shouldUseDynamicSamplingNames = row.planDetails
-          ? DataCategory.SPANS_INDEXED in row.planDetails.planCategories
-          : false;
-
         const displayOptions = {
           capitalize: false,
-          hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
         };
 
         reservedBudgets.forEach(budget => {

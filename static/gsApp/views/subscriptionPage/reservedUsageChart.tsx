@@ -608,26 +608,7 @@ export function ProductUsageChart({
     if (categoryStats) {
       if (shouldDisplayBudgetStats && displayMode === 'cost') {
         const budgetType = reservedBudgetCategoryInfo[category]?.apiName;
-        if (
-          budgetType !== ReservedBudgetCategoryType.DYNAMIC_SAMPLING ||
-          (budgetType === ReservedBudgetCategoryType.DYNAMIC_SAMPLING &&
-            subscription.hadCustomDynamicSampling)
-        ) {
-          const statsByDateAndCategory = categoryStats.reduce<
-            Record<string, Record<string, BillingStats>>
-          >((acc, stat) => {
-            if (stat) {
-              acc[stat.date] = {[category]: [stat]};
-            }
-            return acc;
-          }, {});
-          dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
-            statsByDateAndCategory,
-            transform,
-            subscription,
-            reservedBudgetCategoryInfo,
-          });
-        } else {
+        if (budgetType === ReservedBudgetCategoryType.DYNAMIC_SAMPLING) {
           const otherCategory =
             category === DataCategory.SPANS
               ? DataCategory.SPANS_INDEXED
@@ -645,6 +626,21 @@ export function ProductUsageChart({
                 acc[stat.date] = {...acc[stat.date], [budgetCategory]: [stat]};
               }
             });
+            return acc;
+          }, {});
+          dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
+            statsByDateAndCategory,
+            transform,
+            subscription,
+            reservedBudgetCategoryInfo,
+          });
+        } else {
+          const statsByDateAndCategory = categoryStats.reduce<
+            Record<string, Record<string, BillingStats>>
+          >((acc, stat) => {
+            if (stat) {
+              acc[stat.date] = {[category]: [stat]};
+            }
             return acc;
           }, {});
           dataCategoryMetadata.chartData = mapReservedBudgetStatsToChart({
@@ -772,7 +768,6 @@ export function ProductUsageChart({
                   getPlanCategoryName({
                     plan: subscription.planDetails,
                     category,
-                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
                     title: true,
                   })
                 )}

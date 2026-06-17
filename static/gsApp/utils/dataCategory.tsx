@@ -52,7 +52,6 @@ export function getCreditDataCategory(credit: RecurringCredit): DataCategory | n
 type CategoryNameProps = {
   category: DataCategory;
   capitalize?: boolean;
-  hadCustomDynamicSampling?: boolean;
   plan?: Plan;
   title?: boolean;
 };
@@ -63,17 +62,13 @@ type CategoryNameProps = {
 export function getPlanCategoryName({
   plan,
   category,
-  hadCustomDynamicSampling = false,
   capitalize = true,
   title = false,
 }: CategoryNameProps) {
   const displayNames = plan?.categoryDisplayNames?.[category];
-  const categoryName =
-    category === DataCategory.SPANS && hadCustomDynamicSampling
-      ? t('accepted spans')
-      : displayNames
-        ? displayNames.plural
-        : (getCategoryInfoFromPlural(category)?.titleName?.toLowerCase() ?? category);
+  const categoryName = displayNames
+    ? displayNames.plural
+    : (getCategoryInfoFromPlural(category)?.titleName?.toLowerCase() ?? category);
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
@@ -87,18 +82,14 @@ export function getPlanCategoryName({
 export function getSingularCategoryName({
   plan,
   category,
-  hadCustomDynamicSampling = false,
   capitalize = true,
   title = false,
 }: CategoryNameProps) {
   const displayNames = plan?.categoryDisplayNames?.[category];
-  const categoryName =
-    category === DataCategory.SPANS && hadCustomDynamicSampling
-      ? t('accepted span')
-      : displayNames
-        ? displayNames.singular
-        : (getCategoryInfoFromPlural(category)?.displayName ??
-          category.substring(0, category.length - 1));
+  const categoryName = displayNames
+    ? displayNames.singular
+    : (getCategoryInfoFromPlural(category)?.displayName ??
+      category.substring(0, category.length - 1));
   return title
     ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
@@ -141,7 +132,6 @@ export function isPartOfReservedBudget(
  */
 export function getReservedBudgetDisplayName({
   plan,
-  hadCustomDynamicSampling,
   reservedBudget = null,
   pendingReservedBudget = null,
   shouldTitleCase = false,
@@ -171,7 +161,6 @@ export function getReservedBudgetDisplayName({
       const categoryName = getPlanCategoryName({
         plan,
         category,
-        hadCustomDynamicSampling,
         capitalize: false,
       });
       return shouldTitleCase
@@ -197,24 +186,19 @@ export function getReservedBudgetDisplayName({
 export function listDisplayNames({
   plan,
   categories,
-  hadCustomDynamicSampling = false,
   shouldTitleCase = false,
 }: {
   categories: DataCategory[];
   plan: Plan;
-  hadCustomDynamicSampling?: boolean;
   shouldTitleCase?: boolean;
 }) {
   const categoryNames = categories
-    .filter(
-      category => category !== DataCategory.SPANS_INDEXED || hadCustomDynamicSampling
-    )
+    .filter(category => category !== DataCategory.SPANS_INDEXED)
     .map(category =>
       getPlanCategoryName({
         plan,
         category,
         capitalize: false,
-        hadCustomDynamicSampling,
         title: shouldTitleCase,
       })
     );
@@ -315,7 +299,6 @@ export function formatCategoryQuantityWithDisplayName({
       category: dataCategory,
       capitalize: options.capitalize,
       title: options.title,
-      hadCustomDynamicSampling: options.hadCustomDynamicSampling,
     });
     return `${formattedQuantity} ${displayName}`;
   }
@@ -325,7 +308,6 @@ export function formatCategoryQuantityWithDisplayName({
     category: dataCategory,
     capitalize: options.capitalize,
     title: options.title,
-    hadCustomDynamicSampling: options.hadCustomDynamicSampling,
   });
   return `${formattedQuantity} ${displayName}`;
 }

@@ -262,7 +262,6 @@ export function CustomerDetails() {
                 plan: subscription.planDetails,
                 category,
                 capitalize: false,
-                hadCustomDynamicSampling: isReservedBudgetQuota,
               }),
               isUnlimited,
               isReservedBudgetQuota,

@@ -64,7 +64,6 @@ function getPaygIneligibleSubheader(
   const paygIneligibleCategoryList = listDisplayNames({
     plan: subscription.planDetails,
     categories: paygIneligibleCategories,
-    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     shouldTitleCase: true,
   });
   return tct('[categories] - Quota Exceeded', {categories: paygIneligibleCategoryList});
@@ -77,7 +76,6 @@ function getPaygIneligibleBodyCopy(
   const paygIneligibleCategoryList = listDisplayNames({
     plan: subscription.planDetails,
     categories: paygIneligibleCategories,
-    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
   return tct(
     'Your organization has used your full quota of [categories] this billing period. Your quota will reset when the next billing period begins. For an unlimited quota, you can contact sales to discuss custom pricing available on the Enterprise plan:',
@@ -135,12 +133,10 @@ function QuotaExceededContent({
   const usageCategoryList = listDisplayNames({
     plan: subscription.planDetails,
     categories: usageCategories,
-    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
   const seatCategoryList = listDisplayNames({
     plan: subscription.planDetails,
     categories: seatCategories,
-    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
 
   // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
@@ -220,7 +216,6 @@ function QuotaExceededContent({
                   category: getSingularCategoryName({
                     plan: subscription.planDetails,
                     category: otherCategories[0]!,
-                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
                     title: true,
                   }),
                 })
@@ -293,7 +288,6 @@ function QuotaExceededContent({
                 category: getSingularCategoryName({
                   plan: subscription.planDetails,
                   category: exceededCategories[0]!,
-                  hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
                   title: true,
                 }),
               })
@@ -366,10 +360,7 @@ export function PrimaryNavigationQuotaExceeded({
       [DataCategory, BillingMetricHistory]
     >
   )
-    .filter(
-      ([category]) =>
-        category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
-    )
+    .filter(([category]) => category !== DataCategory.SPANS_INDEXED)
     .reduce<DataCategory[]>((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
         const designatedBudget =

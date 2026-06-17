@@ -276,7 +276,6 @@ export function PendingChanges({organization, subscription}: Props) {
         const budgetName = getReservedBudgetDisplayName({
           pendingReservedBudget: pendingBudget,
           plan: pendingChanges.planDetails,
-          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
           capitalize: true,
         });
         const newAmount = formatCurrency(pendingBudget.reservedBudget);

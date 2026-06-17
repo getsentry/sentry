@@ -70,7 +70,6 @@ function SoftCapTypeDetail({
   if (!categories) {
     return <span>None</span>;
   }
-  const shouldUseDsNames = plan.categories.includes(DataCategory.SPANS_INDEXED);
   const softCapTypes = sortCategories(categories)
     .map(categoryHistory => {
       const softCapName = categoryHistory.softCapType
@@ -84,7 +83,6 @@ function SoftCapTypeDetail({
                 plan,
                 category: categoryHistory.category,
                 capitalize: true,
-                hadCustomDynamicSampling: shouldUseDsNames,
               })}: `}
               {softCapName}
             </small>
@@ -185,9 +183,6 @@ function ReservedData({customer}: ReservedDataProps) {
         const categoryName = getPlanCategoryName({
           plan: customer.planDetails,
           category: categoryHistory.category,
-          hadCustomDynamicSampling:
-            category === DataCategory.SPANS &&
-            DataCategory.SPANS_INDEXED in customer.categories,
         });
         return (
           <Fragment key={category}>
@@ -276,7 +271,6 @@ function ReservedBudgetData({
     reservedBudget,
     shouldTitleCase: true,
     plan: customer.planDetails,
-    hadCustomDynamicSampling: customer.hadCustomDynamicSampling,
   });
 
   return (

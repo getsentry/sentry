@@ -63,7 +63,6 @@ export function UsageAlert({subscription, usage}: Props) {
       plan: subscription.planDetails,
       category,
       capitalize: false,
-      hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     });
 
     const categoryInfo = getCategoryInfoFromPlural(category);
@@ -150,10 +149,7 @@ export function UsageAlert({subscription, usage}: Props) {
 
   function renderExceededInfo() {
     const exceededList = sortCategoriesWithKeys(subscription.categories)
-      .filter(
-        ([category]) =>
-          category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling
-      )
+      .filter(([category]) => category !== DataCategory.SPANS_INDEXED)
       .reduce<string[]>((acc, [category, currentHistory]) => {
         if (currentHistory.usageExceeded) {
           acc.push(
@@ -161,7 +157,6 @@ export function UsageAlert({subscription, usage}: Props) {
               plan: subscription.planDetails,
               category: category as DataCategory,
               capitalize: false,
-              hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
             })
           );
         }
@@ -175,7 +170,6 @@ export function UsageAlert({subscription, usage}: Props) {
             plan: subscription.planDetails,
             category: DataCategory.ERRORS,
             capitalize: false,
-            hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
           });
 
     return (

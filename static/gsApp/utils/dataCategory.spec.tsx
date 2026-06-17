@@ -225,16 +225,6 @@ describe('getPlanCategoryName', () => {
       'Errors'
     );
   });
-
-  it('should display spans as accepted spans for DS', () => {
-    expect(
-      getPlanCategoryName({
-        plan,
-        category: DataCategory.SPANS,
-        hadCustomDynamicSampling: true,
-      })
-    ).toBe('Accepted spans');
-  });
 });
 
 describe('getSingularCategoryName', () => {
@@ -259,16 +249,6 @@ describe('getSingularCategoryName', () => {
     expect(
       getSingularCategoryName({plan, category: DataCategory.ERRORS, title: true})
     ).toBe('Error');
-  });
-
-  it('should display spans as accepted spans for DS', () => {
-    expect(
-      getPlanCategoryName({
-        plan,
-        category: DataCategory.SPANS,
-        hadCustomDynamicSampling: true,
-      })
-    ).toBe('Accepted spans');
   });
 });
 

@@ -346,7 +346,6 @@ export type Subscription = {
   >;
   // GDPR Info
   gdprDetails: GDPRDetails | null;
-  hadCustomDynamicSampling: boolean;
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
@@ -814,7 +813,6 @@ export type BillingMetricHistory = {
 
 export type BillingHistory = {
   categories: Record<string, BillingMetricHistory>;
-  hadCustomDynamicSampling: boolean;
   id: string;
   isCurrent: boolean;
   links: {

@@ -54,20 +54,15 @@ function formatChangeForCategory({
   pendingValue: string;
   shouldDistinguishDisplayNames?: boolean;
 }) {
-  const oldUsesDsNames = oldPlan.categories.includes(DataCategory.SPANS_INDEXED);
-  const pendingUsesDsNames = pendingPlan.categories.includes(DataCategory.SPANS_INDEXED);
-
   const oldDisplayName = getPlanCategoryName({
     plan: oldPlan,
     category,
     capitalize: false,
-    hadCustomDynamicSampling: oldUsesDsNames,
   });
   const pendingDisplayName = getPlanCategoryName({
     plan: pendingPlan,
     category,
     capitalize: false,
-    hadCustomDynamicSampling: pendingUsesDsNames,
   });
   return `${changeTitle} ${shouldDistinguishDisplayNames ? oldDisplayName : pendingDisplayName} — ${oldValue} → ${pendingValue} ${
     shouldDistinguishDisplayNames ? pendingDisplayName : ''
@@ -91,13 +86,6 @@ function getRegularChanges(subscription: Subscription) {
     const change = pendingChanges.planDetails.name;
     changes.push(`Plan changes — ${old} → ${change}`);
   }
-
-  const oldPlanUsesDsNames = subscription.planDetails.categories.includes(
-    DataCategory.SPANS_INDEXED
-  );
-  const newPlanUsesDsNames = pendingChanges.planDetails.categories.includes(
-    DataCategory.SPANS_INDEXED
-  );
 
   if (
     pendingChanges.planDetails.contractInterval !==
@@ -250,7 +238,6 @@ function getRegularChanges(subscription: Subscription) {
     const budgetName = getReservedBudgetDisplayName({
       reservedBudget: budget,
       plan: subscription.planDetails,
-      hadCustomDynamicSampling: oldPlanUsesDsNames,
     });
     oldBudgetsChanges.push(
       `${getStringForPrice(budget.reservedBudget)} for ${budgetName}`
@@ -260,7 +247,6 @@ function getRegularChanges(subscription: Subscription) {
     const budgetName = getReservedBudgetDisplayName({
       pendingReservedBudget: budget,
       plan: pendingChanges.planDetails,
-      hadCustomDynamicSampling: newPlanUsesDsNames,
     });
     newBudgetsChanges.push(
       `${getStringForPrice(budget.reservedBudget)} for ${budgetName}`
