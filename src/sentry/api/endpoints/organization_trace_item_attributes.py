@@ -326,7 +326,11 @@ def build_sentry_convention_context(
     }
 
     if metadata.additional_context:
-        context["details"] = list(metadata.additional_context)
+        context["details"] = (
+            list(metadata.additional_context)
+            if isinstance(metadata.additional_context, (list, tuple))
+            else [metadata.additional_context]
+        )
 
     if metadata.example is not None:
         context["examples"] = (
