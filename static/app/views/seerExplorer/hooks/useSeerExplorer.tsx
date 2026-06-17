@@ -38,6 +38,14 @@ type SeerExplorerUpdateResponse = {
   run_id: number;
 };
 
+/**
+ * Build the explorer-update endpoint URL. `runId` can originate from an
+ * attacker-controlled `explorerRunId` deep link, so it must be encoded to
+ * prevent path traversal in the resulting same-origin POST.
+ */
+const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null) =>
+  `/organizations/${orgSlug}/seer/explorer-update/${encodeURIComponent(String(runId))}/`;
+
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/',
@@ -273,7 +281,7 @@ export const useSeerExplorer = () => {
         );
       }
       return fetchMutation({
-        url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
+        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
         data: {
           payload: {
@@ -337,7 +345,7 @@ export const useSeerExplorer = () => {
         );
       }
       return fetchMutation({
-        url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
+        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
         data: {
           payload: {
@@ -377,7 +385,7 @@ export const useSeerExplorer = () => {
     mutationFn: async params => {
       setHasSentInterrupt(true);
       return fetchMutation({
-        url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
+        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
         data: {
           payload: {

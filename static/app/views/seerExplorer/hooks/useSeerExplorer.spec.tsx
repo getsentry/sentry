@@ -343,6 +343,43 @@ describe('useSeerExplorer', () => {
         expect(result.current.hasSentInterrupt).toBe(false);
       });
     });
+
+    it('encodes a non-numeric runId in explorer-update URLs to prevent path traversal', async () => {
+      // A crafted `explorerRunId` deep link can set runId to an arbitrary
+      // string; it must be encoded so the same-origin POST can't traverse.
+      const maliciousRunId = '../../foo';
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/..%2F..%2Ffoo/`,
+        method: 'GET',
+        body: {session: {blocks: [], status: 'processing'}},
+      });
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-update/..%2F..%2Ffoo/`,
+        method: 'POST',
+        body: {run_id: 123},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.switchToRun(maliciousRunId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.runId).toBe(maliciousRunId);
+      });
+
+      act(() => {
+        result.current.interruptRun();
+      });
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalled();
+      });
+    });
   });
 
   describe('Polling Logic', () => {
