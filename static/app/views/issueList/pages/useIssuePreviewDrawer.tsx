@@ -1,18 +1,16 @@
-import {Fragment, useCallback, useEffect, useEffectEvent, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 /**
  * Query param holding the id of the issue whose preview drawer is open.
  * Presence opens the drawer; absence closes it.
  */
-export const SELECTED_ISSUE_QUERY_PARAM = 'preview';
+const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 
 function IssuePreviewDrawer() {
   return (
@@ -28,46 +26,25 @@ function IssuePreviewDrawer() {
  * The open/selected issue state is stored in the `preview` query param.
  */
 export function useIssuePreviewDrawer({enabled = true}: {enabled?: boolean} = {}) {
-  const location = useLocation();
-  const navigate = useNavigate();
   const {openDrawer} = useDrawer();
 
-  const selectedIssueId = decodeScalar(location.query[SELECTED_ISSUE_QUERY_PARAM]);
+  const [selectedIssueId, setSelectedIssueId] = useQueryState(
+    SELECTED_ISSUE_QUERY_PARAM,
+    parseAsString.withOptions({history: 'replace'})
+  );
 
   const openIssuePreview = useCallback(
     (group: Group) => {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            [SELECTED_ISSUE_QUERY_PARAM]: group.id,
-          },
-        },
-        {replace: true, preventScrollReset: true}
-      );
+      setSelectedIssueId(group.id);
     },
-    [navigate, location.pathname, location.query]
+    [setSelectedIssueId]
   );
 
-  const stripDrawerParam = useEffectEvent(() => {
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [SELECTED_ISSUE_QUERY_PARAM]: undefined,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  });
-
-  const lastOpenedIdRef = useRef<string | undefined>(undefined);
+  const lastOpenedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!enabled || !selectedIssueId) {
-      lastOpenedIdRef.current = undefined;
+      lastOpenedIdRef.current = null;
       return;
     }
 
@@ -82,9 +59,9 @@ export function useIssuePreviewDrawer({enabled = true}: {enabled?: boolean} = {}
       mode: 'passive',
       shouldCloseOnLocationChange: nextLocation =>
         !nextLocation.query[SELECTED_ISSUE_QUERY_PARAM],
-      onClose: () => stripDrawerParam(),
+      onClose: () => setSelectedIssueId(null),
     });
-  }, [enabled, selectedIssueId, openDrawer]);
+  }, [enabled, selectedIssueId, openDrawer, setSelectedIssueId]);
 
   return {openIssuePreview, selectedIssueId};
 }
