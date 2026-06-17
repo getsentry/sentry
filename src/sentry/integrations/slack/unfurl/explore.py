@@ -219,12 +219,6 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
         y_buckets = 50
     out["yBuckets"] = str(y_buckets)
 
-    # Pass through yLogScale if it was encoded in the URL (controls log-spaced
-    # y-axis bucketing on the backend).
-    y_log_scale = raw_query.get("yLogScale")
-    if y_log_scale:
-        out["yLogScale"] = y_log_scale
-
     return out
 
 
@@ -495,8 +489,6 @@ def _unfurl_explore(
         explore_dataset = link.args.get("dataset", SupportedTraceItemType.SPANS)
         dataset_config = _get_explore_dataset_config(explore_dataset)
 
-        # y_axes must be resolved before _resolve_display_type so the display type
-        # can fall back to bar/line based on the aggregate function.
         y_axes = params.getlist("yAxis")
         if not y_axes:
             y_axes = [dataset_config["default_y_axis"]]
