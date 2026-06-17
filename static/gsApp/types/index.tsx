@@ -397,7 +397,6 @@ export type Subscription = {
   // Subscription details
   plan: string;
   planDetails: Plan;
-  planTier: string;
   /**
    * Total events allowed for the current usage period including gifted
    */
@@ -413,7 +412,6 @@ export type Subscription = {
   totalProjects: number | null;
   trialEnd: string | null;
   trialPlan: string | null;
-  trialTier: string | null;
   type: BillingType;
   /**
    * All quotas available on the plan are exceeded
@@ -925,41 +923,6 @@ export type RecurringCredit =
   | RecurringDiscount
   | RecurringPercentDiscount
   | RecurringEventCredit;
-
-export enum PlanTier {
-  /**
-   * Performance plans with continuous profiling
-   * and dynamic sampling for spans.
-   */
-  AM3 = 'am3',
-  /**
-   * Performance plans with continuous profiling
-   * and dynamic sampling for transactions.
-   */
-  AM2 = 'am2',
-  /**
-   * First generation of application monitoring plans.
-   * Includes performance features.
-   */
-  AM1 = 'am1',
-  /**
-   * Monthly metered plans with variable data options.
-   */
-  MM2 = 'mm2',
-  /**
-   * First generation of monthly metered plans.
-   * Features and data volumes are tightly coupled.
-   */
-  MM1 = 'mm1',
-  /**
-   * No specified tier
-   */
-  ALL = 'all',
-  /**
-   * Test plans
-   */
-  TEST = 'test',
-}
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/
 export type PaymentCreateResponse = {

@@ -320,7 +320,7 @@ def generate_locality_url(locality_name: str | None = None) -> str:
     SENTRY_LOCAL_CELL set the corresponding locality is resolved from that cell name.
     Falls back to system.url-prefix when no template or locality name is available.
     """
-    region_url_template: str | None = options.get("system.region-api-url-template")
+    region_url_template: str | None = settings.SENTRY_REGION_API_URL_TEMPLATE
     if locality_name is None and SiloMode.get_current_mode() == SiloMode.CELL:
         locality_name = get_local_locality().name
 

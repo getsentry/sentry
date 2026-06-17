@@ -19,22 +19,24 @@ import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA'
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 
 jest.mock('getsentry/components/upgradeNowModal/usePreviewData');
 
 function renderMockRequests({
-  planTier,
+  isAncientPlan,
   organization,
   canSelfServe,
 }: {
   organization: Organization;
-  planTier: PlanTier;
+  // Legacy plans without performance/tracing take the "request an update" path;
+  // modern plans take the replay-onboarding path.
   canSelfServe?: boolean;
+  isAncientPlan?: boolean;
 }) {
   const subscription = SubscriptionFixture({
     organization,
-    planTier,
+    // m1 is a legacy plan with no performance/tracing categories; am1_f has them.
+    plan: isAncientPlan ? 'm1' : 'am1_f',
     canSelfServe,
   });
 
@@ -42,12 +44,8 @@ function renderMockRequests({
 
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/`,
-    body: {
-      planTier,
-    },
+    body: {},
   });
-
-  const isAncientPlan = [PlanTier.MM1, PlanTier.MM2].includes(planTier);
 
   if (isAncientPlan) {
     const requestUpdatePlan = MockApiClient.addMockResponse({
@@ -74,7 +72,6 @@ describe('ProductUnavailableCTA', () => {
       });
 
       renderMockRequests({
-        planTier: PlanTier.AM2,
         organization,
       });
 
@@ -87,7 +84,7 @@ describe('ProductUnavailableCTA', () => {
       const {organization} = initializeOrg();
 
       const mockRequests = renderMockRequests({
-        planTier: PlanTier.MM1,
+        isAncientPlan: true,
         organization,
       });
 
@@ -119,7 +116,6 @@ describe('ProductUnavailableCTA', () => {
       });
 
       const mockRequests = renderMockRequests({
-        planTier: PlanTier.AM1,
         organization,
       });
 
@@ -154,7 +150,6 @@ describe('ProductUnavailableCTA', () => {
       });
 
       renderMockRequests({
-        planTier: PlanTier.AM2,
         organization,
       });
 
@@ -171,7 +166,7 @@ describe('ProductUnavailableCTA', () => {
       });
 
       renderMockRequests({
-        planTier: PlanTier.MM1,
+        isAncientPlan: true,
         organization,
       });
 
@@ -196,7 +191,6 @@ describe('ProductUnavailableCTA', () => {
 
       // can self-serve
       renderMockRequests({
-        planTier: PlanTier.AM1,
         organization,
         canSelfServe: true,
       });
@@ -245,7 +239,6 @@ describe('ProductUnavailableCTA', () => {
 
       // can not self-serve
       renderMockRequests({
-        planTier: PlanTier.AM1,
         organization,
         canSelfServe: false,
       });

@@ -662,20 +662,14 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         """Test the get_organization_project_ids RPC method"""
         # Test with valid organization
         result = get_organization_project_ids(org_id=self.organization.id)
-        assert "projects" in result
-        assert isinstance(result["projects"], list)
-        assert len(result["projects"]) > 0
-        # Check that projects have both id and slug
-        project = result["projects"][0]
-        assert "id" in project
-        assert "slug" in project
+        assert len(result.projects) > 0
         # Check that our project is in the results
-        project_ids = [p["id"] for p in result["projects"]]
+        project_ids = [p.id for p in result.projects]
         assert self.project.id in project_ids
 
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
-        assert result == {"projects": []}
+        assert result.dict() == {"projects": []}
 
 
 class TestSpansCrossTraceQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
@@ -2648,12 +2642,12 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["organization_id"] == self.organization.id
-        assert result["integration_id"] == "123"
-        assert result["provider"] == "integrations:github"
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "seer"
-        assert result["external_id"] == "12345678"
+        assert result.organization_id == self.organization.id
+        assert result.integration_id == "123"
+        assert result.provider == "integrations:github"
+        assert result.owner == "getsentry"
+        assert result.name == "seer"
+        assert result.external_id == "12345678"
 
     def test_get_repository_definition_invalid_format(self) -> None:
         """Test that invalid repo name format returns None"""
@@ -2727,7 +2721,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["integration_id"] is None
+        assert result.integration_id is None
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
@@ -2766,7 +2760,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["provider"] == "integrations:github_enterprise"
+        assert result.provider == "integrations:github_enterprise"
 
     def test_get_repository_definition_multiple_providers(self) -> None:
         """Test that when multiple repos with different supported providers exist, first one is returned"""
@@ -2796,12 +2790,12 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is not None
         # Should return the first matching repo (in this case, GitHub)
-        assert result["provider"] in [
+        assert result.provider in [
             "integrations:github",
             "integrations:github_enterprise",
         ]
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "seer"
+        assert result.owner == "getsentry"
+        assert result.name == "seer"
 
     def test_get_repository_definition_filters_unsupported_with_supported(self) -> None:
         """Test that unsupported providers are ignored even when a supported one exists"""
@@ -2831,8 +2825,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         # Should return the GitHub repo, not GitLab
         assert result is not None
-        assert result["provider"] == "integrations:github"
-        assert result["external_id"] == "12345678"
+        assert result.provider == "integrations:github"
+        assert result.external_id == "12345678"
 
     def test_get_repository_definition_multipart_name(self) -> None:
         """Test repository with multi-part name (e.g., owner/project/repo)"""
@@ -2851,8 +2845,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "project/seer"
+        assert result.owner == "getsentry"
+        assert result.name == "project/seer"
 
     def test_get_repository_definition_by_external_id(self) -> None:
         """Test lookup by external_id when repo has been renamed."""
@@ -2874,8 +2868,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
         assert result is not None
         # Should return the CURRENT name from the database
-        assert result["owner"] == "getsentry"
-        assert result["name"] == "new-name"
+        assert result.owner == "getsentry"
+        assert result.name == "new-name"
 
 
 class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
@@ -3522,11 +3516,11 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 3
+        assert len(result.data) == 3
 
         auth_log_expected = self.logs[0]
         auth_log = None
-        for item in result["data"]:
+        for item in result.data:
             if item["id"] == self.get_id_str(auth_log_expected):
                 auth_log = item
 
@@ -3555,8 +3549,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             substring_case_sensitive=False,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.logs[2]) in ids
         assert self.get_id_str(self.logs[3]) in ids
 
@@ -3568,8 +3562,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             substring_case_sensitive=True,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == self.get_id_str(self.logs[3])
+        assert len(result.data) == 1
+        assert result.data[0]["id"] == self.get_id_str(self.logs[3])
 
     def test_get_log_attributes_for_trace_limit_no_filter(self) -> None:
         result = get_log_attributes_for_trace(
@@ -3579,8 +3573,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             limit=1,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] in [
+        assert len(result.data) == 1
+        assert result.data[0]["id"] in [
             self.get_id_str(self.logs[0]),
             self.get_id_str(self.logs[2]),
             self.get_id_str(self.logs[3]),
@@ -3596,8 +3590,8 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
             limit=2,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.logs[2]) in ids
         assert self.get_id_str(self.logs[3]) in ids
 
@@ -3671,12 +3665,12 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             stats_period="1d",
         )
         assert result is not None
-        assert len(result["data"]) == 3
+        assert len(result.data) == 3
 
         # Find the first http.request.duration metric
         http_metric_expected = self.metrics[0]
         http_metric = None
-        for item in result["data"]:
+        for item in result.data:
             if item["id"] == self.get_id_str(http_metric_expected):
                 http_metric = item
 
@@ -3708,7 +3702,7 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             metric_name="http.",
         )
         assert result is not None
-        assert len(result["data"]) == 0
+        assert len(result.data) == 0
 
         # Test an exact match (case-insensitive)
         result = get_metric_attributes_for_trace(
@@ -3718,8 +3712,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             metric_name="Cache.hit.rate",
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == self.get_id_str(self.metrics[3])
+        assert len(result.data) == 1
+        assert result.data[0]["id"] == self.get_id_str(self.metrics[3])
 
     def test_get_metric_attributes_for_trace_limit_no_filter(self) -> None:
         result = get_metric_attributes_for_trace(
@@ -3729,8 +3723,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             limit=1,
         )
         assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] in [
+        assert len(result.data) == 1
+        assert result.data[0]["id"] in [
             self.get_id_str(self.metrics[0]),
             self.get_id_str(self.metrics[2]),
             self.get_id_str(self.metrics[3]),
@@ -3745,8 +3739,8 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
             limit=2,
         )
         assert result is not None
-        assert len(result["data"]) == 2
-        ids = [item["id"] for item in result["data"]]
+        assert len(result.data) == 2
+        ids = [item["id"] for item in result.data]
         assert self.get_id_str(self.metrics[0]) in ids
         assert self.get_id_str(self.metrics[2]) in ids
 
@@ -4089,13 +4083,13 @@ class TestGetDsn(APITestCase):
         result = get_dsn(organization_id=self.organization.id, project_slug="wordcraft")
 
         assert result is not None
-        assert result == {
+        assert result.dict() == {
             "project_slug": "wordcraft",
             "platform": project.platform,
-            "dsn_public": result["dsn_public"],
+            "dsn_public": result.dsn_public,
         }
-        assert result["dsn_public"].startswith("http")
-        assert result["dsn_public"].endswith(f"/{project.id}")
+        assert result.dsn_public.startswith("http")
+        assert result.dsn_public.endswith(f"/{project.id}")
 
     def test_returns_none_for_unknown_slug(self) -> None:
         self.create_project(organization=self.organization, slug="wordcraft")

@@ -866,9 +866,9 @@ class TestBuildRepoDefinition:
         return repo
 
     def test_provider_is_github_for_cloud_integration(self) -> None:
-        from sentry.seer.code_review.utils import _build_repo_definition
+        from sentry.seer.code_review.utils import build_repo_definition
 
-        result = _build_repo_definition(
+        result = build_repo_definition(
             repo=self._make_repo("integrations:github"),
             target_commit_sha="abc123",
             event_payload={"repository": {"private": False}},
@@ -876,9 +876,9 @@ class TestBuildRepoDefinition:
         assert result["provider"] == "github"
 
     def test_provider_is_github_enterprise_for_ghe_integration(self) -> None:
-        from sentry.seer.code_review.utils import _build_repo_definition
+        from sentry.seer.code_review.utils import build_repo_definition
 
-        result = _build_repo_definition(
+        result = build_repo_definition(
             repo=self._make_repo("integrations:github_enterprise"),
             target_commit_sha="abc123",
             event_payload={"repository": {"private": False}},
@@ -886,14 +886,14 @@ class TestBuildRepoDefinition:
         assert result["provider"] == "github_enterprise"
 
     def test_gitlab_uses_config_path_not_display_name(self) -> None:
-        from sentry.seer.code_review.utils import _build_repo_definition
+        from sentry.seer.code_review.utils import build_repo_definition
 
         repo = self._make_repo("integrations:gitlab")
         # Repository.name is the display "name_with_namespace"; it must not be used.
         repo.name = "Cool Group / Sentry"
         repo.config = {"path": "cool-group/sentry"}
 
-        result = _build_repo_definition(
+        result = build_repo_definition(
             repo=repo,
             target_commit_sha="abc123",
             event_payload={"project": {"visibility_level": 0}},
@@ -903,14 +903,14 @@ class TestBuildRepoDefinition:
         assert result["name"] == "sentry"
 
     def test_gitlab_missing_config_path_raises_rather_than_using_display_name(self) -> None:
-        from sentry.seer.code_review.utils import _build_repo_definition
+        from sentry.seer.code_review.utils import build_repo_definition
 
         repo = self._make_repo("integrations:gitlab")
         repo.name = "Cool Group / Sentry"
         repo.config = {}
 
         with pytest.raises(ValueError):
-            _build_repo_definition(
+            build_repo_definition(
                 repo=repo,
                 target_commit_sha="abc123",
                 event_payload={"project": {}},
