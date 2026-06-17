@@ -13,6 +13,7 @@ import {
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {HoverScrollable} from 'sentry/components/HoverScrollable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {Truncate} from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
@@ -139,7 +140,7 @@ export function DefaultTitle({
                 meta={pathNameOrModule.meta}
               />
             ) : (
-              <Truncate value={pathNameOrModule.value} maxLength={100} leftTrim />
+              <HoverScrollable value={pathNameOrModule.value} maxLength={100} leftTrim />
             )}
           </code>
         </Tooltip>

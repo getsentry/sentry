@@ -389,7 +389,13 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
 const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
+  flex: 1 1 auto;
   min-width: 0;
+
+  > div {
+    min-width: 0;
+    max-width: 100%;
+  }
 `;
 
 const RepeatedContent = styled(LeftLineTitle)`
@@ -418,6 +424,7 @@ const DefaultLine = styled('div')<{
   min-height: 40px;
   word-break: break-word;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
