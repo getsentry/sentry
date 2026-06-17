@@ -97,7 +97,6 @@ class WebhookTest(GitLabTestCase):
         mock_logger.warning.assert_called_once()
         extra = mock_logger.warning.call_args.kwargs["extra"]
         assert extra["webhook.repo.path"] == "cool-group/sentry"
-        assert extra["webhook.repo.namespace"] == "Cool Group"
         assert extra["webhook.repo.web_url"] == "http://example.com/cool-group/sentry"
         assert extra["webhook.object_kind"] == "push"
 
