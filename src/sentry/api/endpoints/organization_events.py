@@ -560,9 +560,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == OurLogs:
-                    # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
-                        use_aggregate_conditions=False,
+                        use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
