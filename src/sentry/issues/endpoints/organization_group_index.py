@@ -7,7 +7,7 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import start_span
@@ -517,7 +517,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        ids = [int(id) for id in request.GET.getlist("id")]
+        try:
+            ids = [int(id) for id in request.GET.getlist("id")]
+        except ValueError as e:
+            raise ParseError(f"Invalid issue ID: {e}") from e
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @extend_schema(
