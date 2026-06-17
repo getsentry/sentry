@@ -69,8 +69,8 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.http import is_mcp_request
 from sentry.users.services.user.service import user_service
+from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
