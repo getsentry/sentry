@@ -455,11 +455,59 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
         assert self._query(actor=self.user) == [self.groups[1], self.groups[2], self.groups[0]]
 
 
+class TestProgressSort(PostgresSortTestBase):
+    """progress: primary sort by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
+    triaged > identified), secondary by last_seen.
+
+    The base fixture's groups have events ~8d, ~5d, and ~3d old, so on last_seen alone they
+    order [2, 1, 0] (newest first).
+    """
+
+    def _query(self):
+        return list(
+            self.backend.query(
+                [self.project],
+                search_filters=[],
+                environments=None,
+                count_hits=False,
+                sort_by="progress",
+                date_from=None,
+                date_to=None,
+                cursor=None,
+                referrer=Referrer.TESTING_TEST,
+            )
+        )
+
+    def test_rank_outranks_last_seen(self):
+        # Give the oldest group the furthest progress and the newest group none: rank must
+        # invert the last_seen ordering.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
+        # groups[2] has no progress activity -> identified (lowest rank).
+        assert self._query() == [self.groups[0], self.groups[1], self.groups[2]]
+
+    def test_last_seen_breaks_ties_within_rank(self):
+        # groups[0] and groups[1] are both diagnosed; the more recently seen (groups[1])
+        # sorts first. groups[2] stays identified and sorts last.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
+        assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
+
 class TestDefaultPostgresSortStrategies(TestCase):
     def test_recommended_v2_registered(self):
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
-        assert set(strategies) == {"recommended_v2"}
+        assert set(strategies) == {"recommended_v2", "progress"}
         strategy = strategies["recommended_v2"]
         assert strategy.snuba_aggregations == ["recommended"]
         assert strategy.exclude_null_postgres is False
         assert set(strategy.signal_resolvers) == {"assignment", "agent"}
+
+    def test_progress_registered(self):
+        strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
+        strategy = strategies["progress"]
+        assert strategy.snuba_aggregations == ["last_seen"]
+        assert set(strategy.signal_resolvers) == {"progress_rank"}
+        # progress maps to last_seen in sort_strategies so the chunked Snuba path has a
+        # real aggregation to fall back to on candidate overflow.
+        assert PostgresSnubaQueryExecutor.sort_strategies["progress"] == "last_seen"

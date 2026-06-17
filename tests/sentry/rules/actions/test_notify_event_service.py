@@ -5,7 +5,6 @@ from uuid import uuid4
 import pytest
 import responses
 from django.utils import timezone
-from requests.exceptions import HTTPError
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
@@ -161,32 +160,6 @@ class NotifyEventServiceWebhookActionTest(NotifyEventServiceActionTest):
             "target_identifier": str(self.user.id),
         }
         action.update(config=action_config, type="email", data={})
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
-                group_id=self.event.group_id,
-                project_id=self.event.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        assert len(responses.calls) == 0
-
-    @responses.activate
-    @patch("sentry.plugins.sentry_webhooks.plugin.WebHooksPlugin.notify_users")
-    def test_error_for_legacy_webhooks_dual_write_aci(self, mock_notify_users):
-        responses.add(method=responses.POST, url="http://my-fake-webhook.io", json={}, status=408)
-        mock_notify_users.side_effect = HTTPError("didn't work")
-        rule = Rule.objects.create(
-            label="bad stuff happening",
-            project=self.event.project,
-            data=self.rule_webhook_data,
-        )
-        # dual write the rule to replicate current reality
-        IssueAlertMigrator(rule, self.user.id).run()
 
         with self.tasks():
             post_process_group(

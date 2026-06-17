@@ -2,13 +2,22 @@ import {Fragment, memo, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconFile, IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
+import {
+  IconFile,
+  IconInfo,
+  IconLightning,
+  IconLink,
+  IconMoon,
+  IconWarning,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -52,6 +61,18 @@ export function DarkAware({
   );
 }
 
+export function ErroredBanner() {
+  return (
+    <Container padding="0 xl md">
+      <Alert variant="danger" showIcon>
+        {t(
+          'Unknown error: failed to compare these images (base and head images still shown below).'
+        )}
+      </Alert>
+    </Container>
+  );
+}
+
 export const PairCard = memo(function PairCard({
   pair,
   imageBaseUrl,
@@ -62,6 +83,7 @@ export const PairCard = memo(function PairCard({
   overlayColor,
   diffImageBaseUrl,
   snapshotKey,
+  status = DiffStatus.CHANGED,
   onSelectSnapshot,
   onOpenSnapshot,
   onCopyLink,
@@ -80,6 +102,7 @@ export const PairCard = memo(function PairCard({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
+  status?: DiffStatus;
 }) {
   const [isDark, setIsDark] = useState(false);
   const image = pair.head_image;
@@ -94,8 +117,10 @@ export const PairCard = memo(function PairCard({
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
+  const effectiveDiffMode = status === DiffStatus.ERRORED ? 'split' : diffMode;
+
   let body: React.ReactNode;
-  if (diffMode === 'split') {
+  if (effectiveDiffMode === 'split') {
     body = (
       <SnapshotCanvasWrapper>
         <SplitPairBody
@@ -111,7 +136,7 @@ export const PairCard = memo(function PairCard({
         />
       </SnapshotCanvasWrapper>
     );
-  } else if (diffMode === 'wipe') {
+  } else if (effectiveDiffMode === 'wipe') {
     body = (
       <WipeCardBody
         baseUrl={baseUrl}
@@ -142,7 +167,7 @@ export const PairCard = memo(function PairCard({
           displayName={image.display_name}
           fileName={image.image_file_name}
           tags={image.tags}
-          status={DiffStatus.CHANGED}
+          status={status}
           diffPercent={pair.diff}
           isDark={isDark}
           onToggleDark={() => setIsDark(v => !v)}
@@ -153,6 +178,7 @@ export const PairCard = memo(function PairCard({
           onCopyLink={onCopyLink}
           onCopyMetadata={onCopyMetadata}
         />
+        {status === DiffStatus.ERRORED && <ErroredBanner />}
         <Container padding="0 xl xl">{body}</Container>
       </SnapshotVariantFrame>
     </DarkAware>
@@ -368,6 +394,7 @@ const STATUS_VARIANT: Record<DiffStatus, ContentVariant | 'muted' | 'secondary'>
   [DiffStatus.REMOVED]: 'danger',
   [DiffStatus.RENAMED]: 'warning',
   [DiffStatus.UNCHANGED]: 'secondary',
+  [DiffStatus.ERRORED]: 'danger',
   [DiffStatus.SKIPPED]: 'muted',
 };
 
@@ -378,6 +405,14 @@ const StatusBadge = memo(function StatusBadge({
   status: DiffStatus;
   diffPercent?: number | null;
 }) {
+  if (status === DiffStatus.ERRORED) {
+    return (
+      <Tag variant="danger" icon={<IconWarning />}>
+        {t('Failed to compare')}
+      </Tag>
+    );
+  }
+
   let label: string;
   switch (status) {
     case DiffStatus.CHANGED:

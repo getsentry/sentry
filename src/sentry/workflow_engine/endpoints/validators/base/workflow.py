@@ -110,9 +110,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
         for action_filter in value:
             actions, condition_group = self._split_action_and_condition_group(action_filter)
-            BaseDataConditionGroupValidator(data=condition_group, context=self.context).is_valid(
-                raise_exception=True
+            dcg_validator = BaseDataConditionGroupValidator(
+                data=condition_group, context=self.context
             )
+            dcg_validator.is_valid(raise_exception=True)
+            action_filter.update(dcg_validator.validated_data)
 
             validated_actions = []
             for action in actions:
@@ -198,14 +200,14 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         validator = BaseDataConditionGroupValidator(context=self.context)
 
         condition_group_id = condition_group_data.get("id")
-        if instance and condition_group_id and condition_group_id != str(instance.id):
+        if instance and condition_group_id and condition_group_id != instance.id:
             raise serializers.ValidationError(
                 f"Invalid Condition Group ID {condition_group_data.get('id')}"
             )
 
         # If an instance is provided but no id in the data, use the instance's id to ensure we update the existing condition group
         if instance and not condition_group_id:
-            condition_group_data["id"] = str(instance.id)
+            condition_group_data["id"] = instance.id
 
         actions = condition_group_data.pop("actions", None)
         condition_group = self._update_or_create(

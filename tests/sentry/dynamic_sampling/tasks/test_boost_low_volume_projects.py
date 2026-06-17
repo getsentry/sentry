@@ -27,6 +27,7 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -166,6 +167,43 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org1.id, p1.id, error_sample_rate_fallback=None
         )
         assert (sample_rate, got_value) == (0.5, True)
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_per_project_sample_rate_override(self) -> None:
+        # A per-project override configured via options hard-replaces the rate the
+        # custom dynamic sampling path would otherwise resolve for that project --
+        # winning even over the recently-added 100% boost -- and leaves other projects
+        # untouched.
+        org1 = self.create_organization("am3-override-org")
+        org1.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
+        org1.update_option("sentry:target_sample_rate", 0.5)
+        overridden = self.create_project(organization=org1)
+        normal = self.create_project(organization=org1)
+
+        # Baseline: freshly-created projects are boosted to 1.0 by the recently-added
+        # rule, so neither resolves to the org target yet.
+        assert get_guarded_project_sample_rate(org1, overridden) == 1.0
+
+        with override_options(
+            {"dynamic-sampling.sample-rate-override-per-project": {str(overridden.id): 0.9}}
+        ):
+            assert get_guarded_project_sample_rate(org1, overridden) == 0.9
+            # Not in the override map -> unaffected by the override.
+            assert get_guarded_project_sample_rate(org1, normal) == 1.0
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_per_project_sample_rate_override_ignores_out_of_range(self) -> None:
+        org1 = self.create_organization("am3-override-org-bad")
+        org1.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
+        org1.update_option("sentry:target_sample_rate", 0.5)
+        project = self.create_project(organization=org1)
+
+        baseline = get_guarded_project_sample_rate(org1, project)
+        with override_options(
+            {"dynamic-sampling.sample-rate-override-per-project": {str(project.id): 2.0}}
+        ):
+            # Out-of-range override is ignored; the resolved rate is unchanged.
+            assert get_guarded_project_sample_rate(org1, project) == baseline
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
     def test_project_mode_sampling_with_query(self) -> None:

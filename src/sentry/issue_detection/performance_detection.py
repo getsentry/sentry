@@ -194,6 +194,7 @@ def detect_performance_problems(
         if rate and rate > random.random():
             # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
+            sentry_sdk.set_attribute("_did_analyze_performance_issue", "true")
             with (
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
                 sentry_sdk.start_span(op="py.detect_performance_issue", name="none") as sdk_span,
