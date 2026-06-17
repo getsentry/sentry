@@ -147,6 +147,7 @@ class WebhookCircuitBreakerTest(TestCase):
 
         mock_record_success.assert_called_once()
 
+    @with_feature("organizations:sentry-apps-custom-webhook-headers")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_error_response_buffers_masked_custom_headers(self, mock_safe_urlopen):
@@ -183,6 +184,46 @@ class WebhookCircuitBreakerTest(TestCase):
         assert headers["Authorization"] == MASKED_VALUE
         assert "Bearer super-secret" not in headers.values()
         # Sentry's own headers are still recorded in the clear.
+        assert headers["Content-Type"] == "application/json"
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_custom_headers_not_sent_or_logged_without_flag(self, mock_safe_urlopen):
+        """Without the feature flag, custom headers are stripped from both the request
+        and the buffer log."""
+        sentry_app = self.create_sentry_app(
+            name="HeaderApp",
+            organization=self.organization,
+            webhook_url="https://example.com/webhook",
+            published=True,
+            webhook_headers=["Authorization: Bearer super-secret"],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"test": "data"},
+        )
+        mock_safe_urlopen.return_value = _MockResponse(
+            {}, "{}", "", False, 401, _raise_status_false, None
+        )
+
+        with pytest.raises(ClientError):
+            send_and_save_webhook_request(sentry_app, event)
+
+        # Custom header must not appear in the outbound request.
+        call_headers = mock_safe_urlopen.call_args.kwargs["headers"]
+        assert "Authorization" not in call_headers
+
+        # Custom header must not appear in the buffer log either.
+        requests = SentryAppWebhookRequestsBuffer(sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        headers = requests[0].get("request_headers")
+        assert headers is not None
+        assert "Authorization" not in headers
         assert headers["Content-Type"] == "application/json"
 
 
