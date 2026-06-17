@@ -24,6 +24,11 @@ UNSUPPORTED_ACTION_TYPES = [
 ]
 
 
+@pytest.mark.parametrize("action_type", UNSUPPORTED_ACTION_TYPES)
+def test_unsupported_registrations(action_type: Action.Type) -> None:
+    assert activity_handler_registry.get(action_type) is UnsupportedActivityHandler
+
+
 class TestUnsupportedActivityHandler(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
@@ -40,10 +45,6 @@ class TestUnsupportedActivityHandler(BaseWorkflowTest):
                 "target_type": 0,
             },
         )
-
-    @pytest.mark.parametrize("action_type", UNSUPPORTED_ACTION_TYPES)
-    def test_registered(self, action_type: Action.Type) -> None:
-        assert activity_handler_registry.get(action_type) is UnsupportedActivityHandler
 
     @mock.patch("sentry.notifications.notification_action.activity_registry.unsupported.logger")
     def test_invoke_action_logs_and_returns(self, mock_logger: mock.MagicMock) -> None:
