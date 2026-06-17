@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
+import {Fragment, type MouseEventHandler, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,10 +13,10 @@ import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {
   Container,
-  Flex,
-  Stack,
-  type FlexProps,
   type ContainerProps,
+  Flex,
+  type FlexProps,
+  Stack,
 } from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
@@ -26,20 +26,16 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import {Overlay, PositionWrapper, type OverlayProps} from 'sentry/components/overlay';
-import {Override} from 'sentry/components/override';
+import {Overlay, type OverlayProps, PositionWrapper} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {getOverride} from 'sentry/overrideRegistry';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
-  NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
@@ -77,57 +73,30 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
 interface PrimaryNavigationSidebarHeaderProps extends Omit<FlexProps<'header'>, 'as'> {}
 
 function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderProps) {
-  const theme = useTheme();
   const {layout} = usePrimaryNavigation();
-  const organization = useOrganization({allowNull: true});
-  const showSuperuserWarning =
-    isActiveSuperuser() &&
-    !ConfigStore.get('isSelfHosted') &&
-    !getOverride('component:superuser-warning-excluded')?.(organization);
-
-  const hasPageFrame = useHasPageFrameFeature();
 
   return (
-    <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
+    <SizeProvider size="sm">
       <Flex
         as="header"
         direction="column"
         align="center"
         justify="center"
-        borderBottom={hasPageFrame ? 'primary' : undefined}
-        width={hasPageFrame ? '100%' : undefined}
+        borderBottom="primary"
+        width="100"
         minHeight={
-          hasPageFrame
-            ? layout === 'mobile'
-              ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
-              : `${PRIMARY_HEADER_HEIGHT}px`
-            : undefined
+          layout === 'mobile'
+            ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+            : `${PRIMARY_HEADER_HEIGHT}px`
         }
         height={
-          hasPageFrame
-            ? layout === 'mobile'
-              ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
-              : `${PRIMARY_HEADER_HEIGHT}px`
-            : undefined
+          layout === 'mobile'
+            ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+            : `${PRIMARY_HEADER_HEIGHT}px`
         }
         {...props}
       >
         {props.children}
-        {/* page-frame renders a marquee for the visual superuser indicator */}
-        {!hasPageFrame && showSuperuserWarning && (
-          <Container
-            position="absolute"
-            top={0}
-            left={0}
-            width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-            style={{
-              zIndex: theme.zIndex.initial,
-              background: theme.tokens.background.danger.vibrant,
-            }}
-          >
-            <Override name="component:superuser-warning" organization={organization} />
-          </Container>
-        )}
       </Flex>
     </SizeProvider>
   );

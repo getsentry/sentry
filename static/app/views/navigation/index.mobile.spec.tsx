@@ -159,9 +159,9 @@ describe('mobile navigation', () => {
     });
   });
 
-  it('keeps page-frame nav open when interacting with org dropdown overlay', async () => {
+  it('keeps nav open when interacting with org dropdown overlay', async () => {
     const pageFrameContext = navigationContext({
-      organization: {features: [...ALL_AVAILABLE_FEATURES, 'page-frame']},
+      organization: {features: ALL_AVAILABLE_FEATURES},
     });
 
     render(

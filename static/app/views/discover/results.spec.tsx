@@ -983,7 +983,7 @@ describe('Results', () => {
       });
 
       const organization = OrganizationFixture({
-        features: ['discover-basic', 'page-frame'],
+        features: ['discover-basic'],
       });
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
