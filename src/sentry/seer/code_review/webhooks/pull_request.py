@@ -139,10 +139,8 @@ def handle_pull_request_event(
         )
         return
 
-    # Increment contributor's seat-eligible action now that the PR has cleared
-    # the code-review preflight check. The contributor is seeded upstream in the
-    # GitHub PR webhook; here we only increment so billing reflects PRs that are
-    # actually eligible for review rather than every opened PR.
+    # Increment contributor actions now that the PR has cleared
+    # the code-review preflight check.
     if action == PullRequestAction.OPENED and integration is not None:
         author_id = get_pr_author_id(event)
         if author_id is not None:
