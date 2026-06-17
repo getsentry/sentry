@@ -783,38 +783,8 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
         job["user"] = user
 
 
-def _partition_jobs_by_tag_deriver_flag(
-    jobs: Sequence[Job], projects: ProjectsMapping
-) -> tuple[list[Job], list[Job]]:
-    org_flag_mapping: dict[int, bool] = {}
-    new_jobs: list[Job] = []
-    legacy_jobs: list[Job] = []
-    for job in jobs:
-        project = projects[job["project_id"]]
-        org_id = project.organization_id
-        if org_id not in org_flag_mapping:
-            org_flag_mapping[org_id] = features.has(
-                "organizations:derive-tags-without-plugins", project.organization
-            )
-        if org_flag_mapping[org_id]:
-            new_jobs.append(job)
-        else:
-            legacy_jobs.append(job)
-    return new_jobs, legacy_jobs
-
-
 @sentry_sdk.tracing.trace
 def _derive_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    new_jobs, legacy_jobs = _partition_jobs_by_tag_deriver_flag(jobs, projects)
-    if new_jobs:
-        metrics.incr("event_manager.derive_tags.new_path", amount=len(new_jobs))
-        _derive_tags_many_new(new_jobs, projects)
-    if legacy_jobs:
-        metrics.incr("event_manager.derive_tags.legacy_path", amount=len(legacy_jobs))
-        _derive_tags_many_legacy(legacy_jobs, projects)
-
-
-def _derive_tags_many_new(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     derivers = get_enabled_derivers()
     for job in jobs:
         data = job["data"]
@@ -825,20 +795,6 @@ def _derive_tags_many_new(jobs: Sequence[Job], projects: ProjectsMapping) -> Non
                         set_tag(data, key, value)
             except Exception:
                 logger.exception("auto_tag.derive_error")
-
-
-def _derive_tags_many_legacy(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
-
-    for job in jobs:
-        for plugin in plugins_for_projects[job["project_id"]]:
-            added_tags = safe_execute(plugin.get_tags, job["event"])
-            if added_tags:
-                data = job["data"]
-                # plugins should not override user provided tags
-                for key, value in added_tags:
-                    if get_tag(data, key) is None:
-                        set_tag(data, key, value)
 
 
 def _derive_interface_tags_many(jobs: Sequence[Job]) -> None:

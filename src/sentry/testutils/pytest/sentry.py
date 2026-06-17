@@ -23,7 +23,7 @@ from sentry.testutils.cell import TestEnvCellDirectory
 from sentry.testutils.pytest import xdist
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import cell
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -82,7 +82,6 @@ def _configure_test_env_cells() -> None:
         cell_name,
         cell_snowflake_id,
         settings.SENTRY_OPTIONS["system.url-prefix"],
-        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_LOCAL_CELL = cell_name

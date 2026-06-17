@@ -24,13 +24,13 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import override_allowed_cell_silo_ip_addresses
-from sentry.types.cell import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError
 from sentry.utils import json
 
 
 class SiloClientTest(TestCase):
     dummy_address = "http://eu.testserver"
-    cell = Cell("eu", 1, dummy_address, RegionCategory.MULTI_TENANT)
+    cell = Cell("eu", 1, dummy_address)
     cell_config = (cell,)
 
     def setUp(self) -> None:
@@ -48,7 +48,7 @@ class SiloClientTest(TestCase):
                 CellSiloClient("atlantis")  # type: ignore[arg-type]
 
             with raises(CellResolutionError):
-                cell = Cell("atlantis", 1, self.dummy_address, RegionCategory.MULTI_TENANT)
+                cell = Cell("atlantis", 1, self.dummy_address)
                 CellSiloClient(cell)
 
             client = CellSiloClient(self.cell)
@@ -309,7 +309,7 @@ class SiloClientTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_invalid_cell_silo_ip_address(self) -> None:
-        cell = Cell("eu", 1, "http://172.31.255.31:9000", RegionCategory.MULTI_TENANT)
+        cell = Cell("eu", 1, "http://172.31.255.31:9000")
 
         # Disallow any cell silo ip address by default.
         with (
@@ -359,7 +359,6 @@ class SiloClientTest(TestCase):
             snowflake_id=1,
             address="http://10.2.0.88:9000",
             api_gateway_address="http://10.2.0.66:9000",
-            category=RegionCategory.MULTI_TENANT,
         )
 
         responses.add(
@@ -391,7 +390,7 @@ class SiloClientTest(TestCase):
     @override_allowed_cell_silo_ip_addresses("172.31.255.255")
     def test_client_restricted_ip_address(self) -> None:
         internal_cell_address = "http://172.31.255.255:9000"
-        cell = Cell("eu", 1, internal_cell_address, RegionCategory.MULTI_TENANT)
+        cell = Cell("eu", 1, internal_cell_address)
         cell_config = (cell,)
 
         with (
@@ -450,7 +449,7 @@ def test_validate_cell_ip_address() -> None:
 
 def test_get_cell_ip_addresses() -> None:
     internal_cell_address = "http://i.am.an.internal.hostname:9000"
-    cell = Cell("eu", 1, internal_cell_address, RegionCategory.MULTI_TENANT)
+    cell = Cell("eu", 1, internal_cell_address)
     cell_config = (cell,)
 
     with (
@@ -477,13 +476,13 @@ def test_get_cell_ip_addresses() -> None:
 @mock.patch("sentry.utils.metrics.incr")
 def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) -> None:
     us1_cell_address = "http://i.am.us1.internal.hostname:9000"
-    us1_cell = Cell("us1", 1, us1_cell_address, RegionCategory.MULTI_TENANT)
+    us1_cell = Cell("us1", 1, us1_cell_address)
 
     us2_cell_address = "http://i.am.us2.internal.hostname:9000"
-    us2_cell = Cell("us2", 1, us2_cell_address, RegionCategory.MULTI_TENANT)
+    us2_cell = Cell("us2", 1, us2_cell_address)
 
     dead_cell_address = "http://i.am.dead.internal.hostname:9000"
-    dead_cell = Cell("dead", 1, dead_cell_address, RegionCategory.MULTI_TENANT)
+    dead_cell = Cell("dead", 1, dead_cell_address)
 
     cell_config = (us1_cell, us2_cell, dead_cell)
 
