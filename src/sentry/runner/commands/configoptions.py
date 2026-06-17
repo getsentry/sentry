@@ -20,12 +20,8 @@ def _attempt_update(
 ) -> bool:
     """
     Updates the option if it is not drifted and if we are not in dry
-    run mode.
-
-    Returns True only when the option's value actually changed in the DB.
-    Drift, no-op reconciliations (value already matches), and channel-only
-    takeovers return False, so callers can tell whether this run propagated a
-    real value change.
+    run mode. Returns True only when the stored value actually changed
+    (drift, no-op reconciliations, and channel takeovers return False).
     """
 
     from sentry import options
@@ -127,14 +123,10 @@ def _validate_options(
 
 def _record_latency(ctx: click.Context, updated: bool, status: str) -> None:
     """
-    Emit the automator end-to-end latency (commit timestamp -> value applied to
-    the DB), but only when this run actually applied a value change.
-
-    The automator is re-run repeatedly between deploys (e.g. on configmap watch
-    re-syncs) with the same stale ``--timestamp``. Emitting on every run made the
-    metric ramp up as "time since last deploy" instead of measuring propagation.
-    Gating on ``updated`` means we emit once per deploy that changes something,
-    which is the latency we actually care about.
+    Emit latency from the deployed commit (``--timestamp``) to the DB write.
+    Only when a value changed: the automator re-runs between deploys with the
+    same stale timestamp, so emitting every run made the metric ramp up as
+    "time since last deploy" instead of measuring propagation.
     """
     from sentry.utils import metrics
 
@@ -369,7 +361,7 @@ def sync(ctx: click.Context) -> None:
                             )
                             presenter_delegator.flush()
                             raise
-                    # A deletion is a real change worth measuring latency for.
+                    # A deletion counts as a change.
                     updated = True
                     presenter_delegator.unset(opt.name)
                 elif last_updated == options.UpdateChannel.CLI:
