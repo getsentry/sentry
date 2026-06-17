@@ -5,8 +5,10 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry.api.endpoints.organization_trace_item_attributes import build_attribute_context
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
@@ -25,6 +27,35 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+
+
+class TestBuildAttributeContext:
+    def test_lookup_by_public_name(self) -> None:
+        context = build_attribute_context("device.class", "sentry.device.class")
+        assert context is not None
+        assert context["brief"].startswith("The classification of the device.")
+        assert context["is_deprecated"] is False
+
+    def test_falls_back_to_internal_name(self) -> None:
+        # The convention is keyed by the internal name (`sentry.op`), not the
+        # public alias (`span.op`), so the public-name lookup misses and the
+        # fallback must resolve it.
+        assert "span.op" not in ATTRIBUTE_METADATA
+        context = build_attribute_context("span.op", "sentry.op")
+        assert context == {
+            "brief": "The operation of a span.",
+            "examples": ["http.client"],
+            "is_deprecated": False,
+        }
+
+    def test_deprecated_attribute_includes_replacement(self) -> None:
+        context = build_attribute_context("transaction", "sentry.transaction")
+        assert context is not None
+        assert context["is_deprecated"] is True
+        assert context["replacement_attribute"] == "sentry.segment.name"
+
+    def test_unknown_attribute_returns_none(self) -> None:
+        assert build_attribute_context("not.a.convention", "also.not.a.convention") is None
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):
@@ -460,6 +491,77 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         response = self.do_request(query={"attributeType": "string"})
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    def _store_basic_segment(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"foo": "foo"},
+        )
+
+    def test_expand_context(self) -> None:
+        self._store_basic_segment()
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+
+        # A non-deprecated sentry convention gets brief + examples + is_deprecated.
+        assert attributes["device.class"]["context"] == {
+            "brief": (
+                "The classification of the device. For example, `low`, `medium`, or `high`. "
+                "Typically inferred by Relay - SDKs generally do not need to set this directly."
+            ),
+            "examples": ["medium"],
+            "is_deprecated": False,
+        }
+        # A deprecated convention also surfaces the replacement attribute.
+        assert attributes["transaction"]["context"] == {
+            "brief": "The sentry transaction (segment name).",
+            "examples": ["GET /"],
+            "is_deprecated": True,
+            "replacement_attribute": "sentry.segment.name",
+        }
+        # User tags are not sentry conventions, so they have no context.
+        assert "context" not in attributes["foo"]
+
+    def test_expand_context_without_feature_flag(self) -> None:
+        self._store_basic_segment()
+
+        # expand=context is requested, but the gating feature is disabled.
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+        )
+        assert response.status_code == 200, response.data
+        assert all("context" not in item for item in response.data)
+
+    def test_context_not_included_without_expand(self) -> None:
+        self._store_basic_segment()
+
+        response = self.do_request(
+            query={"attributeType": "string"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert all("context" not in item for item in response.data)
 
     def test_tags_list_str(self) -> None:
         for tag in ["foo", "bar", "baz"]:

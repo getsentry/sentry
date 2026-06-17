@@ -7,6 +7,13 @@ DEVICE_CLASS: TraceItemAttributeKey = {
     "name": "device.class",
     "attributeSource": {"source_type": "sentry"},
     "attributeType": "string",
+    "context": {
+        "brief": (
+            "The classification of the device. For example, `low`, `medium`, or `high`. "
+            "Typically inferred by Relay - SDKs generally do not need to set this directly."
+        ),
+        "is_deprecated": False,
+    },
 }
 
 BATCH_SIZE: TraceItemAttributeKey = {
