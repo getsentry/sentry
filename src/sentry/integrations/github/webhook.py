@@ -1071,6 +1071,8 @@ class PullRequestEventWebhook(GitHubWebhook):
                     )
 
         author.preload_users()
+        # Track whether this delivery is the one that first created the PR row.
+        created = False
         try:
             _, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
@@ -1121,6 +1123,7 @@ class PullRequestEventWebhook(GitHubWebhook):
             event=event,
             organization=organization,
             repo=repo,
+            pr_was_created=created,
             **kwargs,
         )
 

@@ -48,6 +48,7 @@ def handle_webhook_event(
     organization: Organization,
     repo: Repository,
     integration: RpcIntegration | None = None,
+    pr_was_created: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -132,4 +133,5 @@ def handle_webhook_event(
         integration=integration,
         org_code_review_settings=preflight.settings,
         tags=tags,
+        pr_was_created=pr_was_created,
     )

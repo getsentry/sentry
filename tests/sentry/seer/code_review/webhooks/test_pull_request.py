@@ -98,6 +98,21 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert call_kwargs["organization"].id == self.organization.id
             assert call_kwargs["repo"].external_id == str(event["repository"]["id"])
 
+    def test_pull_request_opened_redelivery_does_not_increment(self) -> None:
+        """A redelivered opened webhook (PR row already exists) must not increment again."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            with patch(
+                "sentry.seer.code_review.webhooks.pull_request.increment_contributor_action"
+            ) as mock_increment:
+                # First delivery creates the PR row -> increments once.
+                self._send_webhook_event(GithubWebhookType.PULL_REQUEST, orjson.dumps(event))
+                # Redelivery (distinct X-GitHub-Delivery, so not deduped) finds the existing
+                # PR row -> pr_was_created is False -> no second increment.
+                self.send_github_webhook_event(GithubWebhookType.PULL_REQUEST, orjson.dumps(event))
+
+            mock_increment.assert_called_once()
+
     def test_pull_request_synchronize_does_not_increment_contributor_action(self) -> None:
         """Only opened PRs increment an action; synchronize must not."""
         with self.code_review_setup(), self.tasks():

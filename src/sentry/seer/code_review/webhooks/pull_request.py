@@ -100,6 +100,7 @@ def handle_pull_request_event(
     tags: Mapping[str, Any],
     integration: RpcIntegration | None = None,
     org_code_review_settings: CodeReviewSettings | None = None,
+    pr_was_created: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -139,18 +140,6 @@ def handle_pull_request_event(
         )
         return
 
-    # Increment contributor actions now that the PR has cleared the code-review preflight check.
-    if action == PullRequestAction.OPENED and integration is not None:
-        author_id = get_pr_author_id(event)
-        if author_id is not None:
-            increment_contributor_action(
-                organization=organization,
-                repo=repo,
-                integration_id=integration.id,
-                user_id=author_id,
-                provider="github",
-            )
-
     action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
     if action_requires_trigger_permission is not None and (
         org_code_review_settings is None
@@ -171,6 +160,20 @@ def handle_pull_request_event(
     # even if the PR was converted to draft before closing
     if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
         return
+
+    # Increment contributor actions now that the PR has cleared the code-review preflight check.
+    # Gated on pr_was_created so a redelivered/concurrent "opened" webhook (PR row already exists)
+    # does not double-count.
+    if pr_was_created and action == PullRequestAction.OPENED and integration is not None:
+        author_id = get_pr_author_id(event)
+        if author_id is not None:
+            increment_contributor_action(
+                organization=organization,
+                repo=repo,
+                integration_id=integration.id,
+                user_id=author_id,
+                provider="github",
+            )
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
