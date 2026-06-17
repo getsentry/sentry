@@ -139,7 +139,12 @@ describe('Sentry Application Details', () => {
     });
 
     it('saves webhook headers', async () => {
-      renderComponent();
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({
+          features: ['sentry-apps-custom-webhook-headers'],
+        }),
+      });
 
       await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
       await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
@@ -265,7 +270,12 @@ describe('Sentry Application Details', () => {
         body: sentryApp,
       });
 
-      renderComponent();
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({
+          features: ['sentry-apps-custom-webhook-headers'],
+        }),
+      });
 
       expect(await screen.findByRole('textbox', {name: 'Webhook Headers'})).toHaveValue(
         'X-Example: value\nAnother-Header: thing'
