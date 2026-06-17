@@ -153,7 +153,7 @@ export function MonitoringProvidersSection() {
                 onClick={() => handleConnect(provider)}
                 busy={
                   connectMutation.isPending &&
-                  connectMutation.variables?.provider === provider.provider
+                  connectMutation.variables.provider === provider.provider
                 }
               >
                 {t('Connect')}
