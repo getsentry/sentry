@@ -62,7 +62,7 @@ def send_signup_verification_email(
     )
 
 
-def unsign_signup_verification(signed_data: str) -> dict[str, Any]:
+def verify_signup_link(signed_data: str) -> dict[str, Any]:
     """
     Verify and decode a signup verification link.
 

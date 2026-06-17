@@ -7,7 +7,7 @@ from django.core.signing import BadSignature, SignatureExpired
 
 from sentry.auth.email_verification import (
     send_signup_verification_email,
-    unsign_signup_verification,
+    verify_signup_link,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -50,7 +50,7 @@ class SendSignupVerificationEmailTest(TestCase):
         send_signup_verification_email("user@example.com")
 
         signed_blob = mock_reverse.call_args[1]["args"][0]
-        payload = unsign_signup_verification(signed_blob)
+        payload = verify_signup_link(signed_blob)
         assert payload["email"] == "user@example.com"
         assert payload["expires_at"] > time.time()
 
@@ -60,7 +60,7 @@ class UnsignSignupVerificationTest(TestCase):
     def test_valid_signature(self) -> None:
         exp = time.time() + 300
         signed = sign(salt=SALT, email="a@b.com", expires_at=exp)
-        result = unsign_signup_verification(signed)
+        result = verify_signup_link(signed)
         assert result["email"] == "a@b.com"
         assert result["expires_at"] == exp
 
@@ -68,21 +68,21 @@ class UnsignSignupVerificationTest(TestCase):
         exp = time.time() - 1
         signed = sign(salt=SALT, email="a@b.com", expires_at=exp)
         with pytest.raises(SignatureExpired):
-            unsign_signup_verification(signed)
+            verify_signup_link(signed)
 
     def test_tampered_signature(self) -> None:
         exp = time.time() + 300
         signed = sign(salt=SALT, email="a@b.com", expires_at=exp)
         tampered = signed[:-1] + ("A" if signed[-1] != "A" else "B")
         with pytest.raises(BadSignature):
-            unsign_signup_verification(tampered)
+            verify_signup_link(tampered)
 
     def test_malformed_link_throws_bad_sig(self) -> None:
         with pytest.raises(BadSignature):
-            unsign_signup_verification("not-valid-base64-!!!")
+            verify_signup_link("not-valid-base64-!!!")
 
     def test_wrong_salt(self) -> None:
         exp = time.time() + 300
         signed = sign(salt="wrong-salt", email="a@b.com", expires_at=exp)
         with pytest.raises(BadSignature):
-            unsign_signup_verification(signed)
+            verify_signup_link(signed)
