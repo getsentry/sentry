@@ -1651,12 +1651,12 @@ class PullRequestEventWebhookTest(APITestCase):
         assert link.linked_id == pr.id
         assert link.linked_type == GroupLink.LinkedType.pull_request
 
-    @patch("sentry.integrations.github.webhook.track_contributor_seat")
-    def test_pull_request_calls_track_contributor_seat(
+    @patch("sentry.integrations.github.webhook.seed_contributor")
+    def test_pull_request_calls_seed_contributor(
         self,
-        mock_track_contributor_seat: MagicMock,
+        mock_seed_contributor: MagicMock,
     ) -> None:
-        repo = Repository.objects.create(
+        Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
             provider="integrations:github",
@@ -1665,14 +1665,12 @@ class PullRequestEventWebhookTest(APITestCase):
 
         integration = self._create_integration_and_send_pull_request_opened_event()
 
-        mock_track_contributor_seat.assert_called_once()
-        call_kwargs = mock_track_contributor_seat.call_args[1]
+        mock_seed_contributor.assert_called_once()
+        call_kwargs = mock_seed_contributor.call_args[1]
         assert call_kwargs["integration_id"] == integration.id
         assert str(call_kwargs["user_id"]) == "6752317"
         assert call_kwargs["user_username"] == "baxterthehacker"
-        assert call_kwargs["provider"] == "github"
         assert call_kwargs["organization"] == self.project.organization
-        assert call_kwargs["repo"] == repo
 
 
 class IssuesEventWebhookTest(APITestCase):

@@ -79,6 +79,54 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 GitHubReaction.EYES,
             )
 
+    def test_pull_request_opened_increments_contributor_action(self) -> None:
+        """An opened PR increments the contributor's action after clearing preflight."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            with patch(
+                "sentry.seer.code_review.webhooks.pull_request.increment_contributor_action"
+            ) as mock_increment:
+                self._send_webhook_event(
+                    GithubWebhookType.PULL_REQUEST,
+                    orjson.dumps(event),
+                )
+
+            mock_increment.assert_called_once()
+            call_kwargs = mock_increment.call_args[1]
+            assert call_kwargs["user_id"] == str(event["pull_request"]["user"]["id"])
+            assert call_kwargs["provider"] == "github"
+            assert call_kwargs["organization"].id == self.organization.id
+            assert call_kwargs["repo"].external_id == str(event["repository"]["id"])
+
+    def test_pull_request_synchronize_does_not_increment_contributor_action(self) -> None:
+        """Only opened PRs increment an action; synchronize must not."""
+        with self.code_review_setup(), self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            event["action"] = "synchronize"
+            with patch(
+                "sentry.seer.code_review.webhooks.pull_request.increment_contributor_action"
+            ) as mock_increment:
+                self._send_webhook_event(
+                    GithubWebhookType.PULL_REQUEST,
+                    orjson.dumps(event),
+                )
+
+            mock_increment.assert_not_called()
+
+    def test_pull_request_opened_does_not_increment_when_preflight_denies(self) -> None:
+        """A denied preflight short-circuits before the handler, so no action is incremented."""
+        with self.tasks():
+            event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            with patch(
+                "sentry.seer.code_review.webhooks.pull_request.increment_contributor_action"
+            ) as mock_increment:
+                self._send_webhook_event(
+                    GithubWebhookType.PULL_REQUEST,
+                    orjson.dumps(event),
+                )
+
+            mock_increment.assert_not_called()
+
     def test_pull_request_skips_draft(self) -> None:
         """Test that draft PRs are skipped."""
         with self.code_review_setup(), self.tasks():
