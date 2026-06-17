@@ -243,5 +243,5 @@ class TestRedisBuffer:
     "value",
     [timezone.now(), datetime.date.today(), "a", 1, 3.14, {"a": {"i": 0}, "b": {"s": ""}}],
 )
-def test_dump_value(value: Any) -> None:
+def test_dump_and_load_value(value: Any) -> None:
     assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value
