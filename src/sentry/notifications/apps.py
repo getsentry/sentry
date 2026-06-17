@@ -6,7 +6,6 @@ class Config(AppConfig):
 
     def ready(self) -> None:
         # Imports to populate registries
-        import sentry.notifications.notification_action.activity_registry  # noqa: F401
         import sentry.notifications.platform.discord.provider  # noqa: F401
         import sentry.notifications.platform.email.provider  # noqa: F401
         import sentry.notifications.platform.msteams.provider  # noqa: F401
