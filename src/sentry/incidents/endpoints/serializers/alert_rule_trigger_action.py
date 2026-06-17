@@ -35,9 +35,11 @@ def human_desc(
     if priority:
         priority += " level"
 
+    slack_desc = f"Send a Slack notification to {target_display}"
     action_type_to_string = {
         AlertRuleTriggerAction.Type.PAGERDUTY.value: f"Send a {priority} PagerDuty notification to {target_display}",
-        AlertRuleTriggerAction.Type.SLACK.value: f"Send a Slack notification to {target_display}",
+        AlertRuleTriggerAction.Type.SLACK.value: slack_desc,
+        AlertRuleTriggerAction.Type.SLACK_STAGING.value: slack_desc,
         AlertRuleTriggerAction.Type.MSTEAMS.value: f"Send a Microsoft Teams notification to {target_display}",
         AlertRuleTriggerAction.Type.SENTRY_APP.value: f"Send a notification via {target_display}",
     }
@@ -61,7 +63,7 @@ def human_desc(
             )
         return f"Send a Discord notification to {target_display}"
     else:
-        return action_type_to_string[action_type]
+        return action_type_to_string.get(action_type)
 
 
 def get_identifier_from_action(action_type, target_identifier, target_display=None):
