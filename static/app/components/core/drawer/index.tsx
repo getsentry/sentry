@@ -288,3 +288,4 @@ export function useDrawer() {
 }
 
 export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';
+export {getDrawerWidthKey} from './useDrawerResizing';
