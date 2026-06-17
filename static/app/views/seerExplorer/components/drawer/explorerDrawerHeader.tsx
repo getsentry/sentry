@@ -275,6 +275,9 @@ export function ExplorerDrawerHeader({
               position="bottom-end"
               menuTitle={t('Dock position')}
               triggerProps={{
+                tooltipProps: {
+                  title: t('Dock position'),
+                },
                 'aria-label': t('Dock position'),
                 icon: (
                   <IconPanel
