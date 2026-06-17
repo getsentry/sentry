@@ -29,7 +29,7 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
           return false;
         }
 
-        return failureCount < 2;
+        return failureCount < 3;
       },
     },
   },
