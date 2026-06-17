@@ -22,6 +22,7 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
+  explodeField,
   isAggregateField,
   parseFunction,
   prettifyParsedFunction,
@@ -43,6 +44,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
@@ -77,7 +79,6 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import {useHeatmapTraceMetric} from './hooks/useHeatmapTraceMetric';
 import {
   applyDashboardFiltersToWidget,
   type GenericWidgetQueriesResult,
@@ -468,7 +469,20 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {heatmapResults, loading, widget, dashboardFilters} = props;
-  const traceMetric = useHeatmapTraceMetric(widget);
+
+  // Resolve the metric from the selected "Visualize" aggregate; the heat map
+  // links each cell's tooltip to it in Explore.
+  const query = widget.queries[0];
+  const traceMetric = React.useMemo(() => {
+    const selectedIndex = getSelectedAggregateIndex(
+      query?.selectedAggregate,
+      query?.aggregates.length ?? 0
+    );
+    const aggregate = query?.aggregates?.[selectedIndex];
+    return aggregate
+      ? extractTraceMetricFromColumn(explodeField({field: aggregate}))
+      : undefined;
+  }, [query]);
 
   if (loading || !heatmapResults) {
     return <LoadingPlaceholder />;
