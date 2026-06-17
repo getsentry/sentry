@@ -17,7 +17,7 @@ import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQue
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 // Overrides to the default react-query options.
-// See https://tanstack.com/query/v4/docs/guides/important-defaults
+// See https://tanstack.com/query/v5/docs/framework/react/guides/important-defaults
 export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   defaultOptions: {
     queries: {
