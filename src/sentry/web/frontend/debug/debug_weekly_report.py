@@ -192,6 +192,27 @@ class DebugWeeklyReportView(MailPreviewView):
                 for group_index, performance_issue_type in enumerate(performance_issue_types)
             ]
 
+            project_context.past_resolved_issues = [
+                (
+                    make_debug_group(
+                        group_id=30000 + (project.id * 100) + group_index,
+                        project=project,
+                        title=make_debug_issue_title(
+                            random,
+                            random.choice(["TypeError", "ValueError", "RuntimeError"]),
+                        ),
+                        message=make_debug_issue_message(random),
+                        group_type=ErrorGroupType,
+                        event_type="error",
+                        status=GroupStatus.RESOLVED,
+                        substatus=GroupSubStatus.NEW,
+                    ),
+                    random.randint(100, 5000),
+                    random.choice([True, False]),
+                )
+                for group_index in range(3)
+            ]
+
             ctx.projects_context_map[project.id] = project_context
 
         user_id = request.user.id
@@ -201,6 +222,19 @@ class DebugWeeklyReportView(MailPreviewView):
             context["show_week_over_week_metric"] = (
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
+            context["show_past_issues"] = True
+            past_issues = []
+            for project_ctx in ctx.projects_context_map.values():
+                for group, count, has_link in project_ctx.past_resolved_issues:
+                    past_issues.append(
+                        {
+                            "count": count,
+                            "group": group,
+                            "has_linked_pr_or_commit": has_link,
+                        }
+                    )
+            past_issues.sort(key=lambda x: x["count"], reverse=True)
+            context["past_issues"] = past_issues[:3]
         return context
 
     @property
