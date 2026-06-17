@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import logging
-from calendar import monthrange
 from collections.abc import Iterable
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import TYPE_CHECKING, cast
 
 import orjson
 import sentry_sdk
 
-from sentry import quotas
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.full_rebalancing import (
     FullRebalancingInput,
@@ -33,13 +31,18 @@ from sentry.dynamic_sampling.per_org.queries import (
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume, sample_rate_to_float
+from sentry.dynamic_sampling.tasks.common import (
+    OrganizationDataVolume,
+    compute_sliding_window_sample_rate,
+    sample_rate_to_float,
+)
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -53,30 +56,25 @@ TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
-SLIDING_WINDOW_COMPARISON_INTERVAL = timedelta(minutes=5)
 logger = logging.getLogger(__name__)
 
 
 def compare_organization_sliding_window_sample_rates(
     config: AutomaticDynamicSamplingConfiguration,
 ) -> None:
-    eap_volume = get_eap_organization_volume(
-        config, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
-    )
-    outcomes_volume = get_outcomes_organization_volume(
-        config.organization.id, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
-    )
-    now = datetime.now(tz=timezone.utc)
-    _, days_in_month = monthrange(now.year, now.month)
-    windows_per_month = timedelta(days=days_in_month) / SLIDING_WINDOW_COMPARISON_INTERVAL
+    window = timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
+    eap_volume = get_eap_organization_volume(config, time_interval=window)
+    outcomes_volume = get_outcomes_organization_volume(config.organization.id, time_interval=window)
 
     def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
         if volume is None:
             return None
-        tier = quotas.backend.get_transaction_sampling_tier_for_volume(
-            config.organization.id, int(volume.total * windows_per_month)
+        return compute_sliding_window_sample_rate(
+            org_id=config.organization.id,
+            project_id=None,
+            total_root_count=volume.total,
+            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
         )
-        return float(tier[1]) if tier is not None else None
 
     eap_sample_rate = sample_rate_for(eap_volume)
     outcomes_sample_rate = sample_rate_for(outcomes_volume)
