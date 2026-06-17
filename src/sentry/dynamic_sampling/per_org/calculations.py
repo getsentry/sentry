@@ -28,12 +28,11 @@ from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project
 from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
     ProjectVolume,
-    get_eap_organization_volume,
     get_outcomes_organization_volume,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume, sample_rate_to_float
+from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -43,7 +42,10 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+    from sentry.dynamic_sampling.per_org.configuration import (
+        AutomaticDynamicSamplingConfiguration,
+        BaseDynamicSamplingConfiguration,
+    )
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
@@ -55,51 +57,29 @@ logger = logging.getLogger(__name__)
 
 
 def compare_organization_sliding_window_sample_rates(
-    config: BaseDynamicSamplingConfiguration,
+    config: AutomaticDynamicSamplingConfiguration,
 ) -> None:
-    eap_volume = get_eap_organization_volume(
-        config, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
-    )
+    # The EAP-based rate is already computed on the config; the outcomes-based rate is a
+    # delay-free alternative computed here over a 5m window. Emit both for comparison.
+    eap_sample_rate = config.get_sample_rate()
+
     outcomes_volume = get_outcomes_organization_volume(
         config.organization.id, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
     )
-
-    # Extrapolate the window volume to a monthly volume and map it to a quota tier. The
-    # 5m window is sub-hour, so we can't reuse the hours-based extrapolate_monthly_volume.
-    now = datetime.now(tz=timezone.utc)
-    _, days_in_month = monthrange(now.year, now.month)
-    windows_per_month = timedelta(days=days_in_month) / SLIDING_WINDOW_COMPARISON_INTERVAL
-
-    def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
-        if volume is None:
-            return None
+    outcomes_sample_rate: float | None = None
+    if outcomes_volume is not None:
+        # Extrapolate the window volume to a monthly volume and map it to a quota tier.
+        # The 5m window is sub-hour, so we can't reuse the hours-based
+        # extrapolate_monthly_volume.
+        now = datetime.now(tz=timezone.utc)
+        _, days_in_month = monthrange(now.year, now.month)
+        windows_per_month = timedelta(days=days_in_month) / SLIDING_WINDOW_COMPARISON_INTERVAL
         tier = quotas.backend.get_transaction_sampling_tier_for_volume(
-            config.organization.id, int(volume.total * windows_per_month)
+            config.organization.id, int(outcomes_volume.total * windows_per_month)
         )
-        return float(tier[1]) if tier is not None else None
+        outcomes_sample_rate = float(tier[1]) if tier is not None else None
 
-    eap_sample_rate = sample_rate_for(eap_volume)
-    outcomes_sample_rate = sample_rate_for(outcomes_volume)
-
-    relative_deviation = (
-        get_relative_deviation(eap_sample_rate, outcomes_sample_rate)
-        if eap_sample_rate is not None and outcomes_sample_rate is not None
-        else None
-    )
-
-    logger.info(
-        "dynamic_sampling.per_org.sliding_window_sample_rate_comparison",
-        extra={
-            "org_id": config.organization.id,
-            "eap_volume": eap_volume.total if eap_volume is not None else None,
-            "eap_sample_rate": eap_sample_rate,
-            "outcomes_volume": outcomes_volume.total if outcomes_volume is not None else None,
-            "outcomes_sample_rate": outcomes_sample_rate,
-            "relative_deviation": relative_deviation,
-        },
-    )
-
-    tags = {"org": str(config.organization.id)}
+    tags = {"ds_org": str(config.organization.id)}
     if eap_sample_rate is not None:
         metrics.distribution(
             f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_sample_rate",

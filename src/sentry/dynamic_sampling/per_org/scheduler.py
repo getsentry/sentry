@@ -18,7 +18,10 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_project_balancing,
     run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.configuration import get_configuration
+from sentry.dynamic_sampling.per_org.configuration import (
+    AutomaticDynamicSamplingConfiguration,
+    get_configuration,
+)
 from sentry.dynamic_sampling.per_org.gate import (
     is_org_in_rollout,
     sliding_window_comparison_org_ids,
@@ -138,9 +141,13 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             config, rebalanced_projects, cached_sample_rates, project_volumes
         )
 
-    # Observability only: for the configured set of orgs, compare the org sliding-window
-    # sample rate computed from EAP vs outcomes (delay-free). Must never break the pipeline.
-    if config.organization.id in sliding_window_comparison_org_ids():
+    # Observability only: for the configured set of orgs on the automatic (EAP sliding
+    # window) config, compare the org sample rate from EAP vs outcomes (delay-free).
+    # Must never break the pipeline.
+    if (
+        isinstance(config, AutomaticDynamicSamplingConfiguration)
+        and config.organization.id in sliding_window_comparison_org_ids()
+    ):
         try:
             compare_organization_sliding_window_sample_rates(config)
         except Exception as exc:
