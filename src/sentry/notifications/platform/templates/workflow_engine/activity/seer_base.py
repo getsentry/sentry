@@ -97,7 +97,7 @@ def build_template(
         f"organizations/{organization.slug}/monitors/alerts/{data.workflow_id}/"
     )
     footer = EXAMPLE_FOOTER
-    if settings.DEBUG:
+    if settings.DEBUG and activity.data:
         footer += f" Run ID: {activity.data.get('run_id')}"
 
     return NotificationRenderedTemplate(
