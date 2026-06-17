@@ -231,6 +231,9 @@ export function MobilePageFrameNavigation() {
     if (toggleButtonRef.current?.contains(e.target as Node)) {
       return;
     }
+    if ((e.target as Element).closest?.('[data-overlay]')) {
+      return;
+    }
     setIsOpen(false);
   }, []);
 

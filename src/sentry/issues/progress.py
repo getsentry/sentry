@@ -41,6 +41,11 @@ PROGRESS_STATES_DESCENDING = [
     IssueProgressState.DIAGNOSED,
 ]
 
+PROGRESS_RESET_ACTIVITY_TYPES: set[int] = {
+    ActivityType.SET_REGRESSION.value,
+    ActivityType.SET_UNRESOLVED.value,
+}
+
 
 def get_group_progress_states(
     group_ids: Sequence[int],
@@ -64,13 +69,13 @@ def get_group_progress_states(
     rows = (
         Activity.objects.filter(
             group_id__in=group_ids,
-            type__in=set(all_progress_activity_types) | {ActivityType.SET_REGRESSION.value},
+            type__in=set(all_progress_activity_types) | PROGRESS_RESET_ACTIVITY_TYPES,
         )
         .values("group_id")
         .annotate(
-            latest_regression=Max(
+            latest_reset=Max(
                 "datetime",
-                filter=Q(type=ActivityType.SET_REGRESSION.value),
+                filter=Q(type__in=PROGRESS_RESET_ACTIVITY_TYPES),
             ),
             latest_diagnosed=Max(
                 "datetime",
@@ -101,15 +106,15 @@ def get_group_progress_states(
     for row in rows:
         group_id = row["group_id"]
         groups_with_activities.add(group_id)
-        latest_regression = row["latest_regression"]
+        latest_reset = row["latest_reset"]
 
-        # Find the first matching progress progress state which occurred more recently than the latest regression
+        # Find the first matching progress state which occurred more recently than the latest reset
         for state in PROGRESS_STATES_DESCENDING:
             latest = row[annotation_key_by_state[state]]
-            if latest is not None and (latest_regression is None or latest >= latest_regression):
+            if latest is not None and (latest_reset is None or latest >= latest_reset):
                 result[group_id] = state.value
                 break
-        # If the regression was most recent
+        # If the reset was most recent
         else:
             result[group_id] = (
                 IssueProgressState.TRIAGED

@@ -2571,6 +2571,37 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["units"]["equation|tpm()"] == "1/minute"
         assert meta["fields"]["equation|tpm()"] == "rate"
 
+    def test_equation_mixed_types(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success", "user.email": "test@test.com"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count_unique(user.email)",
+                    "equation|p95(span.duration) / count_unique(user.email)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["equation|p95(span.duration) / count_unique(user.email)"] == 1000
+
     def test_p75_if(self) -> None:
         self.store_spans(
             [

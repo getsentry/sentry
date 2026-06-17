@@ -27,7 +27,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.release_examples import ReleaseExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    ReleaseParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
@@ -61,6 +66,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
             ReleaseParams.QUERY,
+            VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
         responses={
