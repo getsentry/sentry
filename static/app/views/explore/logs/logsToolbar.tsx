@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -25,6 +25,7 @@ import {
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -125,24 +126,6 @@ function ToolbarVisualize() {
   const onSearch = setSearch;
   const onClose = useCallback(() => setSearch(undefined), []);
 
-  const sortedNumberKeys = useMemo(() => {
-    const keys = Object.keys(numberTags);
-    keys.sort();
-    return keys;
-  }, [numberTags]);
-
-  const sortedStringKeys = useMemo(() => {
-    const keys = Object.keys(stringTags);
-    keys.sort();
-    return keys;
-  }, [stringTags]);
-
-  const sortedBooleanKeys = useMemo(() => {
-    const keys = Object.keys(booleanTags);
-    keys.sort();
-    return keys;
-  }, [booleanTags]);
-
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
 
@@ -188,9 +171,9 @@ function ToolbarVisualize() {
               onDelete={onDelete}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
-              sortedBooleanKeys={sortedBooleanKeys}
-              sortedNumberKeys={sortedNumberKeys}
-              sortedStringKeys={sortedStringKeys}
+              booleanTags={booleanTags}
+              numberTags={numberTags}
+              stringTags={stringTags}
               onSearch={onSearch}
               onClose={onClose}
               loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
@@ -210,13 +193,13 @@ function ToolbarVisualize() {
 }
 
 interface VisualizeDropdownProps {
+  booleanTags: TagCollection;
   loading: boolean;
+  numberTags: TagCollection;
   onClose: () => void;
   onReplace: (visualize: Visualize) => void;
   onSearch: (search: string) => void;
-  sortedBooleanKeys: string[];
-  sortedNumberKeys: string[];
-  sortedStringKeys: string[];
+  stringTags: TagCollection;
   visualize: VisualizeFunction;
   onDelete?: () => void;
 }
@@ -228,70 +211,32 @@ function VisualizeDropdown({
   onSearch,
   onClose,
   visualize,
-  sortedBooleanKeys,
-  sortedNumberKeys,
-  sortedStringKeys,
+  booleanTags,
+  numberTags,
+  stringTags,
 }: VisualizeDropdownProps) {
+  const firstNumberKey = useMemo(
+    () => Object.keys(numberTags).sort()[0] ?? null,
+    [numberTags]
+  );
+
   const aggregateOptions: Array<SelectOption<OurLogsAggregate>> = useMemo(() => {
     return LOG_AGGREGATES.map(aggregate => {
-      const defaultArgument = getDefaultArgument(
-        aggregate.value,
-        sortedNumberKeys[0] || null
-      );
+      const defaultArgument = getDefaultArgument(aggregate.value, firstNumberKey);
       return {...aggregate, disabled: !defined(defaultArgument)};
     });
-  }, [sortedNumberKeys]);
+  }, [firstNumberKey]);
 
   const aggregateFunction = visualize.parsedFunction?.name ?? '';
   const aggregateParam = visualize.parsedFunction?.arguments?.[0] ?? '';
 
-  const fieldOptions = useMemo(() => {
-    if (aggregateFunction === AggregationKey.COUNT) {
-      return [{label: t('logs'), value: OurLogKnownFieldKey.MESSAGE}];
-    }
-    const seen = new Set<string>();
-    return aggregateFunction === AggregationKey.COUNT_UNIQUE
-      ? [
-          ...sortedNumberKeys.map(key => {
-            return optionFromTag(
-              {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
-              TraceItemDataset.LOGS
-            );
-          }),
-          ...sortedStringKeys.map(key => {
-            return optionFromTag(
-              {key, name: prettifyTagKey(key), kind: FieldKind.TAG},
-              TraceItemDataset.LOGS
-            );
-          }),
-          ...sortedBooleanKeys.map(key => {
-            return optionFromTag(
-              {key, name: prettifyTagKey(key), kind: FieldKind.BOOLEAN},
-              TraceItemDataset.LOGS
-            );
-          }),
-        ]
-          .filter(option => {
-            // Filtering by value here, so it's based off of explicit tags i.e. `key`
-            // or `tags[<key>, <boolean | number | string>]
-            if (seen.has(option.value)) {
-              return false;
-            }
-            seen.add(option.value);
-            return true;
-          })
-          .toSorted((a, b) => {
-            const aLabel = prettifyTagKey(a.value);
-            const bLabel = prettifyTagKey(b.value);
-            return aLabel.localeCompare(bLabel);
-          })
-      : sortedNumberKeys.map(key => {
-          return optionFromTag(
-            {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
-            TraceItemDataset.LOGS
-          );
-        });
-  }, [aggregateFunction, sortedBooleanKeys, sortedNumberKeys, sortedStringKeys]);
+  const fieldOptions = useVisualizeFields({
+    numberTags,
+    stringTags,
+    booleanTags,
+    parsedFunction: visualize.parsedFunction,
+    traceItemType: TraceItemDataset.LOGS,
+  });
 
   const onChangeAggregate = useCallback(
     (option: SelectOption<SelectKey>) => {
@@ -300,12 +245,12 @@ function VisualizeDropdown({
           newAggregate: option.value,
           oldAggregate: aggregateFunction,
           oldArgument: aggregateParam,
-          firstNumberKey: sortedNumberKeys[0] || null,
+          firstNumberKey,
         });
         onReplace(visualize.replace({yAxis}));
       }
     },
-    [onReplace, visualize, aggregateFunction, aggregateParam, sortedNumberKeys]
+    [onReplace, visualize, aggregateFunction, aggregateParam, firstNumberKey]
   );
 
   const onChangeArgument = useCallback(

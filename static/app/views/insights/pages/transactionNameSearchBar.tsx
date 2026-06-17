@@ -145,10 +145,11 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
         });
 
         const parsedResults = results.reduce(
-          (searchGroup: SearchGroup, item: string) => {
+          (searchGroup: SearchGroup, item) => {
+            const value = typeof item === 'string' ? item : item.value;
             searchGroup.children.push({
-              value: item,
-              title: item,
+              value,
+              title: value,
               type: ItemType.LINK,
               desc: '',
             });

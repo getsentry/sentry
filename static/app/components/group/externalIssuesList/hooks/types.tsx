@@ -4,6 +4,10 @@ interface BaseIssueAction {
   disabled?: boolean;
   disabledText?: string;
   displayIcon?: React.ReactNode;
+  /**
+   * Vertical icon offset in pixels for aligning provider icons with the row text.
+   */
+  displayIconOffset?: number;
 }
 
 /**

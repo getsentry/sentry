@@ -212,11 +212,18 @@ describe('ExternalIssueForm', () => {
         {organization}
       );
 
+      expect(
+        screen.getByRole('heading', {name: 'Create GitHub Issue'})
+      ).toBeInTheDocument();
+
       // Wait for initial load
       expect(await screen.findByRole('textbox', {name: 'Title'})).toBeInTheDocument();
 
       // Click the Link tab
       await userEvent.click(screen.getByText('Link'));
+      expect(
+        screen.getByRole('heading', {name: 'Link GitHub Issue'})
+      ).toBeInTheDocument();
       expect(linkConfig).toHaveBeenCalled();
 
       // Should show link config fields, not create config fields
