@@ -90,6 +90,14 @@ def seed_contributor(
     user_id: str | int,
     user_username: str,
 ) -> OrganizationContributors:
+    """
+    Create the OrganizationContributors row without incrementing the number
+    of actions.
+
+    Seeding happens upstream when the PR is created; the action is incremented
+    separately only after the PR clears the code-review preflight check and
+    other checks on the webhook's properties.
+    """
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration_id,

@@ -39,6 +39,7 @@ class Log(enum.StrEnum):
     MISSING_PULL_REQUEST = "github.webhook.pull_request.missing-pull-request"
     MISSING_ACTION = "github.webhook.pull_request.missing-action"
     UNSUPPORTED_ACTION = "github.webhook.pull_request.unsupported-action"
+    MISSING_AUTHOR_ID = "github.webhook.pull_request.missing-author-id"
 
 
 class PullRequestAction(enum.StrEnum):
@@ -173,6 +174,17 @@ def handle_pull_request_event(
                 integration_id=integration.id,
                 user_id=author_id,
                 provider="github",
+            )
+        else:
+            # A missing user id means we can't identify which contributor's actions to increment.
+            # This should never happen.
+            logger.warning(
+                Log.MISSING_AUTHOR_ID.value,
+                extra={
+                    "organization_id": organization.id,
+                    "repo_id": repo.id,
+                    "integration_id": integration.id,
+                },
             )
 
     pr_number = pull_request.get("number")
