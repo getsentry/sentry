@@ -835,6 +835,34 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             "organizations:seer-gitlab-support",
         }
     )
+    def test_open_with_unparseable_timestamp_captures_and_falls_back(self) -> None:
+        # An unparseable trigger_at is not fatal -- the review proceeds with a
+        # "now" fallback -- but the unhandled format must be escalated to Sentry
+        # so we learn about it instead of silently using the wrong timestamp.
+        self._setup_code_review()
+        event = _make_event("open", created_at="not a timestamp", updated_at="not a timestamp")
+
+        with (
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request.sentry_sdk.capture_exception"
+            ) as mock_capture,
+            self.tasks(),
+        ):
+            self._call_handler(event)
+
+        mock_capture.assert_called_once()
+        # Review still enqueues with a valid ISO 8601 fallback timestamp.
+        self.mock_seer.assert_called_once()
+        trigger_at = self.mock_seer.call_args[1]["payload"]["data"]["config"]["trigger_at"]
+        assert trigger_at.endswith("+00:00")
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
     def test_duplicate_delivery_within_window_skipped(self) -> None:
         self._setup_code_review()
         event = _make_event("open")

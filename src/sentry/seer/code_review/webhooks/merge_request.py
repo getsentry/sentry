@@ -42,6 +42,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 
+import sentry_sdk
 from dateutil.parser import parse as parse_date
 from pydantic import ValidationError
 from scm import actions as scm_actions
@@ -563,10 +564,16 @@ def _normalize_trigger_at(raw: str | None) -> str:
     if raw:
         try:
             return parse_date(raw).astimezone(timezone.utc).isoformat()
-        except (ValueError, OverflowError):
-            logger.warning(
-                "gitlab.webhook.merge_request.trigger_at.unparseable", extra={"raw": raw}
-            )
+        except (ValueError, OverflowError) as e:
+            # We fall back to "now" below so the review still proceeds, but an
+            # unparseable GitLab timestamp means trigger_at is wrong for this
+            # review -- escalate it so the unhandled format surfaces in Sentry.
+            with sentry_sdk.new_scope() as scope:
+                scope.set_context(
+                    "code_review_trigger_at",
+                    {"raw": raw},
+                )
+                sentry_sdk.capture_exception(e)
     return datetime.now(timezone.utc).isoformat()
 
 
