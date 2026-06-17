@@ -78,7 +78,10 @@ import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
 import {useHeatmapTraceMetric} from './hooks/useHeatmapTraceMetric';
-import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
+import {
+  applyDashboardFiltersToWidget,
+  type GenericWidgetQueriesResult,
+} from './genericWidgetQueries';
 
 type TableComponentProps = Pick<
   GenericWidgetQueriesResult,
@@ -464,7 +467,7 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 }
 
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
-  const {heatmapResults, loading, widget} = props;
+  const {heatmapResults, loading, widget, dashboardFilters} = props;
   const traceMetric = useHeatmapTraceMetric(widget);
 
   if (loading || !heatmapResults) {
@@ -479,13 +482,18 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
     );
   }
 
+  // Match the conditions the heat map actually fetched with (dashboard filters
+  // applied), so the cell's Explore link is scoped the same way.
+  const exploreBaseQuery = applyDashboardFiltersToWidget(widget, dashboardFilters)
+    .queries[0]?.conditions;
+
   return (
     <ChartWrapper autoHeightResize>
       <HeatMapWidgetVisualization
         plottables={[new HeatMap(heatmapResults)]}
         scale={HEATMAP_Z_AXIS_SCALE}
         traceMetric={traceMetric}
-        exploreBaseQuery={widget.queries[0]?.conditions}
+        exploreBaseQuery={exploreBaseQuery}
       />
     </ChartWrapper>
   );

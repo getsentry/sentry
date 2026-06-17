@@ -192,7 +192,9 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
   const enableSeriesHook = isTimeSeriesData && !disabled && !propsLoading;
-  const enableTableHook = !isTimeSeriesData && !disabled && !propsLoading;
+  // Heat maps aren't time-series but fetch via the heat map hook, not the table
+  // hook — so exclude them here to avoid firing a redundant table query.
+  const enableTableHook = !isTimeSeriesData && !isHeatmap && !disabled && !propsLoading;
   const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
 
   const tableWidget = useMemo(
