@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 
 export enum ProgressState {
   IDENTIFIED = 'identified',
-  TRIAGED = 'triaged',
+  ASSIGNED = 'assigned',
   DIAGNOSED = 'diagnosed',
   FIX_PROPOSED = 'fix_proposed',
   FIX_APPLIED = 'fix_applied',
@@ -16,7 +16,7 @@ export enum ProgressState {
 
 const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.IDENTIFIED]: t('Identified'),
-  [ProgressState.TRIAGED]: t('Triaged'),
+  [ProgressState.ASSIGNED]: t('Assigned'),
   [ProgressState.DIAGNOSED]: t('Diagnosed'),
   [ProgressState.FIX_PROPOSED]: t('Fix Proposed'),
   [ProgressState.FIX_APPLIED]: t('Fix Applied'),
@@ -31,7 +31,7 @@ export function formatProgressState(state: ProgressState | null): string {
 
 const PROGRESS_STATE_ICONS: Record<ProgressState, ReactNode> = {
   [ProgressState.IDENTIFIED]: <IconCircle size="md" variant="muted" />,
-  [ProgressState.TRIAGED]: <IconCircle size="md" variant="muted" />,
+  [ProgressState.ASSIGNED]: <IconCircle size="md" variant="muted" />,
   [ProgressState.DIAGNOSED]: <IconInProgress size="md" variant="warning" />,
   [ProgressState.FIX_PROPOSED]: <IconInReview size="md" variant="success" />,
   [ProgressState.FIX_APPLIED]: <IconResolved size="md" variant="success" />,
