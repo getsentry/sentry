@@ -23,7 +23,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -124,9 +123,7 @@ export function MobileBuilds({
   );
 
   const handleExportCsv = useCallback(() => {
-    const url = resolveHostname(
-      getBuildsExportHref(organization.slug, buildsQueryParams)
-    );
+    const url = `${organization.links.regionUrl}${getBuildsExportHref(organization.slug, buildsQueryParams)}`;
     downloadFromHref(`${organization.slug}-build-distribution.csv`, url);
     trackAnalytics('preprod.builds.distribution.download_csv', {organization});
   }, [organization, buildsQueryParams]);
