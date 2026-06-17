@@ -532,6 +532,35 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert "ai.autofix.pr_created.completed" not in event_names
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_iteration_skips_until_synced(self, mock_broadcast):
+        """Does not emit iteration_completed until the pushed PR is synced to the iteration."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+                pr_iteration_memory_block(
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
+                    commit_sha="iteration-sha",
+                ),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+                commit_sha="stale-sha",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_no_artifacts_no_webhook(self, mock_broadcast):
         """Does not send webhook when no artifacts or file patches exist."""
         block = MemoryBlock(
