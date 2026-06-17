@@ -14,7 +14,7 @@ import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
@@ -23,6 +23,14 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
     queries: {
       refetchOnReconnect: false,
       refetchOnWindowFocus: false,
+      retry: (failureCount, err) => {
+        // Disable retries for 400 status code
+        if (err instanceof RequestError && err.status === 400) {
+          return false;
+        }
+
+        return failureCount < 2;
+      },
     },
   },
 };
