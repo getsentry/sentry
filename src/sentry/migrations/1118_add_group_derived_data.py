@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1115_projectdebugfile_add_objectstore_columns"),
+        ("sentry", "1117_drop_organizationmapping_codecov_access_delete"),
     ]
 
     operations = [
