@@ -21,7 +21,6 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
@@ -83,6 +82,11 @@ from sentry.pr_metrics.utils import (
     is_activity_tracking_enabled,
     resolved_group_ids,
 )
+from sentry.seer.autofix.utils import (
+    MatchDelegatedAgentPrRequest,
+    make_match_coding_agent_pr_request,
+)
+from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
@@ -980,16 +984,72 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
     Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
     """
     provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
-    # Our candidates are PRs from delegated agents
-    # That explicitly address a Sentry issue
-    if provider_hint is not None and resolved_group_ids(pr):
-        # TODO: Fire-and-forget request to Seer when the match endpoint exists.
-        # We will send: provider_hint, github_login, head_ref
-        sentry_sdk.metrics.count(
-            "pr_metrics.delegated_agent.seer_match.not_implemented",
-            1,
-            attributes={"provider_hint": provider_hint},
+    group_ids = resolved_group_ids(pr)
+    if provider_hint is None or not group_ids:
+        return
+
+    try:
+        repository = Repository.objects.get(id=pr.repository_id, organization_id=pr.organization_id)
+    except Repository.DoesNotExist:
+        logger.warning(
+            "pr_metrics.delegated_agent.repository_not_found",
+            extra={"pull_request_id": pr.id, "repository_id": pr.repository_id},
         )
+        return
+
+    repo_name_sections = repository.name.split("/")
+    if len(repo_name_sections) < 2:
+        logger.warning(
+            "pr_metrics.delegated_agent.invalid_repo_name",
+            extra={"pull_request_id": pr.id, "repo_name": repository.name},
+        )
+        return
+
+    pr_url = webhook_pull_request.get("html_url") or ""
+    head_branch = (webhook_pull_request.get("head") or {}).get("ref") or ""
+
+    request_body = MatchDelegatedAgentPrRequest(
+        organization_id=pr.organization_id,
+        pull_request_id=pr.id,
+        pr_url=pr_url,
+        repo=SeerRepoDefinition(
+            provider=repository.provider or "",
+            owner=repo_name_sections[0],
+            name="/".join(repo_name_sections[1:]),
+            external_id=repository.external_id or "",
+        ),
+        head_branch=head_branch,
+        provider=provider_hint,
+        group_ids=group_ids,
+    )
+
+    log_extra = {
+        "pull_request_id": pr.id,
+        "organization_id": pr.organization_id,
+        "provider_hint": provider_hint,
+    }
+    try:
+        response = make_match_coding_agent_pr_request(request_body, timeout=5)
+    except Exception:
+        logger.warning("pr_metrics.delegated_agent.seer_match.error", extra=log_extra)
+        metrics.incr(
+            "pr_metrics.delegated_agent.seer_match.error",
+            tags={"reason": "exception"},
+        )
+        return
+
+    if response.status >= 400:
+        logger.warning(
+            "pr_metrics.delegated_agent.seer_match.error",
+            extra={**log_extra, "status_code": response.status},
+        )
+        metrics.incr(
+            "pr_metrics.delegated_agent.seer_match.error",
+            tags={"reason": "bad_status"},
+        )
+        return
+
+    metrics.incr("pr_metrics.delegated_agent.seer_match.sent")
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
