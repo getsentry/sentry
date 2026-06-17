@@ -1,5 +1,4 @@
-import {useRef} from 'react';
-import {useTheme} from '@emotion/react';
+import {useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -7,12 +6,16 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {
   BaseSplitDivider,
   SplitPanel,
+  type SplitPanelHandle,
   type SplitPanelProps,
 } from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useMedia} from 'sentry/utils/useMedia';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {
+  SEER_EXPLORER_SIDEBAR_SIZE_KEY,
+  useSeerExplorerSidebarOrientation,
+} from 'sentry/views/seerExplorer/utils';
 
 // Minimum widths/heights so neither the app content nor Seer collapses to nothing.
 const MIN_CONTENT_WIDTH = 480;
@@ -34,23 +37,39 @@ const DEFAULT_SEER_HEIGHT = 360;
  * been measured so its initial size is computed from real dimensions.
  */
 export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode}) {
-  const {isSidebarMode, isOpen, sidebarPosition} = useSeerExplorerContext();
-  const theme = useTheme();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const {width, height} = useDimensions({elementRef: containerRef});
-  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
+  const {isSidebarMode, isOpen, sidebarPosition, sidebarContainerRef} =
+    useSeerExplorerContext();
+  const {width, height} = useDimensions({elementRef: sidebarContainerRef});
+  // Auto docks right on wide viewports, bottom otherwise. Media query for now;
+  // a container query (on the actual content area) would be more accurate and is
+  // a planned follow-up. `useDimensions` is only used to size the SplitPanel.
+  const orientation = useSeerExplorerSidebarOrientation(sidebarPosition);
+
+  // The SplitPanel stays mounted across open/close (so the app never remounts),
+  // which means it only reads its persisted size on first mount. Re-apply the
+  // persisted size whenever Seer (re-)opens or the orientation changes, so a
+  // size written while it was closed — e.g. by resizing the popped-out window —
+  // is adopted without remounting the content.
+  const splitPanelRef = useRef<SplitPanelHandle>(null);
+  useLayoutEffect(() => {
+    if (!isSidebarMode || !isOpen) {
+      return;
+    }
+    const stored = parseInt(
+      localStorage.getItem(SEER_EXPLORER_SIDEBAR_SIZE_KEY[orientation]) ?? '',
+      10
+    );
+    if (stored > 0) {
+      splitPanelRef.current?.setSize(stored);
+    }
+  }, [isSidebarMode, isOpen, orientation]);
 
   if (!isSidebarMode) {
     return children;
   }
 
-  // Auto docks right on wide viewports, bottom otherwise. Media query for now;
-  // a container query (on the actual content area) would be more accurate and is
-  // a planned follow-up. `useDimensions` is only used to size the SplitPanel.
-  const orientation =
-    sidebarPosition === 'auto' ? (isWideScreen ? 'right' : 'bottom') : sidebarPosition;
-
   const hasSize = width > 0 && height > 0;
+
   const seerPanel = isOpen ? <SeerExplorerPanel /> : null;
   // Let the routed app content scroll within its own pane instead of growing the
   // split (which would push Seer's pane out of the viewport).
@@ -71,7 +90,7 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
             max: Math.max(width - MIN_SEER_WIDTH, MIN_CONTENT_WIDTH),
           },
           right: seerPanel,
-          sizeStorageKey: 'seer-explorer-sidebar-size:right',
+          sizeStorageKey: SEER_EXPLORER_SIDEBAR_SIZE_KEY.right,
         }
       : {
           availableSize: height,
@@ -82,7 +101,7 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
             max: Math.max(height - MIN_SEER_HEIGHT, MIN_CONTENT_HEIGHT),
           },
           bottom: seerPanel,
-          sizeStorageKey: 'seer-explorer-sidebar-size:bottom',
+          sizeStorageKey: SEER_EXPLORER_SIDEBAR_SIZE_KEY.bottom,
         };
 
   // `contain="size"` decouples this element's size from its contents (like
@@ -91,7 +110,7 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
   // a viewport-bounded height.
   return (
     <Flex
-      ref={containerRef}
+      ref={sidebarContainerRef}
       flex="1"
       minWidth="0"
       minHeight="0"
@@ -99,7 +118,13 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
       contain="size"
       overflow="hidden"
     >
-      {hasSize ? <SplitPanel {...splitProps} SplitDivider={SidebarSplitDivider} /> : null}
+      {hasSize ? (
+        <SplitPanel
+          ref={splitPanelRef}
+          {...splitProps}
+          SplitDivider={SidebarSplitDivider}
+        />
+      ) : null}
     </Flex>
   );
 }

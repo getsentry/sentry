@@ -1,4 +1,4 @@
-import {createContext, Fragment, useCallback, useMemo} from 'react';
+import {createContext, Fragment, useCallback, useImperativeHandle, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -98,7 +98,16 @@ export type SplitPanelProps = CommonProps &
       }
   );
 
-export function SplitPanel(props: SplitPanelProps) {
+export type SplitPanelHandle = {
+  /**
+   * Imperatively set the sized pane's size (px). Useful to re-sync from a
+   * persisted size while the panel stays mounted (it otherwise only reads
+   * storage on mount).
+   */
+  setSize: (size: number, userEvent?: boolean) => void;
+};
+
+export function SplitPanel(props: SplitPanelProps & {ref?: React.Ref<SplitPanelHandle>}) {
   const {
     availableSize,
     SplitDivider = BaseSplitDivider,
@@ -124,6 +133,8 @@ export function SplitPanel(props: SplitPanelProps) {
     onResize: onResize ?? (() => {}),
     sizeStorageKey,
   });
+
+  useImperativeHandle(props.ref, () => ({setSize}), [setSize]);
 
   const sizePct = `${(Math.min(containerSize, max) / availableSize) * 100}%` as const;
 

@@ -1,5 +1,6 @@
 import {
   createContext,
+  Fragment,
   useCallback,
   useContext,
   useEffect,
@@ -8,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
   type ReactNode,
+  type RefObject,
 } from 'react';
 
 import {getDrawerWidthKey} from '@sentry/scraps/drawer';
@@ -27,6 +29,7 @@ import {
   SEER_EXPLORER_DRAWER_KEY,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerContent';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {
   useSeerExplorerChatDispatch,
@@ -34,9 +37,12 @@ import {
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 import {
+  SEER_EXPLORER_SIDEBAR_SIZE_KEY,
+  type SeerExplorerSidebarOrientation,
   useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
   useSeerExplorerDeepLink,
+  useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
@@ -56,6 +62,12 @@ type SeerExplorerContextValue = {
    */
   setSidebarPosition: (position: SeerExplorerSidebarPosition) => void;
   /**
+   * Ref attached by the sidebar layout to its measuring container, so the
+   * provider can read the available size when persisting the popped-out
+   * window's size. Only meaningful in sidebar mode.
+   */
+  sidebarContainerRef: RefObject<HTMLDivElement | null>;
+  /**
    * Query to auto-submit into the sidebar content, forwarded from the command
    * palette. Only meaningful in sidebar mode.
    */
@@ -71,6 +83,7 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   isSidebarMode: false,
   openSeerExplorer: () => {},
   sessionState: 'inactive',
+  sidebarContainerRef: {current: null},
   setSidebarPosition: () => {},
   sidebarInitialQuery: undefined,
   sidebarPosition: 'auto',
@@ -79,9 +92,9 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 });
 
 /**
- * Subscribes to a picture-in-picture window's width.
+ * Subscribes to a picture-in-picture window's inner size.
  */
-function usePictureInPictureWidth(pipWindow: Window): number {
+function usePictureInPictureSize(pipWindow: Window): {height: number; width: number} {
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       pipWindow.addEventListener('resize', onStoreChange);
@@ -90,27 +103,67 @@ function usePictureInPictureWidth(pipWindow: Window): number {
     [pipWindow]
   );
 
-  return useSyncExternalStore(subscribe, () => pipWindow.innerWidth);
+  const width = useSyncExternalStore(subscribe, () => pipWindow.innerWidth);
+  const height = useSyncExternalStore(subscribe, () => pipWindow.innerHeight);
+  return {width, height};
 }
 
 /**
- * Mirrors the popped-out window's width onto the drawer's persisted width (as a
- * percent of the viewport) so the drawer adopts that width when it re-docks.
+ * Persists the popped-out window's size onto the active surface so it is adopted
+ * when the content re-docks:
  *
- * Rendered as a leaf component so width updates re-render only this (it returns
+ * - Drawer: the width as a percent of the viewport, under the drawer's width key.
+ * - Sidebar: the size of the *content* pane (`available − pip`, since Seer is the
+ *   `1fr` remainder) for the current dock orientation — width for `right`, height
+ *   for `bottom`. The available size is read from the layout's measuring
+ *   container via `containerRef`.
+ *
+ * Rendered as a leaf component so size updates re-render only this (it returns
  * nothing), not the popped-out content.
  */
-function SyncDrawerWidthFromPip({pipWindow}: {pipWindow: Window}) {
-  const pipWidth = usePictureInPictureWidth(pipWindow);
+function SyncSurfaceSizeFromPip({
+  pipWindow,
+  isSidebarMode,
+  orientation,
+  containerRef,
+}: {
+  containerRef: RefObject<HTMLDivElement | null>;
+  isSidebarMode: boolean;
+  orientation: SeerExplorerSidebarOrientation;
+  pipWindow: Window;
+}) {
+  const {width: pipWidth, height: pipHeight} = usePictureInPictureSize(pipWindow);
 
   useEffect(() => {
-    if (pipWidth && window.innerWidth > 0) {
-      localStorageWrapper.setItem(
-        getDrawerWidthKey(SEER_EXPLORER_DRAWER_KEY),
-        JSON.stringify((pipWidth / window.innerWidth) * 100)
+    if (!isSidebarMode) {
+      if (pipWidth && window.innerWidth > 0) {
+        localStorageWrapper.setItem(
+          getDrawerWidthKey(SEER_EXPLORER_DRAWER_KEY),
+          JSON.stringify((pipWidth / window.innerWidth) * 100)
+        );
+      }
+      return;
+    }
+
+    const available = containerRef.current?.getBoundingClientRect();
+    if (!available) {
+      return;
+    }
+    // `useResizableDrawer` reads these keys as a plain integer of px.
+    if (orientation === 'bottom') {
+      if (pipHeight > 0 && available.height > 0) {
+        localStorage.setItem(
+          SEER_EXPLORER_SIDEBAR_SIZE_KEY.bottom,
+          String(Math.max(0, Math.round(available.height - pipHeight)))
+        );
+      }
+    } else if (pipWidth > 0 && available.width > 0) {
+      localStorage.setItem(
+        SEER_EXPLORER_SIDEBAR_SIZE_KEY.right,
+        String(Math.max(0, Math.round(available.width - pipWidth)))
       );
     }
-  }, [pipWidth]);
+  }, [pipWidth, pipHeight, isSidebarMode, orientation, containerRef]);
 
   return null;
 }
@@ -149,6 +202,10 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       'seer-explorer-sidebar-position',
       'auto'
     );
+  // Attached by `SeerExplorerSidebarLayout` to its measuring container so the
+  // popped-out size sync can read the available width/height.
+  const sidebarContainerRef = useRef<HTMLDivElement>(null);
+  const sidebarOrientation = useSeerExplorerSidebarOrientation(sidebarPosition);
 
   const isOpen = isSidebarMode ? isSidebarOpen : isDrawerOpen;
 
@@ -159,8 +216,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
 
   // Re-open the active surface (sidebar or drawer) whenever the PiP window closes
   // (native controls, dock button, or programmatically) — unless a full close
-  // was requested via `closeSeerExplorer`. The drawer width is kept in sync
-  // continuously by `SyncDrawerWidthFromPip`.
+  // was requested via `closeSeerExplorer`. The surface's size is kept in sync
+  // continuously by `SyncSurfaceSizeFromPip`.
   const suppressRedockRef = useRef(false);
   const wasPoppedOutRef = useRef(false);
   useEffect(() => {
@@ -335,6 +392,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       closeSeerExplorer,
       toggleSeerExplorer,
       sessionState,
+      sidebarContainerRef,
       sidebarInitialQuery,
       sidebarPosition,
       setSidebarPosition,
@@ -392,10 +450,33 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     <SeerExplorerContext.Provider value={contextValue}>
       {children}
       {pipWindow && (
-        <PictureInPicturePortal pipWindow={pipWindow}>
-          <SyncDrawerWidthFromPip pipWindow={pipWindow} />
-          <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
-        </PictureInPicturePortal>
+        <Fragment>
+          {/* Persist the popped-out window's size to whichever surface is active
+              so it is adopted on re-dock. Rendered in the main document (not the
+              portal) since it only writes to localStorage. */}
+          <SyncSurfaceSizeFromPip
+            pipWindow={pipWindow}
+            isSidebarMode={isSidebarMode}
+            orientation={sidebarOrientation}
+            containerRef={sidebarContainerRef}
+          />
+          <PictureInPicturePortal pipWindow={pipWindow}>
+            {/* Pop out the content of whichever surface is active: the decoupled
+                sidebar content when the flag is on (there is no drawer then), or
+                the drawer content otherwise. */}
+            {isSidebarMode ? (
+              <SeerExplorerContent
+                getPageReferrer={getPageReferrer}
+                initialQuery={sidebarInitialQuery}
+                onClose={closeSeerExplorer}
+                sidebarPosition={sidebarPosition}
+                onSidebarPositionChange={setSidebarPosition}
+              />
+            ) : (
+              <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
+            )}
+          </PictureInPicturePortal>
+        </Fragment>
       )}
     </SeerExplorerContext.Provider>
   );

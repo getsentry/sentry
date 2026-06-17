@@ -1,6 +1,8 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {createRef} from 'react';
 
-import {SplitPanel} from 'sentry/components/splitPanel';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {SplitPanel, type SplitPanelHandle} from 'sentry/components/splitPanel';
 
 const defaultLeftSide = {
   content: <div data-test-id="left-content">left</div>,
@@ -16,6 +18,29 @@ const defaultTopSide = {
 };
 
 describe('SplitPanel', () => {
+  describe('imperative handle', () => {
+    it('exposes setSize, which updates the persisted size', () => {
+      localStorage.removeItem('test-split-size');
+      const ref = createRef<SplitPanelHandle>();
+
+      render(
+        <SplitPanel
+          ref={ref}
+          availableSize={1000}
+          left={defaultLeftSide}
+          right={<div data-test-id="right-content">right</div>}
+          sizeStorageKey="test-split-size"
+        />
+      );
+
+      act(() => ref.current?.setSize(350));
+
+      // Re-syncing a live (mounted) panel relies on this handle, since
+      // `useResizableDrawer` only reads storage on mount.
+      expect(localStorage.getItem('test-split-size')).toBe('350');
+    });
+  });
+
   describe('left/right', () => {
     it('renders left, divider, and right when right is provided', () => {
       render(

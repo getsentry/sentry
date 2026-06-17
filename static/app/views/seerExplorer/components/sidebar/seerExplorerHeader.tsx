@@ -271,24 +271,29 @@ export function SeerExplorerHeader({
               }}
             />
           )}
-          <DropdownMenu
-            items={positionMenuItems}
-            size="xs"
-            position="bottom-end"
-            menuTitle={t('Dock position')}
-            triggerProps={{
-              tooltipProps: {
-                title: t('Dock position'),
-              },
-              'aria-label': t('Dock position'),
-              icon: (
-                <IconPanel direction={sidebarPosition === 'bottom' ? 'down' : 'right'} />
-              ),
-              showChevron: false,
-              variant: 'transparent',
-              size: 'xs',
-            }}
-          />
+          {/* Dock position is meaningless for the floating popped-out window. */}
+          {!isPoppedOut && (
+            <DropdownMenu
+              items={positionMenuItems}
+              size="xs"
+              position="bottom-end"
+              menuTitle={t('Dock position')}
+              triggerProps={{
+                tooltipProps: {
+                  title: t('Dock position'),
+                },
+                'aria-label': t('Dock position'),
+                icon: (
+                  <IconPanel
+                    direction={sidebarPosition === 'bottom' ? 'down' : 'right'}
+                  />
+                ),
+                showChevron: false,
+                variant: 'transparent',
+                size: 'xs',
+              }}
+            />
+          )}
           <CompactSelect
             options={sessionOptions}
             value={undefined}
