@@ -21,7 +21,6 @@ from fixtures.github import (
     push_event_with_author,
     push_event_with_commit_authors,
 )
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
     CheckSuiteWebhook,
@@ -52,7 +51,6 @@ class WebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def test_get(self) -> None:
         response = self.client.get(self.url)
@@ -139,7 +137,6 @@ class SCMOnlyWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def create_github_integration_and_repo(self) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -185,7 +182,6 @@ class InstallationEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -258,7 +254,6 @@ class InstallationDeleteEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def test_installation_deleted(self, get_jwt: MagicMock) -> None:
@@ -341,7 +336,6 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def _make_event(self, action="added", repos_added=None, repos_removed=None):
         return json.dumps(
@@ -631,7 +625,6 @@ class PushEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def _create_integration_and_send_push_event(self):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -1178,7 +1171,6 @@ class PullRequestEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def _get_signature_sha1(self, body: bytes | str) -> str:
         if isinstance(body, str):
@@ -1492,8 +1484,6 @@ class PullRequestEventWebhookTest(APITestCase):
     def test_edited_pr_description_with_group_link(self) -> None:
         group = self.create_group(project=self.project, short_id=7)
         url = "/extensions/github/webhook/"
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1679,7 +1669,6 @@ class IssuesEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
 

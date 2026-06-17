@@ -133,6 +133,31 @@ options_mapper = {
     "github-login.api-domain": "GITHUB_API_DOMAIN",
     "github-login.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
     "github-login.organization": "GITHUB_ORGANIZATION",
+    # Credential options being migrated to Django settings (Stage 1 bridge).
+    # Stage 3 moves these to self_hosted_options_mapper and removes register().
+    "codecov.signing_secret": "SENTRY_CODECOV_SIGNING_SECRET",
+    "sms.twilio-token": "SENTRY_SMS_TWILIO_TOKEN",
+    "slack.client-secret": "SENTRY_SLACK_CLIENT_SECRET",
+    "slack.verification-token": "SENTRY_SLACK_VERIFICATION_TOKEN",
+    "slack.signing-secret": "SENTRY_SLACK_SIGNING_SECRET",
+    "slack-staging.client-secret": "SENTRY_SLACK_STAGING_CLIENT_SECRET",
+    "slack-staging.signing-secret": "SENTRY_SLACK_STAGING_SIGNING_SECRET",
+    "github-app.client-secret": "SENTRY_GITHUB_APP_CLIENT_SECRET",
+    "github-app.webhook-secret": "SENTRY_GITHUB_APP_WEBHOOK_SECRET",
+    "github-app.private-key": "SENTRY_GITHUB_APP_PRIVATE_KEY",
+    "github-console-sdk-app.installation-id": "SENTRY_GITHUB_CONSOLE_SDK_APP_INSTALLATION_ID",
+    "github-console-sdk-app.private-key": "SENTRY_GITHUB_CONSOLE_SDK_APP_PRIVATE_KEY",
+    "github-console-sdk-app.client-secret": "SENTRY_GITHUB_CONSOLE_SDK_APP_CLIENT_SECRET",
+    "vsts.client-secret": "SENTRY_VSTS_CLIENT_SECRET",
+    "vsts_new.client-secret": "SENTRY_VSTS_NEW_CLIENT_SECRET",
+    "vsts-limited.client-secret": "SENTRY_VSTS_LIMITED_CLIENT_SECRET",
+    "vercel.client-secret": "SENTRY_VERCEL_CLIENT_SECRET",
+    "msteams.client-secret": "SENTRY_MSTEAMS_CLIENT_SECRET",
+    "discord.bot-token": "SENTRY_DISCORD_BOT_TOKEN",
+    "discord.client-secret": "SENTRY_DISCORD_CLIENT_SECRET",
+    "gcp.client-secret": "SENTRY_GCP_CLIENT_SECRET",
+    "aws-lambda.secret-access-key": "SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY",
+    "marketo.client-secret": "SENTRY_MARKETO_CLIENT_SECRET",
 }
 
 # Backward-compat promotion for self-hosted: config.yml keys that were migrated

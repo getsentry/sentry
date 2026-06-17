@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
@@ -15,7 +17,7 @@ class VercelIdentityProvider(OAuth2Provider):
         return options.get("vercel.client-id")
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("vercel.client-secret")
+        return settings.SENTRY_VERCEL_CLIENT_SECRET
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url

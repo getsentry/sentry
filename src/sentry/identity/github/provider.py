@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 
 from sentry import http, options
@@ -48,7 +49,7 @@ class GitHubIdentityProvider(OAuth2Provider):
         return options.get("github-app.client-id")
 
     def get_oauth_client_secret(self):
-        return options.get("github-app.client-secret")
+        return settings.SENTRY_GITHUB_APP_CLIENT_SECRET
 
     def build_identity(self, data):
         data = data["data"]
