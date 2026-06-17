@@ -198,6 +198,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         extra: dict[str, str | None] = {"host": host}
         # If we do tag the host early we can't even investigate
         scope.set_tag("host", host)
+        scope.set_attribute("host", host)
 
         try:
             body = bytes(request.body)
