@@ -45,8 +45,13 @@ describe('useVisualizeFields', () => {
     });
 
     expect(result.current.map(field => field.value)).toEqual([
+      'gen_ai.cost.input_tokens',
+      'gen_ai.cost.output_tokens',
+      'gen_ai.cost.total_tokens',
       'span.duration',
       'span.self_time',
+      'ai.total_cost',
+      'gen_ai.usage.total_cost',
       'score.ttfb',
     ]);
   });

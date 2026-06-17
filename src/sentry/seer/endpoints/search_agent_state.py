@@ -118,6 +118,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
             data = fetch_search_agent_state(
                 seer_run_id, organization.id, viewer_context=viewer_context
             )
+            data["sentry_run_id"] = resolved.uuid
             return Response(data)
 
         except SeerApiError as e:
