@@ -59,12 +59,13 @@ def start_span(
         if op is not None:
             kwargs["op"] = op
 
+        if source is not None:
+            kwargs["source"] = source
+
         if sampled is not None:
             kwargs["sampled"] = sampled
 
         return sentry_sdk.start_transaction(
-            name=name,
-            source=source,
             custom_sampling_context=custom_sampling_context,
             **kwargs,
         )
