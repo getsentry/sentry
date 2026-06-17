@@ -275,8 +275,9 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
       });
 
       it('does not display footer when disallowWildcard is true', async () => {
@@ -292,7 +293,7 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'Firefox'})).toBeInTheDocument();
 
         expect(
           screen.queryByText('Wildcard (*) matching allowed')
@@ -306,7 +307,7 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: assigned'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
+        expect(await screen.findByRole('option', {name: 'me'})).toBeInTheDocument();
 
         expect(
           screen.queryByText('Wildcard (*) matching allowed')
@@ -345,8 +346,9 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: nullable_string'})
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
       });
 
       it('renders swap to is for * when using a wildcard operator', async () => {
@@ -360,9 +362,9 @@ describe('SearchQueryBuilder', () => {
           })
         );
 
-        expect(await screen.findByText('Type to search suggestions')).toBeInTheDocument();
-
-        expect(screen.getByText('Wildcard (*) matching allowed')).toBeInTheDocument();
+        expect(
+          await screen.findByText('Wildcard (*) matching allowed')
+        ).toBeInTheDocument();
         await userEvent.keyboard('{escape}');
 
         await userEvent.click(
