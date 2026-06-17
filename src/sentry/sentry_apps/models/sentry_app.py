@@ -25,6 +25,7 @@ from sentry.db.models import (
     Model,
     control_silo_model,
 )
+from sentry.db.models.fields.encryption import EncryptedTextField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
@@ -130,7 +131,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     # Custom headers (each entry is a "Header-Name: value" string) sent alongside
     # every outgoing webhook request. Values may contain secrets (e.g. bearer
     # tokens), so they are masked on read and scrubbed from logs/audit/relocation.
-    webhook_headers = ArrayField(models.TextField(), default=list, db_default=[])
+    webhook_headers = ArrayField(EncryptedTextField(), default=list, db_default=[])
 
     overview = models.TextField(null=True)
     schema = models.JSONField(default=dict)
