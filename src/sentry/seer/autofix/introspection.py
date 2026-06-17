@@ -8,7 +8,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import RootCauseArtifact, SolutionArtifact
-from sentry.seer.autofix.autofix_agent import AutofixStep
+from sentry.seer.autofix.autofix_agent import AutofixStep, get_latest_iteration_index
 from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
 from sentry.utils import json, metrics
@@ -438,6 +438,89 @@ def introspect_code_changes(
                 "run_id": run_id,
                 "organization_id": organization.id,
                 "step": "code_changes",
+            },
+        )
+
+    return None
+
+
+def _iteration_introspection_prompt(
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    diffs_by_repo: dict[str, str],
+) -> str:
+    return dedent(f"""\
+        You are evaluating whether pull request iteration changes are ready for issue {short_id}: "{title}" (culprit: {culprit}).
+
+        ## Revised Code Changes to Evaluate
+        {_format_code_changes_section(diffs_by_repo)}
+        ## Your Task
+
+        Evaluate whether the revised changes are suitable to update the existing pull request.
+
+        Choose one action:
+
+        - **continue**: The revised changes are focused, coherent, and suitable to add to the existing pull request.
+
+        - **needs_more_context**: The revised changes are incomplete or there is not enough evidence to tell whether they address the requested iteration.
+
+        - **redo**: The revised changes introduce obvious bugs, contradict the prior fix, or make unrelated modifications.
+
+        - **not_actionable**: The pull request cannot be iterated through code changes. For example: no revised code changes were produced.
+
+        Include a brief reason (1-2 sentences) explaining your decision.\
+    """)
+
+
+def introspect_iteration(
+    organization: Organization,
+    run_id: int,
+    state: SeerRunState,
+    group: Group,
+) -> IntrospectionDecision | None:
+    iteration_index = get_latest_iteration_index(state)
+    try:
+        diffs_by_repo = state.get_diffs_by_repo()
+        if not diffs_by_repo:
+            logger.warning(
+                "autofix.introspection.no_artifact",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "step": "pr_iteration",
+                    "type": "code_changes",
+                    "iteration_index": iteration_index,
+                },
+            )
+            return None
+
+        diffs_by_repo_str = {
+            repo: "\n".join(fp.diff for fp in patches if fp.diff)
+            for repo, patches in diffs_by_repo.items()
+        }
+
+        prompt = _iteration_introspection_prompt(
+            short_id=group.qualified_short_id or str(group.id),
+            title=group.title or "",
+            culprit=group.culprit or "",
+            diffs_by_repo=diffs_by_repo_str,
+        )
+
+        return _run_introspection(
+            run_id,
+            AutofixStep.PR_ITERATION,
+            prompt,
+        )
+    except Exception:
+        logger.exception(
+            "autofix.introspection.failed",
+            extra={
+                "run_id": run_id,
+                "organization_id": organization.id,
+                "step": "pr_iteration",
+                "iteration_index": iteration_index,
             },
         )
 

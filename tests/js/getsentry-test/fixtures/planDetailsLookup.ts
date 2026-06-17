@@ -5,8 +5,7 @@ import {AM2_PLANS} from 'getsentry-test/fixtures/am2Plans';
 import {AM3_PLANS} from 'getsentry-test/fixtures/am3Plans';
 import {MM1_PLANS} from 'getsentry-test/fixtures/mm1Plans';
 import {MM2_PLANS} from 'getsentry-test/fixtures/mm2Plans';
-
-import {PlanTier} from 'getsentry/types';
+import {PlanTier} from 'getsentry-test/planTier';
 
 export type PlanIds =
   | keyof typeof AM1_PLANS
@@ -38,7 +37,7 @@ export function PlanDetailsLookupFixture<PlanId extends PlanIds>(
         ? AM1_PLANS[planId as keyof typeof AM1_PLANS]
         : planId.startsWith(PlanTier.AM2)
           ? AM2_PLANS[planId as keyof typeof AM2_PLANS]
-          : planId.startsWith(PlanTier.MM2)
+          : planId.startsWith('mm2')
             ? MM2_PLANS[planId as keyof typeof MM2_PLANS]
             : MM1_PLANS[planId as keyof typeof MM1_PLANS];
 

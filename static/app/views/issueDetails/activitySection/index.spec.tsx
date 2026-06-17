@@ -200,7 +200,7 @@ describe('ActivitySection', () => {
       'href',
       'https://docs.sentry.io/'
     );
-    expect(screen.getByText('10m ago')).toBeInTheDocument();
+    expect(screen.getByText('10min ago')).toBeInTheDocument();
   });
 
   it('renders activity actor markers', async () => {
