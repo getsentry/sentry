@@ -14,6 +14,7 @@ from sentry.seer.sentry_data_models import (
     FilterKeyValuesResponse,
     IssueFilterBuiltInField,
     IssueFilterKeysResponse,
+    IssuesStatsResponse,
     TagFilterKeyValue,
 )
 from sentry.snuba.dataset import Dataset
@@ -738,7 +739,7 @@ def get_issues_stats(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> list[dict[str, Any]] | None:
+) -> IssuesStatsResponse | None:
     """
     Get stats for specific issues by calling the issues-stats endpoint.
 
@@ -765,7 +766,7 @@ def get_issues_stats(
         return None
 
     if not issue_ids:
-        return []
+        return IssuesStatsResponse(__root__=[])
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
@@ -788,4 +789,4 @@ def get_issues_stats(
         params=params,
     )
 
-    return resp.data
+    return IssuesStatsResponse(__root__=resp.data)

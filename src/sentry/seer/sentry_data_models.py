@@ -563,3 +563,182 @@ class UpdatePrMetricsErrorResponse(BaseModel):
 
     success: Literal[False] = False
     error: str
+
+
+class BaselineTagDistributionEntry(BaseModel):
+    tag_key: str
+    tag_value: str
+    count: int
+
+    # Inline dict-proxy: lets test sites and seer callers read entries with
+    # `entry["tag_key"]` until they're migrated to attribute access.
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class BaselineTagDistributionResponse(BaseModel):
+    """`get_baseline_tag_distribution` returns
+    `{"baseline_tag_distribution": [{tag_key, tag_value, count}, ...]}`."""
+
+    baseline_tag_distribution: list[BaselineTagDistributionEntry]
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class ComparativeAttributeDistributionsResponse(BaseModel):
+    """`get_comparative_attribute_distributions` returns a baseline vs outliers
+    pair of attribute-value distributions. Each distribution is a list of
+    `(attribute_name, label, value)` triples passed through from the spans
+    frequency-stats endpoint (`query_attribute_distributions`)."""
+
+    baseline_distribution: list[tuple[str, str, float]]
+    total_baseline: int
+    outliers_distribution: list[tuple[str, str, float]]
+    total_outliers: int
+    outliers_function_value: float | None
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class AgentExportIndexesResponse(BaseModel):
+    """`export_explorer_indexes` returns the seer-side export of the explorer
+    index tables: `{"org_id", "version", "tables"}` where `tables` is a map of
+    table name → list of rows. Migrated from a TypedDict shape so the seer SDK
+    consumer sees the contract through the typed registry."""
+
+    org_id: int
+    version: int
+    tables: dict[str, list[dict[str, Any]]]
+
+
+class ReplayMetadataResponse(BaseModel):
+    """`get_replay_metadata` returns the aggregate replay-event response dict
+    plus an added `project_slug` field. The replay-events shape is the
+    `ReplayDetailsResponse` typedict-ish from the replays UI — wider than what
+    sentry-side can lock down — so the body is a dict passthrough."""
+
+    __root__: dict[str, Any]
+
+    def dict(self, **kwargs: Any) -> Any:
+        return dict(self.__root__)
+
+    def __getitem__(self, key: str) -> Any:
+        return self.__root__[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.__root__
+
+
+class ProfileFlamegraphMetadata(BaseModel):
+    profile_id: str
+    project_id: int
+    is_continuous: bool
+    # `start_ts`/`end_ts` are float seconds from `min(precise.start_ts)` /
+    # `max(precise.finish_ts)` aggregates — Pydantic v1 truncates `float → int`
+    # silently, so type as float to preserve sub-second precision on the wire.
+    start_ts: float | None
+    end_ts: float | None
+    # `selected_thread_id` is the dict key from a `dict[str, int]` count map in
+    # `_convert_profile_to_execution_tree` — always a string.
+    thread_id: str | None
+
+
+class ProfileFlamegraphSuccessResponse(BaseModel):
+    """`rpc_get_profile_flamegraph` success: `{"execution_tree", "metadata"}`.
+    `execution_tree` items are dicts (not Pydantic models — the converter at
+    `_convert_profile_to_execution_tree` returns dicts) so they pass through."""
+
+    execution_tree: list[dict[str, Any]]
+    metadata: ProfileFlamegraphMetadata
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class ProfileFlamegraphErrorResponse(BaseModel):
+    """`rpc_get_profile_flamegraph` error: `{"error": <detail>}`. Discriminated
+    against the success shape by the presence of `error` vs `execution_tree`."""
+
+    error: str
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class ReplaySummaryLogsResponse(BaseModel):
+    """`rpc_get_replay_summary_logs` returns `{"logs": [<log_str>, ...]}`."""
+
+    logs: list[str]
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class ErrorEventDetailsResponse(BaseModel):
+    """`get_error_event_details` returns the bare `EventSerializer` output —
+    a `SentryEventData`-shaped dict the seer caller casts to its own typed
+    model. The shape is too wide for sentry-side to lock down here, so the
+    body is a dict passthrough."""
+
+    __root__: dict[str, Any]
+
+    def dict(self, **kwargs: Any) -> Any:
+        return dict(self.__root__)
+
+    def __getitem__(self, key: str) -> Any:
+        return self.__root__[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.__root__
+
+
+class IssuesStatsResponse(BaseModel):
+    """`get_issues_stats` returns the issues-stats API response verbatim — a list
+    of dicts with `id, count, userCount, firstSeen, lastSeen, stats, lifetime`.
+    Items are passed through since the issues-stats shape is wider than the
+    documented contract and the seer caller treats it as a record stream."""
+
+    __root__: list[dict[str, Any]]
+
+    def dict(self, **kwargs: Any) -> Any:
+        # Unwrap to the bare list the dispatcher previously returned.
+        return list(self.__root__)
+
+    # List-like proxy so callers can treat the response like the list it
+    # serializes to.
+    def __iter__(self) -> Any:
+        return iter(self.__root__)
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+    def __getitem__(self, idx: int) -> Any:
+        return self.__root__[idx]
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, list):
+            return list(self.__root__) == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)

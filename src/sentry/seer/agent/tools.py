@@ -59,6 +59,9 @@ from sentry.seer.agent.utils import (
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    BaselineTagDistributionEntry,
+    BaselineTagDistributionResponse,
+    ComparativeAttributeDistributionsResponse,
     EAPTrace,
     EmptyResponse,
     EventDetailsResponse,
@@ -67,6 +70,10 @@ from sentry.seer.sentry_data_models import (
     GetDsnResponse,
     IssueAndEventDetailsResponse,
     IssueDetailsResponse,
+    ProfileFlamegraphErrorResponse,
+    ProfileFlamegraphMetadata,
+    ProfileFlamegraphSuccessResponse,
+    ReplayMetadataResponse,
     RepositoryDefinitionResponse,
     TraceItemAttributesResponse,
     TraceItemEventsResponse,
@@ -654,7 +661,7 @@ def rpc_get_profile_flamegraph(
     organization_id: int,
     trace_id: str | None = None,
     span_description: str | None = None,
-) -> dict[str, Any]:
+) -> ProfileFlamegraphSuccessResponse | ProfileFlamegraphErrorResponse:
     """
     Fetch and format a profile flamegraph by profile ID (8-char or full 32-char).
 
@@ -683,7 +690,7 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Organization not found",
             extra={"organization_id": organization_id},
         )
-        return {"error": "Organization not found"}
+        return ProfileFlamegraphErrorResponse(error="Organization not found")
 
     # Get all projects for the organization
     projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
@@ -693,7 +700,7 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: No projects found for organization",
             extra={"organization_id": organization_id},
         )
-        return {"error": "No projects found for organization"}
+        return ProfileFlamegraphErrorResponse(error="No projects found for organization")
 
     # Search up to 90 days back using 14-day sliding windows
     now = datetime.now(UTC)
@@ -794,13 +801,13 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Profile not found",
             extra={"profile_id": profile_id, "organization_id": organization_id},
         )
-        return {"error": "Profile not found in the last 90 days"}
+        return ProfileFlamegraphErrorResponse(error="Profile not found in the last 90 days")
     if not project_id:
         logger.warning(
             "rpc_get_profile_flamegraph: Could not find project id for profile",
             extra={"profile_id": profile_id, "organization_id": organization_id},
         )
-        return {"error": "Project not found"}
+        return ProfileFlamegraphErrorResponse(error="Project not found")
 
     logger.info(
         "rpc_get_profile_flamegraph: Found profile",
@@ -828,7 +835,9 @@ def rpc_get_profile_flamegraph(
             "rpc_get_profile_flamegraph: Failed to fetch profile data from profiling service",
             extra={"profile_id": actual_profile_id, "project_id": project_id},
         )
-        return {"error": "Failed to fetch profile data from profiling service"}
+        return ProfileFlamegraphErrorResponse(
+            error="Failed to fetch profile data from profiling service"
+        )
 
     # Convert to execution tree (returns dicts, not Pydantic models)
     execution_tree, selected_thread_id = _convert_profile_to_execution_tree(profile_data)
@@ -842,19 +851,21 @@ def rpc_get_profile_flamegraph(
                 "raw_profile_data": profile_data,
             },
         )
-        return {"error": "Failed to generate execution tree from profile data"}
+        return ProfileFlamegraphErrorResponse(
+            error="Failed to generate execution tree from profile data"
+        )
 
-    return {
-        "execution_tree": execution_tree,
-        "metadata": {
-            "profile_id": actual_profile_id,
-            "project_id": project_id,
-            "is_continuous": is_continuous,
-            "start_ts": min_start_ts,
-            "end_ts": max_end_ts,
-            "thread_id": selected_thread_id,
-        },
-    }
+    return ProfileFlamegraphSuccessResponse(
+        execution_tree=execution_tree,
+        metadata=ProfileFlamegraphMetadata(
+            profile_id=actual_profile_id,
+            project_id=project_id,
+            is_continuous=is_continuous,
+            start_ts=min_start_ts,
+            end_ts=max_end_ts,
+            thread_id=selected_thread_id,
+        ),
+    )
 
 
 def get_repository_definition(
@@ -1683,7 +1694,7 @@ def get_replay_metadata(
     replay_id: str,
     organization_id: int,
     project_slug: str | None = None,
-) -> dict[str, Any] | None:
+) -> ReplayMetadataResponse | None:
     """
     Get the metadata for a replay through an aggregate replay event query.
 
@@ -1780,7 +1791,7 @@ def get_replay_metadata(
     result["project_slug"] = next(
         filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs)
     )[1]
-    return result
+    return ReplayMetadataResponse(__root__=result)
 
 
 def get_trace_item_attributes(
@@ -2123,7 +2134,7 @@ def get_baseline_tag_distribution(
     stats_period: str | None = None,
     start: str | None = None,
     end: str | None = None,
-) -> dict[str, Any] | None:
+) -> BaselineTagDistributionResponse:
     """
     Get baseline tag distribution for suspect attributes analysis.
 
@@ -2158,7 +2169,7 @@ def get_baseline_tag_distribution(
     )
 
     if not tag_keys:
-        return {"baseline_tag_distribution": []}
+        return BaselineTagDistributionResponse(baseline_tag_distribution=[])
 
     # Use first/last seen if date params are not provided.
     start_dt, end_dt = get_group_date_range(group, organization, start_dt, end_dt)
@@ -2226,15 +2237,11 @@ def get_baseline_tag_distribution(
             combined_counts[key] = combined_counts.get(key, 0) + result["count"]
 
     baseline_distribution = [
-        {
-            "tag_key": tag_key,
-            "tag_value": tag_value,
-            "count": count,
-        }
+        BaselineTagDistributionEntry(tag_key=tag_key, tag_value=tag_value, count=count)
         for (tag_key, tag_value), count in combined_counts.items()
     ]
 
-    return {"baseline_tag_distribution": baseline_distribution}
+    return BaselineTagDistributionResponse(baseline_tag_distribution=baseline_distribution)
 
 
 def get_comparative_attribute_distributions(
@@ -2251,7 +2258,7 @@ def get_comparative_attribute_distributions(
     project_ids: list[int] | None = None,
     project_slugs: list[str] | None = None,
     sampling_mode: SAMPLING_MODES = "NORMAL",
-) -> dict[str, Any] | None:
+) -> ComparativeAttributeDistributionsResponse:
     """
     Fetch span attribute distributions for a selected time range (minute precision) compared to a baseline (defined by start/end/stats_period params).
     The selected range should be smaller and within the larger range. This is not validated.
@@ -2320,13 +2327,13 @@ def get_comparative_attribute_distributions(
         query_2=query_2,
     )
 
-    return {
-        "baseline_distribution": distributions_result["cohort_2_distribution"],
-        "total_baseline": distributions_result["total_cohort_2"],
-        "outliers_distribution": distributions_result["cohort_1_distribution"],
-        "total_outliers": distributions_result["total_cohort_1"],
-        "outliers_function_value": distributions_result["cohort_1_function_value"],
-    }
+    return ComparativeAttributeDistributionsResponse(
+        baseline_distribution=distributions_result["cohort_2_distribution"],
+        total_baseline=distributions_result["total_cohort_2"],
+        outliers_distribution=distributions_result["cohort_1_distribution"],
+        total_outliers=distributions_result["total_cohort_1"],
+        outliers_function_value=distributions_result["cohort_1_function_value"],
+    )
 
 
 def get_dsn(

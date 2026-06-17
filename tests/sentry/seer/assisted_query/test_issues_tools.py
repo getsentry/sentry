@@ -14,6 +14,7 @@ from sentry.seer.assisted_query.issues_tools import (
 from sentry.seer.sentry_data_models import (
     FilterKeyValuesResponse,
     IssueFilterKeysResponse,
+    IssuesStatsResponse,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -717,8 +718,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
             stats_period="24h",
         )
 
-        assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, IssuesStatsResponse)
         assert len(result) == 2
 
         # Verify each stat has the expected fields
@@ -797,8 +797,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
             stats_period="24h",
         )
 
-        assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, IssuesStatsResponse)
         # Should return stats for both issues
         assert len(result) >= 2
         returned_issue_ids = {stat["id"] for stat in result}
@@ -827,8 +826,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
             stats_period="24h",
         )
 
-        assert result is not None
-        assert isinstance(result, (list, FilterKeyValuesResponse))
+        assert isinstance(result, IssuesStatsResponse)
         assert len(result) == 0
 
     def test_get_issues_stats_stats_and_lifetime_structure(self) -> None:

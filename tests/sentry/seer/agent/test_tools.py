@@ -3128,7 +3128,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # With dashes
             result = get_replay_metadata(
@@ -3140,7 +3140,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Invalid
             result = get_replay_metadata(
@@ -3160,7 +3160,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay2_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # No project slug
             result = get_replay_metadata(
@@ -3171,7 +3171,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Different project slug
             result = get_replay_metadata(
@@ -3214,7 +3214,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Replay 2
             result = get_replay_metadata(
@@ -3225,7 +3225,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay2_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Upper (supported but not expected)
             result = get_replay_metadata(
@@ -3236,7 +3236,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["id"] == replay1_id
             assert result["project_id"] == str(self.project.id)
             assert result["project_slug"] == self.project.slug
-            self._ReplayMetadataResponse.parse_obj(result)
+            self._ReplayMetadataResponse.parse_obj(result.dict())
 
             # Short ID < 8 characters or not hex - returns None
             assert (
