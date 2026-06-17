@@ -458,9 +458,6 @@ export function useTraceMetricsHeatmapQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  // Heat maps render a single Visualize. When multiple aggregates exist, the
-  // radio selection (`selectedAggregate`) determines which one is plotted, so
-  // the metric comes from the selected aggregate of the first (and only) query.
   const query = filteredWidget.queries[0];
   const selectedIndex = getSelectedAggregateIndex(
     query?.selectedAggregate,
@@ -471,9 +468,6 @@ export function useTraceMetricsHeatmapQuery(
     ? extractTraceMetricFromColumn(explodeField({field: aggregate}))
     : undefined;
 
-  // `enabled` already reflects whether the widget is valid (TraceMetricsWidgetQueries
-  // disables the query until each aggregate resolves to a metric). Here we only
-  // gate on having the rendered dimensions needed to size the request.
   const heatmapEnabled = enabled && yBuckets > 0 && Boolean(widgetInterval);
 
   const {data, error} = useQuery(
@@ -488,10 +482,11 @@ export function useTraceMetricsHeatmapQuery(
     })
   );
 
-  // Keep a stable `rawData` reference so the `onDataFetched` effect in
-  // genericWidgetQueries doesn't re-fire every render (which would otherwise
-  // cause an infinite update loop). `data` is referentially stable from
-  // react-query, so memoizing on it is enough.
+  // `genericWidgetQueries` guards its `onDataFetched` effect by reference
+  // (`rawData === prev`). A fresh array each render would defeat that guard and
+  // re-fire `onDataFetched` — plus the parent state update it triggers — every
+  // render, i.e. an update loop. react-query's `data` is referentially stable,
+  // so memoizing on it keeps `rawData` stable too.
   const rawData = useMemo(() => (data ? [data] : EMPTY_ARRAY), [data]);
 
   // The heatmap API returns the Y axis as the generic `value` field with no

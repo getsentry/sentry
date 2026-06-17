@@ -182,6 +182,10 @@ export interface WidgetBuilderState {
    * - Big Number: aggregate fields
    * - Line, Area, Bar (Time Series): grouping fields (non-aggregates)
    * - Bar (Categorical): one X-axis (FIELD kind) and one or more aggregates (FUNCTION/EQUATION kind)
+   * - Heat Map: one or more aggregates (FUNCTION kind), like Big Number. The
+   *   metric selected by the "Visualize" is the Y axis; the function is always
+   *   count() (the Z axis) and the X axis is always time, so there is no
+   *   grouping/X-axis category. Only a single filter is supported.
    */
   fields?: Column[];
   legendAlias?: string[];
@@ -189,6 +193,12 @@ export interface WidgetBuilderState {
   limit?: number;
   linkedDashboards?: LinkedDashboard[];
   query?: string[];
+  /**
+   * Index into `fields` selecting which single aggregate to plot when a display
+   * type renders one aggregate but several were carried over. Used by Big
+   * Number, Categorical Bar, and Heat Map, and surfaced as a radio in the
+   * builder.
+   */
   selectedAggregate?: number;
   sort?: Sort[];
   textContent?: string;
@@ -196,7 +206,7 @@ export interface WidgetBuilderState {
   title?: string;
   /**
    * Y-axis aggregates for time-series charts (area, bar, line).
-   * Not used by tables, big numbers, or categorical bar widgets.
+   * Not used by tables, big numbers, categorical bar, or heat map widgets.
    */
   yAxis?: Column[];
 }

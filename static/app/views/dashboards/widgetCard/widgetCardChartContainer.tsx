@@ -1,6 +1,7 @@
 import {Fragment, useRef} from 'react';
-import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
+
+import {Container} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -26,21 +27,13 @@ import type {
   HeatMapSeries,
   TabularColumn,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {HEATMAP_RESIZE_DEBOUNCE_MS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {getHeatmapXAxisBucketInterval} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapXAxisBucketInterval';
 import {getHeatmapYAxisBucketCount} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/getHeatmapYAxisBucketCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import WidgetCardChart from './chart';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
-
-// Resizing a widget (e.g. while editing the dashboard) changes its measured
-// dimensions on every frame. Debounce them heavily so heat maps — which size
-// their request from those dimensions — refetch once the resize settles rather
-// than firing a request per pixel.
-const HEATMAP_RESIZE_DEBOUNCE_MS = 500;
-// `leading: true` keeps the first measurement fast; mid-resize churn collapses
-// into a single trailing update once the drag settles.
-const HEATMAP_RESIZE_DEBOUNCE_OPTIONS = {leading: true};
 
 type Props = {
   selection: PageFilters;
@@ -114,31 +107,6 @@ export function WidgetCardChartContainer({
 
   const isHeatmap = widget.displayType === DisplayType.HEATMAP;
 
-  // Measure the chart area here (above the data loader) so that widgets which
-  // size their request from the rendered dimensions — currently heat maps,
-  // whose query needs the bucket interval/count before it fires — can do so.
-  // The heat map query stays disabled until measured (see `useTraceMetricsHeatmapQuery`).
-  const chartAreaRef = useRef<HTMLDivElement>(null);
-  const {width: chartAreaWidth, height: chartAreaHeight} = useDimensions({
-    elementRef: chartAreaRef,
-  });
-  const debouncedChartAreaWidth = useDebouncedValue(
-    chartAreaWidth,
-    HEATMAP_RESIZE_DEBOUNCE_MS,
-    HEATMAP_RESIZE_DEBOUNCE_OPTIONS
-  );
-  const debouncedChartAreaHeight = useDebouncedValue(
-    chartAreaHeight,
-    HEATMAP_RESIZE_DEBOUNCE_MS,
-    HEATMAP_RESIZE_DEBOUNCE_OPTIONS
-  );
-  const heatmapInterval = isHeatmap
-    ? getHeatmapXAxisBucketInterval(selection, debouncedChartAreaWidth)
-    : undefined;
-  const yBuckets = isHeatmap
-    ? getHeatmapYAxisBucketCount(debouncedChartAreaHeight)
-    : undefined;
-
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
   };
@@ -173,7 +141,10 @@ export function WidgetCardChartContainer({
         : undefined;
   }
 
-  const dataLoader = (
+  const renderDataLoader = (
+    resolvedWidgetInterval: string | undefined,
+    yBuckets: number | undefined
+  ) => (
     <WidgetCardDataLoader
       widget={widget}
       selection={selection}
@@ -182,7 +153,7 @@ export function WidgetCardChartContainer({
       onWidgetSplitDecision={onWidgetSplitDecision}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
-      widgetInterval={isHeatmap ? heatmapInterval : widgetInterval}
+      widgetInterval={resolvedWidgetInterval}
       yBuckets={yBuckets}
     >
       {({
@@ -270,17 +241,51 @@ export function WidgetCardChartContainer({
     </WidgetCardDataLoader>
   );
 
-  // Heat maps need their rendered dimensions measured before the query fires,
-  // so wrap them in a full-size measured container that stays mounted
-  // regardless of the query/loading state.
+  // Heat maps size their request from the rendered dimensions, so they go
+  // through a measured wrapper that resolves the bucket interval/count before
+  // the query fires. Everything else doesn't need to be measured.
   if (isHeatmap) {
-    return <MeasuredChartArea ref={chartAreaRef}>{dataLoader}</MeasuredChartArea>;
+    return (
+      <HeatmapMeasuredArea selection={selection}>
+        {({widgetInterval: heatmapInterval, yBuckets}) =>
+          renderDataLoader(heatmapInterval, yBuckets)
+        }
+      </HeatmapMeasuredArea>
+    );
   }
 
-  return dataLoader;
+  return renderDataLoader(widgetInterval, undefined);
 }
 
-const MeasuredChartArea = styled('div')`
-  height: 100%;
-  width: 100%;
-`;
+/**
+ * Measures its rendered size and resolves the heat map's X-axis interval and
+ * Y-axis bucket count from it, passing them to `children`. Keeping this in a
+ * dedicated component means the measuring hook only runs for heat maps.
+ */
+function HeatmapMeasuredArea({
+  selection,
+  children,
+}: {
+  children: (params: {widgetInterval: string; yBuckets: number}) => React.ReactNode;
+  selection: PageFilters;
+}) {
+  const chartAreaRef = useRef<HTMLDivElement>(null);
+  const {width, height} = useDimensions({elementRef: chartAreaRef});
+  // `leading: true` keeps the first measurement fast; mid-resize churn collapses
+  // into a single trailing update once the drag settles.
+  const debouncedWidth = useDebouncedValue(width, HEATMAP_RESIZE_DEBOUNCE_MS, {
+    leading: true,
+  });
+  const debouncedHeight = useDebouncedValue(height, HEATMAP_RESIZE_DEBOUNCE_MS, {
+    leading: true,
+  });
+
+  return (
+    <Container ref={chartAreaRef} height="100%" width="100%">
+      {children({
+        widgetInterval: getHeatmapXAxisBucketInterval(selection, debouncedWidth),
+        yBuckets: getHeatmapYAxisBucketCount(debouncedHeight),
+      })}
+    </Container>
+  );
+}

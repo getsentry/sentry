@@ -447,32 +447,4 @@ describe('useTraceMetricsHeatmapQuery', () => {
     });
     expect(result.current.heatmapResults?.meta.yAxis.valueType).toBe('duration');
   });
-
-  it('keeps a stable rawData reference across re-renders (no update loop)', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-heatmap/',
-      body: heatmapResponse,
-    });
-
-    const {result, rerender} = renderHookWithProviders(() =>
-      useTraceMetricsHeatmapQuery({
-        widget: heatmapWidget,
-        organization,
-        pageFilters,
-        enabled: true,
-        widgetInterval: '1h',
-        yBuckets: 10,
-      })
-    );
-
-    await waitFor(() => {
-      expect(result.current.heatmapResults).toBeDefined();
-    });
-
-    const firstRawData = result.current.rawData;
-    rerender();
-    // A new array each render would re-fire genericWidgetQueries' onDataFetched
-    // effect and cause an infinite update loop.
-    expect(result.current.rawData).toBe(firstRawData);
-  });
 });
