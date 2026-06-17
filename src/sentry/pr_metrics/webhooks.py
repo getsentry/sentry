@@ -70,6 +70,7 @@ from sentry.pr_metrics.tasks import forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
+    is_activity_tracking_enabled,
     resolved_group_ids,
 )
 from sentry.seer.seer_setup import has_seer_access
@@ -368,7 +369,7 @@ def handle_activity(
     if pr is None:
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
@@ -389,7 +390,7 @@ def handle_comment(
     if action not in ("created", "edited"):
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
     issue = event.get("issue")
@@ -452,7 +453,7 @@ def handle_review(
     if action != "submitted":
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
     pr = _get_pull_request(organization, repo, event.get("pull_request"))
@@ -491,7 +492,7 @@ def handle_review_comment(
     if action not in ("created", "edited"):
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
     pr = _get_pull_request(organization, repo, event.get("pull_request"))
@@ -540,7 +541,7 @@ def handle_review_thread(
     if action not in ("resolved", "unresolved"):
         return
 
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         return
 
     pr = _get_pull_request(organization, repo, event.get("pull_request"))

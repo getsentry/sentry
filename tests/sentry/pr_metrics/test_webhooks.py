@@ -523,7 +523,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert PullRequestMetrics.objects.count() == 0
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):
     def setUp(self) -> None:
@@ -875,8 +875,14 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_activity(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call(action="opened")
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1002,8 +1008,14 @@ class HandleCommentForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["is_review"] is False
 
+    def test_no_seer_access_skips_comment(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1094,8 +1106,14 @@ class HandleReviewForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_review(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1187,8 +1205,14 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_review_comment(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewThreadForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1271,6 +1295,12 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
             "github.pr_metrics.pr_not_found",
             extra={"repository_id": self.repo.id, "pr_number": 9999},
         )
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_no_seer_access_skips_thread_event(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
+
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
