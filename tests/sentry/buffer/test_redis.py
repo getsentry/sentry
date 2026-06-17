@@ -248,6 +248,7 @@ class TestRedisBuffer:
         (1, "int"),
         (3.14, "float"),
         ({"a": {"i": 0}, "b": {"s": ""}}, "dict"),
+        (False, "bool"),
     ],
     ids=lambda input: input[1],
 )
