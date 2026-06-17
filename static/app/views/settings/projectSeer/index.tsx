@@ -104,6 +104,7 @@ function CodingAgentSettings({
   setting,
   handleAutoCreatePrChange,
   handleIntegrationChange,
+  isKnownAgentsPending,
   canWriteProject,
   isAutomationOn,
   codingAgentIntegrations,
@@ -112,6 +113,7 @@ function CodingAgentSettings({
   codingAgentIntegrations: CodingAgentIntegration[];
   handleAutoCreatePrChange: (value: boolean) => void;
   handleIntegrationChange: (integrationId: number) => void;
+  isKnownAgentsPending: boolean;
   setting: SeerProjectSettingResponse | undefined;
   isAutomationOn?: boolean;
 }) {
@@ -147,7 +149,7 @@ function CodingAgentSettings({
       saveOnBlur: true,
       getData: () => ({}),
       getValue: () => String(selectedIntegrationId),
-      disabled: !canWriteProject,
+      disabled: !canWriteProject || isKnownAgentsPending,
       onChange: (value: string) => handleIntegrationChange(parseInt(value, 10)),
     } satisfies FieldObject);
   }
@@ -163,7 +165,7 @@ function CodingAgentSettings({
     type: 'boolean',
     getData: () => ({}),
     getValue: () => autoCreatePrValue,
-    disabled: !canWriteProject,
+    disabled: !canWriteProject || isKnownAgentsPending,
     onChange: handleAutoCreatePrChange,
   } satisfies FieldObject);
 
@@ -204,7 +206,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   );
   const setting = projectSettings?.find(s => s.projectSlug === project.slug);
 
-  const {data: knownAgents} = useQuery(
+  const {data: knownAgents, isPending: isKnownAgentsPending} = useQuery(
     knownAgentIntegrationsQueryOptions({organization})
   );
   const {mutate: updateSeerSettings} = useMutation(
@@ -346,6 +348,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   const automatedRunStoppingPointField = {
     name: 'automated_run_stopping_point',
     label: t('Where should Seer stop?'),
+    disabled: isKnownAgentsPending,
     help: () =>
       t(
         'Choose how far Seer should go during automated runs before stopping for your approval. This does not affect Issue Fixes that you manually start.'
@@ -486,6 +489,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
       </Form>
       <CodingAgentSettings
         setting={setting}
+        isKnownAgentsPending={isKnownAgentsPending}
         handleAutoCreatePrChange={handleAutoCreatePrChange}
         isAutomationOn={automationTuning && automationTuning !== 'off'}
         handleIntegrationChange={handleIntegrationChange}
