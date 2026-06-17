@@ -1207,8 +1207,8 @@ class TestGetMonitoringProviderConnections(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
-    def test_returns_none_when_no_identities(self) -> None:
-        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
+    def test_returns_empty_when_no_identities(self) -> None:
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     def test_returns_connection(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
@@ -1266,7 +1266,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"site": "datadoghq.com"},
         )
 
-        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     def test_skips_identity_missing_site(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
@@ -1277,7 +1277,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token"},
         )
 
-        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     def test_ignores_non_monitoring_provider_identities(self) -> None:
         idp = self.create_identity_provider(type="slack", external_id="slack-team")
@@ -1288,7 +1288,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token"},
         )
 
-        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=None)
     def test_skips_identity_when_encryption_fails(self) -> None:
@@ -1300,10 +1300,10 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
 
-        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []
 
     @with_feature({"organizations:seer-infra-telemetry": False})
-    def test_returns_none_when_feature_disabled(self) -> None:
+    def test_returns_empty_when_feature_disabled(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="org-1")
         self.create_identity(
             user=self.user,
@@ -1312,4 +1312,4 @@ class TestGetMonitoringProviderConnections(TestCase):
             data={"access_token": "access-token", "site": "datadoghq.com"},
         )
 
-        assert get_monitoring_provider_connections(self.organization, self.user.id) is None
+        assert get_monitoring_provider_connections(self.organization, self.user.id) == []

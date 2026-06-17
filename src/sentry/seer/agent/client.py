@@ -130,14 +130,10 @@ def _get_monitoring_provider_url(provider_type: str, identity_data: dict[str, An
 
 def get_monitoring_provider_connections(
     organization: Organization, user_id: int
-) -> list[dict[str, Any]] | None:
-    """Fetch the user's monitoring provider identities and build connection dicts for Seer.
-
-    Returns None if the org isn't gated into the feature or the user has no connected
-    monitoring providers.
-    """
+) -> list[dict[str, Any]]:
+    """Fetch the user's monitoring provider identities and build connection dicts for Seer."""
     if not features.has("organizations:seer-infra-telemetry", organization):
-        return None
+        return []
 
     connections: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
@@ -163,7 +159,7 @@ def get_monitoring_provider_connections(
                 }
             )
 
-    return connections or None
+    return connections
 
 
 class SeerAgentClient:
@@ -646,7 +642,7 @@ class SeerAgentClient:
             monitoring_provider_connections = get_monitoring_provider_connections(
                 self.organization, self.user.id
             )
-            if monitoring_provider_connections is not None:
+            if monitoring_provider_connections:
                 chat_body["monitoring_providers"] = monitoring_provider_connections
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,

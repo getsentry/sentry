@@ -243,10 +243,13 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
                     monitoring_provider_connections = get_monitoring_provider_connections(
                         organization, run.user_id
                     )
-                    if monitoring_provider_connections is not None:
+                    if monitoring_provider_connections:
                         body["monitoring_providers"] = monitoring_provider_connections
                 except Organization.DoesNotExist:
-                    pass
+                    logger.warning(
+                        "seer_run_create.organization_dne",
+                        extra={"organization_id": run.organization_id, "run_id": run.id},
+                    )
             response = make_agent_chat_request(
                 cast(AgentChatRequest, body), viewer_context=viewer_context
             )
