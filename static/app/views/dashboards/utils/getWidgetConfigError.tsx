@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {explodeField} from 'sentry/utils/discover/fields';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -18,9 +19,19 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
     return t('The widget configuration is not valid. Please add a "Visualize" field.');
   }
 
-  // Heat maps plot the metric from their selected "Visualize" aggregate. If that
-  // aggregate doesn't resolve to a metric, the widget can't render anything.
   if (widget.displayType === DisplayType.HEATMAP) {
+    // Heat maps are only available on datasets that declare support for them
+    // (currently just trace metrics).
+    if (
+      !getDatasetConfig(widget.widgetType).supportedDisplayTypes.includes(
+        DisplayType.HEATMAP
+      )
+    ) {
+      return t('Heat maps are not supported for this dataset.');
+    }
+
+    // Heat maps plot the metric from their selected "Visualize" aggregate. If
+    // that aggregate doesn't resolve to a metric, the widget can't render.
     const query = widget.queries[0];
     const selectedIndex = getSelectedAggregateIndex(
       query?.selectedAggregate,
