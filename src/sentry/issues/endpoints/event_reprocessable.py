@@ -59,8 +59,11 @@ class EventReprocessableEndpoint(ProjectEndpoint):
             pull_event_data(project.id, event_id)
         except CannotReprocess as e:
             sentry_sdk.set_tag("reprocessable", "false")
+            sentry_sdk.set_attribute("reprocessable", "false")
             sentry_sdk.set_tag("reprocessable.reason", str(e))
+            sentry_sdk.set_attribute("reprocessable.reason", str(e))
             return self.respond({"reprocessable": False, "reason": str(e)})
         else:
             sentry_sdk.set_tag("reprocessable", "true")
+            sentry_sdk.set_attribute("reprocessable", "true")
             return self.respond({"reprocessable": True})

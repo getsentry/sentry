@@ -232,6 +232,7 @@ class TestPollGithubCopilotAgents(TestCase):
             repo_provider="github",
             pr_url="https://github.com/getsentry/sentry/pull/12345",
             agent_id="getsentry:sentry:task-123",
+            run_id=self.run_id,
         )
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
@@ -691,6 +692,7 @@ class TestPollClaudeCodeAgents(TestCase):
             repo_provider="github",
             pr_url="https://github.com/getsentry/sentry/pull/999",
             agent_id="claude-session-123",
+            run_id=self.run_id,
         )
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")

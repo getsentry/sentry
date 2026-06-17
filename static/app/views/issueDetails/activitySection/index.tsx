@@ -388,7 +388,7 @@ export function ActivitySection({
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
-  const timestampUnitStyle = variant === 'sidebar' ? 'extraShort' : undefined;
+  const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
   const renderActivityItem = (item: GroupActivity) => (
     <TimelineItem

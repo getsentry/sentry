@@ -28,7 +28,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.event_examples import EventExamples
-from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams, IssueParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    EventParams,
+    GlobalParams,
+    IssueParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -73,6 +79,7 @@ class GroupEventsEndpoint(GroupEndpoint):
             EventParams.FULL_PAYLOAD,
             EventParams.SAMPLE,
             EventParams.QUERY,
+            VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
         responses={

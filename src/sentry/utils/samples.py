@@ -13,6 +13,7 @@ from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.platform_categories import CONSOLES
 
 logger = logging.getLogger(__name__)
@@ -182,7 +183,7 @@ def load_data(
 
     # Generate a timestamp in the present.
     if timestamp is None:
-        timestamp = datetime.utcnow() - timedelta(minutes=1)
+        timestamp = deprecated_utcnow() - timedelta(minutes=1)
         timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
     timestamp = timestamp.replace(tzinfo=timezone.utc)
     data.setdefault("timestamp", timestamp.timestamp())
