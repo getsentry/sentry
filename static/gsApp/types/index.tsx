@@ -383,6 +383,7 @@ export type Subscription = {
   onDemandPeriodEnd: string;
   onDemandPeriodStart: string;
   onDemandSpendUsed: number;
+  onTrialPlan: boolean;
   orgRetention: RetentionSettings | null;
   partner: Partner | null;
   paymentSource: {
