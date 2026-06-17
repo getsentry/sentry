@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {joinTeam} from 'sentry/actionCreators/teams';
+import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -41,34 +41,28 @@ export default function TeamDetails() {
   const {teams, isLoading, isError} = useTeamsById({slugs: [params.teamId]});
   const team = teams.find(({slug}) => slug === params.teamId);
 
-  function handleRequestAccess(teamSlug: string) {
+  async function handleRequestAccess(teamSlug: string) {
     setRequesting(true);
 
-    joinTeam(
-      api,
-      {
+    try {
+      await joinTeamPromise(api, {
         orgId: orgSlug,
         teamId: teamSlug,
-      },
-      {
-        success: () => {
-          addSuccessMessage(
-            tct('You have requested access to [team]', {
-              team: `#${teamSlug}`,
-            })
-          );
-          setRequesting(false);
-        },
-        error: () => {
-          addErrorMessage(
-            tct('Unable to request access to [team]', {
-              team: `#${teamSlug}`,
-            })
-          );
-          setRequesting(false);
-        },
-      }
-    );
+      });
+      addSuccessMessage(
+        tct('You have requested access to [team]', {
+          team: `#${teamSlug}`,
+        })
+      );
+    } catch {
+      addErrorMessage(
+        tct('Unable to request access to [team]', {
+          team: `#${teamSlug}`,
+        })
+      );
+    } finally {
+      setRequesting(false);
+    }
   }
 
   if (isLoading) {

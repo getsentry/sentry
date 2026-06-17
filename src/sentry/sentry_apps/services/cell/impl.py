@@ -184,8 +184,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             ),
             source=ActionSource.API,
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=external_issue.project_id or group.project_id,
+            project=group.project,
             actor=GroupActionActor.user(user.id),
         )
 
@@ -243,15 +242,20 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
 
         try:
-            external_issue = ExternalIssueCreator(
+            external_issue_creator = ExternalIssueCreator(
                 install=installation,
                 group=group,
                 web_url=web_url,
                 project=project,
                 identifier=identifier,
-            ).run()
+                user_id=user.id if user is not None else None,
+            )
+            external_issue, created = external_issue_creator.run()
         except SentryAppSentryError as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
+
+        if created:
+            external_issue_creator.create_issue_activity(external_issue)
 
         publish_action(
             CreatePlatformExternalIssueAction(
@@ -261,8 +265,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             ),
             source=ActionSource.API,
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=external_issue.project_id or group.project_id,
+            project=group.project,
             actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
         )
 
@@ -336,8 +339,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             ),
             source=ActionSource.API,
             group_id=platform_external_issue.group_id,
-            organization_id=organization_id,
-            project_id=issue_project.id,
+            project=issue_project,
             actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
         )
 

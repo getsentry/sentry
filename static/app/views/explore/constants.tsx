@@ -69,7 +69,14 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanFields.GEN_AI_RESPONSE_MODEL,
 ];
 
-export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
+export const SENTRY_SPAN_NUMBER_TAGS: string[] = [
+  ...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
+  SpanFields.AI_TOTAL_COST,
+  SpanFields.GEN_AI_COST_INPUT_TOKENS,
+  SpanFields.GEN_AI_COST_OUTPUT_TOKENS,
+  SpanFields.GEN_AI_COST_TOTAL_TOKENS,
+  'gen_ai.usage.total_cost',
+];
 
 export const SENTRY_SPAN_BOOLEAN_TAGS: string[] = [
   SpanFields.IS_TRANSACTION,

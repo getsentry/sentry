@@ -8,6 +8,8 @@ from sentry.lang.java.utils import has_proguard_file
 from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 
 
+# Deprecated: preprocessor logic moved to sentry.event_preprocessors.
+# TODO(christinarlong): Delete after organizations:event-preprocessors-without-plugins is fully rolled out.
 class JavaPlugin(Plugin2):
     can_disable = False
 
