@@ -141,9 +141,6 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             config, rebalanced_projects, cached_sample_rates, project_volumes
         )
 
-    # Observability only: for the configured set of orgs on the automatic (EAP sliding
-    # window) config, compare the org sample rate from EAP vs outcomes (delay-free).
-    # Must never break the pipeline.
     if (
         isinstance(config, AutomaticDynamicSamplingConfiguration)
         and config.organization.id in sliding_window_comparison_org_ids()
