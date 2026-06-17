@@ -33,6 +33,7 @@ DB_TEST_PREFIX = "../sentry/tests/"
 
 # Known sentry test directory names.
 TEST_DIRS = (
+    "tests/apigw/",
     "tests/sentry/",
     "tests/snuba/",
     "tests/relay_integration/",
@@ -123,6 +124,13 @@ EXCLUDED_TEST_PATTERNS: list[re.Pattern[str]] = [
 ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/taskworker/test_config.py",
     "tests/sentry/management/commands/test_generate_controlsilo_urls.py",
+    # apigw must stay in sync with sentry (url -> silo mapping, model queries),
+    # so any backend change can affect these. Coverage can't attribute the
+    # routing test to source files: both the django url conf and the apigw
+    # routing table are built at import time, before any per-test coverage
+    # context is active.
+    "tests/apigw/test_db.py",
+    "tests/apigw/test_routing.py",
 }
 
 

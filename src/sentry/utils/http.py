@@ -7,11 +7,16 @@ from urllib.parse import quote, urljoin, urlparse
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.http import HttpRequest
+from rest_framework.request import Request
 
 from sentry import options
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
+
+# User-agent prefix set by the official Sentry MCP server (source of truth:
+# getsentry/sentry-mcp). Used to attribute requests originating from the MCP.
+MCP_USER_AGENT_PREFIX = "sentry-mcp/"
 
 
 class ParsedUriMatch(NamedTuple):
@@ -210,6 +215,14 @@ def origin_from_request(request: HttpRequest) -> str | None:
     if rv in ("", "null"):
         rv = origin_from_url(request.META.get("HTTP_REFERER"))
     return rv
+
+
+def is_mcp_request(request: HttpRequest | Request) -> bool:
+    """
+    Whether the request originated from the official Sentry MCP server, identified
+    by its `sentry-mcp/` user-agent prefix.
+    """
+    return request.META.get("HTTP_USER_AGENT", "").startswith(MCP_USER_AGENT_PREFIX)
 
 
 def percent_encode(val: str) -> str:

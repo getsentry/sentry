@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength, hasPerformance, isTrialPlan} from 'getsentry/utils/billing';
+import {getTrialLength, hasPerformance} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {FeatureList} from './featureList';
@@ -250,7 +250,7 @@ export class Details extends Component<Props, State> {
 
   get shouldShowTeamFeatures() {
     const {subscription} = this.props;
-    return subscription.isFree || isTrialPlan(subscription.plan);
+    return subscription.isFree || subscription.onTrialPlan;
   }
 
   get highlightedFeature() {

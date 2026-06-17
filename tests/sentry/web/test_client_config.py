@@ -186,7 +186,7 @@ def test_client_config_default_locality_data() -> None:
 
     assert len(result["localities"]) == 1
     localities = result["localities"]
-    assert localities[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert localities[0]["name"] == settings.SENTRY_FALLBACK_CELL
     assert localities[0]["url"] == options.get("system.url-prefix")
 
     assert len(result["cells"]) == 0, "No staff session"
@@ -208,7 +208,7 @@ def test_client_config_empty_region_data() -> None:
     assert len(result["cells"]) == 0, "no staff session"
     assert len(result["localities"]) == 1
     localities = result["localities"]
-    assert localities[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert localities[0]["name"] == settings.SENTRY_FALLBACK_CELL
     assert localities[0]["url"] == options.get("system.url-prefix")
 
 
