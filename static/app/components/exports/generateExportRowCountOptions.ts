@@ -3,14 +3,15 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
-import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
 
 const ROW_COUNT_VALUE_DEFAULT = 500;
 
 /**
- * Keep this in sync with data_export.py on the backend
+ * The largest export the backend serves synchronously (an immediate browser
+ * download) rather than emailing. Keep this in sync with data_export.py on the
+ * backend.
  */
-export const ROW_COUNT_VALUE_SYNC_LIMIT = QUERY_PAGE_LIMIT;
+export const ROW_COUNT_VALUE_SYNC_LIMIT = 1000;
 
 const ROW_COUNT_VALUES = [
   100,
@@ -19,7 +20,7 @@ const ROW_COUNT_VALUES = [
   10_000,
 ];
 
-export function generateLogExportRowCountOptions(estimatedRowCount: number) {
+export function generateExportRowCountOptions(estimatedRowCount: number) {
   const rowCountOptions: Array<SelectValue<number>> = ROW_COUNT_VALUES.map(value => ({
     label: formatNumber(value),
     value,

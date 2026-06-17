@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -8,7 +9,6 @@ import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {createLogDownloadFilename} from 'sentry/views/explore/logs/createLogDownloadFilename';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {
@@ -67,7 +67,7 @@ function handleDataExportResponse(
     return;
   }
 
-  const filename = createLogDownloadFilename(data.fileName, format);
+  const filename = createExportFilename(data.fileName, format);
   downloadFromHref(
     filename,
     `/api/0/organizations/${organizationSlug}/data-export/${data.id}/?download=true`
