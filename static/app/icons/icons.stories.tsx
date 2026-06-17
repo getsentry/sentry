@@ -703,6 +703,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'triaged',
+        groups: ['status'],
+        keywords: ['circle', 'progress', 'assigned'],
+        name: 'Triaged',
+        defaultProps: {},
+      },
+      {
         id: 'resolved',
         groups: ['status'],
         keywords: ['check', 'done', 'complete', 'success', 'fixed', 'circle', 'progress'],

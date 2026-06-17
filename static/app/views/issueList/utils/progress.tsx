@@ -4,6 +4,7 @@ import {IconCircle} from 'sentry/icons/iconCircle';
 import {IconInProgress} from 'sentry/icons/iconInProgress';
 import {IconInReview} from 'sentry/icons/iconInReview';
 import {IconResolved} from 'sentry/icons/iconResolved';
+import {IconTriaged} from 'sentry/icons/iconTriaged';
 import {t} from 'sentry/locale';
 
 export enum ProgressState {
@@ -31,7 +32,7 @@ export function formatProgressState(state: ProgressState | null): string {
 
 const PROGRESS_STATE_ICONS: Record<ProgressState, ReactNode> = {
   [ProgressState.IDENTIFIED]: <IconCircle size="md" variant="muted" />,
-  [ProgressState.ASSIGNED]: <IconCircle size="md" variant="muted" />,
+  [ProgressState.ASSIGNED]: <IconTriaged size="md" variant="muted" />,
   [ProgressState.DIAGNOSED]: <IconInProgress size="md" variant="warning" />,
   [ProgressState.FIX_PROPOSED]: <IconInReview size="md" variant="success" />,
   [ProgressState.FIX_APPLIED]: <IconResolved size="md" variant="success" />,

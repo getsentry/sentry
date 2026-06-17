@@ -145,6 +145,7 @@ export {IconTerminal} from './iconTerminal';
 export {IconThumb} from './iconThumb';
 export {IconTimer} from './iconTimer';
 export {IconTrello} from './iconTrello';
+export {IconTriaged} from './iconTriaged';
 export {IconUnsubscribed} from './iconUnsubscribed';
 export {IconUpgrade} from './iconUpgrade';
 export {IconUpload} from './iconUpload';
