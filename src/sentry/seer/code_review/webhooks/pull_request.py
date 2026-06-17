@@ -141,27 +141,6 @@ def handle_pull_request_event(
         )
         return
 
-    action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
-    if action_requires_trigger_permission is not None and (
-        org_code_review_settings is None
-        or action_requires_trigger_permission not in org_code_review_settings.triggers
-    ):
-        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
-        return
-
-    # If no triggers are configured for this repo, no pr_review was ever sent for it,
-    # so there is nothing for Seer to process on close.
-    if action == PullRequestAction.CLOSED and (
-        org_code_review_settings is None or not org_code_review_settings.triggers
-    ):
-        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
-        return
-
-    # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
-    # even if the PR was converted to draft before closing
-    if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
-        return
-
     # Increment contributor actions now that the PR has cleared the code-review preflight check.
     # Gated on pr_was_created so a redelivered/concurrent "opened" webhook (PR row already exists)
     # does not double-count.
@@ -186,6 +165,27 @@ def handle_pull_request_event(
                     "integration_id": integration.id,
                 },
             )
+
+    action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
+    if action_requires_trigger_permission is not None and (
+        org_code_review_settings is None
+        or action_requires_trigger_permission not in org_code_review_settings.triggers
+    ):
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        return
+
+    # If no triggers are configured for this repo, no pr_review was ever sent for it,
+    # so there is nothing for Seer to process on close.
+    if action == PullRequestAction.CLOSED and (
+        org_code_review_settings is None or not org_code_review_settings.triggers
+    ):
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        return
+
+    # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
+    # even if the PR was converted to draft before closing
+    if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
+        return
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
