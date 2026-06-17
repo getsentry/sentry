@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import binascii
-import hashlib
 import logging
 import time
 from typing import Any
@@ -13,6 +12,7 @@ from django.urls import reverse
 from sentry import options
 from sentry.utils.dates import format_duration
 from sentry.utils.email import MessageBuilder
+from sentry.utils.hashlib import sha256_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 
@@ -58,7 +58,7 @@ def send_signup_verification_email(
 
     logger.info(
         "signup_verification.sent",
-        extra={"email_hash": hashlib.sha256(email.lower().encode()).hexdigest()},
+        extra={"email_hash": sha256_text(email.lower()).hexdigest()},
     )
 
 

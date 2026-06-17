@@ -20,7 +20,7 @@ SALT = settings.SIGNUP_VERIFICATION_EMAIL_SALT
 class SendSignupVerificationEmailTest(TestCase):
     @mock.patch(
         "sentry.auth.email_verification.reverse",
-        return_value="/api/0/signup/verify-email/fakeblob/",
+        return_value="/auth/signup/verify-email/fakeblob/",
     )
     @mock.patch("sentry.auth.email_verification.MessageBuilder")
     def test_sends_verification_email(
@@ -39,7 +39,7 @@ class SendSignupVerificationEmailTest(TestCase):
 
     @mock.patch(
         "sentry.auth.email_verification.reverse",
-        return_value="/api/0/signup/verify-email/fakeblob/",
+        return_value="/auth/signup/verify-email/fakeblob/",
     )
     @mock.patch("sentry.auth.email_verification.MessageBuilder")
     def test_signed_blob_contains_payload(
