@@ -1,11 +1,12 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
@@ -13,6 +14,7 @@ import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofixRepos';
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
@@ -26,9 +28,12 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
+import {useIntegrations} from 'sentry/utils/integrations/useIntegrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -104,7 +109,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     referrer,
   });
 
-  const handleYesClick = useCallback(() => {
+  const handleYesClick = () => {
     startStep('solution', {runId});
     trackAnalytics('autofix.root_cause.find_solution', {
       organization,
@@ -112,7 +117,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
       mode: 'explorer',
       referrer,
     });
-  }, [organization, group, startStep, runId, referrer]);
+  };
 
   const handleNoClick = useCallback(
     (userContext: string) => {
@@ -137,13 +142,20 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     <NextStepTemplate
       isProcessing={isPolling}
       prompt={t('Are you happy with this root cause?')}
-      labelYes={t('Yes, make a plan')}
-      onClickYes={handleYesClick}
       labelNo={t('No')}
       onClickNo={handleNoClick}
+      yesButton={
+        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+          {t('Yes, make a plan')}
+        </Button>
+      }
+      nevermindButton={
+        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+          {t('Nevermind, make a plan')}
+        </Button>
+      }
       placeholderPrompt={t('Give seer additional context to improve this root cause.')}
       rethinkPrompt={t('How can this root cause be improved?')}
-      labelNevermind={t('Nevermind, make a plan')}
       labelRethink={t('Rethink root cause')}
       codingAgentIntegrations={codingAgentIntegrations}
       onCodingAgentHandoff={handleCodingAgentHandoff}
@@ -163,7 +175,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     referrer,
   });
 
-  const handleYesClick = useCallback(() => {
+  const handleYesClick = () => {
     startStep('code_changes', {runId});
     trackAnalytics('autofix.solution.code', {
       organization,
@@ -171,7 +183,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
       mode: 'explorer',
       referrer,
     });
-  }, [organization, group, startStep, runId, referrer]);
+  };
 
   const handleNoClick = useCallback(
     (userContext: string) => {
@@ -196,13 +208,20 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     <NextStepTemplate
       isProcessing={isPolling}
       prompt={t('Are you happy with this plan?')}
-      labelYes={t('Yes, write a code fix')}
-      onClickYes={handleYesClick}
       labelNo={t('No')}
       onClickNo={handleNoClick}
+      yesButton={
+        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+          {t('Yes, write a code fix')}
+        </Button>
+      }
+      nevermindButton={
+        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+          {t('Nevermind, write a code fix')}
+        </Button>
+      }
       placeholderPrompt={t('Give seer additional context to improve this plan.')}
       rethinkPrompt={t('How can this plan be improved?')}
-      labelNevermind={t('Nevermind, write a code fix')}
       labelRethink={t('Rethink plan')}
       codingAgentIntegrations={codingAgentIntegrations}
       onCodingAgentHandoff={handleCodingAgentHandoff}
@@ -211,18 +230,71 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 }
 
 function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
-  const organization = useOrganization();
-  const {isPolling, createPR, startStep} = autofix;
+  const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
-  const handleYesClick = useCallback(() => {
-    createPR(runId);
-    trackAnalytics('autofix.create_pr_clicked', {
-      organization,
-      group_id: group.id,
-      mode: 'explorer',
-      referrer,
-    });
-  }, [organization, group, createPR, runId, referrer]);
+  const repos = useAutofixRepos({group, enabled: defined(artifact)});
+  const integrationIds =
+    repos.data?.repos
+      ?.filter(repo => !repo.has_write_access)
+      .map(repo => repo.integration_id) ?? [];
+  const {integrations} = useIntegrations({integrationIds});
+  const permissionsUrls = integrations
+    .map(integration => {
+      const url = getProviderPermissionsUrl(integration);
+      if (!defined(url)) {
+        return null;
+      }
+      return {
+        integration,
+        url,
+      };
+    })
+    .filter(Boolean);
+
+  if (!defined(artifact)) {
+    return null;
+  }
+
+  if (permissionsUrls.length) {
+    return (
+      <CodeChangesNextStepWithoutWritePermissions
+        group={group}
+        autofix={autofix}
+        runId={runId}
+        section={section}
+        referrer={referrer}
+        integration={permissionsUrls[0]!.integration}
+        permissionsUrl={permissionsUrls[0]!.url}
+      />
+    );
+  }
+
+  return (
+    <CodeChangesNextStepWithWritePermissions
+      group={group}
+      autofix={autofix}
+      runId={runId}
+      section={section}
+      referrer={referrer}
+    />
+  );
+}
+
+interface CodeChangesNextStepWithoutWritePermissionsProps extends NextStepProps {
+  integration: OrganizationIntegration;
+  permissionsUrl: string;
+}
+
+function CodeChangesNextStepWithoutWritePermissions({
+  autofix,
+  group,
+  runId,
+  section,
+  referrer,
+  permissionsUrl,
+}: CodeChangesNextStepWithoutWritePermissionsProps) {
+  const organization = useOrganization();
+  const {isPolling, startStep} = autofix;
 
   const handleNoClick = useCallback(
     (userContext: string) => {
@@ -237,23 +309,100 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     [organization, group, startStep, runId, referrer, section.index]
   );
 
-  const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
+  return (
+    <NextStepTemplate
+      isProcessing={isPolling}
+      prompt={t('Are you happy with these code changes?')}
+      labelNo={t('No')}
+      onClickNo={handleNoClick}
+      yesButton={
+        <Tooltip
+          title={t('You need GitHub admin permissions for your org to connect Sentry')}
+        >
+          <LinkButton
+            external
+            openInNewTab
+            variant="primary"
+            disabled={isPolling}
+            to={permissionsUrl}
+          >
+            {t('Yes, grant permissions to draft a PR')}
+          </LinkButton>
+        </Tooltip>
+      }
+      nevermindButton={
+        <Tooltip
+          title={t('You need GitHub admin permissions for your org to connect Sentry')}
+        >
+          <LinkButton
+            external
+            openInNewTab
+            variant="primary"
+            disabled={isPolling}
+            to={permissionsUrl}
+          >
+            {t('Nevermind, grant permissions to draft a PR')}
+          </LinkButton>
+        </Tooltip>
+      }
+      placeholderPrompt={t('Give seer additional context to improve this code change.')}
+      rethinkPrompt={t('How can this code change be improved?')}
+      labelRethink={t('Rethink code changes')}
+    />
+  );
+}
 
-  if (!defined(artifact)) {
-    return null;
-  }
+function CodeChangesNextStepWithWritePermissions({
+  autofix,
+  group,
+  runId,
+  section,
+  referrer,
+}: NextStepProps) {
+  const organization = useOrganization();
+  const {isPolling, createPR, startStep} = autofix;
+
+  const handleYesClick = () => {
+    createPR(runId);
+    trackAnalytics('autofix.create_pr_clicked', {
+      organization,
+      group_id: group.id,
+      mode: 'explorer',
+      referrer,
+    });
+  };
+
+  const handleNoClick = useCallback(
+    (userContext: string) => {
+      startStep('code_changes', {runId, userContext, insertIndex: section.index});
+      trackAnalytics('autofix.code_changes.re_run', {
+        organization,
+        group_id: group.id,
+        mode: 'explorer',
+        referrer,
+      });
+    },
+    [organization, group, startStep, runId, referrer, section.index]
+  );
 
   return (
     <NextStepTemplate
       isProcessing={isPolling}
       prompt={t('Are you happy with these code changes?')}
-      labelYes={t('Yes, draft a PR')}
-      onClickYes={handleYesClick}
       labelNo={t('No')}
       onClickNo={handleNoClick}
+      yesButton={
+        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+          {t('Yes, draft a PR')}
+        </Button>
+      }
+      nevermindButton={
+        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+          {t('Nevermind, draft a PR')}
+        </Button>
+      }
       placeholderPrompt={t('Give seer additional context to improve this code change.')}
       rethinkPrompt={t('How can this code change be improved?')}
-      labelNevermind={t('Nevermind, draft a PR')}
       labelRethink={t('Rethink code changes')}
     />
   );
@@ -261,15 +410,14 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
 
 interface NextStepTemplateProps {
   isProcessing: boolean;
-  labelNevermind: ReactNode;
   labelNo: ReactNode;
   labelRethink: ReactNode;
-  labelYes: ReactNode;
+  nevermindButton: ReactNode;
   onClickNo: (prompt: string) => void;
-  onClickYes: () => void;
   placeholderPrompt: string;
   prompt: ReactNode;
   rethinkPrompt: ReactNode;
+  yesButton: ReactNode;
   codingAgentIntegrations?: CodingAgentIntegration[];
   onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
 }
@@ -277,13 +425,12 @@ interface NextStepTemplateProps {
 function NextStepTemplate({
   isProcessing,
   prompt,
-  labelYes,
-  onClickYes,
+  yesButton,
+  nevermindButton,
   labelNo,
   onClickNo,
   placeholderPrompt,
   rethinkPrompt,
-  labelNevermind,
   labelRethink,
   codingAgentIntegrations,
   onCodingAgentHandoff,
@@ -326,9 +473,7 @@ function NextStepTemplate({
           onChange={event => setUserContext(event.target.value)}
         />
         <Flex gap="md">
-          <Button disabled={isProcessing} onClick={onClickYes}>
-            {labelNevermind}
-          </Button>
+          {nevermindButton}
           <Button
             variant="primary"
             disabled={isProcessing || !userContext.trim()}
@@ -349,9 +494,7 @@ function NextStepTemplate({
           {labelNo}
         </Button>
         <ButtonBar>
-          <Button variant="primary" disabled={isProcessing} onClick={onClickYes}>
-            {labelYes}
-          </Button>
+          {yesButton}
           {codingAgentIntegrations === undefined ? null : (
             <DropdownMenu
               items={codingAgentOptions}
