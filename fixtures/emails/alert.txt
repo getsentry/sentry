@@ -20,6 +20,7 @@ Tags
 * client_os.name = Windows
 * device = Other
 * environment = prod
+* interface_type = stacktrace
 * level = error
 * logger = javascript
 * sentry:user = id:1

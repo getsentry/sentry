@@ -1047,18 +1047,13 @@ class WeeklyReportsTest(
             "slug": "bar",
             "url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&project={self.project.id}",
             "color": "#422C6E",
-            "dropped_error_count": 2,
             "accepted_error_count": 1,
-            "accepted_replay_count": 0,
-            "dropped_replay_count": 0,
-            "dropped_transaction_count": 9,
             "accepted_transaction_count": 3,
         }
 
         assert ctx["trends"]["series"][-2][1][0] == {
             "color": "#422C6E",
             "error_count": 1,
-            "replay_count": 0,
             "transaction_count": 3,
         }
 
@@ -1081,49 +1076,6 @@ class WeeklyReportsTest(
             self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
         )
         assert mock_send_email.call_count == 0
-
-    @with_feature("organizations:session-replay")
-    @with_feature("organizations:session-replay-weekly_report")
-    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_message_builder_replays(self, message_builder: mock.MagicMock) -> None:
-        for outcome, category, num in [
-            (Outcome.ACCEPTED, DataCategory.REPLAY, 6),
-            (Outcome.RATE_LIMITED, DataCategory.REPLAY, 7),
-        ]:
-            self.store_event_outcomes(
-                self.organization.id,
-                self.project.id,
-                self.two_days_ago,
-                num_times=num,
-                outcome=outcome,
-                category=category,
-            )
-
-        prepare_organization_report(
-            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
-        )
-
-        message_params = message_builder.call_args.kwargs
-        ctx = message_params["context"]
-
-        assert ctx["trends"]["legend"][0] == {
-            "slug": "bar",
-            "url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&project={self.project.id}",
-            "color": "#422C6E",
-            "dropped_error_count": 0,
-            "accepted_error_count": 0,
-            "accepted_replay_count": 6,
-            "dropped_replay_count": 7,
-            "dropped_transaction_count": 0,
-            "accepted_transaction_count": 0,
-        }
-
-        assert ctx["trends"]["series"][-2][1][0] == {
-            "color": "#422C6E",
-            "error_count": 0,
-            "replay_count": 6,
-            "transaction_count": 0,
-        }
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_message_builder_timezone(self, message_builder: mock.MagicMock) -> None:
