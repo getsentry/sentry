@@ -44,6 +44,11 @@ KNOWN_MISLEADING = {
     "robots\\.txt",
     "\\.well-known/security\\.txt",
     "\\.well-known/mcp\\.json",
+    "\\.well-known/api-catalog",
+    "\\.well-known/oauth-authorization-server",
+    "\\.well-known/oauth-protected-resource",
+    "\\.well-known/mcp/server-card\\.json",
+    "\\.well-known/agent-skills/index\\.json",
     "favicon\\.ico",
     "plugins/github/installations/webhook/",
 }
