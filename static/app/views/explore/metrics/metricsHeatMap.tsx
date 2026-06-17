@@ -2,8 +2,6 @@ import {useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
@@ -23,7 +21,7 @@ import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
-import {getExploreUrl, prettifyAggregation} from 'sentry/views/explore/utils';
+import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
@@ -40,8 +38,6 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   const userQuery = useQueryParamsQuery();
   const setMetricQuery = useSetQueryParamsQuery();
 
-  const organization = useOrganization();
-
   const {data: heatMapSeries, isPending, error} = heatmapResult;
 
   const aggregate = visualize.yAxis;
@@ -49,23 +45,6 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
     visualizes.length > 1
       ? metricName
       : (title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate);
-
-  const getFilteredExploreUrl = useCallback(
-    (query: string, filteredSelection: PageFilters) => {
-      return getExploreUrl({
-        organization,
-        selection: filteredSelection,
-        crossEvents: [
-          {
-            type: 'metrics',
-            metric,
-            query,
-          },
-        ],
-      });
-    },
-    [metric, organization]
-  );
 
   const updateMetricQuery = useCallback(
     (query: string) => {
@@ -90,7 +69,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(heatMapSeries)]}
               scale={HEATMAP_Z_AXIS_SCALE}
-              makeExploreUrl={getFilteredExploreUrl}
+              traceMetric={metric}
               updateLocalFilterQuery={updateMetricQuery}
             />
           )

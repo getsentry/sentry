@@ -119,27 +119,18 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
             count for the clicked cell.
           </p>
           <p>
-            Pass <code>makeExploreUrl</code> to add a <em>View connected spans</em> link
-            in the tooltip. The callback receives the Y-axis filter query (e.g.{' '}
-            <code>value:&gt;=200 value:&lt;250</code>) and a <code>PageFilters</code>{' '}
-            object whose datetime is narrowed to the clicked X-axis bucket. Use these to
-            build a cross-event query link into Explore.
+            Pass <code>traceMetric</code> to add a <em>View connected spans</em> link in
+            the tooltip. The visualization builds the Explore link itself, scoping it to
+            the metric, the clicked cell's Y-axis value range, and the X-axis time bucket.
+            Optionally pass <code>exploreBaseQuery</code> to fold an existing filter into
+            that link.
           </p>
           <p>
             <CodeBlock language="jsx">
               {`<HeatMapWidgetVisualization
   plottables={[new HeatMap(heatMapData)]}
-  makeExploreUrl={(query, filteredSelection) =>
-    getExploreUrl({
-      organization,
-      selection: filteredSelection,
-      crossEvents: [{
-            type: 'metrics',
-            metric,
-            query,
-      }]
-    })
-  }
+  traceMetric={{name: 'my.metric', type: 'distribution', unit: 'millisecond'}}
+  exploreBaseQuery="release:1.0.0"
 />`}
             </CodeBlock>
           </p>
@@ -169,9 +160,7 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
             <p>{`Local Filter Query: ${localFilterQuery}`}</p>
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(sampleLatencyHeatMap)]}
-              makeExploreUrl={(query, filteredSelection) =>
-                `/explore/traces/?query=${encodeURIComponent(query)}&start=${filteredSelection.datetime.start}&end=${filteredSelection.datetime.end}`
-              }
+              traceMetric={{name: 'my.metric', type: 'distribution', unit: 'millisecond'}}
               updateLocalFilterQuery={query => setLocalFilterQuery(query)}
             />
           </LargeWidget>

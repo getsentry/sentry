@@ -15,18 +15,20 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import {HeatMap} from './plottables/heatMap';
 import type {HeatMapPlottable} from './plottables/heatMapPlottable';
@@ -42,13 +44,19 @@ interface HeatMapWidgetVisualizationProps {
    */
   plottables: [HeatMap, ...HeatMapPlottable[]];
   /**
-   * Callback that returns an explore URL for a given query and filtered datetime selection
+   * Base filter query combined into each cell's Explore link (on top of the
+   * cell's own value-range query).
    */
-  makeExploreUrl?: (query: string, filteredSelection: PageFilters) => string;
+  exploreBaseQuery?: string;
   /**
    * Experimental! Specify the Z-axis scale type. Logarithmic scales can be much more useful for values with a high range.
    */
   scale?: 'linear' | 'log';
+  /**
+   * The metric the heat map plots. When provided, each cell's tooltip links to
+   * that metric in Explore, scoped to the cell's value range and time window.
+   */
+  traceMetric?: TraceMetric;
   /**
    * Callback that updates the local filter to include the given Y-axis query.
    */
@@ -56,8 +64,9 @@ interface HeatMapWidgetVisualizationProps {
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
-  const {plottables, updateLocalFilterQuery, makeExploreUrl} = props;
+  const {plottables, updateLocalFilterQuery, traceMetric, exploreBaseQuery} = props;
   const theme = useTheme();
+  const organization = useOrganization();
   const renderToString = useRenderToString();
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
@@ -248,8 +257,17 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                 },
               };
 
-              if (makeExploreUrl && metricsQuery) {
-                tracesLink = makeExploreUrl(metricsQuery, filteredSelection);
+              if (traceMetric && metricsQuery) {
+                const exploreQuery = [exploreBaseQuery, metricsQuery]
+                  .filter(Boolean)
+                  .join(' ');
+                tracesLink = getExploreUrl({
+                  organization,
+                  selection: filteredSelection,
+                  crossEvents: [
+                    {type: 'metrics', metric: traceMetric, query: exploreQuery},
+                  ],
+                });
               }
             }
 
@@ -261,7 +279,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                   </span>{' '}
                   {formattedZValue}
                 </div>
-                {makeExploreUrl && defined(tracesLink) && (
+                {traceMetric && defined(tracesLink) && (
                   <div>
                     <span className="tooltip-label tooltip-label-centered">
                       <a data-traces-link={tracesLink} href={tracesLink}>

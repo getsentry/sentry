@@ -77,7 +77,7 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import {useHeatmapExploreUrl} from './hooks/useHeatmapExploreUrl';
+import {useHeatmapTraceMetric} from './hooks/useHeatmapTraceMetric';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type TableComponentProps = Pick<
@@ -465,7 +465,7 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {heatmapResults, loading, widget} = props;
-  const makeExploreUrl = useHeatmapExploreUrl(widget);
+  const traceMetric = useHeatmapTraceMetric(widget);
 
   if (loading || !heatmapResults) {
     return <LoadingPlaceholder />;
@@ -484,7 +484,8 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
       <HeatMapWidgetVisualization
         plottables={[new HeatMap(heatmapResults)]}
         scale={HEATMAP_Z_AXIS_SCALE}
-        {...(makeExploreUrl ? {makeExploreUrl} : {})}
+        traceMetric={traceMetric}
+        exploreBaseQuery={widget.queries[0]?.conditions}
       />
     </ChartWrapper>
   );
