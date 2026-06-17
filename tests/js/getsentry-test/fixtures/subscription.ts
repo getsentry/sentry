@@ -11,7 +11,12 @@ import type {Organization} from 'sentry/types/organization';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription as TSubscription} from 'getsentry/types';
 import {AddOnCategory, BillingType} from 'getsentry/types';
-import {isTrialPlan} from 'getsentry/utils/billing';
+
+const TRIAL_PLANS = ['am1_t', 'am2_t', 'am3_t', 'am1_t_ent', 'am2_t_ent', 'am3_t_ent'];
+
+// Derives whether a plan id is a trial plan, so the fixture can set the
+// trial-related fields the backend resolves from the subscription.
+const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
 type Props = Partial<TSubscription> & {organization: Organization};
 
@@ -94,6 +99,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     countryCode: null,
     cancelAtPeriodEnd: false,
     isTrial,
+    onTrialPlan: isTrial,
     paymentSource: {
       last4: '4242',
       countryCode: 'US',

@@ -497,14 +497,6 @@ def find_all_cell_names() -> Iterable[str]:
     return get_global_directory().get_cell_names()
 
 
-def find_all_multitenant_cell_names() -> list[str]:
-    """
-    Return all visible multi_tenant cells.
-    """
-    cells = get_global_directory().get_cells(RegionCategory.MULTI_TENANT)
-    return list([c.name for c in cells if c.visible])
-
-
 def find_all_multitenant_locality_names() -> list[str]:
     """
     Return all visible multi-tenant localities.
