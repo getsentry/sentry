@@ -67,6 +67,8 @@ from sentry.seer.sentry_data_models import (
     EventDetailsResponse,
     ExecuteQueryErrorResponse,
     ExecuteQuerySuccessResponse,
+    ExecuteTimeseriesQueryErrorResponse,
+    ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
     IssueAndEventDetailsResponse,
     IssueDetailsResponse,
@@ -262,7 +264,7 @@ def execute_timeseries_query(
     sampling_mode: SAMPLING_MODES = "NORMAL",
     partial: bool | None = None,
     case_insensitive: bool | None = None,
-) -> dict[str, Any] | None:
+) -> ExecuteTimeseriesQuerySuccessResponse | ExecuteTimeseriesQueryErrorResponse | None:
     """
     Execute a query to get chart/timeseries data by calling the events-stats endpoint.
 
@@ -333,11 +335,9 @@ def execute_timeseries_query(
         if e.status_code == 400:
             logger.exception("execute_timeseries_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return {
-                "_seer_error_detail": (
-                    str(error_detail) if error_detail is not None else str(e.body)
-                )
-            }
+            return ExecuteTimeseriesQueryErrorResponse(
+                seer_error_detail=(str(error_detail) if error_detail is not None else str(e.body))
+            )
         raise
     data = resp.data
 
@@ -347,20 +347,22 @@ def execute_timeseries_query(
     if metric_name and metric_is_single:
         # Handle grouped data with single metric: wrap each group's data in the metric name
         if group_by:
-            return {
-                group_value: (
-                    {metric_name: group_data}
-                    if isinstance(group_data, dict) and "data" in group_data
-                    else group_data
-                )
-                for group_value, group_data in data.items()
-            }
+            return ExecuteTimeseriesQuerySuccessResponse(
+                __root__={
+                    group_value: (
+                        {metric_name: group_data}
+                        if isinstance(group_data, dict) and "data" in group_data
+                        else group_data
+                    )
+                    for group_value, group_data in data.items()
+                }
+            )
 
         # Handle non-grouped data with single metric: wrap data in the metric name
         if isinstance(data, dict) and "data" in data:
-            return {metric_name: data}
+            return ExecuteTimeseriesQuerySuccessResponse(__root__={metric_name: data})
 
-    return data
+    return ExecuteTimeseriesQuerySuccessResponse(__root__=data)
 
 
 def execute_trace_table_query(
@@ -1018,9 +1020,9 @@ def _get_issue_event_timeseries(
         partial=True,
     )
 
-    if data is None or data.get("_seer_error_detail"):
+    if data is None or isinstance(data, ExecuteTimeseriesQueryErrorResponse):
         return None
-    return data, selected_period, interval
+    return data.dict(), selected_period, interval
 
 
 def _get_recommended_event(

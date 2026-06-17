@@ -742,3 +742,170 @@ class IssuesStatsResponse(BaseModel):
 
     def __hash__(self) -> int:
         return id(self)
+
+
+class CallCustomToolResponse(BaseModel):
+    """`call_custom_tool` returns the bare string the tool's `execute()` produced.
+    Wraps in a `__root__` passthrough so the wire stays a JSON string."""
+
+    __root__: str
+
+    def dict(self, **kwargs: Any) -> Any:
+        # Unwrap so the dispatcher serializes the bare string the pre-typed
+        # registry emitted, not `{"__root__": "..."}`.
+        return self.__root__
+
+    def __eq__(self, other: object) -> bool:
+        # Match the legacy wire shape (bare str) so callers comparing against
+        # `result == "literal"` keep working without an explicit `.dict()`.
+        if isinstance(other, str):
+            return self.__root__ == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
+
+
+class CreateIssueOccurrenceResponse(BaseModel):
+    """`create_issue_occurrence` returns `{"success": True}` after a successful
+    write. Pre-typed code never returned False here — failures raise — so the
+    `success` field is a `Literal[True]` to encode the contract."""
+
+    success: Literal[True] = True
+
+
+class ExecuteIssuesQuerySuccessResponse(BaseModel):
+    """`execute_issues_query` success path returns the bare list of issue dicts
+    from the issues API. `__root__`-based passthrough preserves that shape."""
+
+    __root__: list[dict[str, Any]]
+
+    def dict(self, **kwargs: Any) -> Any:
+        return list(self.__root__)
+
+    def __iter__(self) -> Any:
+        return iter(self.__root__)
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+    def __getitem__(self, idx: int) -> Any:
+        return self.__root__[idx]
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, list):
+            return list(self.__root__) == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
+
+
+class ExecuteTimeseriesQuerySuccessResponse(BaseModel):
+    """`execute_timeseries_query` success shape has dynamic top-level keys —
+    either `{metric_name: {"data": [...], ...}}` for non-grouped queries or
+    `{group_value: {metric_name: ...}, ...}` for grouped ones — so the body
+    is a dict passthrough. SDK consumers get a named response type plus the
+    raw events-stats payload underneath."""
+
+    __root__: dict[str, Any]
+
+    def dict(self, **kwargs: Any) -> Any:
+        return dict(self.__root__)
+
+    # Dict-like proxy so test sites and seer callers can use `result[k]`,
+    # `result.items()`, `len(result)`, etc. without first unwrapping `__root__`.
+    def __contains__(self, key: object) -> bool:
+        return key in self.__root__
+
+    def __getitem__(self, key: str) -> Any:
+        return self.__root__[key]
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+    def items(self) -> Any:
+        return self.__root__.items()
+
+    def keys(self) -> Any:
+        return self.__root__.keys()
+
+    def values(self) -> Any:
+        return self.__root__.values()
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.__root__.get(key, default)
+
+
+class ExecuteTimeseriesQueryErrorResponse(BaseModel):
+    """`execute_timeseries_query` error: `{"_seer_error_detail": <detail>}`. The
+    underscore-prefixed key is reserved to avoid colliding with the dynamic
+    metric/group keys in the success shape; `Field(alias=...)` keeps the wire
+    spelling since Pydantic forbids underscore-prefixed attribute names."""
+
+    seer_error_detail: str = Field(alias="_seer_error_detail")
+
+    class Config:
+        allow_population_by_field_name = True
+
+    def dict(self, **kwargs: Any) -> Any:
+        kwargs.setdefault("by_alias", True)
+        return super().dict(**kwargs)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __eq__(self, other: object) -> bool:
+        # Legacy callers compared against the bare wire dict
+        # `{"_seer_error_detail": "..."}`. Preserve that ergonomics.
+        if isinstance(other, dict):
+            return self.dict() == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
+
+
+class RefreshMonitoringProviderTokenSuccessResponse(BaseModel):
+    """`refresh_monitoring_provider_token` success: the freshly-encrypted access
+    token plus the Unix-second expiry the OAuth2 base helper stamps onto
+    `identity.data["expires"]` (`int(time()) + int(payload["expires_in"])`)."""
+
+    encrypted_access_token: str
+    expires: int | None
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+
+class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
+    """`refresh_monitoring_provider_token` error: `{"error": <code>}`. The four
+    error codes the function emits — one per refusal branch — encoded as a
+    Literal so the seer-side caller can switch on them safely."""
+
+    error: Literal[
+        "encryption_failed",
+        "identity_not_found",
+        "identity_not_valid",
+        "refresh_failed",
+    ]
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, dict):
+            return self.dict() == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
