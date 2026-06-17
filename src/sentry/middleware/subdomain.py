@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
+from django.conf import settings
 from django.core.exceptions import DisallowedHost
 from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
@@ -22,7 +23,7 @@ class SubdomainMiddleware:
     """
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
-        self.base_hostname = options.get("system.base-hostname")
+        self.base_hostname = settings.SENTRY_BASE_HOSTNAME
 
         if self.base_hostname:
             self.base_hostname = self.base_hostname.rstrip("/")

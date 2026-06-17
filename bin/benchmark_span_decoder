@@ -1,0 +1,100 @@
+#!/usr/bin/env python
+# isort: skip_file
+# flake8: noqa: S002
+
+"""
+Benchmarks the orjson vs. msgspec span decoders used by the span buffer process
+consumer (see `sentry.spans.consumers.process.factory`).
+
+Usage: python bin/benchmark_span_decoder [num_spans] [iterations]
+"""
+
+from sentry.runner import configure
+
+configure()
+
+import logging
+import sys
+import time
+
+import orjson
+import sentry_sdk
+
+from sentry.spans.consumers.process.factory import (
+    SPANS_CODEC,
+    decode_process_span_event,
+)
+
+# Disable sentry as it creates lots of noise in the output.
+sentry_sdk.init(None)
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger("benchmark_span_decoder")
+
+
+def make_span(i: int) -> dict:
+    """Build a single valid span event matching the ingest-spans schema."""
+    return {
+        "organization_id": 1,
+        "project_id": 12,
+        "trace_id": f"{i:032x}",
+        "span_id": f"{i:016x}",
+        "parent_span_id": f"{i + 1:016x}",
+        "start_timestamp": 1699999999.0 + i,
+        "end_timestamp": 1700000000.0 + i,
+        "received": 1700000001.0,
+        "retention_days": 90,
+        "downsampled_retention_days": 30,
+        "name": "db.query",
+        "status": "ok",
+        "is_segment": i % 2 == 0,
+        "links": [{"trace_id": f"{i:032x}", "span_id": f"{i:016x}"}],
+        "attributes": {
+            "sentry.segment.id": {"type": "string", "value": f"{i:016x}"},
+            "sentry.op": {"type": "string", "value": "db"},
+            "db.statement": {"type": "string", "value": "SELECT * FROM foo WHERE id = 1"},
+            "http.status_code": {"type": "integer", "value": 200},
+            "duration_ms": {"type": "double", "value": 12.34},
+        },
+    }
+
+
+def time_decoder(name, fn, payloads, iterations):
+    # Warm up.
+    for payload in payloads:
+        fn(payload)
+
+    start = time.perf_counter()
+    for _ in range(iterations):
+        for payload in payloads:
+            fn(payload)
+    elapsed = time.perf_counter() - start
+
+    total_ops = iterations * len(payloads)
+    per_op_us = (elapsed / total_ops) * 1_000_000
+    logger.info("%12s: %.4fs total, %.3f us/span", name, elapsed, per_op_us)
+    return elapsed
+
+
+def main(num_spans, iterations):
+    payloads = [orjson.dumps(make_span(i)) for i in range(num_spans)]
+
+    # Sanity check: both decoders agree on the fields they share, and the
+    # msgspec output validates against the schema.
+    SPANS_CODEC.validate(decode_process_span_event(payloads[0]))
+
+    avg_bytes = sum(len(p) for p in payloads) / len(payloads)
+    logger.info("spans=%d iterations=%d avg_payload=%.0f bytes\n", num_spans, iterations, avg_bytes)
+
+    orjson_elapsed = time_decoder("orjson", orjson.loads, payloads, iterations)
+    msgspec_elapsed = time_decoder("msgspec", decode_process_span_event, payloads, iterations)
+
+    speedup = orjson_elapsed / msgspec_elapsed
+    faster = "faster" if speedup >= 1 else "slower"
+    logger.info("\nmsgspec is %.2fx %s than orjson", abs(speedup), faster)
+
+
+if __name__ == "__main__":
+    num_spans = int(sys.argv[1]) if len(sys.argv) > 1 else 1000
+    iterations = int(sys.argv[2]) if len(sys.argv) > 2 else 100
+    main(num_spans, iterations)

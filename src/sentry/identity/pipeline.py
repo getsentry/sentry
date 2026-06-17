@@ -63,6 +63,14 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
             identity = self.provider.build_identity(self.state.data)
 
             assert self.request.user.is_authenticated
+
+            if self.provider_model is None and self.provider.auto_create_provider_model:
+                self.provider_model, _ = IdentityProvider.objects.get_or_create(
+                    type=identity["type"],
+                    external_id=identity["idp_external_id"],
+                    defaults={"config": identity.get("idp_config", {})},
+                )
+
             assert self.provider_model is not None
 
             Identity.objects.link_identity(
