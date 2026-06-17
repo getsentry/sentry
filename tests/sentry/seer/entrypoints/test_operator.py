@@ -644,6 +644,36 @@ class SeerOperatorTest(TestCase):
             == "https://github.com/owner/repo/pull/42"
         )
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_iteration_completed(self, _mock_has_access):
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "code_changes": {"owner/repo": [{"diff": "...", "path": "foo.py"}]},
+            "pull_requests": [
+                {
+                    "pull_request": {
+                        "pr_number": 42,
+                        "pr_url": "https://github.com/owner/repo/pull/42",
+                    },
+                    "repo_name": "owner/repo",
+                    "provider": "github",
+                }
+            ],
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ITERATION_COMPLETED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_ITERATION_COMPLETED.value
+        )
+        assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
+        assert activity.data["code_changes"]["owner/repo"][0]["path"] == "foo.py"
+
     @patch("sentry.models.activity.invoke_workflow_activity_handlers")
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_invokes_workflow_activity_handlers(

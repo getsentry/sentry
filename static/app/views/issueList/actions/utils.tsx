@@ -179,6 +179,7 @@ export const COLUMN_BREAKPOINTS = {
   EVENTS: '700px',
   USERS: '900px',
   PRIORITY: '1100px',
+  PROGRESS: '1100px',
   ASSIGNEE: '500px',
 };
 

@@ -345,14 +345,6 @@ export const isBusinessTrial = (subscription: Subscription) => {
   );
 };
 
-export function isAm2Plan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am2');
-}
-
-export function isAm3Plan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am3');
-}
-
 export function hasJustStartedPlanTrial(subscription: Subscription) {
   return subscription.isTrial && subscription.isTrialStarted;
 }

@@ -24,7 +24,7 @@ import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {hasPerformance} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type ReplayOnboardingCTAUpsellProps = {
@@ -49,7 +49,6 @@ function ReplayOnboardingCTAUpsell({
     trackGetsentryAnalytics('replay.list_page.viewed', {
       organization,
       surface: 'replay_onboarding_banner',
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
@@ -67,7 +66,6 @@ function ReplayOnboardingCTAUpsell({
         trackGetsentryAnalytics('replay.list_page.sent_email', {
           organization,
           surface: 'replay_onboarding_banner',
-          planTier: subscription.planTier,
           canSelfServe: subscription.canSelfServe,
           channel: subscription.channel,
           has_billing_scope: organization.access?.includes('org:billing'),
@@ -112,7 +110,6 @@ function ReplayOnboardingCTAUpsell({
       trackGetsentryAnalytics('replay.list_page.open_modal', {
         organization,
         surface: 'replay_onboarding_banner',
-        planTier: subscription.planTier,
         canSelfServe: subscription.canSelfServe,
         channel: subscription.channel,
         has_billing_scope: hasBillingAccess,
@@ -156,7 +153,6 @@ function ReplayOnboardingCTAUpsell({
     trackGetsentryAnalytics('replay.list_page.manage_sub', {
       organization,
       surface: 'replay_onboarding_banner',
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
@@ -196,8 +192,9 @@ function ReplayOnboardingCTAUpsell({
     );
   }
 
-  if ([PlanTier.MM1, PlanTier.MM2].includes(subscription.planTier as PlanTier)) {
-    // MM1 & MM2 plans have no direct update path into AM2, prices could be wildly different
+  if (!hasPerformance(subscription.planDetails)) {
+    // Legacy MM1 & MM2 plans predate performance/tracing and have no direct update
+    // path into AM2, prices could be wildly different.
     // Members get an email, owners get to Manage Subscription
     return (
       <Fragment>

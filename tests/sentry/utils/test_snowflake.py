@@ -11,7 +11,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 from sentry.users.models.user import User
 from sentry.utils import snowflake
 from sentry.utils.snowflake import (
@@ -36,7 +36,7 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self) -> None:
-        cell = Cell("test-cell", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        cell = Cell("test-cell", 0, "http://testserver")
         with override_settings(SILO_MODE=SiloMode.CELL), override_cells([cell], cell):
             snowflake_id = generate_snowflake_id("test_redis_key")
             expected_value = (16 << 48) + (
@@ -47,7 +47,7 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_cell_sequence(self) -> None:
-        cell = Cell("test-cell", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        cell = Cell("test-cell", 0, "http://testserver")
         with override_settings(SILO_MODE=SiloMode.CELL), override_cells([cell], cell):
             snowflake_id = generate_snowflake_id("test_redis_key")
 
@@ -84,8 +84,8 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_cell_id(self) -> None:
         cells = [
-            c1 := Cell("test-cell-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
-            c2 := Cell("test-cell-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
+            c1 := Cell("test-cell-1", 1, "localhost:8001"),
+            c2 := Cell("test-cell-2", 2, "localhost:8002"),
         ]
         with override_settings(SILO_MODE=SiloMode.CELL):
             with override_cells(cells, c1):

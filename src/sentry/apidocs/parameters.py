@@ -760,7 +760,22 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        description="The aggregate field to create the timeseries for, defaults to `count()` when not included",
+        description="""The aggregate field to create the timeseries for, defaults to `count()` when
+        not included.
+- `count()` - Total count of events over the period.
+- `avg(field)` - Average value of the field over the period.
+- `pXX(field)` - Percentile value of the field over the period. One of: `p50`, `p75`, `p90`, `p95`, `p99`, `p100`.
+- `sum(field)` - Sum of all values for the field over the period.
+- `min(field)` - Lowest value observed for the field over the period.
+- `max(field)` - Highest value observed for the field over the period.
+- `count_unique(field)` - Count of unique values observed for the field over the period. See *Note:* regarding accuracy on sampled data.
+- `epm` - Average number of events received per minute.
+- `eps` - Average number of events received per second.
+- `failure_rate()` - Percentage of events whose `status` indicates failure.
+- `failure_count()` - Total count of events with an error `status` over period.
+- `performance_score(field)` - Web Vitals performance score for the selected measurement.
+- `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
+""",
     )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
         name="disableAggregateExtrapolation",
