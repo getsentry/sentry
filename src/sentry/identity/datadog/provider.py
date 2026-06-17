@@ -27,9 +27,9 @@ DATADOG_VALID_SITES = frozenset(
 MCP_ENDPOINT_PATH = "/api/unstable/mcp-server/mcp"
 
 
-def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
+def get_user_info(access_token: str, site: str) -> dict[str, Any]:
     """Fetch the current Datadog user via the MCP ``datadog://mcp/whoami`` resource."""
-    url = f"{mcp_base_url}{MCP_ENDPOINT_PATH}"
+    url = f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     init_resp = safe_urlopen(
@@ -73,36 +73,22 @@ class DatadogIdentityProvider(Provider):
 
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
-    auto_create_provider_model = True
-
-    def get_pipeline_config(self, data: dict[str, Any]) -> dict[str, str]:
-        site = data.get("site")
-        if not site:
-            raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
-        elif site not in DATADOG_VALID_SITES:
-            raise ValueError(f"Invalid Datadog site: {site}")
-        return {"site": site}
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return []
 
-    def _get_mcp_base_url(self, site: str) -> str:
-        if site not in DATADOG_VALID_SITES:
-            raise ValueError(f"Invalid Datadog site: {site}")
-        return f"https://mcp.{site}"
-
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
         access_token = data.get("access_token")
         if not access_token:
-            raise ValueError("Datadog requires an access token")
+            raise ValueError("Missing access token")
 
         site = data.get("site")
         if not site:
-            raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
+            raise ValueError("Missing site")
         elif site not in DATADOG_VALID_SITES:
-            raise ValueError(f"Invalid Datadog site: {site}")
+            raise ValueError(f"Invalid site: {site}")
 
-        user = get_user_info(access_token, self._get_mcp_base_url(site))
+        user = get_user_info(access_token, site)
         if "user_uuid" not in user or "org_uuid" not in user:
             raise IdentityNotValid(
                 "User info response missing required fields (user_uuid, org_uuid)"

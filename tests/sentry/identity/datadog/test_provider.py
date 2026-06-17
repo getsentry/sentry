@@ -31,19 +31,6 @@ class DatadogIdentityProviderTest(TestCase):
             json={"result": {"contents": [{"text": orjson.dumps(whoami).decode()}]}},
         )
 
-    def test_get_pipeline_config_valid_site(self) -> None:
-        assert self.provider.get_pipeline_config({"site": "datadoghq.com"}) == {
-            "site": "datadoghq.com"
-        }
-
-    def test_get_pipeline_config_missing_site(self) -> None:
-        with pytest.raises(ValueError, match="requires a 'site' parameter"):
-            self.provider.get_pipeline_config({})
-
-    def test_get_pipeline_config_invalid_site(self) -> None:
-        with pytest.raises(ValueError, match="Invalid Datadog site"):
-            self.provider.get_pipeline_config({"site": "evil.example.com"})
-
     def test_no_pipeline_views(self) -> None:
         assert self.provider.get_pipeline_views() == []
 
@@ -68,18 +55,20 @@ class DatadogIdentityProviderTest(TestCase):
         assert result["name"] == "Test User"
         assert result["scopes"] == []
         assert result["data"] == {"access_token": "pat-abc", "site": "datadoghq.com"}
+        # whoami hits https://mcp.<site>/... with the submitted token as Bearer.
+        assert responses.calls[0].request.url == MCP_URL
         assert responses.calls[0].request.headers["Authorization"] == "Bearer pat-abc"
 
     def test_build_identity_missing_access_token(self) -> None:
-        with pytest.raises(ValueError, match="requires an access token"):
+        with pytest.raises(ValueError, match="Missing access token"):
             self.provider.build_identity({"site": "datadoghq.com"})
 
     def test_build_identity_missing_site(self) -> None:
-        with pytest.raises(ValueError, match="requires a 'site' parameter"):
+        with pytest.raises(ValueError, match="Missing site"):
             self.provider.build_identity({"access_token": "pat-abc"})
 
     def test_build_identity_invalid_site(self) -> None:
-        with pytest.raises(ValueError, match="Invalid Datadog site"):
+        with pytest.raises(ValueError, match="Invalid site"):
             self.provider.build_identity({"access_token": "pat-abc", "site": "evil.example.com"})
 
     @responses.activate
