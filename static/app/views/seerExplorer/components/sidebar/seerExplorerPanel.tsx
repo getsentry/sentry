@@ -9,12 +9,13 @@ import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
  */
 export function SeerExplorerPanel() {
   const {getPageReferrer} = usePageReferrer();
-  const {closeSeerExplorer, sidebarPosition, setSidebarPosition} =
+  const {closeSeerExplorer, sidebarPosition, setSidebarPosition, sidebarInitialQuery} =
     useSeerExplorerContext();
 
   return (
     <SeerExplorerContent
       getPageReferrer={getPageReferrer}
+      initialQuery={sidebarInitialQuery}
       onClose={closeSeerExplorer}
       sidebarPosition={sidebarPosition}
       onSidebarPositionChange={setSidebarPosition}

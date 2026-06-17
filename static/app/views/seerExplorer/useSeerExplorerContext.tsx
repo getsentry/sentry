@@ -28,7 +28,10 @@ import {
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
-import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {
+  useSeerExplorerChatDispatch,
+  useSeerExplorerChatState,
+} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 import {
   useIsSeerExplorerSidebarEnabled,
@@ -52,6 +55,11 @@ type SeerExplorerContextValue = {
    * Persisted sidebar dock preference. Only meaningful in sidebar mode.
    */
   setSidebarPosition: (position: SeerExplorerSidebarPosition) => void;
+  /**
+   * Query to auto-submit into the sidebar content, forwarded from the command
+   * palette. Only meaningful in sidebar mode.
+   */
+  sidebarInitialQuery: string | undefined;
   sidebarPosition: SeerExplorerSidebarPosition;
   toggleSeerExplorer: () => void;
   unreadCount: number;
@@ -64,6 +72,7 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   openSeerExplorer: () => {},
   sessionState: 'inactive',
   setSidebarPosition: () => {},
+  sidebarInitialQuery: undefined,
   sidebarPosition: 'auto',
   toggleSeerExplorer: () => {},
   unreadCount: 0,
@@ -108,6 +117,7 @@ function SyncDrawerWidthFromPip({pipWindow}: {pipWindow: Window}) {
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {runId, chatStates} = useSeerExplorerChatState();
+  const dispatch = useSeerExplorerChatDispatch();
   const [lastViewedAt, setLastViewedAt] = useState<number>(() => Date.now());
 
   const isSidebarMode = useIsSeerExplorerSidebarEnabled();
@@ -124,6 +134,16 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // Sidebar (split-panel) state. Open state is ephemeral — resets on reload,
   // like the drawer; only the dock preference persists.
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isSidebarOpenRef = useRef(isSidebarOpen);
+  useEffect(() => {
+    isSidebarOpenRef.current = isSidebarOpen;
+  }, [isSidebarOpen]);
+  // Query forwarded from the command palette to auto-submit into the persistent
+  // sidebar content (mirrors the drawer's `initialQuery` prop). The content's
+  // own `lastAutoSubmittedQueryRef` guard prevents resubmitting a stale value.
+  const [sidebarInitialQuery, setSidebarInitialQuery] = useState<string | undefined>(
+    undefined
+  );
   const [sidebarPosition, setSidebarPosition] =
     useLocalStorageState<SeerExplorerSidebarPosition>(
       'seer-explorer-sidebar-position',
@@ -166,12 +186,28 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         return;
       }
       if (isSidebarMode) {
+        // Mirror `useSeerExplorerDrawer`'s option handling so deep links
+        // (runId), the command palette (initialQuery), and session switching
+        // behave the same in sidebar mode as in the drawer.
+        const {runId: openRunId, startNewRun, initialQuery} = drawerOptions ?? {};
+        if (initialQuery) {
+          // Always start a fresh session so the query auto-submits into an empty
+          // conversation, even if the sidebar is already open with a run.
+          dispatch({type: 'set run id', payload: null});
+        } else if (isSidebarOpenRef.current) {
+          return;
+        } else if (openRunId !== undefined) {
+          dispatch({type: 'set run id', payload: openRunId});
+        } else if (startNewRun) {
+          dispatch({type: 'set run id', payload: null});
+        }
+        setSidebarInitialQuery(initialQuery);
         setIsSidebarOpen(true);
         return;
       }
       openSeerExplorerDrawer(drawerOptions);
     },
-    [pipWindow, isSidebarMode, openSeerExplorerDrawer]
+    [pipWindow, isSidebarMode, dispatch, openSeerExplorerDrawer]
   );
 
   const closeSeerExplorer = useCallback(() => {
@@ -299,6 +335,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       closeSeerExplorer,
       toggleSeerExplorer,
       sessionState,
+      sidebarInitialQuery,
       sidebarPosition,
       setSidebarPosition,
       unreadCount,
@@ -310,6 +347,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       closeSeerExplorer,
       toggleSeerExplorer,
       sessionState,
+      sidebarInitialQuery,
       sidebarPosition,
       setSidebarPosition,
       unreadCount,

@@ -5,7 +5,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import * as useDimensionsModule from 'sentry/utils/useDimensions';
+import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -56,16 +58,19 @@ function mockWideScreen(matches: boolean) {
   }));
 }
 
-function OpenSeerControl() {
+function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
   const {openSeerExplorer} = useSeerExplorerContext();
   return (
-    <button type="button" onClick={() => openSeerExplorer()}>
+    <button type="button" onClick={() => openSeerExplorer(options)}>
       open-seer
     </button>
   );
 }
 
-function renderSidebar(organization: ReturnType<typeof OrganizationFixture>) {
+function renderSidebar(
+  organization: ReturnType<typeof OrganizationFixture>,
+  openOptions?: OpenSeerExplorerDrawerOptions
+) {
   return render(
     <SeerExplorerSessionsProvider>
       <SeerExplorerChatStateProvider>
@@ -75,7 +80,7 @@ function renderSidebar(organization: ReturnType<typeof OrganizationFixture>) {
               <SeerExplorerSidebarLayout>
                 <div>main app content</div>
               </SeerExplorerSidebarLayout>
-              <OpenSeerControl />
+              <OpenSeerControl options={openOptions} />
             </SeerExplorerContextProvider>
           </GlobalDrawer>
         </PictureInPictureProvider>
@@ -188,9 +193,41 @@ describe('SeerExplorerSidebarLayout', () => {
       await screen.findByRole('menuitemradio', {name: 'Right'}, {timeout: 5000})
     );
 
-    expect(dividerDirection()).toBe('leftright');
+    await waitFor(() => expect(dividerDirection()).toBe('leftright'));
     await waitFor(() =>
       expect(localStorage.getItem(POSITION_KEY)).toBe(JSON.stringify('right'))
+    );
+  });
+
+  it('switches to the run when opened with a runId (deep link / session picker)', async () => {
+    mockWideScreen(true);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithSidebar.slug}/seer/explorer-chat/99/`,
+      method: 'GET',
+      body: {session: {blocks: []}},
+    });
+    renderSidebar(orgWithSidebar, {runId: 99});
+
+    await userEvent.click(screen.getByText('open-seer'));
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(sessionStorageWrapper.getItem('seer-explorer-run-id')).toBe('99')
+    );
+  });
+
+  it('auto-submits an initialQuery when opened (command palette)', async () => {
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar, {initialQuery: 'find the bug'});
+
+    await userEvent.click(screen.getByText('open-seer'));
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(defaultHookReturn.sendMessage).toHaveBeenCalledWith(
+        'find the bug',
+        expect.any(Number)
+      )
     );
   });
 
