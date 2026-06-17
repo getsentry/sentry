@@ -72,4 +72,4 @@ def set_span_data(span: Span | StreamedSpan, key: str, value: Any) -> None:
     if isinstance(span, StreamedSpan):
         span.set_attribute(key, value)
     else:
-        set_span_data(span, key, value)
+        span.set_data(key, value)
