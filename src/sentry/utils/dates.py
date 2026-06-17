@@ -1,7 +1,7 @@
 import logging
 import re
 import zoneinfo
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Any, overload
 
 from dateutil.parser import parse
@@ -215,3 +215,19 @@ def get_timezone_choices() -> list[tuple[str, str]]:
     for item in build_results:
         results.append(item[1:])
     return results
+
+
+def deprecated_utcnow() -> datetime:
+    """
+    Returns a naive UTC timestamp.
+
+    Using this function is wrong and it should be replaced with a timezone aware
+    timestamp. This function exists to replace `utcnow` which is deprecated.
+    `utcnow` logs deprecation notices which are polluting the log stream. This
+    function signals that its obviously deprecated without being annoying for people
+    trying to debug things other than timezone issue.
+
+    If you see this function being called in your code please replace it with a timezone
+    aware datetime.
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)

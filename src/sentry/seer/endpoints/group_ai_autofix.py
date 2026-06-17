@@ -10,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -42,7 +43,10 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
     UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
+    Feedback,
     NoSeerQuotaException,
+    PrIterationNoPullRequestException,
+    PrIterationNotEnabledException,
     get_autofix_agent_state,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -65,6 +69,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +99,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "root_cause",
             "solution",
             "code_changes",
+            "pr_iteration",
             "open_pr",
             "coding_agent_handoff",
         ],
@@ -295,9 +301,42 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             }
             return Response(open_pr_body, status=status.HTTP_202_ACCEPTED)
 
+        if step == "pr_iteration":
+            if resolved_run_id is None:
+                return Response(
+                    {"detail": "run_id is required for pr_iteration"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         # Handle all built-in Seer steps. A missing run_id means this call starts a new
         # autofix run (the kickoff); a provided run_id is advancing an existing run.
         is_autofix_kickoff = resolved_run_id is None
+        user_context = data.get("user_context")
+        feedback = None
+        if (
+            step == "pr_iteration"
+            and user_context is not None
+            and request.user
+            and request.user.is_authenticated
+        ):
+            # Serialize the user here on write so the read path (GET) doesn't have
+            # to hydrate it from the stored user_id on every fetch. Serialize as
+            # an anonymous viewer (no ``as_user``) so the result is the public
+            # user representation rather than the self representation, which would
+            # leak the user's full email list, options, and flags. This payload is
+            # embedded in Seer prompt metadata and readable by any org member with
+            # group-read access.
+            serialized_users = user_service.serialize_many(
+                filter={"user_ids": [request.user.id]},
+            )
+            feedback = Feedback(
+                message=user_context,
+                source={
+                    "type": "user-ui",
+                    "user_id": request.user.id,
+                    "user": serialized_users[0] if serialized_users else None,
+                },
+            )
         try:
             run_id = trigger_autofix_agent(
                 group=group,
@@ -305,8 +344,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=resolved_run_id,
-                user_context=data.get("user_context"),
+                user_context=user_context,
                 insert_index=data.get("insert_index"),
+                feedback=feedback,
             )
             if is_autofix_kickoff:
                 # Record the trigger action only on kickoff, not on each subsequent
@@ -315,8 +355,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     TriggerAutofixAction(),
                     source=resolve_action_source(request),
                     group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
+                    project=group.project,
                     actor=resolve_action_actor(request),
                 )
                 # Kickoff returns only the numeric id; fetch the mirror for its UUID.
@@ -334,6 +373,16 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
         except NoSeerQuotaException:
             return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
+        except PrIterationNotEnabledException:
+            return Response(
+                {"detail": "PR iteration is not enabled for this organization"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except PrIterationNoPullRequestException:
+            return Response(
+                {"detail": "Cannot iterate on a PR before one has been created"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except SeerPermissionError as e:
             if _is_unknown_run_id_error(e):
                 return Response(status=status.HTTP_404_NOT_FOUND)
@@ -383,21 +432,24 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     coding_agents=state.coding_agents,
                     user_id=request.user.id,
                     organization_id=group.organization.id,
+                    run_id=state.run_id,
                 )
             if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
                 poll_claude_code_agents(
                     coding_agents=state.coding_agents,
                     organization_id=group.organization.id,
+                    run_id=state.run_id,
                 )
 
         run = get_seer_run(state.run_id, group.organization)
+        blocks = [block.dict() for block in state.blocks]
         return Response(
             {
                 "autofix": {
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
                     "status": state.status,
-                    "blocks": [block.dict() for block in state.blocks],
+                    "blocks": blocks,
                     "updated_at": state.updated_at,
                     "pending_user_input": (
                         state.pending_user_input.dict() if state.pending_user_input else None
@@ -408,6 +460,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     "coding_agents": {
                         agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
+                    "pr_iteration_enabled": features.has(
+                        "organizations:autofix-pr-iteration", group.organization
+                    ),
                 }
             }
         )

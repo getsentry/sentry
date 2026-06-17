@@ -1,5 +1,5 @@
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.contrib.postgres.fields.array import ArrayField
@@ -24,11 +24,11 @@ class ExpiredGrantError(Exception):
     pass
 
 
-def default_expiration():
+def default_expiration() -> datetime:
     return timezone.now() + DEFAULT_EXPIRATION
 
 
-def generate_code():
+def generate_code() -> str:
     return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
 
 
@@ -97,22 +97,22 @@ class ApiGrant(Model):
             f"api_grant_id={self.id}, user_id={self.user.id}, application_id={self.application.id}"
         )
 
-    def get_scopes(self):
+    def get_scopes(self) -> list[str]:
         if self.scope_list:
             return self.scope_list
         return [k for k, v in self.scopes.items() if v]
 
-    def has_scope(self, scope):
+    def has_scope(self, scope: str) -> bool:
         return scope in self.get_scopes()
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         return timezone.now() >= self.expires_at
 
-    def redirect_uri_allowed(self, uri):
+    def redirect_uri_allowed(self, uri: str) -> bool:
         return uri == self.redirect_uri
 
     @classmethod
-    def get_lock_key(cls, grant_id) -> str:
+    def get_lock_key(cls, grant_id: int) -> str:
         return f"api_grant:{grant_id}"
 
     @classmethod
