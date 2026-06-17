@@ -780,6 +780,61 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             "organizations:seer-gitlab-support",
         }
     )
+    def test_open_with_gitlab_space_utc_timestamp_enqueues(self) -> None:
+        # GitLab serializes merge_request object_attributes timestamps as the
+        # Rails "Time#to_s" default -- e.g. "2026-01-16 05:56:22 UTC" (space
+        # separator, textual "UTC" suffix) -- per the documented payload at
+        # https://docs.gitlab.com/user/project/integrations/webhook_events/.
+        # That form is NOT ISO 8601, so SeerCodeReviewConfig.trigger_at (a
+        # Pydantic v1 datetime) rejects it with value_error.datetime and the
+        # whole review is silently dropped in _schedule_task. The shared fixture
+        # happens to use ISO 8601, so this case is exercised explicitly here.
+        self._setup_code_review()
+        event = _make_event(
+            "open",
+            created_at="2026-01-16 05:56:22 UTC",
+            updated_at="2026-01-16 05:56:25 UTC",
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        payload = self.mock_seer.call_args[1]["payload"]
+        # updated_at wins over created_at and is normalized to ISO 8601 (UTC).
+        assert payload["data"]["config"]["trigger_at"] == "2026-01-16T05:56:25+00:00"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_open_with_iso8601_timestamp_still_enqueues(self) -> None:
+        # Some GitLab versions/editions emit ISO 8601 for MR events. dateutil
+        # normalization must remain a strict superset and not regress that path.
+        self._setup_code_review()
+        event = _make_event(
+            "open",
+            created_at="2017-09-20T08:31:45.944Z",
+            updated_at="2017-09-28T12:23:42.365Z",
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        payload = self.mock_seer.call_args[1]["payload"]
+        assert payload["data"]["config"]["trigger_at"] == "2017-09-28T12:23:42.365000+00:00"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
     def test_duplicate_delivery_within_window_skipped(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
