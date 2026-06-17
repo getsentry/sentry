@@ -275,7 +275,7 @@ class PrMetricsEmissionTest(TestCase):
     def test_is_pr_tracked_requires_a_valid_attribution(self) -> None:
         assert is_pr_tracked(self.pull_request) is False
         self._track(
-            PullRequestAttributionSignalType.REFERENCED_ISSUE,
+            PullRequestAttributionSignalType.SENTRY_APP,
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             is_valid=False,
         )
@@ -320,7 +320,7 @@ class PrMetricsEmissionTest(TestCase):
     def test_active_attributions_only_includes_valid_signals(self) -> None:
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
         self._track(
-            PullRequestAttributionSignalType.REFERENCED_ISSUE,
+            PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             is_valid=False,
         )
@@ -329,7 +329,7 @@ class PrMetricsEmissionTest(TestCase):
     def test_active_attributions_ordered_by_priority_with_source_and_details(self) -> None:
         # Lower-confidence signal recorded first, but ordered second.
         self._track(
-            PullRequestAttributionSignalType.REFERENCED_ISSUE,
+            PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             signal_details={"group_ids": [7]},
         )
@@ -337,7 +337,7 @@ class PrMetricsEmissionTest(TestCase):
         assert active_attributions(self.pull_request) == [
             SENTRY_APP_ATTRIBUTION,
             {
-                "signal_type": "referenced_issue",
+                "signal_type": "seer_delegated:claude_code",
                 "source": "webhook_data",
                 "signal_details": {"group_ids": [7]},
             },
