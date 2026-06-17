@@ -416,7 +416,7 @@ class TraceItemAttributeContext(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project", null=True)
 
     # The attribute this context is for, e.g. "http.method".
-    attribute_key = models.CharField(max_length=200)
+    attribute_key = models.CharField()
     item_type = BoundedPositiveIntegerField(choices=TraceItemTypes.as_choices())
     attribute_type = BoundedPositiveIntegerField(choices=TraceItemAttributeTypes.as_choices())
 
