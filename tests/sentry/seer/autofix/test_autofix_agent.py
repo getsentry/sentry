@@ -725,7 +725,7 @@ class TestTriggerAutofixAgent(TestCase):
             branch_name=branch_name,
         )
 
-    @patch("sentry.seer.autofix.autofix_agent.scm_factory.new")
+    @patch("sentry.scm.factory.new")
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
@@ -756,7 +756,7 @@ class TestTriggerAutofixAgent(TestCase):
             "owner/repo": {"base_sha": "abc123", "base_branch": "main"}
         }
 
-    @patch("sentry.seer.autofix.autofix_agent.scm_factory.new")
+    @patch("sentry.scm.factory.new")
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
@@ -780,7 +780,7 @@ class TestTriggerAutofixAgent(TestCase):
         assert "base_shas" not in prompt_metadata
         mock_scm_new.assert_not_called()
 
-    @patch("sentry.seer.autofix.autofix_agent.scm_factory.new")
+    @patch("sentry.scm.factory.new")
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
@@ -834,7 +834,7 @@ class TestBuildBaseShasMetadata(TestCase):
     def test_returns_none_without_repos(self) -> None:
         assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
 
-    @patch("sentry.seer.autofix.autofix_agent.scm_factory.new")
+    @patch("sentry.scm.factory.new")
     def test_builds_base_shas_using_default_branch(self, mock_scm_new):
         self._make_repo_and_projectrepo()
         mock_scm = MagicMock()
@@ -847,7 +847,7 @@ class TestBuildBaseShasMetadata(TestCase):
         assert json.loads(result) == {"owner/repo": {"base_sha": "deadbeef", "base_branch": "main"}}
         mock_scm.get_branch.assert_called_once_with("main")
 
-    @patch("sentry.seer.autofix.autofix_agent.scm_factory.new")
+    @patch("sentry.scm.factory.new")
     def test_uses_branch_name_override(self, mock_scm_new):
         self._make_repo_and_projectrepo(branch_name="release/v2")
         mock_scm = MagicMock()
@@ -863,7 +863,7 @@ class TestBuildBaseShasMetadata(TestCase):
         mock_scm.get_branch.assert_called_once_with("release/v2")
 
     @patch("sentry.seer.autofix.autofix_agent.logger")
-    @patch("sentry.seer.autofix.autofix_agent.scm_factory.new")
+    @patch("sentry.scm.factory.new")
     def test_skips_repo_when_scm_raises(self, mock_scm_new, mock_logger):
         self._make_repo_and_projectrepo()
         mock_scm_new.side_effect = Exception("boom")
@@ -871,7 +871,7 @@ class TestBuildBaseShasMetadata(TestCase):
         assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
         mock_logger.exception.assert_called_once()
 
-    @patch("sentry.seer.autofix.autofix_agent.scm_factory.new")
+    @patch("sentry.scm.factory.new")
     def test_skips_repo_without_resolvable_branch(self, mock_scm_new):
         self._make_repo_and_projectrepo()
         mock_scm = MagicMock()
@@ -881,7 +881,7 @@ class TestBuildBaseShasMetadata(TestCase):
         assert _build_base_shas_metadata(self.group, AutofixReferrer.UNKNOWN) is None
         mock_scm.get_branch.assert_not_called()
 
-    @patch("sentry.seer.autofix.autofix_agent.scm_factory.new")
+    @patch("sentry.scm.factory.new")
     def test_includes_only_repos_with_resolved_sha(self, mock_scm_new):
         self._make_repo_and_projectrepo(name="repo-ok", external_id="1")
         self._make_repo_and_projectrepo(name="repo-bad", external_id="2")
