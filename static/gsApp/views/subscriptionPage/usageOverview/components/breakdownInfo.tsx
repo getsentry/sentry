@@ -24,7 +24,6 @@ import {
   formatReservedWithUnits,
   getSoftCapType,
   hasPaygBudgetForCategory,
-  isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {calculateSeerUserSpend} from 'getsentry/utils/dataCategory';
@@ -289,7 +288,7 @@ function ReservedBudgetUsageBreakdownInfo({
       plan.onDemandCategories.includes(category) &&
       hasPaygBudgetForCategory(subscription, category)
   );
-  const onTrialOrSponsored = isTrialPlan(subscription.plan) || subscription.isSponsored;
+  const onTrialOrSponsored = subscription.onTrialPlan || subscription.isSponsored;
 
   const platformReservedField = onTrialOrSponsored
     ? tct('[planName] plan', {planName: plan.name})

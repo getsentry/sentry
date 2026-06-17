@@ -14,7 +14,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.seer.constants import SeerSCMProvider
-from sentry.seer.sentry_data_models import IssueDetails
+from sentry.seer.sentry_data_models import EmptyResponse, IssueDetails
 from sentry.seer.utils import filter_repo_by_provider
 
 logger = logging.getLogger(__name__)
@@ -162,13 +162,14 @@ def _group_by_short_id(short_id: str, organization_id: int) -> Group | None:
         return None
 
 
-def get_latest_issue_event(group_id: int | str, organization_id: int) -> IssueDetails | None:
+def get_latest_issue_event(
+    group_id: int | str, organization_id: int
+) -> IssueDetails | EmptyResponse:
     """
     Get an issue's latest event as an IssueDetails model.
 
-    Returns None when the group / event isn't found. Previously returned `{}`
-    on the not-found path — callers checked `if not response`, which behaves
-    identically for `{}` and `None`.
+    Returns `EmptyResponse` when the group / event isn't found. This serializes
+    to `{}` via `.dict()`, matching the pre-Pydantic wire shape byte-for-byte.
     """
     if isinstance(group_id, str) and not group_id.isdigit():
         group = _group_by_short_id(group_id, organization_id)
@@ -181,7 +182,7 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> IssueDe
         logger.warning(
             "Group not found", extra={"group_id": group_id, "organization_id": organization_id}
         )
-        return None
+        return EmptyResponse()
 
     if group.organization.id != organization_id:
         logger.warning(
@@ -192,7 +193,7 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> IssueDe
                 "actual_organization_id": group.organization.id,
             },
         )
-        return None
+        return EmptyResponse()
 
     event = group.get_latest_event()
     if not event:
@@ -200,7 +201,7 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> IssueDe
             "No event found",
             extra={"group_id": group_id},
         )
-        return None
+        return EmptyResponse()
 
     serialized_event = serialize(event, user=None, serializer=EventSerializer())
     return IssueDetails(

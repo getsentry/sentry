@@ -1,5 +1,5 @@
-import {Fragment, useMemo} from 'react';
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import {Fragment, useCallback} from 'react';
+import {useInfiniteQuery, useQuery, type InfiniteData} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -15,13 +15,12 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {useFetchAllPages, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSelectProjectOptions';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
@@ -31,11 +30,15 @@ import {
   orgDefaultAgentQueryOptions,
   seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
   useOrgDefaultStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
-import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
+import type {
+  AutofixAgentSelectOption,
+  SeerProjectSettingResponse,
+} from 'sentry/utils/seer/types';
 import {
   AutofixSettingsPartialSaveError,
   useMutateAutofixProject,
@@ -60,8 +63,11 @@ export function ProjectAddRepoModal({
   const projectsById = useProjectsById();
   const repositoriesById = useRepositoriesById();
 
-  const unconfiguredProjects = useUnconfiguredProjects();
-  const projectOptions = useCompactSelectProjectOptions({projects: unconfiguredProjects});
+  const {projects} = useProjects();
+  const unconfiguredProjects = useUnconfiguredProjects({projects});
+  const projectOptions = useCompactSelectProjectOptions({
+    projects: unconfiguredProjects.data ?? projects,
+  });
   const repositoryOptions = useCompactSelectRepositoryOptions();
   const {data: agentOptions = []} = useQuery(
     seerAgentIntegrationsSelectQueryOptions({organization})
@@ -376,31 +382,30 @@ export function ProjectAddRepoModal({
   );
 }
 
-function useUnconfiguredProjects() {
+function useUnconfiguredProjects({projects}: {projects: Project[]}) {
   const organization = useOrganization();
-  const {projects} = useProjects();
-
-  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
-    organization,
-  });
   const result = useInfiniteQuery({
-    ...autofixSettingsQueryOptions,
-    select: ({pages}) =>
-      Array.from(
-        new Set(
-          pages
-            .flatMap(page => page.json)
-            .filter(setting => setting.reposCount > 0)
-            .map(setting => String(setting.projectId))
-        )
-      ),
+    ...getInfiniteSeerProjectsSettingsQueryOptions({
+      organization,
+      query: {
+        per_page: 100,
+      },
+    }),
+    select: useCallback(
+      ({pages}: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>>) => {
+        const configuredProjects = Array.from(
+          new Set(
+            pages
+              .flatMap(page => page.json)
+              .filter(setting => setting.reposCount > 0)
+              .map(setting => String(setting.projectId))
+          )
+        );
+        return projects.filter(p => !configuredProjects.includes(String(p.id)));
+      },
+      [projects]
+    ),
   });
   useFetchAllPages({result});
-  const {data: projectsWithRepos, isPending, hasNextPage} = result;
-
-  return useMemo(() => {
-    return isPending || hasNextPage
-      ? projects
-      : projects.filter(p => !projectsWithRepos?.includes(String(p.id)));
-  }, [projects, projectsWithRepos, isPending, hasNextPage]);
+  return result;
 }
