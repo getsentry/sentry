@@ -1,6 +1,5 @@
 from django.conf import settings
 
-from sentry.api.serializers.models.group import get_status_label, get_substatus_label
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -67,6 +66,8 @@ def extract_models(
 
 
 def get_issue_description(group: Group) -> ParagraphBlock:
+    from sentry.api.serializers.models.group import get_status_label, get_substatus_label
+
     status_text = get_substatus_label(group) or get_status_label(group)
     return ParagraphBlock(
         blocks=[
