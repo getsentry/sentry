@@ -946,7 +946,7 @@ describe('ProjectSeer', () => {
           expect.anything(),
           expect.objectContaining({
             data: expect.objectContaining({
-              autoCreatePr: true,
+              stoppingPoint: 'open_pr',
             }),
           })
         );
