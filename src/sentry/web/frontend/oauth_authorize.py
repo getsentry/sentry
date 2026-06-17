@@ -609,6 +609,7 @@ class OAuthAuthorizeView(AuthLoginView):
                     "state": state,
                 },
             )
+            assert token.expires_at, "expires_at is required"
 
             return self.redirect_response(
                 response_type,

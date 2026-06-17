@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from django.utils import timezone
 from pydantic import BaseModel
@@ -71,6 +71,13 @@ class UserUIFeedbackSource(TypedDict):
     # use the same stable key (`user_id`) that `GroupSeen` uses to track which
     # users have viewed an issue.
     user_id: int
+    # The publicly serialized user, resolved at write time so the read path
+    # doesn't have to hydrate it. ``None`` if the user could not be serialized.
+    # This is serialized as an anonymous viewer (never as the requester) so the
+    # payload never includes the user's full email list, options, or flags: it
+    # is embedded in Seer prompt metadata and round-tripped back to any org
+    # member with group-read access.
+    user: NotRequired[Any]
 
 
 # Discriminated on ``type``. Add new TypedDict variants to this union as more
@@ -84,6 +91,14 @@ class Feedback(BaseModel):
 
 
 class NoSeerQuotaException(Exception):
+    pass
+
+
+class PrIterationNoPullRequestException(Exception):
+    pass
+
+
+class PrIterationNotEnabledException(Exception):
     pass
 
 
@@ -231,7 +246,14 @@ def get_latest_iteration_index(state: SeerRunState) -> int:
     for block in reversed(state.blocks):
         metadata = block.message.metadata or {}
         if metadata.get("step") == AutofixStep.PR_ITERATION.value:
-            return int(metadata["iteration_index"])
+            iteration_index = metadata.get("iteration_index")
+            if iteration_index is None:
+                logger.error(
+                    "autofix.get_latest_iteration_index.missing_iteration_index",
+                    extra={"run_id": state.run_id},
+                )
+                return 0
+            return int(iteration_index)
     return 0
 
 
@@ -239,27 +261,6 @@ def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> in
     block = state.blocks[insert_index]
     metadata = block.message.metadata or {}
     return int(metadata["iteration_index"])
-
-
-def recover_iteration_feedback(state: SeerRunState, insert_index: int) -> str | None:
-    """
-    Recover the user feedback that originally triggered a PR iteration.
-
-    When a PR iteration is retried, the frontend truncates the run at the
-    iteration's first block (``insert_index``). That block carries the original
-    feedback in its metadata, so we reuse it to retry with the same feedback
-    rather than dropping it.
-    """
-    if insert_index < 0 or insert_index >= len(state.blocks):
-        return None
-    metadata = state.blocks[insert_index].message.metadata
-    if metadata is None:
-        return None
-    raw = metadata.get("feedback")
-    if raw is None:
-        return None
-    # Feedback is stored as a JSON object (``{"text", "username", "timestamp"}``).
-    return json.loads(raw).get("text")
 
 
 def get_autofix_agent_client(
@@ -286,6 +287,11 @@ def get_autofix_agent_client(
         enable_coding=enable_coding,
         code_review_enabled=code_review_enabled,
     )
+
+
+def get_autofix_run_state(group: Group, run_id: int) -> SeerRunState:
+    client = get_autofix_agent_client(group)
+    return _get_group_run_state(client, group, run_id)
 
 
 def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
@@ -319,10 +325,10 @@ def _default_reasoning_effort(
     return step_default
 
 
-def _code_review_enabled(organization: Organization, enable_coding: bool) -> bool:
-    # The review_code_changes tool only operates on accumulated patches, so it is
-    # only useful on coding-enabled steps.
-    return enable_coding and features.has("organizations:seer-autofix-code-review", organization)
+def _code_review_enabled(organization: Organization) -> bool:
+    # Gated purely on the option: Seer decides where the review_code_changes tool
+    # is actually useful (e.g. only once code edits have accumulated).
+    return features.has("organizations:seer-autofix-code-review", organization)
 
 
 def trigger_autofix_agent(
@@ -378,32 +384,22 @@ def trigger_autofix_agent(
         intelligence_level=resolved_intelligence_level,
         reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
-        code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
+        code_review_enabled=_code_review_enabled(group.organization),
     )
     run_state: SeerRunState | None = None
     if run_id is not None:
         run_state = _get_group_run_state(client, group, run_id)
 
-    if run_state is not None and run_state.metadata:
-        pr_iteration_enabled = run_state.metadata.get("pr_iteration_enabled", pr_iteration_enabled)
-
     iteration_index: int | None = None
-    if step == AutofixStep.PR_ITERATION and run_state is not None:
+    if step == AutofixStep.PR_ITERATION:
+        if not pr_iteration_enabled:
+            raise PrIterationNotEnabledException()
+        if run_state is None or not run_state.repo_pr_states:
+            raise PrIterationNoPullRequestException()
         if insert_index is not None:
             iteration_index = get_iteration_for_insert_index(run_state, insert_index)
         else:
             iteration_index = get_latest_iteration_index(run_state) + 1
-
-    if config.started_event is not None:
-        analytics.record(
-            config.started_event(
-                organization_id=group.organization.id,
-                project_id=group.project_id,
-                group_id=group.id,
-                referrer=referrer.value,
-                iteration_index=iteration_index,
-            )
-        )
 
     prompt = build_step_prompt(step, group, user_context, run_state=run_state)
     prompt_metadata = {
@@ -414,8 +410,7 @@ def trigger_autofix_agent(
     }
     if step == AutofixStep.PR_ITERATION and feedback is not None:
         # Stored as a JSON object so the UI can attribute the feedback to its
-        # source and show when it was submitted. See ``recover_iteration_feedback``
-        # for the read side.
+        # source and show when it was submitted.
         prompt_metadata["feedback"] = json.dumps(
             {
                 "text": feedback.message,
@@ -432,7 +427,6 @@ def trigger_autofix_agent(
         metadata: dict[str, Any] = {
             "group_id": group.id,
             "referrer": referrer.value,
-            "pr_iteration_enabled": pr_iteration_enabled,  # value of the option since we're creating a new one
         }
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
@@ -456,6 +450,20 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             insert_index=insert_index,
+        )
+
+    # Emit the started event after run_id is resolved so it can be joined to
+    # downstream completed/PR events.
+    if config.started_event is not None:
+        analytics.record(
+            config.started_event(
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                referrer=referrer.value,
+                run_id=run_id,
+                iteration_index=iteration_index,
+            )
         )
 
     payload: dict[str, Any] = {
@@ -502,6 +510,7 @@ def trigger_autofix_agent(
                 "step": step.value,
                 "run_id": run_id,
                 "group_id": group.id,
+                "iteration_index": iteration_index,
             },
         )
 
@@ -721,6 +730,7 @@ def trigger_coding_agent_handoff(
             project_id=group.project_id,
             group_id=group.id,
             referrer=referrer.value,
+            run_id=run_id,
             coding_agent=coding_agent_name,
         )
     )
@@ -766,6 +776,7 @@ def trigger_push_changes(
             project_id=group.project_id,
             group_id=group.id,
             referrer=referrer.value,
+            run_id=run_id,
         )
     )
 

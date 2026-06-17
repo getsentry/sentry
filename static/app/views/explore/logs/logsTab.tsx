@@ -51,7 +51,7 @@ import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
-import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwitch';
+import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
@@ -441,7 +441,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               >
                 {sidebarOpen ? null : t('Advanced')}
               </LogsSidebarCollapseButton>
-              <LogsExportSwitch
+              <LogsExportModalButton
                 isLoading={tableData.isPending}
                 tableData={tableData.data}
                 error={tableData.error}

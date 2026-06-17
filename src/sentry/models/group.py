@@ -609,8 +609,7 @@ class GroupManager(BaseManager["Group"]):
                 publish_action_from_context(
                     action_cls(),
                     group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
+                    project=group.project,
                 )
 
             if group.id in updated_priority:
