@@ -624,8 +624,12 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 ("is already a member" in error) for error in serializer.errors["email"]
             ):
                 # we include conflict logic in the serializer, check to see if that was
-                # our error and if so, return a 409 so the scim IDP knows how to handle
-                raise SCIMApiError(detail=SCIM_409_USER_EXISTS, status_code=409)
+                # our error and if so, return a 409 so the scim IDP knows how to handle.
+                # "uniqueness" tells a spec-compliant IdP this is a duplicate so it can
+                # fall back from POST to PATCH/PUT against the existing member.
+                raise SCIMApiError(
+                    detail=SCIM_409_USER_EXISTS, status_code=409, scim_type="uniqueness"
+                )
             if "role" in serializer.errors:
                 # TODO: Change this to an error pointing to a doc showing the workaround if they
                 # tried to provision an org admin
