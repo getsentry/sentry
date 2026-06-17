@@ -300,8 +300,7 @@ def build_attribute_context(
     """
     Build the sentry conventions context for an attribute, if it maps to a known
     convention. Only fields actually present in the conventions metadata are
-    included (e.g. ``last_received`` is intentionally omitted since it does not
-    live in the metadata).
+    included.
 
     A convention may be keyed in ``ATTRIBUTE_METADATA`` by either the public
     alias or the internal name (see
