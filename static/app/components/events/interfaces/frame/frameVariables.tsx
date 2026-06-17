@@ -243,78 +243,121 @@ type VarEntry = {
   value: React.ReactNode;
 };
 
+function toNativeVarEntry(
+  key: string,
+  rawValue: unknown,
+  config: StructedEventDataConfig,
+  meta?: Record<any, any>
+): VarEntry {
+  if (isNativeVarMetadata(rawValue)) {
+    return {
+      key,
+      label: (
+        <Fragment>
+          <Text variant="muted" size="sm" monospace>
+            {rawValue.__type}
+          </Text>{' '}
+          <Text size="sm" monospace bold>
+            {key}
+          </Text>
+        </Fragment>
+      ),
+      value: <NativeVarValue rawValue={rawValue} />,
+    };
+  }
+
+  return {
+    key,
+    label: key,
+    value: (
+      <StructuredEventData
+        config={config}
+        data={rawValue}
+        meta={meta?.[key]}
+        withAnnotatedText
+      />
+    ),
+  };
+}
+
+function VariablesSection({title, entries}: {entries: VarEntry[]; title: string}) {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <SectionTitle>{title}</SectionTitle>
+      <IndentedVariablesGrid>
+        {entries.map(entry => (
+          <Variable key={entry.key}>
+            <VarLabel>{entry.label}</VarLabel>
+            <VarValue>{entry.value}</VarValue>
+          </Variable>
+        ))}
+      </IndentedVariablesGrid>
+    </Fragment>
+  );
+}
+
 export function FrameVariables({data, meta, platform}: Props) {
-  const entries = useMemo<VarEntry[]>(() => {
+  const isNativePlatform = platform !== undefined && NATIVE_PLATFORMS.has(platform);
+
+  const {params, locals} = useMemo(() => {
     const config = getStructuredDataConfig({platform});
-    if (!data) {
+    if (!data || !isNativePlatform) {
+      return {params: [], locals: []};
+    }
+
+    const allEntries = Object.entries(data);
+    return {
+      params: allEntries
+        .filter(([, v]) => isNativeVarMetadata(v) && v.__is_parameter === true)
+        .map(([key, rawValue]) => toNativeVarEntry(key, rawValue, config, meta)),
+      locals: allEntries
+        .filter(([, v]) => !isNativeVarMetadata(v) || v.__is_parameter !== true)
+        .map(([key, rawValue]) => toNativeVarEntry(key, rawValue, config, meta)),
+    };
+  }, [data, meta, platform, isNativePlatform]);
+
+  const genericEntries = useMemo(() => {
+    const config = getStructuredDataConfig({platform});
+    if (!data || isNativePlatform) {
       return [];
     }
 
-    const isNativePlatform = platform !== undefined && NATIVE_PLATFORMS.has(platform);
-
-    if (!isNativePlatform) {
-      return Object.keys(data)
-        .reverse()
-        .map<VarEntry>(key => ({
-          key,
-          label: key,
-          value: (
-            <StructuredEventData
-              config={config}
-              data={data[key]}
-              meta={meta?.[key]}
-              withAnnotatedText
-            />
-          ),
-        }));
-    }
-
-    // Native: parameters first, then locals (preserve declaration order)
-    const allEntries = Object.entries(data);
-    const params = allEntries.filter(
-      ([, v]) => isNativeVarMetadata(v) && v.__is_parameter === true
-    );
-    const locals = allEntries.filter(
-      ([, v]) => !isNativeVarMetadata(v) || v.__is_parameter !== true
-    );
-    const sorted = [...params, ...locals];
-
-    return sorted.map<VarEntry>(([key, rawValue]) => {
-      if (isNativeVarMetadata(rawValue)) {
-        const typeName = rawValue.__type;
-
-        return {
-          key,
-          label: (
-            <Fragment>
-              <Text variant="muted" size="sm" monospace>
-                {typeName}
-              </Text>{' '}
-              <Text size="sm" monospace bold>
-                {key}
-              </Text>
-            </Fragment>
-          ),
-          value: <NativeVarValue rawValue={rawValue} />,
-        };
-      }
-
-      return {
+    return Object.keys(data)
+      .reverse()
+      .map<VarEntry>(key => ({
         key,
         label: key,
         value: (
           <StructuredEventData
             config={config}
-            data={rawValue}
+            data={data[key]}
             meta={meta?.[key]}
             withAnnotatedText
           />
         ),
-      };
-    });
-  }, [data, meta, platform]);
+      }));
+  }, [data, meta, platform, isNativePlatform]);
 
-  if (entries.length === 0) {
+  if (isNativePlatform) {
+    if (params.length === 0 && locals.length === 0) {
+      return null;
+    }
+
+    return (
+      <Wrapper>
+        <StyledClippedBox clipHeight={250}>
+          <VariablesSection title={t('Parameters')} entries={params} />
+          <VariablesSection title={t('Local Variables')} entries={locals} />
+        </StyledClippedBox>
+      </Wrapper>
+    );
+  }
+
+  if (genericEntries.length === 0) {
     return null;
   }
 
@@ -323,7 +366,7 @@ export function FrameVariables({data, meta, platform}: Props) {
       <StyledClippedBox clipHeight={250}>
         <VariablesTitle>{t('Variables')}</VariablesTitle>
         <VariablesGrid>
-          {entries.map(entry => (
+          {genericEntries.map(entry => (
             <Variable key={entry.key}>
               <VarLabel>{entry.label}</VarLabel>
               <VarValue>{entry.value}</VarValue>
@@ -353,10 +396,18 @@ const VariablesTitle = styled('div')`
   padding: ${p => p.theme.space.md} 0;
 `;
 
+const SectionTitle = styled('div')`
+  padding: ${p => p.theme.space.md} 0;
+`;
+
 const VariablesGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${p => p.theme.space.md};
+`;
+
+const IndentedVariablesGrid = styled(VariablesGrid)`
+  padding-left: ${p => p.theme.space.lg};
 `;
 
 const Variable = styled('div')`
