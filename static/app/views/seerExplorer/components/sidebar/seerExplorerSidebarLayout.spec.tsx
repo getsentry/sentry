@@ -191,8 +191,13 @@ describe('SeerExplorerSidebarLayout', () => {
     mockWideScreen(false); // auto → bottom
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
-    await screen.findByTestId('seer-explorer-input');
+    const input = await screen.findByTestId('seer-explorer-input');
     expect(dividerDirection()).toBe('updown');
+
+    // The content auto-focuses the textarea ~100ms after opening. Wait for that
+    // to settle first — otherwise it can steal focus from (and close) the dock
+    // menu mid-interaction, dropping the selection.
+    await waitFor(() => expect(input).toHaveFocus());
 
     await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Right'}));
