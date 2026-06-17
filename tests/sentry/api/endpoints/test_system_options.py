@@ -4,6 +4,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import options
+from sentry.options.manager import FLAG_CREDENTIAL
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -28,7 +29,7 @@ class SystemOptionsTest(APITestCase):
         self.login_as(user=self.user, superuser=True)
         response = self.client.get(self.url)
         assert response.status_code == 200
-        assert response.data["github-login.client-secret"]["value"] == "[redacted]"
+        assert response.data["system.secret-key"]["value"] == "[redacted]"
 
     def test_bad_query(self) -> None:
         self.login_as(user=self.user, superuser=True)
@@ -153,15 +154,24 @@ class SystemOptionsTest(APITestCase):
     def test_put_redacts_credential_option_value_in_log(self, mock_logger: MagicMock) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
-        response = self.client.put(self.url, {"github-app.webhook-secret": "super-secret-value"})
-        assert response.status_code == 200
-        assert options.get("github-app.webhook-secret") == "super-secret-value"
 
-        mock_logger.info.assert_called_once()
-        args, kwargs = mock_logger.info.call_args
-        assert args[0] == "options.update"
-        assert kwargs["extra"]["option_key"] == "github-app.webhook-secret"
-        assert kwargs["extra"]["option_value"] == "[redacted]"
+        options.default_manager.register(
+            "test.migration-credential", default="", flags=FLAG_CREDENTIAL
+        )
+        try:
+            response = self.client.put(
+                self.url, {"test.migration-credential": "super-secret-value"}
+            )
+            assert response.status_code == 200
+            assert options.get("test.migration-credential") == "super-secret-value"
+
+            mock_logger.info.assert_called_once()
+            args, kwargs = mock_logger.info.call_args
+            assert args[0] == "options.update"
+            assert kwargs["extra"]["option_key"] == "test.migration-credential"
+            assert kwargs["extra"]["option_value"] == "[redacted]"
+        finally:
+            options.default_manager.unregister("test.migration-credential")
 
     @patch("sentry.api.endpoints.system_options.logger")
     def test_put_does_not_redact_non_secret_option(self, mock_logger: MagicMock) -> None:
