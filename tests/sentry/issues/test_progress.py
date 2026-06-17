@@ -131,6 +131,60 @@ class GetGroupProgressStatesTest(TestCase):
         result = get_group_progress_states([group.id])
         assert result[group.id] == IssueProgressState.DIAGNOSED
 
+    def test_unresolve_resets_progress(self) -> None:
+        group = self.create_group()
+        now = timezone.now()
+        self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=now - timedelta(hours=2),
+        )
+        self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_UNRESOLVED.value,
+            datetime=now - timedelta(hours=1),
+        )
+        result = get_group_progress_states([group.id])
+        assert result[group.id] == IssueProgressState.IDENTIFIED
+
+    def test_unresolve_resets_to_triaged_when_assigned(self) -> None:
+        group = self.create_group()
+        GroupAssignee.objects.assign(group, self.user)
+        now = timezone.now()
+        self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=now - timedelta(hours=2),
+        )
+        self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_UNRESOLVED.value,
+            datetime=now - timedelta(hours=1),
+        )
+        result = get_group_progress_states([group.id])
+        assert result[group.id] == IssueProgressState.TRIAGED
+
+    def test_activity_after_unresolve_counts(self) -> None:
+        group = self.create_group()
+        now = timezone.now()
+        self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=now - timedelta(hours=3),
+        )
+        self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_UNRESOLVED.value,
+            datetime=now - timedelta(hours=2),
+        )
+        self.create_group_activity(
+            group=group,
+            type=ActivityType.SEER_RCA_COMPLETED.value,
+            datetime=now - timedelta(hours=1),
+        )
+        result = get_group_progress_states([group.id])
+        assert result[group.id] == IssueProgressState.DIAGNOSED
+
     def test_bulk_multiple_groups(self) -> None:
         group1 = self.create_group()
         group2 = self.create_group()

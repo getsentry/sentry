@@ -92,8 +92,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             CommentAction(comment_id=activity.id),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=group.organization.id,
-            project_id=group.project_id,
+            project=group.project,
             actor=GroupActionActor.user(request.user.id),
         )
 
