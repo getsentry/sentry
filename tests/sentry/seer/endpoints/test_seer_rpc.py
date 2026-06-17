@@ -38,6 +38,7 @@ from sentry.seer.endpoints.seer_rpc import (
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
+    PrAttributionResponse,
     SendSeerWebhookSuccessResponse,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -1830,7 +1831,7 @@ class TestRecordPrAttribution(APITestCase):
 
     _DEFAULT_PR_URL = "https://github.com/getsentry/sentry/pull/99"
 
-    def _call(self, **overrides: Any) -> dict[str, Any]:
+    def _call(self, **overrides: Any) -> PrAttributionResponse:
         kwargs: dict[str, Any] = {
             "organization_id": self.organization.id,
             "pull_request_id": self.pr.id,
@@ -1846,7 +1847,7 @@ class TestRecordPrAttribution(APITestCase):
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.signal_type == PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE
         assert attr.is_valid is True
-        assert result == {"attribution_id": attr.id}
+        assert result.attribution_id == attr.id
 
     def test_stores_typed_signal_details_for_delegated_signals(self) -> None:
         self._call(

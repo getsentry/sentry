@@ -162,7 +162,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
-        operation_id="Fetch a Monitor",
+        operation_id="getOrganizationDetector",
+        summary="Fetch a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
@@ -192,7 +193,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return Response(serialized_detector)
 
     @extend_schema(
-        operation_id="Update a Monitor by ID",
+        operation_id="updateOrganizationDetector",
+        summary="Update a Monitor by ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,
@@ -232,7 +234,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         return Response(body, status=status.HTTP_200_OK)
 
     @extend_schema(
-        operation_id="Delete a Monitor",
+        operation_id="deleteOrganizationDetector",
+        summary="Delete a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorParams.DETECTOR_ID,

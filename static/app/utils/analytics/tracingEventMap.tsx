@@ -110,12 +110,16 @@ export type TracingEventParameters = {
     has_logs_details: boolean;
     has_profile_details: boolean;
   };
+  'trace.trace_drawer_details.gen_ai_span_details_viewed': {
+    operation_type: string;
+  };
   'trace.trace_drawer_explore_search': {
     key: string;
     kind: TraceDrawerActionKind;
     source: 'drawer' | 'toolbar_menu';
     value: string | number;
   };
+  'trace.trace_layout.ai_tab_clicked': Record<string, unknown>;
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -168,6 +172,11 @@ export type TracingEventParameters = {
   'trace_explorer.compare_queries': Record<string, unknown>;
   'trace_explorer.delete_query': Record<string, unknown>;
   'trace_explorer.open_in_issues': Record<string, unknown>;
+  'trace_explorer.open_saved_query': {
+    is_prebuilt: boolean;
+    query_name: string;
+    dataset?: string;
+  };
   'trace_explorer.open_trace': {
     source: 'trace explorer' | 'new explore';
   };
@@ -230,6 +239,9 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',
   'trace.trace_drawer_details.eap_span_has_details': 'EAP Span has Details',
+  'trace.trace_drawer_details.gen_ai_span_details_viewed':
+    'Viewed Gen AI Span Details in Trace',
+  'trace.trace_layout.ai_tab_clicked': 'Clicked AI Tab in Trace',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',
@@ -266,6 +278,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.span_row_click': 'Clicked Span Row in Trace',
   'trace_explorer.add_span_condition': 'Trace Explorer: Add Another Span',
   'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
+  'trace_explorer.open_saved_query': 'Trace Explorer: Open Saved Query',
   'trace_explorer.open_trace': 'Trace Explorer: Open Trace in Trace Viewer',
   'trace_explorer.open_trace_span': 'Trace Explorer: Open Trace Span in Trace Viewer',
   'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span',

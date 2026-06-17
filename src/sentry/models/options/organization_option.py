@@ -73,6 +73,16 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
 
         return self._option_cache.get(cache_key, {})
 
+    def reload_task_local_cache(self, organization_id: int) -> None:
+        cache_key = self._make_key(organization_id)
+
+        # Reload the local cache with what's in the shared cache.  If the shared cache is
+        # not populated, then subsequent accesses (via get_all_values) will re-generate the
+        # value with an actual query.
+        result = cache.get(cache_key)
+        if result is None and cache_key in self._option_cache:
+            del self._option_cache[cache_key]
+
     def reload_cache(self, organization_id: int, update_reason: str) -> Mapping[str, Any]:
         from sentry.tasks.relay import schedule_invalidate_project_config
 

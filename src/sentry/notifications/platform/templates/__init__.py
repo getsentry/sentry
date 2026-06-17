@@ -14,3 +14,4 @@ __all__ = (
 # See sentry/notifications/apps.py
 
 from .sample import *  # noqa: F401,F403
+from .workflow_engine import *  # noqa: F401,F403

@@ -4,7 +4,6 @@ import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
@@ -127,7 +126,6 @@ describe('Subscription > Overview', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
-      planTier: PlanTier.AM1,
       organization: billingOrg,
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
@@ -153,7 +151,6 @@ describe('Subscription > Overview', () => {
     });
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
-      planTier: PlanTier.AM1,
       organization: billingOrg,
       canSelfServe: false,
     });

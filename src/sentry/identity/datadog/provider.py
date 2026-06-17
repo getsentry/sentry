@@ -68,6 +68,12 @@ class DatadogIdentityProvider(Provider):
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return []
 
+    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
+        site = identity_data.get("site")
+        if not site or site not in DATADOG_VALID_SITES:
+            return None
+        return f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
+
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
         access_token = data.get("access_token")
         if not access_token:

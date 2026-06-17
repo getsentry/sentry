@@ -21,7 +21,6 @@ describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});
   const subscription = SubscriptionFixture({
     organization: mockOrg,
-    planTier: PlanTier.AM3,
     plan: 'am3_business',
     billingInterval: 'monthly',
     contractInterval: 'monthly',
@@ -264,7 +263,6 @@ describe('ChangePlanAction', () => {
       // Create subscription with Seer budget
       const subscriptionWithSeer = SubscriptionWithLegacySeerFixture({
         organization: mockOrg,
-        planTier: PlanTier.AM3,
         plan: 'am3_business',
       });
 

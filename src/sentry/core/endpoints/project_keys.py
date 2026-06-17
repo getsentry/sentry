@@ -50,7 +50,8 @@ class ProjectKeysEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Project's Client Keys",
+        operation_id="listProjectKeys",
+        summary="List a Project's Client Keys",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -90,7 +91,8 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a New Client Key",
+        operation_id="createProjectKey",
+        summary="Create a New Client Key",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

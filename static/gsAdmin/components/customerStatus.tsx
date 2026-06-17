@@ -12,10 +12,10 @@ type Props = {
 
 const getLabel = (item: Subscription) => {
   if (item.isEnterpriseTrial) {
-    return `Trialing (${item.trialTier} enterprise)`;
+    return `Trialing (${item.trialPlan} enterprise)`;
   }
   if (item.isTrial) {
-    return `Trialing (${item.trialTier})`;
+    return `Trialing (${item.trialPlan})`;
   }
   if (item.isFree) {
     return 'Free Account';
