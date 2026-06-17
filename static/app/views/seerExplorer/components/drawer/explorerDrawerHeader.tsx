@@ -131,32 +131,29 @@ export function ExplorerDrawerHeader({
     [onCopySessionClick, onCopyLinkClick]
   );
 
-  const positionMenuItems: MenuItemProps[] = useMemo(
-    () => [
-      {
-        key: 'auto',
-        label: t('Auto'),
-        leadingItems: <IconPanel />,
-        trailingItems: sidebarPosition === 'auto' ? <IconCheckmark size="sm" /> : null,
-        onAction: () => onSidebarPositionChange?.('auto'),
-      },
-      {
-        key: 'right',
-        label: t('Right'),
-        leadingItems: <IconPanel direction="right" />,
-        trailingItems: sidebarPosition === 'right' ? <IconCheckmark size="sm" /> : null,
-        onAction: () => onSidebarPositionChange?.('right'),
-      },
-      {
-        key: 'bottom',
-        label: t('Bottom'),
-        leadingItems: <IconPanel direction="down" />,
-        trailingItems: sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
-        onAction: () => onSidebarPositionChange?.('bottom'),
-      },
-    ],
-    [sidebarPosition, onSidebarPositionChange]
-  );
+  const positionMenuItems: MenuItemProps[] = [
+    {
+      key: 'auto',
+      label: t('Auto'),
+      leadingItems: <IconPanel />,
+      trailingItems: sidebarPosition === 'auto' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('auto'),
+    },
+    {
+      key: 'right',
+      label: t('Right'),
+      leadingItems: <IconPanel direction="right" />,
+      trailingItems: sidebarPosition === 'right' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('right'),
+    },
+    {
+      key: 'bottom',
+      label: t('Bottom'),
+      leadingItems: <IconPanel direction="down" />,
+      trailingItems: sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
+      onAction: () => onSidebarPositionChange?.('bottom'),
+    },
+  ];
 
   return (
     <DrawerHeader

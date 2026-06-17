@@ -111,8 +111,6 @@ function AppLayout({organization}: LayoutProps) {
           position="relative"
         >
           <Navigation />
-          {/* When the persistent-sidebar flag is on, this splits the content
-              area with Seer; otherwise it renders the content unchanged. */}
           <SeerExplorerSidebarLayout>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack
