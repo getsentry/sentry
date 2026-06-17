@@ -97,6 +97,7 @@ class TestEAPDeletion(TestCase):
     @patch("sentry.eventstream.eap.snuba_rpc.delete_trace_items_rpc")
     def test_rpc_errors_propagate_and_are_retried(self, mock_rpc: MagicMock) -> None:
         retry = delete_events_from_eap._retry
+        assert retry is not None
 
         for exc in [
             SnubaRPCTimeout("read timed out"),
@@ -130,5 +131,6 @@ class TestEAPDeletion(TestCase):
             )
 
         retry = delete_events_from_eap._retry
+        assert retry is not None
         state = retry.initial_state()
         assert retry.should_retry(state, exc) is False
