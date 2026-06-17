@@ -8,9 +8,9 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

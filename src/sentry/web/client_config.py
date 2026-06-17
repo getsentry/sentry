@@ -19,6 +19,7 @@ from sentry import features, options
 from sentry.api.utils import generate_locality_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticationContext
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.organizationmapping import OrganizationMapping
@@ -31,9 +32,12 @@ from sentry.organizations.services.organization import (
 from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.silo.base import SiloMode
 from sentry.types.cell import (
+    Cell,
     Locality,
     RegionCategory,
+    find_all_cell_names,
     find_all_multitenant_locality_names,
+    get_cell_by_name,
     get_global_directory,
     get_locality_by_name,
     get_locality_name_for_cell,
@@ -225,6 +229,10 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
+        if self.last_org and features.has(
+            "organizations:api-fetch-v2", self.last_org, actor=self.user
+        ):
+            yield "organizations:api-fetch-v2"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -353,21 +361,13 @@ class _ClientConfig:
         return [locality.api_serialize() for locality in localities]
 
     @property
-    def regions(self) -> list[Mapping[str, Any]]:
+    def localities(self) -> list[Mapping[str, Any]]:
         """
-        The regions available to the current user.
-
-        This will include *all* multi-tenant regions, and if the user
-        has membership on any single-tenant regions those will also be included.
+        The localities (formerly regions) that are visible to customers
         """
+        locality_names = find_all_multitenant_locality_names()
 
-        # Only expose visible regions.
-        # When new regions are added they can take some work to get working correctly.
-        # Before they are working we need ways to bring parts of the region online without
-        # exposing the region to customers.
-        region_names = find_all_multitenant_locality_names()
-
-        if not region_names:
+        if not locality_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
         monolith_locality = get_locality_name_for_cell(settings.SENTRY_MONOLITH_REGION)
@@ -379,18 +379,32 @@ class _ClientConfig:
                 region.name,  # then sort alphabetically
             )
 
-        # Show all visible multi-tenant regions to unauthenticated users as they could
-        # create a new account. Else, ensure all regions the current user is in are
-        # included as there could be single tenants or hidden regions.
-        unique_regions = set(region_names) | self._member_locality_names
-        return self._serialize_localities(unique_regions, region_display_order)
+        return self._serialize_localities(locality_names, region_display_order)
 
     @property
-    def member_regions(self) -> list[Mapping[str, Any]]:
+    def cells(self) -> list[Mapping[str, Any]]:
         """
-        The regions the user has membership in. Includes single-tenant regions.
+        The list of cells available.
+
+        The cell list is only available with a staff/superuser session.
         """
-        return self._serialize_localities(self._member_locality_names, lambda loc: loc.name)
+        if not self.request or not (
+            is_active_staff(self.request) or is_active_superuser(self.request)
+        ):
+            return []
+
+        def cell_display_order(cell: Cell) -> tuple[bool, bool, str]:
+            return (
+                cell.name != settings.SENTRY_MONOLITH_REGION,  # default historical cell comes first
+                not cell.visible,  # visible cells first
+                cell.name,  # then sort alphabetically
+            )
+
+        cell_names = find_all_cell_names()
+        cells = [get_cell_by_name(name) for name in cell_names]
+        cells.sort(key=cell_display_order)
+
+        return [cell.api_serialize() for cell in cells]
 
     @property
     def should_preload_data(self) -> bool:
@@ -449,6 +463,8 @@ class _ClientConfig:
             # organization is not in context
             "lastOrganization": self.last_org_slug,
             "languageCode": self.language_code,
+            "cells": self.cells,
+            "localities": self.localities,
             "userIdentity": dict(self.user_identity),
             "csrfCookieName": settings.CSRF_COOKIE_NAME,
             "superUserCookieName": superuser.COOKIE_NAME,
@@ -467,8 +483,6 @@ class _ClientConfig:
                 "allowUrls": self.allow_list,
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
-            "memberRegions": self.member_regions,
-            "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": is_demo_mode_enabled() and is_demo_user(self.user),
             "enableAnalytics": settings.ENABLE_ANALYTICS,

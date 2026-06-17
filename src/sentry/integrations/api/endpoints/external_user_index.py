@@ -13,12 +13,17 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalUserPermission,
     ExternalUserSerializer,
 )
-from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
+from sentry.integrations.api.serializers.models.external_actor import (
+    ExternalActorResponse,
+    ExternalActorSerializer,
+)
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
@@ -45,7 +50,9 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
         },
         examples=IntegrationExamples.EXTERNAL_USER_CREATE,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[ExternalActorResponse] | Response[ValidationErrorResponse]:
         """
         Link a user from an external provider to a Sentry user.
         """
@@ -55,8 +62,15 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
             data=request.data, context={"organization": organization}
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
+        external_user: ExternalActor
+        created: bool
         external_user, created = serializer.save()
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
-        return Response(serialize(external_user, request.user, key="user"), status=status_code)
+        return Response(
+            serialize(
+                external_user, request.user, key="user", serializer=ExternalActorSerializer()
+            ),
+            status=status_code,
+        )

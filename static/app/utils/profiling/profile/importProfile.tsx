@@ -2,7 +2,7 @@ import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import type {Image} from 'sentry/types/debugImage';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {
   isEventedProfile,

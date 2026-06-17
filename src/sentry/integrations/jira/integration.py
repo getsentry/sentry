@@ -46,7 +46,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -1309,9 +1309,6 @@ class JiraIntegrationProvider(IntegrationProvider):
     can_add = False
     can_add_externally = True
 
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
-
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [JiraConfirmInstallStep()]
 
@@ -1324,19 +1321,14 @@ class JiraIntegrationProvider(IntegrationProvider):
         # yet, we can't make API calls for more details like the server name or
         # Icon.
         #
-        # build_integration is reached three ways:
+        # build_integration is reached two ways:
         #  - the API pipeline binds the decoded Marketplace params to top-level
         #    state (`external_id` + `metadata`),
-        #  - the legacy configure view nests the same params under the provider
-        #    key (`state["jira"]`),
         #  - the `installed` webhook passes the raw Atlassian payload
         #    (`clientKey`, `oauthClientId`, ...).
         if "external_id" in state and "metadata" in state:
             external_id = state["external_id"]
             metadata = state["metadata"]
-        elif state.get(IntegrationProviderSlug.JIRA.value):
-            metadata = state[IntegrationProviderSlug.JIRA.value]["metadata"]
-            external_id = state[IntegrationProviderSlug.JIRA.value]["external_id"]
         else:
             external_id = state["clientKey"]
             metadata = {

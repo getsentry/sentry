@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,

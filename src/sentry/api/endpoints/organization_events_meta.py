@@ -5,7 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options, search
+from sentry import search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -15,12 +15,9 @@ from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
-from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.snuba import spans_indexed, spans_metrics
-from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
@@ -150,18 +147,12 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({})
 
-        use_eap = request.GET.get("dataset", None) == "spans"
         orderby = self.get_orderby(request) or ["timestamp"]
 
         with handle_query_errors():
-            if use_eap:
-                result: EAPResponse | EventsResponse = get_eap_span_samples(
-                    request, snuba_params, orderby
-                )
-                dataset = Spans
-            else:
-                result = get_span_samples(request, snuba_params, orderby)
-                dataset = spans_indexed  # type: ignore[assignment]
+            result: EAPResponse | EventsResponse = get_eap_span_samples(
+                request, snuba_params, orderby
+            )
 
         return Response(
             self.handle_results_with_meta(
@@ -170,92 +161,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 snuba_params.project_ids,
                 {"data": result["data"], "meta": result["meta"]},
                 True,
-                dataset,
+                Spans,
             )
         )
-
-
-def get_span_samples(
-    request: Request, snuba_params: SnubaParams, orderby: list[str] | None
-) -> EventsResponse:
-    is_frontend = is_frontend_request(request)
-    buckets = request.GET.get("intervals", 3)
-    lower_bound = request.GET.get("lowerBound", 0)
-    first_bound = request.GET.get("firstBound")
-    second_bound = request.GET.get("secondBound")
-    upper_bound = request.GET.get("upperBound")
-    column = request.GET.get("column", "span.self_time")
-
-    selected_columns = request.GET.getlist("additionalFields", []) + [
-        "project",
-        "transaction.id",
-        column,
-        "timestamp",
-        "span_id",
-        "profile_id",
-        "trace",
-    ]
-
-    if lower_bound is None or upper_bound is None:
-        bound_results = spans_metrics.query(
-            selected_columns=[
-                f"p50({column}) as first_bound",
-                f"p95({column}) as second_bound",
-            ],
-            snuba_params=snuba_params,
-            query=request.query_params.get("query"),
-            referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
-            query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
-        )
-        if len(bound_results["data"]) != 1:
-            raise ParseError("Could not find bounds")
-
-        bound_data = bound_results["data"][0]
-        first_bound, second_bound = bound_data["first_bound"], bound_data["second_bound"]
-        if lower_bound == 0 or upper_bound == 0:
-            raise ParseError("Could not find bounds")
-
-    result = spans_indexed.query(
-        selected_columns=[
-            f"bounded_sample({column}, {lower_bound}, {first_bound}) as lower",
-            f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
-            f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
-            f"rounded_time({buckets})",
-            "profile_id",
-        ],
-        orderby=["-profile_id"],
-        snuba_params=snuba_params,
-        query=request.query_params.get("query"),
-        sample=options.get("insights.span-samples-query.sample-rate") or None,
-        referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
-        query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
-    )
-    span_ids = []
-    for row in result["data"]:
-        lower, middle, top = row["lower"], row["middle"], row["top"]
-        if lower:
-            span_ids.append(lower)
-        if middle:
-            span_ids.append(middle)
-        if top:
-            span_ids.append(top)
-
-    if len(span_ids) > 0:
-        user_query = request.query_params.get("query") or ""
-        query = f"span_id:[{','.join(span_ids)}] {user_query}"
-    else:
-        query = request.query_params.get("query") or ""
-
-    return spans_indexed.query(
-        selected_columns=selected_columns,
-        orderby=orderby,
-        snuba_params=snuba_params,
-        query=query,
-        limit=9,
-        referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-        query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
-        transform_alias_to_input_format=True,
-    )
 
 
 def get_eap_span_samples(

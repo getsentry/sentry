@@ -61,8 +61,6 @@ class AgentChatRequest(TypedDict):
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
-    enable_coding: NotRequired[bool]
-    enable_code_mode_tools: NotRequired[str]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
@@ -72,8 +70,7 @@ class AgentChatRequest(TypedDict):
     category_key: NotRequired[str]
     category_value: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
-    is_context_engine_enabled: NotRequired[bool]
-    enable_frontend_code_search: NotRequired[bool]
+    agent_run_options: NotRequired[dict[str, Any]]
     max_iterations: NotRequired[int]
     proxy_headers: NotRequired[dict[str, str] | None]
     ui_tools: NotRequired[str | None]
@@ -105,6 +102,17 @@ class AgentPrStateRequest(TypedDict):
     pr_id: int
 
 
+class SeerFeatureRunRequest(TypedDict):
+    feature_id: str
+    ref: str
+    payload: dict[str, Any]
+
+
+class AgentReposRequest(TypedDict):
+    run_id: int
+    organization_id: int
+
+
 def make_agent_state_request(
     body: AgentStateRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -113,6 +121,19 @@ def make_agent_state_request(
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/state",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def make_agent_repos_request(
+    body: AgentReposRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or agent_connection_pool,
+        "/v1/automation/explorer/repos",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
@@ -168,6 +189,28 @@ def make_agent_state_pr_request(
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
+
+
+def trigger_seer_feature(
+    body: SeerFeatureRunRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> int | None:
+    """Trigger a Seer feature run and return the resulting agent run id.
+
+    Seer runs the feature asynchronously and pushes results back via
+    deliver_feature_result. Raises SeerApiError on a non-2xx response.
+    """
+    response = make_signed_seer_api_request(
+        connection_pool or agent_connection_pool,
+        "/v1/automation/agent/feature/run",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+    if response.status >= 400:
+        raise SeerApiError("Seer feature run request failed", response.status)
+
+    return response.json().get("run_id")
 
 
 def get_agent_state_from_pr_id(

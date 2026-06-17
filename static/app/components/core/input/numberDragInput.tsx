@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconArrow} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {clamp} from 'sentry/utils/profiling/colors/utils';
+import {clamp} from 'sentry/utils/profiling/colors/clamp';
 
 // @TODO(jonasbadalic): Not sure this needs to be its own component,
 // given that we mostly wrap around the NumberInput component.

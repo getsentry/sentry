@@ -33,7 +33,7 @@ def get_users_for_pull_requests(item_list, user=None):
 
 
 @register(PullRequest)
-class PullRequestSerializer(Serializer):
+class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         users_by_author = get_users_for_pull_requests(item_list, user)
         repositories = list(Repository.objects.filter(id__in=[c.repository_id for c in item_list]))

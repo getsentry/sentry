@@ -11,6 +11,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.preprod.api.models.public.installable_builds import (
@@ -62,7 +63,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
         request: Request,
         organization: Organization,
         artifact_id: str,
-    ) -> Response:
+    ) -> Response[InstallInfoResponseDict] | Response[DetailResponse]:
         """
         Retrieve install info for a given artifact.
 

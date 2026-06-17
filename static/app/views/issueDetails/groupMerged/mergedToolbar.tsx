@@ -9,14 +9,14 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
 import {
-  type Fingerprint,
+  type FingerprintWithLatestEvent,
   type GroupMergedState,
   isAllUnmergedSelected,
 } from './useGroupMerged';
 
 type Props = {
   enableFingerprintCompare: boolean;
-  fingerprints: Fingerprint[];
+  fingerprints: FingerprintWithLatestEvent[];
   groupId: Group['id'];
   onToggleCollapse: () => void;
   onUnmerge: () => void;

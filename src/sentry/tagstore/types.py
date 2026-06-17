@@ -58,7 +58,7 @@ class TagKey(TagType):
         values_seen: int | None = None,
         status: int = TagKeyStatus.ACTIVE,
         count: int | None = None,
-        top_values=None,
+        top_values: tuple[TagValue, ...] | None = None,
     ):
         self.key = key
         self.values_seen = values_seen
@@ -142,7 +142,7 @@ class TagKeySerializerResponse(TagKeySerializerResponseOptional):
 
 @register(GroupTagKey)
 @register(TagKey)
-class TagKeySerializer(Serializer):
+class TagKeySerializer(Serializer[TagKeySerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> TagKeySerializerResponse:
         from sentry import tagstore
 
@@ -175,7 +175,7 @@ class TagValueSerializerResponse(TagValueSerializerResponseOptional):
 
 @register(GroupTagValue)
 @register(TagValue)
-class TagValueSerializer(Serializer):
+class TagValueSerializer(Serializer[TagValueSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> TagValueSerializerResponse:
         from sentry import tagstore
 

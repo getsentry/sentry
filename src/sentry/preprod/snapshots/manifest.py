@@ -1,38 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence, Set
+from collections.abc import Set
 from typing import Any, Literal
 
-import re2
-from pydantic import BaseModel, Field, root_validator, validator
-
-# Invalid patterns are client input we surface as a 400, not a server error worth logging.
-_RE2_OPTIONS = re2.Options()
-_RE2_OPTIONS.log_errors = False
-
-
-class InvalidImageNamePattern(ValueError):
-    def __init__(self, pattern: str) -> None:
-        super().__init__(pattern)
-        self.pattern = pattern
-
-
-def make_image_name_matcher(patterns: Sequence[str]) -> Callable[[str], bool]:
-    """
-    Build a predicate testing whether a name fully matches any of `patterns`.
-
-    Patterns compile with RE2, a linear-time engine: matching cannot catastrophically
-    backtrack, so no time budget is needed. RE2 rejects unsupported constructs
-    (backreferences, lookaround) at compile time; we raise InvalidImageNamePattern
-    carrying the offending pattern.
-    """
-    compiled: list[Any] = []
-    for pattern in patterns:
-        try:
-            compiled.append(re2.compile(pattern, _RE2_OPTIONS))
-        except re2.error as e:
-            raise InvalidImageNamePattern(pattern) from e
-    return lambda name: any(compiled_pattern.fullmatch(name) for compiled_pattern in compiled)
+from pydantic import BaseModel, Field, validator
 
 
 class ImageMetadata(BaseModel):
@@ -86,30 +57,6 @@ class SnapshotManifest(BaseModel):
     diff_threshold: float | None = Field(default=None, ge=0.0, lt=1.0)
     selective: bool = False
     all_image_file_names: list[str] | None = None
-    all_image_file_names_as_regex: list[str] | None = None
-
-    @root_validator(skip_on_failure=True)
-    def _all_image_file_names_mutually_exclusive(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if (
-            values.get("all_image_file_names") is not None
-            and values.get("all_image_file_names_as_regex") is not None
-        ):
-            raise ValueError(
-                "all_image_file_names and all_image_file_names_as_regex are mutually exclusive"
-            )
-        return values
-
-    def head_image_name_matcher(self) -> Callable[[str], bool] | None:
-        """
-        Return a check for whether a name is in the head's declared image set, or
-        None if the head didn't declare one. Distinguishes removed images (not in the
-        set) from skipped ones (in the set but not re-uploaded).
-        """
-        if self.all_image_file_names is not None:
-            return set(self.all_image_file_names).__contains__
-        if self.all_image_file_names_as_regex is not None:
-            return make_image_name_matcher(self.all_image_file_names_as_regex)
-        return None
 
 
 class ComparisonImageResult(BaseModel):
@@ -144,4 +91,30 @@ class ComparisonManifest(BaseModel):
     head_artifact_id: int
     base_artifact_id: int
     summary: ComparisonSummary
+    images: dict[str, ComparisonImageResult]
+
+
+class ChunkCandidate(BaseModel):
+    name: str
+    head_hash: str
+    base_hash: str
+    pixel_count: int
+    diff_threshold: float
+
+
+class ChunkAssignment(BaseModel):
+    chunk_index: int
+    candidates: list[ChunkCandidate]
+
+
+class ComparisonPlan(BaseModel):
+    head_artifact_id: int
+    base_artifact_id: int
+    chunks: list[ChunkAssignment]
+    # Results that need no odiff (added/removed/skipped/renamed/unchanged/exceeds-pixel-limit).
+    non_diff_images: dict[str, ComparisonImageResult]
+
+
+class ChunkResult(BaseModel):
+    chunk_index: int
     images: dict[str, ComparisonImageResult]

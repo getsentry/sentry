@@ -78,7 +78,10 @@ class JiraWebhookBase(Endpoint, abc.ABC):
             )
 
             scope.set_tag("jira.host", exc.host)
+            if exc.host is not None:
+                scope.set_attribute("jira.host", exc.host)
             scope.set_tag("jira.endpoint", jira_api_endpoint)
+            scope.set_attribute("jira.endpoint", jira_api_endpoint)
 
             # If the error message is a big mess of html or xml, move it to `handler_context_mut`
             # so we can see it if we need it, but also can replace the error message

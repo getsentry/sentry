@@ -18,13 +18,12 @@ import {
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -77,11 +76,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
   const {selection} = usePageFilters();
 
-  const organization = useOrganization();
-  const hasRawSearchReplacement = organization.features.includes(
-    'search-query-builder-raw-search-replacement'
-  );
-
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
   const hasAbsoluteDateSelection = Boolean(
     selection.datetime.start && selection.datetime.end && !selection.datetime.period
@@ -128,7 +122,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           : undefined,
       supportedAggregates:
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      replaceRawSearchKeys: ['span.description'],
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
@@ -140,7 +134,6 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       booleanAttributes,
       caseInsensitive,
       fields,
-      hasRawSearchReplacement,
       mode,
       numberAttributes,
       oldSearch,

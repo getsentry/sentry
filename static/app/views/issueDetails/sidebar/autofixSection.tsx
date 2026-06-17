@@ -11,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   type AutofixSection,
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
   isCodeChangesSection,
@@ -31,7 +32,7 @@ import {
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
-import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
+import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -48,8 +49,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 import {Resources} from 'sentry/views/issueDetails/sidebar/resources';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 interface AutofixSectionProps {
   group: Group;
@@ -111,17 +115,13 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
   );
 }
 
-const AutofixContentHook = OverrideOrDefault({
-  overrideName: 'component:ai-configure-seer-quota-sidebar',
-  defaultComponent: AutofixContent,
-});
-
-export interface AutofixContentProps {
-  aiConfig: ReturnType<typeof useAiConfig>;
-  group: Group;
-  project: Project;
-  event?: Event;
-}
+const AutofixContentHook = registerLLMContext(
+  'autofix',
+  OverrideOrDefault({
+    overrideName: 'component:ai-configure-seer-quota-sidebar',
+    defaultComponent: AutofixContent,
+  })
+);
 
 export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
   const organization = useOrganization();
@@ -131,6 +131,56 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
   );
 
   useAutoTriggerAutofix({autofix, group});
+
+  const autofixContextData = useMemo(() => {
+    if (!autofix.runState) {
+      return null;
+    }
+
+    const data: Record<string, string> = {
+      autofixStatus: autofix.runState.status,
+    };
+
+    const sections = getOrderedAutofixSections(autofix.runState);
+
+    for (const section of sections) {
+      const artifact = getAutofixArtifactFromSection(section);
+      if (!artifact) {
+        continue;
+      }
+
+      if (isCodeChangesArtifact(artifact)) {
+        // Summarize code changes as file names only to avoid bloating context with full diffs
+        const filesByRepo: Record<string, string[]> = {};
+        for (const filePatch of artifact) {
+          const files = filesByRepo[filePatch.repo_name] ?? [];
+          files.push(filePatch.patch.target_file);
+          filesByRepo[filePatch.repo_name] = files;
+        }
+        const parts = Object.entries(filesByRepo).map(
+          ([repo, files]) => `${repo}: ${files.join(', ')}`
+        );
+        data.codeChanges = parts.join('\n');
+      } else {
+        const md = artifactToMarkdown(artifact, 2);
+        if (md) {
+          if (isRootCauseSection(section)) {
+            data.rootCause = md;
+          } else if (isSolutionSection(section)) {
+            data.solution = md;
+          } else if (isPullRequestsSection(section)) {
+            data.pullRequests = md;
+          } else if (isCodingAgentsSection(section)) {
+            data.codingAgents = md;
+          }
+        }
+      }
+    }
+
+    return data;
+  }, [autofix.runState]);
+
+  useLLMContext(autofixContextData);
 
   if (
     // waiting on the onboarding checks to load
@@ -356,8 +406,6 @@ function AutofixPreviews({
     autofix_referrer: referrer,
   });
 
-  const {data: summaryData, isPending: isSummaryPending} = useGroupSummaryData(group);
-
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -404,7 +452,6 @@ function AutofixPreviews({
           has_streamlined_ui: true,
           autofix_exists: true,
           autofix_step_type: sections[sections.length - 1]?.step ?? null,
-          has_summary: Boolean(summaryData && !isSummaryPending),
           has_root_cause: hasRootCause,
           has_solution: hasSolution,
           has_coded_solution: hasCodeChanges,

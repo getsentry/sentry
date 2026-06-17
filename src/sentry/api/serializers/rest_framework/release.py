@@ -76,7 +76,11 @@ class ReleaseSerializer(serializers.Serializer):
         help_text="An optional list of commit data to be associated.",
     )
 
-    status = serializers.CharField(required=False, allow_null=False)
+    status = serializers.CharField(
+        required=False,
+        allow_null=False,
+        help_text="The status of the release. Can be `open` or `archived`.",
+    )
 
     def validate_status(self, value):
         try:
@@ -87,9 +91,15 @@ class ReleaseSerializer(serializers.Serializer):
 
 class ReleaseWithVersionSerializer(ReleaseSerializer):
     version = serializers.CharField(
-        max_length=MAX_VERSION_LENGTH, trim_whitespace=False, required=True
+        max_length=MAX_VERSION_LENGTH,
+        trim_whitespace=False,
+        required=True,
+        help_text="A version identifier for this release. Can be a version number, a commit hash, and so on.",
     )
-    owner = UserField(required=False)
+    owner = UserField(
+        required=False,
+        help_text="The username of the user to set as the release owner.",
+    )
 
     def validate_version(self, value):
         if not Release.is_valid_version(value):

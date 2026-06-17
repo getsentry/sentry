@@ -100,7 +100,8 @@ from __future__ import annotations
 import itertools
 import logging
 import math
-from collections.abc import Generator, MutableMapping, Sequence
+from collections import defaultdict
+from collections.abc import Generator, Sequence
 from hashlib import blake2b
 from typing import Any, cast
 
@@ -117,7 +118,6 @@ from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.spans.buffer_logger import (
     BufferLogger,
-    DeadlineUpdateLog,
     FlusherLogger,
     FlushSegmentLog,
     InsertSpansMetrics,
@@ -350,53 +350,15 @@ class SpansBuffer:
         timeout: int,
         root_timeout: int,
     ) -> None:
-        with metrics.timer("spans.buffer.process_spans.update_queue"):
-            queue_deletes: dict[bytes, set[bytes]] = {}
-            queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
-
-            for inserted_subsegment in inserted_subsegments:
-                subsegment = inserted_subsegment.subsegment
-                result = inserted_subsegment.result
-
-                queue_key = self.store.get_queue_key(inserted_subsegment.queue_shard)
-
-                # If the currently processed span is a root span, OR the buffer
-                # already had a root span inside, use a different timeout than usual.
-                offset = root_timeout if result.has_root_span else timeout
-
-                zadd_items = queue_adds.setdefault(queue_key, {})
-
-                new_deadline = now + offset
-                zadd_items[result.segment_key] = new_deadline
-
-                DeadlineUpdateLog(
-                    segment_key=result.segment_key,
-                    project_and_trace=inserted_subsegment.project_and_trace,
-                    queue_key=queue_key,
-                    new_deadline=new_deadline,
-                    message_timestamp=now,
-                    has_root_span=result.has_root_span,
-                ).emit(self.client, self._get_debug_trace_logger)
-
-                delete_set = queue_deletes.setdefault(queue_key, set())
-                if not inserted_subsegment.is_detached_segment:
-                    delete_set.update(
-                        self.store.get_span_key(subsegment.project_and_trace, span.span_id)
-                        for span in trees[subsegment.key]
-                    )
-                delete_set.discard(result.segment_key)
-
-            with self.client.pipeline(transaction=False) as p:
-                for queue_key, adds in queue_adds.items():
-                    if adds:
-                        p.zadd(queue_key, adds)
-                        p.expire(queue_key, redis_ttl)
-
-                for queue_key, deletes in queue_deletes.items():
-                    if deletes:
-                        p.zrem(queue_key, *deletes)
-
-                p.execute()
+        self.store.update_queue(
+            trees,
+            inserted_subsegments,
+            now=now,
+            redis_ttl=redis_ttl,
+            timeout=timeout,
+            root_timeout=root_timeout,
+            get_debug_trace_logger=self._get_debug_trace_logger,
+        )
 
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """
@@ -592,6 +554,16 @@ class SpansBuffer:
         redis_ttl = options.get("spans.buffer.redis-ttl")
         root_timeout = options.get("spans.buffer.root-timeout")
 
+        deadlines = self.store.get_current_queue_deadlines(
+            [
+                loaded_segment
+                for loaded_segment in loaded_segments
+                if loaded_segment.ingest_metadata.ingested_count is None
+                and not loaded_segment.payloads
+            ]
+        )
+        dropped_by_project: defaultdict[int, int] = defaultdict(int)
+
         for loaded_segment in loaded_segments:
             ingest_metadata = loaded_segment.ingest_metadata
 
@@ -613,29 +585,13 @@ class SpansBuffer:
 
                 project_id_bytes, _, _ = parse_segment_key(loaded_segment.segment_key)
                 project_id_int = int(project_id_bytes)
-                try:
-                    project = Project.objects.get_from_cache(id=project_id_int)
-                except Project.DoesNotExist:
-                    logger.warning(
-                        "Project does not exist for segment with dropped spans",
-                        extra={"project_id": project_id_int},
-                    )
-                else:
-                    track_outcome(
-                        org_id=project.organization_id,
-                        project_id=project_id_int,
-                        key_id=None,
-                        outcome=Outcome.INVALID,
-                        reason="segment_too_large",
-                        category=DataCategory.SPAN_INDEXED,
-                        quantity=dropped,
-                    )
+                dropped_by_project[project_id_int] += dropped
             elif not loaded_segment.payloads:
                 # Both data and metadata are missing. This could be:
                 # 1. TTL expiration (segment sat in queue for >1 hour) - TRUE DATA LOSS
                 # 2. Race condition (another consumer flushed between load and metadata fetch)
                 # Only increment metric if segment is old enough to have actually expired.
-                deadline = self.store.get_current_queue_deadline(loaded_segment)
+                deadline = deadlines.get(loaded_segment.segment_key)
                 if deadline is not None:
                     time_past_deadline = now - deadline
                     # Estimate segment age: deadline = creation_time + timeout
@@ -645,6 +601,29 @@ class SpansBuffer:
                     if estimated_age > redis_ttl:
                         # Segment is older than TTL - true expiration (data loss)
                         metrics.incr("spans.buffer.segment_expired_before_flush")
+
+        if dropped_by_project:
+            projects_by_id = {
+                project.id: project
+                for project in Project.objects.get_many_from_cache(list(dropped_by_project.keys()))
+            }
+            for project_id, dropped in dropped_by_project.items():
+                project = projects_by_id.get(project_id)
+                if project is None:
+                    logger.warning(
+                        "Project does not exist for segment with dropped spans",
+                        extra={"project_id": project_id},
+                    )
+                    continue
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=project_id,
+                    key_id=None,
+                    outcome=Outcome.INVALID,
+                    reason="segment_too_large",
+                    category=DataCategory.SPAN_INDEXED,
+                    quantity=dropped,
+                )
 
         for loaded_segment in loaded_segments:
             if not loaded_segment.payloads:
@@ -657,37 +636,4 @@ class SpansBuffer:
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
-            queue_removals: dict[bytes, list[SegmentKey]] = {}
-            with self.client.pipeline(transaction=False) as p:
-                for segment_key, flushed_segment in segment_keys.items():
-                    p.delete(b"span-buf:hrs:" + segment_key)
-                    p.delete(b"span-buf:ic:" + segment_key)
-                    p.delete(b"span-buf:ibc:" + segment_key)
-                    queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
-
-                    project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
-
-                    for span_batch in itertools.batched(flushed_segment.spans, 100):
-                        span_ids = [output_span.payload["span_id"] for output_span in span_batch]
-                        p.hdel(redirect_map_key, *span_ids)
-
-                    if flushed_segment.payload_keys:
-                        mk_key = self.store.get_payload_key_index(segment_key)
-                        p.delete(mk_key)
-                        for payload_key in flushed_segment.payload_keys:
-                            p.unlink(payload_key)
-
-                    # A segment can be queued in more than one shard when spans from the
-                    # same segment land in different Kafka partitions. Releasing the lock
-                    # here lets a contending flusher later acquire it and remove those stale
-                    # queue entries instead of blocking on ZRANGEBYSCORE until lock TTL expires.
-                    # Since the segment metadata and payload keys have already been deleted
-                    # above, a stale queue entry cannot produce the segment again.
-                    p.delete(self.store.get_flush_lock_key(segment_key))
-
-                for queue_key, keys in queue_removals.items():
-                    for key_batch in itertools.batched(keys, 100):
-                        p.zrem(queue_key, *key_batch)
-
-                p.execute()
+            self.store.cleanup_flushed_segments(segment_keys)

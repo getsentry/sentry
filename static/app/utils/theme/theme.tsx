@@ -11,7 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
-import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
+import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants/env';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports

@@ -275,5 +275,5 @@ const InputGroupWrap = styled('div')<{disabled?: boolean}>`
     p.disabled &&
     css`
       color: ${p.theme.tokens.content.disabled};
-    `};
+    `}
 `;

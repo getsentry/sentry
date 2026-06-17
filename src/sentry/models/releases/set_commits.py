@@ -7,7 +7,6 @@ from typing import TypedDict
 
 from django.db import IntegrityError, router
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
@@ -185,7 +184,7 @@ def update_group_resolutions(release, commit_author_by_commit):
     release_commits = list(
         ReleaseCommit.objects.filter(release=release)
         .select_related("commit")
-        .values("commit_id", "commit__key")
+        .values("commit_id", "commit__key", "commit__repository_id")
     )
 
     commit_resolutions = list(
@@ -200,12 +199,15 @@ def update_group_resolutions(release, commit_author_by_commit):
         for cr in commit_resolutions  # group_id
     ]
 
-    pr_ids_by_merge_commit = list(
+    # repository_id is fetched here so we don't need a second PullRequest query
+    # below to resolve providers (pull_request_resolutions is always a subset).
+    pr_repo_ids = dict(
         PullRequest.objects.filter(
             merge_commit_sha__in=[rc["commit__key"] for rc in release_commits],
             organization_id=release.organization_id,
-        ).values_list("id", flat=True)
+        ).values_list("id", "repository_id")
     )
+    pr_ids_by_merge_commit = list(pr_repo_ids.keys())
 
     pull_request_resolutions = list(
         GroupLink.objects.filter(
@@ -227,13 +229,47 @@ def update_group_resolutions(release, commit_author_by_commit):
         (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
     ]
 
+    # Map each resolved group to the (normalized) provider of the commit/PR that
+    # resolved it, so the issue_resolved analytics event records e.g. "github".
+    # commit -> repository_id comes for free from the select_related above;
+    # pr -> repository_id was already collected in pr_repo_ids above.
+    commit_repo_ids = {rc["commit_id"]: rc["commit__repository_id"] for rc in release_commits}
+    repo_providers = dict(
+        Repository.objects.filter(
+            id__in=set(commit_repo_ids.values()) | set(pr_repo_ids.values())
+        ).values_list("id", "provider")
+    )
+    # Iterate PRs first, commits second, so a commit-derived provider wins when a
+    # group is resolved by both. The repo_id guards prevent a repo-less link from
+    # overwriting a valid provider with None.
+    provider_by_group: dict[int, str | None] = {}
+    for group_id, pr_id in pull_request_resolutions:
+        if (repo_id := pr_repo_ids.get(pr_id)) is not None:
+            provider_by_group[group_id] = normalize_provider_key(repo_providers.get(repo_id))
+    for group_id, commit_id in commit_resolutions:
+        if (repo_id := commit_repo_ids.get(commit_id)) is not None:
+            provider_by_group[group_id] = normalize_provider_key(repo_providers.get(repo_id))
+
+    # Map each resolved group to the commit that resolved it, so the
+    # issue_resolved analytics event records the commit id. Commit resolutions
+    # carry the commit id directly; PR resolutions are mapped through the PR's
+    # merge_commit_sha to the matching release commit (no extra query needed,
+    # since PRs were already filtered by merge_commit_sha above). PRs are
+    # iterated first so a direct commit resolution wins when a group has both.
+    commit_id_by_group: dict[int, int] = {}
+    commit_id_by_commit_key = {rc["commit__key"]: rc["commit_id"] for rc in release_commits}
+    pr_merge_sha = {pra.id: pra.merge_commit_sha for pra in pr_authors}
+    for group_id, pr_id in pull_request_resolutions:
+        merge_sha = pr_merge_sha.get(pr_id)
+        pr_commit_id = commit_id_by_commit_key.get(merge_sha) if merge_sha is not None else None
+        if pr_commit_id is not None:
+            commit_id_by_group[group_id] = pr_commit_id
+    for group_id, commit_id in commit_resolutions:
+        commit_id_by_group[group_id] = commit_id
+
     user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
     commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
-    create_resolution_activities = features.has(
-        "organizations:defer-commit-resolution", release.organization
-    )
-
     group_project_lookup = dict(
         Group.objects.filter(id__in=[group_id for group_id, _ in commits_and_prs]).values_list(
             "id", "project_id"
@@ -267,9 +303,7 @@ def update_group_resolutions(release, commit_author_by_commit):
                 },
             )
             group = Group.objects.get(id=group_id)
-            should_create_resolution_activity = (
-                create_resolution_activities and group.status != GroupStatus.RESOLVED
-            )
+            should_create_resolution_activity = group.status != GroupStatus.RESOLVED
             group.update(status=GroupStatus.RESOLVED, substatus=None)
             remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
             if should_create_resolution_activity:
@@ -291,12 +325,20 @@ def update_group_resolutions(release, commit_author_by_commit):
             group=group,
             project=group.project,
             resolution_type="with_commit",
+            provider=provider_by_group.get(group_id),
+            commit_id=commit_id_by_group.get(group_id),
             sender=type(release),
         )
 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
         )
+
+
+def normalize_provider_key(provider: str | None) -> str | None:
+    """Strip the ``integrations:`` prefix so a repository provider like
+    ``integrations:github`` becomes the short key ``github``."""
+    return provider.removeprefix("integrations:") if provider else None
 
 
 def create_commit_authors(commit_list, release):

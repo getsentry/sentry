@@ -31,7 +31,13 @@ function buildOptimisticRepo(
     externalSlug: repo.identifier,
     url: '',
     provider: {
-      id: integration.provider.key,
+      // Match the format the backend returns for real Repository records
+      // (see the create call below — `integrations:<provider.key>`). Without
+      // the prefix, downstream consumers that compare against
+      // `'integrations:github'` (e.g. useScmPlatformDetection) fail to
+      // recognize the optimistic repo during the brief window before the
+      // resolved record replaces it.
+      id: `integrations:${integration.provider.key}`,
       name: integration.provider.name,
     },
     status: RepositoryStatus.ACTIVE,

@@ -1,10 +1,11 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.api import client
+from sentry.api.client import ApiError
 from sentry.seer.assisted_query.metrics_tools import (
     _build_or_query,
     get_metric_metadata,
 )
+from sentry.seer.sentry_data_models import MetricMetadataSuccessResponse
 from sentry.testutils.cases import (
     APITransactionTestCase,
     SnubaTestCase,
@@ -36,8 +37,9 @@ class TestGetMetricMetadata(TestCase):
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
 
-    @patch("sentry.seer.assisted_query.metrics_tools.client")
-    def test_returns_distinct_tuples_with_count(self, mock_client: MagicMock) -> None:
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_returns_distinct_tuples_with_count(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
         response = MagicMock()
         response.data = {
             "data": [
@@ -65,13 +67,13 @@ class TestGetMetricMetadata(TestCase):
             limit=10,
         )
 
-        assert result["has_more"] is False
-        assert len(result["candidates"]) == 2
-        dist = result["candidates"][0]
-        assert dist["name"] == "http.request.duration"
-        assert dist["type"] == "distribution"
-        assert dist["unit"] == "millisecond"
-        assert dist["count"] == 1200
+        assert result.has_more is False
+        assert len(result.candidates) == 2
+        dist = result.candidates[0]
+        assert dist.name == "http.request.duration"
+        assert dist.type == "distribution"
+        assert dist.unit == "millisecond"
+        assert dist.count == 1200
 
         # Assert query params carry the expected shape.
         _args, kwargs = mock_client.get.call_args
@@ -88,18 +90,20 @@ class TestGetMetricMetadata(TestCase):
         # over-fetch by 1 to detect has_more
         assert params["per_page"] == 11
 
-    @patch("sentry.seer.assisted_query.metrics_tools.client")
-    def test_empty_substrings_short_circuits(self, mock_client: MagicMock) -> None:
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_empty_substrings_short_circuits(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
         result = get_metric_metadata(
             org_id=self.org.id,
             project_ids=[self.project.id],
             name_substrings=[],
         )
-        assert result == {"candidates": [], "has_more": False}
+        assert result.dict() == {"candidates": [], "has_more": False}
         mock_client.get.assert_not_called()
 
-    @patch("sentry.seer.assisted_query.metrics_tools.client")
-    def test_has_more_when_result_exceeds_limit(self, mock_client: MagicMock) -> None:
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_has_more_when_result_exceeds_limit(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
         # Asking for limit=2 means we over-fetch 3. If we actually see 3, has_more=True.
         response = MagicMock()
         response.data = {
@@ -121,11 +125,14 @@ class TestGetMetricMetadata(TestCase):
             name_substrings=["m"],
             limit=2,
         )
-        assert result["has_more"] is True
-        assert len(result["candidates"]) == 2
+        assert result.has_more is True
+        assert len(result.candidates) == 2
 
-    @patch("sentry.seer.assisted_query.metrics_tools.client")
-    def test_has_more_uses_raw_row_count_not_filtered_count(self, mock_client: MagicMock) -> None:
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_has_more_uses_raw_row_count_not_filtered_count(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        mock_client = mock_client_cls.return_value
         """Regression: has_more must be computed from what Sentry returned, not
         from what survived our local parse filter. We over-fetch by 1 specifically
         to detect \"Sentry has more matches than you asked for\"; filtering a
@@ -161,11 +168,12 @@ class TestGetMetricMetadata(TestCase):
             limit=2,
         )
 
-        assert result["has_more"] is True
-        assert len(result["candidates"]) == 2
+        assert result.has_more is True
+        assert len(result.candidates) == 2
 
-    @patch("sentry.seer.assisted_query.metrics_tools.client")
-    def test_skips_rows_missing_name_or_type(self, mock_client: MagicMock) -> None:
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_skips_rows_missing_name_or_type(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
         response = MagicMock()
         response.data = {
             "data": [
@@ -186,11 +194,12 @@ class TestGetMetricMetadata(TestCase):
             project_ids=[self.project.id],
             name_substrings=["x"],
         )
-        assert len(result["candidates"]) == 1
-        assert result["candidates"][0]["name"] == "good"
+        assert len(result.candidates) == 1
+        assert result.candidates[0].name == "good"
 
-    @patch("sentry.seer.assisted_query.metrics_tools.client")
-    def test_missing_unit_defaults_to_none(self, mock_client: MagicMock) -> None:
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_missing_unit_defaults_to_none(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
         response = MagicMock()
         response.data = {
             "data": [
@@ -209,10 +218,11 @@ class TestGetMetricMetadata(TestCase):
             project_ids=[self.project.id],
             name_substrings=["foo"],
         )
-        assert result["candidates"][0]["unit"] == "none"
+        assert result.candidates[0].unit == "none"
 
-    @patch("sentry.seer.assisted_query.metrics_tools.client")
-    def test_organization_not_found_returns_error(self, mock_client: MagicMock) -> None:
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_organization_not_found_returns_error(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
         """Missing organization must surface as an explicit error code, not a silent
         empty result. Seer translates the error key into success=False so Langfuse
         traces distinguish real failures from sparse metric catalogs."""
@@ -223,7 +233,7 @@ class TestGetMetricMetadata(TestCase):
             name_substrings=["foo"],
         )
 
-        assert result == {
+        assert result.dict() == {
             "candidates": [],
             "has_more": False,
             "error": "organization_not_found",
@@ -231,12 +241,12 @@ class TestGetMetricMetadata(TestCase):
         # No events query should be attempted.
         mock_client.get.assert_not_called()
 
-    @patch("sentry.seer.assisted_query.metrics_tools.client")
-    def test_events_query_failure_returns_error(self, mock_client: MagicMock) -> None:
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_events_query_failure_returns_error(self, mock_client_cls: MagicMock) -> None:
         """When the underlying events API raises ApiError, return an explicit
         error code rather than a silent empty result."""
-        mock_client.ApiError = client.ApiError
-        mock_client.get.side_effect = client.ApiError(500, "snuba exploded")
+        mock_client = mock_client_cls.return_value
+        mock_client.get.side_effect = ApiError(500, "snuba exploded")
 
         result = get_metric_metadata(
             org_id=self.org.id,
@@ -244,7 +254,7 @@ class TestGetMetricMetadata(TestCase):
             name_substrings=["foo"],
         )
 
-        assert result == {
+        assert result.dict() == {
             "candidates": [],
             "has_more": False,
             "error": "events_query_failed",
@@ -298,12 +308,12 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
         )
 
         # A broken aggregate would short-circuit into events_query_failed.
-        assert "error" not in result, result
-        names = {c["name"] for c in result["candidates"]}
+        assert isinstance(result, MetricMetadataSuccessResponse), result
+        names = {c.name for c in result.candidates}
         assert "http.request.duration" in names
         assert "api.request.count" not in names
 
-        http_row = next(c for c in result["candidates"] if c["name"] == "http.request.duration")
-        assert http_row["type"] == "distribution"
-        assert http_row["unit"] == "millisecond"
-        assert http_row["count"] == 2
+        http_row = next(c for c in result.candidates if c.name == "http.request.duration")
+        assert http_row.type == "distribution"
+        assert http_row.unit == "millisecond"
+        assert http_row.count == 2

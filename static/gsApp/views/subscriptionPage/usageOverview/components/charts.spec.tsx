@@ -7,10 +7,9 @@ import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import {UsageCharts} from 'getsentry/views/subscriptionPage/usageOverview/components/charts';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
@@ -78,7 +77,6 @@ describe('UsageCharts', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am2_team',
-      planTier: PlanTier.AM2,
     });
     organization.features.push('profiling-billing');
     subscription.categories.transactions = {

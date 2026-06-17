@@ -122,3 +122,37 @@ class TestReplacementAttributeFiltering:
 
         assert len(result) == 1
         assert result[0]["name"] == "gen_ai.output.messages"
+
+
+class TestInternalConventionVisibilityFiltering:
+    """Attributes with visibility=internal in sentry-conventions must be hidden
+    unless the caller is internal (superuser/staff)."""
+
+    INTERNAL_ATTR = {
+        "name": "sentry.dsc.environment",
+        "value": {"valStr": "production"},
+    }
+    PUBLIC_ATTR = {
+        "name": "sentry.op",
+        "value": {"valStr": "http.client"},
+    }
+
+    def test_convert_rpc_hides_internal_convention_attributes(self) -> None:
+        result = convert_rpc_attribute_to_json(
+            [self.INTERNAL_ATTR, self.PUBLIC_ATTR],
+            SupportedTraceItemType.SPANS,
+        )
+
+        names = [r["name"] for r in result]
+        assert "sentry.dsc.environment" not in names
+        assert "dsc.environment" not in names
+
+    def test_convert_rpc_shows_internal_convention_attributes_when_include_internal(self) -> None:
+        result = convert_rpc_attribute_to_json(
+            [self.INTERNAL_ATTR, self.PUBLIC_ATTR],
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+        )
+
+        names = [r["name"] for r in result]
+        assert any("dsc.environment" in n for n in names)

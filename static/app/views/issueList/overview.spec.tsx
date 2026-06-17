@@ -8,14 +8,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -397,6 +390,49 @@ describe('IssueList', () => {
     });
   });
 
+  it('renders assignees for projects with Object prototype key slugs', async () => {
+    const constructorProject = ProjectFixture({
+      id: '999',
+      slug: 'constructor',
+      name: 'Constructor',
+      firstEvent: new Date().toISOString(),
+    });
+    const constructorGroup = GroupFixture({project: constructorProject});
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [constructorGroup],
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [MemberFixture({projects: [constructorProject.slug]})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [constructorProject],
+    });
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(constructorProject.id, 10)],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
+
+    render(<IssueListOverview />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText(constructorGroup.shortId)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
+  });
+
   describe('componentDidUpdate fetching groups', () => {
     let fetchDataMock: jest.Mock;
 
@@ -627,7 +663,9 @@ describe('IssueList', () => {
         initialRouterConfig,
       });
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
     };
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async () => {

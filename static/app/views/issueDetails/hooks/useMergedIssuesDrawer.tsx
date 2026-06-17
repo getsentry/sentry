@@ -10,6 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MergedIssuesDrawer} from 'sentry/views/issueDetails/groupMerged/mergedIssuesDrawer';
+import {MERGED_CURSOR_QUERY_KEY} from 'sentry/views/issueDetails/groupMerged/useGroupMerged';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function useMergedIssuesDrawer({
@@ -33,6 +34,7 @@ export function useMergedIssuesDrawer({
     });
     openDrawer(() => <MergedIssuesDrawer group={group} project={project} />, {
       ariaLabel: t('Merged Issues'),
+      drawerKey: 'merged-issues-drawer',
       shouldCloseOnInteractOutside: () => false,
       onClose: () => {
         // Remove drawer state from URL
@@ -41,7 +43,7 @@ export function useMergedIssuesDrawer({
             pathname: baseUrl,
             query: {
               ...location.query,
-              cursor: undefined,
+              [MERGED_CURSOR_QUERY_KEY]: undefined,
             },
           },
           {replace: true, preventScrollReset: true}

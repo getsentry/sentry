@@ -24,15 +24,22 @@ describe('useGetTraceItemAttributeValues', () => {
     };
   }
 
-  function makeAttributeValue(value: string, key = attributeKey) {
+  function makeAttributeValue(
+    value: string,
+    key = attributeKey,
+    count: number | null = null
+  ) {
     return {
       key,
       value,
-      first_seen: null,
-      last_seen: null,
-      times_seen: null,
+      name: value,
+      count,
+      firstSeen: null,
+      lastSeen: null,
     };
   }
+
+  type ValueResult = Array<{value: string; count?: number}>;
 
   function addAttributeValuesMock({
     body,
@@ -109,13 +116,30 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    let searchResults: string[] = [];
+    let searchResults: ValueResult = [];
     await act(async () => {
       searchResults = await result.current({tag, searchQuery: 'search-query'});
     });
 
     expect(searchQueryMock).toHaveBeenCalled();
-    expect(searchResults).toEqual(['search-result']);
+    expect(searchResults).toEqual([{value: 'search-result'}]);
+  });
+
+  it('returns value counts when the response includes them', async () => {
+    const searchQueryMock = addAttributeValuesMock({
+      substringMatch: 'search-query',
+      body: [makeAttributeValue('search-result', attributeKey, 1234)],
+    });
+
+    const {result} = renderValuesHook();
+
+    let searchResults: ValueResult = [];
+    await act(async () => {
+      searchResults = await result.current({tag, searchQuery: 'search-query'});
+    });
+
+    expect(searchQueryMock).toHaveBeenCalled();
+    expect(searchResults).toEqual([{value: 'search-result', count: 1234}]);
   });
 
   it('getTraceItemAttributeValues returns empty array for number type', async () => {
@@ -136,7 +160,7 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    let searchResults: string[] = [];
+    let searchResults: ValueResult = [];
     await act(async () => {
       searchResults = await result.current({tag, searchQuery: 'search-query'});
     });
@@ -163,7 +187,7 @@ describe('useGetTraceItemAttributeValues', () => {
 
     expect(searchQueryMock).not.toHaveBeenCalled();
 
-    let searchResults: string[] = [];
+    let searchResults: ValueResult = [];
     await act(async () => {
       searchResults = await result.current({tag, searchQuery: 'search-query'});
     });
@@ -181,8 +205,8 @@ describe('useGetTraceItemAttributeValues', () => {
 
     const {result} = renderValuesHook();
 
-    let prefixResults: string[] = [];
-    let longerResults: string[] = [];
+    let prefixResults: ValueResult = [];
+    let longerResults: ValueResult = [];
     await act(async () => {
       prefixResults = await result.current({tag, searchQuery: 'fo'});
       longerResults = await result.current({tag, searchQuery: 'foo'});
@@ -206,15 +230,15 @@ describe('useGetTraceItemAttributeValues', () => {
 
     const {result} = renderValuesHook();
 
-    let prefixResults: string[] = [];
-    let longerResults: string[] = [];
+    let prefixResults: ValueResult = [];
+    let longerResults: ValueResult = [];
     await act(async () => {
       prefixResults = await result.current({tag, searchQuery: 'fo'});
       longerResults = await result.current({tag, searchQuery: 'foo'});
     });
 
-    expect(prefixResults).toEqual(['foo']);
-    expect(longerResults).toEqual(['foo-value']);
+    expect(prefixResults).toEqual([{value: 'foo'}]);
+    expect(longerResults).toEqual([{value: 'foo-value'}]);
     expect(prefixRequest).toHaveBeenCalledTimes(1);
     expect(longerRequest).toHaveBeenCalledTimes(1);
   });
@@ -284,7 +308,7 @@ describe('useGetTraceItemAttributeValues', () => {
         ...scopedCase.hookProps,
       });
 
-      let results: string[] = [];
+      let results: ValueResult = [];
       await act(async () => {
         results = await result.current({
           tag: {
@@ -296,7 +320,7 @@ describe('useGetTraceItemAttributeValues', () => {
         });
       });
 
-      expect(results).toEqual([`${scopedCase.name}-value`]);
+      expect(results).toEqual([{value: `${scopedCase.name}-value`}]);
       expect(longerRequest).toHaveBeenCalledTimes(1);
     }
   });
@@ -340,12 +364,12 @@ describe('useGetTraceItemAttributeValues', () => {
     });
     const {result} = renderValuesHook({queryClient});
 
-    let results: string[] = [];
+    let results: ValueResult = [];
     await act(async () => {
       results = await result.current({tag, searchQuery: 'foo'});
     });
 
-    expect(results).toEqual(['foo-value']);
+    expect(results).toEqual([{value: 'foo-value'}]);
     expect(cachedBooleanPrefixRequest).toHaveBeenCalledTimes(1);
     expect(longerRequest).toHaveBeenCalledTimes(1);
   });

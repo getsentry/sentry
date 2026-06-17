@@ -366,7 +366,8 @@ describe('LogsPage', () => {
       // - one for the table
       // - one for the normal sample mode count
       // - one for the high accuracy sample mode count
-      expect(eventTableMock).toHaveBeenCalledTimes(3);
+      // - one for the table refetch triggered by resetQueries when auto-refresh is paused
+      expect(eventTableMock).toHaveBeenCalledTimes(4);
 
       eventTableMock.mockClear();
       eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));

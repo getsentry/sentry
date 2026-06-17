@@ -17,12 +17,16 @@ from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
     ExternalUserPermission,
     ExternalUserSerializer,
 )
-from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
+from sentry.integrations.api.serializers.models.external_actor import (
+    ExternalActorResponse,
+    ExternalActorSerializer,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 
@@ -67,7 +71,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
     )
     def put(
         self, request: Request, organization: Organization, external_user: ExternalActor
-    ) -> Response:
+    ) -> Response[ExternalActorResponse] | Response[ValidationErrorResponse]:
         """
         Update a user in an external provider that is currently linked to a Sentry user.
         """
@@ -80,13 +84,16 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
             partial=True,
         )
         if serializer.is_valid():
-            updated_external_user = serializer.save()
+            updated_external_user: ExternalActor = serializer.save()
 
             return Response(
-                serialize(updated_external_user, request.user), status=status.HTTP_200_OK
+                serialize(
+                    updated_external_user, request.user, serializer=ExternalActorSerializer()
+                ),
+                status=status.HTTP_200_OK,
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         operation_id="Delete an External User",
@@ -100,7 +107,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
     )
     def delete(
         self, request: Request, organization: Organization, external_user: ExternalActor
-    ) -> Response:
+    ) -> Response[None]:
         """
         Delete the link between a user from an external provider and a Sentry user.
         """

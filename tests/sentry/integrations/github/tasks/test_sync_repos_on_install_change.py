@@ -14,8 +14,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
-FEATURE_FLAG = "organizations:github-repo-auto-sync-webhook"
-
 
 @control_silo_test
 @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -36,14 +34,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
         ]
 
     def test_repos_added(self, _: MagicMock) -> None:
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="added",
-                repos_added=self._make_repos_added(),
-                repos_removed=[],
-                repository_selection="selected",
-            )
+        sync_repos_on_install_change(
+            integration_id=self.integration.id,
+            action="added",
+            repos_added=self._make_repos_added(),
+            repos_removed=[],
+            repository_selection="selected",
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.filter(organization_id=self.organization.id).order_by("name")
@@ -72,14 +69,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="removed",
-                repos_added=[],
-                repos_removed=self._make_repos_removed(),
-                repository_selection="selected",
-            )
+        sync_repos_on_install_change(
+            integration_id=self.integration.id,
+            action="removed",
+            repos_added=[],
+            repos_removed=self._make_repos_removed(),
+            repository_selection="selected",
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
@@ -102,14 +98,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="added",
-                repos_added=self._make_repos_added(),
-                repos_removed=self._make_repos_removed(),
-                repository_selection="selected",
-            )
+        sync_repos_on_install_change(
+            integration_id=self.integration.id,
+            action="added",
+            repos_added=self._make_repos_added(),
+            repos_removed=self._make_repos_removed(),
+            repository_selection="selected",
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             old_repo.refresh_from_db()
@@ -130,14 +125,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
             integration=self.integration,
         )
 
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="added",
-                repos_added=self._make_repos_added(),
-                repos_removed=[],
-                repository_selection="selected",
-            )
+        sync_repos_on_install_change(
+            integration_id=self.integration.id,
+            action="added",
+            repos_added=self._make_repos_added(),
+            repos_removed=[],
+            repository_selection="selected",
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repos_org1 = Repository.objects.filter(organization_id=self.organization.id)
@@ -172,27 +166,14 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
 
-    def test_feature_flag_off(self, _: MagicMock) -> None:
+    def test_empty_repos_is_noop(self, _: MagicMock) -> None:
         sync_repos_on_install_change(
             integration_id=self.integration.id,
             action="added",
-            repos_added=self._make_repos_added(),
+            repos_added=[],
             repos_removed=[],
             repository_selection="selected",
         )
-
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert Repository.objects.count() == 0
-
-    def test_empty_repos_is_noop(self, _: MagicMock) -> None:
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="added",
-                repos_added=[],
-                repos_removed=[],
-                repository_selection="selected",
-            )
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
@@ -207,14 +188,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
         }
         oi.save()
 
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="added",
-                repos_added=self._make_repos_added(),
-                repos_removed=[],
-                repository_selection="selected",
-            )
+        sync_repos_on_install_change(
+            integration_id=self.integration.id,
+            action="added",
+            repos_added=self._make_repos_added(),
+            repos_removed=[],
+            repository_selection="selected",
+        )
 
         oi.refresh_from_db()
         assert oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
@@ -230,14 +210,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
         }
         oi.save()
 
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="added",
-                repos_added=[],
-                repos_removed=[],
-                repository_selection="selected",
-            )
+        sync_repos_on_install_change(
+            integration_id=self.integration.id,
+            action="added",
+            repos_added=[],
+            repos_removed=[],
+            repository_selection="selected",
+        )
 
         oi.refresh_from_db()
         assert oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
@@ -259,14 +238,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 key="abc123",
             )
 
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="removed",
-                repos_added=[],
-                repos_removed=self._make_repos_removed(),
-                repository_selection="selected",
-            )
+        sync_repos_on_install_change(
+            integration_id=self.integration.id,
+            action="removed",
+            repos_added=[],
+            repos_removed=self._make_repos_removed(),
+            repository_selection="selected",
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
@@ -283,14 +261,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
                 status=ObjectStatus.DISABLED,
             )
 
-        with self.feature(FEATURE_FLAG):
-            sync_repos_on_install_change(
-                integration_id=self.integration.id,
-                action="removed",
-                repos_added=[],
-                repos_removed=self._make_repos_removed(),
-                repository_selection="selected",
-            )
+        sync_repos_on_install_change(
+            integration_id=self.integration.id,
+            action="removed",
+            repos_added=[],
+            repos_removed=self._make_repos_removed(),
+            repository_selection="selected",
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()

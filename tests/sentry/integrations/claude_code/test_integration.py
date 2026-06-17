@@ -24,7 +24,6 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 MOCK_GET_CLIENT_CLASS = "sentry.integrations.claude_code.integration._get_client_class"
@@ -594,7 +593,6 @@ class ClaudeCodeApiPipelineTest(APITestCase):
     def _advance_step(self, data: dict[str, Any]) -> Any:
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
-    @with_feature("organizations:integrations-claude-code")
     def test_initialize_pipeline(self) -> None:
         resp = self._initialize_pipeline()
         assert resp.status_code == 200
@@ -603,13 +601,11 @@ class ClaudeCodeApiPipelineTest(APITestCase):
         assert resp.data["totalSteps"] == 1
         assert resp.data["provider"] == "claude_code"
 
-    @with_feature("organizations:integrations-claude-code")
     def test_missing_api_key(self) -> None:
         self._initialize_pipeline()
         resp = self._advance_step({})
         assert resp.status_code == 400
 
-    @with_feature("organizations:integrations-claude-code")
     def test_full_pipeline_flow(self) -> None:
         mock_cls, _ = _mock_client_class()
 

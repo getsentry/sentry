@@ -16,13 +16,13 @@ class EnvironmentProjectSerializerResponse(TypedDict):
 
 
 @register(Environment)
-class EnvironmentSerializer(Serializer):
+class EnvironmentSerializer(Serializer[EnvironmentSerializerResponse]):
     def serialize(self, obj: Environment, attrs, user, **kwargs) -> EnvironmentSerializerResponse:
         return {"id": str(obj.id), "name": obj.name}
 
 
 @register(EnvironmentProject)
-class EnvironmentProjectSerializer(Serializer):
+class EnvironmentProjectSerializer(Serializer[EnvironmentProjectSerializerResponse]):
     def serialize(
         self, obj: EnvironmentProject, attrs, user, **kwargs
     ) -> EnvironmentProjectSerializerResponse:

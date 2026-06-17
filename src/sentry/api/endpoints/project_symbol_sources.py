@@ -1,3 +1,4 @@
+from typing import Any, TypeAlias, TypedDict
 from uuid import uuid4
 
 import orjson
@@ -230,6 +231,21 @@ class SourceSerializer(serializers.Serializer):
         return data
 
 
+_SymbolSource: TypeAlias = dict[str, Any]
+"""A custom symbol source entry. Shape varies by `type` (gcs, http, s3, …);
+the parsed/redacted representation is a loose dict whose key set depends on
+the source kind. Kept as `dict[str, Any]` rather than a closed TypedDict to
+preserve current wire flexibility."""
+
+
+class _SymbolSourceErrorResponse(TypedDict):
+    """`{"error": "..."}` envelope used by symbol-source endpoints in place of
+    the DRF-standard `{"detail": ...}`. Retained for backward compatibility
+    with existing API consumers."""
+
+    error: str
+
+
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
@@ -242,7 +258,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Project's Symbol Sources",
+        operation_id="listProjectSymbolSources",
+        summary="Retrieve a Project's Symbol Sources",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -258,14 +275,16 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.GET_SYMBOL_SOURCES,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[_SymbolSource]] | Response[_SymbolSourceErrorResponse]:
         """
         List custom symbol sources configured for a project.
         """
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
         sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
-        redacted = redact_source_secrets(sources)
+        redacted: list[_SymbolSource] = redact_source_secrets(sources)
 
         if id:
             for source in redacted:
@@ -276,7 +295,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(redacted)
 
     @extend_schema(
-        operation_id="Delete a Symbol Source from a Project",
+        operation_id="deleteProjectSymbolSource",
+        summary="Delete a Symbol Source from a Project",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -289,7 +309,9 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.DELETE_SYMBOL_SOURCE,
     )
-    def delete(self, request: Request, project: Project) -> Response:
+    def delete(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[_SymbolSourceErrorResponse]:
         """
         Delete a custom symbol source from a project.
         """
@@ -310,7 +332,8 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         return Response(data={"error": "Missing source id"}, status=404)
 
     @extend_schema(
-        operation_id="Add a Symbol Source to a Project",
+        operation_id="addProjectSymbolSource",
+        summary="Add a Symbol Source to a Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SourceSerializer,
         responses={
@@ -320,7 +343,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.ADD_SYMBOL_SOURCE,
     )
-    def post(self, request: Request, project: Project) -> Response:
+    def post(self, request: Request, project: Project) -> Response[_SymbolSource] | Response[None]:
         """
         Add a custom symbol source to a project.
         """
@@ -345,11 +368,12 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         serialized = orjson.dumps(sources).decode()
         project.update_option("sentry:symbol_sources", serialized)
 
-        redacted = redact_source_secrets([source])
-        return Response(data=redacted[0], status=201)
+        redacted_single: list[_SymbolSource] = redact_source_secrets([source])
+        return Response(data=redacted_single[0], status=201)
 
     @extend_schema(
-        operation_id="Update a Project's Symbol Source",
+        operation_id="updateProjectSymbolSource",
+        summary="Update a Project's Symbol Source",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -364,7 +388,9 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.UPDATE_SYMBOL_SOURCE,
     )
-    def put(self, request: Request, project: Project) -> Response:
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[_SymbolSource] | Response[None] | Response[_SymbolSourceErrorResponse]:
         """
         Update a custom symbol source in a project.
         """
@@ -406,5 +432,5 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         serialized = orjson.dumps(sources).decode()
         project.update_option("sentry:symbol_sources", serialized)
 
-        redacted = redact_source_secrets([source])
-        return Response(data=redacted[0], status=200)
+        redacted_put: list[_SymbolSource] = redact_source_secrets([source])
+        return Response(data=redacted_put[0], status=200)

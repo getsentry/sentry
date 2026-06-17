@@ -1,7 +1,8 @@
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {TraceTreeNodeExtra} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -24,9 +25,15 @@ describe('ErrorNodeDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders error details with title and ID', () => {
+  it('renders error details with title and ID', async () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture({id: '1', slug: 'project_slug'});
+    const group = GroupFixture({id: '123'});
+    const issueMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
 
     act(() => ProjectsStore.loadInitialData([project]));
 
@@ -35,6 +42,7 @@ describe('ErrorNodeDetails', () => {
       title: 'TypeError: Cannot read property of undefined',
       level: 'error',
       message: 'Something went wrong',
+      issue_id: Number(group.id),
     });
 
     const extra = createMockExtra({organization});
@@ -62,5 +70,17 @@ describe('ErrorNodeDetails', () => {
     expect(
       screen.getByText(/This error is related to an ongoing issue/)
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(issueMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/issues/${group.id}/`,
+        expect.objectContaining({
+          query: {
+            collapse: ['release', 'tags', 'stats'],
+            expand: ['inbox', 'owners'],
+          },
+        })
+      );
+    });
   });
 });

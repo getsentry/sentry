@@ -93,6 +93,7 @@ def enqueue_workflows(
     project_to_workflow: dict[int, list[int]] = {}
     if not items_by_project_id:
         sentry_sdk.set_tag("delayed_workflow_items", items)
+        sentry_sdk.set_attribute("delayed_workflow_items", items)
         return
 
     for project_id, queue_items in items_by_project_id.items():
@@ -104,6 +105,7 @@ def enqueue_workflows(
         project_to_workflow[project_id] = sorted({item.workflow.id for item in queue_items})
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
+    sentry_sdk.set_attribute("delayed_workflow_items", items)
 
     client.add_project_ids(list(items_by_project_id.keys()))
 
@@ -156,14 +158,21 @@ def evaluate_workflow_triggers(
     # Retrieve these as a batch to avoid a query/cache-lookup per DCG.
     data_conditions_by_dcg_id = _get_data_conditions_for_group_by_dcg(dcg_ids)
 
+    # Retrieve data condition groups as a batch to avoid a query/cache-lookup per DCG.
+    data_condition_groups_by_id: dict[int, DataConditionGroup] = {
+        dcg.id: dcg for dcg in DataConditionGroup.objects.get_many_from_cache(dcg_ids)
+    }
+
     tainted_untriggered, untainted_untriggered = 0, 0
     for workflow in workflows:
         when_data_conditions = None
+        when_condition_group = None
         if dcg_id := workflow.when_condition_group_id:
             when_data_conditions = data_conditions_by_dcg_id.get(dcg_id)
+            when_condition_group = data_condition_groups_by_id.get(dcg_id)
 
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(
-            event_data, when_data_conditions
+            event_data, when_data_conditions, when_condition_group
         )
 
         if remaining_conditions:
@@ -556,6 +565,9 @@ def process_workflows(
     workflow_evaluation_data.delayed_conditions = queue_items_by_workflow_id
 
     sentry_sdk.set_tag(
+        "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
+    )
+    sentry_sdk.set_attribute(
         "workflow_engine.triggered_actions", len(workflow_evaluation_data.triggered_actions)
     )
 

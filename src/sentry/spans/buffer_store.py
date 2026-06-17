@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import itertools
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from typing import Any
 
 import zstandard
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
+from sentry.spans.buffer_logger import DeadlineUpdateLog
 from sentry.spans.buffer_types import (
     FlushCandidate,
+    FlushedSegment,
     InsertedSubsegment,
     LoadedSegment,
     QueueKey,
@@ -23,6 +27,7 @@ add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
 type RedisClient = RedisCluster[bytes] | StrictRedis[bytes]
 type DecompressPayload = Callable[[bytes], list[bytes]]
+type GetDebugTraceLogger = Callable[[], Any]
 
 
 class SpansBufferStore:
@@ -82,9 +87,8 @@ class SpansBufferStore:
         """
         Ensures the Lua script is loaded in Redis and returns its SHA.
         """
-        if not self.add_buffer_sha or not self.client.script_exists(self.add_buffer_sha)[0]:
+        if not self.add_buffer_sha:
             self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
-
         return self.add_buffer_sha
 
     def store_payloads(
@@ -186,6 +190,65 @@ class SpansBufferStore:
             )
 
         return inserted_subsegments
+
+    def update_queue(
+        self,
+        trees: dict[tuple[str, str], list[Span]],
+        inserted_subsegments: Sequence[InsertedSubsegment],
+        *,
+        now: int,
+        redis_ttl: int,
+        timeout: int,
+        root_timeout: int,
+        get_debug_trace_logger: GetDebugTraceLogger,
+    ) -> None:
+        with metrics.timer("spans.buffer.process_spans.update_queue"):
+            queue_deletes: dict[QueueKey, set[bytes]] = {}
+            queue_adds: dict[QueueKey, MutableMapping[str | bytes, int]] = {}
+
+            for inserted_subsegment in inserted_subsegments:
+                subsegment = inserted_subsegment.subsegment
+                result = inserted_subsegment.result
+
+                queue_key = self.get_queue_key(inserted_subsegment.queue_shard)
+
+                # If the currently processed span is a root span, OR the buffer
+                # already had a root span inside, use a different timeout than usual.
+                offset = root_timeout if result.has_root_span else timeout
+
+                zadd_items = queue_adds.setdefault(queue_key, {})
+
+                new_deadline = now + offset
+                zadd_items[result.segment_key] = new_deadline
+
+                DeadlineUpdateLog(
+                    segment_key=result.segment_key,
+                    project_and_trace=inserted_subsegment.project_and_trace,
+                    queue_key=queue_key,
+                    new_deadline=new_deadline,
+                    message_timestamp=now,
+                    has_root_span=result.has_root_span,
+                ).emit(self.client, get_debug_trace_logger)
+
+                delete_set = queue_deletes.setdefault(queue_key, set())
+                if not inserted_subsegment.is_detached_segment:
+                    delete_set.update(
+                        self.get_span_key(subsegment.project_and_trace, span.span_id)
+                        for span in trees[subsegment.key]
+                    )
+                delete_set.discard(result.segment_key)
+
+            with self.client.pipeline(transaction=False) as p:
+                for queue_key, adds in queue_adds.items():
+                    if adds:
+                        p.zadd(queue_key, adds)
+                        p.expire(queue_key, redis_ttl)
+
+                for queue_key, deletes in queue_deletes.items():
+                    if deletes:
+                        p.zrem(queue_key, *deletes)
+
+                p.execute()
 
     def acquire_flush_locks(
         self, flush_candidates: Sequence[FlushCandidate]
@@ -399,9 +462,63 @@ class SpansBufferStore:
 
         return payloads, int(decompress_latency_ms)
 
-    def get_current_queue_deadline(self, loaded_segment: LoadedSegment) -> int | None:
+    def get_current_queue_deadlines(
+        self, loaded_segments: Sequence[LoadedSegment]
+    ) -> dict[SegmentKey, int | None]:
         """
-        Read the current queue deadline for a loaded segment, if it is still queued.
+        Read the current queue deadlines for loaded segments that are still queued.
         """
-        deadline_score = self.client.zscore(loaded_segment.queue_key, loaded_segment.segment_key)
-        return int(deadline_score) if deadline_score is not None else None
+        if not loaded_segments:
+            return {}
+
+        with self.client.pipeline(transaction=False) as p:
+            for loaded_segment in loaded_segments:
+                p.zscore(loaded_segment.queue_key, loaded_segment.segment_key)
+
+            deadline_scores = p.execute()
+
+        return {
+            loaded_segment.segment_key: int(score) if score is not None else None
+            for loaded_segment, score in zip(loaded_segments, deadline_scores)
+        }
+
+    def cleanup_flushed_segments(
+        self,
+        flushed_segments: Mapping[SegmentKey, FlushedSegment],
+    ) -> None:
+        """
+        Remove Redis data for segments that were successfully produced to Kafka.
+        """
+        queue_removals: dict[QueueKey, list[SegmentKey]] = {}
+        with self.client.pipeline(transaction=False) as p:
+            for segment_key, flushed_segment in flushed_segments.items():
+                p.delete(b"span-buf:hrs:" + segment_key)
+                p.delete(b"span-buf:ic:" + segment_key)
+                p.delete(b"span-buf:ibc:" + segment_key)
+                queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
+
+                project_id, trace_id, _ = parse_segment_key(segment_key)
+                redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
+
+                for span_batch in itertools.batched(flushed_segment.spans, 100):
+                    span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                    p.hdel(redirect_map_key, *span_ids)
+
+                if flushed_segment.payload_keys:
+                    p.delete(self.get_payload_key_index(segment_key))
+                    for payload_key in flushed_segment.payload_keys:
+                        p.unlink(payload_key)
+
+                # A segment can be queued in more than one shard when spans from the
+                # same segment land in different Kafka partitions. Releasing the lock
+                # here lets a contending flusher later acquire it and remove those stale
+                # queue entries instead of blocking on ZRANGEBYSCORE until lock TTL expires.
+                # Since the segment metadata and payload keys have already been deleted
+                # above, a stale queue entry cannot produce the segment again.
+                p.delete(self.get_flush_lock_key(segment_key))
+
+            for queue_key, keys in queue_removals.items():
+                for key_batch in itertools.batched(keys, 100):
+                    p.zrem(queue_key, *key_batch)
+
+            p.execute()

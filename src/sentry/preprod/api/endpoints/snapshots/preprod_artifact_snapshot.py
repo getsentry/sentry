@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection
-from typing import Any
+from io import BytesIO
+from typing import Any, cast
 
 import jsonschema
 import orjson
 import pydantic
+import zstandard
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
@@ -23,9 +24,11 @@ from sentry.api.bases.organization import (
     OrganizationReleasePermission,
 )
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.endpoints.chunk import ChunkTooLarge, _read_bounded
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.models.commitcomparison import CommitComparison
@@ -63,10 +66,8 @@ from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
-    InvalidImageNamePattern,
     SnapshotManifest,
     image_metadata_extras,
-    make_image_name_matcher,
 )
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -102,13 +103,6 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
             "items": {"type": "string"},
             "maxItems": 50000,
         },
-        # Sanity bounds for client-supplied patterns; ReDoS-safety comes from RE2's
-        # linear-time matching (see make_image_name_matcher in manifest.py).
-        "all_image_file_names_as_regex": {
-            "type": "array",
-            "items": {"type": "string", "maxLength": 500},
-            "maxItems": 100,
-        },
         **VCS_SCHEMA_PROPERTIES,
     },
     "required": ["app_id", "images"],
@@ -120,7 +114,6 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "images": "The images field is required and must be an object mapping image names to image metadata.",
     "selective": "The selective field must be a boolean.",
     "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 50000 entries.",
-    "all_image_file_names_as_regex": "The all_image_file_names_as_regex field must be an array of regex pattern strings (each at most 500 characters) with at most 100 entries.",
     **VCS_ERROR_MESSAGES,
 }
 
@@ -154,6 +147,26 @@ def build_snapshot_image_response(
     )
 
 
+MAX_SNAPSHOT_REQUEST_BODY_SIZE = 256 * 1024 * 1024
+
+
+def decode_preprod_snapshot_request_body(request: Request) -> tuple[bytes | None, str | None]:
+    encoding = request.headers.get("Content-Encoding", "").strip().lower()
+    if encoding in ("", "identity"):
+        return request.body, None
+    if encoding != "zstd":
+        return None, "Unsupported Content-Encoding"
+    try:
+        reader = zstandard.ZstdDecompressor().stream_reader(
+            BytesIO(request.body), read_across_frames=True
+        )
+        return _read_bounded(reader, MAX_SNAPSHOT_REQUEST_BODY_SIZE), None
+    except ChunkTooLarge:
+        return None, "Decompressed request body too large"
+    except zstandard.ZstdError:
+        return None, "Invalid zstd payload"
+
+
 def validate_preprod_snapshot_post_schema(
     request_body: bytes,
 ) -> tuple[dict[str, Any], str | None]:
@@ -183,35 +196,6 @@ def _format_validation_error(e: jsonschema.ValidationError) -> str:
             return friendly
 
     return e.message
-
-
-def _validate_image_name_coverage(
-    image_names: Collection[str],
-    all_image_file_names: list[str] | None,
-    all_image_file_names_as_regex: list[str] | None,
-) -> str | None:
-    """
-    Ensure every uploaded image name is covered by the head build's declared set
-    of image names (a literal name list or a list of regex patterns). Returns an
-    error detail string, or None when valid.
-    """
-    if all_image_file_names is not None:
-        if not all_image_file_names:
-            return "all_image_file_names must not be empty."
-        if set(image_names) - set(all_image_file_names):
-            return "Every image name must appear in all_image_file_names."
-
-    if all_image_file_names_as_regex is not None:
-        if not all_image_file_names_as_regex:
-            return "all_image_file_names_as_regex must not be empty."
-        try:
-            matches = make_image_name_matcher(all_image_file_names_as_regex)
-        except InvalidImageNamePattern as e:
-            return f"all_image_file_names_as_regex contains an invalid regex pattern: {e.pattern}"
-        if any(not matches(name) for name in image_names):
-            return "Every image name must match a pattern in all_image_file_names_as_regex."
-
-    return None
 
 
 def _format_pydantic_error(e: pydantic.ValidationError) -> str:
@@ -254,7 +238,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         request=None,
         responses={204: None, 403: RESPONSE_FORBIDDEN, 404: RESPONSE_NOT_FOUND},
     )
-    def delete(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, snapshot_id: str
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Delete a snapshot and all associated data (images, comparisons, metrics).
 
@@ -348,7 +334,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         },
         examples=PreprodExamples.GET_SNAPSHOT_DETAILS,
     )
-    def get(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+    def get(
+        self, request: Request, organization: Organization, snapshot_id: str
+    ) -> Response[SnapshotDetailsResponseDict] | Response[DetailResponse]:
         """
         Retrieve full details for a snapshot, including categorized image lists
         and comparison status.
@@ -487,6 +475,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         app_id=artifact.app_id,
                         artifact_type=artifact.artifact_type,
                         build_configuration=artifact.build_configuration,
+                        allow_selective=features.has(
+                            "organizations:preprod-selective-base-snapshots", organization
+                        ),
                     )
                     is not None
                 )
@@ -641,7 +632,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     pair["base_image"] = _strip_to_compact(pair["base_image"])
                     pair["head_image"] = _strip_to_compact(pair["head_image"])
 
-        return Response(response_data)
+        # cast() sanctioned here: pydantic .dict() returns dict[str, Any] with no
+        # static link back to SnapshotDetailsResponseDict. The TypedDict and the
+        # Pydantic model are kept in sync by hand at the source of truth.
+        body = cast(SnapshotDetailsResponseDict, response_data)
+        return Response(body)
 
 
 @extend_schema(tags=["Snapshots"])
@@ -674,7 +669,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         },
         examples=PreprodExamples.CREATE_SNAPSHOT,
     )
-    def post(self, request: Request, project: Project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[SnapshotCreateResponseDict] | Response[DetailResponse]:
         """
         Upload a new snapshot with image metadata.
 
@@ -693,7 +690,11 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        data, error_message = validate_preprod_snapshot_post_schema(request.body)
+        request_body, decode_error = decode_preprod_snapshot_request_body(request)
+        if request_body is None:
+            return Response({"detail": decode_error or "Invalid request body"}, status=400)
+
+        data, error_message = validate_preprod_snapshot_post_schema(request_body)
         if error_message:
             return Response({"detail": error_message}, status=400)
 
@@ -712,24 +713,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         pr_number = data.get("pr_number")
 
         selective = data.get("selective", False)
+        allow_selective = features.has(
+            "organizations:preprod-selective-base-snapshots", project.organization
+        )
         all_image_file_names = data.get("all_image_file_names")
-        all_image_file_names_as_regex = data.get("all_image_file_names_as_regex")
 
-        if all_image_file_names is not None and all_image_file_names_as_regex is not None:
+        if all_image_file_names is not None and not selective:
             return Response(
-                {
-                    "detail": "all_image_file_names and all_image_file_names_as_regex are mutually exclusive."
-                },
-                status=400,
-            )
-
-        if (
-            all_image_file_names is not None or all_image_file_names_as_regex is not None
-        ) and not selective:
-            return Response(
-                {
-                    "detail": "all_image_file_names and all_image_file_names_as_regex require selective to be true."
-                },
+                {"detail": "all_image_file_names requires selective to be true."},
                 status=400,
             )
 
@@ -739,11 +730,19 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 status=400,
             )
 
-        coverage_error = _validate_image_name_coverage(
-            images.keys(), all_image_file_names, all_image_file_names_as_regex
-        )
-        if coverage_error:
-            return Response({"detail": coverage_error}, status=400)
+        if all_image_file_names is not None:
+            if not all_image_file_names:
+                return Response(
+                    {"detail": "all_image_file_names must not be empty."},
+                    status=400,
+                )
+            all_image_file_names_set = set(all_image_file_names)
+            missing = set(images.keys()) - all_image_file_names_set
+            if missing:
+                return Response(
+                    {"detail": "Every image name must appear in all_image_file_names."},
+                    status=400,
+                )
 
         # Validate before entering the transaction so invalid data never creates
         # orphaned DB records.
@@ -753,7 +752,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 diff_threshold=diff_threshold,
                 selective=selective,
                 all_image_file_names=all_image_file_names,
-                all_image_file_names_as_regex=all_image_file_names_as_regex,
             )
         except pydantic.ValidationError as e:
             return Response(
@@ -868,6 +866,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     app_id=artifact.app_id,
                     artifact_type=artifact.artifact_type,
                     build_configuration=artifact.build_configuration,
+                    allow_selective=allow_selective,
                 )
                 if base_artifact:
                     logger.info(
@@ -931,7 +930,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
-        if commit_comparison is not None and not selective:
+        if commit_comparison is not None and (not selective or allow_selective):
             try:
                 waiting_heads = find_head_snapshot_artifacts_awaiting_base(
                     organization_id=project.organization_id,

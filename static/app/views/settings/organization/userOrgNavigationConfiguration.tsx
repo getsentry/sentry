@@ -131,8 +131,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/api-keys/`,
           title: t('API Keys'),
-          show: ({access, features}) =>
-            (features?.has('api-keys') && access?.has('org:admin')) ?? false,
+          show: false, // deprecated: hide from settings nav and cmd+k (SEC-551)
           id: 'api-keys',
         },
         {
@@ -283,6 +282,9 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('internal integration'),
             t('developer settings'),
             t('webhooks'),
+            t('api key'),
+            t('api keys'),
+            'SENTRY_AUTH_TOKEN',
           ],
           description: t('Manage custom integrations'),
           id: 'developer-settings',
@@ -301,9 +303,12 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('auth token'),
             t('auth tokens'),
             t('api token'),
+            t('api key'),
+            t('api keys'),
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            'SENTRY_AUTH_TOKEN',
           ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
@@ -316,9 +321,12 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('auth token'),
             t('auth tokens'),
             t('api token'),
+            t('api key'),
+            t('api keys'),
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            'SENTRY_AUTH_TOKEN',
           ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."

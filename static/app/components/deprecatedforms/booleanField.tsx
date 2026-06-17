@@ -4,7 +4,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {InputField} from 'sentry/components/deprecatedforms/inputField';
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import {IconQuestion} from 'sentry/icons';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type Props = InputField['props'];
 

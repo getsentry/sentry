@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export function getTransformedData(data: any, meta: Record<any, any> | undefined) {
   if (Array.isArray(data)) {

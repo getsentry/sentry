@@ -176,6 +176,7 @@ build-utils/                                             @getsentry/owners-js-bu
 eslint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
+/tests/js/test-balancer/                                 @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
@@ -429,14 +430,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/toolbar/                       @getsentry/replay-frontend @getsentry/replay-backend
 ## End of DevToolbar
 
-## Codecov Merge UX
-/static/app/components/codecov/  @getsentry/codecov-merge
-/static/app/views/codecov/       @getsentry/codecov-merge
-## End of Codecov Merge UX
-
-/src/sentry/codecov/ @getsentry/codecov
-/tests/sentry/codecov/ @getsentry/codecov
-
 ## Frontend
 /static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
 /static/app/components/analyticsArea.tsx       @getsentry/app-frontend
@@ -473,7 +466,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/api/endpoints/organization_code_mapping*.py                            @getsentry/coding-workflows-sentry-backend
 /src/sentry/integrations/api/endpoints/organization_coding_agents.py                            @getsentry/machine-learning-ai
 /src/sentry/integrations/coding_agent/                                      @getsentry/machine-learning-ai
-/src/sentry/integrations/utils/codecov.py                            @getsentry/codecov
 /src/sentry/integrations/utils/stacktrace_link.py                            @getsentry/coding-workflows-sentry-backend
 
 /src/sentry/mail/                                                    @getsentry/notifications
@@ -577,7 +569,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
 /src/sentry/build/                                                   @getsentry/team-web-sdk-backend
-/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-javascript-sdks
+/src/sentry/api/endpoints/source_map_debug.py                        @getsentry/team-javascript-sdks
 /src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-javascript-sdks
 /src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-javascript-sdks
 ## End of SDK
@@ -841,6 +833,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/settings/                           @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
 /static/app/bootstrap/                                @getsentry/design-engineering
+/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
 /static/app/components/commandPalette/                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering

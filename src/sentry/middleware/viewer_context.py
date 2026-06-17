@@ -7,7 +7,6 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
-from sentry import options
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -30,7 +29,7 @@ def ViewerContextMiddleware(
 
     Gated by ``viewer-context.enabled`` (FLAG_NOSTORE).
     """
-    enabled = options.get("viewer-context.enabled")
+    enabled = settings.SENTRY_VIEWER_CONTEXT_ENABLED
 
     def ViewerContextMiddleware_impl(request: HttpRequest) -> HttpResponseBase:
         if not enabled:

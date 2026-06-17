@@ -26,6 +26,8 @@ describe('ProjectPluginDetails', () => {
   });
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
+
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -92,5 +94,51 @@ describe('ProjectPluginDetails', () => {
     await waitFor(() =>
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Plugin was enabled')
     );
+  });
+});
+
+describe('ProjectPluginDetails - webhook routing', () => {
+  const organization = OrganizationFixture({
+    features: ['legacy-webhook-ui'],
+  });
+  const project = ProjectFixture();
+
+  const webhookRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/plugins/webhooks/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/plugins/:pluginId/',
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('redirects to legacy-webhooks route for pluginId=webhooks', () => {
+    const {router} = render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: webhookRouterConfig,
+    });
+
+    expect(router.location.pathname).toBe(
+      `/settings/${organization.slug}/projects/${project.slug}/legacy-webhooks/`
+    );
+  });
+
+  it('does not call plugin API for webhooks route', () => {
+    const pluginsMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/plugins/`,
+      method: 'GET',
+      body: [],
+    });
+
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: webhookRouterConfig,
+    });
+
+    expect(pluginsMock).not.toHaveBeenCalled();
   });
 });

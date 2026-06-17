@@ -19,8 +19,8 @@ import {
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useOrganization} from 'sentry/utils/useOrganization';

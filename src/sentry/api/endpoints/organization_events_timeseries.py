@@ -129,7 +129,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             return None
 
     @extend_schema(
-        operation_id="Query Explore Events in Timeseries Format",
+        operation_id="listOrganizationEventsTimeseries",
+        summary="Query Explore Events in Timeseries Format",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
@@ -158,12 +159,17 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         },
         examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[StatsResponse]:
         """
         Retrieves explore data for a given organization as a timeseries.
 
         This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
         on the parameters passed
+
+        **Note**: For queries extending past `30d`, spanning billions of rows, or running on projects with low
+        sample rates, the aggregation `yAxis=count_unique()` and filters on high-cardinality
+        fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
+        estimation only.
         """
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
@@ -184,6 +190,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+            sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
             try:
                 snuba_params = self.get_snuba_params(
                     request,

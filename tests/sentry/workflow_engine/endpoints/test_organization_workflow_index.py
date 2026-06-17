@@ -725,6 +725,91 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         )
         assert "logic type must be 'any-short'" in str(response.data).lower()
 
+    def test_create_workflow__assigned_to_in_org(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Team", "targetIdentifier": self.team.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+        assert response.status_code == 201
+
+    def test_create_workflow__assigned_to_foreign_team(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Team", "targetIdentifier": other_team.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "not part of the organization" in str(response.data).lower()
+
+    def test_create_workflow__assigned_to_foreign_member(self) -> None:
+        other_org = self.create_organization()
+        other_user = self.create_user()
+        self.create_member(organization=other_org, user=other_user)
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.ASSIGNED_TO.value,
+                        "comparison": {"targetType": "Member", "targetIdentifier": other_user.id},
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "not part of the organization" in str(response.data).lower()
+
+    def test_create_workflow__assigned_to_foreign_team_in_trigger(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        self.valid_workflow["triggers"] = {
+            "logicType": "any",
+            "conditions": [
+                {
+                    "type": Condition.ASSIGNED_TO.value,
+                    "comparison": {"targetType": "Team", "targetIdentifier": other_team.id},
+                    "conditionResult": True,
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "not part of the organization" in str(response.data).lower()
+
     @mock.patch(
         "sentry.notifications.notification_action.registry.action_validator_registry.get",
         return_value=MockActionValidatorTranslator,

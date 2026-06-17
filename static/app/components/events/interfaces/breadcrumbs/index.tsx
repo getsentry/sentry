@@ -2,7 +2,7 @@ import pick from 'lodash/pick';
 
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import type {BreadcrumbWithMeta} from './types';
 

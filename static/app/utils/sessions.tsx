@@ -16,7 +16,8 @@ import type {
   SessionFieldWithOperation,
 } from 'sentry/types/organization';
 import {SessionStatus} from 'sentry/types/organization';
-import {defined, percent} from 'sentry/utils';
+import {percent} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   getCrashFreePercent,
   getSessionStatusPercent,

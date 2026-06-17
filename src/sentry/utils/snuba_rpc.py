@@ -153,6 +153,7 @@ def _make_rpc_requests(
 
     if referrers:
         sentry_sdk.set_tag("query.referrer", referrers[0])
+        sentry_sdk.set_attribute("query.referrer", referrers[0])
 
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(
@@ -229,12 +230,16 @@ def _make_rpc_requests(
     return MultiRpcResponse(table_results, timeseries_results)
 
 
-def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
+def attribute_names_rpc(
+    req: TraceItemAttributeNamesRequest, debug: str | bool = False
+) -> TraceItemAttributeNamesResponse:
     """
     This endpoint allows you to request attribute names for traces matching some filters.
     You can also specify a substring to refine the names returned.
     """
-    resp = _make_rpc_request("EndpointTraceItemAttributeNames", "v1", req.meta.referrer, req)
+    resp = _make_rpc_request(
+        "EndpointTraceItemAttributeNames", "v1", req.meta.referrer, req, debug=debug
+    )
     response = TraceItemAttributeNamesResponse()
     response.ParseFromString(resp.data)
     return response

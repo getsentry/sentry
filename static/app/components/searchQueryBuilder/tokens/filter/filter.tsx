@@ -40,7 +40,7 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {prettifyTagKey} from 'sentry/utils/fields';
 
 interface SearchQueryTokenProps {

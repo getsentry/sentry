@@ -677,7 +677,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'circle',
         groups: ['status'],
-        keywords: ['shape', 'round', 'dot', 'indicator'],
+        keywords: ['shape', 'round', 'dot', 'indicator', 'progress'],
         name: 'Circle',
         defaultProps: {},
       },
@@ -686,6 +686,27 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['shape', 'round', 'dot', 'indicator', 'filled'],
         name: 'CircleFill',
+        defaultProps: {},
+      },
+      {
+        id: 'inProgress',
+        groups: ['status'],
+        keywords: ['circle', 'progress'],
+        name: 'InProgress',
+        defaultProps: {},
+      },
+      {
+        id: 'inReview',
+        groups: ['status'],
+        keywords: ['circle', 'progress'],
+        name: 'InReview',
+        defaultProps: {},
+      },
+      {
+        id: 'resolved',
+        groups: ['status'],
+        keywords: ['check', 'done', 'complete', 'success', 'fixed', 'circle', 'progress'],
+        name: 'Resolved',
         defaultProps: {},
       },
       {
@@ -1294,6 +1315,13 @@ const SECTIONS: TSection[] = [
         name: 'Graph',
         defaultProps: {
           type: 'scatter',
+        },
+      },
+      {
+        id: 'graph-type-heatmap',
+        name: 'Graph',
+        defaultProps: {
+          type: 'heatmap',
         },
       },
       {

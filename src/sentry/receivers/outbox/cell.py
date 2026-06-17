@@ -12,6 +12,7 @@ import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejso
 import logging
 from typing import Any, assert_never, cast
 
+from django.db import router, transaction
 from django.dispatch import receiver
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
@@ -30,13 +31,12 @@ from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.seer.agent.client import _trigger_explorer_indexes_if_needed
 from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
-from sentry.seer.autofix.utils import make_autofix_start_request
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
-from sentry.utils import json as sentry_json
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -233,10 +233,6 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         return
 
     match run_type:
-        case SeerRunType.AUTOFIX:
-            response = make_autofix_start_request(
-                sentry_json.dumps(body).encode(), viewer_context=viewer_context
-            )
         case SeerRunType.EXPLORER:
             response = make_agent_chat_request(
                 cast(AgentChatRequest, body), viewer_context=viewer_context
@@ -278,6 +274,27 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
     run.seer_run_state_id = run_id
     run.mirror_status = SeerRunMirrorStatus.LIVE
     run.save(update_fields=["seer_run_state_id", "mirror_status"])
+
+    if run_type == SeerRunType.EXPLORER:
+        organization_id = run.organization_id
+        has_explorer_index = data.get("has_explorer_index")
+        has_org_project_context = data.get("has_org_project_context")
+        run_id = run.id
+
+        def _trigger_on_commit() -> None:
+            try:
+                _trigger_explorer_indexes_if_needed(
+                    organization_id,
+                    has_explorer_index,
+                    has_org_project_context,
+                )
+            except Exception:
+                logger.exception(
+                    "seer_run_create.explorer_index_trigger_failed",
+                    extra={"run_id": run_id},
+                )
+
+        transaction.on_commit(_trigger_on_commit, using=router.db_for_write(SeerRun))
 
 
 def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:

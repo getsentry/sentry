@@ -1,7 +1,8 @@
 import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
@@ -161,6 +162,17 @@ const trackEAPSpanHasDetails = (
     has_logs_details: hasLogsDetails,
   });
 
+const trackAITabClicked = (organization: Organization) =>
+  trackAnalytics('trace.trace_layout.ai_tab_clicked', {
+    organization,
+  });
+
+const trackGenAISpanDetailsViewed = (organization: Organization, operationType: string) =>
+  trackAnalytics('trace.trace_drawer_details.gen_ai_span_details_viewed', {
+    organization,
+    operation_type: operationType,
+  });
+
 const trackResetZoom = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.reset_zoom', {
     organization,
@@ -303,6 +315,9 @@ const traceAnalytics = {
   trackMissingInstrumentationPreferenceChange,
   // Trace Drawer Details
   trackEAPSpanHasDetails,
+  trackGenAISpanDetailsViewed,
+  // AI
+  trackAITabClicked,
 };
 
 export {traceAnalytics};

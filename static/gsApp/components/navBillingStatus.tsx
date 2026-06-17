@@ -567,7 +567,7 @@ const Title = styled('h2')`
 `;
 
 const Body = styled('div')`
-  margin: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-direction: column;

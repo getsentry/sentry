@@ -1,9 +1,9 @@
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';

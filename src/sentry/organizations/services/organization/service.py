@@ -581,6 +581,38 @@ class OrganizationService(RpcService):
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def upsert_external_actor(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        user_id: int,
+        provider: int,
+        external_name: str,
+        external_id: str | None = None,
+        source: int | None = None,
+    ) -> bool:
+        """
+        Idempotently create the ExternalActor mapping linking a Sentry user to their
+        external (SCM/messaging) identity within an organization. Runs in the
+        organization's cell since ExternalActor is a cell-silo model. Returns True if a
+        new row was created.
+
+        The caller owns provider-specific formatting (e.g. the leading "@" that
+        git-family providers use on ``external_name``).
+
+        :param organization_id: The organization to create the mapping in
+        :param integration_id: The org's active integration id for this provider
+        :param user_id: The Sentry user id
+        :param provider: The ExternalProviders value (e.g. ExternalProviders.GITHUB)
+        :param external_name: The external display name (verbatim; caller normalizes)
+        :param external_id: The external unique id, if known
+        :param source: The ExternalActorSource value describing how this was derived
+        """
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def delete_organization(
         self, *, organization_id: int, user: RpcUser
     ) -> RpcOrganizationDeleteResponse:

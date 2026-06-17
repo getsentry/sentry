@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+import zstandard
 from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
@@ -63,6 +64,62 @@ class ProjectPreprodSnapshotTest(APITestCase):
         snapshot_metrics = PreprodSnapshotMetrics.objects.get(id=response.data["snapshotMetricsId"])
         assert snapshot_metrics.preprod_artifact == artifact
         assert snapshot_metrics.image_count == 1
+
+    def _compressible_snapshot_payload(self) -> bytes:
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "abc123def456": {
+                    "content_hash": "abc123def456",
+                    "width": 375,
+                    "height": 812,
+                },
+            },
+        }
+        return orjson.dumps(data)
+
+    def test_snapshot_upload_zstd_encoded(self) -> None:
+        url = self._get_create_url()
+        body = zstandard.ZstdCompressor().compress(self._compressible_snapshot_payload())
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(
+                url,
+                data=body,
+                content_type="application/json",
+                HTTP_CONTENT_ENCODING="zstd",
+            )
+
+        assert response.status_code == 200
+        assert response.data["imageCount"] == 1
+
+    def test_snapshot_upload_invalid_zstd_payload(self) -> None:
+        url = self._get_create_url()
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(
+                url,
+                data=b"this is not a zstd payload",
+                content_type="application/json",
+                HTTP_CONTENT_ENCODING="zstd",
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid zstd payload"
+
+    def test_snapshot_upload_unsupported_encoding(self) -> None:
+        url = self._get_create_url()
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(
+                url,
+                data=b"anything",
+                content_type="application/json",
+                HTTP_CONTENT_ENCODING="br",
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Unsupported Content-Encoding"
 
     def test_snapshot_upload_creates_commit_comparison(self) -> None:
         url = self._get_create_url()
@@ -335,13 +392,6 @@ class ProjectPreprodSnapshotTest(APITestCase):
                 self._get_create_url(), self._selective_data(**overrides), format="json"
             )
 
-    def _post_regex(self, patterns, **overrides):
-        data = self._selective_data(**overrides)
-        del data["all_image_file_names"]
-        data["all_image_file_names_as_regex"] = patterns
-        with self.feature("organizations:preprod-snapshots"):
-            return self.client.post(self._get_create_url(), data, format="json")
-
     def test_all_image_file_names_rejects_empty_list(self):
         response = self._post_selective(images={}, all_image_file_names=[])
         assert response.status_code == 400
@@ -372,48 +422,6 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_selective_with_all_image_file_names_accepted(self):
         response = self._post_selective()
         assert response.status_code == 200
-
-    def test_all_image_file_names_as_regex_accepted(self):
-        response = self._post_regex([r".*\.png"])
-        assert response.status_code == 200
-
-    def test_all_image_file_names_as_regex_mutually_exclusive(self):
-        response = self._post_selective(all_image_file_names_as_regex=[r".*\.png"])
-        assert response.status_code == 400
-        assert "mutually exclusive" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_requires_selective(self):
-        response = self._post_regex([r".*\.png"], selective=False)
-        assert response.status_code == 400
-        assert "selective" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_rejects_empty_list(self):
-        response = self._post_regex([])
-        assert response.status_code == 400
-        assert "empty" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_rejects_invalid_pattern(self):
-        response = self._post_regex(["["])
-        assert response.status_code == 400
-        assert "all_image_file_names_as_regex" in response.data["detail"]
-        assert "invalid regex pattern" in response.data["detail"]
-        assert "[" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_rejects_unsupported_construct(self):
-        response = self._post_regex([r"screen(?=\.png)"])
-        assert response.status_code == 400
-        assert "invalid regex pattern" in response.data["detail"]
-        assert r"screen(?=\.png)" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_must_match_all_images(self):
-        response = self._post_regex([r"other\.png"])
-        assert response.status_code == 400
-        assert "must match a pattern" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_rejects_overlong_pattern(self):
-        response = self._post_regex(["a" * 501])
-        assert response.status_code == 400
-        assert "all_image_file_names_as_regex" in response.data["detail"]
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
@@ -500,6 +508,101 @@ class ProjectPreprodSnapshotTest(APITestCase):
                 "head_artifact_id": head_artifact.id,
                 "base_artifact_id": base_artifact.id,
             }
+        )
+
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
+    def test_selective_base_requires_feature_flag(
+        self, mock_compare_snapshots, mock_get_session
+    ) -> None:
+        """
+        A SELECTIVE base build must only be matched as a comparison base when the
+        selective-base feature flag is on. With the flag off, the upload endpoint must
+        behave exactly as today: no comparison is dispatched against the selective base.
+        """
+        base_sha = "b" * 40
+        head_sha = "a" * 40
+        repo_name = "owner/repo"
+        app_id = "com.example.app"
+
+        # A SELECTIVE base build whose commit_comparison.head_sha is the base_sha that
+        # incoming heads will reference.
+        base_commit_comparison = CommitComparison.objects.create(
+            organization_id=self.org.id,
+            head_repo_name=repo_name,
+            head_sha=base_sha,
+            base_sha="c" * 40,
+            provider="github",
+            head_ref="main",
+            base_repo_name=repo_name,
+        )
+        base_artifact = PreprodArtifact.objects.create(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+            app_id=app_id,
+            commit_comparison=base_commit_comparison,
+        )
+        PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=base_artifact,
+            image_count=1,
+            is_selective=True,
+            extras={
+                "manifest_key": f"{self.org.id}/{self.project.id}/{base_artifact.id}/manifest.json"
+            },
+        )
+
+        url = self._get_create_url()
+        head_data = {
+            "app_id": app_id,
+            "head_sha": head_sha,
+            "base_sha": base_sha,
+            "provider": "github",
+            "head_repo_name": repo_name,
+            "base_repo_name": repo_name,
+            "head_ref": "feature-branch",
+            "images": {
+                "img1": {
+                    "content_hash": "img1",
+                    "display_name": "Screen 1",
+                    "width": 375,
+                    "height": 812,
+                },
+            },
+        }
+
+        # Flag OFF: the selective base must NOT be matched, so no comparison is dispatched.
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(url, head_data, format="json")
+        assert response.status_code == 200
+        head_artifact_off = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        assert not PreprodSnapshotComparison.objects.filter(
+            base_snapshot_metrics__preprod_artifact=base_artifact
+        ).exists()
+        mock_compare_snapshots.apply_async.assert_not_called()
+
+        # Flag ON: the selective base IS matched and a comparison is dispatched.
+        with self.feature(
+            {
+                "organizations:preprod-snapshots": True,
+                "organizations:preprod-selective-base-snapshots": True,
+            }
+        ):
+            response = self.client.post(url, head_data, format="json")
+        assert response.status_code == 200
+        head_artifact_on = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        assert head_artifact_on.id != head_artifact_off.id
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            base_snapshot_metrics__preprod_artifact=base_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.PENDING
+        mock_compare_snapshots.apply_async.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "org_id": self.org.id,
+                "head_artifact_id": head_artifact_on.id,
+                "base_artifact_id": base_artifact.id,
+            },
         )
 
 
@@ -831,7 +934,8 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
             args=[self.org.slug],
         )
 
-    def _create_base_snapshot(self):
+    def _create_base_snapshot(self, project=None):
+        project = project or self.project
         images = {
             "components/button.png": {
                 "content_hash": "hash_button",
@@ -841,11 +945,11 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
             }
         }
         artifact = PreprodArtifact.objects.create(
-            project=self.project,
+            project=project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
             app_id="com.example.app",
         )
-        manifest_key = f"{self.org.id}/{self.project.id}/{artifact.id}/manifest.json"
+        manifest_key = f"{self.org.id}/{project.id}/{artifact.id}/manifest.json"
         PreprodSnapshotMetrics.objects.create(
             preprod_artifact=artifact,
             image_count=len(images),
@@ -860,7 +964,12 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         mock_session.get.return_value = mock_result
         return mock_session
 
-    def test_query_params_document_project_slug(self):
+    def test_query_params_document_project_id_or_slug(self):
+        assert LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS["project"] == {
+            "type": "integer|string",
+            "required": False,
+            "description": "Project ID or slug to scope the lookup when app_id is not unique across projects or project inference is unavailable.",
+        }
         assert LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS["projectSlug"] == {
             "type": "string",
             "required": False,
@@ -886,6 +995,108 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.data["image_count"] == 1
         assert response.data["images"][0]["image_file_name"] == "components/button.png"
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+
+    @patch(
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+    )
+    def test_get_latest_base_snapshot_scoped_by_project_param_slug(self, mock_get_session):
+        artifact, _, manifest_json = self._create_base_snapshot()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "project": self.project.slug},
+            )
+
+        assert response.status_code == 200
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["project_slug"] == "sausage"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+
+    @patch(
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+    )
+    def test_get_latest_base_snapshot_scoped_by_project_param_id(self, mock_get_session):
+        artifact, _, manifest_json = self._create_base_snapshot()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "project": str(self.project.id)},
+            )
+
+        assert response.status_code == 200
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["project_slug"] == "sausage"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+
+    @patch(
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+    )
+    def test_get_latest_base_snapshot_project_slug_takes_precedence_over_project(
+        self, mock_get_session
+    ):
+        self._create_base_snapshot()
+        other_project = self.create_project(organization=self.org, slug="other-project")
+        artifact, _, manifest_json = self._create_base_snapshot(project=other_project)
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {
+                    "app_id": "com.example.app",
+                    "project": self.project.slug,
+                    "projectSlug": other_project.slug,
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["project_slug"] == "other-project"
+        mock_get_session.assert_called_once_with(self.org.id, other_project.id)
+
+    def test_get_latest_base_snapshot_rejects_all_project_id_sentinel(self):
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "project": "-1"},
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project parameter"
+
+    def test_get_latest_base_snapshot_rejects_all_project_slug_sentinel(self):
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "project": "$all"},
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project parameter"
+
+    def test_get_latest_base_snapshot_rejects_project_slug_all_sentinel(self):
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "projectSlug": "$all"},
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project parameter"
+
+    def test_get_latest_base_snapshot_rejects_project_slug_id_sentinel(self):
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "projectSlug": "-1"},
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project parameter"
 
 
 class ProjectPreprodSnapshotDeleteTest(APITestCase):

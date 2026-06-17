@@ -1,7 +1,7 @@
 import {createContext, useContext, useMemo, useState} from 'react';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
