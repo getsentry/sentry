@@ -46,8 +46,7 @@ function getRefreshProps(props: Props) {
   const period: string | undefined = apiPayload.statsPeriod as any;
 
   const display = eventView.getDisplayMode();
-  const isTopEvents =
-    display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
+  const isTopEvents = display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
   const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
 
   const field = isTopEvents ? apiPayload.field : undefined;
