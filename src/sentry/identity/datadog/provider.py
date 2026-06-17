@@ -13,6 +13,7 @@ from requests.exceptions import SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import (
     OAuth2CallbackView,
     OAuth2LoginView,
@@ -256,7 +257,7 @@ class DatadogOAuth2CallbackView(OAuth2CallbackView):
         )
 
 
-class DatadogIdentityProvider(OAuth2Provider):
+class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
     auto_create_provider_model = True
@@ -286,6 +287,12 @@ class DatadogIdentityProvider(OAuth2Provider):
         if site not in DATADOG_VALID_SITES:
             raise ValueError(f"Invalid Datadog site: {site}")
         return f"https://mcp.{site}"
+
+    def build_mcp_url(self, identity_data: dict[str, Any]) -> str | None:
+        site = identity_data.get("site")
+        if not site or site not in DATADOG_VALID_SITES:
+            return None
+        return f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
 
     def get_oauth_authorize_url(self) -> str:
         return self._get_mcp_base_url() + MCP_AUTHORIZE_PATH

@@ -23,9 +23,10 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.identity.datadog.provider import MCP_ENDPOINT_PATH
+from sentry.identity import default_manager as identity_manager
+from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.services.identity import identity_service
-from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
+from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -114,20 +115,6 @@ def _has_context_engine(
     ) or features.has("organizations:seer-added", organization, actor=user)
 
 
-def _get_monitoring_provider_url(provider_type: str, identity_data: dict[str, Any]) -> str | None:
-    """Build the URL for a monitoring provider identity."""
-    if provider_type == IntegrationProviderSlug.DATADOG:
-        site = identity_data.get("site")
-        if not site:
-            return None
-        return f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
-    elif provider_type == IntegrationProviderSlug.GCP:
-        # TODO(seer-infra-telemetry): build the GCP MCP server URL once GCP
-        # monitoring provider support is implemented.
-        pass
-    return None
-
-
 def get_monitoring_provider_connections(
     organization: Organization, user_id: int
 ) -> list[dict[str, Any]]:
@@ -137,6 +124,9 @@ def get_monitoring_provider_connections(
 
     connections: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
+        provider = identity_manager.get(provider_type)
+        if not isinstance(provider, McpIdentityProvider):
+            continue
         identities = identity_service.get_user_identities_by_provider_type(
             user_id=user_id, provider_type=provider_type
         )
@@ -144,7 +134,7 @@ def get_monitoring_provider_connections(
             access_token = identity.data.get("access_token")
             if not access_token:
                 continue
-            url = _get_monitoring_provider_url(provider_type, identity.data)
+            url = provider.build_mcp_url(identity.data)
             if not url:
                 continue
             encrypted_access_token = encrypt_access_token_for_seer(access_token)
