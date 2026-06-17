@@ -162,8 +162,6 @@ describe('ClaudeCodeIntegrationCta', () => {
       });
       await userEvent.click(setupButton);
 
-      // Handoff is configured server-side from agent + stopping point +
-      // autoCreatePr; no repository payload is sent.
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
           `/projects/${organization.slug}/${project.slug}/seer/settings/`,
@@ -171,9 +169,10 @@ describe('ClaudeCodeIntegrationCta', () => {
             method: 'PUT',
             data: {
               agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
-              integrationId: 456,
+              integrationId: '456',
               stoppingPoint: 'root_cause',
               autoCreatePr: false,
+              automationTuning: 'medium',
             },
           })
         );
@@ -295,9 +294,10 @@ describe('ClaudeCodeIntegrationCta', () => {
             method: 'PUT',
             data: {
               agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
-              integrationId: 456,
+              integrationId: '456',
               stoppingPoint: 'root_cause',
               autoCreatePr: false,
+              automationTuning: 'medium',
             },
           })
         );

@@ -150,8 +150,6 @@ describe('CursorIntegrationCta', () => {
       });
       await userEvent.click(setupButton);
 
-      // Handoff is configured server-side from agent + stopping point +
-      // autoCreatePr; no repository payload is sent.
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
           `/projects/${organization.slug}/${project.slug}/seer/settings/`,
@@ -159,9 +157,10 @@ describe('CursorIntegrationCta', () => {
             method: 'PUT',
             data: {
               agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              integrationId: 123,
+              integrationId: '123',
               stoppingPoint: 'root_cause',
               autoCreatePr: false,
+              automationTuning: 'medium',
             },
           })
         );
@@ -249,9 +248,10 @@ describe('CursorIntegrationCta', () => {
             method: 'PUT',
             data: {
               agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              integrationId: 123,
+              integrationId: '123',
               stoppingPoint: 'root_cause',
               autoCreatePr: false,
+              automationTuning: 'medium',
             },
           })
         );

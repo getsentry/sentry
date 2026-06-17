@@ -1,4 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -7,7 +7,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {SeerAutomationHandoffConfiguration} from 'sentry/components/events/autofix/types';
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -15,7 +14,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useUpdateSeerSettings} from 'sentry/utils/seer/useUpdateSeerSettings';
+import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
+import {getMutateSeerProjectSettingsOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -40,6 +40,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
   return function CodingAgentIntegrationCta({project}: CodingAgentIntegrationCtaProps) {
     const organization = useOrganization();
     const user = useUser();
+    const queryClient = useQueryClient();
 
     const hasFeatureFlag =
       !config.featureFlag || organization.features.includes(config.featureFlag);
@@ -52,16 +53,20 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     );
     const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
     const preference = data?.preference;
-    const {mutate: updateSeerSettings, isPending: isUpdatingSettings} =
-      useUpdateSeerSettings(project);
-    const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
-      organizationIntegrationsCodingAgents(organization)
+    const {data: knownAgents, isLoading: isLoadingIntegrations} = useQuery(
+      knownAgentIntegrationsQueryOptions({organization})
+    );
+    const {mutate: updateSeerSettings, isPending: isUpdatingSettings} = useMutation(
+      getMutateSeerProjectSettingsOptions({
+        organization,
+        project,
+        queryClient,
+        knownAgents: knownAgents ?? [],
+      })
     );
     const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
 
-    const integration = codingAgentIntegrations?.integrations.find(
-      i => i.provider === config.provider
-    );
+    const integration = knownAgents?.find(i => i.provider === config.target);
 
     const hasIntegration = Boolean(integration);
     const isAutomationEnabled =
@@ -104,15 +109,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
         });
       }
 
-      // Route through the dedicated settings endpoint, which derives the
-      // handoff config server-side from agent + stopping point + autoCreatePr
-      // and never touches repository associations. The legacy preferences
-      // write re-sent the existing repos purely to preserve them, which the
-      // settings endpoint makes unnecessary — and avoids the whitespace-
-      // stripping repo lookup that 400s for GitLab repos with spaces.
       updateSeerSettings({
-        agent: config.target,
-        integrationId: parseInt(integration.id, 10),
+        agentOption: `${config.target}::${integration.id}`,
         stoppingPoint: 'root_cause',
         autoCreatePr: false,
       });
