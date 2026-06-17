@@ -184,9 +184,13 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
         if values:
             out.setlist(param, values)
 
+    metric = raw_query.get("metric")
+    if metric:
+        out["query"] = f"%28{metric}%29"
+
     query = raw_query.get("query")
     if query:
-        out["query"] = query
+        out["query"] = out["query"] + f" %28{query}%29"
 
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD

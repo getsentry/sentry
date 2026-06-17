@@ -2,9 +2,11 @@ import 'echarts/lib/chart/heatmap';
 
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import type {XAxisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
+  VisualMapComponentOption,
 } from 'echarts/types/dist/shared';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -312,24 +314,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           formatter: formatTooltip,
         }}
         series={series}
-        xAxis={{
-          type: 'category',
-          animation: false,
-          axisLabel: {
-            formatter: value => {
-              // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
-              return formatXAxisTimestamp(parseFloat(value), {
-                utc: utc ?? undefined,
-              });
-            },
-          },
-          axisPointer: {
-            show: false,
-          },
-          splitArea: {
-            show: false,
-          },
-        }}
+        xAxis={xAxisOptions(utc)}
         yAxis={{
           type: 'category',
           animation: false,
@@ -381,31 +366,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             show: false,
           },
         }}
-        visualMap={[
-          // Zero values are transparent (empty buckets)
-          {
-            type: 'piecewise',
-            show: false,
-            dimension: 2,
-            seriesIndex: 0,
-            pieces: [
-              {value: 0, opacity: 0},
-              {gt: 0, opacity: 1},
-            ],
-          },
-          // All values are plotted against a palette
-          {
-            type: 'continuous',
-            show: false,
-            dimension: 2,
-            seriesIndex: 0,
-            min: 0,
-            max: Zmax,
-            inRange: {
-              color: [...HEATMAP_COLORS],
-            },
-          },
-        ]}
+        visualMap={visualMapOptions(Zmax)}
         start={start ? new Date(start) : undefined}
         end={end ? new Date(end) : undefined}
         period={period}
@@ -414,3 +375,52 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     </Flex>
   );
 }
+
+export const visualMapOptions = (Zmax: number) => {
+  return [
+    // Zero values are transparent (empty buckets)
+    {
+      type: 'piecewise',
+      show: false,
+      dimension: 2,
+      seriesIndex: 0,
+      pieces: [
+        {value: 0, opacity: 0},
+        {gt: 0, opacity: 1},
+      ],
+    },
+    // All values are plotted against a palette
+    {
+      type: 'continuous',
+      show: false,
+      dimension: 2,
+      seriesIndex: 0,
+      min: 0,
+      max: Zmax,
+      inRange: {
+        color: [...HEATMAP_COLORS],
+      },
+    },
+  ] as VisualMapComponentOption[];
+};
+
+export const xAxisOptions = (utc: boolean | null) => {
+  return {
+    type: 'category',
+    animation: false,
+    axisLabel: {
+      formatter: value => {
+        // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
+        return formatXAxisTimestamp(parseFloat(value), {
+          utc: utc ?? undefined,
+        });
+      },
+    },
+    axisPointer: {
+      show: false,
+    },
+    splitArea: {
+      show: false,
+    },
+  } as XAxisComponentOption;
+};

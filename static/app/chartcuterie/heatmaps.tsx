@@ -4,9 +4,11 @@ import {Grid} from 'sentry/components/charts/components/grid';
 import {YAxis} from 'sentry/components/charts/components/yAxis';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue';
+import {
+  visualMapOptions,
+  xAxisOptions,
+} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
-import {HEATMAP_COLORS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
-import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 
 import {DEFAULT_FONT_FAMILY} from './slack';
 import {CHART_SIZE, FONT_SIZE} from './timeseries';
@@ -48,51 +50,24 @@ export function buildHeatmapChartOption({
   // we have log as default currently so we'll keep that in the unfurl
   const series = heatMapPlottable.toSeries({theme, scale: 'log'});
 
+  const xAxis = xAxisOptions(null);
+
   return {
     grid: Grid({left: 10, right: 10, bottom: 10, top: 10}),
     backgroundColor: theme.tokens.background.primary,
     // ECharts requires type:'category' for heatmap axes
     xAxis: {
-      type: 'category',
+      ...xAxis,
       axisLabel: {
+        ...xAxis.axisLabel,
         fontSize: FONT_SIZE,
         fontFamily: DEFAULT_FONT_FAMILY,
-        formatter: (value: string) => {
-          // NOTE: ECharts requires a `"category"` X-axis for heat maps, but we _know_ that we only support time as the X-axis. We need to parse the value here.
-          return formatXAxisTimestamp(parseFloat(value));
-        },
       },
-      axisPointer: {show: false},
-      splitArea: {show: false},
     },
     yAxis,
     useUTC: true,
     series,
-    visualMap: [
-      // Zero values are transparent (empty buckets)
-      {
-        type: 'piecewise',
-        show: false,
-        dimension: 2,
-        seriesIndex: 0,
-        pieces: [
-          {value: 0, opacity: 0},
-          {gt: 0, opacity: 1},
-        ],
-      },
-      // All values are plotted against the heatmap palette
-      {
-        type: 'continuous',
-        show: false,
-        dimension: 2,
-        seriesIndex: 0,
-        min: 0,
-        max: Zmax,
-        inRange: {
-          color: [...HEATMAP_COLORS],
-        },
-      },
-    ],
+    visualMap: visualMapOptions(Zmax),
   };
 }
 
