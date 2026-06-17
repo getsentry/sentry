@@ -20,6 +20,8 @@ import {
 
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
@@ -28,15 +30,30 @@ import {
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import {usePageReferrer, useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
+import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import {
+  isSeerExplorerSidebarEnabled,
+  usePageReferrer,
+  useSeerExplorerDeepLink,
+} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
   isOpen: boolean;
+  /**
+   * Whether Seer renders as a persistent split-panel sidebar (flag on) rather
+   * than an overlay drawer.
+   */
+  isSidebarMode: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   sessionState: SeerExplorerSessionState;
+  /**
+   * Persisted sidebar dock preference. Only meaningful in sidebar mode.
+   */
+  setSidebarPosition: (position: SeerExplorerSidebarPosition) => void;
+  sidebarPosition: SeerExplorerSidebarPosition;
   toggleSeerExplorer: () => void;
   unreadCount: number;
 };
@@ -44,8 +61,11 @@ type SeerExplorerContextValue = {
 const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isOpen: false,
+  isSidebarMode: false,
   openSeerExplorer: () => {},
   sessionState: 'inactive',
+  setSidebarPosition: () => {},
+  sidebarPosition: 'auto',
   toggleSeerExplorer: () => {},
   unreadCount: 0,
 });
@@ -91,26 +111,38 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {runId, chatStates} = useSeerExplorerChatState();
   const [lastViewedAt, setLastViewedAt] = useState<number>(() => Date.now());
 
+  const organization = useOrganization({allowNull: true});
+  const isSidebarMode = isSeerExplorerSidebarEnabled(organization);
+
   const {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
-    isOpen,
+    isOpen: isDrawerOpen,
   } = useSeerExplorerDrawer({
     onClose: () => setLastViewedAt(Date.now()),
   });
+
+  // Sidebar (split-panel) state. Open state is ephemeral — resets on reload,
+  // like the drawer; only the dock preference persists.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarPosition, setSidebarPosition] =
+    useLocalStorageState<SeerExplorerSidebarPosition>(
+      'seer-explorer-sidebar-position',
+      'auto'
+    );
+
+  const isOpen = isSidebarMode ? isSidebarOpen : isDrawerOpen;
 
   const {getPageReferrer} = usePageReferrer();
 
   const {pipWindow, closePipWindow} = usePictureInPicture();
   const isPoppedOut = pipWindow !== null;
 
-  // Re-dock into the drawer whenever the PiP window closes (native controls,
-  // dock button, or programmatically) — unless a full close was requested via
-  // `closeSeerExplorer`. The watcher lives here because re-docking needs the
-  // drawer controls, which are only available inside `GlobalDrawer`. The drawer
-  // width is kept in sync continuously by `SyncDrawerWidthFromPip`, so the
-  // reopened drawer already reflects the popped-out window's width.
+  // Re-open the active surface (sidebar or drawer) whenever the PiP window closes
+  // (native controls, dock button, or programmatically) — unless a full close
+  // was requested via `closeSeerExplorer`. The drawer width is kept in sync
+  // continuously by `SyncDrawerWidthFromPip`.
   const suppressRedockRef = useRef(false);
   const wasPoppedOutRef = useRef(false);
   useEffect(() => {
@@ -121,9 +153,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         suppressRedockRef.current = false;
         return;
       }
-      openSeerExplorerDrawer();
+      if (isSidebarMode) {
+        setIsSidebarOpen(true);
+      } else {
+        openSeerExplorerDrawer();
+      }
     }
-  }, [isPoppedOut, openSeerExplorerDrawer]);
+  }, [isPoppedOut, isSidebarMode, openSeerExplorerDrawer]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
@@ -131,9 +167,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         pipWindow.focus();
         return;
       }
+      if (isSidebarMode) {
+        setIsSidebarOpen(true);
+        return;
+      }
       openSeerExplorerDrawer(drawerOptions);
     },
-    [pipWindow, openSeerExplorerDrawer]
+    [pipWindow, isSidebarMode, openSeerExplorerDrawer]
   );
 
   const closeSeerExplorer = useCallback(() => {
@@ -142,17 +182,29 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       closePipWindow();
       return;
     }
+    if (isSidebarMode) {
+      setIsSidebarOpen(false);
+      setLastViewedAt(Date.now());
+      return;
+    }
     closeSeerExplorerDrawer();
-  }, [pipWindow, closePipWindow, closeSeerExplorerDrawer]);
+  }, [pipWindow, isSidebarMode, closePipWindow, closeSeerExplorerDrawer]);
 
   const toggleSeerExplorer = useCallback(() => {
     if (pipWindow) {
-      // Re-dock back into the drawer.
+      // Re-dock back into the active surface.
       closePipWindow();
       return;
     }
+    if (isSidebarMode) {
+      if (isSidebarOpen) {
+        setLastViewedAt(Date.now());
+      }
+      setIsSidebarOpen(!isSidebarOpen);
+      return;
+    }
     toggleSeerExplorerDrawer();
-  }, [pipWindow, closePipWindow, toggleSeerExplorerDrawer]);
+  }, [pipWindow, isSidebarMode, isSidebarOpen, closePipWindow, toggleSeerExplorerDrawer]);
 
   const {apiData} = useSeerExplorerPolling({runId});
   const blocks = apiData?.session?.blocks;
@@ -244,18 +296,24 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const contextValue = useMemo<SeerExplorerContextValue>(
     () => ({
       isOpen,
+      isSidebarMode,
       openSeerExplorer,
       closeSeerExplorer,
       toggleSeerExplorer,
       sessionState,
+      sidebarPosition,
+      setSidebarPosition,
       unreadCount,
     }),
     [
       isOpen,
+      isSidebarMode,
       openSeerExplorer,
       closeSeerExplorer,
       toggleSeerExplorer,
       sessionState,
+      sidebarPosition,
+      setSidebarPosition,
       unreadCount,
     ]
   );

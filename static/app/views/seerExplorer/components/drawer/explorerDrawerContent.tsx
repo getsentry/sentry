@@ -25,7 +25,7 @@ import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
@@ -39,14 +39,26 @@ export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 export function ExplorerDrawerContent({
   getPageReferrer,
   initialQuery,
+  surface = 'drawer',
+  onClose,
+  sidebarPosition,
+  onSidebarPositionChange,
 }: {
   getPageReferrer: () => string;
   initialQuery?: string;
+  /** Called to close the current surface (sidebar). Falls back to the drawer's onClose. */
+  onClose?: () => void;
+  onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
+  sidebarPosition?: SeerExplorerSidebarPosition;
+  /** Which surface this content is rendered in. */
+  surface?: 'drawer' | 'sidebar';
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
-  const {onClose: closeDrawer = () => {}} = useDrawerContentContext();
+  const {onClose: drawerOnClose = () => {}} = useDrawerContentContext();
+  // Closes the current surface: explicit `onClose` (sidebar) or the drawer's.
+  const surfaceClose = onClose ?? drawerOnClose;
   const {
     pipWindow,
     isSupported: isPipSupported,
@@ -72,9 +84,9 @@ export function ExplorerDrawerContent({
       // happened to be left last time.
       preferInitialWindowPlacement: true,
     })
-      .then(() => closeDrawer())
+      .then(() => surfaceClose())
       .catch(() => {
-        // Failed to open the PiP window — keep the drawer open.
+        // Failed to open the PiP window — keep the current surface open.
       });
   };
 
@@ -316,11 +328,11 @@ export function ExplorerDrawerContent({
         if (isPoppedOut) {
           closePipWindow();
         } else {
-          closeDrawer();
+          surfaceClose();
         }
       }
     },
-    [handleSend, closeDrawer, isPoppedOut, closePipWindow]
+    [handleSend, surfaceClose, isPoppedOut, closePipWindow]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -434,6 +446,10 @@ export function ExplorerDrawerContent({
         isPipSupported={isPipSupported}
         isPoppedOut={isPoppedOut}
         onTogglePictureInPicture={handleTogglePictureInPicture}
+        showSidebarControls={surface === 'sidebar' && !isPoppedOut}
+        sidebarPosition={sidebarPosition}
+        onSidebarPositionChange={onSidebarPositionChange}
+        onClose={surfaceClose}
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>

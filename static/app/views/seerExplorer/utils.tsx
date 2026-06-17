@@ -1141,3 +1141,14 @@ export function isSeerExplorerEnabled(organization: Organization | null): boolea
     organization.features.includes('seer-explorer')
   );
 }
+
+/**
+ * Whether Seer Explorer should render as a persistent, resizable split-panel
+ * sidebar instead of an overlay drawer.
+ */
+export function isSeerExplorerSidebarEnabled(organization: Organization | null): boolean {
+  return (
+    isSeerExplorerEnabled(organization) &&
+    !!organization?.features.includes('seer-explorer-persistent-sidebar')
+  );
+}

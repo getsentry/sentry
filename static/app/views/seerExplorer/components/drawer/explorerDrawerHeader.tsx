@@ -16,15 +16,19 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconAdd,
+  IconCheckmark,
   IconClock,
+  IconClose,
   IconCopy,
   IconEllipsis,
   IconLink,
+  IconPanel,
   IconWindow,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 
 interface ExplorerDrawerHeaderProps {
   isPipSupported: boolean;
@@ -41,6 +45,12 @@ interface ExplorerDrawerHeaderProps {
   showThinking: boolean;
   showThinkingToggle: boolean;
   disableNewChatButton?: boolean;
+  /** Closes the surface (sidebar). Used for the explicit close button. */
+  onClose?: () => void;
+  onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
+  /** Render sidebar-only controls (dock-position dropdown + close button). */
+  showSidebarControls?: boolean;
+  sidebarPosition?: SeerExplorerSidebarPosition;
 }
 
 export function ExplorerDrawerHeader({
@@ -57,6 +67,10 @@ export function ExplorerDrawerHeader({
   isPipSupported,
   isPoppedOut,
   onTogglePictureInPicture,
+  showSidebarControls = false,
+  sidebarPosition = 'auto',
+  onSidebarPositionChange,
+  onClose,
   disableNewChatButton = false,
 }: ExplorerDrawerHeaderProps) {
   const [search, setSearch] = useState('');
@@ -117,8 +131,39 @@ export function ExplorerDrawerHeader({
     [onCopySessionClick, onCopyLinkClick]
   );
 
+  const positionMenuItems: MenuItemProps[] = useMemo(
+    () => [
+      {
+        key: 'auto',
+        label: t('Auto'),
+        leadingItems: <IconPanel />,
+        trailingItems: sidebarPosition === 'auto' ? <IconCheckmark size="sm" /> : null,
+        onAction: () => onSidebarPositionChange?.('auto'),
+      },
+      {
+        key: 'right',
+        label: t('Right'),
+        leadingItems: <IconPanel direction="right" />,
+        trailingItems: sidebarPosition === 'right' ? <IconCheckmark size="sm" /> : null,
+        onAction: () => onSidebarPositionChange?.('right'),
+      },
+      {
+        key: 'bottom',
+        label: t('Bottom'),
+        leadingItems: <IconPanel direction="down" />,
+        trailingItems: sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
+        onAction: () => onSidebarPositionChange?.('bottom'),
+      },
+    ],
+    [sidebarPosition, onSidebarPositionChange]
+  );
+
   return (
-    <DrawerHeader hideBar hideCloseButtonText hideCloseButton={isPoppedOut}>
+    <DrawerHeader
+      hideBar
+      hideCloseButtonText
+      hideCloseButton={isPoppedOut || showSidebarControls}
+    >
       <Flex align="center" gap="xs" height="100%">
         <Text wrap="nowrap" size="md">
           {t('Seer Agent')}
@@ -223,6 +268,25 @@ export function ExplorerDrawerHeader({
               }}
             />
           )}
+          {showSidebarControls && (
+            <DropdownMenu
+              items={positionMenuItems}
+              size="xs"
+              position="bottom-end"
+              menuTitle={t('Dock position')}
+              triggerProps={{
+                'aria-label': t('Dock position'),
+                icon: (
+                  <IconPanel
+                    direction={sidebarPosition === 'bottom' ? 'down' : 'right'}
+                  />
+                ),
+                showChevron: false,
+                variant: 'transparent',
+                size: 'xs',
+              }}
+            />
+          )}
           <CompactSelect
             options={sessionOptions}
             value={undefined}
@@ -276,6 +340,16 @@ export function ExplorerDrawerHeader({
             {t('New chat')}
           </Button>
         </InlineActions>
+        {showSidebarControls && (
+          <Button
+            icon={<IconClose />}
+            onClick={onClose}
+            variant="transparent"
+            size="xs"
+            aria-label={t('Close Seer')}
+            tooltipProps={{title: t('Close')}}
+          />
+        )}
       </Flex>
     </DrawerHeader>
   );

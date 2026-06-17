@@ -32,6 +32,7 @@ import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryN
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -110,28 +111,32 @@ function AppLayout({organization}: LayoutProps) {
           position="relative"
         >
           <Navigation />
-          {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-          <ContentStack
-            id="main"
-            tabIndex={-1}
-            flex="1"
-            minWidth="0"
-            background={hasPageFrame ? 'secondary' : undefined}
-          >
-            <DemoHeader />
-            <AppBodyContent>
-              {organization && <OrganizationHeader organization={organization} />}
-              <OrganizationDetailsBody>
-                <TopBar.Slot.Provider>
-                  <TopBar />
-                  <Layout.Page>
-                    <Outlet />
-                    <Footer />
-                  </Layout.Page>
-                </TopBar.Slot.Provider>
-              </OrganizationDetailsBody>
-            </AppBodyContent>
-          </ContentStack>
+          {/* When the persistent-sidebar flag is on, this splits the content
+              area with Seer; otherwise it renders the content unchanged. */}
+          <SeerExplorerSidebarLayout>
+            {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+            <ContentStack
+              id="main"
+              tabIndex={-1}
+              flex="1"
+              minWidth="0"
+              background={hasPageFrame ? 'secondary' : undefined}
+            >
+              <DemoHeader />
+              <AppBodyContent>
+                {organization && <OrganizationHeader organization={organization} />}
+                <OrganizationDetailsBody>
+                  <TopBar.Slot.Provider>
+                    <TopBar />
+                    <Layout.Page>
+                      <Outlet />
+                      <Footer />
+                    </Layout.Page>
+                  </TopBar.Slot.Provider>
+                </OrganizationDetailsBody>
+              </AppBodyContent>
+            </ContentStack>
+          </SeerExplorerSidebarLayout>
         </Flex>
       </Stack>
       {organization ? <AppDrawers /> : null}
