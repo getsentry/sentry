@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
+from io import BytesIO
 from typing import Any, cast
 
 import jsonschema
 import orjson
 import pydantic
+import zstandard
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
@@ -22,6 +24,7 @@ from sentry.api.bases.organization import (
     OrganizationReleasePermission,
 )
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.endpoints.chunk import ChunkTooLarge, _read_bounded
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -142,6 +145,26 @@ def build_snapshot_image_response(
         description=metadata.description,
         tags=metadata.tags,
     )
+
+
+MAX_SNAPSHOT_REQUEST_BODY_SIZE = 256 * 1024 * 1024
+
+
+def decode_preprod_snapshot_request_body(request: Request) -> tuple[bytes | None, str | None]:
+    encoding = request.headers.get("Content-Encoding", "").strip().lower()
+    if encoding in ("", "identity"):
+        return request.body, None
+    if encoding != "zstd":
+        return None, "Unsupported Content-Encoding"
+    try:
+        reader = zstandard.ZstdDecompressor().stream_reader(
+            BytesIO(request.body), read_across_frames=True
+        )
+        return _read_bounded(reader, MAX_SNAPSHOT_REQUEST_BODY_SIZE), None
+    except ChunkTooLarge:
+        return None, "Decompressed request body too large"
+    except zstandard.ZstdError:
+        return None, "Invalid zstd payload"
 
 
 def validate_preprod_snapshot_post_schema(
@@ -667,7 +690,11 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         ):
             return Response({"detail": "Feature not enabled"}, status=403)
 
-        data, error_message = validate_preprod_snapshot_post_schema(request.body)
+        request_body, decode_error = decode_preprod_snapshot_request_body(request)
+        if request_body is None:
+            return Response({"detail": decode_error or "Invalid request body"}, status=400)
+
+        data, error_message = validate_preprod_snapshot_post_schema(request_body)
         if error_message:
             return Response({"detail": error_message}, status=400)
 

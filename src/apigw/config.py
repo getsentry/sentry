@@ -80,4 +80,4 @@ def load_config(app: App) -> None:
 
     from django.conf import settings
 
-    app.config.cells.default = settings.SENTRY_MONOLITH_REGION
+    app.config.cells.default = settings.SENTRY_FALLBACK_CELL

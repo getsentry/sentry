@@ -6,8 +6,8 @@ describe('getHeatmapYAxisBucketCount()', () => {
   });
 
   it('divides the container height by the target bucket size', () => {
-    // 360 / 10 = 36
-    expect(getHeatmapYAxisBucketCount(360)).toBe(36);
+    // 350 / 7 = 50
+    expect(getHeatmapYAxisBucketCount(350)).toBe(50);
   });
 
   it('never returns fewer than 1 bucket when there is height', () => {

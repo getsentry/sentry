@@ -390,7 +390,6 @@ class RecomputePullRequestAttributionTest(TestCase):
         assert recompute_pull_request_attribution(self.pull_request) is None
 
     def test_picks_highest_confidence_signal(self) -> None:
-        self._add(PullRequestAttributionSignalType.REFERENCED_ISSUE)
         self._add(PullRequestAttributionSignalType.SENTRY_APP)
         self._add(PullRequestAttributionSignalType.MCP)
 
@@ -401,9 +400,9 @@ class RecomputePullRequestAttributionTest(TestCase):
 
     def test_ignores_invalid_signals(self) -> None:
         self._add(PullRequestAttributionSignalType.SENTRY_APP, is_valid=False)
-        self._add(PullRequestAttributionSignalType.REFERENCED_ISSUE)
+        self._add(PullRequestAttributionSignalType.MCP)
 
         assert (
             recompute_pull_request_attribution(self.pull_request)
-            == PullRequestAttributionSignalType.REFERENCED_ISSUE
+            == PullRequestAttributionSignalType.MCP
         )

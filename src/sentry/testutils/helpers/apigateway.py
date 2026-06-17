@@ -20,7 +20,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint, control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.feedback.endpoints.error_page_embed import ErrorEmbedResolver
 from sentry.testutils.cases import APITestCase
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 from sentry.utils import json
 
 
@@ -243,7 +243,6 @@ class ApiGatewayTestCase(APITestCase):
         name="us",
         snowflake_id=1,
         address="http://us.internal.sentry.io",
-        category=RegionCategory.MULTI_TENANT,
     )
 
     def setUp(self):
