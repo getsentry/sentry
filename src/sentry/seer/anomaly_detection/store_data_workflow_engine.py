@@ -72,7 +72,9 @@ def _fetch_anomaly_data_condition(detector: Detector, method: str) -> DataCondit
             ],
         )
     except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
-        # there should only ever be one non-resolution data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
+        # An already-dynamic detector has exactly one non-resolution condition, so neither
+        # branch is expected here. A detector mid-conversion can still have multiple matching
+        # conditions — that case must build the condition in memory and never call this.
         dcg_id = (
             detector.workflow_condition_group.id
             if detector.workflow_condition_group is not None
