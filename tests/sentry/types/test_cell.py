@@ -257,35 +257,6 @@ class CellDirectoryTest(TestCase):
             assert set(result) == {"us", "eu", "acme"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-<<<<<<< chore-monolith-region
-    def test_find_all_multitenant_cell_names(self) -> None:
-        with override_settings(SENTRY_FALLBACK_CELL="us"):
-            directory = load_from_config(self._INPUTS, self._LOCALITY_INPUTS)
-        with self._in_global_state(directory):
-            result = find_all_multitenant_cell_names()
-            assert set(result) == {"us", "eu"}
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_multitenant_cell_names_non_visible(self) -> None:
-        inputs: list[CellConfig] = [
-            *self._INPUTS,
-            {
-                "name": "ja",
-                "snowflake_id": 4,
-                "address": "https://ja.testserver",
-                "visible": False,
-            },
-        ]
-        locality_inputs: list[LocalityConfig] = self._LOCALITY_INPUTS
-        with override_settings(SENTRY_FALLBACK_CELL="us"):
-            directory = load_from_config(inputs, locality_inputs)
-        with self._in_global_state(directory):
-            result = find_all_multitenant_cell_names()
-            assert set(result) == {"us", "eu"}
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-=======
->>>>>>> master
     def test_subdomain_is_locality(self) -> None:
         cells: list[CellConfig] = [
             {
