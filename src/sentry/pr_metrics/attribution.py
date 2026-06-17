@@ -56,7 +56,6 @@ SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
     PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
     PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: 70,
     PullRequestAttributionSignalType.MCP: 50,
-    PullRequestAttributionSignalType.REFERENCED_ISSUE: 25,
     PullRequestAttributionSignalType.UNKNOWN: 0,
 }
 
