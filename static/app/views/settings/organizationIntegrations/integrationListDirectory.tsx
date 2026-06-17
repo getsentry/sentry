@@ -227,7 +227,7 @@ export default function IntegrationListDirectory() {
   const search = decodeScalar(location.query.search) ?? '';
 
   const webhookName = t('Webhooks (Legacy)');
-  const webhookCategories = ['webhooks'];
+  const webhookCategories = ['notification action'];
   const showLegacyWebhookRow =
     hasLegacyWebhookUI &&
     !!legacyWebhooks &&
@@ -463,7 +463,7 @@ export default function IntegrationListDirectory() {
                       }
                       publishStatus="published"
                       configurations={legacyWebhooks.projects?.length ?? 0}
-                      categories={['webhooks']}
+                      categories={webhookCategories}
                       customIcon={<PluginIcon pluginId="webhooks" size={36} />}
                     />
                   )}
