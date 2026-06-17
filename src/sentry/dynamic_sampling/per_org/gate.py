@@ -48,5 +48,8 @@ def project_balancing_debug_project_ids() -> set[int]:
 
 
 def sliding_window_comparison_org_ids() -> set[int]:
-    # Coerce to int: automator-supplied values are commonly JSON strings (e.g. ["123"]).
-    return {int(org_id) for org_id in options.get(SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION)}
+    return {
+        int(org_id)
+        for org_id in options.get(SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION)
+        if isinstance(org_id, int) or (isinstance(org_id, str) and org_id.isdigit())
+    }
