@@ -2,7 +2,7 @@ from django.conf import settings
 
 from sentry.api.serializers.models.group import get_status_label, get_substatus_label
 from sentry.models.activity import Activity
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.platform.types import (
@@ -111,16 +111,17 @@ def build_template(
 
 
 def get_example_issue_description() -> ParagraphBlock:
-    example_group = Group(
-        id=1,
-        title="ExampleError: something went wrong",
-        qualified_short_id="EXAMPLE-1",
-        project=Project(id=1, name="example-project"),
-        organization=Organization(id=1, name="example"),
-        status=GroupStatus.UNRESOLVED,
-        times_seen=42,
+    return ParagraphBlock(
+        blocks=[
+            PlainTextBlock(text="This update pertains to the"),
+            CodeTextBlock(text="ExampleError: something went wrong"),
+            PlainTextBlock(text="issue"),
+            CodeTextBlock(text="EXAMPLE-1"),
+            PlainTextBlock(text="in the 'example' project. The issue is"),
+            BoldTextBlock(text="Unresolved"),
+            PlainTextBlock(text="and has been seen 42 time(s)."),
+        ]
     )
-    return get_issue_description(example_group)
 
 
 def get_example_actions() -> list[NotificationRenderedAction]:
