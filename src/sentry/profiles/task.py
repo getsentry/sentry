@@ -160,9 +160,9 @@ def process_profile_from_kafka(
     headers: dict[str, str],
 ) -> None:
     """Process a profile from raw Kafka message bytes (taskbroker passthrough mode)."""
-    from sentry.profiles.consumers.process.factory import _process_profile_message
+    from sentry.profiles.consumers.process.factory import process_profile_message
 
-    _process_profile_message(message_bytes, headers, inline=True)
+    process_profile_message(message_bytes, headers, inline=True)
 
 
 @instrumented_task(

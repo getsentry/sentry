@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import MutableSequence
-from datetime import datetime
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import msgpack
 import pytest
-from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.utils import timezone
 
-from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
+from sentry.profiles.consumers.process.factory import process_profile_message
 from sentry.profiles.task import _prepare_frames_from_profile
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -19,15 +15,10 @@ from sentry.utils import json
 
 
 @override_options({"profiling.killswitch.ingest-profiles": [{"project_id": "2"}]})
-@pytest.mark.parametrize("headers", [[], [("project_id", b"1")]])
+@pytest.mark.parametrize("headers", [{}, {"project_id": "1"}])
 @patch("sentry.profiles.consumers.process.factory.process_profile_task.delay")
 @django_db_all
-def test_basic_profile_to_task(
-    process_profile_task: MagicMock, headers: MutableSequence[tuple[str, bytes]]
-) -> None:
-    processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
-        commit=Mock(), partitions={}
-    )
+def test_basic_profile_to_task(process_profile_task: MagicMock, headers: dict[str, str]) -> None:
     message_dict = {
         "organization_id": 1,
         "project_id": 1,
@@ -37,23 +28,7 @@ def test_basic_profile_to_task(
     }
     payload = msgpack.packb(message_dict)
 
-    processing_strategy.submit(
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    b"key",
-                    payload,
-                    headers,
-                ),
-                Partition(Topic("profiles"), 1),
-                1,
-                datetime.now(),
-            )
-        )
-    )
-    processing_strategy.poll()
-    processing_strategy.join(1)
-    processing_strategy.terminate()
+    process_profile_message(payload, headers)
 
     process_profile_task.assert_called_with(
         payload=payload,
@@ -65,9 +40,6 @@ def test_basic_profile_to_task(
 @override_options({"profiling.killswitch.ingest-profiles": [{"project_id": "1"}]})
 @django_db_all
 def test_killswitch_project(process_profile_task: MagicMock) -> None:
-    processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
-        commit=Mock(), partitions={}
-    )
     message_dict = {
         "organization_id": 1,
         "project_id": 1,
@@ -77,23 +49,7 @@ def test_killswitch_project(process_profile_task: MagicMock) -> None:
     }
     payload = msgpack.packb(message_dict)
 
-    processing_strategy.submit(
-        Message(
-            BrokerValue(
-                KafkaPayload(
-                    b"key",
-                    payload,
-                    [("project_id", b"1")],
-                ),
-                Partition(Topic("profiles"), 1),
-                1,
-                datetime.now(),
-            )
-        )
-    )
-    processing_strategy.poll()
-    processing_strategy.join(1)
-    processing_strategy.terminate()
+    process_profile_message(payload, {"project_id": "1"})
 
     process_profile_task.assert_not_called()
 

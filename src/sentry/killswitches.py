@@ -230,7 +230,7 @@ ALL_KILLSWITCH_OPTIONS = {
     ),
     "profiling.killswitch.ingest-profiles": KillswitchInfo(
         description="""
-        Drop profiles in the ingest-profiles consumer.
+        Drop profiles during ingest-profiles taskbroker passthrough.
 
         This happens after relay produces profiles to the topic but before a task
         is started to process/ingest to profile.
