@@ -7,6 +7,7 @@ from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunR
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.tasks.seer.night_shift.cron import (
     _get_eligible_projects,
+    build_run_options,
     run_night_shift_for_org,
     schedule_night_shift,
 )
@@ -18,6 +19,64 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.redis import redis_clusters
+
+
+@django_db_all
+class TestBuildRunOptions(TestCase):
+    """Precedence: manual_overrides > project tweaks > org overrides > defaults."""
+
+    def test_defaults_only(self) -> None:
+        with self.options({"seer.night_shift.issues_per_org": 8}):
+            resolved = build_run_options(organization_id=self.organization.id)
+
+        assert resolved["source"] == "cron"
+        assert resolved["max_candidates"] == 8
+        assert resolved["intelligence_level"] == "high"
+
+    def test_org_overrides_apply_over_defaults(self) -> None:
+        with self.options(
+            {
+                "seer.night_shift.issues_per_org": 8,
+                "seer.night_shift.org_tweaks": {str(self.organization.id): {"max_candidates": 15}},
+            }
+        ):
+            resolved = build_run_options(organization_id=self.organization.id)
+
+        assert resolved["max_candidates"] == 15
+        # Unset org fields fall through to the global default.
+        assert resolved["intelligence_level"] == "high"
+
+    def test_project_tweaks_override_org_overrides(self) -> None:
+        project = self.create_project(organization=self.organization)
+        project.update_option("sentry:seer_nightshift_tweaks", {"intelligence_level": "low"})
+
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(self.organization.id): {"max_candidates": 15}}}
+        ):
+            resolved = build_run_options(
+                organization_id=self.organization.id, project_id=project.id
+            )
+
+        # Project only set intelligence_level, so the org's max_candidates still
+        # shows through (the project layer no longer clobbers it with a default).
+        assert resolved["max_candidates"] == 15
+        assert resolved["intelligence_level"] == "low"
+
+    def test_manual_overrides_win(self) -> None:
+        project = self.create_project(organization=self.organization)
+        project.update_option("sentry:seer_nightshift_tweaks", {"max_candidates": 25})
+
+        with self.options(
+            {"seer.night_shift.org_tweaks": {str(self.organization.id): {"max_candidates": 15}}}
+        ):
+            resolved = build_run_options(
+                organization_id=self.organization.id,
+                project_id=project.id,
+                manual_overrides={"source": "manual", "max_candidates": 3},
+            )
+
+        assert resolved["source"] == "manual"
+        assert resolved["max_candidates"] == 3
 
 
 @django_db_all
@@ -343,6 +402,40 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
             return_value=[],
         ) as mock_score:
+            run_night_shift_for_org(org.id, options={"max_candidates": 7})
+
+        mock_score.assert_called_once()
+        assert mock_score.call_args.args[1] == 7
+
+    def test_org_tweaks_override_global_default(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project, max_candidates=50)
+
+        with (
+            self.options({"seer.night_shift.org_tweaks": {str(org.id): {"max_candidates": 25}}}),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=[],
+            ) as mock_score,
+        ):
+            run_night_shift_for_org(org.id)
+
+        mock_score.assert_called_once()
+        assert mock_score.call_args.args[1] == 25
+
+    def test_explicit_options_override_org_tweaks(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project, max_candidates=50)
+
+        with (
+            self.options({"seer.night_shift.org_tweaks": {str(org.id): {"max_candidates": 25}}}),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=[],
+            ) as mock_score,
+        ):
             run_night_shift_for_org(org.id, options={"max_candidates": 7})
 
         mock_score.assert_called_once()
