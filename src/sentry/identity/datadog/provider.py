@@ -62,15 +62,6 @@ def get_user_info(access_token: str, site: str) -> dict[str, Any]:
 
 
 class DatadogIdentityProvider(Provider):
-    """Datadog connects via a user-supplied read-only access token (PAT).
-
-    Datadog's MCP OAuth flow only accepts loopback redirect URIs, so a hosted
-    integration like Sentry can't use it. Instead the user creates a scoped,
-    read-only access token in Datadog and submits it directly; we validate it
-    and store it as an identity. The token is a Bearer credential for the MCP
-    server, identical in shape to what an OAuth flow would have produced.
-    """
-
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
 

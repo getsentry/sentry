@@ -72,7 +72,7 @@ class DatadogIdentityProviderTest(TestCase):
             self.provider.build_identity({"access_token": "pat-abc", "site": "evil.example.com"})
 
     @responses.activate
-    def test_build_identity_optional_user_attributes(self) -> None:
+    def test_build_identity_missing_user_attributes(self) -> None:
         self._mock_whoami({"user_uuid": "dd-user-123", "org_uuid": "dd-org-456"})
 
         result = self.provider.build_identity({"access_token": "pat-abc", "site": "datadoghq.com"})
@@ -97,7 +97,7 @@ class DatadogIdentityProviderTest(TestCase):
             self.provider.build_identity({"access_token": "pat-abc", "site": "datadoghq.com"})
 
     @responses.activate
-    def test_build_identity_malformed_whoami(self) -> None:
+    def test_build_identity_malformed_user_info(self) -> None:
         responses.add(
             responses.POST,
             MCP_URL,
