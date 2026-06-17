@@ -21,7 +21,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {showIntercom} from 'sentry/utils/intercom';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -36,7 +36,7 @@ import {
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
-import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode, PlanName} from 'getsentry/types';
 import type {
   BillingConfig,
   CheckoutAddOns,
@@ -75,7 +75,6 @@ import {
 
 type Props = {
   api: Client;
-  checkoutTier: PlanTier;
   isError: boolean;
   isLoading: boolean;
   location: Location;
@@ -99,8 +98,7 @@ export type State = {
 
 function AMCheckout(props: Props) {
   const organization = useOrganization();
-  const {api, checkoutTier, isLoading, location, navigate, subscription, promotionData} =
-    props;
+  const {api, isLoading, location, navigate, subscription, promotionData} = props;
 
   const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -258,14 +256,14 @@ function AMCheckout(props: Props) {
         );
       }
 
-      // find equivalent current plan for legacy
-      const legacyInitialPlan =
-        subscription.planTier !== checkoutTier &&
-        planList.find(
-          ({name, contractInterval}) =>
-            name === subscription?.planDetails?.name &&
-            contractInterval === subscription?.planDetails?.contractInterval
-        );
+      // The current plan isn't directly available in this checkout's plan list
+      // (the exact-id lookup above returned nothing), so fall back to an
+      // equivalent plan matched by name + contract interval.
+      const legacyInitialPlan = planList.find(
+        ({name, contractInterval}) =>
+          name === subscription?.planDetails?.name &&
+          contractInterval === subscription?.planDetails?.contractInterval
+      );
 
       // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
       return (
@@ -276,8 +274,6 @@ function AMCheckout(props: Props) {
       subscription.plan,
       subscription.planDetails.name,
       subscription.planDetails?.contractInterval,
-      subscription.planTier,
-      checkoutTier,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
@@ -324,7 +320,7 @@ function AMCheckout(props: Props) {
 
       if (
         hasOnDemandBudgetsFeature(organization, subscription) ||
-        checkoutTier === PlanTier.AM3
+        plan.categories.includes(DataCategory.SPANS)
       ) {
         newOnDemandBudget =
           onDemandBudget && onDemandSupported
@@ -345,7 +341,7 @@ function AMCheckout(props: Props) {
         addOns,
       };
     },
-    [organization, subscription, checkoutTier]
+    [organization, subscription]
   );
 
   /**
@@ -596,7 +592,6 @@ function AMCheckout(props: Props) {
       onUpdate: handleUpdate,
       organization,
       subscription,
-      checkoutTier,
     };
 
     return checkoutSteps.map((CheckoutStep, idx) => {
@@ -617,7 +612,6 @@ function AMCheckout(props: Props) {
     handleUpdate,
     organization,
     subscription,
-    checkoutTier,
     checkoutSteps,
     referrer,
   ]);

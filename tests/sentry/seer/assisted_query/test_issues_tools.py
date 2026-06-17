@@ -11,6 +11,10 @@ from sentry.seer.assisted_query.issues_tools import (
     get_issue_filter_keys,
     get_issues_stats,
 )
+from sentry.seer.sentry_data_models import (
+    FilterKeyValuesResponse,
+    IssueFilterKeysResponse,
+)
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -71,13 +75,10 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
 
-        assert result is not None
-        assert "tags" in result
-        assert "feature_flags" in result
+        assert isinstance(result, IssueFilterKeysResponse)
 
         # Check tags (merged event_tags and issue_tags)
-        tags = result["tags"]
-        assert isinstance(tags, list)
+        tags = result.tags
         assert len(tags) > 0
         # Verify structure of tags
         for tag in tags:
@@ -91,8 +92,7 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "color" in tag_keys
 
         # Check feature flags
-        feature_flags = result["feature_flags"]
-        assert isinstance(feature_flags, list)
+        feature_flags = result.feature_flags
         if len(feature_flags) > 0:
             for flag in feature_flags:
                 assert "key" in flag
@@ -119,12 +119,10 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_ids=[],
             stats_period="7d",
         )
-        assert result is not None
-        assert "tags" in result
-        assert "feature_flags" in result
+        assert isinstance(result, IssueFilterKeysResponse)
         # Should return empty or minimal results
-        assert isinstance(result["tags"], list)
-        assert isinstance(result["feature_flags"], list)
+        assert isinstance(result.tags, list)
+        assert isinstance(result.feature_flags, list)
 
     def test_get_issue_filter_keys_multiple_projects(self) -> None:
         """Test with multiple projects"""
@@ -155,11 +153,9 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
 
-        assert result is not None
-        assert "tags" in result
+        assert isinstance(result, IssueFilterKeysResponse)
 
-        tags = result["tags"]
-        tag_keys = {tag["key"] for tag in tags}
+        tag_keys = {tag["key"] for tag in result.tags}
         # Both project tags should be present
         assert "project1_tag" in tag_keys
         assert "project2_tag" in tag_keys
@@ -208,12 +204,12 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
 
-        assert result is not None
-        assert isinstance(result, list)
-        assert len(result) > 0
+        assert isinstance(result, FilterKeyValuesResponse)
+        items = result.dict()
+        assert len(items) > 0
 
         # Check structure of returned values
-        for item in result:
+        for item in items:
             assert "key" in item
             assert "name" in item
             assert "value" in item
@@ -222,12 +218,12 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             assert "firstSeen" in item
 
         # Check that we have our environment values
-        values = {item["value"] for item in result}
+        values = {item["value"] for item in items}
         assert "production" in values
         assert "staging" in values
 
         # Check counts
-        value_counts = {item["value"]: item["count"] for item in result}
+        value_counts = {item["value"]: item["count"] for item in items}
         assert value_counts["production"] == 2
         assert value_counts["staging"] == 1
 
@@ -264,11 +260,11 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
 
-        assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, FilterKeyValuesResponse)
+        items = result.dict()
         # Should have our issue_type values
-        if len(result) > 0:
-            for item in result:
+        if len(items) > 0:
+            for item in items:
                 assert "key" in item
                 assert "value" in item
                 assert "count" in item
@@ -311,11 +307,11 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
 
-        assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, FilterKeyValuesResponse)
+        items = result.dict()
         # Should have flag values
-        if len(result) > 0:
-            for item in result:
+        if len(items) > 0:
+            for item in items:
                 assert "key" in item
                 assert "value" in item
                 assert "count" in item
@@ -339,7 +335,8 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
         # Should return empty list, not None
-        assert result == []
+        assert isinstance(result, FilterKeyValuesResponse)
+        assert result.dict() == []
 
     def test_get_filter_key_values_multiple_projects(self) -> None:
         """Test getting filter key values across multiple projects"""
@@ -370,12 +367,12 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
 
-        assert result is not None
-        assert isinstance(result, list)
-        assert len(result) > 0
+        assert isinstance(result, FilterKeyValuesResponse)
+        items = result.dict()
+        assert len(items) > 0
 
         # Should have values from both projects
-        values = {item["value"] for item in result}
+        values = {item["value"] for item in items}
         assert "us-east" in values
         assert "us-west" in values
 
@@ -428,12 +425,12 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
 
-        assert result is not None
-        assert isinstance(result, list)
-        assert len(result) > 0
+        assert isinstance(result, FilterKeyValuesResponse)
+        items = result.dict()
+        assert len(items) > 0
 
         # Check that "backend" appears once but with merged count
-        value_counts = {item["value"]: item["count"] for item in result}
+        value_counts = {item["value"]: item["count"] for item in items}
 
         # "backend" should appear in both events (2x) and search_issues (1x)
         # The merge should combine these counts
@@ -444,7 +441,7 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert value_counts["backend"] >= value_counts["frontend"]
 
         # Verify results are sorted by count (descending)
-        counts = [item["count"] for item in result]
+        counts = [item["count"] for item in items]
         assert counts == sorted(counts, reverse=True), (
             "Results should be sorted by count descending"
         )
@@ -494,12 +491,12 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             stats_period="7d",
         )
 
-        assert result is not None
-        assert isinstance(result, list)
-        assert len(result) > 0
+        assert isinstance(result, FilterKeyValuesResponse)
+        items = result.dict()
+        assert len(items) > 0
 
         # Should only contain values with "prod" in them
-        values = {item["value"] for item in result}
+        values = {item["value"] for item in items}
         assert "production" in values
         assert "production-eu" in values
         assert "staging" not in values
@@ -546,7 +543,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         assert len(result) >= 2
 
         # Check structure of returned issues
@@ -578,7 +575,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         # Should have at least our error event
         assert len(result) >= 1
 
@@ -605,7 +602,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         assert len(result) >= 3
 
     def test_execute_issues_query_with_limit(self) -> None:
@@ -630,7 +627,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         # Should respect limit
         assert len(result) <= 2
 
@@ -674,7 +671,7 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         # Should have issues from both projects
         assert len(result) >= 2
         project_ids = {issue["project"]["id"] for issue in result}
@@ -721,7 +718,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         assert len(result) == 2
 
         # Verify each stat has the expected fields
@@ -801,7 +798,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         # Should return stats for both issues
         assert len(result) >= 2
         returned_issue_ids = {stat["id"] for stat in result}
@@ -831,7 +828,7 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         assert len(result) == 0
 
     def test_get_issues_stats_stats_and_lifetime_structure(self) -> None:
@@ -997,8 +994,8 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert "built_in_fields" in result
-        built_in_fields = result["built_in_fields"]
+        assert isinstance(result, IssueFilterKeysResponse)
+        built_in_fields = [f.dict() for f in result.built_in_fields]
 
         # Get all built-in field keys
         built_in_keys = {field["key"] for field in built_in_fields}
@@ -1060,8 +1057,8 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
             stats_period="7d",
         )
 
-        assert result is not None
-        built_in_fields = result["built_in_fields"]
+        assert isinstance(result, IssueFilterKeysResponse)
+        built_in_fields = [f.dict() for f in result.built_in_fields]
 
         # Find the error.handled field
         error_handled_field = next(
@@ -1085,8 +1082,8 @@ class TestEventContextFields(APITestCase, SnubaTestCase):
             stats_period="7d",
         )
 
-        assert result is not None
-        built_in_fields = result["built_in_fields"]
+        assert isinstance(result, IssueFilterKeysResponse)
+        built_in_fields = [f.dict() for f in result.built_in_fields]
 
         # Find the device.class field
         device_class_field = next((f for f in built_in_fields if f["key"] == "device.class"), None)
@@ -1213,7 +1210,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
 
         # Should return actual message values from events, not empty or None
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         # The API should return values (may be empty if message isn't indexed as a tag)
         # At minimum, verify we got a list back (not None which would indicate built-in handling)
 
@@ -1256,7 +1253,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
 
         # Should return a list (API was queried, not short-circuited)
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
 
     def test_get_filter_key_values_title_field(self) -> None:
         """Test that title field queries the API and returns actual event titles"""
@@ -1288,7 +1285,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
 
         # Should return a list (API was queried)
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
 
     def test_get_filter_key_values_location_field(self) -> None:
         """Test that location field queries the API"""
@@ -1329,7 +1326,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
 
         # Should return a list (API was queried)
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
 
     def test_text_fields_not_in_field_value_types(self) -> None:
         """Verify text fields are not in _FIELD_VALUE_TYPES so they fall through to API query"""
@@ -1372,7 +1369,7 @@ class TestGetFilterKeyValuesTextFields(APITestCase, SnubaTestCase):
 
         # Should return a list with actual release values
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         # Release is a common tag so it should have values
         if len(result) > 0:
             values = {item["value"] for item in result}
@@ -1398,7 +1395,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         assert len(result) > 0
 
         values = [item["value"] for item in result]
@@ -1421,7 +1418,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         assert len(result) > 0
 
         values = [item["value"] for item in result]
@@ -1456,7 +1453,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         # Should have usernames (at least the test user)
 
     def test_get_filter_key_values_subscribed_field(self) -> None:
@@ -1469,7 +1466,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
 
     def test_get_filter_key_values_assigned_with_substring_filter(self) -> None:
         """Test that substring filtering works on assigned field"""
@@ -1482,7 +1479,7 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         # Should only include values containing "my_"
         for item in result:
             assert "my_" in item["value"].lower()
@@ -1499,8 +1496,8 @@ class TestAssigneeAndUsernameValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert "built_in_fields" in result
-        built_in_fields = result["built_in_fields"]
+        assert isinstance(result, IssueFilterKeysResponse)
+        built_in_fields = [f.dict() for f in result.built_in_fields]
 
         # Find the assigned field
         assigned_field = next((f for f in built_in_fields if f["key"] == "assigned"), None)
@@ -1574,7 +1571,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         values = [item["value"] for item in result]
         assert release1.version in values
         assert release2.version in values
@@ -1592,7 +1589,7 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert isinstance(result, list)
+        assert isinstance(result, (list, FilterKeyValuesResponse))
         values = [item["value"] for item in result]
         assert release1.version in values
 
@@ -1642,8 +1639,8 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         )
 
         assert result is not None
-        assert "built_in_fields" in result
-        built_in_fields = result["built_in_fields"]
+        assert isinstance(result, IssueFilterKeysResponse)
+        built_in_fields = [f.dict() for f in result.built_in_fields]
 
         # Find the release field
         release_field = next((f for f in built_in_fields if f["key"] == "release"), None)

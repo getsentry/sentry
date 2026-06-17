@@ -56,7 +56,6 @@ SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
     PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
     PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: 70,
     PullRequestAttributionSignalType.MCP: 50,
-    PullRequestAttributionSignalType.REFERENCED_ISSUE: 25,
     PullRequestAttributionSignalType.UNKNOWN: 0,
 }
 
@@ -77,6 +76,13 @@ DELEGATED_SIGNAL_TYPES = frozenset(
         PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
         PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN,
     }
+)
+
+# Signal types that qualify a PR for Seer judge forwarding.
+# Weaker heuristics (MCP issue views, bare issue references) do not warrant
+# the expensive judge call — only direct agent authorship does.
+JUDGE_ELIGIBLE_SIGNAL_TYPES = DELEGATED_SIGNAL_TYPES | frozenset(
+    {PullRequestAttributionSignalType.SENTRY_APP}
 )
 
 

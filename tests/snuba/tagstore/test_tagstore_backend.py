@@ -192,16 +192,24 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             )
         )
         tags = [r.key for r in result]
-        assert set(tags) == {"foo", "baz", "environment", "sentry:release", "sentry:user", "level"}
+        assert set(tags) == {
+            "foo",
+            "baz",
+            "environment",
+            "sentry:release",
+            "sentry:user",
+            "level",
+            "interface_type",
+        }
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "baz"
         assert result[0].top_values[0].value == "quux"
         assert result[0].count == 2
 
-        assert result[4].key == "sentry:release"
-        assert result[4].count == 2
-        top_release_values = result[4].top_values
+        assert result[5].key == "sentry:release"
+        assert result[5].count == 2
+        top_release_values = result[5].top_values
         assert len(top_release_values) == 2
         assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
@@ -249,6 +257,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "device.family",
             "environment",
             "foo",
+            "interface_type",
             "level",
             "runtime",
             "runtime.name",
@@ -265,9 +274,9 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert biz_values.get("baz") == 1
         assert result[0].count == sum(biz_values.values())
 
-        assert result[12].key == "sentry:release"
-        assert result[12].count == 2
-        top_release_values = result[12].top_values
+        assert result[13].key == "sentry:release"
+        assert result[13].count == 2
+        top_release_values = result[13].top_values
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
@@ -423,6 +432,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "sentry:release",
             "sentry:user",
             "level",
+            "interface_type",
         }
         keys = {
             k.key: k
@@ -452,6 +462,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "foo",
             "sentry:user",
             "level",
+            "interface_type",
         }
         keys = {
             k.key: k
@@ -501,7 +512,15 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 tenant_ids={"referrer": "r", "organization_id": 1234},
             )
         }
-        assert set(keys) == {"baz", "environment", "foo", "sentry:release", "sentry:user", "level"}
+        assert set(keys) == {
+            "baz",
+            "environment",
+            "foo",
+            "sentry:release",
+            "sentry:user",
+            "level",
+            "interface_type",
+        }
 
     def test_get_group_tag_key_perf(self) -> None:
         perf_group, env = self.perf_group_and_env
@@ -541,6 +560,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "device.family",
             "environment",
             "foo",
+            "interface_type",
             "level",
             "runtime",
             "runtime.name",

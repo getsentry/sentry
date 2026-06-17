@@ -26,7 +26,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, RegionCategory, get_cell_by_name, get_local_locality
+from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
 from sentry.utils import json
 
 
@@ -367,7 +367,6 @@ SECONDARY_CELL = Cell(
     name="eu",
     snowflake_id=2,
     address="http://eu.internal.sentry.io",
-    category=RegionCategory.MULTI_TENANT,
 )
 
 
@@ -433,7 +432,7 @@ class ErrorEmbedCellResolverTest(ApiGatewayTestCase):
         assert self._resolve(dsn) == ApiGatewayTestCase.CELL
 
     def test_resolver_falls_back_to_monolith_region(self) -> None:
-        monolith_cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+        monolith_cell = get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
 
         # Bare app host with no cell/ingest segments.
         bare_dsn = f"https://{self.primary_key.public_key}@{self.app_host}/1"

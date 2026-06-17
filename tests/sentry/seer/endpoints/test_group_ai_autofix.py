@@ -178,6 +178,43 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_from_mcp_defaults_referrer_to_mcp(self, mock_trigger_explorer):
+        """A request from the Sentry MCP server defaults the referrer to api.mcp."""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+            headers={
+                "user-agent": "sentry-mcp/0.35.0 (https://mcp.sentry.dev)",
+                "X-Sentry-MCP-Client-Family": "cursor",
+            },
+        )
+
+        assert response.status_code == 202, response.data
+        assert mock_trigger_explorer.call_args.kwargs["referrer"] == AutofixReferrer.MCP
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_explicit_referrer_overrides_mcp_default(self, mock_trigger_explorer):
+        """An explicitly supplied referrer takes precedence over the MCP default."""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause", "referrer": AutofixReferrer.WEB.value},
+            format="json",
+            headers={"user-agent": "sentry-mcp/0.35.0 (https://mcp.sentry.dev)"},
+        )
+
+        assert response.status_code == 202, response.data
+        assert mock_trigger_explorer.call_args.kwargs["referrer"] == AutofixReferrer.WEB
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_stopping_point(self, mock_trigger_explorer):
         """Stopping point forces the step to be root_cause"""
         group = self.create_group()
@@ -311,8 +348,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_pr_iteration_requires_feature_flag(self, mock_client_class):
         group = self.create_group()
         mock_client = mock_client_class.return_value
-        # Run state with no ``pr_iteration_enabled`` metadata so, with the flag
-        # off, trigger_autofix_agent raises PrIterationNotEnabledException.
+        # With the flag off, trigger_autofix_agent raises PrIterationNotEnabledException.
         mock_client.get_run.return_value = SeerRunState(
             run_id=123,
             blocks=[],

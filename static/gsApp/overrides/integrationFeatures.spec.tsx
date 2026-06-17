@@ -5,13 +5,13 @@ import {UserFixture} from 'sentry-fixture/user';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {hookIntegrationFeatures} from 'getsentry/overrides/integrationFeatures';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 
 describe('hookIntegrationFeatures', () => {
   const {FeatureList, IntegrationFeatures} = hookIntegrationFeatures();

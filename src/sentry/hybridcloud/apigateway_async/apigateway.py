@@ -99,7 +99,7 @@ async def proxy_request_if_needed(
         request.resolver_match
         and request.resolver_match.url_name in settings.REGION_PINNED_URL_NAMES
     ):
-        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+        cell = get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
         metrics.incr(
             "apigateway.proxy_request",
             tags={

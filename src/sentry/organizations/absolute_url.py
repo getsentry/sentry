@@ -46,7 +46,7 @@ def customer_domain_path(path: str) -> str:
 
 def _generate_organization_hostname(org_slug: str) -> str:
     url_prefix_hostname: str = urlparse(options.get("system.url-prefix")).netloc
-    org_base_hostname_template: str = settings.SENTRY_ORGANIZATION_BASE_HOSTNAME
+    org_base_hostname_template: str | None = settings.SENTRY_ORGANIZATION_BASE_HOSTNAME
     if not org_base_hostname_template:
         return url_prefix_hostname
     has_org_slug_placeholder = "{slug}" in org_base_hostname_template
@@ -57,7 +57,7 @@ def _generate_organization_hostname(org_slug: str) -> str:
 
 
 def generate_organization_url(org_slug: str) -> str:
-    org_url_template: str = settings.SENTRY_ORGANIZATION_URL_TEMPLATE
+    org_url_template: str | None = settings.SENTRY_ORGANIZATION_URL_TEMPLATE
     if not org_url_template:
         return options.get("system.url-prefix")
     return org_url_template.replace("{hostname}", _generate_organization_hostname(org_slug))

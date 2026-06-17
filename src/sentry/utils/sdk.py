@@ -140,7 +140,9 @@ def set_current_event_project(project_id):
     scope = sentry_sdk.get_isolation_scope()
 
     scope.set_tag("processing_event_for_project", project_id)
+    scope.set_attribute("processing_event_for_project", project_id)
     scope.set_tag("project", project_id)
+    scope.set_attribute("project", project_id)
 
 
 def get_project_key():
@@ -754,11 +756,15 @@ def bind_ambiguous_org_context(
     check_tag_for_scope_bleed("organization.slug", MULTIPLE_ORGS_TAG)
 
     scope.set_tag("organization", MULTIPLE_ORGS_TAG)
+    scope.set_attribute("organization", MULTIPLE_ORGS_TAG)
     scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
+    scope.set_attribute("organization.slug", MULTIPLE_ORGS_TAG)
 
     scope.set_context(
         "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
     )
+    scope.set_attribute("organization.multiple_possible", org_slugs)
+    scope.set_attribute("organization.source", source or "unknown")
 
 
 def get_trace_id():

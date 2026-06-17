@@ -24,7 +24,6 @@ export function useLogUpgradeNowViewed({
   useEffect(() => {
     trackGetsentryAnalytics('upgrade_now.modal.viewed', {
       organization,
-      planTier: subscription.planTier,
       canSelfServe: subscription.canSelfServe,
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
