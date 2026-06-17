@@ -18,6 +18,10 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, update_pr_metrics
+from sentry.seer.sentry_data_models import (
+    UpdatePrMetricsErrorResponse,
+    UpdatePrMetricsSuccessResponse,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import get_event_count
 from sentry.testutils.silo import cell_silo_test
@@ -53,7 +57,7 @@ class UpdatePrMetricsTest(TestCase):
             source=PullRequestAttributionSource.WEBHOOK_DATA,
         )
 
-    def _call(self, **kwargs: Any) -> dict[str, Any]:
+    def _call(self, **kwargs: Any) -> UpdatePrMetricsSuccessResponse | UpdatePrMetricsErrorResponse:
         return update_pr_metrics(
             pull_request_id=self.pull_request.id,
             organization_id=self.organization.id,
@@ -66,7 +70,7 @@ class UpdatePrMetricsTest(TestCase):
         self._track()
         result = self._call(verdict="merged_with_iteration")
 
-        assert result == {"success": True}
+        assert result.dict() == {"success": True}
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
             "merged_with_iteration"
         )
@@ -86,7 +90,7 @@ class UpdatePrMetricsTest(TestCase):
             ],
         )
 
-        assert result == {"success": True}
+        assert result.dict() == {"success": True}
         signal = PullRequestAttribution.objects.get(
             pull_request=self.pull_request, source=PullRequestAttributionSource.SEER_LLM_JUDGE
         )
@@ -107,7 +111,7 @@ class UpdatePrMetricsTest(TestCase):
             verdict="merged_unchanged",
         )
 
-        assert result == {"success": False, "error": "pull_request_not_found"}
+        assert result.dict() == {"success": False, "error": "pull_request_not_found"}
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
@@ -116,7 +120,7 @@ class UpdatePrMetricsTest(TestCase):
         self._track()
         result = self._call(verdict="not_a_verdict")
 
-        assert result == {"success": False, "error": "invalid_verdict"}
+        assert result.dict() == {"success": False, "error": "invalid_verdict"}
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
@@ -128,7 +132,7 @@ class UpdatePrMetricsTest(TestCase):
             attributions=[{"signal_type": "bogus", "source": "seer_llm_judge"}],
         )
 
-        assert result == {"success": False, "error": "invalid_attribution"}
+        assert result.dict() == {"success": False, "error": "invalid_attribution"}
         # Rejected before any write — verdict not persisted.
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
@@ -143,7 +147,7 @@ class UpdatePrMetricsTest(TestCase):
             attributions={"signal_type": "seer_delegated:claude_code", "source": "seer_llm_judge"},
         )
 
-        assert result == {"success": False, "error": "invalid_attribution"}
+        assert result.dict() == {"success": False, "error": "invalid_attribution"}
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
@@ -163,7 +167,7 @@ class UpdatePrMetricsTest(TestCase):
             ],
         )
 
-        assert result == {"success": False, "error": "invalid_attribution"}
+        assert result.dict() == {"success": False, "error": "invalid_attribution"}
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
@@ -176,7 +180,7 @@ class UpdatePrMetricsTest(TestCase):
 
         result = self._call(verdict="merged_unchanged")
 
-        assert result == {"success": True}
+        assert result.dict() == {"success": True}
         metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
         assert metrics.verdict == "merged_unchanged"
         # Webhook-sourced counters survive the judge upsert.
@@ -192,7 +196,7 @@ class UpdatePrMetricsTest(TestCase):
         # and must not reach the upsert (which would otherwise store a null).
         result = self._call()
 
-        assert result == {"success": False, "error": "invalid_verdict"}
+        assert result.dict() == {"success": False, "error": "invalid_verdict"}
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
@@ -205,7 +209,7 @@ class UpdatePrMetricsTest(TestCase):
             verdict="merged_unchanged",
         )
 
-        assert result == {"success": False, "error": "pull_request_not_found"}
+        assert result.dict() == {"success": False, "error": "pull_request_not_found"}
         assert mock_record.call_count == 0
 
     @patch("sentry.analytics.record")
@@ -217,7 +221,7 @@ class UpdatePrMetricsTest(TestCase):
 
         result = self._call(verdict="merged_unchanged")
 
-        assert result == {"success": False, "error": "pull_request_not_terminal"}
+        assert result.dict() == {"success": False, "error": "pull_request_not_terminal"}
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
@@ -227,7 +231,7 @@ class UpdatePrMetricsTest(TestCase):
         # emitted (untracked PRs are never emitted).
         result = self._call(verdict="closed_unmerged")
 
-        assert result == {"success": True}
+        assert result.dict() == {"success": True}
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
             "closed_unmerged"
         )
@@ -240,7 +244,7 @@ class UpdatePrMetricsTest(TestCase):
         self._track()
         result = self._call(verdict="judge_in_progress")
 
-        assert result == {"success": False, "error": "invalid_verdict"}
+        assert result.dict() == {"success": False, "error": "invalid_verdict"}
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
         assert mock_record.call_count == 0
 
@@ -254,7 +258,7 @@ class UpdatePrMetricsTest(TestCase):
         )
         result = self._call(verdict="merged_with_iteration")
 
-        assert result == {"success": True}
+        assert result.dict() == {"success": True}
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
             "merged_with_iteration"
         )
@@ -267,7 +271,7 @@ class UpdatePrMetricsTest(TestCase):
         self._call(verdict="merged_unchanged")
         result = self._call(verdict="merged_unchanged")
 
-        assert result == {"success": True}
+        assert result.dict() == {"success": True}
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
     @patch("sentry.analytics.record")
@@ -278,7 +282,7 @@ class UpdatePrMetricsTest(TestCase):
         self._call(verdict="merged_unchanged")
         result = self._call(verdict="merged_with_iteration")
 
-        assert result == {"success": True}
+        assert result.dict() == {"success": True}
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
             "merged_unchanged"
         )

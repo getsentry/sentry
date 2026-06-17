@@ -89,7 +89,7 @@ class FindOrganizationIdByOptionValueTest(TestCase):
 
         assert (
             organization_service.find_organization_id_by_option_value(
-                cell_name=settings.SENTRY_MONOLITH_REGION,
+                cell_name=settings.SENTRY_FALLBACK_CELL,
                 key=self.KEY,
                 value="acct_xyz",
             )
@@ -102,7 +102,7 @@ class FindOrganizationIdByOptionValueTest(TestCase):
 
         assert (
             organization_service.find_organization_id_by_option_value(
-                cell_name=settings.SENTRY_MONOLITH_REGION,
+                cell_name=settings.SENTRY_FALLBACK_CELL,
                 key=self.KEY,
                 value="acct_missing",
             )
@@ -119,7 +119,7 @@ class FindOrganizationIdByOptionValueTest(TestCase):
         self._set_option(org_b, self.KEY, "acct_collide")
 
         result = organization_service.find_organization_id_by_option_value(
-            cell_name=settings.SENTRY_MONOLITH_REGION,
+            cell_name=settings.SENTRY_FALLBACK_CELL,
             key=self.KEY,
             value="acct_collide",
         )
@@ -131,7 +131,7 @@ class FindOrganizationIdByOptionValueTest(TestCase):
 
         assert (
             organization_service.find_organization_id_by_option_value(
-                cell_name=settings.SENTRY_MONOLITH_REGION,
+                cell_name=settings.SENTRY_FALLBACK_CELL,
                 key=self.KEY,
                 value="acct_xyz",
             )
@@ -144,7 +144,7 @@ class FindOrganizationIdByOptionValueTest(TestCase):
 
         assert (
             organization_service.find_organization_id_by_option_value(
-                cell_name=settings.SENTRY_MONOLITH_REGION,
+                cell_name=settings.SENTRY_FALLBACK_CELL,
                 key=self.KEY,
                 value=" acct_xyz ",
             )
@@ -157,7 +157,7 @@ class FindOrganizationIdByOptionValueTest(TestCase):
 
         assert (
             organization_service.find_organization_id_by_option_value(
-                cell_name=settings.SENTRY_MONOLITH_REGION,
+                cell_name=settings.SENTRY_FALLBACK_CELL,
                 key=self.KEY,
                 value="acct_xyz",
             )

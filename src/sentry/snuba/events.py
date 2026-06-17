@@ -126,6 +126,15 @@ class Columns(Enum):
         issue_platform_name="platform",
         alias="platform.name",
     )
+    # Secondary alias for platform
+    PLATFORM_SECONDARY = Column(
+        group_name=None,
+        event_name="platform",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name=None,
+        alias="platform",
+    )
     ENVIRONMENT = Column(
         group_name="events.environment",
         event_name="environment",
