@@ -10,7 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
 from sentry import options
-from sentry.auth.email_verification import unsign_signup_verification
+from sentry.auth.email_verification import verify_signup_link
 from sentry.utils.hashlib import sha256_text
 from sentry.web.frontend.base import BaseView, control_silo_view
 
@@ -42,7 +42,7 @@ class SignupEmailVerificationView(BaseView):
             return self.redirect(_get_signup_url())
 
         try:
-            payload = unsign_signup_verification(signed_data)
+            payload = verify_signup_link(signed_data)
         except SignatureExpired:
             return self._render_error(
                 title="Link expired",
