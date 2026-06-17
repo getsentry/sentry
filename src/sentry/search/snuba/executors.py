@@ -1138,9 +1138,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         )
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
-        candidate_ids = list(
-            group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
-        )
+        with sentry_sdk.start_span(op="search.postgres_sort.candidates") as span:
+            candidate_ids = list(
+                group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
+            )
+            span.set_data("candidate_count", len(candidate_ids))
 
         if not candidate_ids:
             return self.empty_result
@@ -1167,22 +1169,23 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 raise InvalidQueryForExecutor(
                     f"Unknown snuba aggregation {sort_field!r} in Postgres sort strategy"
                 )
-            snuba_groups, _ = self.snuba_search(
-                start=start,
-                end=end,
-                project_ids=[p.id for p in projects],
-                environment_ids=[env.id for env in environments] if environments else None,
-                organization=organization,
-                sort_field=sort_field,
-                cursor=None,
-                group_ids=candidate_ids,
-                limit=len(candidate_ids),
-                offset=0,
-                search_filters=search_filters,
-                referrer=referrer,
-                actor=actor,
-                aggregate_kwargs=aggregate_kwargs,
-            )
+            with sentry_sdk.start_span(op="search.postgres_sort.snuba_aggregation"):
+                snuba_groups, _ = self.snuba_search(
+                    start=start,
+                    end=end,
+                    project_ids=[p.id for p in projects],
+                    environment_ids=[env.id for env in environments] if environments else None,
+                    organization=organization,
+                    sort_field=sort_field,
+                    cursor=None,
+                    group_ids=candidate_ids,
+                    limit=len(candidate_ids),
+                    offset=0,
+                    search_filters=search_filters,
+                    referrer=referrer,
+                    actor=actor,
+                    aggregate_kwargs=aggregate_kwargs,
+                )
             snuba_data = {gid: {sort_field: score} for gid, score in snuba_groups}
             candidate_ids = list(snuba_data.keys())
 
@@ -1190,34 +1193,38 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         logical_names = list(postgres_fields.keys())
-        pg_rows = (
-            group_queryset.filter(id__in=candidate_ids)
-            .using_replica()
-            .values_list("id", *postgres_fields.values())
-        )
-        pg_data = {row[0]: dict(zip(logical_names, row[1:])) for row in pg_rows}
+        with sentry_sdk.start_span(op="search.postgres_sort.postgres_fields"):
+            pg_rows = (
+                group_queryset.filter(id__in=candidate_ids)
+                .using_replica()
+                .values_list("id", *postgres_fields.values())
+            )
+            pg_data = {row[0]: dict(zip(logical_names, row[1:])) for row in pg_rows}
 
         # Each signal resolver runs once over all candidates, returning {group_id: value}.
-        signal_data: dict[str, dict[int, Any]] = {
-            name: resolver(actor, organization, candidate_ids)
-            for name, resolver in strategy.signal_resolvers.items()
-        }
+        # Span each separately so an expensive resolver (e.g. the agent-progress Activity
+        # scan) is visible on its own rather than buried in an aggregate.
+        signal_data: dict[str, dict[int, Any]] = {}
+        for name, resolver in strategy.signal_resolvers.items():
+            with sentry_sdk.start_span(op=f"search.postgres_sort.signal.{name}"):
+                signal_data[name] = resolver(actor, organization, candidate_ids)
 
-        scored_groups: list[tuple[Any, int]] = []
-        for gid in candidate_ids:
-            pg_values = pg_data.get(gid)
-            if pg_values is None:
-                continue
-            merged = {
-                **pg_values,
-                **snuba_data.get(gid, {}),
-                **{name: values[gid] for name, values in signal_data.items() if gid in values},
-            }
-            try:
-                score = strategy.score_fn(merged)
-            except (TypeError, KeyError):
-                continue
-            scored_groups.append((score, gid))
+        with sentry_sdk.start_span(op="search.postgres_sort.scoring"):
+            scored_groups: list[tuple[Any, int]] = []
+            for gid in candidate_ids:
+                pg_values = pg_data.get(gid)
+                if pg_values is None:
+                    continue
+                merged = {
+                    **pg_values,
+                    **snuba_data.get(gid, {}),
+                    **{name: values[gid] for name, values in signal_data.items() if gid in values},
+                }
+                try:
+                    score = strategy.score_fn(merged)
+                except (TypeError, KeyError):
+                    continue
+                scored_groups.append((score, gid))
 
         if not scored_groups:
             return self.empty_result
@@ -1331,6 +1338,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # `date` shortcut below. If this sort has no Snuba-only equivalent, fall back
             # to `date`.
             pg_overflow_fallback = True
+            # Surface the silent ranking degradation on the trace, next to `search.sort`.
+            sentry_sdk.set_tag("search.sort_fallback", sort_by)
             # Keep the original sort only if it maps to a real Snuba aggregation for the
             # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
             # sorts like "inbox"), have no aggregation and must fall back to `date` instead
