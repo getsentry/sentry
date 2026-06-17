@@ -41,7 +41,7 @@ from sentry.seer.agent.tools import (
     rpc_get_profile_flamegraph,
 )
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
-from sentry.seer.sentry_data_models import EAPTrace
+from sentry.seer.sentry_data_models import EAPTrace, IssueDetailsResponse
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
     APITestCase,
@@ -1708,7 +1708,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         return self.store_event(data=data, project_id=self.project.id)
 
-    def _assert_issue_response_shape(self, result: dict):
+    def _assert_issue_response_shape(self, result: IssueDetailsResponse):
         assert isinstance(result["issue"], dict)
         _IssueMetadata.parse_obj(result["issue"])
         assert isinstance(result["event_timeseries"], dict | None)
@@ -1737,7 +1737,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
@@ -1760,7 +1760,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=group.qualified_short_id,
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
@@ -1800,7 +1800,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             issue_id=str(group.id),
         )
 
-        assert isinstance(result, dict)
+        assert result is not None
         assert result["event_timeseries"] == {"count()": {"data": [[1000, [{"count": 3}]]]}}
         assert result["timeseries_stats_period"] == "24h"
         assert result["timeseries_interval"] == "1h"

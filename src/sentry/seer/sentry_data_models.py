@@ -435,3 +435,131 @@ class ExecuteQueryErrorResponse(BaseModel):
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
+
+
+class _DictProxyMixin(BaseModel):
+    """Mixin that lets typed RPC response models be read like dicts so existing
+    seer-side callers (and tests) can keep using `result["key"]` / `result.get`
+    instead of attribute access. The wire shape always comes from `.dict()`."""
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.dict()
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.dict().get(key, default)
+
+
+class EventDetailsResponse(_DictProxyMixin):
+    """`get_event_details` returns the serialized event plus a few lookup keys."""
+
+    event: dict[str, Any]
+    event_id: str
+    event_trace_id: str | None
+    project_id: int
+    project_slug: str
+
+
+class IssueDetailsResponse(_DictProxyMixin):
+    """`get_issue_details` returns the serialized issue plus event-context extras."""
+
+    issue: dict[str, Any]
+    event_timeseries: dict[str, Any] | None
+    timeseries_stats_period: str | None
+    timeseries_interval: str | None
+    tags_overview: dict[str, Any] | None
+    user_activity: list[dict[str, Any]]
+    project_id: int
+    project_slug: str
+
+
+class IssueAndEventDetailsResponse(_DictProxyMixin):
+    """`get_issue_and_event_details_v2` returns the event fields always, plus the
+    issue fields when `include_issue=True` and a group is associated with the
+    event. `exclude_unset` keeps the issue keys absent from the wire when they
+    weren't included."""
+
+    event: dict[str, Any]
+    event_id: str
+    event_trace_id: str | None
+    project_id: int
+    project_slug: str
+    issue: dict[str, Any] | None = None
+    event_timeseries: dict[str, Any] | None = None
+    timeseries_stats_period: str | None = None
+    timeseries_interval: str | None = None
+    tags_overview: dict[str, Any] | None = None
+    user_activity: list[dict[str, Any]] | None = None
+
+    def dict(self, **kwargs: Any) -> Any:
+        kwargs.setdefault("exclude_unset", True)
+        return super().dict(**kwargs)
+
+
+class TransactionsForProjectResponse(BaseModel):
+    """`get_transactions_for_project` returns `{"transactions": [...]}` over the
+    project-scoped registry. Wraps the existing `Transaction` model so the SDK
+    consumer sees the inner shape."""
+
+    transactions: list[Transaction]
+
+
+class BulkProjectPreferencesResponse(BaseModel):
+    """`bulk_get_project_preferences` returns `{stringified_project_id: pref_dict}`.
+    The inner pref dicts are `SeerProjectPreference.dict()` output, passed through
+    verbatim since `SeerProjectPreference` lives outside `sentry_data_models`."""
+
+    __root__: dict[str, dict[str, Any]]
+
+    def dict(self, **kwargs: Any) -> Any:
+        # Forward kwargs through `super().dict()` (so options like
+        # `exclude_unset` apply to any future nested-model arms) and unwrap
+        # the `__root__` envelope to the bare map seer expects on the wire.
+        return super().dict(**kwargs)["__root__"]
+
+    # Dict-like proxy so callers can treat the response like the bare map it
+    # serializes to.
+    def __iter__(self) -> Any:
+        return iter(self.__root__)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.__root__
+
+    def __getitem__(self, key: str) -> Any:
+        return self.__root__[key]
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, dict):
+            return self.dict() == other
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        return id(self)
+
+
+class PrAttributionResponse(BaseModel):
+    """`record_pr_attribution` returns `{"attribution_id": <id or null>}`. None
+    is emitted when the pr-metrics-attribution feature is disabled for the org."""
+
+    attribution_id: int | None
+
+
+class UpdatePrMetricsSuccessResponse(BaseModel):
+    """`update_pr_metrics` success: `{"success": true}`. The `success` literal is
+    the discriminator against the error shape below."""
+
+    success: Literal[True] = True
+
+
+class UpdatePrMetricsErrorResponse(BaseModel):
+    """`update_pr_metrics` error: `{"success": false, "error": <code>}`. `error`
+    is one of `invalid_verdict`, `invalid_attribution`, `pull_request_not_found`,
+    `pull_request_not_terminal`."""
+
+    success: Literal[False] = False
+    error: str
