@@ -216,7 +216,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
         is_valid=True,
         signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
     ).exists():
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "not_agent_attribution"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_eligible_attribution"})
         logger.info(
             "pr_metrics.emit.needs_judge",
             extra={
@@ -228,7 +228,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
         return
 
     if not features.has("organizations:pr-metrics-judge", organization):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "blocked_by_flag"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
         logger.info(
             "pr_metrics.emit.needs_judge",
             extra={
