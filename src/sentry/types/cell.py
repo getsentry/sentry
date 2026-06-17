@@ -226,7 +226,7 @@ class CellDirectory:
                     f"which is not in its cells={set(loc.cells)!r}"
                 )
 
-        # SENTRY_MONOLITH_REGION is resolved as a live cell at runtime
+        # SENTRY_FALLBACK_CELL is resolved as a live cell at runtime
         # (historic monolith region lookups), so a dangling name should fail
         # here rather than at request time.
         if settings.SENTRY_FALLBACK_CELL not in defined_cells:
