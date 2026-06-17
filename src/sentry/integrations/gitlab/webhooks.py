@@ -88,13 +88,8 @@ def _extract_payload_repo_info(request) -> dict[str, Any]:
     info = {
         # e.g. "cool-group/sentry" — the owning group/namespace plus repo
         "webhook.repo.path": project.get("path_with_namespace"),
-        # e.g. "Cool Group" — the owning group
-        "webhook.repo.namespace": project.get("namespace"),
         "webhook.repo.web_url": project.get("web_url"),
         "webhook.repo.project_id": project.get("id"),
-        "webhook.object_kind": payload.get("object_kind"),
-        # who triggered the event, when present
-        "webhook.user.username": payload.get("user_username"),
     }
     # Drop missing keys so the log attributes stay clean.
     return {k: v for k, v in info.items() if v is not None}
