@@ -16,7 +16,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_cells
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, control_silo_test, create_test_cells
 from sentry.utils import json
 
 
@@ -672,6 +672,7 @@ class ClientConfigViewTest(TestCase):
         assert data["customerDomain"] is None
 
 
+@control_silo_test
 class McpJsonTest(TestCase):
     @cached_property
     def path(self) -> str:
@@ -704,6 +705,7 @@ class McpJsonTest(TestCase):
         assert "public" in response["Cache-Control"]
 
 
+@control_silo_test
 class ApiCatalogTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
@@ -741,6 +743,7 @@ class ApiCatalogTest(TestCase):
         assert response.status_code == 404
 
 
+@control_silo_test
 class OauthAuthorizationServerTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
@@ -775,6 +778,7 @@ class OauthAuthorizationServerTest(TestCase):
         assert response.status_code == 404
 
 
+@control_silo_test
 class OauthProtectedResourceTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
@@ -807,6 +811,7 @@ class OauthProtectedResourceTest(TestCase):
         assert response.status_code == 404
 
 
+@control_silo_test
 class McpServerCardTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
@@ -838,6 +843,7 @@ class McpServerCardTest(TestCase):
         assert response.status_code == 404
 
 
+@control_silo_test
 class AgentSkillsIndexTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):

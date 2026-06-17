@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils import json
 from sentry.web.client_config import get_client_config
-from sentry.web.frontend.base import all_silo_view
+from sentry.web.frontend.base import all_silo_view, control_silo_view
 
 # Paths to pages should not be added here, otherwise crawlers will
 # not be able to access the metadata with the 'none' directive
@@ -90,7 +90,7 @@ def security_txt(request):
     return HttpResponse(SECURITY, content_type="text/plain")
 
 
-@all_silo_view
+@control_silo_view
 @cache_control(max_age=3600, public=True)
 def mcp_json(request):
     if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
@@ -151,17 +151,16 @@ def _saas_only_json_response(request, payload, content_type="application/json"):
         return response
     response = HttpResponse(json.dumps(payload), content_type=content_type)
     response["Access-Control-Allow-Origin"] = "*"
+    patch_cache_control(response, max_age=3600, public=True)
     return response
 
 
-@all_silo_view
-@cache_control(max_age=3600, public=True)
+@control_silo_view
 def api_catalog(request):
     return _saas_only_json_response(request, API_CATALOG, "application/linkset+json")
 
 
-@all_silo_view
-@cache_control(max_age=3600, public=True)
+@control_silo_view
 def oauth_authorization_server(request):
     payload = {
         **OAUTH_AUTHORIZATION_SERVER,
@@ -170,8 +169,7 @@ def oauth_authorization_server(request):
     return _saas_only_json_response(request, payload)
 
 
-@all_silo_view
-@cache_control(max_age=3600, public=True)
+@control_silo_view
 def oauth_protected_resource(request):
     payload = {
         **OAUTH_PROTECTED_RESOURCE,
@@ -180,14 +178,12 @@ def oauth_protected_resource(request):
     return _saas_only_json_response(request, payload)
 
 
-@all_silo_view
-@cache_control(max_age=3600, public=True)
+@control_silo_view
 def mcp_server_card(request):
     return _saas_only_json_response(request, MCP_SERVER_CARD)
 
 
-@all_silo_view
-@cache_control(max_age=3600, public=True)
+@control_silo_view
 def agent_skills_index(request):
     return _saas_only_json_response(request, AGENT_SKILLS_INDEX)
 
