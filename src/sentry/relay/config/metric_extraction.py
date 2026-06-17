@@ -112,6 +112,7 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
     sentry_sdk.set_tag("organization_id", project.organization_id)
+    sentry_sdk.set_attribute("organization_id", project.organization_id)
 
     with sentry_sdk.start_span(op="get_on_demand_metric_specs"):
         alert_specs, widget_specs = build_safe_config(
@@ -270,8 +271,10 @@ def _get_bulk_cached_query(project: Project) -> tuple[dict[int, dict[str, bool]]
         if chunk_result is None:
             cold_cache_chunks.append(i)
         sentry_sdk.set_tag(f"on_demand_metrics.query_cache.{i}", chunk_result is None)
+        sentry_sdk.set_attribute(f"on_demand_metrics.query_cache.{i}", chunk_result is None)
         cache_result[i] = chunk_result or {}
     sentry_sdk.set_extra("cold_cache_chunks", cold_cache_chunks)
+    sentry_sdk.set_attribute("cold_cache_chunks", json.dumps(cold_cache_chunks))
     metrics.incr("on_demand_metrics.query_cache_cold_keys", amount=len(cold_cache_chunks))
     return cache_result, cold_cache_chunks
 
@@ -758,14 +761,18 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     with sentry_sdk.isolation_scope() as scope:
         metrics.incr("on_demand_metrics.cardinality_check.query")
         scope.set_tag("widget_query.widget_id", widget_query.id)
+        scope.set_attribute("widget_query.widget_id", widget_query.id)
         scope.set_tag("widget_query.org_id", project.organization_id)
+        scope.set_attribute("widget_query.org_id", project.organization_id)
         scope.set_tag("widget_query.conditions", widget_query.conditions)
+        scope.set_attribute("widget_query.conditions", widget_query.conditions)
 
         try:
             results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
             processed_results = query_builder.process_results(results)
         except ProcessingDeadlineExceeded as error:
             scope.set_tag("widget_soft_deadline", True)
+            scope.set_attribute("widget_soft_deadline", True)
             sentry_sdk.capture_exception(error)
             # We're setting a much shorter cache timeout here since this is essentially a permissive 'unknown' state
             cache.set(cache_key, True, timeout=_get_widget_cardinality_softdeadline_ttl())
@@ -783,8 +790,11 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
 
                     scope.set_tag("widget_query.column_name", column)
+                    scope.set_attribute("widget_query.column_name", column)
                     scope.set_extra("widget_query.column_count", count)
+                    scope.set_attribute("widget_query.column_count", count)
                     scope.set_extra("widget_query.id", widget_query.id)
+                    scope.set_attribute("widget_query.id", widget_query.id)
                     raise HighCardinalityWidgetException()
         except HighCardinalityWidgetException as error:
             sentry_sdk.capture_message(str(error))

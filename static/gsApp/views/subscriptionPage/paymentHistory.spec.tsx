@@ -3,10 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {PlanTier} from 'getsentry/types';
 import PaymentHistory from 'getsentry/views/subscriptionPage/paymentHistory';
 
 describe('Subscription > PaymentHistory', () => {

@@ -67,6 +67,28 @@ class TestOrganizationSeerAgentRunsEndpoint(APITestCase):
             query=None,
         )
 
+    def test_get_includes_sentry_run_id(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=1)
+        self.mock_client.get_runs.return_value = [
+            AgentRun(
+                run_id=1,
+                title="Mirrored",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+            AgentRun(
+                run_id=2,
+                title="Legacy (no mirror)",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+        ]
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data[0]["sentry_run_id"] == str(run.uuid)
+        assert data[1]["sentry_run_id"] is None
+
     def test_get_cursor_pagination(self) -> None:
         # Mock seer response for offset 0, limit 3.
         self.mock_client.get_runs.return_value = [

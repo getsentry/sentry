@@ -458,7 +458,7 @@ export function mapCostStatsToChart({
   return chartData;
 }
 
-export function mapReservedBudgetStatsToChart({
+function mapReservedBudgetStatsToChart({
   statsByDateAndCategory,
   transform,
   subscription,
