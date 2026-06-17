@@ -35,6 +35,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition import Condition
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -128,6 +129,30 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             action_filter["actions"] = validated_actions
 
         return value
+
+    def _has_seer_activity_trigger(self, triggers: InputData | None) -> bool:
+        if triggers is None:
+            return False
+        return any(
+            c.get("type") == Condition.SEER_ACTIVITY_TRIGGER for c in triggers.get("conditions", [])
+        )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        from sentry.notifications.notification_action.activity_registry.base import (
+            get_supported_action_types,
+        )
+
+        if not self._has_seer_activity_trigger(attrs.get("triggers")):
+            return attrs
+
+        supported_action_types = get_supported_action_types()
+        for action_filter in attrs.get("action_filters", []):
+            for action in action_filter.get("actions", []):
+                action_type = action.get("type")
+                if action_type and Action.Type(action_type) not in supported_action_types:
+                    raise serializers.ValidationError(
+                        f"Action type '{action_type}' is not supported for activity triggers"
+                    )
 
     def _update_or_create(
         self,

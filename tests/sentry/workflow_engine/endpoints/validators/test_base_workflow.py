@@ -123,6 +123,119 @@ class TestWorkflowValidator(TestCase):
         assert validator.is_valid() is False
 
 
+class TestWorkflowValidatorActivityTrigger(TestCase):
+    def setUp(self) -> None:
+        self.context = {
+            "organization": self.organization,
+            "request": self.make_request(),
+        }
+
+        self.valid_data = {
+            "name": "test",
+            "enabled": True,
+            "config": {"frequency": 30},
+            "triggers": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.SEER_ACTIVITY_TRIGGER,
+                        "comparison": ["rca_started"],
+                        "conditionResult": True,
+                    }
+                ],
+            },
+            "actionFilters": [],
+        }
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_supported_action_type_with_activity_trigger(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": self.integration.id,
+                    }
+                ],
+            }
+        ]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_unsupported_action_type_with_activity_trigger(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": Action.Type.PAGERDUTY,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": self.integration.id,
+                    }
+                ],
+            }
+        ]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_unsupported_action_type_without_activity_trigger(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["triggers"] = {
+            "logicType": "any",
+            "conditions": [],
+        }
+        self.valid_data["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": Action.Type.PAGERDUTY,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": self.integration.id,
+                    }
+                ],
+            }
+        ]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+
+
 class TestWorkflowValidatorCreate(TestCase):
     def setUp(self) -> None:
         self.context = {
