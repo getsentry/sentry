@@ -261,7 +261,7 @@ CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
 @with_feature("organizations:pr-metrics-emit")
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
@@ -373,6 +373,15 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         # verdict can't be settled deterministically — defer rather than emit a
         # possibly-wrong merged_unchanged. No verdict is claimed either.
         with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch("sentry.analytics.record")
+    def test_skips_emit_when_no_seer_access(self, mock_record: MagicMock) -> None:
+        # Without Seer access, activity rows are not written, so the commits-after-open
+        # signal is absent and select_verdict must defer — same invariant as flag-off.
+        with self.feature({"organizations:gen-ai-features": False}):
             self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None

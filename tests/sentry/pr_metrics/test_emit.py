@@ -55,7 +55,7 @@ METRICS = {
 
 
 @cell_silo_test
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 class PrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(

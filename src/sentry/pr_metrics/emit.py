@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Final, Literal
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
@@ -23,7 +23,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
-from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
+from sentry.pr_metrics.utils import is_activity_tracking_enabled, iso_or_none, resolved_group_ids
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ def select_verdict(
     failed — and we defer to a judge for both outcomes rather than emit zeroed
     counters (merge) or guess abandoned (close).
     """
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not is_activity_tracking_enabled(organization):
         metrics.incr("pr_metrics.select_verdict.activity_disabled")
         return None
 
