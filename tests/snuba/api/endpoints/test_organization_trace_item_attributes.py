@@ -504,7 +504,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             transaction="foo",
             duration=100,
             exclusive_time=100,
-            tags={"foo": "foo"},
+            # `gen_ai.request.model` is a sentry convention name, but as a
+            # user-supplied tag it resolves to a `user` source. It must not pick
+            # up convention metadata.
+            tags={"foo": "foo", "gen_ai.request.model": "gpt-4"},
         )
 
     def test_expand_context(self) -> None:
@@ -539,6 +542,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         }
         # User tags are not sentry conventions, so they have no context.
         assert "context" not in attributes["foo"]
+        # A user tag whose name collides with a sentry convention still gets no
+        # context, because only `sentry`-source attributes are expanded.
+        assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
+        assert "context" not in attributes["gen_ai.request.model"]
 
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()
