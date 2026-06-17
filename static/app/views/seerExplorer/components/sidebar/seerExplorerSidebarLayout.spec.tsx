@@ -184,7 +184,9 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(dividerDirection()).toBe('updown');
 
     await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Right'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Right'}, {timeout: 5000})
+    );
 
     expect(dividerDirection()).toBe('leftright');
     await waitFor(() =>

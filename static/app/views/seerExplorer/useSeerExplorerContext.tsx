@@ -21,18 +21,17 @@ import {
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
   SEER_EXPLORER_DRAWER_KEY,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 import {
-  isSeerExplorerSidebarEnabled,
+  useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
   useSeerExplorerDeepLink,
 } from 'sentry/views/seerExplorer/utils';
@@ -111,8 +110,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {runId, chatStates} = useSeerExplorerChatState();
   const [lastViewedAt, setLastViewedAt] = useState<number>(() => Date.now());
 
-  const organization = useOrganization({allowNull: true});
-  const isSidebarMode = isSeerExplorerSidebarEnabled(organization);
+  const isSidebarMode = useIsSeerExplorerSidebarEnabled();
 
   const {
     openSeerExplorerDrawer,
@@ -358,7 +356,10 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       {pipWindow && (
         <PictureInPicturePortal pipWindow={pipWindow}>
           <SyncDrawerWidthFromPip pipWindow={pipWindow} />
-          <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
+          <SeerExplorerContent
+            getPageReferrer={getPageReferrer}
+            onClose={closeSeerExplorer}
+          />
         </PictureInPicturePortal>
       )}
     </SeerExplorerContext.Provider>

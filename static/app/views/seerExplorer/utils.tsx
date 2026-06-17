@@ -14,6 +14,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
   LOGS_GROUP_BY_KEY,
@@ -1146,7 +1147,8 @@ export function isSeerExplorerEnabled(organization: Organization | null): boolea
  * Whether Seer Explorer should render as a persistent, resizable split-panel
  * sidebar instead of an overlay drawer.
  */
-export function isSeerExplorerSidebarEnabled(organization: Organization | null): boolean {
+export function useIsSeerExplorerSidebarEnabled(): boolean {
+  const organization = useOrganization({allowNull: true});
   return (
     isSeerExplorerEnabled(organization) &&
     !!organization?.features.includes('seer-explorer-persistent-sidebar')

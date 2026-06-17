@@ -1,8 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {useDrawerContentContext} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -17,12 +16,12 @@ import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
+import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
@@ -36,29 +35,23 @@ import {
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
 
-export function ExplorerDrawerContent({
+export function SeerExplorerContent({
   getPageReferrer,
   initialQuery,
-  surface = 'drawer',
   onClose,
   sidebarPosition,
   onSidebarPositionChange,
 }: {
   getPageReferrer: () => string;
+  /** Closes the current surface (drawer / sidebar). */
+  onClose: () => void;
   initialQuery?: string;
-  /** Called to close the current surface (sidebar). Falls back to the drawer's onClose. */
-  onClose?: () => void;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
   sidebarPosition?: SeerExplorerSidebarPosition;
-  /** Which surface this content is rendered in. */
-  surface?: 'drawer' | 'sidebar';
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
-  const {onClose: drawerOnClose = () => {}} = useDrawerContentContext();
-  // Closes the current surface: explicit `onClose` (sidebar) or the drawer's.
-  const surfaceClose = onClose ?? drawerOnClose;
   const {
     pipWindow,
     isSupported: isPipSupported,
@@ -67,24 +60,34 @@ export function ExplorerDrawerContent({
   } = usePictureInPicture();
   const isPoppedOut = pipWindow !== null;
 
+  // Close the active surface: dock back from the popped-out window, otherwise
+  // close the drawer/sidebar.
+  const handleClose = () => {
+    if (isPoppedOut) {
+      closePipWindow();
+    } else {
+      onClose();
+    }
+  };
+
   const rootRef = useRef<HTMLDivElement>(null);
 
   const handleTogglePictureInPicture = () => {
     if (isPoppedOut) {
-      // Re-dock back into the drawer.
+      // Re-dock back into the originating surface.
       closePipWindow();
       return;
     }
-    // Match the popped-out window to the current (resizable) drawer width.
-    const drawerWidth = rootRef.current?.getBoundingClientRect().width;
+    // Match the popped-out window to the current (resizable) panel width.
+    const panelWidth = rootRef.current?.getBoundingClientRect().width;
     requestPipWindow({
-      width: drawerWidth ? Math.round(drawerWidth) : 480,
+      width: panelWidth ? Math.round(panelWidth) : 480,
       height: Math.round(window.innerHeight * 0.9),
       // Open at the browser's default placement rather than wherever the window
       // happened to be left last time.
       preferInitialWindowPlacement: true,
     })
-      .then(() => surfaceClose())
+      .then(() => onClose())
       .catch(() => {
         // Failed to open the PiP window — keep the current surface open.
       });
@@ -315,35 +318,28 @@ export function ExplorerDrawerContent({
     userScrolledUpRef.current = false;
   }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
 
-  const handleInputKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.nativeEvent.isComposing) {
-        return;
-      }
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        if (isPoppedOut) {
-          closePipWindow();
-        } else {
-          surfaceClose();
-        }
-      }
-    },
-    [handleSend, surfaceClose, isPoppedOut, closePipWindow]
-  );
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleClose();
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     textareaRef.current?.focus();
   };
 
-  const handleInputClick = useCallback(() => {
+  const handleInputClick = () => {
     focusInput();
     closeMenu();
-  }, [focusInput, closeMenu]);
+  };
 
   // - Scroll effects ---------------------------------------------------------
 
@@ -421,8 +417,17 @@ export function ExplorerDrawerContent({
           : 'disabled';
 
   return (
-    <DrawerContentContainer ref={rootRef} data-seer-explorer-root="">
-      <ExplorerDrawerHeader
+    <ContentContainer
+      ref={rootRef}
+      data-seer-explorer-root=""
+      direction="column"
+      width="100%"
+      height="100%"
+      background="primary"
+      overflow="hidden"
+      contain="inline-size"
+    >
+      <SeerExplorerHeader
         disableNewChatButton={runId === null}
         onNewChatClick={() => {
           startNewSession();
@@ -446,10 +451,9 @@ export function ExplorerDrawerContent({
         isPipSupported={isPipSupported}
         isPoppedOut={isPoppedOut}
         onTogglePictureInPicture={handleTogglePictureInPicture}
-        showSidebarControls={surface === 'sidebar' && !isPoppedOut}
         sidebarPosition={sidebarPosition}
         onSidebarPositionChange={onSidebarPositionChange}
-        onClose={surfaceClose}
+        onClose={handleClose}
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
@@ -548,7 +552,7 @@ export function ExplorerDrawerContent({
             : undefined
         }
       />
-    </DrawerContentContainer>
+    </ContentContainer>
   );
 }
 
@@ -559,14 +563,11 @@ const BlocksContainer = styled(Stack)`
   overscroll-behavior: contain;
 `;
 
-const DrawerContentContainer = styled('div')`
-  width: 100%;
-  height: 100%;
-  background: ${p => p.theme.tokens.background.primary};
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  contain: inline-size;
+// Establishes the container query context used by the header's responsive
+// controls (`@container seer-explorer-root`). The query-container CSS has no
+// layout-primitive prop, so it stays in `styled`; everything else is passed as
+// `Flex` props.
+const ContentContainer = styled(Flex)`
   container-type: inline-size;
   container-name: seer-explorer-root;
 `;

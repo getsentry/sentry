@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Switch} from '@sentry/scraps/switch';
@@ -29,11 +28,14 @@ import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/utils';
 
-interface ExplorerDrawerHeaderProps {
+interface SeerExplorerHeaderProps {
   isPipSupported: boolean;
   isPoppedOut: boolean;
   onChangeSession: (runId: number) => void;
+  /** Closes the current surface (drawer / sidebar / popped-out window). */
+  onClose: () => void;
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
@@ -45,15 +47,12 @@ interface ExplorerDrawerHeaderProps {
   showThinking: boolean;
   showThinkingToggle: boolean;
   disableNewChatButton?: boolean;
-  /** Closes the surface (sidebar). Used for the explicit close button. */
-  onClose?: () => void;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
-  /** Render sidebar-only controls (dock-position dropdown + close button). */
-  showSidebarControls?: boolean;
   sidebarPosition?: SeerExplorerSidebarPosition;
 }
 
-export function ExplorerDrawerHeader({
+export function SeerExplorerHeader({
+  onClose,
   onNewChatClick,
   onChangeSession,
   onCopySessionClick,
@@ -67,12 +66,12 @@ export function ExplorerDrawerHeader({
   isPipSupported,
   isPoppedOut,
   onTogglePictureInPicture,
-  showSidebarControls = false,
   sidebarPosition = 'auto',
   onSidebarPositionChange,
-  onClose,
   disableNewChatButton = false,
-}: ExplorerDrawerHeaderProps) {
+}: SeerExplorerHeaderProps) {
+  const showDockControls = useIsSeerExplorerSidebarEnabled() && !isPoppedOut;
+
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -156,11 +155,23 @@ export function ExplorerDrawerHeader({
   ];
 
   return (
-    <DrawerHeader
-      hideBar
-      hideCloseButtonText
-      hideCloseButton={isPoppedOut || showSidebarControls}
+    <Flex
+      as="header"
+      align="center"
+      gap="md"
+      padding="md lg"
+      background="primary"
+      borderBottom="primary"
+      flexShrink={0}
     >
+      <Button
+        icon={<IconClose />}
+        onClick={onClose}
+        variant="transparent"
+        size="xs"
+        aria-label={t('Close Seer')}
+        tooltipProps={{title: t('Close')}}
+      />
       <Flex align="center" gap="xs" height="100%">
         <Text wrap="nowrap" size="md">
           {t('Seer Agent')}
@@ -256,16 +267,14 @@ export function ExplorerDrawerHeader({
               variant="transparent"
               size="xs"
               aria-label={
-                isPoppedOut ? t('Dock back into drawer') : t('Open in a separate window')
+                isPoppedOut ? t('Dock back in') : t('Open in a separate window')
               }
               tooltipProps={{
-                title: isPoppedOut
-                  ? t('Dock back into drawer')
-                  : t('Open in a separate window'),
+                title: isPoppedOut ? t('Dock back in') : t('Open in a separate window'),
               }}
             />
           )}
-          {showSidebarControls && (
+          {showDockControls && (
             <DropdownMenu
               items={positionMenuItems}
               size="xs"
@@ -340,18 +349,8 @@ export function ExplorerDrawerHeader({
             {t('New chat')}
           </Button>
         </InlineActions>
-        {showSidebarControls && (
-          <Button
-            icon={<IconClose />}
-            onClick={onClose}
-            variant="transparent"
-            size="xs"
-            aria-label={t('Close Seer')}
-            tooltipProps={{title: t('Close')}}
-          />
-        )}
       </Flex>
-    </DrawerHeader>
+    </Flex>
   );
 }
 
