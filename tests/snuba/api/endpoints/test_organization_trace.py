@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Any, cast
 from unittest import mock
 from uuid import uuid4
 
@@ -38,7 +39,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeValue as ProtoAttributeValue,
 )
 
-from sentry.snuba.trace import _serialize_columnar_uptime_item
+from sentry.snuba.trace import SerializedSpan, _serialize_columnar_uptime_item, _serialize_rpc_event
 from sentry.testutils.cases import TestCase
 
 # Test regions for uptime item serialization tests
@@ -224,6 +225,68 @@ class TestSpansRunTraceQuery(TestCase):
             "browser.web_vital.fcp.value",
         }.issubset(requested_attributes)
         assert "browser.web_vital.fp.value" not in requested_attributes
+
+
+class TestSerializeRpcEventWebVitals(TestCase):
+    """Test that ``browser.web_vital.*`` attributes are serialized onto spans."""
+
+    def _build_span_event(self, **overrides: Any) -> dict[str, Any]:
+        event: dict[str, Any] = {
+            "event_type": "span",
+            "id": "a" * 16,
+            "transaction.event_id": "b" * 32,
+            "project.id": 1,
+            "project.slug": "test-project",
+            "profile.id": "",
+            "profiler.id": "",
+            "parent_span": "0" * 16,
+            "precise.start_ts": 1700000000.0,
+            "precise.finish_ts": 1700000001.0,
+            "span.duration": 1000.0,
+            "transaction": "/home",
+            "is_transaction": True,
+            "description": "GET /home",
+            "sdk.name": "sentry.javascript.react",
+            "span.op": "navigation",
+            "span.name": "",
+            "children": [],
+            "errors": [],
+            "occurrences": [],
+        }
+        event.update(overrides)
+        return event
+
+    def test_serializes_browser_web_vital_attributes(self) -> None:
+        event = self._build_span_event(
+            **{
+                "browser.web_vital.lcp.value": 2807.335,
+                "browser.web_vital.cls.value": 0.0382,
+                "browser.web_vital.inp.value": 120.0,
+                "browser.web_vital.ttfb.value": 450.0,
+                "browser.web_vital.fcp.value": 2258.06,
+                "measurements.lcp": 2807.335,
+            }
+        )
+
+        result = cast(SerializedSpan, _serialize_rpc_event(event, {}))
+
+        assert result["browser_web_vital"] == {
+            "browser.web_vital.lcp.value": 2807.335,
+            "browser.web_vital.cls.value": 0.0382,
+            "browser.web_vital.inp.value": 120.0,
+            "browser.web_vital.ttfb.value": 450.0,
+            "browser.web_vital.fcp.value": 2258.06,
+        }
+        # Web vital attributes must not leak into measurements and vice versa
+        assert result["measurements"] == {"measurements.lcp": 2807.335}
+
+    def test_browser_web_vital_empty_when_absent(self) -> None:
+        event = self._build_span_event(**{"measurements.lcp": 1000.0})
+
+        result = cast(SerializedSpan, _serialize_rpc_event(event, {}))
+
+        assert result["browser_web_vital"] == {}
+        assert result["measurements"] == {"measurements.lcp": 1000.0}
 
 
 class OrganizationEventsTraceEndpointTest(
