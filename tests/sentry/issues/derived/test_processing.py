@@ -1,7 +1,6 @@
 import pytest
 from django.db import router, transaction
 
-from sentry import options
 from sentry.issues.action_log.base import ActionSource, publish_action
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -16,7 +15,13 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived import processing
 from sentry.issues.derived.aggregators import AGGREGATORS
-from sentry.issues.derived.features import STATUS, VIEW_COUNT
+from sentry.issues.derived.features import (
+    LAST_PROGRESSED_AT,
+    PROGRESS,
+    STATUS,
+    VIEW_COUNT,
+    IssueStatus,
+)
 from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
@@ -32,8 +37,10 @@ from sentry.issues.derived.processing import (
 )
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 SOURCE = ActionSource.API
 
@@ -44,16 +51,15 @@ def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYS
         action,
         source=SOURCE,
         group_id=group.id,
-        project_id=group.project_id,
-        organization_id=group.project.organization_id,
+        project=group.project,
         actor=actor,
     )
 
 
+@with_feature("projects:issue-action-log-write-to-db")
 class ProcessGroupLogTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        options.set("issues.action-log.write-to-db", True)
         # Enable mutation checking so aggregators that modify state in place fail.
         self._original_pipeline = processing.PIPELINE
         processing.PIPELINE = Pipeline(
@@ -62,7 +68,6 @@ class ProcessGroupLogTest(TestCase):
 
     def tearDown(self) -> None:
         processing.PIPELINE = self._original_pipeline
-        options.delete("issues.action-log.write-to-db")
         super().tearDown()
 
     def test_records_and_processes(self) -> None:
@@ -293,14 +298,11 @@ def test_store_apply_to_instance() -> None:
 # --- Store tests (need DB) ---
 
 
+@with_feature("projects:issue-action-log-write-to-db")
 class GroupDerivedDataStoreTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        options.set("issues.action-log.write-to-db", True)
-
-    def tearDown(self) -> None:
-        options.delete("issues.action-log.write-to-db")
-        super().tearDown()
+    def test_feature_default_matches_column_default(self) -> None:
+        field = GroupDerivedData._meta.get_field("progress")
+        assert PROGRESS.initial_value() == field.default
 
     def test_load_returns_defaults_for_empty_data(self) -> None:
         group = self.create_group()
@@ -310,7 +312,30 @@ class GroupDerivedDataStoreTest(TestCase):
         )
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[VIEW_COUNT] == 0
-        assert state[STATUS] == "open"
+        assert state[STATUS] == IssueStatus.OPEN
+
+    def test_load_populates_columns_and_json(self) -> None:
+        group = self.create_group()
+        derived = GroupDerivedData.objects.create(
+            group=group,
+            view_count=3,
+            progress="diagnosed",
+            data={"status": "closed"},
+        )
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[VIEW_COUNT] == 3
+        assert state[PROGRESS] == IssueProgressState.DIAGNOSED
+        assert state[STATUS] == IssueStatus.CLOSED
+
+    def test_load_null_progress(self) -> None:
+        group = self.create_group()
+        derived = GroupDerivedData.objects.create(
+            group=group,
+            progress=None,
+            data={},
+        )
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[PROGRESS] is None
 
     def test_round_trip_preserves_state(self) -> None:
         group = self.create_group()
@@ -325,22 +350,43 @@ class GroupDerivedDataStoreTest(TestCase):
 
         assert update["data"] == derived.data
         assert update["view_count"] == derived.view_count
+        assert update["progress"] == derived.progress
+        assert update["last_progressed_at"] == derived.last_progressed_at
+
+    def test_progress_round_trip(self) -> None:
+        group = self.create_group()
+        user = self.user
+        actor = GroupActionActor.user(user.id)
+
+        _publish(group=group, action=ViewAction(), actor=actor)
+        derived = process_group_log(group.id)
+
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+        assert state[LAST_PROGRESSED_AT] is None
+
+        _publish(group=group, action=ResolveAction(), actor=actor)
+        derived = process_group_log(group.id)
+
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[PROGRESS] is None
+        assert state[LAST_PROGRESSED_AT] is not None
+
+        _publish(group=group, action=UnresolveAction(), actor=actor)
+        derived = process_group_log(group.id)
+
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[PROGRESS] == IssueProgressState.REGRESSED
+        assert state[LAST_PROGRESSED_AT] is not None
 
 
 class _IntentionalRollback(Exception):
     pass
 
 
+@with_feature("projects:issue-action-log-write-to-db")
 class DerivedDataTransactionTest(TestCase):
     """Verify derived data processing respects transaction boundaries."""
-
-    def setUp(self) -> None:
-        super().setUp()
-        options.set("issues.action-log.write-to-db", True)
-
-    def tearDown(self) -> None:
-        options.delete("issues.action-log.write-to-db")
-        super().tearDown()
 
     def test_rolled_back_action_does_not_produce_derived_data(self) -> None:
         group = self.create_group()

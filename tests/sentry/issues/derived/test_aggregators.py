@@ -9,22 +9,35 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import Any
 
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
-from sentry.issues.derived.aggregators import (
-    AGGREGATORS,
-    track_status,
-    track_views,
-)
+from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
     IssueStatus,
-    Progress,
 )
-from sentry.issues.derived.framework import Pipeline, resolve
+from sentry.issues.derived.framework import Aggregator, Feature, Pipeline, resolve
+from sentry.issues.progress_state import IssueProgressState
+
+
+def _pipeline(
+    aggregators: list[Aggregator] | None = None,
+    *,
+    targets: tuple[Feature[Any], ...] | None = None,
+) -> Pipeline:
+    aggs = aggregators if aggregators is not None else AGGREGATORS
+    if targets is not None:
+        aggs = resolve(targets, aggs)
+    return Pipeline(aggs, version=1, check_mutations=True)
+
+
+def _run_for_feature[T](feature: Feature[T], entries: list[FakeEntry]) -> T:
+    p = _pipeline(targets=(feature,))
+    return p.run(entries)[feature]
 
 
 @dataclass(frozen=True)
@@ -51,18 +64,28 @@ def _resolved_pr_data(pr_id: int) -> dict[str, object]:
 
 
 def test_view_increments_count() -> None:
-    p = Pipeline([track_views], version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.VIEW, date_added=_ts(hour=1)))
-    state = p.step(state, FakeEntry(type=GroupActionType.VIEW, date_added=_ts(hour=2)))
-    assert state[VIEW_COUNT] == 2
+    assert (
+        _run_for_feature(
+            VIEW_COUNT,
+            [
+                FakeEntry(type=GroupActionType.VIEW, date_added=_ts(hour=1)),
+                FakeEntry(type=GroupActionType.VIEW, date_added=_ts(hour=2)),
+            ],
+        )
+        == 2
+    )
 
 
 def test_view_ignores_non_view() -> None:
-    p = Pipeline([track_views], version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.COMMENT))
-    assert state[VIEW_COUNT] == 0
+    assert (
+        _run_for_feature(
+            VIEW_COUNT,
+            [
+                FakeEntry(type=GroupActionType.COMMENT),
+            ],
+        )
+        == 0
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -71,69 +94,112 @@ def test_view_ignores_non_view() -> None:
 
 
 def test_starts_open() -> None:
-    p = Pipeline([track_status], version=1)
-    state = p.initial_state()
-    assert state[STATUS] == IssueStatus.OPEN
+    assert _run_for_feature(STATUS, []) == IssueStatus.OPEN
 
 
 def test_resolve_closes() -> None:
-    p = Pipeline([track_status], version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    assert state[STATUS] == IssueStatus.CLOSED
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+            ],
+        )
+        == IssueStatus.CLOSED
+    )
 
 
 def test_unresolve_reopens() -> None:
-    p = Pipeline([track_status], version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
-    assert state[STATUS] == IssueStatus.OPEN
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueStatus.OPEN
+    )
 
 
 def test_duplicate_resolve_is_noop() -> None:
-    p = Pipeline([track_status], version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    assert state[STATUS] == IssueStatus.CLOSED
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.RESOLVE),
+            ],
+        )
+        == IssueStatus.CLOSED
+    )
 
 
 def test_unresolve_when_already_open_is_noop() -> None:
-    p = Pipeline([track_status], version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
-    assert state[STATUS] == IssueStatus.OPEN
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueStatus.OPEN
+    )
 
 
 def test_status_toggle() -> None:
-    p = Pipeline([track_status], version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    assert state[STATUS] == IssueStatus.CLOSED
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+                FakeEntry(type=GroupActionType.RESOLVE),
+            ],
+        )
+        == IssueStatus.CLOSED
+    )
+
+
+def test_archive_closes() -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.ARCHIVE),
+            ],
+        )
+        == IssueStatus.CLOSED
+    )
 
 
 def test_resolved_in_pull_request_closes() -> None:
-    p = Pipeline([track_status], version=1)
-    state = p.initial_state()
-    state = p.step(
-        state,
-        FakeEntry(type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)),
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+            ],
+        )
+        == IssueStatus.CLOSED
     )
-    assert state[STATUS] == IssueStatus.CLOSED
 
 
 def test_resolved_in_pr_when_already_closed_is_noop() -> None:
-    p = Pipeline([track_status], version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    state = p.step(
-        state,
-        FakeEntry(type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)),
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+            ],
+        )
+        == IssueStatus.CLOSED
     )
-    assert state[STATUS] == IssueStatus.CLOSED
 
 
 # ---------------------------------------------------------------------------
@@ -142,109 +208,201 @@ def test_resolved_in_pr_when_already_closed_is_noop() -> None:
 
 
 def test_progress_starts_identified() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    assert state[PROGRESS] == Progress.IDENTIFIED
+    assert _run_for_feature(PROGRESS, []) == IssueProgressState.IDENTIFIED
 
 
 def test_view_does_not_advance_progress() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.VIEW))
-    assert state[PROGRESS] == Progress.IDENTIFIED
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.VIEW),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
 
 
 def test_assign_advances_to_triaged() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == Progress.TRIAGED
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN),
+            ],
+        )
+        == IssueProgressState.TRIAGED
+    )
 
 
 def test_root_cause_identified_advances_to_diagnosed() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED))
-    assert state[PROGRESS] == Progress.DIAGNOSED
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
 
 
 def test_autofix_coding_complete_advances_to_fix_proposed() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE))
-    assert state[PROGRESS] == Progress.FIX_PROPOSED
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
 
 
 def test_autofix_pr_advances_to_fix_proposed() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    state = p.step(
-        state,
-        FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={}),
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={}),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
     )
-    assert state[PROGRESS] == Progress.FIX_PROPOSED
 
 
 def test_progress_never_goes_backward() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    state = p.step(
-        state,
-        FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={}),
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={}),
+                FakeEntry(type=GroupActionType.VIEW),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
     )
-    assert state[PROGRESS] == Progress.FIX_PROPOSED
-    # A VIEW shouldn't regress from FIX_PROPOSED back to TRIAGED
-    state = p.step(state, FakeEntry(type=GroupActionType.VIEW))
-    assert state[PROGRESS] == Progress.FIX_PROPOSED
 
 
 def test_progress_none_when_closed() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    p = _pipeline(targets=(PROGRESS,))
     state = p.initial_state()
     state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == Progress.TRIAGED
+    assert state[PROGRESS] == IssueProgressState.TRIAGED
     state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
     assert state[PROGRESS] is None
 
 
 def test_progress_regressed_on_reopen() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
-    assert state[PROGRESS] == Progress.REGRESSED
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueProgressState.REGRESSED
+    )
 
 
 def test_progress_advances_from_regressed() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
-    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
-    assert state[PROGRESS] == Progress.REGRESSED
-    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == Progress.TRIAGED
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+                FakeEntry(type=GroupActionType.ASSIGN),
+            ],
+        )
+        == IssueProgressState.TRIAGED
+    )
+
+
+def test_progress_advances_from_regressed_to_diagnosed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+def test_assign_does_not_regress_fix_proposed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE),
+                FakeEntry(type=GroupActionType.ASSIGN),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+def test_set_priority_advances_to_triaged() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.SET_PRIORITY),
+            ],
+        )
+        == IssueProgressState.TRIAGED
+    )
+
+
+def test_mark_reviewed_advances_to_triaged() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.MARK_REVIEWED),
+            ],
+        )
+        == IssueProgressState.TRIAGED
+    )
+
+
+def test_trigger_autofix_advances_to_triaged() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.TRIGGER_AUTOFIX),
+            ],
+        )
+        == IssueProgressState.TRIAGED
+    )
 
 
 def test_progress_full_lifecycle() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    p = _pipeline(targets=(PROGRESS,))
     state = p.initial_state()
-    assert state[PROGRESS] == Progress.IDENTIFIED
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
     state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == Progress.TRIAGED
+    assert state[PROGRESS] == IssueProgressState.TRIAGED
 
     state = p.step(state, FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED))
-    assert state[PROGRESS] == Progress.DIAGNOSED
+    assert state[PROGRESS] == IssueProgressState.DIAGNOSED
 
     state = p.step(state, FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE))
-    assert state[PROGRESS] == Progress.FIX_PROPOSED
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
 
     # PR created doesn't advance past FIX_PROPOSED (same rank)
     state = p.step(
         state,
         FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={}),
     )
-    assert state[PROGRESS] == Progress.FIX_PROPOSED
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
 
     # Resolve closes the issue
     state = p.step(
@@ -255,11 +413,11 @@ def test_progress_full_lifecycle() -> None:
 
     # Reopen
     state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
-    assert state[PROGRESS] == Progress.REGRESSED
+    assert state[PROGRESS] == IssueProgressState.REGRESSED
 
     # New investigation
     state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == Progress.TRIAGED
+    assert state[PROGRESS] == IssueProgressState.TRIAGED
 
 
 # ---------------------------------------------------------------------------
@@ -268,21 +426,20 @@ def test_progress_full_lifecycle() -> None:
 
 
 def test_last_progressed_at_starts_none() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    assert state[LAST_PROGRESSED_AT] is None
+    assert _run_for_feature(LAST_PROGRESSED_AT, []) is None
 
 
 def test_last_progressed_at_set_on_assign() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    t = _ts(hour=1)
-    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN, date_added=t))
-    assert state[LAST_PROGRESSED_AT] == t
+    assert _run_for_feature(
+        LAST_PROGRESSED_AT,
+        [
+            FakeEntry(type=GroupActionType.ASSIGN, date_added=_ts(hour=1)),
+        ],
+    ) == _ts(hour=1)
 
 
 def test_last_progressed_at_advances_with_progress() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    p = _pipeline(targets=(PROGRESS,))
     state = p.initial_state()
     t1 = _ts(hour=1)
     t2 = _ts(hour=2)
@@ -293,7 +450,7 @@ def test_last_progressed_at_advances_with_progress() -> None:
 
 
 def test_last_progressed_at_unchanged_when_progress_unchanged() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    p = _pipeline(targets=(PROGRESS,))
     state = p.initial_state()
     t1 = _ts(hour=1)
     t2 = _ts(hour=2)
@@ -304,21 +461,22 @@ def test_last_progressed_at_unchanged_when_progress_unchanged() -> None:
 
 
 def test_last_progressed_at_set_on_close() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    t = _ts(hour=1)
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE, date_added=t))
-    assert state[LAST_PROGRESSED_AT] == t
+    assert _run_for_feature(
+        LAST_PROGRESSED_AT,
+        [
+            FakeEntry(type=GroupActionType.RESOLVE, date_added=_ts(hour=1)),
+        ],
+    ) == _ts(hour=1)
 
 
 def test_last_progressed_at_set_on_reopen() -> None:
-    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
-    state = p.initial_state()
-    t1 = _ts(hour=1)
-    t2 = _ts(hour=2)
-    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE, date_added=t1))
-    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE, date_added=t2))
-    assert state[LAST_PROGRESSED_AT] == t2
+    assert _run_for_feature(
+        LAST_PROGRESSED_AT,
+        [
+            FakeEntry(type=GroupActionType.RESOLVE, date_added=_ts(hour=1)),
+            FakeEntry(type=GroupActionType.UNRESOLVE, date_added=_ts(hour=2)),
+        ],
+    ) == _ts(hour=2)
 
 
 # ---------------------------------------------------------------------------
@@ -327,15 +485,15 @@ def test_last_progressed_at_set_on_reopen() -> None:
 
 
 def test_full_pipeline_constructs() -> None:
-    p = Pipeline(AGGREGATORS, version=1)
+    p = _pipeline()
     state = p.initial_state()
     assert state[STATUS] == IssueStatus.OPEN
     assert state[VIEW_COUNT] == 0
-    assert state[PROGRESS] == Progress.IDENTIFIED
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
 
 def test_full_pipeline_mixed_events() -> None:
-    p = Pipeline(AGGREGATORS, version=1)
+    p = _pipeline()
     state = p.run(
         [
             FakeEntry(

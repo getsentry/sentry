@@ -113,7 +113,7 @@ class Feature[T]:
 # ---------------------------------------------------------------------------
 
 
-class _FieldStore:
+class _FeatureStore:
     __slots__ = ("_data",)
 
     def __init__(self, data: dict[Feature[Any], Any] | None = None) -> None:
@@ -132,14 +132,14 @@ class _FieldStore:
         return {f for f in self._data if f not in declared}
 
 
-class StateUpdate(_FieldStore):
+class StateUpdate(_FeatureStore):
     """Partial state produced by an aggregator, to be merged into a State."""
 
     def __repr__(self) -> str:
         return f"StateUpdate({{{', '.join(f'{f.name}: {v!r}' for f, v in self._data.items())}}})"
 
 
-class State(_FieldStore):
+class State(_FeatureStore):
     """Complete pipeline state."""
 
     def view(self, allowed: frozenset[Feature[Any]]) -> "StateView":

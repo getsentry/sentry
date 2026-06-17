@@ -5,7 +5,6 @@ from sentry.issues.derived.features import (
     STATUS,
     VIEW_COUNT,
     IssueStatus,
-    Progress,
 )
 from sentry.issues.derived.framework import (
     Aggregator,
@@ -15,6 +14,7 @@ from sentry.issues.derived.framework import (
     emit,
 )
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.progress_state import IssueProgressState
 
 
 @aggregator((VIEW_COUNT,), scope=(GroupActionType.VIEW,))
@@ -24,15 +24,20 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
 
 @aggregator(
     (STATUS,),
-    scope=(  # TODO: This is certainly incomplete.
+    scope=(
         GroupActionType.RESOLVE,
         GroupActionType.UNRESOLVE,
         GroupActionType.RESOLVED_IN_PULL_REQUEST,
+        GroupActionType.ARCHIVE,
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[STATUS]
-    resolves = (GroupActionType.RESOLVE.value, GroupActionType.RESOLVED_IN_PULL_REQUEST.value)
+    resolves = (
+        GroupActionType.RESOLVE.value,
+        GroupActionType.RESOLVED_IN_PULL_REQUEST.value,
+        GroupActionType.ARCHIVE.value,
+    )
     if entry.type in resolves and current == IssueStatus.OPEN:
         return emit(STATUS.value(IssueStatus.CLOSED))
     if entry.type == GroupActionType.UNRESOLVE.value and current == IssueStatus.CLOSED:
@@ -73,24 +78,24 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 
 # Ordered from earliest to latest so we can compare with index.
 _PROGRESS_ORDER = [
-    Progress.IDENTIFIED,
-    Progress.REGRESSED,
-    Progress.TRIAGED,
-    Progress.DIAGNOSED,
-    Progress.FIX_PROPOSED,
-    Progress.FIX_APPLIED,
+    IssueProgressState.IDENTIFIED,
+    IssueProgressState.REGRESSED,
+    IssueProgressState.TRIAGED,
+    IssueProgressState.DIAGNOSED,
+    IssueProgressState.FIX_PROPOSED,
+    IssueProgressState.FIX_APPLIED,
 ]
 _PROGRESS_RANK = {p: i for i, p in enumerate(_PROGRESS_ORDER)}
 
 # Actions that advance progress to at least this level.
-_ACTION_TO_MIN_PROGRESS: dict[int, Progress] = {
-    GroupActionType.ASSIGN: Progress.TRIAGED,
-    GroupActionType.SET_PRIORITY: Progress.TRIAGED,
-    GroupActionType.MARK_REVIEWED: Progress.TRIAGED,
-    GroupActionType.TRIGGER_AUTOFIX: Progress.TRIAGED,
-    GroupActionType.ROOT_CAUSE_IDENTIFIED: Progress.DIAGNOSED,
-    GroupActionType.AUTOFIX_CODING_COMPLETE: Progress.FIX_PROPOSED,
-    GroupActionType.AUTOFIX_PR_CREATED: Progress.FIX_PROPOSED,
+_ACTION_TO_MIN_PROGRESS: dict[int, IssueProgressState] = {
+    GroupActionType.ASSIGN: IssueProgressState.TRIAGED,
+    GroupActionType.SET_PRIORITY: IssueProgressState.TRIAGED,
+    GroupActionType.MARK_REVIEWED: IssueProgressState.TRIAGED,
+    GroupActionType.TRIGGER_AUTOFIX: IssueProgressState.TRIAGED,
+    GroupActionType.ROOT_CAUSE_IDENTIFIED: IssueProgressState.DIAGNOSED,
+    GroupActionType.AUTOFIX_CODING_COMPLETE: IssueProgressState.FIX_PROPOSED,
+    GroupActionType.AUTOFIX_PR_CREATED: IssueProgressState.FIX_PROPOSED,
 }
 
 
@@ -110,7 +115,7 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
 
     # Reopened: if progress was None (just transitioned from closed), mark regressed.
     if current is None:
-        return emit(PROGRESS.value(Progress.REGRESSED), LAST_PROGRESSED_AT.value(ts))
+        return emit(PROGRESS.value(IssueProgressState.REGRESSED), LAST_PROGRESSED_AT.value(ts))
 
     # Check if this action advances progress forward.
     min_progress = _ACTION_TO_MIN_PROGRESS.get(entry.type)
