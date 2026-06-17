@@ -23,7 +23,6 @@ GONE_MESSAGE = {"message": "This API no longer exists."}
 DEPRECATION_HEADER = "X-Sentry-Deprecation-Date"
 SUGGESTED_API_HEADER = "X-Sentry-Replacement-Endpoint"
 OPENAPI_DEPRECATED_ATTR = "_sentry_openapi_deprecated"
-OPENAPI_DEPRECATED_URL_NAMES_ATTR = "_sentry_openapi_deprecated_url_names"
 
 
 logger = logging.getLogger(__name__)
@@ -228,8 +227,8 @@ def deprecated(
 
             return response
 
-        setattr(endpoint_method, OPENAPI_DEPRECATED_ATTR, True)
-        setattr(endpoint_method, OPENAPI_DEPRECATED_URL_NAMES_ATTR, url_names)
+        if not url_names:
+            setattr(endpoint_method, OPENAPI_DEPRECATED_ATTR, True)
         return endpoint_method
 
     return decorator

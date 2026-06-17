@@ -5,14 +5,12 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
 
-from django.urls import URLPattern, URLResolver
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
-from sentry.apidocs.schema import URL_NAME_ATTR
 from sentry.apidocs.utils import SentryApiBuildError
 
 HTTP_METHOD_NAME = Literal[
@@ -90,56 +88,15 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
 
 class CustomEndpointEnumerator(EndpointEnumerator):
     _non_capturing = re.compile(r"\(\?:[a-z-]+\|[a-z-]+\)")
-    url_names_by_path_regex: dict[str, str | None]
-
-    def get_api_endpoints(self, patterns: Any = None, prefix: str = "") -> Any:
-        self.url_names_by_path_regex = {}
-        return super().get_api_endpoints(patterns, prefix)
 
     def get_path_from_regex(self, path_regex: str) -> str:
         # django 4.x changes to simplify_regex breaks these urls
         path_regex = self._non_capturing.sub("{var}", path_regex)
         return super().get_path_from_regex(path_regex)
 
-    def _get_api_endpoints(self, patterns: Any, prefix: str) -> list[tuple[str, str, str, Any]]:
-        if patterns is None:
-            patterns = self.patterns
-
-        api_endpoints = []
-
-        for pattern in patterns:
-            path_regex = prefix + str(pattern.pattern)
-            if isinstance(pattern, URLPattern):
-                path = self.get_path_from_regex(path_regex)
-                callback = pattern.callback
-                self.url_names_by_path_regex[path_regex] = pattern.name
-                if self.should_include_endpoint(path, callback):
-                    for method in self.get_allowed_methods(callback):
-                        api_endpoints.append((path, path_regex, method, callback))
-
-            elif isinstance(pattern, URLResolver):
-                nested_endpoints = self._get_api_endpoints(
-                    patterns=pattern.url_patterns,
-                    prefix=path_regex,
-                )
-                api_endpoints.extend(nested_endpoints)
-
-        return api_endpoints
-
 
 class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
-
-    def _get_paths_and_endpoints(self) -> list[tuple[str, str, str, Any]]:
-        view_endpoints = []
-        url_names_by_path_regex = getattr(self.inspector, "url_names_by_path_regex", {})
-        for path, path_regex, method, callback in self.endpoints:
-            view = self.create_view(callback, method)
-            setattr(view, URL_NAME_ATTR, url_names_by_path_regex.get(path_regex))
-            path = self.coerce_path(path, method, view)
-            view_endpoints.append((path, path_regex, method, view))
-
-        return view_endpoints
 
 
 # Collected during preprocessing, used in postprocessing
