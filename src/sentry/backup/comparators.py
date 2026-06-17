@@ -993,6 +993,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "explore.exploresavedquerylastvisited": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "explore.traceitemattributecontext": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "insights.insightsstarredsegment": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
