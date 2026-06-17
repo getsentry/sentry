@@ -119,17 +119,18 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
             count for the clicked cell.
           </p>
           <p>
-            Pass <code>traceMetric</code> to add a <em>View connected spans</em> link in
-            the tooltip. The visualization builds the Explore link itself, scoping it to
-            the metric, the clicked cell's Y-axis value range, and the X-axis time bucket.
-            Optionally pass <code>exploreBaseQuery</code> to fold an existing filter into
-            that link.
+            Give the <code>HeatMap</code> plottable a <code>traceMetric</code> to add a{' '}
+            <em>View connected spans</em> link in the tooltip. The visualization builds
+            the Explore link itself, scoping it to the metric, the clicked cell's Y-axis
+            value range, and the X-axis time bucket. Optionally pass{' '}
+            <code>exploreBaseQuery</code> to fold an existing filter into that link.
           </p>
           <p>
             <CodeBlock language="jsx">
               {`<HeatMapWidgetVisualization
-  plottables={[new HeatMap(heatMapData)]}
-  traceMetric={{name: 'my.metric', type: 'distribution', unit: 'millisecond'}}
+  plottables={[
+    new HeatMap(heatMapData, {name: 'my.metric', type: 'distribution', unit: 'millisecond'}),
+  ]}
   exploreBaseQuery="release:1.0.0"
 />`}
             </CodeBlock>
@@ -159,8 +160,13 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
           <LargeWidget>
             <p>{`Local Filter Query: ${localFilterQuery}`}</p>
             <HeatMapWidgetVisualization
-              plottables={[new HeatMap(sampleLatencyHeatMap)]}
-              traceMetric={{name: 'my.metric', type: 'distribution', unit: 'millisecond'}}
+              plottables={[
+                new HeatMap(sampleLatencyHeatMap, {
+                  name: 'my.metric',
+                  type: 'distribution',
+                  unit: 'millisecond',
+                }),
+              ]}
               updateLocalFilterQuery={query => setLocalFilterQuery(query)}
             />
           </LargeWidget>

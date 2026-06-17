@@ -2,6 +2,7 @@ import type {SeriesOption} from 'echarts';
 
 import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {HeatMapValueUnit} from 'sentry/views/dashboards/widgets/common/types';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export type PlottableTimeSeriesValueType =
   (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number];
@@ -39,4 +40,10 @@ export interface HeatMapPlottable {
    * Unit of the Y-axis data (different from Z-axis)
    */
   yAxisValueUnit: HeatMapValueUnit;
+  /**
+   * The metric this heat map plots, if known. The API response identifies the
+   * Y axis only as the generic `value` field, so the metric (used to link cells
+   * to Explore) is supplied by the caller rather than read from the series.
+   */
+  traceMetric?: TraceMetric;
 }

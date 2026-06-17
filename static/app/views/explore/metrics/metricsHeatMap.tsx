@@ -67,9 +67,8 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
             <Widget.WidgetError error={t('No data')} />
           ) : (
             <HeatMapWidgetVisualization
-              plottables={[new HeatMap(heatMapSeries)]}
+              plottables={[new HeatMap(heatMapSeries, metric)]}
               scale={HEATMAP_Z_AXIS_SCALE}
-              traceMetric={metric}
               updateLocalFilterQuery={updateMetricQuery}
             />
           )

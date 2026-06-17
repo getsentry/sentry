@@ -504,9 +504,8 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   return (
     <ChartWrapper autoHeightResize>
       <HeatMapWidgetVisualization
-        plottables={[new HeatMap(heatmapResults)]}
+        plottables={[new HeatMap(heatmapResults, traceMetric)]}
         scale={HEATMAP_Z_AXIS_SCALE}
-        traceMetric={traceMetric}
         exploreBaseQuery={exploreBaseQuery}
       />
     </ChartWrapper>

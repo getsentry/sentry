@@ -8,6 +8,7 @@ import type {
   HeatMapValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 import type {HeatMapPlottable, PlottableTimeSeriesValueType} from './heatMapPlottable';
 
@@ -23,11 +24,13 @@ type HeatMapPlottingOptions = {
 
 export class HeatMap implements HeatMapPlottable {
   readonly heatMapSeries: Readonly<HeatMapSeries>;
+  readonly traceMetric?: TraceMetric;
   readonly Zstart: number;
   readonly Zend: number;
 
-  constructor(heatMapSeries: HeatMapSeries) {
+  constructor(heatMapSeries: HeatMapSeries, traceMetric?: TraceMetric) {
     this.heatMapSeries = heatMapSeries;
+    this.traceMetric = traceMetric;
 
     this.Zstart = heatMapSeries.meta.zAxis.start;
     this.Zend = heatMapSeries.meta.zAxis.end;

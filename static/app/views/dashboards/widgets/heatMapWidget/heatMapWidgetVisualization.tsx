@@ -27,7 +27,6 @@ import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottab
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import {HeatMap} from './plottables/heatMap';
@@ -53,18 +52,13 @@ interface HeatMapWidgetVisualizationProps {
    */
   scale?: 'linear' | 'log';
   /**
-   * The metric the heat map plots. When provided, each cell's tooltip links to
-   * that metric in Explore, scoped to the cell's value range and time window.
-   */
-  traceMetric?: TraceMetric;
-  /**
    * Callback that updates the local filter to include the given Y-axis query.
    */
   updateLocalFilterQuery?: (query: string) => void;
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
-  const {plottables, updateLocalFilterQuery, traceMetric, exploreBaseQuery} = props;
+  const {plottables, updateLocalFilterQuery, exploreBaseQuery} = props;
   const theme = useTheme();
   const organization = useOrganization();
   const renderToString = useRenderToString();
@@ -134,6 +128,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   );
 
   const heatMapPlottable = plottables[0];
+  const traceMetric = heatMapPlottable.traceMetric;
 
   const yAxisDataType = heatMapPlottable.yAxisValueType;
   const yAxisDataUnit = heatMapPlottable.yAxisValueUnit;
