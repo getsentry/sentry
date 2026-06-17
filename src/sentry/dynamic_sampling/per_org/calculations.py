@@ -28,11 +28,12 @@ from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project
 from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
     ProjectVolume,
+    get_eap_organization_volume,
     get_outcomes_organization_volume,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
+from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume, sample_rate_to_float
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -59,25 +60,26 @@ logger = logging.getLogger(__name__)
 def compare_organization_sliding_window_sample_rates(
     config: AutomaticDynamicSamplingConfiguration,
 ) -> None:
-    # The EAP-based rate is already computed on the config; the outcomes-based rate is a
-    # delay-free alternative computed here over a 5m window. Emit both for comparison.
-    eap_sample_rate = config.get_sample_rate()
-
+    eap_volume = get_eap_organization_volume(
+        config, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
+    )
     outcomes_volume = get_outcomes_organization_volume(
         config.organization.id, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
     )
-    outcomes_sample_rate: float | None = None
-    if outcomes_volume is not None:
-        # Extrapolate the window volume to a monthly volume and map it to a quota tier.
-        # The 5m window is sub-hour, so we can't reuse the hours-based
-        # extrapolate_monthly_volume.
-        now = datetime.now(tz=timezone.utc)
-        _, days_in_month = monthrange(now.year, now.month)
-        windows_per_month = timedelta(days=days_in_month) / SLIDING_WINDOW_COMPARISON_INTERVAL
+    now = datetime.now(tz=timezone.utc)
+    _, days_in_month = monthrange(now.year, now.month)
+    windows_per_month = timedelta(days=days_in_month) / SLIDING_WINDOW_COMPARISON_INTERVAL
+
+    def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
+        if volume is None:
+            return None
         tier = quotas.backend.get_transaction_sampling_tier_for_volume(
-            config.organization.id, int(outcomes_volume.total * windows_per_month)
+            config.organization.id, int(volume.total * windows_per_month)
         )
-        outcomes_sample_rate = float(tier[1]) if tier is not None else None
+        return float(tier[1]) if tier is not None else None
+
+    eap_sample_rate = sample_rate_for(eap_volume)
+    outcomes_sample_rate = sample_rate_for(outcomes_volume)
 
     tags = {"ds_org": str(config.organization.id)}
     if eap_sample_rate is not None:
