@@ -237,7 +237,9 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     repos.data?.repos
       ?.filter(repo => !repo.has_write_access)
       .map(repo => repo.integration_id) ?? [];
-  const {integrations} = useIntegrations({integrationIds});
+  const {integrations, isPending: isIntegrationsPending} = useIntegrations({
+    integrationIds,
+  });
   const permissionsUrls = integrations
     .map(integration => {
       const url = getProviderPermissionsUrl(integration);
@@ -252,6 +254,10 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     .filter(Boolean);
 
   if (!defined(artifact)) {
+    return null;
+  }
+
+  if (repos.isPending || isIntegrationsPending) {
     return null;
   }
 
@@ -291,6 +297,7 @@ function CodeChangesNextStepWithoutWritePermissions({
   runId,
   section,
   referrer,
+  integration,
   permissionsUrl,
 }: CodeChangesNextStepWithoutWritePermissionsProps) {
   const organization = useOrganization();
@@ -317,7 +324,10 @@ function CodeChangesNextStepWithoutWritePermissions({
       onClickNo={handleNoClick}
       yesButton={
         <Tooltip
-          title={t('You need GitHub admin permissions for your org to connect Sentry')}
+          title={t(
+            'You need to grant write permissions for your %s integration',
+            integration.provider.name
+          )}
         >
           <LinkButton
             external
@@ -332,7 +342,10 @@ function CodeChangesNextStepWithoutWritePermissions({
       }
       nevermindButton={
         <Tooltip
-          title={t('You need GitHub admin permissions for your org to connect Sentry')}
+          title={t(
+            'You need to grant write permissions for your %s integration',
+            integration.provider.name
+          )}
         >
           <LinkButton
             external

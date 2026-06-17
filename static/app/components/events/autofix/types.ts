@@ -134,7 +134,7 @@ export interface AutofixRepoDefinition {
   provider: string;
 }
 
-export interface AutofixRepo {
+interface AutofixRepo {
   default_branch: string;
   external_id: string;
   has_read_access: boolean;
