@@ -459,10 +459,10 @@ export default function IntegrationListDirectory() {
                       slug="legacy-webhooks"
                       displayName={t('Webhooks (Legacy)')}
                       status={
-                        legacyWebhooks!.projects?.length ? 'Installed' : 'Not Installed'
+                        legacyWebhooks.projects?.length ? 'Installed' : 'Not Installed'
                       }
                       publishStatus="published"
-                      configurations={legacyWebhooks!.projects?.length ?? 0}
+                      configurations={legacyWebhooks.projects?.length ?? 0}
                       categories={['webhooks']}
                       customIcon={<PluginIcon pluginId="webhooks" size={36} />}
                     />
