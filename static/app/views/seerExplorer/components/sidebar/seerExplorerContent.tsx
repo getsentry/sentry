@@ -148,7 +148,7 @@ export function SeerExplorerContent({
 
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
-  const pendingInput = sessionData?.pending_user_input;
+  const pendingInput = sessionData?.pending_user_input ?? null;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
 
   // Auto-submit the initial query forwarded from the command palette, but only
@@ -493,7 +493,7 @@ export function SeerExplorerContent({
               fileApprovalIndex < fileApprovalTotalPatches && (
                 <FileChangeApprovalBlock
                   currentIndex={fileApprovalIndex}
-                  pendingInput={pendingInput!}
+                  pendingInput={pendingInput}
                 />
               )}
             {!readOnly && isQuestionPending && currentQuestion && (
