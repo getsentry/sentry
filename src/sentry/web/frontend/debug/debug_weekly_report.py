@@ -233,7 +233,7 @@ class DebugWeeklyReportView(MailPreviewView):
                             "has_linked_pr_or_commit": has_link,
                         }
                     )
-            past_issues.sort(key=lambda x: x["count"], reverse=True)
+            past_issues.sort(key=lambda x: int(x["count"]), reverse=True)
             context["past_issues"] = past_issues[:3]
         return context
 
