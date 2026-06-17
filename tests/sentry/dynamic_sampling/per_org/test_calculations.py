@@ -116,10 +116,9 @@ class ProjectBalancingCalculationsTest(TestCase):
                 return_value=OrganizationDataVolume(org_id=org.id, total=2000, indexed=200),
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.calculations.compute_sliding_window_sample_rate",
-                side_effect=lambda org_id, project_id, total_root_count, window_size: (
-                    1.0 if total_root_count == 1000 else 0.5
-                ),
+                "sentry.quotas.backend.get_transaction_sampling_tier_for_volume",
+                # EAP volume is queried first, then outcomes.
+                side_effect=[(1, 1.0), (1, 0.5)],
             ),
             patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info,
             patch(
@@ -159,8 +158,8 @@ class ProjectBalancingCalculationsTest(TestCase):
                 return_value=OrganizationDataVolume(org_id=org.id, total=2000, indexed=200),
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.calculations.compute_sliding_window_sample_rate",
-                return_value=0.5,
+                "sentry.quotas.backend.get_transaction_sampling_tier_for_volume",
+                return_value=(1, 0.5),
             ),
             patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info,
             patch(

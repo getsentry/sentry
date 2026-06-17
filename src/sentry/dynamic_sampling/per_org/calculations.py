@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
+from calendar import monthrange
 from collections.abc import Iterable
 from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, cast
 
 import orjson
 import sentry_sdk
 
+from sentry import quotas
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.full_rebalancing import (
     FullRebalancingInput,
@@ -31,18 +33,13 @@ from sentry.dynamic_sampling.per_org.queries import (
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import (
-    OrganizationDataVolume,
-    compute_sliding_window_sample_rate,
-    sample_rate_to_float,
-)
+from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume, sample_rate_to_float
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -53,40 +50,45 @@ TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
+SLIDING_WINDOW_COMPARISON_INTERVAL = timedelta(minutes=5)
 logger = logging.getLogger(__name__)
-
-
-def _compute_org_sliding_window_sample_rate(
-    org_id: int, volume: OrganizationDataVolume | None
-) -> float | None:
-    if volume is None:
-        return None
-    return compute_sliding_window_sample_rate(
-        org_id=org_id,
-        project_id=None,
-        total_root_count=volume.total,
-        window_size=FALLBACK_SLIDING_WINDOW_SIZE,
-    )
 
 
 def compare_organization_sliding_window_sample_rates(
     config: BaseDynamicSamplingConfiguration,
 ) -> None:
     """
-    Compute the org-level sliding-window sample rate two ways over the same 24h window --
+    Compute the org-level sliding-window sample rate two ways over the same 5m window --
     from EAP volume and from outcomes volume -- and log/emit both for comparison.
 
     EAP has ingestion delay that can make the rate spike to 1.0; outcomes is delay-free.
     This is observability only and does not change the sample rate the pipeline uses.
     """
     org_id = config.organization.id
-    window = timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
 
-    eap_volume = get_eap_organization_volume(config, time_interval=window)
-    outcomes_volume = get_outcomes_organization_volume(org_id, time_interval=window)
+    eap_volume = get_eap_organization_volume(
+        config, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
+    )
+    outcomes_volume = get_outcomes_organization_volume(
+        org_id, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
+    )
 
-    eap_sample_rate = _compute_org_sliding_window_sample_rate(org_id, eap_volume)
-    outcomes_sample_rate = _compute_org_sliding_window_sample_rate(org_id, outcomes_volume)
+    # Extrapolate the window volume to a monthly volume and map it to a quota tier. The
+    # 5m window is sub-hour, so we can't reuse the hours-based extrapolate_monthly_volume.
+    now = datetime.now(tz=timezone.utc)
+    _, days_in_month = monthrange(now.year, now.month)
+    windows_per_month = timedelta(days=days_in_month) / SLIDING_WINDOW_COMPARISON_INTERVAL
+
+    def sample_rate_for(volume: OrganizationDataVolume | None) -> float | None:
+        if volume is None:
+            return None
+        tier = quotas.backend.get_transaction_sampling_tier_for_volume(
+            org_id, int(volume.total * windows_per_month)
+        )
+        return float(tier[1]) if tier is not None else None
+
+    eap_sample_rate = sample_rate_for(eap_volume)
+    outcomes_sample_rate = sample_rate_for(outcomes_volume)
 
     relative_deviation = (
         get_relative_deviation(eap_sample_rate, outcomes_sample_rate)
