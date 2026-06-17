@@ -18,12 +18,23 @@ from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.models.authidentity import AuthIdentity
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.auth.helper import AuthHelper
 
-ERR_INVALID_STATE = "An error occurred while validating your request."
+# Shown only after an automatic retry has already failed, so it gives the user
+# something actionable instead of a generic validation error.
+ERR_INVALID_STATE_RETRY_FAILED = (
+    "We couldn't complete sign-in. This usually happens when sign-in was started "
+    "in another tab or your session expired. Please close other Sentry tabs and "
+    "try signing in again."
+)
+
+# Pipeline state key used to ensure we only auto-restart the flow once, so a
+# browser that genuinely cannot persist the session can't get stuck in a loop.
+STATE_RETRY_KEY = "state_mismatch_retried"
 
 
 def _get_redirect_url() -> str:
@@ -127,6 +138,37 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return orjson.loads(body)
 
+    def _handle_state_mismatch(self, pipeline: AuthHelper) -> HttpResponseBase:
+        # A state mismatch is almost always benign and transient rather than an
+        # attack: the user opened the login in multiple tabs (so the stored
+        # nonce was overwritten), hit the back button, or lingered on the IdP's
+        # consent screen until the session-store entry rotated. Re-initiating
+        # the login exchanges no token, so it fully preserves the CSRF
+        # protection the state parameter provides while letting these users
+        # recover instead of dead-ending on an opaque error page.
+        #
+        # We restart exactly once, guarded by pipeline state, so a browser that
+        # genuinely cannot persist the session can't get stuck in a redirect
+        # loop -- the second failure falls through to an actionable error.
+        if pipeline.fetch_state(STATE_RETRY_KEY):
+            return pipeline.error(ERR_INVALID_STATE_RETRY_FAILED)
+
+        pipeline.bind_state(STATE_RETRY_KEY, True)
+        # Rewind to the login step so the next request regenerates the nonce and
+        # bounces the user back through the IdP.
+        pipeline.state.step_index = 0
+
+        metrics.incr(
+            "sso.state_mismatch_auto_retry",
+            tags={"provider": pipeline.provider.key},
+            sample_rate=1.0,
+        )
+        logging.info(
+            "auth.sso.state_mismatch.auto_retry", extra={"provider": pipeline.provider.key}
+        )
+
+        return HttpResponseRedirect(_get_redirect_url())
+
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         error = request.GET.get("error")
         state = request.GET.get("state")
@@ -136,7 +178,7 @@ class OAuth2Callback(AuthView):
             return pipeline.error(error)
 
         if state != pipeline.fetch_state("state"):
-            return pipeline.error(ERR_INVALID_STATE)
+            return self._handle_state_mismatch(pipeline)
 
         if code is None:
             return pipeline.error("no code was provided")

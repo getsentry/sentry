@@ -198,12 +198,41 @@ class AuthOAuth2Test(AuthProviderTestCase):
         state = self.initiate_oauth_flow()
         self.initiate_callback(state, auth_data, has_2fa=True)
 
-    def test_state_mismatch(self) -> None:
-        auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
-
+    def test_state_mismatch_auto_retries(self) -> None:
+        # A single state mismatch (stale tab, expired session, back button) should
+        # transparently restart the SSO flow rather than dead-ending on an error.
         self.initiate_oauth_flow()
-        auth_resp = self.initiate_callback("bad", auth_data, expect_success=False, follow=True)
 
+        query = urlencode({"code": "1234", "state": "bad"})
+        resp = self.client.get(f"{self.sso_path}?{query}")
+
+        assert resp.status_code == 302
+        assert resp["Location"] == "http://testserver/auth/sso/"
+
+        # Following the restart re-initiates the flow and bounces back to the IdP.
+        resp = self.client.get(resp["Location"])
+        assert resp.status_code == 302
+        assert resp["Location"].startswith("http://example.com/authorize_url")
+
+    def test_state_mismatch_retry_exhausted(self) -> None:
+        # If the retry also fails, the user is shown a clear error instead of
+        # being restarted again (which would otherwise be an infinite loop).
+        auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
+        self.initiate_oauth_flow()
+
+        # First mismatch -> auto restart.
+        query = urlencode({"code": "1234", "state": "bad"})
+        resp = self.client.get(f"{self.sso_path}?{query}")
+        assert resp.status_code == 302
+        assert resp["Location"] == "http://testserver/auth/sso/"
+
+        # The restart re-initiates the flow (new nonce -> IdP).
+        resp = self.client.get(resp["Location"])
+        assert resp.status_code == 302
+        assert resp["Location"].startswith("http://example.com/authorize_url")
+
+        # A second mismatch is no longer retried: clear error, never authenticated.
+        auth_resp = self.initiate_callback("bad", auth_data, expect_success=False, follow=True)
         messages = list(auth_resp.context["messages"])
         assert len(messages) == 1
         assert str(messages[0]).startswith("Authentication error")
@@ -255,10 +284,10 @@ class AuthOAuth2Test(AuthProviderTestCase):
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
         urlopen.return_value = MockResponse(headers, json.dumps(auth_data))
 
+        # A state with the wrong provider key is a state mismatch, so the first
+        # attempt auto-restarts the flow rather than authenticating the user.
         query = urlencode({"code": "1234", "state": wrong_state})
-        auth_resp = self.client.get(f"{self.sso_path}?{query}", follow=True)
+        auth_resp = self.client.get(f"{self.sso_path}?{query}")
 
-        # Should fail with state mismatch error
-        messages = list(auth_resp.context["messages"])
-        assert len(messages) == 1
-        assert str(messages[0]).startswith("Authentication error")
+        assert auth_resp.status_code == 302
+        assert auth_resp["Location"] == "http://testserver/auth/sso/"
