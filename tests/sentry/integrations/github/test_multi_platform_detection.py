@@ -39,8 +39,6 @@ class TestBuildTreeIndex:
         ]
         index = _build_tree_index(entries)
         assert index.dirs_full_paths_by_basename["Assets"] == {"Assets", "myproject/Assets"}
-        # Fast basename set also populated
-        assert "Assets" in index.dirs
 
     def test_full_repo_size_bytes_includes_ignored_blobs(self) -> None:
         entries = [
@@ -67,13 +65,14 @@ class TestBuildTreeIndex:
         index = _build_tree_index(entries)
         assert len(index.dirs_full_paths_by_basename) == 0
 
-    def test_files_property_returns_basenames(self) -> None:
+    def test_files_indexed_by_basename_across_subdirs(self) -> None:
         entries = [
             {"path": "fe/next.config.js", "type": "blob", "size": 100},
             {"path": "be/manage.py", "type": "blob", "size": 200},
         ]
         index = _build_tree_index(entries)
-        assert index.files == {"next.config.js", "manage.py"}
+        assert index.files_full_paths_by_basename["next.config.js"] == {"fe/next.config.js"}
+        assert index.files_full_paths_by_basename["manage.py"] == {"be/manage.py"}
 
     def test_root_level_entries_indexed(self) -> None:
         entries: list[dict[str, Any]] = [
