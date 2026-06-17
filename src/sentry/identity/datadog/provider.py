@@ -7,6 +7,7 @@ import orjson
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.base import Provider
+from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
@@ -61,7 +62,7 @@ def get_user_info(access_token: str, site: str) -> dict[str, Any]:
         raise IdentityNotValid("MCP whoami returned an unexpected response") from e
 
 
-class DatadogIdentityProvider(Provider):
+class DatadogIdentityProvider(McpIdentityProvider, Provider):
     key = IntegrationProviderSlug.DATADOG
     name = "Datadog"
 
