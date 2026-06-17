@@ -9,7 +9,7 @@ from ..dsl import (
     get_cell_for_organization,
     get_cell_from_dsn,
 )
-from ..proxy import ProxyLatencyPipe, proxy_cell_request, proxy_control_request
+from ..proxy import ProxyLatencyPipe, ProxyTimeoutPipe, proxy_cell_request, proxy_control_request
 from ..utils import abort_with_json
 
 proxy = app.module(__name__, "proxy")
@@ -29,13 +29,15 @@ proxy.pipeline = [ProxyLatencyPipe()]
 
 
 # Common cell from org id/slug code
-async def proxy_cell_from_org(db_ctx: Any, org: str, **kwargs: Any) -> Any:
+async def proxy_cell_from_org(
+    db_ctx: Any, org: str, timeout: float | None = None, **kwargs: Any
+) -> Any:
     try:
         async with db_ctx.acquire() as db:
             cell = await get_cell_for_organization(db, org)
     except CellResolutionError:
         abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
-    return await proxy_cell_request(cell, request)
+    return await proxy_cell_request(cell, request, timeout)
 
 
 # NOTE: this is defined before `proxy_control_from_org` since coding-agents is
@@ -76,6 +78,25 @@ proxy.route(
 )
 async def proxy_control_from_org(**kwargs: Any) -> Any:
     return await proxy_control_request(request)
+
+
+# Route to cells based on org id/slug with custom timeouts
+proxy.route(
+    [
+        "/api/0/organizations/<str:org>/<str:p1>/files/dsyms",
+        "/api/0/organizations/<str:org>/<str:p1>/files/installablepreprodartifact/<str:p2>",
+        "/api/0/organizations/<str:org>/<str:p1>/files/preprodartifacts/<str:p2>",
+        "/api/0/organizations/<str:org>/<str:p1>/releases/<str:p2>/files",
+        "/api/0/organizations/<str:org>/chunk-upload",
+        "/api/0/organizations/<str:org>/objectstore(/<any:subp>)?",
+        "/api/0/organizations/<str:org>/preprodartifacts/<str:p1>/size-analysis",
+        "/api/0/organizations/<str:org>/preprodartifacts/snapshots/<str:p1>/archive",
+        "/api/0/organizations/<str:org>/releases/<str:p1>/files",
+    ],
+    methods=["get", "post", "put", "patch", "delete", "head", "options"],
+    pipeline=[db.pipe_ctx, ProxyTimeoutPipe(90.0)],
+    name="proxy_cell_from_org_timeout_90",
+)(proxy_cell_from_org)
 
 
 # Route to cells based on org id/slug
