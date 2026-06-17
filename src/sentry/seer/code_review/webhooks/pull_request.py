@@ -18,6 +18,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
 
+from ..contributor_seats import increment_contributor_action
 from ..metrics import (
     CodeReviewErrorType,
     WebhookFilteredReason,
@@ -25,7 +26,11 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
+from ..utils import (
+    _get_target_commit_sha,
+    delete_existing_reactions_and_add_reaction,
+    get_pr_author_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +138,21 @@ def handle_pull_request_event(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
+
+    # Increment contributor's seat-eligible action now that the PR has cleared
+    # the code-review preflight check. The contributor is seeded upstream in the
+    # GitHub PR webhook; here we only increment so billing reflects PRs that are
+    # actually eligible for review rather than every opened PR.
+    if action == PullRequestAction.OPENED and integration is not None:
+        author_id = get_pr_author_id(event)
+        if author_id is not None:
+            increment_contributor_action(
+                organization=organization,
+                repo=repo,
+                integration_id=integration.id,
+                user_id=author_id,
+                provider="github",
+            )
 
     action_requires_trigger_permission = ACTIONS_REQUIRING_TRIGGER_CHECK.get(action)
     if action_requires_trigger_permission is not None and (

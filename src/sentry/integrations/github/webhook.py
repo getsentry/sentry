@@ -73,7 +73,7 @@ from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
-from sentry.seer.code_review.contributor_seats import track_contributor_seat
+from sentry.seer.code_review.contributor_seats import seed_contributor
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
 )
@@ -1105,13 +1105,11 @@ class PullRequestEventWebhook(GitHubWebhook):
                     },
                 )
 
-                track_contributor_seat(
+                seed_contributor(
                     organization=organization,
-                    repo=repo,
                     integration_id=integration.id,
                     user_id=user["id"],
                     user_username=user["login"],
-                    provider="github",
                 )
 
         except IntegrityError:

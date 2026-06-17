@@ -83,26 +83,47 @@ def should_increment_contributor_seat(
     )
 
 
-def track_contributor_seat(
+def seed_contributor(
     *,
     organization: Organization,
-    repo: Repository,
     integration_id: int,
     user_id: str | int,
     user_username: str,
-    provider: str,
-) -> None:
-    """
-    Track a contributor for seat billing. Creates or retrieves the contributor
-    record, checks eligibility, atomically increments the action count, and
-    queues seat assignment when the activation threshold is reached.
-    """
+) -> OrganizationContributors:
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration_id,
         external_identifier=str(user_id),
         defaults={"alias": user_username},
     )
+    return contributor
+
+
+def increment_contributor_action(
+    *,
+    organization: Organization,
+    repo: Repository,
+    integration_id: int,
+    user_id: str | int,
+    provider: str,
+) -> None:
+    try:
+        contributor = OrganizationContributors.objects.get(
+            organization_id=organization.id,
+            integration_id=integration_id,
+            external_identifier=str(user_id),
+        )
+    except OrganizationContributors.DoesNotExist:
+        logger.warning(
+            "scm.webhook.organization_contributor.not_seeded",
+            extra={
+                "provider": provider,
+                "organization_id": organization.id,
+                "integration_id": integration_id,
+                "external_identifier": str(user_id),
+            },
+        )
+        return
 
     if not should_increment_contributor_seat(organization, repo, contributor):
         return
@@ -136,3 +157,32 @@ def track_contributor_seat(
         and locked_contributor.num_actions >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
     ):
         assign_seat_to_organization_contributor.delay(locked_contributor.id)
+
+
+def track_contributor_seat(
+    *,
+    organization: Organization,
+    repo: Repository,
+    integration_id: int,
+    user_id: str | int,
+    user_username: str,
+    provider: str,
+) -> None:
+    """
+    Track a contributor for seat billing. Creates or retrieves the contributor
+    record, checks eligibility, atomically increments the action count, and
+    queues seat assignment when the activation threshold is reached.
+    """
+    seed_contributor(
+        organization=organization,
+        integration_id=integration_id,
+        user_id=user_id,
+        user_username=user_username,
+    )
+    increment_contributor_action(
+        organization=organization,
+        repo=repo,
+        integration_id=integration_id,
+        user_id=user_id,
+        provider=provider,
+    )
