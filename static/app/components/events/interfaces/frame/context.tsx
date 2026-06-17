@@ -248,6 +248,7 @@ export function Context({
           registers={registers!}
           meta={registersMeta}
           deviceArch={event.contexts?.device?.arch}
+          collapsible={hasContextVars}
         />
       )}
 

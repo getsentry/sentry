@@ -1,7 +1,8 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -11,13 +12,16 @@ import {FrameRegisterValue} from './value';
 
 type Props = {
   registers: NonNullable<StacktraceType['registers']>;
+  collapsible?: boolean;
   deviceArch?: string;
   meta?: Record<any, any>;
 };
 
 const CLIPPED_HEIGHT = 250;
 
-export function FrameRegisters({registers, deviceArch, meta}: Props) {
+export function FrameRegisters({registers, deviceArch, meta, collapsible}: Props) {
+  const [expanded, setExpanded] = useState(!collapsible);
+
   const sortedRegisters = useMemo(
     () => getSortedRegisters(registers, deviceArch),
     [registers, deviceArch]
@@ -26,20 +30,31 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
   return (
     <Wrapper>
       <StyledClippedBox clipHeight={CLIPPED_HEIGHT}>
-        <RegistersTitle>{t('Registers')}</RegistersTitle>
-        <Registers>
-          {sortedRegisters.map(([name, value]) => {
-            if (!defined(value)) {
-              return null;
-            }
-            return (
-              <Register key={name}>
-                {name}
-                <FrameRegisterValue value={value} meta={meta?.[name]?.['']} />
-              </Register>
-            );
-          })}
-        </Registers>
+        <RegistersTitle
+          as={collapsible ? 'button' : 'div'}
+          clickable={collapsible}
+          onClick={collapsible ? () => setExpanded(prev => !prev) : undefined}
+        >
+          {collapsible && (
+            <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
+          )}
+          {t('Registers')}
+        </RegistersTitle>
+        {expanded && (
+          <Registers>
+            {sortedRegisters.map(([name, value]) => {
+              if (!defined(value)) {
+                return null;
+              }
+              return (
+                <Register key={name}>
+                  {name}
+                  <FrameRegisterValue value={value} meta={meta?.[name]?.['']} />
+                </Register>
+              );
+            })}
+          </Registers>
+        )}
       </StyledClippedBox>
     </Wrapper>
   );
@@ -54,9 +69,20 @@ const Wrapper = styled('div')`
   }
 `;
 
-const RegistersTitle = styled('div')`
-  width: 80px;
+const RegistersTitle = styled('div')<{clickable?: boolean}>`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
   padding: ${p => p.theme.space.md} 0;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: ${p => (p.clickable ? 'pointer' : 'default')};
+  color: ${p => (p.clickable ? p.theme.tokens.content.secondary : 'inherit')};
+
+  &:hover {
+    color: ${p => (p.clickable ? p.theme.tokens.content.primary : 'inherit')};
+  }
 `;
 
 const Registers = styled('div')`
