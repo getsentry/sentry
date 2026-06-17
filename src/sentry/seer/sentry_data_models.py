@@ -514,7 +514,10 @@ class BulkProjectPreferencesResponse(BaseModel):
     __root__: dict[str, dict[str, Any]]
 
     def dict(self, **kwargs: Any) -> Any:
-        return dict(self.__root__)
+        # Forward kwargs through `super().dict()` (so options like
+        # `exclude_unset` apply to any future nested-model arms) and unwrap
+        # the `__root__` envelope to the bare map seer expects on the wire.
+        return super().dict(**kwargs)["__root__"]
 
     # Dict-like proxy so callers can treat the response like the bare map it
     # serializes to.
