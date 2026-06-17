@@ -135,8 +135,6 @@ def handle_attribution(
     if pr is None:
         return
 
-    if action == "opened":
-        _write_author_attribution(pr, github_user)
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     if action == "opened" and pull_request is not None and has_seer_access(organization):
@@ -602,20 +600,6 @@ def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType 
     return None
 
 
-def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> None:
-    user_id = github_user.get("id")
-    if user_id is None:
-        return
-    signal_type = _detect_app_signal(user_id)
-    if signal_type is None:
-        return
-    record_attribution_signal(
-        pull_request=pr,
-        signal_type=signal_type,
-        source=PullRequestAttributionSource.WEBHOOK_DATA,
-    )
-
-
 def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, Any]) -> None:
     """
     Filter PRs that could have been delegated by Autofix to external coding agents,
@@ -627,6 +611,15 @@ def _detect_delegated_agent(pr: PullRequest, webhook_pull_request: Mapping[str, 
     # Our candidates are PRs from delegated agents
     # That explicitly address a Sentry issue
     if provider_hint is not None and resolved_group_ids(pr):
+        # I suspect that for Claude in particular the bot that creates the Pr is actually Sentry
+        # This is just to test that theory
+        github_login = (webhook_pull_request or {}).get("user", {}).get("id")
+        if _detect_app_signal(github_login):
+            sentry_sdk.metrics.count(
+                "pr_metrics.delegated_agent.pr_created_by_sentry_bot",
+                1,
+                attributes={"provider_hint": provider_hint},
+            )
         # TODO: Fire-and-forget request to Seer when the match endpoint exists.
         # We will send: provider_hint, github_login, head_ref
         sentry_sdk.metrics.count(

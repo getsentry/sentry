@@ -74,45 +74,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
             repo=self.repo,
         )
 
-    # --- App ID attribution ---
-
-    def test_seer_app_user_emits_sentry_app_attribution(self) -> None:
-        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-
-        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
-        assert attr.signal_type == PullRequestAttributionSignalType.SENTRY_APP
-        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
-        assert attr.is_valid is True
-        assert attr.signal_details is None
-
-    def test_sentry_app_user_emits_sentry_app_attribution(self) -> None:
-        self._call(user_id=settings.SENTRY_GITHUB_APP_USER_ID)
-
-        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
-        assert attr.signal_type == PullRequestAttributionSignalType.SENTRY_APP
-        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
-        assert attr.is_valid is True
-        assert attr.signal_details is None
-
-    def test_unknown_user_no_attribution_created(self) -> None:
-        self._call(user_id=99999)
-
-        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
-
-    def test_app_attribution_only_written_on_opened(self) -> None:
-        # reopened and edited should not create a second app attribution row
-        self._call(action="reopened", user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-        self._call(
-            action="edited",
-            user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID,
-            changes={"body": {"from": "old body"}},
-        )
-
-        assert not PullRequestAttribution.objects.filter(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
-        ).exists()
-
     # --- Action gate ---
 
     def test_irrelevant_actions_skipped(self) -> None:
@@ -128,23 +89,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
             self._call(action=action, user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
-
-    # --- Idempotency and redelivery ---
-
-    def test_idempotent_on_repeated_webhooks(self) -> None:
-        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-
-        assert PullRequestAttribution.objects.filter(pull_request=self.pr).count() == 1
-
-    def test_redelivery_revives_invalidated_signal(self) -> None:
-        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-        PullRequestAttribution.objects.filter(pull_request=self.pr).update(is_valid=False)
-
-        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-
-        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
-        assert attr.is_valid is True
 
     # --- MCP attribution ---
 
@@ -192,29 +136,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
             self._call(user_id=999)
 
         assert not PullRequestAttribution.objects.filter(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.MCP,
-        ).exists()
-
-    def test_mcp_and_app_attribution_coexist(self) -> None:
-        group = self.create_group(project=self.project)
-        GroupLink.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-            linked_id=self.pr.id,
-        )
-        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
-
-        with self.feature("organizations:mcp-issue-view-attribution"):
-            self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
-
-        assert PullRequestAttribution.objects.filter(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
-        ).exists()
-        assert PullRequestAttribution.objects.filter(
             pull_request=self.pr,
             signal_type=PullRequestAttributionSignalType.MCP,
         ).exists()
