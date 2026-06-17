@@ -94,6 +94,33 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_action_filter_with_string_encoded_id(self) -> None:
+        dcg = DataConditionGroup.objects.create(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        WorkflowDataConditionGroup.objects.create(
+            condition_group=dcg,
+            workflow=self.workflow,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "id": str(dcg.id),
+                    "logicType": "all",
+                    "conditions": [],
+                    "actions": [],
+                }
+            ],
+        }
+
+        self.get_success_response(self.organization.slug, self.workflow.id, raw_data=data)
+
+        dcg.refresh_from_db()
+        assert dcg.logic_type == DataConditionGroup.Type.ALL
+
     def test_update__assigned_to_foreign_team(self) -> None:
         other_org = self.create_organization()
         other_team = self.create_team(organization=other_org)

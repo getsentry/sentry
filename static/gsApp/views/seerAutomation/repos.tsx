@@ -6,16 +6,16 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoAccess} from 'sentry/components/noAccess';
+import {SeerRepoTable} from 'sentry/components/seer/repoTable/seerRepoTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {t, tct} from 'sentry/locale';
+import {orgHasCodeReviewFeature} from 'sentry/utils/seer/orgHasCodeReviewFeature';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {SeerRepoTable} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTable';
 import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
-import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 
 export default function SeerAutomationRepos() {
   const organization = useOrganization();
