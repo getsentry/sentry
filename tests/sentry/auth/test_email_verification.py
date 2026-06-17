@@ -6,7 +6,6 @@ from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 
 from sentry.auth.email_verification import (
-    _format_expiry,
     send_signup_verification_email,
     verify_signup_link,
 )
