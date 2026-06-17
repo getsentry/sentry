@@ -139,8 +139,7 @@ def handle_pull_request_event(
         )
         return
 
-    # Increment contributor actions now that the PR has cleared
-    # the code-review preflight check.
+    # Increment contributor actions now that the PR has cleared the code-review preflight check.
     if action == PullRequestAction.OPENED and integration is not None:
         author_id = get_pr_author_id(event)
         if author_id is not None:
