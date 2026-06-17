@@ -194,6 +194,9 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     many=True,
     type=str,
     enum=["context"],
+    # Internal-only for now: gated behind the data-browsing-attribute-context
+    # feature, so exclude it from the public OpenAPI spec.
+    exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include the sentry "
         "conventions metadata (brief, examples, deprecation, etc.) for "
