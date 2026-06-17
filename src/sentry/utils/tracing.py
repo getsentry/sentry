@@ -7,7 +7,7 @@ from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 from sentry_sdk.tracing_utils import has_span_streaming_enabled
 
 if TYPE_CHECKING:
-    from sentry_sdk.tracing import TransactionKwargs
+    pass
 
 
 def start_span(
@@ -55,13 +55,6 @@ def start_span(
         )
 
     if transaction:
-        kwargs: TransactionKwargs = {"name": name}
-        if op is not None:
-            kwargs["op"] = op
-
-        if sampled is not None:
-            kwargs["sampled"] = sampled
-
         return sentry_sdk.start_transaction(
             name=name,
             op=op,
