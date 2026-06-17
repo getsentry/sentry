@@ -6754,6 +6754,55 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('keeps async suggestions populated while a refetch is in flight', async () => {
+      const pendingRequest = makeDeferred<typeof asyncTags>();
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+
+      // The next debounced query never resolves, leaving a refetch in flight.
+      mockGetTagKeys.mockReturnValue(pendingRequest.promise);
+      await userEvent.keyboard('_tag');
+
+      // Previously-loaded suggestions remain visible rather than disappearing
+      // while the new fetch is pending.
+      await waitFor(() => {
+        expect(mockGetTagKeys).toHaveBeenCalledWith('async_tag');
+      });
+      expect(screen.getByRole('option', {name: 'async_tag_one'})).toBeInTheDocument();
+    });
+
+    it('clears async-only keys when a refetch resolves to an empty result', async () => {
+      const mockGetTagKeys = jest.fn((searchQuery: string) =>
+        Promise.resolve(searchQuery.includes('empty') ? [] : asyncTags)
+      );
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+
+      // Switching to a query that resolves to an empty result should drop the
+      // previously shown async-only key once the active query settles.
+      await userEvent.clear(getLastInput());
+      await userEvent.keyboard('empty');
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('option', {name: 'async_tag_one'})
+        ).not.toBeInTheDocument();
+      });
+    });
+
     it('normalizes typed pretty tag keys using loaded async explicit keys', async () => {
       const mockGetTagKeys = jest
         .fn()

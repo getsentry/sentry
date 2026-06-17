@@ -1,5 +1,5 @@
 import {useMemo, type ReactNode} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import type Fuse from 'fuse.js';
 
 import {
@@ -183,7 +183,7 @@ export function useSortedFilterKeyItems({
   const shouldFetchAsync = !!getTagKeys;
   const debouncedFilterValue = useDebouncedValue(filterValue);
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
-  const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
+  const {data: asyncKeys, isFetching: isQueryFetching} = useQuery({
     queryKey: [
       'search-query-builder-tag-keys',
       filterKeyRegistryQueryKey,
@@ -193,10 +193,13 @@ export function useSortedFilterKeyItems({
       const searchQuery = ctx.queryKey[2];
       return getTagKeys!(typeof searchQuery === 'string' ? searchQuery : '');
     },
+    // Retain previously-fetched keys while a new debounced query is in flight so
+    // suggestions stay populated rather than disappearing mid-type.
+    placeholderData: keepPreviousData,
     enabled: shouldFetchAsync,
   });
 
-  const isLoading = shouldFetchAsync && isQueryLoading;
+  const isLoading = shouldFetchAsync && isQueryFetching;
 
   // Set of Tag.key values from static filterKeys, used consistently for deduplication.
   const staticKeyValues = useMemo(
