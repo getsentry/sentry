@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -59,11 +60,16 @@ function mockWideScreen(matches: boolean) {
 }
 
 function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
-  const {openSeerExplorer} = useSeerExplorerContext();
+  const {openSeerExplorer, toggleSeerExplorer} = useSeerExplorerContext();
   return (
-    <button type="button" onClick={() => openSeerExplorer(options)}>
-      open-seer
-    </button>
+    <Fragment>
+      <button type="button" onClick={() => openSeerExplorer(options)}>
+        open-seer
+      </button>
+      <button type="button" onClick={() => toggleSeerExplorer()}>
+        toggle-seer
+      </button>
+    </Fragment>
   );
 }
 
@@ -227,6 +233,27 @@ describe('SeerExplorerSidebarLayout', () => {
         expect.any(Number)
       )
     );
+  });
+
+  it('does not resubmit a command-palette query after close and reopen', async () => {
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar, {initialQuery: 'find the bug'});
+
+    // First open auto-submits the forwarded query exactly once.
+    await userEvent.click(screen.getByText('open-seer'));
+    await screen.findByTestId('seer-explorer-input');
+    await waitFor(() => expect(defaultHookReturn.sendMessage).toHaveBeenCalledTimes(1));
+
+    // Close, then reopen via toggle (which forwards no query). The content
+    // remounts with a fresh submit guard, so a lingering query would resubmit.
+    await userEvent.click(screen.getByText('toggle-seer'));
+    await waitFor(() =>
+      expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByText('toggle-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+
+    expect(defaultHookReturn.sendMessage).toHaveBeenCalledTimes(1);
   });
 
   it('closes the sidebar from the close button', async () => {

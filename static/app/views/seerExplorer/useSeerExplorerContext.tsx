@@ -275,6 +275,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     }
     if (isSidebarMode) {
       setIsSidebarOpen(false);
+      // Tie the forwarded query to a single open lifecycle so a remount on
+      // reopen (toggle / re-dock) doesn't auto-submit it again.
+      setSidebarInitialQuery(undefined);
       setLastViewedAt(Date.now());
       return;
     }
@@ -290,6 +293,9 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     if (isSidebarMode) {
       if (isSidebarOpen) {
         setLastViewedAt(Date.now());
+        // Drop any forwarded query on close so reopening via toggle (which
+        // forwards none) doesn't auto-submit a stale value.
+        setSidebarInitialQuery(undefined);
       }
       setIsSidebarOpen(!isSidebarOpen);
       return;
