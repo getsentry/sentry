@@ -14,6 +14,7 @@ import type {
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
@@ -31,6 +32,15 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import WidgetCardChart from './chart';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
+
+// Resizing a widget (e.g. while editing the dashboard) changes its measured
+// dimensions on every frame. Debounce them heavily so heat maps — which size
+// their request from those dimensions — refetch once the resize settles rather
+// than firing a request per pixel.
+const HEATMAP_RESIZE_DEBOUNCE_MS = 500;
+// `leading: true` keeps the first measurement fast; mid-resize churn collapses
+// into a single trailing update once the drag settles.
+const HEATMAP_RESIZE_DEBOUNCE_OPTIONS = {leading: true};
 
 type Props = {
   selection: PageFilters;
@@ -112,10 +122,22 @@ export function WidgetCardChartContainer({
   const {width: chartAreaWidth, height: chartAreaHeight} = useDimensions({
     elementRef: chartAreaRef,
   });
+  const debouncedChartAreaWidth = useDebouncedValue(
+    chartAreaWidth,
+    HEATMAP_RESIZE_DEBOUNCE_MS,
+    HEATMAP_RESIZE_DEBOUNCE_OPTIONS
+  );
+  const debouncedChartAreaHeight = useDebouncedValue(
+    chartAreaHeight,
+    HEATMAP_RESIZE_DEBOUNCE_MS,
+    HEATMAP_RESIZE_DEBOUNCE_OPTIONS
+  );
   const heatmapInterval = isHeatmap
-    ? getHeatmapXAxisBucketInterval(selection, chartAreaWidth)
+    ? getHeatmapXAxisBucketInterval(selection, debouncedChartAreaWidth)
     : undefined;
-  const yBuckets = isHeatmap ? getHeatmapYAxisBucketCount(chartAreaHeight) : undefined;
+  const yBuckets = isHeatmap
+    ? getHeatmapYAxisBucketCount(debouncedChartAreaHeight)
+    : undefined;
 
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
