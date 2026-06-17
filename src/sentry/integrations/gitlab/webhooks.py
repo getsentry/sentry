@@ -90,6 +90,7 @@ def _extract_payload_repo_info(request) -> dict[str, Any]:
         "webhook.repo.path": project.get("path_with_namespace"),
         "webhook.repo.web_url": project.get("web_url"),
         "webhook.repo.project_id": project.get("id"),
+        "webhook.object_kind": payload.get("object_kind"),
     }
     # Drop missing keys so the log attributes stay clean.
     return {k: v for k, v in info.items() if v is not None}
