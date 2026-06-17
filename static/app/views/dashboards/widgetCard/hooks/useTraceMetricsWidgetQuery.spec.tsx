@@ -370,6 +370,44 @@ describe('useTraceMetricsHeatmapQuery', () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
+  it('reports an error when the aggregate does not resolve to a metric', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-heatmap/',
+      body: heatmapResponse,
+    });
+
+    const misconfiguredWidget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      queries: [
+        {
+          name: '',
+          fields: ['sum(value)'],
+          aggregates: ['sum(value)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useTraceMetricsHeatmapQuery({
+        widget: misconfiguredWidget,
+        organization,
+        pageFilters,
+        enabled: true,
+        widgetInterval: '1h',
+        yBuckets: 10,
+      })
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(false);
+    expect(result.current.errorMessage).toBe(
+      'This widget is missing a metric to visualize.'
+    );
+  });
+
   it('fetches the events-heatmap endpoint with the selected metric', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-heatmap/',

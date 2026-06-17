@@ -6,6 +6,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 
+import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -502,6 +503,17 @@ export function useTraceMetricsHeatmapQuery(
 
   if (error) {
     return {loading: false, errorMessage: error.message, rawData: EMPTY_ARRAY};
+  }
+
+  // A heat map whose selected aggregate doesn't resolve to a metric is
+  // misconfigured (e.g. a saved widget whose metric is gone, or one saved
+  // without picking a metric). Surface an error instead of spinning forever.
+  if (aggregate && !traceMetric) {
+    return {
+      loading: false,
+      errorMessage: t('This widget is missing a metric to visualize.'),
+      rawData: EMPTY_ARRAY,
+    };
   }
 
   // No data yet: the request is in flight, or the chart hasn't been measured
