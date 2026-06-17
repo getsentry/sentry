@@ -41,8 +41,8 @@ class Migration(CheckedMigration):
                 ),
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
-                ("attribute_name", models.CharField(max_length=200)),
-                ("attribute_value", models.CharField(max_length=200)),
+                ("attribute_name", models.CharField()),
+                ("attribute_value", models.CharField()),
                 (
                     "attribute_type",
                     sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),

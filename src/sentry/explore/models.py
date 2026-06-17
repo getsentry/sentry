@@ -426,8 +426,8 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project", null=True)
 
     # The attribute and value this context is for, e.g. "metric.name" / "my.counter".
-    attribute_name = models.CharField(max_length=200)
-    attribute_value = models.CharField(max_length=200)
+    attribute_name = models.CharField()
+    attribute_value = models.CharField()
     # For metrics this is the metric type (counter / gauge / distribution).
     attribute_type = BoundedPositiveIntegerField(choices=TraceMetricTypes.as_choices())
     item_type = BoundedPositiveIntegerField(choices=TraceItemTypes.as_choices())
