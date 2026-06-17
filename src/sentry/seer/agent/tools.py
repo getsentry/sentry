@@ -90,6 +90,7 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
+from sentry.utils.committers import get_serialized_committers
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
@@ -1462,6 +1463,67 @@ def get_issue_details(
         project_id=group.project_id,
         project_slug=group.project.slug,
     )
+
+
+def get_issue_committers(
+    *,
+    organization_id: int,
+    issue_id: str,
+    project_slug: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Get the suspect committers for an issue from Sentry's ingested commit data.
+
+    This reads precomputed suspect commits (``GroupOwner`` of type SUSPECT_COMMIT)
+    and their associated ``Commit`` / ``CommitAuthor`` records. It does NOT call any
+    SCM provider (GitHub, etc.), so it works without SCM credentials and reflects the
+    same "suspect commit" signal shown in the Sentry UI.
+
+    Args:
+        organization_id: The ID of the organization.
+        issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123).
+        project_slug: The slug of the project (optional, used to improve numeric ID lookups).
+
+    Returns:
+        Dict with ``committers`` (each entry has ``author`` {name, email, ...} and the
+        ``commits`` blamed for the failure), plus ``project_id``/``project_slug``.
+        ``committers`` is an empty list when Sentry has no suspect-commit data for the
+        issue. Returns None if the project/issue cannot be resolved.
+    """
+    organization = Organization.objects.get(id=organization_id)
+
+    project_ids = list(
+        Project.objects.filter(
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
+    )
+    if not project_ids:
+        return None
+
+    group: Group
+    if issue_id.isdigit():
+        group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
+    else:
+        group = Group.objects.by_qualified_short_id(
+            organization_id, issue_id, project_ids=project_ids
+        )
+
+    try:
+        committers = get_serialized_committers(group.project, group.id)
+    except Exception:
+        logger.exception(
+            "get_issue_committers: Failed to get suspect committers",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        committers = []
+
+    return {
+        "committers": committers,
+        "project_id": group.project_id,
+        "project_slug": group.project.slug,
+    }
 
 
 def get_event_details(

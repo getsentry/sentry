@@ -14,6 +14,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
@@ -32,6 +33,7 @@ from sentry.seer.agent.tools import (
     get_event_details,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
+    get_issue_committers,
     get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
@@ -1999,6 +2001,92 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert isinstance(group, Group)
 
         result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            project_slug="nonexistent-project",
+        )
+
+        assert result is None
+
+
+class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
+    """Tests for get_issue_committers — suspect commit authors from ingested commit data."""
+
+    def _make_error_event(self):
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        return self.store_event(data=data, project_id=self.project.id)
+
+    def _add_suspect_commit(self, group):
+        repo = self.create_repo(project=self.project, name="getsentry/sentry")
+        author = self.create_commit_author(organization_id=self.organization.id, user=self.user)
+        commit = self.create_commit(repo=repo, author=author, message="fix: the failing function")
+        GroupOwner.objects.create(
+            group_id=group.id,
+            project=self.project,
+            organization_id=self.organization.id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
+        )
+        return commit
+
+    def test_returns_suspect_committers(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        commit = self._add_suspect_commit(group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert isinstance(result, dict)
+        assert result["project_id"] == group.project_id
+        assert result["project_slug"] == group.project.slug
+        committers = result["committers"]
+        assert len(committers) == 1
+        assert committers[0]["author"]["email"] == self.user.email
+        assert committers[0]["commits"][0]["id"] == commit.key
+        assert committers[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
+
+    def test_resolves_by_qualified_short_id(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+        self._add_suspect_commit(group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=group.qualified_short_id,
+        )
+
+        assert isinstance(result, dict)
+        assert len(result["committers"]) == 1
+
+    def test_no_suspect_commits_returns_empty_list(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        result = get_issue_committers(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert isinstance(result, dict)
+        assert result["committers"] == []
+
+    def test_returns_none_when_project_slug_does_not_match(self):
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        result = get_issue_committers(
             organization_id=self.organization.id,
             issue_id=str(group.id),
             project_slug="nonexistent-project",
