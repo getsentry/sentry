@@ -27,6 +27,7 @@ import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {ToolTags} from 'sentry/views/explore/conversations/components/toolTags';
 import {
   useConversations,
@@ -96,6 +97,12 @@ function ConversationsTableInner() {
 
   const {data, isLoading, error, pageLinks, setCursor} = useConversations();
 
+  const showMissingMessagesAlert =
+    !isLoading &&
+    !error &&
+    data.length > 0 &&
+    data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
+
   const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
       organization,
@@ -138,6 +145,7 @@ function ConversationsTableInner() {
 
   return (
     <Fragment>
+      {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
       <Container>
         <GridEditable
           isLoading={isLoading}
