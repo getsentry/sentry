@@ -131,6 +131,15 @@ ALWAYS_RUN_TESTS: set[str] = {
     # context is active.
     "tests/apigw/test_db.py",
     "tests/apigw/test_routing.py",
+    # Both of these tests check global codebase invariants via runtime discovery —
+    # the same reason the apigw tests above are always run. Coverage can't attribute
+    # them to individual source files because the discovery happens at startup,
+    # before per-test coverage contexts are active:
+    #   test_base.py: walks all endpoint subclasses to check for silo decorators
+    #   test_validate.py: walks the Django ORM registry (get_exportable_sentry_models)
+    #     to assign comparators — __relocation_scope__ changes on any model are invisible
+    "tests/sentry/silo/test_base.py",
+    "tests/sentry/backup/test_validate.py",
 }
 
 
