@@ -143,6 +143,7 @@ self_hosted_options_mapper = {
     "system.organization-url-template": "SENTRY_ORGANIZATION_URL_TEMPLATE",
     "system.region-api-url-template": "SENTRY_REGION_API_URL_TEMPLATE",
     "intercom.sentry-api-secret": "SENTRY_INTERCOM_API_SECRET",
+    "codecov.signing_secret": "SENTRY_CODECOV_SIGNING_SECRET",
     "relay.static_auth": "SENTRY_RELAY_STATIC_AUTH",
     "objectstore.config": "SENTRY_OBJECTSTORE_CONFIG",
     "viewer-context.enabled": "SENTRY_VIEWER_CONTEXT_ENABLED",
