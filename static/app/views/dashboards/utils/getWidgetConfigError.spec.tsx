@@ -56,4 +56,24 @@ describe('getWidgetConfigError', () => {
 
     expect(getWidgetConfigError(widget)).toBeUndefined();
   });
+
+  it('returns an error for heat map widgets whose aggregate has no metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      queries: [WidgetQueryFixture({aggregates: ['sum(value)']})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBeDefined();
+  });
+
+  it('returns undefined for heat map widgets with a resolvable metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      queries: [
+        WidgetQueryFixture({aggregates: ['count(value,test_metric,distribution,none)']}),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBeUndefined();
+  });
 });

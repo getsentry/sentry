@@ -370,7 +370,7 @@ describe('useTraceMetricsHeatmapQuery', () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
-  it('reports an error when the aggregate does not resolve to a metric', () => {
+  it('does not fetch when the aggregate does not resolve to a metric', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-heatmap/',
       body: heatmapResponse,
@@ -390,7 +390,7 @@ describe('useTraceMetricsHeatmapQuery', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(() =>
+    renderHookWithProviders(() =>
       useTraceMetricsHeatmapQuery({
         widget: misconfiguredWidget,
         organization,
@@ -401,11 +401,9 @@ describe('useTraceMetricsHeatmapQuery', () => {
       })
     );
 
+    // The config error (getWidgetConfigError) stops the widget from rendering,
+    // but the fetch-gate also keeps the request from firing without a metric.
     expect(mockRequest).not.toHaveBeenCalled();
-    expect(result.current.loading).toBe(false);
-    expect(result.current.errorMessage).toBe(
-      'This widget is missing a metric to visualize.'
-    );
   });
 
   it('fetches the events-heatmap endpoint with the selected metric', async () => {
