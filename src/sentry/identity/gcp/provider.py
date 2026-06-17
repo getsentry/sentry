@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import orjson
+from django.conf import settings
 
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
@@ -51,7 +52,7 @@ class GCPIdentityProvider(OAuth2Provider):
         return options.get("gcp.client-id")
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("gcp.client-secret")
+        return settings.SENTRY_GCP_CLIENT_SECRET
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [

@@ -4,10 +4,10 @@ from urllib.parse import urlencode
 
 import orjson
 import pytest
-from django.test import RequestFactory
+from django.conf import settings
+from django.test import RequestFactory, override_settings
 from django.utils.functional import cached_property
 
-from sentry import options
 from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.models.integration import Integration
@@ -23,7 +23,6 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
 
@@ -42,7 +41,7 @@ class SlackRequestTest(TestCase):
         }
         self.request.body = urlencode(self.request.data).encode("utf-8")
         self.request.META = set_signing_secret(
-            options.get("slack.signing-secret"), self.request.body
+            settings.SENTRY_SLACK_SIGNING_SECRET, self.request.body
         )
 
     @cached_property
@@ -89,7 +88,7 @@ class SlackRequestTest(TestCase):
             self.slack_request.validate()
         assert e.value.status == 400
 
-    @override_options({"slack.signing-secret": None})  # force token-auth
+    @override_settings(SENTRY_SLACK_SIGNING_SECRET=None)  # force token-auth
     def test_returns_401_on_invalid_token(self) -> None:
         self.request.data["token"] = "notthetoken"
 
@@ -112,7 +111,7 @@ class SlackRequestTest(TestCase):
             "api_app_id": "S1",
         }
         request.body = urlencode(self.request.data).encode("utf-8")
-        request.META = (options.get("slack.signing-secret"), self.request.body)
+        request.META = (settings.SENTRY_SLACK_SIGNING_SECRET, self.request.body)
 
         slack_request = SlackRequest(request)
         assert slack_request.team_id is None
@@ -142,7 +141,7 @@ class SlackEventRequestTest(TestCase):
         }
         self.request.body = urlencode(self.request.data).encode("utf-8")
         self.request.META = set_signing_secret(
-            options.get("slack.signing-secret"), self.request.body
+            settings.SENTRY_SLACK_SIGNING_SECRET, self.request.body
         )
 
     @cached_property
@@ -151,7 +150,7 @@ class SlackEventRequestTest(TestCase):
 
     def test_ignores_event_validation_on_challenge_request(self) -> None:
         self.request.data = {
-            "token": options.get("slack.verification-token"),
+            "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
             "challenge": "abc123",
             "type": "url_verification",
         }
@@ -162,7 +161,7 @@ class SlackEventRequestTest(TestCase):
 
     def test_is_challenge(self) -> None:
         self.request.data = {
-            "token": options.get("slack.verification-token"),
+            "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
             "challenge": "abc123",
             "type": "url_verification",
         }
@@ -186,7 +185,7 @@ class SlackEventRequestTest(TestCase):
 
     def test_signing_secret_bad(self) -> None:
         self.request.data = {
-            "token": options.get("slack.verification-token"),
+            "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
             "challenge": "abc123",
             "type": "url_verification",
         }
@@ -198,9 +197,9 @@ class SlackEventRequestTest(TestCase):
         assert e.value.status == 401
 
     def test_use_verification_token(self) -> None:
-        with override_options({"slack.signing-secret": None}):
+        with override_settings(SENTRY_SLACK_SIGNING_SECRET=None):
             self.request.data = {
-                "token": options.get("slack.verification-token"),
+                "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
                 "challenge": "abc123",
                 "type": "url_verification",
             }
@@ -536,14 +535,14 @@ class SlackActionRequestTest(TestCase):
                     "team": {"id": "T001"},
                     "channel": {"id": "1"},
                     "user": {"id": "2"},
-                    "token": options.get("slack.verification-token"),
+                    "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
                     "callback_id": '{"issue":"I1"}',
                 }
             ).decode()
         }
         self.request.body = urlencode(self.request.data).encode()
         self.request.META = set_signing_secret(
-            options.get("slack.signing-secret"), self.request.body
+            settings.SENTRY_SLACK_SIGNING_SECRET, self.request.body
         )
 
     @cached_property

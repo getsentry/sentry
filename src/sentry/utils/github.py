@@ -5,6 +5,7 @@ from typing import Any
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from django.conf import settings
 from pydantic import BaseModel
 from requests.exceptions import HTTPError
 
@@ -42,7 +43,7 @@ def verify_signature(payload: bytes, signature: str, key_id: str, subpath: str) 
         raise ValueError("Invalid payload, signature, or key_id")
 
     client_id = options.get("github-login.client-id")
-    client_secret = options.get("github-login.client-secret")
+    client_secret = settings.GITHUB_API_SECRET
     client = _GitHubClient(client_id=client_id, client_secret=client_secret)
     response = client.get(f"/meta/public_keys/{subpath}")
     keys = GitHubKeysPayload.parse_obj(response)

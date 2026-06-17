@@ -2,6 +2,7 @@ import hashlib
 import hmac
 
 import responses
+from django.test import override_settings
 
 from fixtures.vercel import SECRET
 from sentry.constants import ObjectStatus
@@ -10,7 +11,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vercel import VercelClient
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 
 PRIMARY_UNINSTALL_RESPONSE = """{
@@ -90,7 +90,7 @@ class VercelUninstallTest(APITestCase):
         )
 
     def test_uninstall(self) -> None:
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.post(
                 path=self.url,
                 data=POST_DELETE_RESPONSE,
@@ -125,7 +125,7 @@ class VercelDeleteSignatureTest(APITestCase):
         )
 
     def test_delete_without_signature(self) -> None:
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.delete(
                 path=self.url,
                 data=PRIMARY_UNINSTALL_RESPONSE,
@@ -134,7 +134,7 @@ class VercelDeleteSignatureTest(APITestCase):
         assert response.status_code == 401
 
     def test_delete_with_invalid_signature(self) -> None:
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.delete(
                 path=self.url,
                 data=PRIMARY_UNINSTALL_RESPONSE,
@@ -149,7 +149,7 @@ class VercelDeleteSignatureTest(APITestCase):
             PRIMARY_UNINSTALL_RESPONSE.encode("utf-8"),
             hashlib.sha1,
         ).hexdigest()
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.delete(
                 path=self.url,
                 data=PRIMARY_UNINSTALL_RESPONSE,
@@ -208,7 +208,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         sig = hmac.new(
             SECRET.encode("utf-8"), PRIMARY_UNINSTALL_RESPONSE.encode("utf-8"), hashlib.sha1
         ).hexdigest()
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.delete(
                 path=self.url,
                 data=PRIMARY_UNINSTALL_RESPONSE,
@@ -244,7 +244,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         sig = hmac.new(
             SECRET.encode("utf-8"), NONPRIMARY_UNINSTALL_RESPONSE.encode("utf-8"), hashlib.sha1
         ).hexdigest()
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.delete(
                 path=self.url,
                 data=NONPRIMARY_UNINSTALL_RESPONSE,
@@ -300,7 +300,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         sig = hmac.new(
             SECRET.encode("utf-8"), USERID_UNINSTALL_RESPONSE.encode("utf-8"), hashlib.sha1
         ).hexdigest()
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.delete(
                 path=self.url,
                 data=USERID_UNINSTALL_RESPONSE,
@@ -352,7 +352,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         primary_sig = hmac.new(
             SECRET.encode("utf-8"), PRIMARY_UNINSTALL_RESPONSE.encode("utf-8"), hashlib.sha1
         ).hexdigest()
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.delete(
                 path=self.url,
                 data=PRIMARY_UNINSTALL_RESPONSE,
@@ -402,7 +402,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         nonprimary_sig = hmac.new(
             SECRET.encode("utf-8"), NONPRIMARY_UNINSTALL_RESPONSE.encode("utf-8"), hashlib.sha1
         ).hexdigest()
-        with override_options({"vercel.client-secret": SECRET}):
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):
             response = self.client.delete(
                 path=self.url,
                 data=NONPRIMARY_UNINSTALL_RESPONSE,

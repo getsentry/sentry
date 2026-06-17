@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 import orjson
+from django.conf import settings
 from requests.models import Response
 from rest_framework import status
 
@@ -55,8 +56,8 @@ class DiscordClient(ApiClient):
     def __init__(self):
         super().__init__()
         self.application_id = options.get("discord.application-id")
-        self.client_secret = options.get("discord.client-secret")
-        self.bot_token = options.get("discord.bot-token")
+        self.client_secret = settings.SENTRY_DISCORD_CLIENT_SECRET
+        self.bot_token = settings.SENTRY_DISCORD_BOT_TOKEN
 
     def prepare_auth_header(self) -> dict[str, str]:
         return {"Authorization": f"Bot {self.bot_token}"}
