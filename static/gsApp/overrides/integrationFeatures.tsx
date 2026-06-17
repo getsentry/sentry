@@ -157,7 +157,7 @@ function IntegrationFeaturesBase({
   subscription,
   children,
 }: IntegrationFeaturesProps) {
-  const {data: billingConfig} = useBillingConfig({organization, subscription});
+  const {data: billingConfig} = useBillingConfig({organization});
 
   if (!billingConfig) {
     return null;

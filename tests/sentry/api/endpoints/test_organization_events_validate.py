@@ -81,7 +81,7 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert response.status_code == 200, response.content
         assert response.data["valid"]
         assert response.data["field"] == [
-            {"error": "", "name": "span.duration", "valid": True, "attrType": "number"}
+            {"error": None, "name": "span.duration", "valid": True, "attrType": "number"}
         ]
 
     def test_virtual_context_attributes(self) -> None:
@@ -96,10 +96,10 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert response.status_code == 200, response.content
         assert response.data["valid"]
         assert response.data["field"] == [
-            {"error": "", "name": "project", "valid": True, "attrType": "string"}
+            {"error": None, "name": "project", "valid": True, "attrType": "string"}
         ]
 
-    def test_user_tags_in_storage(self) -> None:
+    def test_user_tags_in_storage_for_fields(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -120,8 +120,8 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert response.status_code == 200, response.content
         assert response.data["valid"]
         assert response.data["field"] == [
-            {"error": "", "name": "tags[my.custom.tag]", "valid": True, "attrType": "string"},
-            {"error": "", "name": "my.custom.tag", "valid": True, "attrType": "string"},
+            {"error": None, "name": "tags[my.custom.tag]", "valid": True, "attrType": "string"},
+            {"error": None, "name": "my.custom.tag", "valid": True, "attrType": "string"},
         ]
 
     def test_mixed_tag_types(self) -> None:
@@ -146,13 +146,13 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert response.data["valid"]
         assert response.data["field"] == [
             {
-                "error": "",
+                "error": None,
                 "name": "my.string.tag",
                 "valid": True,
                 "attrType": "string",
             },
             {
-                "error": "",
+                "error": None,
                 "name": "tags[my.boolean.tag, boolean]",
                 "valid": True,
                 "attrType": "boolean",
@@ -180,7 +180,7 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert response.status_code == 400, response.content
         assert not response.data["valid"]
         assert response.data["field"] == [
-            {"error": "", "name": "my.custom.tag", "valid": True, "attrType": "string"},
+            {"error": None, "name": "my.custom.tag", "valid": True, "attrType": "string"},
             {"error": "Unknown attribute", "name": "my.fake.tag", "valid": False, "attrType": None},
         ]
 
@@ -286,6 +286,234 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
             {
                 "error": "Orderby must also be a selected field",
                 "name": "-spon.doration",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+
+    def test_invalid_environment(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "environment": ["prediction"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["environment"] == [
+            {"error": "Unknown environments selected", "valid": False}
+        ]
+
+    def test_valid_environment(self) -> None:
+        self.create_environment(self.project, name="production")
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "environment": ["production"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+
+    def test_invalid_query(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "query": "Thing AND",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["query"] == [
+            {"valid": False, "error": "Condition is missing on the right side of 'AND' operator"}
+        ]
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "query": "span.duration:>hello",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["query"] == [
+            {
+                "valid": False,
+                "error": "span.duration: Invalid number: >hello. Expected number then optional k, m, or b suffix (e.g. 500k).",
+            }
+        ]
+
+    def test_valid_query(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "query": "span.duration:>5s AND (p95(span.duration):>3s or p95(span.duration):<10s)",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["query"] == [
+            {
+                "error": None,
+                "name": "span.duration",
+                "valid": True,
+                "attrType": "number",
+            },
+            {
+                "error": None,
+                "name": "p95(span.duration)",
+                "valid": True,
+                "attrType": "number",
+            },
+        ]
+
+    def test_mixed_validity_query(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "query": "span.duration:>5s (hello:world AND (world:hello or or:test))",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["query"] == [
+            {
+                "error": None,
+                "name": "span.duration",
+                "valid": True,
+                "attrType": "number",
+            },
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+            {
+                "error": "Unknown attribute",
+                "name": "world",
+                "valid": False,
+                "attrType": None,
+            },
+            {
+                "error": "Unknown attribute",
+                "name": "or",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+
+    def test_user_tags_in_storage_for_query(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": {"my.custom.tag": "hello"}},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["span.duration"],
+                "query": "my.custom.tag:hello",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["query"] == [
+            {"error": None, "name": "my.custom.tag", "valid": True, "attrType": "string"},
+        ]
+
+    def test_invalid_field_in_fields_and_query(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["hello", "hello"],
+                "query": "hello:world hello:world",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["field"] == [
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+        assert response.data["query"] == [
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+
+    def test_multiple_invalid_issues(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["hello", "hello"],
+                "query": "hello:world hello:world",
+                "orderby": ["world", "-world"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["field"] == [
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+        assert response.data["query"] == [
+            {
+                "error": "Unknown attribute",
+                "name": "hello",
+                "valid": False,
+                "attrType": None,
+            },
+        ]
+        assert response.data["orderby"] == [
+            {
+                "error": "Orderby must also be a selected field",
+                "name": "world",
+                "valid": False,
+                "attrType": None,
+            },
+            {
+                "error": "Orderby must also be a selected field",
+                "name": "-world",
                 "valid": False,
                 "attrType": None,
             },
