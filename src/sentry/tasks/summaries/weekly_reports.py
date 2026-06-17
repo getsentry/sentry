@@ -786,9 +786,12 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         def all_past_issues():
             for project_ctx in user_projects:
                 for group, count, has_linked_pr_or_commit in project_ctx.past_resolved_issues:
+                    display = get_group_display(group)
                     yield {
                         "count": count,
                         "group": group,
+                        "title": display["title"],
+                        "message": display["message"],
                         "has_linked_pr_or_commit": has_linked_pr_or_commit,
                         "_relevance": count
                         * (_PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),
