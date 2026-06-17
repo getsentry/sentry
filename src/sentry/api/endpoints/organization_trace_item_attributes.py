@@ -315,10 +315,15 @@ def build_attribute_context(
     if metadata is None:
         return None
 
-    context: TraceItemAttributeContext = {}
+    deprecation = metadata.deprecation
 
-    if metadata.brief:
-        context["brief"] = metadata.brief
+    # brief and isDeprecated are always present for a known convention.
+    context: TraceItemAttributeContext = {
+        "brief": metadata.brief,
+        "isDeprecated": bool(
+            deprecation is not None and (deprecation.status is not None or deprecation.replacement)
+        ),
+    }
 
     if metadata.additional_context:
         context["details"] = list(metadata.additional_context)
@@ -330,14 +335,10 @@ def build_attribute_context(
             else [metadata.example]
         )
 
-    deprecation = metadata.deprecation
-    context["isDeprecated"] = bool(
-        deprecation is not None and (deprecation.status is not None or deprecation.replacement)
-    )
     if deprecation is not None and deprecation.replacement:
         context["replacementAttribute"] = deprecation.replacement
 
-    return context or None
+    return context
 
 
 def as_attribute_key(

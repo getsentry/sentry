@@ -18,16 +18,18 @@ class TraceItemAttributeContext(TypedDict):
     enabled.
     """
 
-    # A short, human-readable description of the attribute.
-    brief: NotRequired[str]
+    # A short, human-readable description of the attribute. Always present for a
+    # known convention.
+    brief: str
+    # Whether the convention has been deprecated. Always present for a known
+    # convention.
+    isDeprecated: bool
     # Longer-form notes that add nuance beyond the brief (e.g. caveats,
     # double-counting warnings). Sourced from the convention's
     # ``additional_context``.
     details: NotRequired[list[str]]
     # Example value(s) for the attribute, normalized to a list.
     examples: NotRequired[list[Any]]
-    # Whether the convention has been deprecated.
-    isDeprecated: NotRequired[bool]
     # The attribute that replaces this one, when deprecated.
     replacementAttribute: NotRequired[str]
 
