@@ -5,7 +5,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
@@ -81,11 +81,10 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
       }
 
       openDrawer(
-        renderProps => (
-          <SeerExplorerContent
+        () => (
+          <ExplorerDrawerContent
             getPageReferrer={getPageReferrer}
             initialQuery={initialQuery}
-            onClose={renderProps.closeDrawer}
           />
         ),
         {

@@ -28,7 +28,6 @@ import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
-import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface SeerExplorerHeaderProps {
   isPipSupported: boolean;
@@ -70,8 +69,6 @@ export function SeerExplorerHeader({
   onSidebarPositionChange,
   disableNewChatButton = false,
 }: SeerExplorerHeaderProps) {
-  const showDockControls = useIsSeerExplorerSidebarEnabled() && !isPoppedOut;
-
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -274,28 +271,24 @@ export function SeerExplorerHeader({
               }}
             />
           )}
-          {showDockControls && (
-            <DropdownMenu
-              items={positionMenuItems}
-              size="xs"
-              position="bottom-end"
-              menuTitle={t('Dock position')}
-              triggerProps={{
-                tooltipProps: {
-                  title: t('Dock position'),
-                },
-                'aria-label': t('Dock position'),
-                icon: (
-                  <IconPanel
-                    direction={sidebarPosition === 'bottom' ? 'down' : 'right'}
-                  />
-                ),
-                showChevron: false,
-                variant: 'transparent',
-                size: 'xs',
-              }}
-            />
-          )}
+          <DropdownMenu
+            items={positionMenuItems}
+            size="xs"
+            position="bottom-end"
+            menuTitle={t('Dock position')}
+            triggerProps={{
+              tooltipProps: {
+                title: t('Dock position'),
+              },
+              'aria-label': t('Dock position'),
+              icon: (
+                <IconPanel direction={sidebarPosition === 'bottom' ? 'down' : 'right'} />
+              ),
+              showChevron: false,
+              variant: 'transparent',
+              size: 'xs',
+            }}
+          />
           <CompactSelect
             options={sessionOptions}
             value={undefined}

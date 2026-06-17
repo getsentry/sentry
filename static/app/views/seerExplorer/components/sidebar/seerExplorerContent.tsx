@@ -21,7 +21,7 @@ import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
+import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerHeader';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';

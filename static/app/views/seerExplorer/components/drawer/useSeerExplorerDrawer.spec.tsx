@@ -11,8 +11,8 @@ import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 
-jest.mock('sentry/views/seerExplorer/components/seerExplorerContent', () => ({
-  SeerExplorerContent: () => <div data-seer-explorer-root="" />,
+jest.mock('sentry/views/seerExplorer/components/drawer/explorerDrawerContent', () => ({
+  ExplorerDrawerContent: () => <div data-seer-explorer-root="" />,
 }));
 
 jest.mock('sentry/views/seerExplorer/utils', () => ({

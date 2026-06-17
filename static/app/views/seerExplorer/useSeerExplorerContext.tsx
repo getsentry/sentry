@@ -21,12 +21,12 @@ import {
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {
   type OpenSeerExplorerDrawerOptions,
   SEER_EXPLORER_DRAWER_KEY,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
@@ -356,10 +356,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       {pipWindow && (
         <PictureInPicturePortal pipWindow={pipWindow}>
           <SyncDrawerWidthFromPip pipWindow={pipWindow} />
-          <SeerExplorerContent
-            getPageReferrer={getPageReferrer}
-            onClose={closeSeerExplorer}
-          />
+          <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
         </PictureInPicturePortal>
       )}
     </SeerExplorerContext.Provider>
