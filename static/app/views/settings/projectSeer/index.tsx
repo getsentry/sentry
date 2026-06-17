@@ -323,10 +323,17 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
       if (!setting || setting.agent === 'seer') {
         return;
       }
-      updateSeerSettings({
-        agentOption: `${setting.agent}::${setting.integrationId}`,
-        autoCreatePr: value,
-      });
+      if (value) {
+        updateSeerSettings({
+          agentOption: `${setting.agent}::${setting.integrationId}`,
+          stoppingPoint: 'open_pr',
+        });
+      } else {
+        updateSeerSettings({
+          agentOption: `${setting.agent}::${setting.integrationId}`,
+          stoppingPoint: 'code_changes',
+        });
+      }
     },
     [setting, updateSeerSettings]
   );
