@@ -7,6 +7,8 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceResponse
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
@@ -17,6 +19,7 @@ from sentry.issues.grouptype import (
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_errors_query_eap
@@ -188,6 +191,39 @@ class TestSerializeColumnarUptimeItem(TestCase):
                 result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
 
             assert result["region_name"] == expected_name
+
+
+class TestSpansRunTraceQuery(TestCase):
+    def test_requests_span_v2_web_vitals(self) -> None:
+        project = self.create_project()
+        params = SnubaParams(
+            start=before_now(hours=1),
+            end=before_now(),
+            organization=project.organization,
+            projects=[project],
+        )
+        response = GetTraceResponse(page_token=PageToken(end_pagination=True))
+
+        with mock.patch(
+            "sentry.snuba.spans_rpc.snuba_rpc.get_trace_rpc", return_value=response
+        ) as mock_get_trace:
+            Spans.run_trace_query(
+                trace_id=uuid4().hex,
+                params=params,
+                referrer="api.trace-view.get-events",
+                config=SearchResolverConfig(),
+            )
+
+        request = mock_get_trace.call_args.args[0]
+        requested_attributes = {attribute.name for attribute in request.items[0].attributes}
+        assert {
+            "browser.web_vital.lcp.value",
+            "browser.web_vital.cls.value",
+            "browser.web_vital.inp.value",
+            "browser.web_vital.ttfb.value",
+            "browser.web_vital.fcp.value",
+        }.issubset(requested_attributes)
+        assert "browser.web_vital.fp.value" not in requested_attributes
 
 
 class OrganizationEventsTraceEndpointTest(
