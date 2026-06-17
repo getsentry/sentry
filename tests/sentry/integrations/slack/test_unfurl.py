@@ -191,6 +191,20 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             "https://org1.sentry.io/explore/metrics/trace/trace_id_123/?project=1",
             (None, None),
         ),
+        (
+            "https://org1.sentry.io/explore/metrics/?metric=%7B%22metric%22%3A%7B%22name%22%3A%22dashboards.widget.onEdit%22%2C%22type%22%3A%22distribution%22%2C%22unit%22%3A%22millisecond%22%7D%2C%22query%22%3A%22%22%2C%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum%28value%2Cdashboards.widget.onEdit%2Cdistribution%2Cmillisecond%29%22%5D%2C%22chartType%22%3A3%7D%5D%2C%22aggregateSortBys%22%3A%5B%7B%22field%22%3A%22sum%28value%2Cdashboards.widget.onEdit%2Cdistribution%2Cmillisecond%29%22%2C%22kind%22%3A%22desc%22%7D%5D%2C%22sortBys%22%3A%5B%7B%22field%22%3A%22timestamp%22%2C%22kind%22%3A%22desc%22%7D%5D%2C%22mode%22%3A%22samples%22%7D&project=-1&statsPeriod=30d",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict(
+                        "yAxis=sum(value,dashboards.widget.onEdit,distribution,millisecond)&project=-1&statsPeriod=30d&sort=-sum(value,dashboards.widget.onEdit,distribution,millisecond)&interval=3h"
+                    ),
+                    "chart_type": 3,
+                    "dataset": SupportedTraceItemType.TRACEMETRICS,
+                },
+            ),
+        ),
     ],
 )
 def test_match_link(url, expected) -> None:

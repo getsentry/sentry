@@ -56,6 +56,25 @@ _DEFAULT_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
     (timedelta(0), "1m"),
 )
 
+# Mirrors the frontend's MAXIUMUM_INTERVAL ladder in
+# static/app/utils/useChartInterval.tsx. Heat maps in particular call
+# `useChartInterval()` with the default `USE_BIGGEST` strategy, so the
+# interval the UI picks when none is in the URL is exactly the value this
+# ladder returns for the selected time range. Keep the thresholds and
+# intervals in sync with that file so unfurled charts bucket data the same
+# way as the live Explore UI.
+_DEFAULT_MAX_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
+    (timedelta(days=30), "12h"),
+    (timedelta(days=14), "6h"),
+    (timedelta(days=4), "3h"),
+    (timedelta(hours=48), "1h"),
+    (timedelta(hours=12), "30m"),
+    (timedelta(hours=6), "10m"),
+    (timedelta(hours=1), "5m"),
+    (timedelta(minutes=5), "5m"),
+    (timedelta(0), "1m"),
+)
+
 
 def _query_time_range(params: QueryDict) -> timedelta:
     """Return the selected time range, mirroring the frontend's
@@ -76,6 +95,14 @@ def _query_time_range(params: QueryDict) -> timedelta:
 def _default_interval_for_query(params: QueryDict) -> str:
     diff = _query_time_range(params)
     for threshold, interval in _DEFAULT_INTERVAL_LADDER:
+        if diff >= threshold:
+            return interval
+    return "1m"
+
+
+def _default_max_interval_for_query(params: QueryDict) -> str:
+    diff = _query_time_range(params)
+    for threshold, interval in _DEFAULT_MAX_INTERVAL_LADDER:
         if diff >= threshold:
             return interval
     return "1m"
@@ -141,6 +168,64 @@ def _parse_aggregate_field_entries(
             if parsed_chart_type is not None:
                 chart_type = parsed_chart_type
     return y_axes, group_bys, chart_type
+
+
+def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
+    """Assemble the QueryDict that will be sent to the events-heatmap API.
+
+    Mirrors ``_build_timeseries_query`` but adds the heatmap-specific params
+    (xAxis, yAxis, zAxis, yBuckets) and omits the topEvents/sort params that
+    only apply to timeseries.
+    """
+    out = QueryDict(mutable=True)
+
+    for param in ("project", "statsPeriod", "start", "end", "environment", "interval"):
+        values = raw_query.getlist(param)
+        if values:
+            out.setlist(param, values)
+
+    query = raw_query.get("query")
+    if query:
+        out["query"] = query
+
+    if not out.get("statsPeriod") and not out.get("start"):
+        out["statsPeriod"] = DEFAULT_PERIOD
+
+    maxiumum_interval = _default_max_interval_for_query(out)
+    url_interval = out.get("interval")
+    out["interval"] = (
+        _clamp_interval(url_interval, maxiumum_interval) if url_interval else maxiumum_interval
+    )
+
+    # Fixed axes — the endpoint currently only supports these values.
+    out["xAxis"] = "time"
+    out["yAxis"] = "value"
+    out["zAxis"] = "count()"
+    out["dataset"] = "tracemetrics"
+    out["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
+
+    # Compute yBuckets to produce roughly square cells on the chartcuterie
+    # canvas (EXPLORE_CHART_SIZE = 1200×400). Mirrors the frontend's
+    # getHeatmapYBuckets formula: round(xBuckets * (height / width)).
+    time_range = _query_time_range(out)
+    interval_td = parse_stats_period(out["interval"])
+    if interval_td and interval_td.total_seconds() > 0:
+        x_buckets = max(1, round(time_range.total_seconds() / interval_td.total_seconds()))
+        y_buckets = max(
+            1,
+            round(x_buckets * EXPLORE_CHART_SIZE["height"] / EXPLORE_CHART_SIZE["width"]),
+        )
+    else:
+        y_buckets = 50
+    out["yBuckets"] = str(y_buckets)
+
+    # Pass through yLogScale if it was encoded in the URL (controls log-spaced
+    # y-axis bucketing on the backend).
+    y_log_scale = raw_query.get("yLogScale")
+    if y_log_scale:
+        out["yLogScale"] = y_log_scale
+
+    return out
 
 
 def _build_timeseries_query(
@@ -380,6 +465,14 @@ def _unfurl_explore(
         for slug, org in orgs_by_slug.items()
         if features.has("organizations:visibility-explore-view", org, actor=user)
     }
+
+    heatmap_enabled_orgs = {
+        slug: org
+        for slug, org in orgs_by_slug.items()
+        if features.has("organizations:data-browsing-heat-map-widget", org, actor=user)
+        and features.has("organizations:heat-map-unfurl", org, actor=user)
+    }
+
     if not enabled_orgs:
         return {}
 
@@ -402,6 +495,8 @@ def _unfurl_explore(
         explore_dataset = link.args.get("dataset", SupportedTraceItemType.SPANS)
         dataset_config = _get_explore_dataset_config(explore_dataset)
 
+        # y_axes must be resolved before _resolve_display_type so the display type
+        # can fall back to bar/line based on the aggregate function.
         y_axes = params.getlist("yAxis")
         if not y_axes:
             y_axes = [dataset_config["default_y_axis"]]
@@ -411,42 +506,68 @@ def _unfurl_explore(
         if display_type not in SUPPORTED_DISPLAY_TYPES:
             continue
 
-        group_bys = params.getlist("groupBy")
+        if display_type == "heatmap":
+            heatmap_org = heatmap_enabled_orgs.get(org_slug)
+            if not heatmap_org:
+                continue
 
-        style = ChartType.SLACK_TIMESERIES
-        if group_bys:
-            params.setlist("topEvents", [str(TOP_N)])
-            if not params.getlist("sort"):
-                # Default to descending by the first yAxis, matching Explore's
-                # defaultAggregateSortBys behavior
-                params.setlist("sort", [f"-{y_axes[0]}"])
+            style = ChartType.SLACK_HEATMAP
+            heatmap_params = _build_heatmap_query(params)
+            api_params: dict[str, str | list[str]] = {
+                key: values if len(values) > 1 else values[0]
+                for key, values in heatmap_params.lists()
+            }
 
-        params["dataset"] = explore_dataset.value
-        params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
+            try:
+                resp = client.get(
+                    auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
+                    user=user,
+                    path=f"/organizations/{org_slug}/events-heatmap/",
+                    params=api_params,
+                )
+            except Exception:
+                _logger.warning("Failed to load events-heatmap for explore unfurl")
+                continue
 
-        # ApiClient iterates params via .items(), which collapses multi-value
-        # QueryDict keys to the last value. Walk lists() and emit a real list
-        # for multi-value keys (e.g. multiple groupBy entries from aggregateField)
-        # so all values reach events-timeseries.
-        api_params: dict[str, str | list[str]] = {
-            key: values if len(values) > 1 else values[0] for key, values in params.lists()
-        }
+            # resp.data is {"meta": {...}, "values": [...]} which matches the
+            # TypeScript HeatMapSeries shape expected by ChartType.SLACK_HEATMAP.
+            chart_data: dict[str, Any] = {"heatmap": resp.data}
+        else:
+            style = ChartType.SLACK_TIMESERIES
+            group_bys = params.getlist("groupBy")
+            if group_bys:
+                params.setlist("topEvents", [str(TOP_N)])
+                if not params.getlist("sort"):
+                    # Default to descending by the first yAxis, matching Explore's
+                    # defaultAggregateSortBys behavior
+                    params.setlist("sort", [f"-{y_axes[0]}"])
 
-        try:
-            resp = client.get(
-                auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
-                user=user,
-                path=f"/organizations/{org_slug}/events-timeseries/",
-                params=api_params,
-            )
-        except Exception:
-            _logger.warning("Failed to load events-timeseries for explore unfurl")
-            continue
+            params["dataset"] = explore_dataset.value
+            params["referrer"] = Referrer.EXPLORE_SLACK_UNFURL.value
 
-        chart_data: dict[str, Any] = {
-            "timeSeries": resp.data.get("timeSeries", []),
-            "type": display_type,
-        }
+            # ApiClient iterates params via .items(), which collapses multi-value
+            # QueryDict keys to the last value. Walk lists() and emit a real list
+            # for multi-value keys (e.g. multiple groupBy entries from aggregateField)
+            # so all values reach events-timeseries.
+            api_params = {
+                key: values if len(values) > 1 else values[0] for key, values in params.lists()
+            }
+
+            try:
+                resp = client.get(
+                    auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
+                    user=user,
+                    path=f"/organizations/{org_slug}/events-timeseries/",
+                    params=api_params,
+                )
+            except Exception:
+                _logger.warning("Failed to load events-timeseries for explore unfurl")
+                continue
+
+            chart_data = {
+                "timeSeries": resp.data.get("timeSeries", []),
+                "type": display_type,
+            }
 
         try:
             url = charts.generate_chart(style, chart_data, size=EXPLORE_CHART_SIZE)
@@ -478,13 +599,13 @@ CHART_TYPE_TO_DISPLAY_TYPE = {
     0: "bar",
     1: "line",
     2: "area",
-    3: "histogram",
+    3: "heatmap",
 }
 
 # Display types the Slack timeseries renderer can produce. Any chartType that
 # resolves outside this set (e.g. histogram) should not unfurl, since
 # rendering it as a line chart would be misleading.
-SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area"})
+SUPPORTED_DISPLAY_TYPES = frozenset({"bar", "line", "area", "heatmap"})
 
 # Aggregates that default to bar charts in Explore's determineDefaultChartType.
 # All other aggregates default to line.
