@@ -57,20 +57,11 @@ logger = logging.getLogger(__name__)
 def compare_organization_sliding_window_sample_rates(
     config: BaseDynamicSamplingConfiguration,
 ) -> None:
-    """
-    Compute the org-level sliding-window sample rate two ways over the same 5m window --
-    from EAP volume and from outcomes volume -- and log/emit both for comparison.
-
-    EAP has ingestion delay that can make the rate spike to 1.0; outcomes is delay-free.
-    This is observability only and does not change the sample rate the pipeline uses.
-    """
-    org_id = config.organization.id
-
     eap_volume = get_eap_organization_volume(
         config, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
     )
     outcomes_volume = get_outcomes_organization_volume(
-        org_id, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
+        config.organization.id, time_interval=SLIDING_WINDOW_COMPARISON_INTERVAL
     )
 
     # Extrapolate the window volume to a monthly volume and map it to a quota tier. The
@@ -83,7 +74,7 @@ def compare_organization_sliding_window_sample_rates(
         if volume is None:
             return None
         tier = quotas.backend.get_transaction_sampling_tier_for_volume(
-            org_id, int(volume.total * windows_per_month)
+            config.organization.id, int(volume.total * windows_per_month)
         )
         return float(tier[1]) if tier is not None else None
 
@@ -99,7 +90,7 @@ def compare_organization_sliding_window_sample_rates(
     logger.info(
         "dynamic_sampling.per_org.sliding_window_sample_rate_comparison",
         extra={
-            "org_id": org_id,
+            "org_id": config.organization.id,
             "eap_volume": eap_volume.total if eap_volume is not None else None,
             "eap_sample_rate": eap_sample_rate,
             "outcomes_volume": outcomes_volume.total if outcomes_volume is not None else None,
@@ -108,7 +99,7 @@ def compare_organization_sliding_window_sample_rates(
         },
     )
 
-    tags = {"org": str(org_id)}
+    tags = {"org": str(config.organization.id)}
     if eap_sample_rate is not None:
         metrics.distribution(
             f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_sample_rate",

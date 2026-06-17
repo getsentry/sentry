@@ -143,16 +143,6 @@ def get_outcomes_organization_volume(
     org_id: int,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
 ) -> OrganizationDataVolume | None:
-    """
-    Read the organization's segment volume from outcomes (the ``outcomes_raw`` dataset),
-    as a delay-free alternative to the EAP-based volume.
-
-    Outcomes has no segment category, but relay emits a ``TRANSACTION`` outcome per
-    segment (the root span), so ``category == TRANSACTION`` is the segment-equivalent.
-    ``total`` is the pre-sampling segment volume: accepted segments plus the ones
-    dropped by dynamic sampling (``FILTERED`` with a ``Sampled:`` reason). ``indexed``
-    is the kept (accepted) volume.
-    """
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
 
