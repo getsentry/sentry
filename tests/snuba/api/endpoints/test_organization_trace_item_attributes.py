@@ -8,7 +8,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.api.endpoints.organization_trace_item_attributes import build_attribute_context
+from sentry.api.endpoints.organization_trace_item_attributes import build_sentry_convention_context
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
@@ -31,7 +31,7 @@ from sentry.testutils.helpers.options import override_options
 
 class TestBuildAttributeContext:
     def test_lookup_by_public_name(self) -> None:
-        context = build_attribute_context("device.class", "sentry.device.class")
+        context = build_sentry_convention_context("device.class", "sentry.device.class")
         assert context is not None
         assert context["brief"].startswith("The classification of the device.")
         assert context["isDeprecated"] is False
@@ -41,7 +41,7 @@ class TestBuildAttributeContext:
         # public alias (`span.op`), so the public-name lookup misses and the
         # fallback must resolve it.
         assert "span.op" not in ATTRIBUTE_METADATA
-        context = build_attribute_context("span.op", "sentry.op")
+        context = build_sentry_convention_context("span.op", "sentry.op")
         assert context == {
             "brief": "The operation of a span.",
             "examples": ["http.client"],
@@ -49,13 +49,13 @@ class TestBuildAttributeContext:
         }
 
     def test_deprecated_attribute_includes_replacement(self) -> None:
-        context = build_attribute_context("transaction", "sentry.transaction")
+        context = build_sentry_convention_context("transaction", "sentry.transaction")
         assert context is not None
         assert context["isDeprecated"] is True
         assert context["replacementAttribute"] == "sentry.segment.name"
 
     def test_unknown_attribute_returns_none(self) -> None:
-        assert build_attribute_context("not.a.convention", "also.not.a.convention") is None
+        assert build_sentry_convention_context("not.a.convention", "also.not.a.convention") is None
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):

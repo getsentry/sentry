@@ -297,7 +297,7 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
         raise ValueError(f"Invalid item type: {item_type}")
 
 
-def build_attribute_context(
+def build_sentry_convention_context(
     public_name: str, internal_name: str
 ) -> TraceItemAttributeContext | None:
     """
@@ -391,11 +391,8 @@ def as_attribute_key(
     if secondary_aliases:
         attribute_key["secondaryAliases"] = sorted(secondary_aliases)
 
-    # Join in the sentry conventions metadata. Only sentry attributes map to a
-    # convention, so we skip user attributes entirely to avoid a user tag that
-    # happens to share a name with a convention picking up its metadata.
     if include_context and serialized_source["source_type"] == AttributeSourceType.SENTRY.value:
-        context = build_attribute_context(public_name, name)
+        context = build_sentry_convention_context(public_name, name)
         if context is not None:
             attribute_key["context"] = context
 
