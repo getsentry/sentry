@@ -329,11 +329,11 @@ def build_attribute_context(
         )
 
     deprecation = metadata.deprecation
-    context["is_deprecated"] = bool(
+    context["isDeprecated"] = bool(
         deprecation is not None and (deprecation.status is not None or deprecation.replacement)
     )
     if deprecation is not None and deprecation.replacement:
-        context["replacement_attribute"] = deprecation.replacement
+        context["replacementAttribute"] = deprecation.replacement
 
     return context or None
 

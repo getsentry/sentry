@@ -34,7 +34,7 @@ class TestBuildAttributeContext:
         context = build_attribute_context("device.class", "sentry.device.class")
         assert context is not None
         assert context["brief"].startswith("The classification of the device.")
-        assert context["is_deprecated"] is False
+        assert context["isDeprecated"] is False
 
     def test_falls_back_to_internal_name(self) -> None:
         # The convention is keyed by the internal name (`sentry.op`), not the
@@ -45,14 +45,14 @@ class TestBuildAttributeContext:
         assert context == {
             "brief": "The operation of a span.",
             "examples": ["http.client"],
-            "is_deprecated": False,
+            "isDeprecated": False,
         }
 
     def test_deprecated_attribute_includes_replacement(self) -> None:
         context = build_attribute_context("transaction", "sentry.transaction")
         assert context is not None
-        assert context["is_deprecated"] is True
-        assert context["replacement_attribute"] == "sentry.segment.name"
+        assert context["isDeprecated"] is True
+        assert context["replacementAttribute"] == "sentry.segment.name"
 
     def test_unknown_attribute_returns_none(self) -> None:
         assert build_attribute_context("not.a.convention", "also.not.a.convention") is None
@@ -521,21 +521,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         attributes = {item["key"]: item for item in response.data}
 
-        # A non-deprecated sentry convention gets brief + examples + is_deprecated.
+        # A non-deprecated sentry convention gets brief + examples + isDeprecated.
         assert attributes["device.class"]["context"] == {
             "brief": (
                 "The classification of the device. For example, `low`, `medium`, or `high`. "
                 "Typically inferred by Relay - SDKs generally do not need to set this directly."
             ),
             "examples": ["medium"],
-            "is_deprecated": False,
+            "isDeprecated": False,
         }
         # A deprecated convention also surfaces the replacement attribute.
         assert attributes["transaction"]["context"] == {
             "brief": "The sentry transaction (segment name).",
             "examples": ["GET /"],
-            "is_deprecated": True,
-            "replacement_attribute": "sentry.segment.name",
+            "isDeprecated": True,
+            "replacementAttribute": "sentry.segment.name",
         }
         # User tags are not sentry conventions, so they have no context.
         assert "context" not in attributes["foo"]

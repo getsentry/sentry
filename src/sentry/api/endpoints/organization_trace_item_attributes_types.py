@@ -27,9 +27,9 @@ class TraceItemAttributeContext(TypedDict):
     # Example value(s) for the attribute, normalized to a list.
     examples: NotRequired[list[Any]]
     # Whether the convention has been deprecated.
-    is_deprecated: NotRequired[bool]
+    isDeprecated: NotRequired[bool]
     # The attribute that replaces this one, when deprecated.
-    replacement_attribute: NotRequired[str]
+    replacementAttribute: NotRequired[str]
 
 
 class TraceItemAttributeKey(TypedDict):
