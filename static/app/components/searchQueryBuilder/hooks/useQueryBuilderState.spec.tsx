@@ -209,36 +209,59 @@ describe('replaceFreeTextTokens', () => {
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
+      {
+        description:
+          'when the free text exactly matches a raw search key, it scaffolds the key instead of containing itself',
+        input: {
+          rawSearchReplacement: ['span.description'],
+          currentQuery: 'span.description',
+        },
+        expected: {
+          query: `span.description:${WildcardOperators.CONTAINS}""`,
+          focusOverride: {itemKey: 'freeText:1'},
+        },
+      },
+      {
+        description:
+          'when the free text contains a raw search key plus other words, it still wraps with contains',
+        input: {
+          rawSearchReplacement: ['span.description'],
+          currentQuery: 'span.description error',
+        },
+        expected: {
+          query: 'span.description:"*span.description*error*"',
+          focusOverride: {itemKey: 'freeText:1'},
+        },
+      },
     ];
+
+    const getFieldDefinition = (key: string): FieldDefinition | null => {
+      if (key === 'span.duration') {
+        return {
+          desc: 'The total time taken by the span',
+          kind: 'metric',
+          valueType: 'duration',
+        } as FieldDefinition;
+      }
+      return null;
+    };
 
     it.each(testCases)('$description', ({input, expected}) => {
       const result = replaceFreeTextTokens(
         input.currentQuery,
         (query: string) =>
-          parseQueryBuilderValue(
-            query,
-            (key: string) => {
-              if (key === 'span.duration') {
-                return {
-                  desc: 'The total time taken by the span',
-                  kind: 'metric',
-                  valueType: 'duration',
-                } as FieldDefinition;
-              }
-              return null;
-            },
-            {
-              disallowUnsupportedFilters: true,
-              filterKeys: {
-                'span.duration': {
-                  key: 'span.duration',
-                  name: 'span.duration',
-                  kind: FieldKind.MEASUREMENT,
-                },
+          parseQueryBuilderValue(query, getFieldDefinition, {
+            disallowUnsupportedFilters: true,
+            filterKeys: {
+              'span.duration': {
+                key: 'span.duration',
+                name: 'span.duration',
+                kind: FieldKind.MEASUREMENT,
               },
-            }
-          ),
-        input.rawSearchReplacement
+            },
+          }),
+        input.rawSearchReplacement,
+        getFieldDefinition
       );
 
       expect(result?.newQuery).toBe(expected.query);

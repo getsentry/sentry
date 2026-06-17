@@ -8,7 +8,10 @@ import {
   getArgsToken,
   unescapeAsteriskSearchValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  getDefaultValueForValueType,
+  getInitialFilterText,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
   type FieldDefinitionGetter,
   type FocusOverride,
@@ -839,7 +842,8 @@ function updateFilterKey(
 export function replaceFreeTextTokens(
   currentQuery: string,
   parseQuery: (query: string) => ParseResult | null,
-  replaceRawSearchKeys: string[]
+  replaceRawSearchKeys: string[],
+  getFieldDefinition: FieldDefinitionGetter
 ) {
   if (
     currentQuery.trim().length === 0 ||
@@ -883,7 +887,17 @@ export function replaceFreeTextTokens(
       continue;
     }
 
-    const value = escapeTagValue(token.text.trim());
+    const trimmedText = token.text.trim();
+
+    const matchedRawSearchKey = replaceRawSearchKeys.find(key => key === trimmedText);
+    if (matchedRawSearchKey) {
+      replacedQuery.push(
+        getInitialFilterText(matchedRawSearchKey, getFieldDefinition(matchedRawSearchKey))
+      );
+      continue;
+    }
+
+    const value = escapeTagValue(trimmedText);
 
     // We don't want to break user flows, so if they include an asterisk in their free
     // text value, leave it as an `is` filter.
@@ -923,6 +937,7 @@ function updateFreeTextAndReplaceText(
     | UpdateFreeTextActionOnExit
     | UpdateFreeTextActionOnCommit,
   parseQuery: (query: string) => ParseResult | null,
+  getFieldDefinition: FieldDefinitionGetter,
   replaceRawSearchKeys?: string[]
 ): QueryBuilderState {
   const newState = updateFreeText(state, action);
@@ -934,7 +949,8 @@ function updateFreeTextAndReplaceText(
   const replacedState = replaceFreeTextTokens(
     newState.query,
     parseQuery,
-    replaceRawSearchKeys ?? []
+    replaceRawSearchKeys ?? [],
+    getFieldDefinition
   );
 
   const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
@@ -1043,7 +1059,8 @@ export function useQueryBuilderState({
           const replacedState = replaceFreeTextTokens(
             action.query,
             parseQuery,
-            replaceRawSearchKeys
+            replaceRawSearchKeys,
+            getFieldDefinition
           );
 
           const query = replacedState?.newQuery ? replacedState.newQuery : action.query;
@@ -1107,6 +1124,7 @@ export function useQueryBuilderState({
             state,
             action,
             parseQuery,
+            getFieldDefinition,
             replaceRawSearchKeys
           );
 

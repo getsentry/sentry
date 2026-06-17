@@ -5776,6 +5776,49 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
         expect(getLastInput()).toHaveFocus();
       });
+
+      it('scaffolds the key instead of containing itself when the typed text matches the raw search key', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery=""
+            replaceRawSearchKeys={['message']}
+          />
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('message{Enter}');
+
+        expect(
+          screen.getByRole('row', {
+            name: `message:${WildcardOperators.CONTAINS}""`,
+          })
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('row', {
+            name: `message:${WildcardOperators.CONTAINS}message`,
+          })
+        ).not.toBeInTheDocument();
+      });
+
+      it('still wraps the key with contains when the typed text contains other words', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery=""
+            replaceRawSearchKeys={['message']}
+          />
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard('message error{Enter}');
+
+        expect(
+          screen.getByRole('row', {
+            name: 'message:"*message*error*"',
+          })
+        ).toBeInTheDocument();
+      });
     });
 
     describe('on blur', () => {
