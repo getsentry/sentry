@@ -1,6 +1,7 @@
 import time
 from datetime import datetime, timedelta, timezone
 from random import Random
+from typing import Any
 
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
@@ -223,7 +224,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
             context["show_past_issues"] = True
-            past_issues = []
+            past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
                 for group, count, has_link in project_ctx.past_resolved_issues:
                     past_issues.append(
@@ -233,7 +234,7 @@ class DebugWeeklyReportView(MailPreviewView):
                             "has_linked_pr_or_commit": has_link,
                         }
                     )
-            past_issues.sort(key=lambda x: int(x["count"]), reverse=True)
+            past_issues.sort(key=lambda x: x["count"], reverse=True)
             context["past_issues"] = past_issues[:3]
         return context
 
