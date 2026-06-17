@@ -11,7 +11,9 @@ is_login_provider = default_manager.is_login_provider
 
 def _register_providers() -> None:
     from .bitbucket.provider import BitbucketIdentityProvider
+    from .datadog.provider import DatadogIdentityProvider
     from .discord.provider import DiscordIdentityProvider
+    from .gcp.provider import GCPIdentityProvider
     from .github.provider import GitHubIdentityProvider
     from .github_enterprise.provider import GitHubEnterpriseIdentityProvider
     from .gitlab.provider import GitlabIdentityProvider
@@ -33,6 +35,8 @@ def _register_providers() -> None:
     register(GitlabIdentityProvider)
     register(GoogleIdentityProvider)
     register(DiscordIdentityProvider)
+    register(DatadogIdentityProvider)
+    register(GCPIdentityProvider)
 
 
 _register_providers()

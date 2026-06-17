@@ -8,7 +8,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, O
 
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
-from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
 from sentry.replays.usecases.query import execute_query, handle_search_filters
@@ -76,10 +75,8 @@ def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None
     # This also gives us reasonable assurances that if the script ran to completion the customer
     # will not be able to access their deleted data even if the actual deletion takes place some
     # time later
-    publisher = initialize_replays_publisher(is_async=True)
     for _, replay_id, _ in rows:
-        archive_replay(publisher, project_id, replay_id)
-    publisher.flush()
+        archive_replay(project_id, replay_id)
 
     logger.info("Scheduling %d replays for deletion.", len(rows))
 

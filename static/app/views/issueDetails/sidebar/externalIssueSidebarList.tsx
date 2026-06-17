@@ -2,12 +2,18 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
-import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {ExternalIssueListContent} from 'sentry/components/group/externalIssuesList';
+import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
+import {IssueTrackerActionDropdown} from 'sentry/components/group/externalIssuesList/issueTrackerActions';
+import {
+  LinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -18,21 +24,64 @@ interface Props {
 }
 
 export function ExternalIssueSidebarList({event, group, project}: Props) {
+  const organization = useOrganization();
+  const hasLinkedPullRequestsFeature = organization.features.includes(
+    'issue-details-linked-pull-requests'
+  );
+  const externalIssueData = useGroupExternalIssues({group, event, project});
+  const {data: linkedPullRequestsData, isPending: isLinkedPullRequestsLoading} =
+    useLinkedPullRequests({group});
+  const showEmptyIssueTrackerAction =
+    hasLinkedPullRequestsFeature &&
+    !externalIssueData.isLoading &&
+    !isLinkedPullRequestsLoading &&
+    externalIssueData.integrations.length > 0 &&
+    externalIssueData.linkedIssues.length === 0 &&
+    linkedPullRequestsData?.pullRequests.length === 0;
+
   return (
     <SidebarFoldSection
       dataTestId="linked-issues"
       title={
         <Heading as="h3" size="md">
-          {t('Issue Tracking')}
+          {hasLinkedPullRequestsFeature ? t('External Links') : t('Issue Tracking')}
         </Heading>
+      }
+      actions={
+        hasLinkedPullRequestsFeature && !showEmptyIssueTrackerAction ? (
+          <IssueTrackerActionDropdown
+            integrations={externalIssueData.integrations}
+            isLoading={externalIssueData.isLoading}
+          />
+        ) : undefined
       }
       sectionKey={SectionKey.EXTERNAL_ISSUES}
     >
       <Flex direction="column" gap="md">
-        <ExternalIssueList group={group} event={event} project={project} />
+        <ExternalIssueListContent
+          integrations={externalIssueData.integrations}
+          isLoading={externalIssueData.isLoading}
+          linkedIssues={externalIssueData.linkedIssues}
+        />
         <ErrorBoundary customComponent={null}>
-          <LinkedPullRequests group={group} />
+          <LinkedPullRequests
+            group={group}
+            showEmptyState={
+              hasLinkedPullRequestsFeature &&
+              !showEmptyIssueTrackerAction &&
+              !externalIssueData.isLoading &&
+              externalIssueData.integrations.length > 0 &&
+              externalIssueData.linkedIssues.length === 0
+            }
+          />
         </ErrorBoundary>
+        {showEmptyIssueTrackerAction && (
+          <IssueTrackerActionDropdown
+            fullWidth
+            integrations={externalIssueData.integrations}
+            isLoading={externalIssueData.isLoading}
+          />
+        )}
       </Flex>
     </SidebarFoldSection>
   );

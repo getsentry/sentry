@@ -159,8 +159,7 @@ def handle_status_update(
         publish_action_from_context(
             action,
             group_id=group.id,
-            organization_id=project_lookup[group.project_id].organization_id,
-            project_id=group.project_id,
+            project=project_lookup[group.project_id],
         )
 
         if update_open_period:

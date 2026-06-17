@@ -24,13 +24,13 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {MembershipSettingsProps} from 'sentry/types/overrides';
-import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
-import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   getLocalityDataFromOrganization,
   shouldDisplayLocalities,
-} from 'sentry/utils/regions';
+} from 'sentry/utils/cells';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';

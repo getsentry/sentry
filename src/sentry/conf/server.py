@@ -812,6 +812,7 @@ SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", No
 # This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
+SENTRY_FALLBACK_CELL: str = "--monolith--"
 
 # The key used for generating or verifying the HMAC signature for Integration Proxy Endpoint requests.
 SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
@@ -889,6 +890,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
@@ -930,6 +932,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
     "sentry.preprod.vcs.status_checks.snapshots.tasks",
+    "sentry.pr_metrics.tasks",
     "sentry.processing_errors.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
@@ -2238,7 +2241,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.2"
+SELF_HOSTED_STABLE_VERSION = "26.6.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2339,12 +2342,44 @@ SENTRY_PROFILE_LIFECYCLE: Literal["manual", "trace"] = "trace"
 SENTRY_ORGANIZATION_CONTEXT_HELPER: Callable[..., object] | None = None
 
 # Config options that are explicitly disabled from Django
-DEAD = object()
+DEAD: Any = object()
 
 # This will eventually get set from values in SENTRY_OPTIONS during
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
-SENTRY_LOGGING_FORMAT = DEAD
+SENTRY_LOGGING_FORMAT = "human"
+SENTRY_BASE_HOSTNAME: str | None = os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME")
+SENTRY_ORGANIZATION_BASE_HOSTNAME: str | None = os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME")
+SENTRY_ORGANIZATION_URL_TEMPLATE: str | None = os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE")
+SENTRY_REGION_API_URL_TEMPLATE: str | None = os.environ.get("SENTRY_REGION_API_URL_TEMPLATE")
+SENTRY_INTERCOM_API_SECRET = ""
+SENTRY_RELAY_STATIC_AUTH: dict[str, Any] = {}
+SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
+    "base_url": "http://127.0.0.1:8888",
+    # Test-only token generator with no permissions. Only active when no real
+    # objectstore config is deployed. Exists so mint_token() does not raise in
+    # test/dev environments that lack signing keys.
+    "token_generator": {
+        "kid": "test",
+        "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
+        "permissions": [],
+    },
+}
+SENTRY_VIEWER_CONTEXT_ENABLED = True
+SENTRY_ANALYTICS_BACKEND = "noop"
+SENTRY_ANALYTICS_OPTIONS: dict[str, Any] = {}
+SENTRY_MAIL_LIST_NAMESPACE = "localhost"
+SENTRY_FILE_STORAGE_BACKEND = "filesystem"
+SENTRY_FILE_STORAGE_CONFIG: dict[str, Any] = {"location": "/tmp/sentry-files"}
+SENTRY_RELOCATION_FILE_STORAGE_BACKEND = "filesystem"
+SENTRY_RELOCATION_FILE_STORAGE_CONFIG: dict[str, Any] = {"location": "/tmp/sentry-relocation-files"}
+SENTRY_PROFILES_FILE_STORAGE_BACKEND = "filesystem"
+SENTRY_PROFILES_FILE_STORAGE_CONFIG: dict[str, Any] = {
+    "location": "/tmp/sentry-profiles",
+    "allow_overwrite": True,
+}
+SENTRY_CONTROL_FILE_STORAGE_BACKEND = ""
+SENTRY_CONTROL_FILE_STORAGE_CONFIG: dict[str, Any] = {}
 EMAIL_BACKEND = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
@@ -3256,8 +3291,8 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
-    SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
-    SENTRY_OPTIONS["system.region-api-url-template"] = ""
+    SENTRY_BASE_HOSTNAME = ngrok_host
+    SENTRY_REGION_API_URL_TEMPLATE = ""
 
     # No multi-region in non-siloed ngrok dev.
     SENTRY_FEATURES["system:multi-region"] = False
@@ -3290,11 +3325,21 @@ if SILO_DEVSERVER:
         {
             "name": "us",
             "snowflake_id": 1,
-            "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
         }
     ]
+    SENTRY_LOCALITIES = [
+        {
+            "name": "us",
+            # TODO(cells): Deprecate category
+            "category": "MULTI_TENANT",
+            "cells": ["us"],
+            "new_org_cell": "us",
+        }
+    ]
+
     SENTRY_MONOLITH_REGION = SENTRY_CELLS[0]["name"]
+    SENTRY_FALLBACK_CELL = SENTRY_CELLS[0]["name"]
 
     # Cross region RPC authentication
     RPC_SHARED_SECRET = [
@@ -3319,7 +3364,7 @@ if SILO_DEVSERVER:
 if ngrok_host and SILO_DEVSERVER:
     # In siloed mode + ngrok we enable multi-region so that
     # the region API URL template is set to the ngrok host.
-    SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
+    SENTRY_REGION_API_URL_TEMPLATE = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
 
 CONDUIT_GATEWAY_PRIVATE_KEY: str | None = os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
@@ -3342,8 +3387,8 @@ if SILO_DEVSERVER or IS_DEV:
 if IS_DEV and os.environ.get("SENTRY_CELL_ROUTING"):
     # Pair with `devservices --mode cell-routing`. Cell-scoped API XHRs cross
     # to Synapse on :13000; UI HTML and control API stay on the devserver.
-    SENTRY_OPTIONS["system.region-api-url-template"] = "http://dev.getsentry.net:13000"
-    SENTRY_OPTIONS["system.organization-base-hostname"] = "{slug}.dev.getsentry.net:8000"
-    SENTRY_OPTIONS["system.organization-url-template"] = "http://{hostname}"
+    SENTRY_REGION_API_URL_TEMPLATE = "http://dev.getsentry.net:13000"
+    SENTRY_ORGANIZATION_BASE_HOSTNAME = "{slug}.dev.getsentry.net:8000"
+    SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
     SENTRY_FEATURES["system:multi-region"] = True
     SENTRY_LOCAL_CELL = SENTRY_LOCAL_CELL or "--monolith--"

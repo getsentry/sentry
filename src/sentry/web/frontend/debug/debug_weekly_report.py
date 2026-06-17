@@ -69,26 +69,16 @@ class DebugWeeklyReportView(MailPreviewView):
                 start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
                 for i in range(0, 7)
             }
-            project_context.replay_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
-                for i in range(0, 7)
-            }
 
             project_context.accepted_error_count = sum(project_context.error_count_by_day.values())
             project_context.accepted_transaction_count = sum(
                 project_context.transaction_count_by_day.values()
             )
-            project_context.accepted_replay_count = sum(
-                project_context.replay_count_by_day.values()
+            project_context.prev_week_accepted_error_count = int(
+                project_context.accepted_error_count * random.uniform(0.5, 1.5)
             )
-            project_context.dropped_error_count = int(
-                random.weibullvariate(5, 1) * random.paretovariate(0.2)
-            )
-            project_context.dropped_transaction_count = int(
-                random.weibullvariate(5, 1) * random.paretovariate(0.2)
-            )
-            project_context.dropped_replay_count = int(
-                random.weibullvariate(5, 1) * random.paretovariate(0.2)
+            project_context.prev_week_accepted_transaction_count = int(
+                project_context.accepted_transaction_count * random.uniform(0.5, 1.5)
             )
             project_context.key_errors_by_group = [
                 (g, random.randint(0, 1000)) for g in Group.objects.all()[:3]
@@ -125,7 +115,12 @@ class DebugWeeklyReportView(MailPreviewView):
 
         user_id = request.user.id
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
-        return render_template_context(ctx, user_id)
+        context = render_template_context(ctx, user_id)
+        if context is not None:
+            context["show_week_over_week_metric"] = (
+                request.GET.get("show_week_over_week_metric", "1") != "0"
+            )
+        return context
 
     @property
     def html_template(self) -> str:

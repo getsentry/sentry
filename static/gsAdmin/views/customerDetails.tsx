@@ -22,10 +22,10 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {getLocalities} from 'sentry/utils/regions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -73,9 +73,9 @@ import {toggleSpendAllocationModal} from 'admin/components/toggleSpendAllocation
 import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import {
   hasActiveVCFeature,
+  hasPerformance,
   isBizPlanFamily,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
@@ -861,12 +861,9 @@ export function CustomerDetails() {
             name: 'Migrate From Legacy Seer',
             help: 'Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan, effective immediately or at the next billing period. Applies a prorated credit for eligible annual plans. Optionally adds a 14-day Seer seat trial.',
             disabled:
-              ![PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
-                subscription.planTier as PlanTier
-              ) || !subscription.addOns?.legacySeer?.enabled,
-            disabledReason: [PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
-              subscription.planTier as PlanTier
-            )
+              !hasPerformance(subscription.planDetails) ||
+              !subscription.addOns?.legacySeer?.enabled,
+            disabledReason: hasPerformance(subscription.planDetails)
               ? 'Only available for organizations with active legacy Seer that have not yet been migrated.'
               : 'Only available for AM1, AM2, and AM3 plans.',
             confirmModalOpts: {

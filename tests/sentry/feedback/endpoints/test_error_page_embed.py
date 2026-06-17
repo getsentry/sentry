@@ -26,7 +26,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, RegionCategory, get_cell_by_name, get_local_locality
+from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
 from sentry.utils import json
 
 
@@ -367,7 +367,6 @@ SECONDARY_CELL = Cell(
     name="eu",
     snowflake_id=2,
     address="http://eu.internal.sentry.io",
-    category=RegionCategory.MULTI_TENANT,
 )
 
 

@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {getLocalityNameOptions, shouldDisplayLocalities} from 'sentry/utils/regions';
+import {getLocalityNameOptions, shouldDisplayLocalities} from 'sentry/utils/cells';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';

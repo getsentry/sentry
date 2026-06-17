@@ -5,20 +5,20 @@ https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request
 Known limitations
 -----------------
 
-Code review does not fire in production yet: GitLab contributors are never seeded.
-``handle_merge_request_event`` runs ``CodeReviewPreflightService``, whose
-``_check_billing`` looks up ``OrganizationContributors`` by
+GitLab contributor seeding must run before this handler. ``handle_merge_request_event``
+runs ``CodeReviewPreflightService``, whose ``_check_billing`` looks up
+``OrganizationContributors`` by
 ``(organization_id, integration_id, external_identifier=str(author_id))`` and
-returns ``ORG_CONTRIBUTOR_NOT_FOUND`` (before the beta exemption) when the row is
-missing. GitHub creates that row via ``track_contributor_seat`` in
-``PullRequestEventWebhook._handle`` on PR creation; the GitLab merge-request path
-(PR persistence inline in ``MergeEventWebhook.__call__``) does not, and nothing
-else seeds GitLab contributors. Until contributor seeding is added, every GitLab MR
-is filtered with ``ORG_CONTRIBUTOR_NOT_FOUND``. The handler tests pass only because
-they seed the row manually.
+returns ``ORG_CONTRIBUTOR_NOT_FOUND`` when the row is missing. GitLab seeds that row
+through ``track_gitlab_contributor_seat_processor``, which
+``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers before this handler. If
+that ordering changes, the first MR open from a new contributor is filtered before
+the same delivery can seed the contributor.
 
-The code-review tests seed OrganizationContributors manually; consider a test that
-omits it to lock in the intended production behavior (related to Issue 1).
+Contributor seeding still depends on ``MergeEventWebhook.__call__`` reaching its
+processors and only runs for ``object_attributes.action == "open"``. Payloads that
+short-circuit before processor dispatch, such as MRs missing ``last_commit`` or the
+author email, do not seed the MR author; later ``update`` events do not backfill it.
 
 GitLab has no dedicated "ready_for_review" action: un-drafting an MR arrives as an
 "update" whose top-level ``changes`` flips draft/work_in_progress to false, which is
@@ -376,7 +376,7 @@ def handle_merge_request_event(
 
     debug_log(logger, organization, "handler_started", base_log)
 
-    if not features.has("organizations:seer-code-review-gitlab", organization):
+    if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     object_attributes = event.get("object_attributes", {})
@@ -606,13 +606,11 @@ def _schedule_task(
 ) -> None:
     payload = _build_payload(action, event, organization, repo, target_commit_sha, review_trigger)
 
-    # GitLab is not supported by the direct-PyGithub /v1/code_review/* endpoints;
-    # it must use the scm-platform RPC counterparts at /v1/scm_code_review/*.
     is_closed = action in CLOSE_ACTIONS
     seer_path = (
-        SeerEndpoint.SCM_CODE_REVIEW_PR_CLOSED.value
+        SeerEndpoint.CODE_REVIEW_PR_CLOSED.value
         if is_closed
-        else SeerEndpoint.SCM_CODE_REVIEW_REVIEW_REQUEST.value
+        else SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value
     )
 
     try:
@@ -678,11 +676,13 @@ def _get_note_trigger_metadata(event: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "trigger_user": user.get("username"),
         "trigger_user_id": user.get("id"),
-        # Note ID is the comment identifier; "issue_comment" matches the
-        # SeerCodeReviewConfig.trigger_comment_type Literal constraint and
-        # is the value Seer uses to understand command-phrase triggering.
+        # The note id is the comment identifier. Seer keys its post-review
+        # reaction (eyes -> hooray) off trigger_comment_type: a GitLab MR note is
+        # never an issue note, so it must be "pull_request_review_comment", which
+        # Seer routes to the merge-request note award_emoji endpoint. Sending
+        # "issue_comment" here makes Seer hit /issues/... and 404.
         "trigger_comment_id": object_attributes.get("id"),
-        "trigger_comment_type": "issue_comment",
+        "trigger_comment_type": "pull_request_review_comment",
         "trigger_at": trigger_at,
     }
 
@@ -778,7 +778,7 @@ def _schedule_note_task(
         {"mr_iid": mr_iid, "target_commit_sha": target_commit_sha},
     )
     process_github_webhook_event.delay(
-        seer_path=SeerEndpoint.SCM_CODE_REVIEW_REVIEW_REQUEST.value,
+        seer_path=SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value,
         event_payload=serialized_payload,
         tags={
             "sentry_organization_id": str(organization.id),
@@ -827,7 +827,7 @@ def handle_merge_request_note_event(
     base_log["integration_id"] = integration.id
     debug_log(logger, organization, "note.handler_started", base_log)
 
-    if not features.has("organizations:seer-code-review-gitlab", organization):
+    if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     action_value = object_attributes.get("action", "")
