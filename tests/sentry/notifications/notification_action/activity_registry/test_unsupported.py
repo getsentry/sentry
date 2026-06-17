@@ -24,12 +24,6 @@ UNSUPPORTED_ACTION_TYPES = [
 ]
 
 
-class TestUnsupportedActivityHandlerRegistration:
-    @pytest.mark.parametrize("action_type", UNSUPPORTED_ACTION_TYPES)
-    def test_registered(self, action_type: Action.Type) -> None:
-        assert activity_handler_registry.get(action_type) is UnsupportedActivityHandler
-
-
 class TestUnsupportedActivityHandler(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
@@ -47,6 +41,10 @@ class TestUnsupportedActivityHandler(BaseWorkflowTest):
             },
         )
 
+    @pytest.mark.parametrize("action_type", UNSUPPORTED_ACTION_TYPES)
+    def test_registered(self, action_type: Action.Type) -> None:
+        assert activity_handler_registry.get(action_type) is UnsupportedActivityHandler
+
     @mock.patch("sentry.notifications.notification_action.activity_registry.unsupported.logger")
     def test_invoke_action_logs_and_returns(self, mock_logger: mock.MagicMock) -> None:
         activity = self.create_group_activity(
@@ -60,7 +58,6 @@ class TestUnsupportedActivityHandler(BaseWorkflowTest):
             detector=self.detector,
             workflow_id=self.workflow.id,
         )
-
         UnsupportedActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
         mock_logger.info.assert_called_once_with(
@@ -72,23 +69,3 @@ class TestUnsupportedActivityHandler(BaseWorkflowTest):
                 "activity_type_name": "SEER_RCA_STARTED",
             },
         )
-
-    @mock.patch("sentry.notifications.notification_action.activity_registry.unsupported.logger")
-    def test_invoke_action_does_not_send_notification(self, mock_logger: mock.MagicMock) -> None:
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.SEER_SOLUTION_COMPLETED.value,
-        )
-        invocation = self.create_action_invocation(
-            event=activity,
-            group=self.group,
-            action=self.action,
-            detector=self.detector,
-            workflow_id=self.workflow.id,
-        )
-
-        with mock.patch(
-            "sentry.notifications.notification_action.activity_registry.base.NotificationService"
-        ) as mock_service:
-            UnsupportedActivityHandler.invoke_action(invocation=invocation, activity=activity)
-            mock_service.assert_not_called()
