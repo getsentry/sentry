@@ -511,21 +511,21 @@ def _pct_change(current: int, previous: int) -> str | None:
     return f"{arrow} {abs(pct)}%"
 
 
-def get_group_status_badge(group: Group) -> tuple[str, str, str, str]:
+def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     """
-    Returns a tuple of (text, background_color, border_color, text_color)
-    Muted versions of the Issues Breakdown bar colors (#FFCE00, #FF002B, #3A1873, #DAD9DE).
+    Returns a tuple of (text, background_color, text_color)
+    Matches frontend Tag component: background.transparent.*.muted blended on white, content.* text.
     """
     if group.status == GroupStatus.RESOLVED:
-        return ("Resolved", "#EBE8F1", "#BAAECE", "#230E45")
+        return ("Resolved", "#E3F7E3", "#008900")
     if group.status == GroupStatus.UNRESOLVED:
         if group.substatus == GroupSubStatus.NEW:
-            return ("New", "#FFFAE6", "#FFEEA6", "#997C00")
+            return ("New", "#F9F0D2", "#A45200")
         if group.substatus == GroupSubStatus.REGRESSED:
-            return ("Regressed", "#EBE8F1", "#BAAECE", "#230E45")
+            return ("Regressed", "#EDEEFE", "#653DE9")
         if group.substatus == GroupSubStatus.ESCALATING:
-            return ("Escalating", "#FFE6EA", "#FFA6B5", "#99001A")
-    return ("Ongoing", "#F9F9FA", "#F0F0F2", "#838285")
+            return ("Escalating", "#FEE7E4", "#D50000")
+    return ("Ongoing", "#F0F0F2", "#6A6772")
 
 
 def get_group_display(group: Group) -> dict[str, str]:
@@ -713,7 +713,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     (
                         substatus,
                         substatus_color,
-                        substatus_border_color,
                         substatus_text_color,
                     ) = get_group_status_badge(group)
 
@@ -726,7 +725,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         "status_color": (group_status_to_color[GroupHistoryStatus.NEW]),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
-                        "group_substatus_border_color": substatus_border_color,
                         "group_substatus_text_color": substatus_text_color,
                     }
 
@@ -760,7 +758,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     (
                         substatus,
                         substatus_color,
-                        substatus_border_color,
                         substatus_text_color,
                     ) = get_group_status_badge(group)
                     yield {
@@ -778,7 +775,6 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         ),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
-                        "group_substatus_border_color": substatus_border_color,
                         "group_substatus_text_color": substatus_text_color,
                     }
 

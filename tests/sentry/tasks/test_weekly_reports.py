@@ -1167,7 +1167,7 @@ class WeeklyReportsTest(
         substatus_fields = (
             "group_substatus",
             "group_substatus_color",
-            "group_substatus_border_color",
+            "group_substatus_text_color",
         )
         assert {field: key_error[field] for field in substatus_fields} == {
             field: performance_issue[field] for field in substatus_fields

@@ -39,6 +39,7 @@ def make_debug_group(
     message: str,
     group_type: type[GroupType],
     event_type: str,
+    status: int = GroupStatus.UNRESOLVED,
     substatus: int = GroupSubStatus.ONGOING,
 ) -> Group:
     group = Group(
@@ -46,7 +47,7 @@ def make_debug_group(
         project=project,
         project_id=project.id,
         message=message,
-        status=GroupStatus.UNRESOLVED,
+        status=status,
         substatus=substatus,
         type=group_type.type_id,
         data={"type": event_type, "metadata": {"title": title, "value": message}},
@@ -120,9 +121,11 @@ class DebugWeeklyReportView(MailPreviewView):
                 project_context.accepted_transaction_count * random.uniform(0.5, 1.5)
             )
             substatuses = [
-                GroupSubStatus.NEW,
-                GroupSubStatus.ESCALATING,
-                GroupSubStatus.REGRESSED,
+                (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
+                (GroupStatus.UNRESOLVED, GroupSubStatus.ESCALATING),
+                (GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED),
+                (GroupStatus.RESOLVED, GroupSubStatus.NEW),
+                (GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING),
             ]
             project_context.key_errors_by_group = [
                 (
@@ -136,11 +139,12 @@ class DebugWeeklyReportView(MailPreviewView):
                         message=make_debug_issue_message(random),
                         group_type=ErrorGroupType,
                         event_type="error",
-                        substatus=substatuses[group_index],
+                        status=status,
+                        substatus=substatus,
                     ),
                     random.randint(100, 1000),
                 )
-                for group_index in range(0, 3)
+                for group_index, (status, substatus) in enumerate(substatuses)
             ]
 
             project_context.new_substatus_count = random.randint(5, 200)
@@ -179,7 +183,8 @@ class DebugWeeklyReportView(MailPreviewView):
                         message=make_debug_issue_message(random),
                         group_type=performance_issue_type,
                         event_type="transaction",
-                        substatus=substatuses[group_index],
+                        status=substatuses[group_index][0],
+                        substatus=substatuses[group_index][1],
                     ),
                     None,
                     random.randint(100, 1000),
