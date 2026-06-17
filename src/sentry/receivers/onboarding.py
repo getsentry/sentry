@@ -95,7 +95,9 @@ def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
 def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
     scope = sentry_sdk.get_current_scope()
     scope.set_extra("project_id", project.id)
+    scope.set_attribute("project_id", project.id)
     scope.set_extra("source", "record_new_project")
+    scope.set_attribute("source", "record_new_project")
 
     if user_id is not None:
         default_user_id = user_id

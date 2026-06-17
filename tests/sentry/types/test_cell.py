@@ -6,7 +6,7 @@ import pytest
 from django.db import router
 from django.test import RequestFactory, override_settings
 
-from sentry.conf.types.cell_config import CellConfig
+from sentry.conf.types.cell_config import CellConfig, LocalityConfig
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloLimit, SiloMode
@@ -48,43 +48,65 @@ class CellDirectoryTest(TestCase):
             "name": "us",
             "snowflake_id": 1,
             "address": "http://us.testserver",
-            "category": RegionCategory.MULTI_TENANT.name,
         },
         {
             "name": "eu",
             "snowflake_id": 2,
             "address": "http://eu.testserver",
             "api_gateway_address": "http://eu-gateway.testserver",
-            "category": RegionCategory.MULTI_TENANT.name,
         },
         {
             "name": "acme",
             "snowflake_id": 3,
             "address": "http://acme.testserver",
+        },
+    ]
+
+    _LOCALITY_INPUTS: list[LocalityConfig] = [
+        {
+            "name": "us",
+            "cells": ["us"],
+            "category": RegionCategory.MULTI_TENANT.name,
+            "new_org_cell": "us",
+        },
+        {
+            "name": "eu",
+            "cells": ["eu"],
+            "category": RegionCategory.MULTI_TENANT.name,
+            "new_org_cell": "eu",
+        },
+        {
+            "name": "acme",
+            "cells": ["acme"],
             "category": RegionCategory.SINGLE_TENANT.name,
+            "new_org_cell": "acme",
         },
     ]
 
     _EXPECTED_OUTPUTS = (
-        Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+        Cell("us", 1, "http://us.testserver"),
         Cell(
             "eu",
             2,
             "http://eu.testserver",
-            RegionCategory.MULTI_TENANT,
-            "http://eu-gateway.testserver",
+            api_gateway_address="http://eu-gateway.testserver",
         ),
-        Cell("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
+        Cell("acme", 3, "http://acme.testserver"),
     )
 
     @staticmethod
     @contextmanager
     def _in_global_state(directory: CellDirectory) -> Generator[None]:
-        with get_test_env_directory().swap_state(tuple(directory.cells)):
+        # Pass localities through even when empty; omitting them (None) makes
+        # the test directory synthesize a 1:1 MULTI_TENANT locality per cell,
+        # which would override the categories defined in the config under test.
+        with get_test_env_directory().swap_state(
+            tuple(directory.cells), localities=tuple(directory.localities)
+        ):
             yield
 
     def test_cell_config_parsing_in_monolith(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
         assert directory.get_cell_by_name("nowhere") is None
@@ -98,33 +120,36 @@ class CellDirectoryTest(TestCase):
     def test_cell_config_parsing_in_control(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.CONTROL),
-            override_settings(SENTRY_MONOLITH_REGION="us"),
+            override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"),
         ):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us")
     def test_get_local_cell(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             assert get_local_cell() == self._EXPECTED_OUTPUTS[0]
 
     def test_get_generated_monolith_cell(self) -> None:
         with (
-            override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"),
+            override_settings(
+                SILO_MODE=SiloMode.MONOLITH,
+                SENTRY_MONOLITH_REGION="defaultland",
+                SENTRY_FALLBACK_CELL="defaultland",
+            ),
             self._in_global_state(load_from_config([], [])),
         ):
             local_cell = get_local_cell()
             assert local_cell.name == "defaultland"
             assert local_cell.snowflake_id == 0
-            assert local_cell.category == RegionCategory.MULTI_TENANT
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
     def test_get_cell_for_organization(self) -> None:
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             mapping.update(cell_name="az")
@@ -167,12 +192,14 @@ class CellDirectoryTest(TestCase):
 
     def test_invalid_historic_cell_setting(self) -> None:
         with pytest.raises(CellConfigurationError):
-            with override_settings(SENTRY_MONOLITH_REGION="nonexistent"):
+            with override_settings(
+                SENTRY_MONOLITH_REGION="nonexistent", SENTRY_FALLBACK_CELL="nonexistent"
+            ):
                 load_from_config(self._INPUTS, []).validate_all()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_user(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             organization = self.create_organization(name="test name", cell="us")
@@ -194,7 +221,7 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_sentry_app(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             us_org_1 = self.create_organization(name="us test name 1", cell="us")
@@ -227,7 +254,7 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_cell_names(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             result = find_all_cell_names()
@@ -235,8 +262,8 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_multitenant_cell_names(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
-            directory = load_from_config(self._INPUTS, [])
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+            directory = load_from_config(self._INPUTS, self._LOCALITY_INPUTS)
         with self._in_global_state(directory):
             result = find_all_multitenant_cell_names()
             assert set(result) == {"us", "eu"}
@@ -249,12 +276,12 @@ class CellDirectoryTest(TestCase):
                 "name": "ja",
                 "snowflake_id": 4,
                 "address": "https://ja.testserver",
-                "category": RegionCategory.MULTI_TENANT.name,
                 "visible": False,
             },
         ]
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
-            directory = load_from_config(inputs, [])
+        locality_inputs: list[LocalityConfig] = self._LOCALITY_INPUTS
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+            directory = load_from_config(inputs, locality_inputs)
         with self._in_global_state(directory):
             result = find_all_multitenant_cell_names()
             assert set(result) == {"us", "eu"}
@@ -266,12 +293,20 @@ class CellDirectoryTest(TestCase):
                 "name": "us",
                 "snowflake_id": 1,
                 "address": "https://us.testserver",
-                "category": "MULTI_TENANT",
+            },
+        ]
+        localities: list[LocalityConfig] = [
+            {
+                "name": "us",
+                "cells": ["us"],
+                "category": RegionCategory.MULTI_TENANT.name,
+                "new_org_cell": "us",
             },
         ]
         rf = RequestFactory()
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
-            directory = load_from_config(cells, [])
+        with override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_FALLBACK_CELL="us"):
+            directory = load_from_config(cells, localities)
+
         with self._in_global_state(directory):
             req = rf.get("/")
             setattr(req, "subdomain", "us")
@@ -286,28 +321,24 @@ class CellDirectoryTest(TestCase):
             Cell(
                 name="us",
                 snowflake_id=1,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.1",
                 visible=True,
             ),
             Cell(
                 name="us2",
                 snowflake_id=3,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.2",
                 visible=True,
             ),
             Cell(
                 name="de1",
                 snowflake_id=2,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.3",
                 visible=True,
             ),
             Cell(
                 name="de2",
                 snowflake_id=4,
-                category=RegionCategory.MULTI_TENANT,
                 address="10.0.0.4",
                 visible=True,
             ),

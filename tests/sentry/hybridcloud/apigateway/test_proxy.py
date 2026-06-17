@@ -30,7 +30,7 @@ from sentry.testutils.helpers.apigateway import (
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 from sentry.utils import json
 
 proxy_request = async_to_sync(_proxy_request)
@@ -401,7 +401,6 @@ api_gateway_address_cell = Cell(
     snowflake_id=1,
     address="http://sentry-rpc:8999",
     api_gateway_address="http://sentry-api-gateway-rpc:8999",
-    category=RegionCategory.MULTI_TENANT,
 )
 
 

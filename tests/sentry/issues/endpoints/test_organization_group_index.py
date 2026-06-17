@@ -190,6 +190,29 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
+    def test_sort_by_progress_requires_feature_flag(self) -> None:
+        # group_1 has the newer event (wins last_seen / default sort); group_2 is older but
+        # diagnosed, so it wins the progress sort once the flag is on.
+        group_1 = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        ).group
+        self.create_group_activity(group=group_2, type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.login_as(user=self.user)
+
+        # Without the flag, the sort falls back to the default (date) order.
+        response = self.get_success_response(sort="progress", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
+
+        # With the flag, the diagnosed group is promoted above the more recently seen one.
+        with self.feature("organizations:issue-stream-progress-sort"):
+            response = self.get_success_response(sort="progress", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
     def test_sort_by_inbox(self) -> None:
         group_1 = self.store_event(
             data={
