@@ -114,6 +114,37 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('## Plan');
     });
 
+    it('includes the message when it differs from the title', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError'}),
+        event: EventFixture({...event, message: 'Connection to database timed out'}),
+        organization,
+      });
+
+      expect(result).toContain('## Message');
+      expect(result).toContain('Connection to database timed out');
+    });
+
+    it('omits the message when it is already part of the title', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError: connection failed'}),
+        event: EventFixture({...event, message: 'connection failed'}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
+    it('omits the message when it is empty', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError'}),
+        event: EventFixture({...event, message: '   '}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
     it('includes tags when present in event', () => {
       const eventWithTags = {
         ...event,
@@ -175,6 +206,64 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('**Type:** TypeError');
       expect(result).toContain('**Value:** Cannot read property of undefined');
       expect(result).toContain('#### Stacktrace');
+      // No mechanism on this exception, so no handled line.
+      expect(result).not.toContain('**Handled:**');
+    });
+
+    it('marks an unhandled exception', () => {
+      const eventWithUnhandled = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'TypeError',
+                  value: 'boom',
+                  mechanism: {type: 'onerror', handled: false},
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithUnhandled,
+        organization,
+      });
+
+      expect(result).toContain('**Handled:** No');
+    });
+
+    it('marks a handled exception', () => {
+      const eventWithHandled = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'ValueError',
+                  value: 'caught',
+                  mechanism: {type: 'generic', handled: true},
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithHandled,
+        organization,
+      });
+
+      expect(result).toContain('**Handled:** Yes');
     });
 
     it('includes thread stacktrace when activeThreadId matches', () => {

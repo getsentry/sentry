@@ -383,6 +383,7 @@ export type Subscription = {
   onDemandPeriodEnd: string;
   onDemandPeriodStart: string;
   onDemandSpendUsed: number;
+  onTrialPlan: boolean;
   orgRetention: RetentionSettings | null;
   partner: Partner | null;
   paymentSource: {
@@ -397,7 +398,6 @@ export type Subscription = {
   // Subscription details
   plan: string;
   planDetails: Plan;
-  planTier: string;
   /**
    * Total events allowed for the current usage period including gifted
    */
@@ -413,7 +413,6 @@ export type Subscription = {
   totalProjects: number | null;
   trialEnd: string | null;
   trialPlan: string | null;
-  trialTier: string | null;
   type: BillingType;
   /**
    * All quotas available on the plan are exceeded
@@ -846,6 +845,8 @@ export type PreviewData = {
   newBalance: number;
   previewToken: string;
   proratedAmount: number;
+  /** Only set by the next-bill preview: the plan/period the bill covers is annual. */
+  isAnnual?: boolean;
   paymentIntent?: string;
   paymentSecret?: string;
 };

@@ -60,7 +60,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Project's Releases",
+        operation_id="listProjectReleases",
+        summary="List a Project's Releases",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -242,4 +243,5 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             )
             return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
+        scope.set_attribute("failure_reason", "serializer_error")
         return Response(as_validation_errors(serializer), status=400)

@@ -13,7 +13,6 @@ describe('InsightsUpsellPage', () => {
     organization,
     plan: 'am3_team',
     isFree: true,
-    planTier: PlanTier.AM3,
   });
 
   beforeEach(() => {

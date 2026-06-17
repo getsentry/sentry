@@ -23,11 +23,13 @@ class SCIMErrorResponse(TypedDict, total=False):
 
 SCIM_404_USER_RES = {
     "schemas": [SCIM_API_ERROR],
+    "status": "404",
     "detail": "User not found.",
 }
 
 SCIM_404_GROUP_RES = {
     "schemas": [SCIM_API_ERROR],
+    "status": "404",
     "detail": "Group not found.",
 }
 
@@ -37,26 +39,31 @@ SCIM_409_USER_EXISTS = "User already exists in the database."
 
 SCIM_400_INVALID_FILTER = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "scimType": "invalidFilter",
 }
 
 SCIM_400_INTEGRITY_ERROR = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "detail": "Database Integrity Error.",
 }
 
 SCIM_400_TOO_MANY_PATCH_OPS_ERROR = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "detail": "Too many patch ops sent, limit is 100.",
 }
 
 SCIM_400_UNSUPPORTED_ATTRIBUTE = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "detail": "Invalid Replace attr. Only displayName and members supported.",
 }
 
 SCIM_400_INVALID_PAYLOAD = {
     "schemas": [SCIM_API_ERROR],
+    "status": "400",
     "detail": "Invalid SCIM payload.",
 }
 

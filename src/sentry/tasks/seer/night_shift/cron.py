@@ -45,6 +45,7 @@ from sentry.tasks.seer.night_shift.tweaks import (
     NightShiftTweaks,
     ReasoningEffort,
     default_max_candidates,
+    get_night_shift_org_tweaks,
     get_night_shift_tweaks,
 )
 from sentry.taskworker.namespaces import seer_tasks
@@ -205,7 +206,14 @@ def run_night_shift_for_org(
     if organization is None:
         return None
 
-    resolved_options = build_run_options(options)
+    # Manual project runs scope to a single project, whose tweaks feed the run
+    # options; cron and org-wide manual runs have no single project.
+    single_project_id = project_ids[0] if project_ids and len(project_ids) == 1 else None
+    resolved_options = build_run_options(
+        organization_id=organization.id,
+        manual_overrides=options,
+        project_id=single_project_id,
+    )
     sentry_sdk.set_tags(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
@@ -322,13 +330,57 @@ def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
     )
 
 
+# Run-option fields that a NightShiftTweaks layer can override. `enabled` is
+# intentionally excluded — it gates eligibility, it is not a run option.
+_TWEAK_RUN_OPTION_FIELDS = (
+    "max_candidates",
+    "intelligence_level",
+    "reasoning_effort",
+    "extra_triage_instructions",
+)
+
+
+def _tweaks_to_partial(tweaks: NightShiftTweaks) -> dict[str, Any]:
+    """Project a NightShiftTweaks (org- or project-scoped) onto a run-options
+    partial, contributing only the fields that were *explicitly* set on it.
+
+    NightShiftTweaks fills every unset field with a default, so reading
+    attributes directly would emit all fields and clobber lower-precedence
+    layers. `exclude_unset` keeps only the fields the payload actually
+    specified, so defaults (and lower layers) show through."""
+    set_fields = tweaks.dict(exclude_unset=True)
+    return {field: set_fields[field] for field in _TWEAK_RUN_OPTION_FIELDS if field in set_fields}
+
+
 def build_run_options(
-    partial: SeerNightShiftRunOptionsPartial | None = None,
+    *,
+    organization_id: int,
+    manual_overrides: Mapping[str, Any] | None = None,
+    project_id: int | None = None,
 ) -> SeerNightShiftRunOptions:
-    """Resolve a partial options dict into a fully-populated one. Cron callers
-    pass nothing (all defaults); manual callers pass at least `source="manual"`
-    plus whichever tweaks they want to override."""
-    return _run_option_defaults(partial or {})
+    """Resolve a fully-populated set of run options, layering by precedence
+    (highest wins):
+
+        manual overrides (`manual_overrides`)
+        > project tweaks (the project's `sentry:seer_nightshift_tweaks` option,
+          applied when `project_id` is given — used by manual project runs)
+        > per-org overrides (the `seer.night_shift.org_tweaks` option, keyed by
+          `organization_id`)
+        > global defaults
+
+    Cron runs pass only `organization_id` (no project, no manual overrides);
+    manual project runs additionally pass `project_id` + at least
+    `source="manual"`. Unknown keys are ignored."""
+    layered: dict[str, Any] = {}
+    org_tweaks = get_night_shift_org_tweaks(organization_id)
+    if org_tweaks is not None:
+        layered.update(_tweaks_to_partial(org_tweaks))
+    if project_id is not None:
+        project = Project.objects.filter(id=project_id, organization_id=organization_id).first()
+        if project is not None:
+            layered.update(_tweaks_to_partial(get_night_shift_tweaks(project)))
+    layered.update(manual_overrides or {})
+    return _run_option_defaults(layered)
 
 
 def _get_eligible_orgs_from_batch(

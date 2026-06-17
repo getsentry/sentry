@@ -22,6 +22,25 @@
         }
       },
       {
+        "name": "project",
+        "in": "query",
+        "description": "The IDs or slugs of projects to filter releases by. This parameter may be repeated to filter by multiple projects. Omit to include all accessible projects; `-1` includes all accessible projects.",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "per_page",
+        "in": "query",
+        "description": "The number of releases to return per page. Default and maximum allowed is 100.",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      {
         "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"
       }
     ],

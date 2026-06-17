@@ -54,7 +54,6 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isNewPayingCustomer,
-  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -374,7 +373,7 @@ function AMCheckout(props: Props) {
             // When introducing a new category before backfilling, the reserved value from the billing metric
             // history is not available, so we default to 0.
             // Skip trial volumes - don't pre-fill with trial reserved amounts
-            let events = (!isTrialPlan(planDetails.id) && currentHistory?.reserved) || 0;
+            let events = (!subscription.onTrialPlan && currentHistory?.reserved) || 0;
 
             if (canCompare) {
               const price = getBucket({events, buckets: eventBuckets}).price;
@@ -414,7 +413,7 @@ function AMCheckout(props: Props) {
           .reduce<CheckoutAddOns>((acc, addOn) => {
             acc[addOn.apiName] = {
               // don't prepopulate add-ons from trial state
-              enabled: addOn.enabled && !isTrialPlan(subscription.plan),
+              enabled: addOn.enabled && !subscription.onTrialPlan,
             };
             return acc;
           }, {}),

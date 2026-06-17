@@ -1104,7 +1104,6 @@ describe('Customer Details', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
-      planTier: 'am3',
     });
     subscription.reservedBudgets = [
       SeerReservedBudgetFixture({

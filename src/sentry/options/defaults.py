@@ -1136,6 +1136,17 @@ register(
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Per-org overrides for night shift run options. Keyed by stringified
+# organization id; each value is a partial set of run-option overrides (e.g.
+# {"max_candidates": 20}) that layer on top of the global defaults but below
+# any explicit caller-provided options. See
+# sentry.tasks.seer.night_shift.tweaks.get_night_shift_org_tweaks.
+register(
+    "seer.night_shift.org_tweaks",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "seer.supergroups_backfill_lightweight.killswitch",
@@ -2063,6 +2074,16 @@ register(
     "dynamic-sampling.per_org.project-balancing-debug-project-ids",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
+# project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
+# dynamic sampling path would otherwise compute for that project. Example:
+# {"12345": 0.5}. An empty mapping disables the override.
+register(
+    "dynamic-sampling.sample-rate-override-per-project",
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

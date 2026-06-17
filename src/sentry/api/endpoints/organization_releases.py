@@ -364,7 +364,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     @extend_schema(
-        operation_id="List an Organization's Releases",
+        operation_id="listOrganizationReleases",
+        summary="List an Organization's Releases",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -746,7 +747,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         )
 
     @extend_schema(
-        operation_id="Create a New Release for an Organization",
+        operation_id="createOrganizationRelease",
+        summary="Create a New Release for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ReleaseSerializerWithProjects,
         responses={

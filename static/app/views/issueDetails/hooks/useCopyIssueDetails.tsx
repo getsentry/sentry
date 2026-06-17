@@ -203,6 +203,12 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
           if (exception.type) {
             markdownText += `**Type:** ${exception.type}\n`;
           }
+          // Mirror Seer's `is_exception_handled`: an unhandled exception crashed
+          // the program, a handled one was caught. Only emit it when known.
+          const handled = exception.mechanism?.handled;
+          if (handled !== null && handled !== undefined) {
+            markdownText += `**Handled:** ${handled ? 'Yes' : 'No'}\n`;
+          }
           if (exception.value) {
             markdownText += `**Value:** ${exception.value}\n\n`;
           }
@@ -270,6 +276,13 @@ export const issueAndEventToMarkdown = ({
 
   if (event && typeof event.dateCreated === 'string') {
     markdownText += `**Date:** ${new Date(event.dateCreated).toLocaleString()}\n`;
+  }
+
+  // Mirror Seer: include the event message only when it adds something beyond
+  // the title, since for most errors the title already is the message.
+  const message = event?.message?.trim();
+  if (message && !group.title.includes(message)) {
+    markdownText += `\n## Message\n\n${message}\n`;
   }
 
   if (autofixData) {

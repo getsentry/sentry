@@ -60,7 +60,8 @@ class SeerModelsEndpoint(Endpoint):
     )
 
     @extend_schema(
-        operation_id="List Seer AI Models",
+        operation_id="listSeerModels",
+        summary="List Seer AI Models",
         responses={
             200: inline_sentry_response_serializer("SeerModelsResponse", SeerModelsResponse),
         },
