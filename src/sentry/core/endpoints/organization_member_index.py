@@ -193,7 +193,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
-        operation_id="List an Organization's Members",
+        operation_id="listOrganizationMembers",
+        summary="List an Organization's Members",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             CursorQueryParam,
@@ -318,7 +319,8 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Add a Member to an Organization",
+        operation_id="addOrganizationMember",
+        summary="Add a Member to an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
         ],

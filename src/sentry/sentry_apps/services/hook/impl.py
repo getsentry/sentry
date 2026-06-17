@@ -12,6 +12,7 @@ from sentry.sentry_apps.services.hook import HookService, RpcServiceHook
 from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPair
 from sentry.sentry_apps.services.hook.serial import serialize_service_hook
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ class DatabaseBackedHookService(HookService):
                             "webhook_url": webhook_url,
                         },
                     )
+                    if application_id is not None:
+                        sentry_sdk.set_attribute("hook info.application_id", application_id)
+                    sentry_sdk.set_attribute("hook info.updated_hook_count", updated_hook_count)
+                    sentry_sdk.set_attribute("hook info.expected_hook_count", hook_count)
+                    sentry_sdk.set_attribute("hook info.webhook_url", webhook_url)
                     sentry_sdk.capture_message(
                         "failed_to_update_all_hooks_for_app", level="warning"
                     )
@@ -154,6 +160,15 @@ class DatabaseBackedHookService(HookService):
                         "existing_installation_ids": list(existing_installation_ids),
                         "existing_hooks": list(existing_hooks.values_list("id", flat=True)),
                     },
+                )
+                sentry_sdk.set_attribute("existing_hooks.application_id", application_id)
+                sentry_sdk.set_attribute(
+                    "existing_hooks.existing_installation_ids",
+                    json.dumps(list(existing_installation_ids)),
+                )
+                sentry_sdk.set_attribute(
+                    "existing_hooks.existing_hooks",
+                    json.dumps(list(existing_hooks.values_list("id", flat=True))),
                 )
                 sentry_sdk.capture_exception(
                     SentryAppSentryError(

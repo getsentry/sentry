@@ -722,6 +722,7 @@ class SlackActionEndpoint(Endpoint):
 
         bind_org_context_from_integration(slack_request.integration.id)
         sentry_sdk.set_tag("integration_id", slack_request.integration.id)
+        sentry_sdk.set_attribute("integration_id", slack_request.integration.id)
 
         # Actions list may be empty when receiving a dialog response.
 

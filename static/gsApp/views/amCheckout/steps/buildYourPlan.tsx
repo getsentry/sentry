@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
-import type {BillingConfig, Plan, PlanTier, Subscription} from 'getsentry/types';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {
   isBizPlanFamily,
   isDeveloperPlan,
@@ -32,7 +32,6 @@ interface PlanSubstepProps extends BaseSubstepProps {
   billingConfig: BillingConfig;
   organization: Organization;
   subscription: Subscription;
-  checkoutTier?: PlanTier;
 }
 
 interface AdditionalProductsSubstepProps extends BaseSubstepProps {
@@ -153,7 +152,6 @@ export function BuildYourPlan({
   formData,
   onUpdate,
   stepNumber,
-  checkoutTier,
 }: StepProps) {
   return (
     <Stack gap="xl" direction="column" id={`step${stepNumber}`}>
@@ -165,7 +163,6 @@ export function BuildYourPlan({
         onUpdate={onUpdate}
         organization={organization}
         subscription={subscription}
-        checkoutTier={checkoutTier}
       />
       <AdditionalProductsSubstep
         activePlan={activePlan}

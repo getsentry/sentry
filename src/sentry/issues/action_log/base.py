@@ -9,11 +9,12 @@ from enum import StrEnum
 
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActionActor
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
+from sentry.models.project import Project
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
@@ -180,8 +181,7 @@ def publish_action(
     *,
     source: str,
     group_id: int,
-    organization_id: int,
-    project_id: int,
+    project: Project,
     actor: GroupActionActor = SYSTEM_ACTOR,
 ) -> None:
     """
@@ -208,8 +208,8 @@ def publish_action(
             # IDs are stringified so large values aren't rendered in scientific
             # notation by downstream log tooling.
             "group_id": str(group_id),
-            "organization_id": str(organization_id),
-            "project_id": str(project_id),
+            "organization_id": str(project.organization_id),
+            "project_id": str(project.id),
             "actor_type": actor.actor_type.name.lower(),
             "actor_id": str(actor.actor_id),
             "metadata": action.dict(),
@@ -217,12 +217,12 @@ def publish_action(
     )
 
     # Don't write to the database until we're confident in the action schemas.
-    if not options.get("issues.action-log.write-to-db"):
+    if not features.has("projects:issue-action-log-write-to-db", project):
         return
 
     GroupActionLogEntry.objects.create(
         group_id=group_id,
-        project_id=project_id,
+        project_id=project.id,
         type=action.get_type().value,
         actor_type=actor.actor_type.value,
         actor_id=actor.actor_id,
@@ -235,8 +235,7 @@ def publish_action_from_context(
     action: GroupAction,
     *,
     group_id: int,
-    organization_id: int,
-    project_id: int,
+    project: Project,
 ) -> None:
     """
     Record an issue action using the current ActionContext. This is the primary API
@@ -259,7 +258,6 @@ def publish_action_from_context(
         action,
         source=source,
         group_id=group_id,
-        organization_id=organization_id,
-        project_id=project_id,
+        project=project,
         actor=actor,
     )

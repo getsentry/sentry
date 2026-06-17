@@ -351,6 +351,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["user"]["username"] == event.get_minimal_user().username
         assert result["user"]["ip_address"] == event.get_minimal_user().ip_address
         assert result["tags"] == [
+            {"key": "interface_type", "value": "user"},
             {"key": "level", "value": "error"},
             {"key": "user", "value": "email:test@test.com", "query": 'user.email:"test@test.com"'},
         ]

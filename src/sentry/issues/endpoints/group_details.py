@@ -351,8 +351,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 ViewAction(),
                 source=resolve_action_source(request),
                 group_id=group.id,
-                organization_id=group.organization.id,
-                project_id=group.project_id,
+                project=group.project,
                 actor=resolve_action_actor(request),
             )
 
