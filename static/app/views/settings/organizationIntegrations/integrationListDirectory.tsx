@@ -226,6 +226,14 @@ export default function IntegrationListDirectory() {
   const category = decodeScalar(location.query.category) ?? '';
   const search = decodeScalar(location.query.search) ?? '';
 
+  const webhookName = t('Webhooks (Legacy)');
+  const webhookCategories = ['webhooks'];
+  const showLegacyWebhookRow =
+    hasLegacyWebhookUI &&
+    !!legacyWebhooks &&
+    (!search || webhookName.toLowerCase().includes(search.toLowerCase())) &&
+    (!category || webhookCategories.includes(category));
+
   const displayList = useMemo(() => {
     let listToDisplay = [...list];
 
@@ -306,6 +314,10 @@ export default function IntegrationListDirectory() {
       publishedApps?.filter(getAppInstall).forEach((sentryApp: SentryApp) => {
         integrationsInstalled.add(sentryApp.slug);
       });
+      // add legacy webhooks
+      if (hasLegacyWebhookUI && legacyWebhooks?.projects?.length) {
+        integrationsInstalled.add('legacy-webhooks');
+      }
 
       trackIntegrationAnalytics(
         'integrations.index_viewed',
@@ -317,7 +329,16 @@ export default function IntegrationListDirectory() {
         {startSession: true}
       );
     }
-  }, [anyError, anyPending, organization, integrations, publishedApps, getAppInstall]);
+  }, [
+    anyError,
+    anyPending,
+    organization,
+    integrations,
+    publishedApps,
+    getAppInstall,
+    hasLegacyWebhookUI,
+    legacyWebhooks,
+  ]);
 
   const renderProvider = useCallback(
     (provider: IntegrationProvider) => {
@@ -426,10 +447,10 @@ export default function IntegrationListDirectory() {
           <ReinstallAlert integrations={integrations} />
           <Panel>
             <PanelBody data-test-id="integration-panel">
-              {displayList.length || (hasLegacyWebhookUI && legacyWebhooks) ? (
+              {displayList.length || showLegacyWebhookRow ? (
                 <Fragment>
                   {displayList.map(renderIntegration)}
-                  {hasLegacyWebhookUI && legacyWebhooks && (
+                  {showLegacyWebhookRow && (
                     <IntegrationRow
                       key="row-legacy-webhooks"
                       data-test-id="integration-row"
@@ -438,10 +459,10 @@ export default function IntegrationListDirectory() {
                       slug="legacy-webhooks"
                       displayName={t('Webhooks (Legacy)')}
                       status={
-                        legacyWebhooks.projects?.length ? 'Installed' : 'Not Installed'
+                        legacyWebhooks!.projects?.length ? 'Installed' : 'Not Installed'
                       }
                       publishStatus="published"
-                      configurations={legacyWebhooks.projects?.length ?? 0}
+                      configurations={legacyWebhooks!.projects?.length ?? 0}
                       categories={['webhooks']}
                       customIcon={<PluginIcon pluginId="webhooks" size={36} />}
                     />
