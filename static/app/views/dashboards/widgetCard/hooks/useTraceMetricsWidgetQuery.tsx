@@ -468,7 +468,10 @@ export function useTraceMetricsHeatmapQuery(
     ? extractTraceMetricFromColumn(explodeField({field: aggregate}))
     : undefined;
 
-  const heatmapEnabled = enabled && yBuckets > 0 && Boolean(widgetInterval);
+  // Don't fetch until the widget's aggregate resolves to a real metric —
+  // otherwise we'd request with an empty `metric.name` filter.
+  const heatmapEnabled =
+    enabled && yBuckets > 0 && Boolean(widgetInterval) && Boolean(traceMetric?.name);
 
   const {data, error} = useQuery(
     metricHeatmapApiOptions({
