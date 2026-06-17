@@ -37,7 +37,11 @@ def human_desc(
 
     slack_desc = f"Send a Slack notification to {target_display}"
     action_type_to_string = {
-        AlertRuleTriggerAction.Type.PAGERDUTY.value: f"Send a {priority} PagerDuty notification to {target_display}",
+        AlertRuleTriggerAction.Type.PAGERDUTY.value: (
+            f"Send a {priority} PagerDuty notification to {target_display}"
+            if priority
+            else f"Send a PagerDuty notification to {target_display}"
+        ),
         AlertRuleTriggerAction.Type.SLACK.value: slack_desc,
         AlertRuleTriggerAction.Type.SLACK_STAGING.value: slack_desc,
         AlertRuleTriggerAction.Type.MSTEAMS.value: f"Send a Microsoft Teams notification to {target_display}",
@@ -54,7 +58,7 @@ def human_desc(
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
         if priority:
             return f"Send a {priority} Opsgenie notification to {target_display}"
-        return "Send an Opsgenie notification to {target_display}"
+        return f"Send an Opsgenie notification to {target_display}"
     elif action_type == AlertRuleTriggerAction.Type.DISCORD.value:
         if not target_display:
             logger.info(
