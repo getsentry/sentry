@@ -9,6 +9,7 @@ from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
+    compare_organization_sliding_window_sample_rates,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
@@ -19,6 +20,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -98,6 +100,83 @@ class ProjectBalancingCalculationsTest(TestCase):
         # No overrides configured -> the balanced rates are returned untouched.
         result = apply_project_sample_rate_overrides(rebalanced_projects)
         assert result == rebalanced_projects
+
+    def test_compare_organization_sliding_window_sample_rates(self) -> None:
+        org = self.create_organization()
+        config = Mock()
+        config.organization = org
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_eap_organization_volume",
+                return_value=OrganizationDataVolume(org_id=org.id, total=1000, indexed=100),
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_outcomes_organization_volume",
+                return_value=OrganizationDataVolume(org_id=org.id, total=2000, indexed=200),
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.compute_sliding_window_sample_rate",
+                side_effect=lambda org_id, project_id, total_root_count, window_size: (
+                    1.0 if total_root_count == 1000 else 0.5
+                ),
+            ),
+            patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info,
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.metrics.distribution"
+            ) as distribution,
+        ):
+            compare_organization_sliding_window_sample_rates(config)
+
+        assert (
+            logger_info.call_args.args[0]
+            == "dynamic_sampling.per_org.sliding_window_sample_rate_comparison"
+        )
+        extra = logger_info.call_args.kwargs["extra"]
+        assert extra["eap_volume"] == 1000
+        assert extra["eap_sample_rate"] == 1.0
+        assert extra["outcomes_volume"] == 2000
+        assert extra["outcomes_sample_rate"] == 0.5
+
+        emitted = {call.args[0]: call.args[1] for call in distribution.call_args_list}
+        assert emitted == {
+            "dynamic_sampling.per_org.sliding_window.eap_sample_rate": 1.0,
+            "dynamic_sampling.per_org.sliding_window.outcomes_sample_rate": 0.5,
+        }
+
+    def test_compare_organization_sliding_window_sample_rates_handles_missing_volume(self) -> None:
+        org = self.create_organization()
+        config = Mock()
+        config.organization = org
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_eap_organization_volume",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_outcomes_organization_volume",
+                return_value=OrganizationDataVolume(org_id=org.id, total=2000, indexed=200),
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.compute_sliding_window_sample_rate",
+                return_value=0.5,
+            ),
+            patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info,
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.metrics.distribution"
+            ) as distribution,
+        ):
+            compare_organization_sliding_window_sample_rates(config)
+
+        extra = logger_info.call_args.kwargs["extra"]
+        assert extra["eap_volume"] is None
+        assert extra["eap_sample_rate"] is None
+        assert extra["outcomes_sample_rate"] == 0.5
+        assert extra["relative_deviation"] is None
+        # Only the outcomes gauge is emitted when EAP volume is missing.
+        emitted = {call.args[0] for call in distribution.call_args_list}
+        assert emitted == {"dynamic_sampling.per_org.sliding_window.outcomes_sample_rate"}
 
     def test_compare_rebalanced_projects_with_cache_logs_per_project(self) -> None:
         org = self.create_organization()

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from dataclasses import replace
+from datetime import timedelta
 from typing import TYPE_CHECKING, cast
 
 import orjson
@@ -22,16 +23,26 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingModel,
 )
 from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
-from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import (
+    ProjectTransactionCounts,
+    ProjectVolume,
+    get_eap_organization_volume,
+    get_outcomes_organization_volume,
+)
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
+from sentry.dynamic_sampling.tasks.common import (
+    OrganizationDataVolume,
+    compute_sliding_window_sample_rate,
+    sample_rate_to_float,
+)
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -41,7 +52,75 @@ PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
+SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 logger = logging.getLogger(__name__)
+
+
+def _compute_org_sliding_window_sample_rate(
+    org_id: int, volume: OrganizationDataVolume | None
+) -> float | None:
+    if volume is None:
+        return None
+    return compute_sliding_window_sample_rate(
+        org_id=org_id,
+        project_id=None,
+        total_root_count=volume.total,
+        window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+    )
+
+
+def compare_organization_sliding_window_sample_rates(
+    config: BaseDynamicSamplingConfiguration,
+) -> None:
+    """
+    Compute the org-level sliding-window sample rate two ways over the same 24h window --
+    from EAP volume and from outcomes volume -- and log/emit both for comparison.
+
+    EAP has ingestion delay that can make the rate spike to 1.0; outcomes is delay-free.
+    This is observability only and does not change the sample rate the pipeline uses.
+    """
+    org_id = config.organization.id
+    window = timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
+
+    eap_volume = get_eap_organization_volume(config, time_interval=window)
+    outcomes_volume = get_outcomes_organization_volume(org_id, time_interval=window)
+
+    eap_sample_rate = _compute_org_sliding_window_sample_rate(org_id, eap_volume)
+    outcomes_sample_rate = _compute_org_sliding_window_sample_rate(org_id, outcomes_volume)
+
+    relative_deviation = (
+        get_relative_deviation(eap_sample_rate, outcomes_sample_rate)
+        if eap_sample_rate is not None and outcomes_sample_rate is not None
+        else None
+    )
+
+    logger.info(
+        "dynamic_sampling.per_org.sliding_window_sample_rate_comparison",
+        extra={
+            "org_id": org_id,
+            "eap_volume": eap_volume.total if eap_volume is not None else None,
+            "eap_sample_rate": eap_sample_rate,
+            "outcomes_volume": outcomes_volume.total if outcomes_volume is not None else None,
+            "outcomes_sample_rate": outcomes_sample_rate,
+            "relative_deviation": relative_deviation,
+        },
+    )
+
+    tags = {"org": str(org_id)}
+    if eap_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.eap_sample_rate",
+            eap_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
+    if outcomes_sample_rate is not None:
+        metrics.distribution(
+            f"{SLIDING_WINDOW_METRIC_PREFIX}.outcomes_sample_rate",
+            outcomes_sample_rate,
+            sample_rate=1.0,
+            tags=tags,
+        )
 
 
 def run_project_balancing(
