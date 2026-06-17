@@ -1337,7 +1337,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
-                "query": f"issue:{group.qualified_short_id} tags[platform]:SJ1",
+                "query": f"issue:{group.qualified_short_id} tags[platform]:cocoa",
                 "dataset": "errors",
                 "yAxis": "count()",
             },
