@@ -1,10 +1,10 @@
 import functools
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
-from sentry import options
 from sentry.models.activity import Activity
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.silo.base import SiloMode
@@ -324,9 +324,7 @@ class MessageBuilderTest(TestCase):
             MessageBuilder, subject="Test", body="hello world", html_body="<b>hello world</b>"
         )
 
-        expected = "<{event.project.slug}.{event.organization.slug}.{namespace}>".format(
-            event=self.event, namespace=options.get("mail.list-namespace")
-        )
+        expected = f"<{self.event.project.slug}.{self.event.organization.slug}.{settings.SENTRY_MAIL_LIST_NAMESPACE}>"
 
         references = (self.event.group, self.event.project, self.activity)
 

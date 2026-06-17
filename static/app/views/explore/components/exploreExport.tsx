@@ -9,37 +9,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-interface QueryInfo {
-  field: string[];
-  project: number[];
-  query: string;
-  sort: string[];
-  end?: string;
-  environment?: string[];
-  start?: string;
-  statsPeriod?: string;
-}
-
-type BaseExploreExportProps = {
+type ExploreExportProps = {
   hasReachedCSVLimit: boolean;
   isDataEmpty: boolean;
   isDataError: boolean;
   isDataLoading: boolean;
+  queryInfo: any;
+  traceItemDataset: Exclude<TraceItemDataset, TraceItemDataset.LOGS>;
   disabled?: boolean;
   downloadAsCsv?: () => void;
 };
-
-type LogsExploreExportProps = BaseExploreExportProps & {
-  queryInfo: QueryInfo;
-  traceItemDataset: TraceItemDataset.LOGS;
-};
-
-type OtherExploreExportProps = BaseExploreExportProps & {
-  queryInfo: any;
-  traceItemDataset: Exclude<TraceItemDataset, TraceItemDataset.LOGS>;
-};
-
-type ExploreExportProps = LogsExploreExportProps | OtherExploreExportProps;
 
 export function ExploreExport(props: ExploreExportProps) {
   const organization = useOrganization();

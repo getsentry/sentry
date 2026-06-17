@@ -1663,11 +1663,27 @@ class TestAddSeerProjectRepos(TestCase):
         assert overrides[0].branch_name == "release"
 
     def test_upserts_existing_repo(self):
-        self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="old")
+        existing = self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="old"
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=existing,
+            tag_name="env",
+            tag_value="staging",
+            branch_name="old-staging",
+        )
 
         add_seer_project_repos(
             self.project,
-            [{"repository_id": self.repo1.id, "branch_name": "new"}],
+            [
+                {
+                    "repository_id": self.repo1.id,
+                    "branch_name": "new",
+                    "branch_overrides": [
+                        {"tag_name": "env", "tag_value": "prod", "branch_name": "release"},
+                    ],
+                }
+            ],
         )
 
         assert (
@@ -1678,6 +1694,11 @@ class TestAddSeerProjectRepos(TestCase):
             project_repository__project=self.project, project_repository__repository=self.repo1
         )
         assert pr.branch_name == "new"
+        overrides = list(pr.branch_overrides.all())
+        assert len(overrides) == 1
+        assert overrides[0].tag_name == "env"
+        assert overrides[0].tag_value == "prod"
+        assert overrides[0].branch_name == "release"
 
     def test_returns_created_ids(self):
         created_ids = add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])

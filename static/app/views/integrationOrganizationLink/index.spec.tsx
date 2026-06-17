@@ -5,7 +5,13 @@ import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {VercelProviderFixture} from 'sentry-fixture/vercelIntegration';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -122,6 +128,67 @@ describe('IntegrationOrganizationLink', () => {
     expect(screen.getByRole('button', {name: 'Install Vercel'})).toBeEnabled();
     expect(getProviderMock).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalled();
+  });
+
+  it('forwards the next param to the integration settings page after install', async () => {
+    setupConfigStore(org2);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/config/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'vercel'})],
+      body: {providers: [VercelProviderFixture()]},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/`,
+      match: [MockApiClient.matchQuery({include_feature_flags: 1})],
+      body: org2,
+    });
+
+    // Drive the API pipeline: initialize hands back the auto-advancing Vercel
+    // step, and advancing completes the install with the new integration.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
+      method: 'POST',
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'vercel'})],
+      body: {
+        step: 'oauth_login',
+        stepIndex: 0,
+        totalSteps: 1,
+        provider: 'vercel',
+        data: {state: 'pipeline-sig'},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
+      method: 'POST',
+      match: [MockApiClient.matchData({state: 'pipeline-sig'})],
+      body: {status: 'complete', data: {id: '123', provider: {key: 'vercel'}}},
+    });
+
+    render(<IntegrationOrganizationLink />, {
+      organization: org2,
+      initialRouterConfig: {
+        location: {
+          pathname: '/extensions/vercel/link/',
+          query: {code: 'oauth-code', next: 'https://vercel.com/dashboard'},
+        },
+        route: '/extensions/:integrationSlug/link/',
+      },
+    });
+    renderGlobalModal({organization: org2});
+
+    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+    await userEvent.click(screen.getByRole('button', {name: 'Install Vercel'}));
+
+    await waitFor(() => {
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        expect.stringContaining('next=https%3A%2F%2Fvercel.com%2Fdashboard')
+      );
+    });
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+      expect.stringContaining('/settings/integrations/vercel/123/')
+    );
   });
 
   it('shows an error and reports to Sentry when the provider has no pipeline', async () => {

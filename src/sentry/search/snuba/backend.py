@@ -16,6 +16,7 @@ from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.progress import PROGRESS_RESET_ACTIVITY_TYPES
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -37,7 +38,6 @@ from sentry.search.snuba.executors import (
 )
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
-from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -256,15 +256,15 @@ def issue_activity_type_filter(activity_types: list[int], projects: Sequence[Pro
     group_ids = (
         Activity.objects.filter(
             project__in=projects,
-            type__in=set(activity_types) | {ActivityType.SET_REGRESSION.value},
+            type__in=set(activity_types) | PROGRESS_RESET_ACTIVITY_TYPES,
         )
         .values("group_id")
         .annotate(
             _latest_match=Max("datetime", filter=Q(type__in=activity_types)),
-            _latest_regression=Max("datetime", filter=Q(type=ActivityType.SET_REGRESSION.value)),
+            _latest_reset=Max("datetime", filter=Q(type__in=PROGRESS_RESET_ACTIVITY_TYPES)),
         )
         .filter(_latest_match__isnull=False)
-        .filter(Q(_latest_regression__isnull=True) | Q(_latest_match__gte=F("_latest_regression")))
+        .filter(Q(_latest_reset__isnull=True) | Q(_latest_match__gte=F("_latest_reset")))
         .values_list("group_id", flat=True)
     )
 
@@ -278,8 +278,8 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
       identified -> triaged -> diagnosed -> fix_proposed -> fix_applied
 
     "diagnosed" and above are determined by seer/resolution activity types (see
-    ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression (SET_REGRESSION) resets an issue
-    back, so only activities *after* the latest regression count.
+    ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression or manual unresolve resets an issue
+    back, so only activities *after* the latest reset count.
 
     "identified" and "triaged" are the two base states before any seer activity,
     distinguished solely by whether the issue is currently assigned:
