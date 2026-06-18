@@ -8,13 +8,11 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import sign
 from sentry.web.frontend.signup_email_verification import VERIFIED_SESSION_KEY
 
 SIGNUP_URL = "https://test.sentry.io/signup/"
-OPT_ENABLED = {"auth.email-verification-at-signup": True}
 
 
 def _make_signed_blob(email: str = "test@example.com", expires_at: float | None = None) -> str:
@@ -38,13 +36,7 @@ class SignupEmailVerificationViewTest(TestCase):
 
         signed = _make_signed_blob(email=email, **blob_kwargs)
 
-        with override_options(OPT_ENABLED):
-            return self.client.get(self._get_path(signed))
-
-    def test_option_off_redirects_to_signup(self) -> None:
-        resp = self.client.get(self._get_path(_make_signed_blob()))
-        assert resp.status_code == 302
-        assert resp["Location"] == SIGNUP_URL
+        return self.client.get(self._get_path(signed))
 
     def test_expired_link_renders_error_page(self) -> None:
         resp = self._get_with_session(expires_at=time.time() - 1)
@@ -52,8 +44,7 @@ class SignupEmailVerificationViewTest(TestCase):
         assert "Link expired" in resp.content.decode()
 
     def test_tampered_signature_renders_error_page(self) -> None:
-        with override_options(OPT_ENABLED):
-            resp = self.client.get(self._get_path("totally-bogus-data"))
+        resp = self.client.get(self._get_path("totally-bogus-data"))
         assert resp.status_code == 400
         assert "Verification error" in resp.content.decode()
 
@@ -64,13 +55,11 @@ class SignupEmailVerificationViewTest(TestCase):
         assert session.session_key is not None
         self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
 
-        with override_options(OPT_ENABLED):
-            resp = self.client.get(self._get_path(_make_signed_blob(email="attacker@example.com")))
+        resp = self.client.get(self._get_path(_make_signed_blob(email="attacker@example.com")))
         assert resp.status_code == 400
 
     def test_no_pending_email_in_session_renders_error_page(self) -> None:
-        with override_options(OPT_ENABLED):
-            resp = self.client.get(self._get_path(_make_signed_blob()))
+        resp = self.client.get(self._get_path(_make_signed_blob()))
         assert resp.status_code == 400
 
     def test_valid_link_sets_verified_email_in_session(self) -> None:

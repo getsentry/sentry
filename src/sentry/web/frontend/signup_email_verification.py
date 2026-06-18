@@ -9,7 +9,7 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
-from sentry import options
+from sentry import ratelimits as ratelimiter
 from sentry.auth.email_verification import verify_signup_link
 from sentry.utils.hashlib import sha256_text
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -38,8 +38,20 @@ class SignupEmailVerificationView(BaseView):
 
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, signed_data: str) -> HttpResponseBase:
-        if not options.get("auth.email-verification-at-signup"):
-            return self.redirect(_get_signup_url())
+        # use the same rate limit strategy as signup endpoint
+        ip_address = request.META["REMOTE_ADDR"]
+        if ratelimiter.backend.is_limited(f"signup-verify:ip:{ip_address}", limit=5, window=60):
+            return self._render_error(
+                title="Too many attempts",
+                message="Please wait a moment and try again.",
+            )
+        if ratelimiter.backend.is_limited(
+            f"signup-verify:ip:daily:{ip_address}", limit=50, window=86400
+        ):
+            return self._render_error(
+                title="Too many attempts",
+                message="Please wait a moment and try again.",
+            )
 
         try:
             payload = verify_signup_link(signed_data)
