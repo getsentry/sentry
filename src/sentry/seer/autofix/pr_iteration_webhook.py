@@ -217,21 +217,6 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    if not _github_commenter_has_repo_write_access(
-        organization_id=organization_id,
-        repo_id=repo_id,
-        github_username=github_username,
-    ):
-        metrics.incr("autofix.pr_iteration.comment_trigger.unauthorized")
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.unauthorized",
-            extra={
-                "organization_id": organization_id,
-                "github_username": github_username,
-            },
-        )
-        return None
-
     repo = Repository.objects.get(id=repo_id, organization_id=organization_id)
 
     integration = integration_service.get_integration(integration_id=integration_id)
@@ -254,6 +239,21 @@ def trigger_pr_iteration_from_comment(
         logger.info(
             "autofix.pr_iteration.comment_trigger.no_run",
             extra={"organization_id": organization_id, "pr_id": pr_id},
+        )
+        return None
+
+    if not _github_commenter_has_repo_write_access(
+        organization_id=organization_id,
+        repo_id=repo_id,
+        github_username=github_username,
+    ):
+        metrics.incr("autofix.pr_iteration.comment_trigger.unauthorized")
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.unauthorized",
+            extra={
+                "organization_id": organization_id,
+                "github_username": github_username,
+            },
         )
         return None
 

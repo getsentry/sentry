@@ -1,10 +1,9 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
-from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
+from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration_webhook import (
-    AutofixStep,
     handle_issue_comment_for_autofix_iteration,
     parse_iterate_command,
     trigger_pr_iteration_from_comment,
