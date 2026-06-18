@@ -129,10 +129,15 @@ const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
   ),
   Text: function SeerText({children}) {
     const isInsideLink = useContext(IsInsideLinkContext);
-    if (isInsideLink) {
-      return children;
+    // strip unclosed markdown syntax that the parser emitted as raw text
+    const text = children.replace(/^(?:#{1,6}\s*|`+|\*{1,3})/, '');
+    if (!text) {
+      return null;
     }
-    return <LinkifyIssueShortIds>{children}</LinkifyIssueShortIds>;
+    if (isInsideLink) {
+      return text;
+    }
+    return <LinkifyIssueShortIds>{text}</LinkifyIssueShortIds>;
   },
   InlineCode: function SeerInlineCode({children, Default}) {
     const isInsideLink = useContext(IsInsideLinkContext);
