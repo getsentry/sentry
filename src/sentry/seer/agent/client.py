@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import random
 import time
-from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Literal, overload
 
@@ -458,7 +457,7 @@ class SeerAgentClient:
             else None
         )
 
-        def _build_body(run: SeerRun) -> Mapping[str, Any]:
+        def _create_agent_run(run: SeerRun) -> None:
             source = self.category_key or ""
             if not source:
                 logger.warning(
@@ -477,12 +476,12 @@ class SeerAgentClient:
                 group=self.group,
                 extras=({"category_value": self.category_value} if self.category_value else {}),
             )
-            return chat_body
 
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.EXPLORER,
-            build_body=_build_body,
+            build_body=lambda run: chat_body,
+            on_run_created=_create_agent_run,
             viewer_context=self.viewer_context,
             user_id=user_id,
             flush=True,

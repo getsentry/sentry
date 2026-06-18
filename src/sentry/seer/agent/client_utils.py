@@ -225,10 +225,14 @@ def enqueue_seer_run(
     viewer_context: SeerViewerContext | None,
     user_id: int | None = None,
     flush: bool = True,
+    on_run_created: Callable[[SeerRun], None] | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the SEER_RUN_CREATE outbox that
-    dispatches it to Seer. build_body runs inside the transaction with the new
-    run and returns the outbox body; it may also create associated rows
+    dispatches it to Seer.
+
+    build_body(run) returns the outbox body (and may read run, e.g. run.uuid).
+    on_run_created(run), if given, runs in the same transaction right after the
+    SeerRun is created — use it to create associated rows atomically with the run
     (e.g. SeerAgentRun).
 
     flush=True: drain inline; a dispatch failure surfaces synchronously
@@ -243,6 +247,8 @@ def enqueue_seer_run(
                 type=run_type,
                 last_triggered_at=now(),
             )
+            if on_run_created is not None:
+                on_run_created(run)
             body = build_body(run)
             CellOutbox(
                 shard_scope=OutboxScope.SEER_SCOPE,
