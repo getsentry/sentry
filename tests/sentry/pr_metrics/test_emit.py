@@ -403,6 +403,7 @@ class PrMetricsEmissionTest(TestCase):
         assert row.conversation_comments_total == 3
         assert row.conversation_comments_judged == 2
         assert row.conversation_comments_truncated == 1
+        assert row.conversation_metadata is not None
         assert json.loads(row.conversation_metadata) == CONVERSATION_METADATA
 
     def test_build_row_carries_diagnosis_labels(self) -> None:

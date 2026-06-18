@@ -120,6 +120,7 @@ class UpdatePrMetricsTest(TestCase):
         # diagnosis_labels is a cross-judge top-level arg, not part of the analysis.
         assert row.diagnosis_labels == ["out_of_scope_or_unwanted"]
         # The metadata bundle rides through verbatim as the opaque drill-down blob.
+        assert row.conversation_metadata is not None
         assert orjson.loads(row.conversation_metadata) == CONVERSATION_ANALYSIS["metadata"]
 
     @patch("sentry.analytics.record")
