@@ -217,13 +217,6 @@ function prepareTextNode(
 
   textNode.replaceWith(wrapper);
 
-  const hasActive = active.includes(true);
-  if (hasActive) {
-    for (const el of decoratedAncestors) {
-      el.setAttribute('data-streaming-hidden', '');
-    }
-  }
-
   return {
     original,
     wrapper,
@@ -233,7 +226,7 @@ function prepareTextNode(
     globalOffset,
     collapseCursor: 0,
     decoratedAncestors,
-    revealed: !hasActive,
+    revealed: !active.includes(true),
   };
 }
 
@@ -337,6 +330,26 @@ function animateElement(element: Element, charOffset = 0): Animation {
 
   if (runs.length === 0) {
     return NOOP_ANIMATION;
+  }
+
+  // Only hide ancestors exclusive to active runs — shared ancestors
+  // (e.g. a <p> containing both old and new text) must stay visible.
+  const sharedAncestors = new Set<Element>();
+  for (const run of runs) {
+    if (run.revealed) {
+      for (const el of run.decoratedAncestors) {
+        sharedAncestors.add(el);
+      }
+    }
+  }
+  for (const run of runs) {
+    if (!run.revealed) {
+      for (const el of run.decoratedAncestors) {
+        if (!sharedAncestors.has(el)) {
+          el.setAttribute('data-streaming-hidden', '');
+        }
+      }
+    }
   }
 
   let settled = false;
