@@ -1499,9 +1499,11 @@ def get_issue_committers(
       code that does not appear in the trace), each enriched with PR title/body,
       file-change count, and a merge-commit flag so the caller can prune.
 
-    The time window for ``release_commits`` (and which event's stacktrace is sampled)
-    defaults to ~6 weeks before the issue first appeared; pass ``start``/``end`` to
-    override it.
+    Default time windows differ by signal: ``release_commits`` covers ~6 weeks before
+    the issue first appeared (to surface what shipped just before it regressed), while
+    the sampled stacktrace event (for ``stack_commits``) is drawn from the issue's own
+    lifetime (``first_seen``..``last_seen``), since the issue has no events before it
+    first appeared. Pass ``start``/``end`` to override both.
 
     Args:
         organization_id: The ID of the organization.
@@ -1553,8 +1555,6 @@ def get_issue_committers(
     stack_commits: list[dict[str, Any]] = []
     try:
         event = _get_recommended_event(group, organization, start_dt, end_dt)
-        if isinstance(event, Event):
-            event = event.for_group(group)
         if event is not None:
             sdk_name = (event.data.get("sdk") or {}).get("name")
             author_commits = get_event_file_committers(
