@@ -60,10 +60,10 @@ export function useStreamingAnimation(
       }
       activeAnimations = [];
 
-      const newElements: Element[] = [];
+      const newElements: HTMLElement[] = [];
       for (const mutation of mutations) {
         for (const addedNode of mutation.addedNodes) {
-          if (addedNode instanceof Element) {
+          if (addedNode instanceof HTMLElement) {
             newElements.push(addedNode);
           }
         }
@@ -73,7 +73,7 @@ export function useStreamingAnimation(
       // arriving in the same poll reveal one after another, not all at once.
       let charOffset = 0;
       for (const el of newElements) {
-        const skip = Number.parseInt((el as HTMLElement).dataset.skip ?? '0', 10);
+        const skip = Number.parseInt(el.dataset.skip ?? '0', 10);
         const totalChars = (el.textContent ?? '').length;
         activeAnimations.push(animateElement(el, charOffset));
         charOffset += Math.max(0, totalChars - skip);
@@ -297,10 +297,9 @@ interface Animation {
 
 const NOOP_ANIMATION: Animation = {settle() {}, destroy() {}};
 
-function animateElement(element: Element, charOffset = 0): Animation {
-  const htmlEl = element as HTMLElement;
-  const skipChars = Number.parseInt(htmlEl.dataset.skip ?? '0', 10);
-  delete htmlEl.dataset.skip;
+function animateElement(element: HTMLElement, charOffset = 0): Animation {
+  const skipChars = Number.parseInt(element.dataset.skip ?? '0', 10);
+  delete element.dataset.skip;
 
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
