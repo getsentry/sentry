@@ -133,14 +133,14 @@ export function DefaultTitle({
         >
           <code key="filename" className="filename" data-test-id="filename">
             {isPotentiallyThirdParty && frame.absPath ? (
-              <Truncate value={frame.absPath} maxLength={100} leftTrim />
+              <Truncate value={frame.absPath} leftTrim />
             ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText
                 value={pathNameOrModule.value}
                 meta={pathNameOrModule.meta}
               />
             ) : (
-              <HoverScrollable value={pathNameOrModule.value} maxLength={100} leftTrim />
+              <HoverScrollable value={pathNameOrModule.value} leftTrim />
             )}
           </code>
         </Tooltip>
