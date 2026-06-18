@@ -161,7 +161,7 @@ class SecretScanningGitHubTest(TestCase):
         )
         assert "http://testserver/settings/account/api/auth-tokens" in mail.outbox[0].body
         assert "test personal token" in mail.outbox[0].body
-        assert token.hashed_token in mail.outbox[0].body
+        assert str(token.hashed_token) in mail.outbox[0].body
 
     @override_options(
         {

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import CustomToolDefinition
+from sentry.seer.sentry_data_models import CallCustomToolResponse
 
 ParamsT = TypeVar("ParamsT", bound=BaseModel)
 
@@ -107,7 +108,7 @@ def call_custom_tool(
     organization_id: int,
     allowed_prefixes: tuple[str, ...] = ("sentry.",),
     **kwargs: Any,
-) -> str:
+) -> CallCustomToolResponse:
     """Dynamically import and call a custom tool class.
 
     Args:
@@ -165,4 +166,4 @@ def call_custom_tool(
     if not isinstance(result, str):
         raise RuntimeError(f"Custom tool {module_path} must return str, got {type(result)}")
 
-    return result
+    return CallCustomToolResponse(__root__=result)

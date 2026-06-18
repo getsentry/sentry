@@ -3,7 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
+import {
+  type DataExportPayload,
+  ExportQueryType,
+  useDataExport,
+} from 'sentry/components/exports/useDataExport';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -15,8 +19,8 @@ const mockAuthorizedOrg = OrganizationFixture({
 
 const mockPayload = {
   queryType: ExportQueryType.ISSUES_BY_TAG,
-  queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
-};
+  queryInfo: {project: '1', group: '1027', key: 'user'},
+} satisfies DataExportPayload;
 
 const requestBase = {
   url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,

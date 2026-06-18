@@ -258,40 +258,40 @@ export class PluginSettings<
     });
   }
 
-  fetchData() {
-    this.api.request(this.getPluginEndpoint(), {
-      success: data => {
-        if (!data.config) {
-          this.setState(
-            {
-              rawData: data,
-            },
-            this.onLoadSuccess
-          );
-          return;
-        }
-        let wasConfiguredOnPageLoad = false;
-        const formData = {};
-        const initialData = {};
-        data.config.forEach((field: BackendField) => {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          formData[field.name] = field.value || field.defaultValue;
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          initialData[field.name] = field.value;
-          wasConfiguredOnPageLoad = wasConfiguredOnPageLoad || !!field.value;
-        });
+  async fetchData() {
+    try {
+      const data = await this.api.requestPromise(this.getPluginEndpoint());
+      if (!data.config) {
         this.setState(
           {
-            fieldList: data.config,
-            formData,
-            initialData,
-            wasConfiguredOnPageLoad,
+            rawData: data,
           },
           this.onLoadSuccess
         );
-      },
-      error: this.onLoadError,
-    });
+        return;
+      }
+      let wasConfiguredOnPageLoad = false;
+      const formData = {};
+      const initialData = {};
+      data.config.forEach((field: BackendField) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        formData[field.name] = field.value || field.defaultValue;
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        initialData[field.name] = field.value;
+        wasConfiguredOnPageLoad = wasConfiguredOnPageLoad || !!field.value;
+      });
+      this.setState(
+        {
+          fieldList: data.config,
+          formData,
+          initialData,
+          wasConfiguredOnPageLoad,
+        },
+        this.onLoadSuccess
+      );
+    } catch (error) {
+      this.onLoadError(error);
+    }
   }
 
   renderField(props: Omit<GenericFieldProps, 'formState'>): React.ReactNode {

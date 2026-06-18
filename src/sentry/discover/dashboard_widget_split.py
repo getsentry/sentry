@@ -76,6 +76,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
     widget_query: DashboardWidgetQuery, dry_run: bool
 ) -> tuple[int, bool]:
     sentry_sdk.set_tag("dry_run", dry_run)
+    sentry_sdk.set_attribute("dry_run", dry_run)
 
     widget: DashboardWidget = widget_query.widget
     dashboard: Dashboard = widget.dashboard
@@ -99,6 +100,9 @@ def _get_and_save_split_decision_for_dashboard_widget(
                     "org_slug": dashboard.organization.slug,
                 },
             )
+            sentry_sdk.set_attribute("dashboard.dashboard_id", dashboard.id)
+            sentry_sdk.set_attribute("dashboard.widget_id", widget.id)
+            sentry_sdk.set_attribute("dashboard.org_slug", dashboard.organization.slug)
             sentry_sdk.capture_message(
                 "No projects found in organization for dashboard, defaulting to errors dataset"
             )

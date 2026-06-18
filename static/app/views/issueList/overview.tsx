@@ -14,6 +14,7 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -62,6 +63,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {useIssuePreviewDrawer} from './pages/useIssuePreviewDrawer';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
@@ -81,11 +83,18 @@ const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
 interface Props {
+  /**
+   * Controls what happens when an issue row is clicked.
+   * - 'navigate' (default): navigates to the issue details page.
+   * - 'preview': opens a lightweight issue preview drawer.
+   */
+  clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
+  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
@@ -134,11 +143,15 @@ function IssueListOverviewInner({
   title = t('Issues'),
   titleDescription,
   headerActions,
+  clickBehavior = 'navigate',
+  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const isPreviewMode = clickBehavior === 'preview';
+  const {openIssuePreview} = useIssuePreviewDrawer({enabled: isPreviewMode});
   const api = useApi();
   const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -379,7 +392,7 @@ function IssueListOverviewInner({
     }
   }, [location.pathname, navigate, location.query]);
 
-  const fetchData = useCallback(() => {
+  const fetchData = useCallback(async () => {
     resetNewViewQueryParam();
 
     if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
@@ -398,123 +411,126 @@ function IssueListOverviewInner({
     api.clear();
     pollerRef.current?.disable();
 
-    api.request(`/organizations/${organization.slug}/issues/`, {
-      method: 'GET',
-      data: qs.stringify(requestParams),
-      success: async (data, _, resp) => {
-        if (!resp) {
-          return;
+    try {
+      const [data, _, resp] = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/`,
+        {
+          method: 'GET',
+          data: qs.stringify(requestParams),
+          includeAllArgs: true,
+        }
+      );
+
+      if (!resp) {
+        return;
+      }
+
+      // If this is a direct hit, we redirect to the intended result directly.
+      if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+        let redirect: string;
+        if (data[0]?.matchingEventId) {
+          const {id, matchingEventId} = data[0];
+          redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
+        } else {
+          const {id} = data[0];
+          redirect = `/organizations/${organization.slug}/issues/${id}/`;
         }
 
-        // If this is a direct hit, we redirect to the intended result directly.
-        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          let redirect: string;
-          if (data[0]?.matchingEventId) {
-            const {id, matchingEventId} = data[0];
-            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
-          } else {
-            const {id} = data[0];
-            redirect = `/organizations/${organization.slug}/issues/${id}/`;
-          }
+        navigate(
+          normalizeUrl({
+            pathname: redirect,
+            query: {
+              referrer: 'issue-list',
+              ...extractSelectionParameters(location.query),
+            },
+          }),
+          {replace: true}
+        );
+        return;
+      }
 
-          navigate(
-            normalizeUrl({
-              pathname: redirect,
-              query: {
-                referrer: 'issue-list',
-                ...extractSelectionParameters(location.query),
-              },
-            }),
-            {replace: true}
-          );
-          return;
-        }
+      if (undoRef.current) {
+        GroupStore.loadInitialData(data);
+      }
+      GroupStore.add(data);
 
-        if (undoRef.current) {
-          GroupStore.loadInitialData(data);
-        }
-        GroupStore.add(data);
-
-        if (data.length === 0) {
-          trackAnalytics('issue_search.empty', {
-            organization,
-            search_type: 'issues',
-            search_source: 'main_search',
-            query,
-          });
-        }
-
-        const hits = resp.getResponseHeader('X-Hits');
-        const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
-        const maxHits = resp.getResponseHeader('X-Max-Hits');
-        const newQueryMaxCount =
-          maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-        const newPageLinks = resp.getResponseHeader('Link');
-
-        setError(null);
-        setIssuesLoading(false);
-        setIssuesSuccessfullyLoaded(true);
-        setQueryCount(newQueryCount);
-        setQueryMaxCount(newQueryMaxCount);
-        setPageLinks(newPageLinks === null ? '' : newPageLinks);
-
-        // AI query analytics
-        const aiQueryRunId = getRunIdForAnalytics();
-        if (aiQueryRunId !== null) {
-          trackAiQueryOutcome({
-            dataset: 'issues',
-            mode: 'samples',
-            referrer: 'issues',
-            resultCount: data.length, // Can also use newQueryCount for total hits
-            orgSlug: organization.slug,
-            runId: aiQueryRunId,
-          });
-        }
-
-        // Need to wait for stats request to finish before saving to cache
-        await fetchStats(data.map((group: BaseGroup) => group.id));
-        IssueListCacheStore.save(requestParams, {
-          groups: GroupStore.getState() as Group[],
-          queryCount: newQueryCount,
-          queryMaxCount: newQueryMaxCount,
-          pageLinks: newPageLinks ?? '',
-        });
-      },
-      error: err => {
-        trackAnalytics('issue_search.failed', {
+      if (data.length === 0) {
+        trackAnalytics('issue_search.empty', {
           organization,
           search_type: 'issues',
           search_source: 'main_search',
-          error: parseApiError(err),
+          query,
         });
+      }
 
-        setError(parseApiError(err));
-        setIssuesLoading(false);
-        setIssuesSuccessfullyLoaded(false);
+      const hits = resp.getResponseHeader('X-Hits');
+      const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
+      const maxHits = resp.getResponseHeader('X-Max-Hits');
+      const newQueryMaxCount =
+        maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+      const newPageLinks = resp.getResponseHeader('Link');
 
-        // AI query analytics
-        const aiQueryRunId = getRunIdForAnalytics();
-        if (aiQueryRunId !== null) {
-          trackAiQueryOutcome({
-            dataset: 'issues',
-            mode: 'samples',
-            referrer: 'issues',
-            resultCount: 0,
-            orgSlug: organization.slug,
-            runId: aiQueryRunId,
-            error: parseApiError(err),
-          });
-        }
-      },
-      complete: () => {
-        resumePolling();
+      setError(null);
+      setIssuesLoading(false);
+      setIssuesSuccessfullyLoaded(true);
+      setQueryCount(newQueryCount);
+      setQueryMaxCount(newQueryMaxCount);
+      setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
-        if (!realtimeActive) {
-          actionTakenRef.current = false;
-          undoRef.current = false;
-        }
-      },
-    });
+      // AI query analytics
+      const aiQueryRunId = getRunIdForAnalytics();
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'issues',
+          mode: 'samples',
+          referrer: 'issues',
+          resultCount: data.length, // Can also use newQueryCount for total hits
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+        });
+      }
+
+      // Need to wait for stats request to finish before saving to cache
+      await fetchStats(data.map((group: BaseGroup) => group.id));
+      IssueListCacheStore.save(requestParams, {
+        groups: GroupStore.getState() as Group[],
+        queryCount: newQueryCount,
+        queryMaxCount: newQueryMaxCount,
+        pageLinks: newPageLinks ?? '',
+      });
+    } catch (err) {
+      trackAnalytics('issue_search.failed', {
+        organization,
+        search_type: 'issues',
+        search_source: 'main_search',
+        error: parseApiError(err as RequestError),
+      });
+
+      setError(parseApiError(err as RequestError));
+      setIssuesLoading(false);
+      setIssuesSuccessfullyLoaded(false);
+
+      // AI query analytics
+      const aiQueryRunId = getRunIdForAnalytics();
+      if (aiQueryRunId !== null) {
+        trackAiQueryOutcome({
+          dataset: 'issues',
+          mode: 'samples',
+          referrer: 'issues',
+          resultCount: 0,
+          orgSlug: organization.slug,
+          runId: aiQueryRunId,
+          error: parseApiError(err as RequestError),
+        });
+      }
+    } finally {
+      resumePolling();
+
+      if (!realtimeActive) {
+        actionTakenRef.current = false;
+        undoRef.current = false;
+      }
+    }
   }, [
     resetNewViewQueryParam,
     realtimeActive,
@@ -713,7 +729,7 @@ function IssueListOverviewInner({
     }
   };
 
-  const undoAction = ({
+  const undoAction = async ({
     data,
     groupItems,
   }: {
@@ -725,17 +741,17 @@ function IssueListOverviewInner({
 
     api.clear();
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data,
-      query: {
-        project: projectIds,
-        id: groupItems.map(group => group.id),
-      },
-      success: response => {
-        if (!response) {
-          return;
-        }
+    try {
+      const response = await api.requestPromise(endpoint, {
+        method: 'PUT',
+        data,
+        query: {
+          project: projectIds,
+          id: groupItems.map(group => group.id),
+        },
+      });
+
+      if (response) {
         // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
         // on this page for a second and then be removed (will show up on All Unresolved). This is to
         // stop this from happening and avoid confusion.
@@ -743,15 +759,13 @@ function IssueListOverviewInner({
           GroupStore.add(groupItems);
         }
         actionTakenRef.current = true;
-      },
-      error: err => {
-        setError(parseApiError(err as RequestError));
-        setIssuesLoading(false);
-      },
-      complete: () => {
-        fetchData();
-      },
-    });
+      }
+    } catch (err) {
+      setError(parseApiError(err as RequestError));
+      setIssuesLoading(false);
+    } finally {
+      fetchData();
+    }
   };
 
   const onIssueAction = ({
@@ -982,6 +996,8 @@ function IssueListOverviewInner({
               supergroupLookup={supergroupLookup}
               error={error}
               refetchGroups={fetchData}
+              onGroupClick={isPreviewMode ? openIssuePreview : undefined}
+              withColumns={withColumns}
               paginationCaption={
                 !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {

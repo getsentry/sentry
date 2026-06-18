@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {GridRow} from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
+import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
@@ -56,9 +57,9 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
             if (isFetchingPinnedRows) {
               return (
                 <GridRow key={rowId}>
-                  <PinnedGridBodyCell>
-                    <LoadingIndicator mini />
-                  </PinnedGridBodyCell>
+                  <LoadingGridBodyCell>
+                    <Placeholder height="100%" />
+                  </LoadingGridBodyCell>
                 </GridRow>
               );
             }
@@ -108,4 +109,8 @@ const PinnedTableBody = styled(TableBody)`
 const PinnedGridBodyCell = styled('td')`
   grid-column: 1 / -1;
   padding: ${p => p.theme.space.sm};
+`;
+
+const LoadingGridBodyCell = styled(PinnedGridBodyCell)`
+  height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 `;

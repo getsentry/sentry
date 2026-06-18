@@ -25,12 +25,11 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
     publish_action_from_context,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
@@ -224,7 +223,7 @@ def update_groups(
         actor = existing_ctx.actor
     else:
         source = resolve_action_source(request)
-        actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+        actor = resolve_action_actor(request)
 
     with action_context_scope(source=source, actor=actor):
         status_details = result.pop("statusDetails", result)
@@ -660,8 +659,7 @@ def process_group_resolution(
         publish_action_from_context(
             ResolveAction(),
             group_id=group.id,
-            organization_id=group.project.organization_id,
-            project_id=group.project_id,
+            project=group.project,
         )
 
         # TODO(dcramer): we need a solution for activity rollups
@@ -842,8 +840,7 @@ def prepare_response(
                 MergeFromOtherAction(counterpart_group_ids=child_ids),
                 source=ctx.source,
                 group_id=primary_id,
-                organization_id=primary.project.organization_id,
-                project_id=primary.project_id,
+                project=primary.project,
                 actor=ctx.actor,
             )
             for child_id in child_ids:
@@ -852,8 +849,7 @@ def prepare_response(
                     MergeIntoOtherAction(counterpart_group_id=primary_id),
                     source=ctx.source,
                     group_id=child_id,
-                    organization_id=child.project.organization_id,
-                    project_id=child.project_id,
+                    project=child.project,
                     actor=ctx.actor,
                 )
 

@@ -15,6 +15,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.db.models import Q
+from pydantic import BaseModel
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -55,9 +56,34 @@ SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
     PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
     PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: 70,
     PullRequestAttributionSignalType.MCP: 50,
-    PullRequestAttributionSignalType.REFERENCED_ISSUE: 25,
     PullRequestAttributionSignalType.UNKNOWN: 0,
 }
+
+
+class DelegatedAgentSignalDetails(BaseModel):
+    """Typed signal_details for SEER_DELEGATED_* attribution signals."""
+
+    agent_id: str | None = None
+    pr_url: str
+    run_id: int | None = None
+
+
+# Signal types that use DelegatedAgentSignalDetails for their signal_details.
+DELEGATED_SIGNAL_TYPES = frozenset(
+    {
+        PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR,
+        PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
+        PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+        PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN,
+    }
+)
+
+# Signal types that qualify a PR for Seer judge forwarding.
+# Weaker heuristics (MCP issue views, bare issue references) do not warrant
+# the expensive judge call — only direct agent authorship does.
+JUDGE_ELIGIBLE_SIGNAL_TYPES = DELEGATED_SIGNAL_TYPES | frozenset(
+    {PullRequestAttributionSignalType.SENTRY_APP}
+)
 
 
 def record_attribution_signal(
@@ -260,6 +286,7 @@ def attribute_delegated_agent_pull_request(
     repo_provider: str,
     pr_url: str,
     agent_id: str | None = None,
+    run_id: int | None = None,
 ) -> None:
     """Attribute a PR opened by a Seer-delegated coding agent (Cursor/Copilot/Claude).
 
@@ -303,7 +330,11 @@ def attribute_delegated_agent_pull_request(
         pr_number=pr_number,
         signal_type=signal_type,
         source=PullRequestAttributionSource.SEER_DATA,
-        signal_details={"agent_id": agent_id, "pr_url": pr_url},
+        signal_details=DelegatedAgentSignalDetails(
+            agent_id=agent_id,
+            pr_url=pr_url,
+            run_id=run_id,
+        ).dict(),
         log_context=log_context,
     )
 

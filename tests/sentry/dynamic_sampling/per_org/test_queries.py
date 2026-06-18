@@ -17,6 +17,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
+    get_outcomes_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
@@ -284,6 +285,36 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         run_table_query.assert_called_once()
         query = run_table_query.call_args.args[0]
         assert query["params"].projects == []
+
+    def test_get_outcomes_organization_volume_existing_org(self) -> None:
+        organization = self.create_organization()
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.queries.run_outcomes_query_totals",
+            return_value=[{"quantity": 10}],
+        ) as run_outcomes_query_totals:
+            org_volume = get_outcomes_organization_volume(
+                self.get_config(organization), time_interval=timedelta(hours=24)
+            )
+
+        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=None)
+        run_outcomes_query_totals.assert_called_once()
+        assert run_outcomes_query_totals.call_args.kwargs["tenant_ids"] == {
+            "organization_id": organization.id
+        }
+
+    def test_get_outcomes_organization_volume_without_traffic(self) -> None:
+        organization = self.create_organization()
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.queries.run_outcomes_query_totals",
+            return_value=[],
+        ):
+            org_volume = get_outcomes_organization_volume(
+                self.get_config(organization), time_interval=timedelta(hours=24)
+            )
+
+        assert org_volume is None
 
 
 class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):

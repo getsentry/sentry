@@ -18,6 +18,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
+from sentry.utils import json
 
 
 @cell_silo_model
@@ -106,6 +107,15 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                 "existing_dashboard_ids": existing_dashboard_ids,
                 "new_dashboard_positions": new_dashboard_positions,
             },
+        )
+        sentry_sdk.set_attribute("reorder_favorite_dashboards.organization", organization.id)
+        sentry_sdk.set_attribute("reorder_favorite_dashboards.user_id", user_id)
+        sentry_sdk.set_attribute(
+            "reorder_favorite_dashboards.existing_dashboard_ids", json.dumps(existing_dashboard_ids)
+        )
+        sentry_sdk.set_attribute(
+            "reorder_favorite_dashboards.new_dashboard_positions",
+            json.dumps(new_dashboard_positions),
         )
 
         if existing_dashboard_ids != new_dashboard_ids:

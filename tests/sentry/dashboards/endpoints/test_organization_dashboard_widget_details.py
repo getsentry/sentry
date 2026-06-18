@@ -1485,6 +1485,139 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_widget_type_tracemetrics_heatmap_requires_flag(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "metric.name:foo",
+                    "fields": ["sum(value)"],
+                    "columns": [],
+                    "aggregates": ["sum(value)"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "displayType" in response.data, response.data
+
+    def test_widget_type_tracemetrics_heatmap_with_flag(self) -> None:
+        data = {
+            "title": "Test Metrics Heat Map",
+            "widgetType": "tracemetrics",
+            "displayType": "heatmap",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "metric.name:foo",
+                    "fields": ["sum(value)"],
+                    "columns": [],
+                    "aggregates": ["sum(value)"],
+                },
+            ],
+        }
+
+        with self.feature("organizations:data-browsing-heat-map-widget"):
+            response = self.do_request(
+                "post",
+                self.url(),
+                data=data,
+            )
+        assert response.status_code == 200, response.data
+
+    def test_widget_type_tracemetrics_line_chart_allows_single_equation(self) -> None:
+        data = {
+            "title": "Test Metrics Equation",
+            "widgetType": "tracemetrics",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["equation|sum(value,metric_name,counter,none) / 100"],
+                    "columns": [],
+                    "aggregates": ["equation|sum(value,metric_name,counter,none) / 100"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_widget_type_tracemetrics_line_chart_rejects_multiple_equations(self) -> None:
+        data = {
+            "title": "Test Metrics Equation",
+            "widgetType": "tracemetrics",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "equation|sum(value,metric_name,counter,none) / 100",
+                        "equation|avg(value,metric_name,gauge,none) * 2",
+                    ],
+                    "columns": [],
+                    "aggregates": [
+                        "equation|sum(value,metric_name,counter,none) / 100",
+                        "equation|avg(value,metric_name,gauge,none) * 2",
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
+    def test_widget_type_tracemetrics_line_chart_rejects_multiple_aggregates_with_equation(
+        self,
+    ) -> None:
+        data = {
+            "title": "Test Metrics Equation",
+            "widgetType": "tracemetrics",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "equation|sum(value,metric_name,counter,none) / 100",
+                        "avg(value,metric_name,gauge,none)",
+                    ],
+                    "columns": [],
+                    "aggregates": [
+                        "equation|sum(value,metric_name,counter,none) / 100",
+                        "avg(value,metric_name,gauge,none)",
+                    ],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
     def test_widget_type_tracemetrics_rejects_table(self) -> None:
         data = {
             "title": "Test Metrics Query",
@@ -1501,6 +1634,59 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "displayType" in response.data, response.data
+
+    def test_widget_type_tracemetrics_allows_existing_table(self) -> None:
+        # Tracemetrics tables can't be created in the UI, but some existing
+        # widgets predate display-type validation and must still be saveable.
+        # Existing widgets are identified by the presence of an ``id``.
+        data = {
+            "id": "1",
+            "title": "Test Metrics Query",
+            "widgetType": "tracemetrics",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "metric.name:foo",
+                    "fields": ["sum(value)"],
+                    "columns": [],
+                    "aggregates": ["sum(value)"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_existing_widget_still_rejects_other_unsupported_display_types(self) -> None:
+        # The grandfather exception only applies to tracemetrics tables. Other
+        # unsupported combinations are still rejected even for existing widgets.
+        data = {
+            "id": "1",
+            "title": "Table on preprod-app-size",
+            "displayType": "table",
+            "widgetType": "preprod-app-size",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
         response = self.do_request(
             "post",
             self.url(),

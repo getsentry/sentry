@@ -40,17 +40,41 @@ class NightShiftTweaks(pydantic.BaseModel):
         allow_population_by_field_name = True
 
 
-def get_night_shift_tweaks(project: Project) -> NightShiftTweaks:
-    raw = project.get_option("sentry:seer_nightshift_tweaks")
-    if not raw:
-        return NightShiftTweaks()
+def _parse_tweaks(raw: object, source: str) -> NightShiftTweaks | None:
+    """Parse a raw tweaks payload into NightShiftTweaks, or None if it is
+    malformed (reported to Sentry). `source` labels the option in the report."""
     if not isinstance(raw, dict):
         sentry_sdk.capture_exception(
-            TypeError(f"sentry:seer_nightshift_tweaks must be a dict, got {type(raw).__name__}")
+            TypeError(f"{source} must be a dict, got {type(raw).__name__}")
         )
-        return NightShiftTweaks()
+        return None
     try:
         return NightShiftTweaks(**raw)
     except pydantic.ValidationError:
         sentry_sdk.capture_exception()
+        return None
+
+
+def get_night_shift_tweaks(project: Project) -> NightShiftTweaks:
+    """Per-project tweaks from the `sentry:seer_nightshift_tweaks` option.
+    Falls back to all-default tweaks when unset or malformed."""
+    raw = project.get_option("sentry:seer_nightshift_tweaks")
+    if not raw:
         return NightShiftTweaks()
+    return _parse_tweaks(raw, "sentry:seer_nightshift_tweaks") or NightShiftTweaks()
+
+
+def get_night_shift_org_tweaks(organization_id: int) -> NightShiftTweaks | None:
+    """Per-org overrides from the `seer.night_shift.org_tweaks` option, a dict
+    keyed by stringified organization id. Each value is a partial
+    `NightShiftTweaks` payload (e.g. {"max_candidates": 20}); unset fields fall
+    back to the same global defaults `NightShiftTweaks` uses. Returns None when
+    nothing is configured for the org. Malformed entries are reported to Sentry
+    and treated as absent."""
+    org_tweaks = options.get("seer.night_shift.org_tweaks")
+    if not isinstance(org_tweaks, dict):
+        return None
+    raw = org_tweaks.get(str(organization_id))
+    if raw is None:
+        return None
+    return _parse_tweaks(raw, f"seer.night_shift.org_tweaks[{organization_id}]")

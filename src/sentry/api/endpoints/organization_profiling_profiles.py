@@ -116,7 +116,8 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
     }
 
     @extend_schema(
-        operation_id="Retrieve a Flamegraph for an Organization",
+        operation_id="getOrganizationProfilingFlamegraph",
+        summary="Retrieve a Flamegraph for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -164,6 +165,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         serialized = serializer.validated_data
 
         sentry_sdk.set_tag("query.dataSource", serialized["dataSource"])
+        sentry_sdk.set_attribute("query.dataSource", serialized["dataSource"])
 
         with handle_query_errors():
             executor = FlamegraphExecutor(
@@ -212,7 +214,8 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve Profile Chunks for an Organization",
+        operation_id="listOrganizationProfilingChunks",
+        summary="Retrieve Profile Chunks for an Organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             CHUNKS_PROJECT_PARAM,

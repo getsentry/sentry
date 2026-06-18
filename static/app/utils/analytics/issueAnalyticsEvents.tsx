@@ -36,6 +36,13 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
   external_issue_type: IntegrationType;
 }
 
+interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
+  pull_request_id: string;
+  pull_request_status: string;
+  repository_id: string;
+  repository_provider: string;
+}
+
 interface SetPriorityParams extends CommonGroupAnalyticsData {
   from_priority: PriorityLevel;
   to_priority: PriorityLevel;
@@ -109,6 +116,7 @@ export type IssueEventParameters = {
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
+  'issue_details.external_issue_pull_request_clicked': ExternalIssuePullRequestParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_content_selected': {
     content: string;
@@ -402,6 +410,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.external_issue_modal_opened':
     'Issue Details: External Issue Modal Opened',
   'issue_details.external_issue_created': 'Issue Details: External Issue Created',
+  'issue_details.external_issue_pull_request_clicked':
+    'Issue Details: External Issue Pull Request Clicked',
   'device.classification.unclassified.ios.device':
     'Event from iOS device missing device.class',
   'device.classification.high.end.android.device': 'Event from high end Android device',

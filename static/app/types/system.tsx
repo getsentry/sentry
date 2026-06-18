@@ -1,6 +1,5 @@
 import type {FocusTrap} from 'focus-trap';
 
-import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import type {ApiResult} from 'sentry/types/api';
 
 import type {ParntershipAgreementType} from './overrides';
@@ -27,7 +26,7 @@ export type OnSentryInitConfiguration =
     }
   | {
       name: 'onReady';
-      onReady: (globals: typeof exportedGlobals) => void;
+      onReady: (globals: Record<string, any>) => void;
     };
 
 declare global {
@@ -176,8 +175,6 @@ export interface Config {
   };
   // The list of localities (formerly regions) that are available
   localities: Locality[];
-  // A list of regions that the user has membership in.
-  memberRegions: Region[];
   /**
    * This comes from django (django.contrib.messages)
    */
@@ -188,8 +185,6 @@ export interface Config {
   }>;
   needsUpgrade: boolean;
   privacyUrl: string | null;
-  // The list of regions the user has has access to.
-  regions: Region[];
   sentryConfig: {
     allowUrls: string[];
     dsn: string;

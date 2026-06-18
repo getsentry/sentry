@@ -12,6 +12,7 @@ from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
 from rest_framework.request import Request
+from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
@@ -28,18 +29,21 @@ from sentry.models.project import Project
 from sentry.seer.agent.client_models import AgentRun, AgentRunWithPrs, SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
+    AgentReposRequest,
     AgentRunsRequest,
     AgentUpdateRequest,
     collect_user_org_context,
     fetch_run_status,
     get_proxy_headers,
     make_agent_chat_request,
+    make_agent_repos_request,
     make_agent_runs_request,
     make_agent_update_request,
     poll_until_done,
 )
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
+from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
@@ -433,6 +437,27 @@ class SeerAgentClient:
         ):
             agent_run_options["use_agent_sandbox"] = True
 
+        if features.has(
+            "organizations:seer-explorer-thinking-summary",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_tool_summary"] = True
+
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["embed_widgets"] = get_embed_widgets()
+
+        if features.has(
+            "organizations:seer-explorer-stream",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_streaming"] = True
+
         user_id = (
             self.user.id
             if self.user and hasattr(self.user, "id") and self.user.id is not None
@@ -488,8 +513,14 @@ class SeerAgentClient:
             run.save(update_fields=["mirror_status"])
             raise SeerApiError("Outbox flush failed for explorer SeerRun", 500)
         run.refresh_from_db()
-        if run.mirror_status == SeerRunMirrorStatus.FAILED:
-            raise SeerApiError("Seer run failed during outbox drain", 500)
+        if run.mirror_status != SeerRunMirrorStatus.LIVE or run.seer_run_state_id is None:
+            if run.mirror_status == SeerRunMirrorStatus.FAILED:
+                detail = "Seer run failed during outbox drain"
+            elif run.seer_run_state_id is None:
+                detail = "Seer run did not mirror during outbox drain"
+            else:
+                detail = f"Seer run in unexpected state after outbox drain: {run.mirror_status}"
+            raise SeerApiError(detail, 500)
         return run
 
     def continue_run(
@@ -573,6 +604,27 @@ class SeerAgentClient:
             actor=self.user,
         ):
             agent_run_options["use_agent_sandbox"] = True
+
+        if features.has(
+            "organizations:seer-explorer-thinking-summary",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_tool_summary"] = True
+
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["embed_widgets"] = get_embed_widgets()
+
+        if features.has(
+            "organizations:seer-explorer-stream",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_streaming"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
@@ -721,6 +773,13 @@ class SeerAgentClient:
         Model = AgentRunWithPrs if expand == "prs" else AgentRun
         runs = [Model(**run) for run in result.get("data", [])]
         return runs
+
+    def get_repos(self, run_id: int) -> BaseHTTPResponse:
+        body = AgentReposRequest(
+            run_id=run_id,
+            organization_id=self.organization.id,
+        )
+        return make_agent_repos_request(body, viewer_context=self.viewer_context)
 
     def push_changes(
         self,

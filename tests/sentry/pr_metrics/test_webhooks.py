@@ -5,9 +5,12 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.core.cache import cache
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.issues.constants import ISSUE_VIEW_CACHE_KEY_TTL, cache_key_for_issue_view
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestActivity,
     PullRequestActivityType,
@@ -143,6 +146,79 @@ class HandleWebhookForPrMetricsTest(TestCase):
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
 
+    # --- MCP attribution ---
+
+    def test_mcp_attribution_recorded_when_referenced_issue_viewed_via_mcp(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        attr = PullRequestAttribution.objects.get(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        )
+        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
+        assert attr.signal_details == {"group_ids": {str(group.id): "cursor"}}
+
+    def test_mcp_attribution_not_recorded_without_cache_hit(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
+    def test_mcp_attribution_not_recorded_without_group_link(self) -> None:
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=999)
+
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
+    def test_mcp_and_app_attribution_coexist(self) -> None:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        cache.set(cache_key_for_issue_view(group.id, "mcp"), "cursor", ISSUE_VIEW_CACHE_KEY_TTL)
+
+        with self.feature("organizations:mcp-issue-view-attribution"):
+            self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
+
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+        ).exists()
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.MCP,
+        ).exists()
+
     # --- Feature flag ---
 
     def test_feature_flag_off_skips_attribution(self) -> None:
@@ -185,6 +261,7 @@ CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
 @with_feature("organizations:pr-metrics-emit")
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
@@ -232,22 +309,50 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def test_emits_on_merge(self, mock_record: MagicMock) -> None:
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
-        assert mock_record.call_args_list[-1].args[0].close_action == "merged"
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.close_action == "merged"
+        assert row.verdict == "merged_unchanged"
 
     @patch("sentry.analytics.record")
     def test_emits_on_close_unmerged(self, mock_record: MagicMock) -> None:
         self._call(merged=False)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
-        assert mock_record.call_args_list[-1].args[0].close_action == "closed"
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.close_action == "closed"
+        assert row.verdict == "closed_unmerged"
 
-    @patch(f"{MODULE}.needs_judge", return_value=True)
+    def _add_synchronize(self) -> None:
+        # A push to the PR branch after it opened — makes a merge non-deterministic.
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="sync-1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={},
+        )
+
+    def test_claims_verdict_on_metrics_row(self) -> None:
+        with patch("sentry.analytics.record"):
+            self._call(merged=True)
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.verdict == "merged_unchanged"
+
     @patch("sentry.analytics.record")
-    def test_falls_back_to_immediate_emit_when_judge_needed(
-        self, mock_record: MagicMock, _needs_judge: MagicMock
-    ) -> None:
-        # Until the judge path is wired, a judge-needed PR still emits immediately.
+    def test_skips_emit_when_judge_needed(self, mock_record: MagicMock) -> None:
+        # A merge with later commits can't be settled deterministically — it needs
+        # a judge. With pr-metrics-judge off (this class), the forward is skipped
+        # and no verdict is set.
+        self._add_synchronize()
         self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch("sentry.analytics.record")
+    def test_skips_emit_when_metrics_row_missing(self, mock_record: MagicMock) -> None:
+        # A missing metrics row (handle_metrics failed) is deferred to a judge, not
+        # silently dropped as a redelivery — for a merge as much as a close.
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
     def test_ignores_non_terminal_actions(self, mock_record: MagicMock) -> None:
@@ -263,18 +368,66 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
+    def test_skips_emit_when_activity_tracking_disabled(self, mock_record: MagicMock) -> None:
+        # Without activity tracking the commits-after-open signal is absent, so the
+        # verdict can't be settled deterministically — defer rather than emit a
+        # possibly-wrong merged_unchanged. No verdict is claimed either.
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch("sentry.analytics.record")
+    def test_skips_emit_when_no_seer_access(self, mock_record: MagicMock) -> None:
+        # Without Seer access, activity rows are not written, so the commits-after-open
+        # signal is absent and select_verdict must defer — same invariant as flag-off.
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch("sentry.analytics.record")
     def test_skips_untracked_pr(self, mock_record: MagicMock) -> None:
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        # No verdict is claimed for an untracked PR, so the redelivery guard stays open.
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
     @patch("sentry.analytics.record")
-    def test_redelivery_emits_each_time(self, mock_record: MagicMock) -> None:
-        # Emission is stateless — it does not dedupe webhook redeliveries; that
-        # guard lives at the terminal-event/PR-status check, not here.
+    def test_untracked_pr_emits_once_attribution_lands(self, mock_record: MagicMock) -> None:
+        # An untracked PR claims no verdict; once attribution arrives (e.g. a Seer
+        # backfill), a later delivery still emits — the claim was never burned.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+        )
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+
+    @patch("sentry.analytics.record")
+    def test_redelivery_dropped_after_first_terminal_event(self, mock_record: MagicMock) -> None:
         self._call(merged=True)
         self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 2
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_judge_needed_pr_never_emits_on_redelivery(self, mock_record: MagicMock) -> None:
+        # With pr-metrics-judge off, a judge-needed PR writes no verdict, so every
+        # redelivery re-evaluates to "needs judge" and skips — never emitting here.
+        self._add_synchronize()
+        self._call(merged=True)
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch(f"{MODULE}.logger")
     @patch("sentry.analytics.record")
@@ -379,7 +532,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert PullRequestMetrics.objects.count() == 0
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):
     def setUp(self) -> None:
@@ -731,8 +884,14 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_activity(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call(action="opened")
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -858,8 +1017,14 @@ class HandleCommentForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["is_review"] is False
 
+    def test_no_seer_access_skips_comment(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -950,8 +1115,14 @@ class HandleReviewForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_review(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1043,8 +1214,14 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_no_seer_access_skips_review_comment(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
 
-@with_feature("organizations:pr-metrics-activity")
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleReviewThreadForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -1128,3 +1305,288 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
             extra={"repository_id": self.repo.id, "pr_number": 9999},
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_no_seer_access_skips_thread_event(self) -> None:
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature("organizations:pr-metrics-emit")
+@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics-judge", "organizations:gen-ai-features"])
+@cell_silo_test
+class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
+    """The needs-judge branch with pr-metrics-judge on: claim the sentinel and forward."""
+
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+        )
+        # A merge with a later commit can't be settled deterministically, so the
+        # emission path defers it to a judge.
+        PullRequestMetrics.objects.create(pull_request=self.pull_request, additions=1)
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="sync-1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={},
+        )
+
+    def _call(self) -> None:
+        self.pull_request.update(
+            head_commit_sha=HEAD_SHA,
+            opened_at=OPENED_AT,
+            closed_at=CLOSED_AT,
+            merged_at=CLOSED_AT,
+            merge_commit_sha=MERGE_SHA,
+            draft=False,
+        )
+        handle_emission(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "closed", "pull_request": {"number": 42}},
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_claims_sentinel_and_enqueues_forward(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        self._call()
+        # No row is emitted from the webhook; Seer's callback emits it later.
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "judge_in_progress"
+        )
+        mock_delay.assert_called_once_with(
+            pull_request_id=self.pull_request.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+        )
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_redelivery_forwards_only_once(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        self._call()
+        self._call()
+        # The sentinel claim coalesces the redelivery, so Seer is forwarded to once.
+        assert mock_delay.call_count == 1
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_forwards_when_metrics_row_missing(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # A missing metrics row defers to a judge; the forward path creates the row
+        # so it can claim the sentinel and still forward.
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
+        self._call()
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "judge_in_progress"
+        )
+        mock_delay.assert_called_once()
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_enqueue_failure_releases_claim_for_retry(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # If the claim commits but the task enqueue fails, the sentinel is released
+        # so the PR doesn't stick in judge_in_progress with no task to settle it.
+        mock_delay.side_effect = RuntimeError("broker down")
+        self._call()
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+        # A later webhook redelivery can then re-forward.
+        mock_delay.side_effect = None
+        self._call()
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "judge_in_progress"
+        )
+        assert mock_delay.call_count == 2
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_untracked_pr_is_not_forwarded(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # The tracking gate runs before the judge fork: an untracked PR is dropped
+        # without claiming the sentinel or forwarding.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        self._call()
+        assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_no_seer_access_skips_judge(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # Without Seer access the judge path is not eligible regardless of attribution.
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
+        assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_ineligible_attribution_skips_judge(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # Only SENTRY_APP and SEER_DELEGATED_* attributions qualify for the judge.
+        # A PR tracked only via MCP or REFERENCED_ISSUE is skipped.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
+        self._call()
+        assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+
+
+@with_feature(["organizations:pr-metrics-attribution", "organizations:gen-ai-features"])
+@cell_silo_test
+class HandleDelegatedAgentDetectionTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+        self.group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group=self.group,
+            project=self.project,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+    def _call(
+        self,
+        *,
+        action: str = "opened",
+        login: str = "a-human",
+        user_id: int = 999,
+        head_ref: str = "feature/x",
+        head_sha: str = "headsha123",
+        number: int = 42,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "number": number,
+            "user": {"id": user_id, "login": login},
+            "head": {"ref": head_ref, "sha": head_sha},
+        }
+        handle_attribution(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": action, "pull_request": payload},
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+    def _mock_count(self) -> Any:
+        return patch("sentry_sdk.metrics.count")
+
+    # --- Candidate detection fires the signal ---
+
+    def test_claude_branch_prefix_detects_candidate(self) -> None:
+        with self._mock_count() as mock_count:
+            self._call(head_ref="claude/fix-the-bug")
+
+        mock_count.assert_called_once_with(
+            "pr_metrics.delegated_agent.seer_match.not_implemented",
+            1,
+            attributes={"provider_hint": "claude_code"},
+        )
+
+    def test_copilot_branch_prefix_detects_candidate(self) -> None:
+        with self._mock_count() as mock_count:
+            self._call(head_ref="copilot/fix-the-bug")
+
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "github_copilot"
+
+    def test_copilot_author_login_detects_candidate(self) -> None:
+        # Copilot opens PRs from a non-prefixed branch but as a distinct bot user.
+        with self._mock_count() as mock_count:
+            self._call(login="copilot-swe-agent[bot]", head_ref="some-branch")
+
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "github_copilot"
+
+    def test_branch_prefix_takes_precedence_over_author(self) -> None:
+        with self._mock_count() as mock_count:
+            self._call(login="copilot-swe-agent[bot]", head_ref="claude/fix")
+
+        assert mock_count.call_count == 1
+        assert mock_count.call_args.kwargs["attributes"]["provider_hint"] == "claude_code"
+
+    # --- Non-candidates do not fire ---
+
+    def test_non_candidate_branch_and_author_does_not_detect(self) -> None:
+        with self._mock_count() as mock_count:
+            self._call(login="a-human", head_ref="feature/x")
+
+        mock_count.assert_not_called()
+
+    def test_non_opened_action_does_not_detect(self) -> None:
+        for action in ("synchronize", "closed", "reopened", "edited", "labeled"):
+            with self._mock_count() as mock_count:
+                self._call(action=action, head_ref="claude/fix")
+                mock_count.assert_not_called()
+
+    # --- Gating ---
+
+    def test_attribution_flag_off_does_not_detect(self) -> None:
+        with self._mock_count() as mock_count:
+            with self.feature({"organizations:pr-metrics-attribution": False}):
+                self._call(head_ref="claude/fix")
+
+        mock_count.assert_not_called()
+
+    def test_no_seer_access_via_flag_does_not_detect(self) -> None:
+        with self._mock_count() as mock_count:
+            with self.feature({"organizations:gen-ai-features": False}):
+                self._call(head_ref="claude/fix")
+
+        mock_count.assert_not_called()
+
+    def test_no_seer_access_via_hidden_ai_features_does_not_detect(self) -> None:
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        with self._mock_count() as mock_count:
+            self._call(head_ref="claude/fix")
+
+        mock_count.assert_not_called()
+
+    def test_missing_pr_does_not_detect(self) -> None:
+        # Candidate gate passes, but no PullRequest row exists for this number.
+        with self._mock_count() as mock_count:
+            self._call(head_ref="claude/fix", number=9999)
+
+        mock_count.assert_not_called()
+
+    def test_no_linked_groups_does_not_detect(self) -> None:
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=self.pr.id,
+        ).delete()
+
+        with self._mock_count() as mock_count:
+            self._call(head_ref="claude/fix")
+
+        mock_count.assert_not_called()

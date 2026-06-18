@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.search.snuba.executors import (
     DEFAULT_TRENDS_WEIGHTS,
@@ -21,6 +22,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
@@ -376,6 +378,136 @@ class TestFallbackBehavior(PostgresSortTestBase):
         assert len(results) == 3
 
 
+class TestRecommendedV2Sort(PostgresSortTestBase):
+    """recommended_v2: Snuba recommended base score plus additive boosts for viewer
+    assignment, Seer fixability, and Seer agent progress.
+
+    The base fixture's groups have events ~8d, ~5d, and ~3d old, so the recency-driven
+    base score orders them [2, 1, 0] with small (<0.03) differences -- each boost below
+    is large enough to override that.
+    """
+
+    def _query(self, actor=None):
+        return list(
+            self.backend.query(
+                [self.project],
+                search_filters=[],
+                environments=None,
+                count_hits=False,
+                sort_by="recommended_v2",
+                date_from=None,
+                date_to=None,
+                cursor=None,
+                actor=actor,
+                referrer=Referrer.TESTING_TEST,
+            )
+        )
+
+    def test_assignment_ordering(self):
+        team = self.create_team(organization=self.organization, members=[self.user])
+        GroupAssignee.objects.assign(self.groups[0], self.user)
+        GroupAssignee.objects.assign(self.groups[1], team)
+
+        # Without a viewer, assignment contributes nothing and recency wins.
+        assert self._query(actor=None) == [self.groups[2], self.groups[1], self.groups[0]]
+        # Individual assignment outranks team assignment outranks unassigned.
+        assert self._query(actor=self.user) == [self.groups[0], self.groups[1], self.groups[2]]
+
+    def test_fixability_boost(self):
+        self.groups[0].update(seer_fixability_score=1.0)
+
+        results = self._query(actor=self.user)
+        assert results[0] == self.groups[0]
+        # Groups without a fixability score are still included, just unboosted.
+        assert set(results) == set(self.groups)
+
+    def test_agent_progress_boost(self):
+        # A later Seer stage outranks an earlier one, which outranks no agent activity.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
+
+        assert self._query(actor=self.user) == [self.groups[0], self.groups[1], self.groups[2]]
+
+    def test_agent_boost_reset_by_regression(self):
+        # groups[0] reached PR-created but then regressed: that progress is stale.
+        self.create_group_activity(
+            group=self.groups[0],
+            type=ActivityType.SEER_PR_CREATED.value,
+            datetime=before_now(hours=2),
+        )
+        self.create_group_activity(
+            group=self.groups[0],
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=before_now(hours=1),
+        )
+        # groups[1] reached a (lesser) stage after its regression: still counts.
+        self.create_group_activity(
+            group=self.groups[1],
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=before_now(hours=2),
+        )
+        self.create_group_activity(
+            group=self.groups[1],
+            type=ActivityType.SEER_RCA_COMPLETED.value,
+            datetime=before_now(hours=1),
+        )
+
+        assert self._query(actor=self.user) == [self.groups[1], self.groups[2], self.groups[0]]
+
+
+class TestProgressSort(PostgresSortTestBase):
+    """progress: primary sort by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
+    assigned > identified), secondary by last_seen.
+
+    The base fixture's groups have events ~8d, ~5d, and ~3d old, so on last_seen alone they
+    order [2, 1, 0] (newest first).
+    """
+
+    def _query(self):
+        return list(
+            self.backend.query(
+                [self.project],
+                search_filters=[],
+                environments=None,
+                count_hits=False,
+                sort_by="progress",
+                date_from=None,
+                date_to=None,
+                cursor=None,
+                referrer=Referrer.TESTING_TEST,
+            )
+        )
+
+    def test_rank_outranks_last_seen(self):
+        # Give the oldest group the furthest progress and the newest group none: rank must
+        # invert the last_seen ordering.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
+        # groups[2] has no progress activity -> identified (lowest rank).
+        assert self._query() == [self.groups[0], self.groups[1], self.groups[2]]
+
+    def test_last_seen_breaks_ties_within_rank(self):
+        # groups[0] and groups[1] are both diagnosed; the more recently seen (groups[1])
+        # sorts first. groups[2] stays identified and sorts last.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
+        assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
+
 class TestDefaultPostgresSortStrategies(TestCase):
-    def test_returns_empty(self):
-        assert PostgresSnubaQueryExecutor().postgres_sort_strategies == {}
+    def test_recommended_v2_registered(self):
+        strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
+        assert set(strategies) == {"recommended_v2", "progress"}
+        strategy = strategies["recommended_v2"]
+        assert strategy.snuba_aggregations == ["recommended"]
+        assert strategy.exclude_null_postgres is False
+        assert set(strategy.signal_resolvers) == {"assignment", "agent"}
+
+    def test_progress_registered(self):
+        strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
+        strategy = strategies["progress"]
+        assert strategy.snuba_aggregations == ["last_seen"]
+        assert set(strategy.signal_resolvers) == {"progress_rank"}
+        # progress maps to last_seen in sort_strategies so the chunked Snuba path has a
+        # real aggregation to fall back to on candidate overflow.
+        assert PostgresSnubaQueryExecutor.sort_strategies["progress"] == "last_seen"

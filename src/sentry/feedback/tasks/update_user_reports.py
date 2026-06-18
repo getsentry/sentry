@@ -98,6 +98,7 @@ def update_user_reports(
                 events.extend(events_chunk)
             except Exception:
                 sentry_sdk.set_tag("update_user_reports.eventstore_query_failed", True)
+                sentry_sdk.set_attribute("update_user_reports.eventstore_query_failed", True)
                 logger.exception(
                     "update_user_reports.eventstore_query_failed",
                     extra={"project_id": project_id, "start": start, "end": end},
