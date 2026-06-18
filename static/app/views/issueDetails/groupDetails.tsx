@@ -52,6 +52,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import {GroupContextProvider} from 'sentry/views/issueDetails/groupContext';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
@@ -832,21 +833,23 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   return (
-    <TourContextProvider<IssueDetailsTour>
-      tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isCompleted={isIssueDetailsTourCompleted}
-      orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
-      TourContext={IssueDetailsTourContext}
-    >
-      <IssueDetailsTourModal />
-      <GroupDetailsContent
-        project={projectWithFallback}
-        group={props.group}
-        event={props.event ?? injectedEvent}
+    <GroupContextProvider group={props.group}>
+      <TourContextProvider<IssueDetailsTour>
+        tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
+        isCompleted={isIssueDetailsTourCompleted}
+        orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
+        TourContext={IssueDetailsTourContext}
       >
-        {props.children}
-      </GroupDetailsContent>
-    </TourContextProvider>
+        <IssueDetailsTourModal />
+        <GroupDetailsContent
+          project={projectWithFallback}
+          group={props.group}
+          event={props.event ?? injectedEvent}
+        >
+          {props.children}
+        </GroupDetailsContent>
+      </TourContextProvider>
+    </GroupContextProvider>
   );
 }
 

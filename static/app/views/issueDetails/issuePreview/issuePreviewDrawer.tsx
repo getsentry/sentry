@@ -17,6 +17,7 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {GroupContextProvider} from 'sentry/views/issueDetails/groupContext';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -54,9 +55,11 @@ export function IssuePreviewDrawer({groupId}: IssuePreviewDrawerProps) {
         {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
-          <ErrorBoundary mini>
-            <IssuePreviewContent group={group} project={project} />
-          </ErrorBoundary>
+          <GroupContextProvider group={group}>
+            <ErrorBoundary mini>
+              <IssuePreviewContent group={group} project={project} />
+            </ErrorBoundary>
+          </GroupContextProvider>
         )}
       </DrawerBody>
     </Fragment>
