@@ -42,7 +42,7 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   );
 }
 
-export function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
+function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   return (
     <TopBar.Slot name="title">
       <DetectorDetailsBreadcrumbs detector={detector} />
