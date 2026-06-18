@@ -14,7 +14,11 @@ function setupCells() {
   ] as any);
 }
 
-function renderGrid(query?: string, extraQuery: Record<string, string> = {}) {
+function renderGrid(
+  query?: string,
+  extraQuery: Record<string, string> = {},
+  extraProps: Record<string, any> = {}
+) {
   return render(
     <ResultGrid
       inPanel
@@ -26,6 +30,7 @@ function renderGrid(query?: string, extraQuery: Record<string, string> = {}) {
       method="GET"
       columns={[<th key="name">Customer</th>]}
       columnsForRow={(row: any) => [<td key="name">{row.name}</td>]}
+      {...extraProps}
     />,
     {
       initialRouterConfig: {
@@ -118,6 +123,55 @@ describe('ResultGrid region probing', () => {
     renderGrid('acme', {cursor: '0:100:0'});
 
     expect(await screen.findByText('No results')).toBeInTheDocument();
+    expect(deRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
+  });
+
+  it('probes other regions when only a similar (non-exact) slug is returned', async () => {
+    const exactMatchQuery = (row: any, query: string) => row.slug === query;
+
+    // The current region returns a similar org, but not the exact slug.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme Inc', slug: 'acme-inc'}],
+    });
+    // The exact org lives in the de region.
+    const deRequest = MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Acme', slug: 'acme'}],
+    });
+
+    renderGrid('acme', {}, {exactMatchQuery});
+
+    expect(await screen.findByRole('button', {name: 'View in de'})).toBeInTheDocument();
+    // The hint text is split across a <span>/<strong>, so match on the
+    // combined textContent rather than a single text node.
+    expect(
+      screen.getByText(
+        (_content, element) => /No exact match in/.test(element?.textContent ?? ''),
+        {selector: 'span'}
+      )
+    ).toBeInTheDocument();
+    // The similar local result is still shown.
+    expect(screen.getByText('Acme Inc')).toBeInTheDocument();
+    await waitFor(() => expect(deRequest).toHaveBeenCalled());
+  });
+
+  it('does not probe when the exact slug is returned in the current region', async () => {
+    const exactMatchQuery = (row: any, query: string) => row.slug === query;
+
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme', slug: 'acme'}],
+    });
+    const deRequest = MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Acme', slug: 'acme'}],
+    });
+
+    renderGrid('acme', {}, {exactMatchQuery});
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
     expect(deRequest).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
   });

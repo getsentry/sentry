@@ -83,6 +83,12 @@ export function CustomerGrid(props: Props) {
       inPanel
       isCellScoped
       probeAcrossRegions
+      // An exact match is an org whose slug equals the searched term, so we can
+      // surface the cross-region hint even when only similar slugs come back in
+      // the current region. Org slugs are always lower-cased.
+      exactMatchQuery={(row: Subscription, query: string) =>
+        row.slug === query.toLowerCase()
+      }
       path="/_admin/customers/"
       method="GET"
       columns={[
