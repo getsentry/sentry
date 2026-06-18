@@ -17,8 +17,8 @@ interface PrIterationFeedbackFormProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
   onClose?: () => void;
-  runId?: number;
   referrer?: string;
+  runId?: number;
 }
 
 export function PrIterationFeedbackForm({
