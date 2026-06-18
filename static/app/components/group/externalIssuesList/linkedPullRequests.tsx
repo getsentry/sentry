@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {GroupActivityType, type Group} from 'sentry/types/group';
 import type {
@@ -101,8 +102,16 @@ function LinkedPullRequestRow({
                 {pullRequest.repository.name}
               </Text>
             </PullRequestTitle>
-            <Flex align="center">
+            <Flex align="center" gap="xs">
               <PullRequestStatusBadge status={pullRequest.status} />
+              <Text as="span" size="sm" variant="muted">
+                <TimeSince
+                  date={pullRequest.dateLinked}
+                  suffix={t('ago')}
+                  tooltipPrefix={t('Linked')}
+                  unitStyle="short"
+                />
+              </Text>
             </Flex>
           </Flex>
         </Grid>
