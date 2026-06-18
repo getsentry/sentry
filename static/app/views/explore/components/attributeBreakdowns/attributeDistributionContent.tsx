@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,10 +12,9 @@ import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,23 +69,20 @@ export function AttributeDistribution() {
     isLoading: isCohortCountLoading,
     error: cohortCountError,
     refetch: refetchCohortCount,
-  } = useApiQuery<{data: Array<{'count()': number}>}>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery(
+    apiOptions.as<{data: Array<{'count()': number}>}>()(
+      '/organizations/$organizationIdOrSlug/events/',
       {
+        path: {organizationIdOrSlug: organization.slug},
+        staleTime: 0,
         query: {
           ...cohortCountEventView.getEventsAPIPayload(location),
           per_page: 1,
           disableAggregateExtrapolation: '1',
           sampling: SAMPLING_MODE.NORMAL,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
+      }
+    )
   );
 
   const cohortCount = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
