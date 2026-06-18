@@ -4,7 +4,7 @@ import os
 from django.conf import settings
 from django.core.cache import cache
 from taskbroker_client.app import TaskbrokerApp
-from taskbroker_client.metrics import DatadogMetrics
+from taskbroker_client.metrics import DatadogMetrics, MetricsBackend
 
 from sentry.taskworker.adapters import (
     DjangoCacheAtMostOnceStore,
@@ -34,7 +34,7 @@ def _extract_metrics_config() -> tuple[str | None, int | None]:
     return host, port
 
 
-metrics_class = SentryMetricsBackend()
+metrics_class: MetricsBackend = SentryMetricsBackend()
 
 if os.getenv("USE_TASKWORKER_METRICS", None) == "1":
     host, port = _extract_metrics_config()
