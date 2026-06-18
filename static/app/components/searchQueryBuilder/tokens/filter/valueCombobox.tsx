@@ -608,7 +608,6 @@ function ItemCheckbox({
 
             trackAnalytics('search.multi_value_selected', {
               ...analyticsData,
-              filter_value: value,
               selected: !currentlySelected,
               selected_count: currentlySelected ? selectedCount - 1 : selectedCount + 1,
             });

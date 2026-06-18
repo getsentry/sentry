@@ -60,7 +60,6 @@ export type SearchEventParameters = {
   'search.multi_value_selected': Omit<SearchEventBase, 'query'> & {
     filter_key: string;
     filter_operator: string;
-    filter_value: string;
     filter_value_type: string;
     selected: boolean;
     selected_count: number;

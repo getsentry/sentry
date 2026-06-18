@@ -3313,7 +3313,6 @@ describe('SearchQueryBuilder', () => {
           expect.objectContaining({
             search_source: 'ourlogs',
             filter_key: 'browser.name',
-            filter_value: 'Chrome',
             selected: true,
             selected_count: 2,
           })
@@ -3343,7 +3342,6 @@ describe('SearchQueryBuilder', () => {
           expect.objectContaining({
             search_source: 'ourlogs',
             filter_key: 'browser.name',
-            filter_value: 'Chrome',
             selected: false,
             selected_count: 1,
           })
