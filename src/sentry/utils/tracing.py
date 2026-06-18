@@ -26,8 +26,6 @@ def start_span(
     """
     span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
     if span_streaming:
-        previous_custom_sampling_context = None
-
         attributes = {}
         if op is not None:
             attributes["sentry.op"] = op
@@ -36,6 +34,7 @@ def start_span(
             attributes["sentry.span.source"] = source
 
         if sampled is not False and transaction:
+            previous_custom_sampling_context = None
             if custom_sampling_context is not None:
                 scope = sentry_sdk.get_current_scope()
                 propagation_context = scope.get_active_propagation_context()
