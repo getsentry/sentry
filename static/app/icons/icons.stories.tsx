@@ -710,10 +710,19 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'resolved',
+        id: 'circleCheckmark',
         groups: ['status'],
-        keywords: ['check', 'done', 'complete', 'success', 'fixed', 'circle', 'progress'],
-        name: 'Resolved',
+        keywords: [
+          'check',
+          'done',
+          'complete',
+          'success',
+          'fixed',
+          'circle',
+          'progress',
+          'resolved',
+        ],
+        name: 'CircleCheckmark',
         defaultProps: {},
       },
       {

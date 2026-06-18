@@ -1,10 +1,10 @@
 import type {ReactNode} from 'react';
 
 import {IconCircle} from 'sentry/icons/iconCircle';
+import {IconCircleCheckmark} from 'sentry/icons/iconCircleCheckmark';
 import {IconPieHalf} from 'sentry/icons/iconPieHalf';
 import {IconPieQuarter} from 'sentry/icons/iconPieQuarter';
 import {IconPieThreeQuarters} from 'sentry/icons/iconPieThreeQuarters';
-import {IconResolved} from 'sentry/icons/iconResolved';
 import {t} from 'sentry/locale';
 
 export enum ProgressState {
@@ -35,7 +35,7 @@ const PROGRESS_STATE_ICONS: Record<ProgressState, ReactNode> = {
   [ProgressState.ASSIGNED]: <IconPieQuarter size="md" variant="muted" />,
   [ProgressState.DIAGNOSED]: <IconPieHalf size="md" variant="warning" />,
   [ProgressState.FIX_PROPOSED]: <IconPieThreeQuarters size="md" variant="success" />,
-  [ProgressState.FIX_APPLIED]: <IconResolved size="md" variant="success" />,
+  [ProgressState.FIX_APPLIED]: <IconCircleCheckmark size="md" variant="success" />,
 };
 
 export function getProgressIcon(state: ProgressState | null): ReactNode {
