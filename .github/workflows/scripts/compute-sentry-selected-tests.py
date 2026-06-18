@@ -56,6 +56,9 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"(^|/)conftest\.py$"),
     "src/sentry/runner/initializer.py",
     "src/sentry/constants.py",
+    # column-alias enum evaluated at import time; used indirectly by every
+    # Snuba query builder so coverage never records per-test contexts for it
+    "src/sentry/snuba/events.py",
     # option defaults registered at startup via initialize_app()
     re.compile(r"^src/sentry/options/"),
     # feature flags registered via manager.add() at import time

@@ -91,6 +91,15 @@ class TestSeerRpc(APITestCase):
         assert "features" in response.data
         assert isinstance(response.data["features"], list)
 
+    def test_validate_llm_proxy_key(self) -> None:
+        path = self._get_path("validate_llm_proxy_key")
+        data: dict[str, Any] = {"args": {"api_key": "test-key"}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert response.data["valid"] is True
+
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
         path = self._get_path("get_trace_waterfall")

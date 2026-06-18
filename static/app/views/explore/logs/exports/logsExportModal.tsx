@@ -14,7 +14,6 @@ import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
 import {
@@ -138,12 +137,7 @@ export function LogsExportModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Text>
-            {t(
-              'If you select more than %s rows or to export all columns of data your file will be sent to your email address.',
-              formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
-            )}
-          </Text>
+          <Text>{t('Large data export files will be sent to your email address.')}</Text>
           <form.AppField name="columns">
             {field => (
               <field.Layout.Stack label={t('All Columns?')}>
