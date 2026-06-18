@@ -2,10 +2,10 @@ import {useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {ResponseMeta} from 'sentry/types/api';
+import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {createLogDownloadFilename} from 'sentry/views/explore/logs/createLogDownloadFilename';
@@ -80,21 +80,21 @@ export function useDataExport() {
       queryInfo,
       queryType,
     }: DataExportPayload) => {
-      const [data, , response] = await QUERY_API_CLIENT.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/data-export/', {
+      const [data, , response] = await fetchMutation<ApiResult>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/data-export/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
+        options: {
           includeAllArgs: true,
-          method: 'POST',
-          data: {
-            format,
-            limit,
-            query_info: queryInfo,
-            query_type: queryType,
-          },
-        }
-      );
+        },
+        method: 'POST',
+        data: {
+          format,
+          limit,
+          query_info: queryInfo,
+          query_type: queryType,
+        },
+      });
 
       return {data: data as DataExportData, format, response};
     },

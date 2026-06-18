@@ -140,7 +140,10 @@ type ApiMutationVariables = {
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
   data?: Record<string, unknown>;
-  options?: Pick<QueryKeyEndpointOptions, 'query' | 'headers' | 'host'>;
+  options?: Pick<
+    QueryKeyEndpointOptions,
+    'includeAllArgs' | 'query' | 'headers' | 'host'
+  >;
 };
 
 /**
@@ -152,6 +155,7 @@ export function fetchMutation<TResponseData = unknown>(
   const {method, url, options, data} = variables;
 
   return QUERY_API_CLIENT.requestPromise(url, {
+    includeAllArgs: options?.includeAllArgs,
     method,
     query: options?.query,
     headers: options?.headers,
